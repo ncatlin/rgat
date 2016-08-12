@@ -1,0 +1,114 @@
+/*   _____                           
+ * /\  _  \                     __    
+ * \ \ \_\ \      __    __  __ /\_\   
+ *  \ \  __ \   /'_ `\ /\ \/\ \\/\ \  
+ *   \ \ \/\ \ /\ \_\ \\ \ \_\ \\ \ \ 
+ *    \ \_\ \_\\ \____ \\ \____/ \ \_\
+ *     \/_/\/_/ \/____\ \\/___/   \/_/
+ *                /\____/             
+ *                \_/__/              
+ *
+ * Copyright (c) 2011 Joshua Larouche
+ * 
+ *
+ * License: (BSD)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of Agui nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "Agui/Point.hpp"
+
+namespace agui
+{
+	int Point::getX() const
+	{
+		return x;
+	}
+
+	int Point::getY() const
+	{
+		return y;
+	}
+
+	void Point::setX( int x )
+	{
+		this->x = x;
+	}
+
+	void Point::setY( int y )
+	{
+		this->y = y;
+	}
+
+	void Point::set( int x, int y )
+	{
+		this->x = x;
+		this->y = y;
+	}
+
+	void Point::set( float x, float y )
+	{
+		this->x = (int)x;
+		this->y = (int)y;
+	}
+
+	Point::Point( int x, int y )
+	{
+		set(x,y);
+	}
+
+	Point::Point()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	std::string Point::toString() const
+	{
+		std::stringstream result;
+		result << "{";
+		result << x;
+		result << ",";
+		result << y;
+		result << "}";
+
+		return result.str();
+	}
+
+	std::string Point::xToString() const
+	{
+		std::stringstream result;
+		result << x;
+		return result.str();
+	}
+
+	std::string Point::yToString() const
+	{
+		std::stringstream result;
+		result << y;
+		return result.str();
+	}
+
+}
