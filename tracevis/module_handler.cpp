@@ -65,7 +65,7 @@ void module_handler::PID_thread()
 				TID_thread->TID = TID;
 				TID_thread->piddata = piddata;
 
-				thread_graph_data *tgraph = new thread_graph_data;
+				thread_graph_data *tgraph = new thread_graph_data(&piddata->disassembly);
 
 				tgraph->tid = TID; //todo: dont need this
 				if (!obtainMutex(piddata->graphsListMutex, "Module Handler")) return;

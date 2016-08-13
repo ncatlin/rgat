@@ -110,3 +110,5 @@
 //offset the instruction text on the drawn node
 #define INS_X_OFF 5
 #define INS_Y_OFF -6
+
+#define ANIMATION_FADE_RATE 0.05

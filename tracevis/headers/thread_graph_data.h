@@ -15,9 +15,14 @@ private:
 	GRAPH_DISPLAY_DATA *mainvertsdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 	map<unsigned int, node_data> vertDict; //node id to node data
+	map <unsigned long, INS_DATA*> *disassembly;
+	unsigned int lastAnimatedBB = 0;
+	unsigned int firstAnimatedBB = 0;
+	vector<pair<unsigned int, unsigned int>> activeEdgeList;
+	vector <unsigned int> activeNodeList;
 
 public:
-	thread_graph_data();
+	thread_graph_data(map <unsigned long, INS_DATA*> *disassembly);
 	~thread_graph_data();
 	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
@@ -34,19 +39,21 @@ public:
 	map<unsigned int, node_data>::iterator get_vertStart() { return vertDict.begin(); }
 	map<unsigned int, node_data>::iterator get_vertEnd() { return vertDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
-	void animate_to_last(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs);
+	void animate_latest( bool stepBBs);
+	void set_block_alpha(unsigned long firstInstruction, unsigned int quantity,
+		GLfloat *nodecols, GLfloat *edgecols,  float alpha);
 
 	void reset_mainlines();
-	node_data *derive_anim_node(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs);
-	void advance_anim_instructions(map <unsigned long, INS_DATA*> *disassembly, int stepSize);
-	void decrease_anim_instructions(map <unsigned long, INS_DATA*> *disassembly, int stepSize);
-	void performStep(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs, int stepSize);
-	unsigned int updateAnimation(map <unsigned long, INS_DATA*> *disassembly, unsigned int updateSize, 
-		bool stepBBs, bool animationMode);
+	node_data *derive_anim_node(bool stepBBs);
+	void advance_anim_instructions(int stepSize);
+	void decrease_anim_instructions(int stepSize);
+	void performStep(bool stepBBs, int stepSize);
+	unsigned int updateAnimation(unsigned int updateSize, bool stepBBs, bool animationMode);
 	node_data * get_active_node();
-	void update_animation_render(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs);
-	void clear_final_BBs(map <unsigned long, INS_DATA*> *disassembly);
-	void reset_animation(map <unsigned long, INS_DATA*> *disassembly);
+	void update_animation_render(bool stepBBs);
+	void clear_final_BBs();
+	void reset_animation();
+	void darken_animation(float alphaDelta);
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 
@@ -61,9 +68,9 @@ public:
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
 
-	void render_last_instructions(map <unsigned long, INS_DATA*> *disassembly);
-	void render_last_BBs(map <unsigned long, INS_DATA*> *disassembly);
-	void clear_graph(map <unsigned long, INS_DATA*> *disassembly);
+	void render_last_instructions();
+	void render_last_BBs();
+
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
 	vector<pair<int, long>> externList; //list of external calls

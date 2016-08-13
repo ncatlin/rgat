@@ -451,13 +451,10 @@ int main(int argc, char **argv)
 				{
 					if (clientstate.animationUpdate)
 					{
-						int result = graph->updateAnimation(&clientstate.activePid->disassembly,
-							clientstate.animationUpdate, clientstate.stepBBs,
+						int result = graph->updateAnimation(clientstate.animationUpdate, clientstate.stepBBs,
 							clientstate.modes.animation);
 
-						if (!clientstate.modes.animation)
-							clientstate.animationUpdate = 0;
-						else
+						if (clientstate.modes.animation)
 						{
 							if (result == ANIMATION_ENDED)
 							{
@@ -466,8 +463,11 @@ int main(int argc, char **argv)
 								widgets->controlWindow->notifyAnimFinished();
 							}
 							else
-								graph->update_animation_render(&clientstate.activePid->disassembly, clientstate.stepBBs);
+								graph->update_animation_render(clientstate.stepBBs);
 						}
+						else
+							clientstate.animationUpdate = 0;
+					
 					}
 					//the draw_text in the graph drawing screws this up if we do it afterwards
 					draw_anim_line(graph->get_active_node(), graph);
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
 					{
 						if (graph->terminated)
 						{
-							graph->reset_animation(&clientstate.activePid->disassembly);
+							graph->reset_animation();
 							clientstate.modes.animation = false;
 							graph->terminated = false;
 						}
@@ -492,7 +492,7 @@ int main(int argc, char **argv)
 					}
 					else {
 						clientstate.modes.animation = true;
-						graph->animate_to_last(&clientstate.activePid->disassembly, clientstate.stepBBs);
+						graph->animate_latest(clientstate.stepBBs);
 						display_graph(&clientstate, graph);
 						draw_anim_line(graph->get_active_node(), graph);
 					}

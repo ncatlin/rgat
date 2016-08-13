@@ -436,7 +436,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata,
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoi(tidstring, &TID, 10)) return false;
-		thread_graph_data *graph = new thread_graph_data;
+		thread_graph_data *graph = new thread_graph_data(&piddata->disassembly);
 		piddata->graphs.emplace(TID, graph);
 		graph->tid = TID;
 		graph->pid = piddata->PID;
