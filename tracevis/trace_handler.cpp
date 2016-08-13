@@ -617,6 +617,7 @@ void thread_trace_handler::TID_thread()
 			else
 				printf("\t Thread %d - pipe read failure [thread exit? -closing handler]------------\n",TID);
 			thisgraph->active = false;
+			thisgraph->terminated = true;
 			tmpThreadSave.close();
 			return;
 		}

@@ -46,6 +46,7 @@ public:
 	node_data * get_active_node();
 	void update_animation_render(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs);
 	void clear_final_BBs(map <unsigned long, INS_DATA*> *disassembly);
+	void reset_animation(map <unsigned long, INS_DATA*> *disassembly);
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 
@@ -56,10 +57,12 @@ public:
 	unsigned int tid = 0;
 	unsigned int pid = 0;
 	bool active = true;
+	bool terminated = false;
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
 
-	void render_last(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs);
+	void render_last_instructions(map <unsigned long, INS_DATA*> *disassembly);
+	void render_last_BBs(map <unsigned long, INS_DATA*> *disassembly);
 	void clear_graph(map <unsigned long, INS_DATA*> *disassembly);
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution

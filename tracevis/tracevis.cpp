@@ -472,6 +472,7 @@ int main(int argc, char **argv)
 					//the draw_text in the graph drawing screws this up if we do it afterwards
 					draw_anim_line(graph->get_active_node(), graph);
 				}
+
 				//printf("VertdictsizE: %d\n", graph->vertDict.size());
 				if (clientstate.modes.heatmap)
 					display_big_heatmap(&clientstate);
@@ -480,7 +481,15 @@ int main(int argc, char **argv)
 				else
 				{
 					if (!graph->active)
+					{
+						if (graph->terminated)
+						{
+							graph->reset_animation(&clientstate.activePid->disassembly);
+							clientstate.modes.animation = false;
+							graph->terminated = false;
+						}
 						display_graph(&clientstate, graph);
+					}
 					else {
 						clientstate.modes.animation = true;
 						graph->animate_to_last(&clientstate.activePid->disassembly, clientstate.stepBBs);
@@ -857,8 +866,11 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 				clientstate->stepBBs = false;
 			break;
 		case EV_BTN_SAVE:
-			printf("Saving process %d to file\n", clientstate->activeGraph->pid);
-			saveTrace(clientstate);
+			if (clientstate->activeGraph)
+			{
+				printf("Saving process %d to file\n", clientstate->activeGraph->pid);
+				saveTrace(clientstate);
+			}
 			break;
 		case EV_BTN_LOAD:
 			printf("Opening file dialogue\n");

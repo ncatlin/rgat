@@ -73,6 +73,7 @@ void thread_graph_data::advance_anim_instructions(map <unsigned long, INS_DATA*>
 
 				if (sequenceIndex >= bbsequence.size())
 				{
+					sequenceIndex--;
 					blockInstruction = numInstructions-1;
 					break;
 				}
@@ -289,18 +290,113 @@ void thread_graph_data::clear_final_BBs(map <unsigned long, INS_DATA*> *disassem
 	needVBOReload_active = true;
 }
 
-void thread_graph_data::render_last(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs)
+void thread_graph_data::reset_animation(map <unsigned long, INS_DATA*> *disassembly)
+{
+	sequenceIndex = 0;
+	blockInstruction = 0;
+	if (!vertDict.empty())
+		latest_active_node = &vertDict.at(0);
+	clear_graph(disassembly);
+}
+
+void thread_graph_data::render_last_instructions(map <unsigned long, INS_DATA*> *disassembly)
+{
+	GLfloat *ncol = animvertsdata->acquire_col();
+	GLfloat *ecol = animlinedata->acquire_col();
+	pair<unsigned long, int> startBlock_Size = bbsequence[sequenceIndex];
+	unsigned long currentAddr = startBlock_Size.first;
+	int blockInstructions = startBlock_Size.second;
+
+	//iterate through blocks to get the -ANIMATION_WIDTH instruction in the sequence
+	int remainingInstructions = ANIMATION_WIDTH;
+	INS_DATA *targetins;
+	while (remainingInstructions)
+	{
+		if (blockInstructions >= remainingInstructions)
+		{
+			blockInstruction = blockInstructions - remainingInstructions;
+			for (int i = 0; i < blockInstruction; i++)
+			{
+				targetins = disassembly->at(currentAddr);
+				currentAddr += targetins->numbytes;
+			}
+			break;
+		}
+		remainingInstructions -= blockInstructions;
+		sequenceIndex--;
+		pair<unsigned long, int> startBlock_Size = bbsequence[sequenceIndex];
+		currentAddr = startBlock_Size.first;
+		blockInstructions = startBlock_Size.second;
+	}
+
+	unsigned int lastNodeIdx = 0;
+	unsigned int nextNodeIdx = 0;
+
+	//iterate through instructions to highlight them
+	remainingInstructions = ANIMATION_WIDTH;
+	INS_DATA* currentIns = disassembly->at(currentAddr);
+	unsigned int nodeIdx = currentIns->threadvertIdx[tid];
+	
+	for (remainingInstructions = ANIMATION_WIDTH; remainingInstructions; remainingInstructions--)
+	{
+		//highlight the vert
+		ncol[(nodeIdx * COLELEMS) + 3] = 1;
+
+		if (blockInstruction == blockInstructions-1)
+		{
+			
+			if (sequenceIndex == bbsequence.size()-1) {
+				break;
+			}
+			sequenceIndex++;
+			blockInstruction = 0;
+
+			startBlock_Size = bbsequence.at(sequenceIndex);
+			currentAddr = startBlock_Size.first;
+			blockInstructions = startBlock_Size.second;
+			nextNodeIdx = disassembly->at(currentAddr)->threadvertIdx[tid];
+
+			//highlight the edge linking the blocks together
+			edge_data *linkingEdge = &edgeDict.at(make_pair(nodeIdx, nextNodeIdx));
+			int numEdgeVerts = linkingEdge->vertSize;
+			for (int i = 0; i < numEdgeVerts; i++) {
+				ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
+			}
+			nodeIdx = nextNodeIdx;
+			currentIns = disassembly->at(currentAddr);
+			continue;
+		}
+
+		currentAddr += currentIns->numbytes;
+		INS_DATA* nextIns = disassembly->at(currentAddr);
+		nextNodeIdx = nextIns->threadvertIdx[tid];
+
+		//highlight edges within block
+		edge_data *internalEdge = &edgeDict[make_pair(nodeIdx, nextNodeIdx)];
+		unsigned long edgeColPos = internalEdge->arraypos;
+		ecol[edgeColPos + 3] = (float)1.0;
+		ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
+
+		nodeIdx = nextNodeIdx;
+		currentIns = nextIns;
+		lastNodeIdx = nodeIdx;
+		blockInstruction++;
+	}
+
+	animvertsdata->release_col();
+	animlinedata->release_col();
+	latest_active_node = &vertDict[lastNodeIdx];
+	needVBOReload_active = true;
+}
+
+void thread_graph_data::render_last_BBs(map <unsigned long, INS_DATA*> *disassembly)
 {
 	unsigned int lastNodeIdx = 0;
-	if (stepBBs)
-	{
-		unsigned int animEnd = sequenceIndex;
-		unsigned int animPosition = animEnd - ANIMATION_WIDTH;
+	unsigned int animEnd = sequenceIndex;
+	GLfloat *ncol = animvertsdata->acquire_col();
+	GLfloat *ecol = animlinedata->acquire_col();
 
-		GLfloat *ncol = animvertsdata->acquire_col();
-		GLfloat *ecol = animlinedata->acquire_col();
-		
-	
+		unsigned int animPosition = animEnd - ANIMATION_WIDTH;
 
 		//place active on new active
 		for (; animPosition < animEnd; animPosition++)
@@ -342,13 +438,6 @@ void thread_graph_data::render_last(map <unsigned long, INS_DATA*> *disassembly,
 			lastNodeIdx = nodeIdx;
 		}
 
-	}
-	else
-	{
-		do me with instructions
-	}
-
-
 	animvertsdata->release_col();
 	animlinedata->release_col();
 	latest_active_node = &vertDict[lastNodeIdx];
@@ -364,11 +453,12 @@ combine, season to taste
 void thread_graph_data::animate_to_last(map <unsigned long, INS_DATA*> *disassembly, bool stepBBs)
 {
 	clear_graph(disassembly);
+
+	sequenceIndex = bbsequence.size() - 1;
 	if (stepBBs)
-	{
-		sequenceIndex = bbsequence.size() - 1;
-		render_last(disassembly, stepBBs);
-	}
+		render_last_BBs(disassembly);
+	else
+		render_last_instructions(disassembly);
 	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;
 }
