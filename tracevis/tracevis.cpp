@@ -458,6 +458,7 @@ int main(int argc, char **argv)
 						{
 							if (result == ANIMATION_ENDED)
 							{
+								graph->reset_animation();
 								clientstate.animationUpdate = 0;
 								clientstate.modes.animation = false;
 								widgets->controlWindow->notifyAnimFinished();
@@ -858,12 +859,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case EV_BTN_STEPPING:
 			clientstate->stepBBs = !clientstate->stepBBs;
 			if (!clientstate->stepBBs)
-			{
-				clientstate->stepBBs = true;
 				clientstate->activeGraph->blockInstruction = 0;
-			}
-			else
-				clientstate->stepBBs = false;
 			break;
 		case EV_BTN_SAVE:
 			if (clientstate->activeGraph)

@@ -7,7 +7,7 @@
 //max length to display in diff summary
 #define MAX_DIFF_PATH_LENGTH 50
 #define ANIMATION_ENDED -1
-#define ANIMATION_WIDTH 50
+#define ANIMATION_WIDTH 8
 
 class thread_graph_data
 {
@@ -20,6 +20,8 @@ private:
 	unsigned int firstAnimatedBB = 0;
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
+
+	void advance_sequence();
 
 public:
 	thread_graph_data(map <unsigned long, INS_DATA*> *disassembly);
@@ -54,6 +56,8 @@ public:
 	void clear_final_BBs();
 	void reset_animation();
 	void darken_animation(float alphaDelta);
+	void brighten_instructions(unsigned long firstIns);
+	void brighten_BBs();
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 
@@ -68,8 +72,7 @@ public:
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
 
-	void render_last_instructions();
-	void render_last_BBs();
+
 
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
@@ -117,11 +120,20 @@ public:
 
 	vector <pair<unsigned long,int>> bbsequence;
 	vector <pair<unsigned int, unsigned int>> sequenceEdges;
+	//loop end/loop iterations pair
+	vector <pair<unsigned int, unsigned long>> loopStateList;
+	vector<unsigned int> animLoopProgress;
+	unsigned long animLoopStartIdx= 0;
+	unsigned long animLoopIndex = 0;
+	//number of individual loops
+	unsigned int loopCounter = 0;
 
 	//which BB we are pointing to in the sequence list
 	unsigned long sequenceIndex = 0;
 	//which instruction we are pointing to in the BB
 	unsigned long blockInstruction = 0;
+
+
 
 	bool newanim = true;
 	unsigned int last_anim_start;

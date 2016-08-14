@@ -531,19 +531,16 @@ void thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 {
-	//BB_DATA * targbbptr = 0;
-	//int bbInsIndex = get_BB_at_address(thistag.targaddr, &targbbptr);
-
-
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
 		INS_DATA* firstins = piddata->disassembly[thistag.targaddr];
 		int module = firstins->modnum;
-		std::pair<unsigned int, unsigned int> edgeResult;
 		if (piddata->activeMods[module] == MOD_ACTIVE)
+		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
-		thisgraph->totalInstructions += thistag.insCount;
-		thisgraph->bbsequence.push_back(make_pair(thistag.targaddr,thistag.insCount));
+			thisgraph->totalInstructions += thistag.insCount;
+			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
+		}
 		return;
 	}
 
@@ -663,6 +660,7 @@ void thread_trace_handler::TID_thread()
 				}
 
 				handle_tag(thistag);
+				thisgraph->loopStateList.push_back(make_pair(0,1));
 				continue;
 				
 			}
@@ -677,9 +675,9 @@ void thread_trace_handler::TID_thread()
 				continue;
 			}
 
-			//mark a conditional jump as taken
+			//repeats/loop
 			if (entry[0] == 'R')
-			{
+			{	//loop start
 				if (entry[1] == 'S')
 				{
 					loopState = LOOP_START;
@@ -691,32 +689,25 @@ void thread_trace_handler::TID_thread()
 					printf("start\n");
 					continue;
 				}
-				else if (entry[1] == 'E')
+				
+				else if (entry[1] == 'E') //loop end
 				{
 					vector<TAG>::iterator tagIt;
-					tagIt = loopCache.begin();
+					
 					loopState = LOOP_START;
 
 					unsigned long edgeIdx = thisgraph->sequenceEdges.size();
 
-					for (; tagIt != loopCache.end(); tagIt++)
-						handle_tag(*tagIt, loopCount);
-
-					vector <pair<unsigned int, unsigned int>> internalLoopEdges;
-					for (; edgeIdx < thisgraph->sequenceEdges.size(); edgeIdx++)
-						internalLoopEdges.push_back(thisgraph->sequenceEdges[edgeIdx]);
-					internalLoopEdges.push_back(make_pair(lastVertID, firstLoopVert));
-
-					unsigned long reserveSize = distance(internalLoopEdges.begin(), internalLoopEdges.end())*loopCount;
-					thisgraph->sequenceEdges.reserve(reserveSize);
-					while (loopCount > 0)
+					//put the verts/edges on the graph
+					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 					{
-						thisgraph->sequenceEdges.insert(thisgraph->sequenceEdges.end(), 
-							internalLoopEdges.begin(), internalLoopEdges.end());
-						loopCount--;
+						handle_tag(*tagIt, loopCount);
+						thisgraph->loopStateList.push_back(make_pair(loopCounter, loopCount));
 					}
+
 					loopCache.clear();
 					loopState = NO_LOOP;
+					loopCounter++;
 					continue;
 				}
 			}
