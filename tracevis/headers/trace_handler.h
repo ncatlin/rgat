@@ -20,7 +20,7 @@ public:
 	int TID;
 	thread_graph_data *watchedGraph;
 	PID_DATA *piddata;
-	unsigned int loopCounter = 1;
+	
 
 protected:
 

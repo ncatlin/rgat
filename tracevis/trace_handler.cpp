@@ -702,12 +702,12 @@ void thread_trace_handler::TID_thread()
 					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 					{
 						handle_tag(*tagIt, loopCount);
-						thisgraph->loopStateList.push_back(make_pair(loopCounter, loopCount));
+						thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 					}
 
 					loopCache.clear();
 					loopState = NO_LOOP;
-					loopCounter++;
+					thisgraph->loopCounter++;
 					continue;
 				}
 			}

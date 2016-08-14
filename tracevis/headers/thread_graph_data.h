@@ -8,6 +8,7 @@
 #define MAX_DIFF_PATH_LENGTH 50
 #define ANIMATION_ENDED -1
 #define ANIMATION_WIDTH 8
+#define MINIMUM_FADE_ALPHA 0.2
 
 class thread_graph_data
 {
@@ -142,6 +143,9 @@ public:
 	unsigned long animInstructionIndex = 0;
 	unsigned long totalInstructions = 0;
 
+	unsigned int loopsPlayed = 0;
+	unsigned long loopIteration = 0;
+	unsigned long targetIterations = 0;
 
 	bool needVBOReload_active = false;
 	GLuint activeVBOs[4] = { 0,0,0,0 };

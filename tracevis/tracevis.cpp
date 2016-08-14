@@ -495,7 +495,6 @@ int main(int argc, char **argv)
 						clientstate.modes.animation = true;
 						graph->animate_latest(clientstate.stepBBs);
 						display_graph(&clientstate, graph);
-						draw_anim_line(graph->get_active_node(), graph);
 					}
 				}
 

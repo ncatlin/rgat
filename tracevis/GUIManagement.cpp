@@ -76,9 +76,14 @@ void AnimControls::update(thread_graph_data *graph)
 
 	stringstream stepInfo;
 	if (clientState->stepBBs)
-		stepInfo << graph->sequenceIndex+1 << "/" << graph->bbsequence.size() << " basic blocks";
+		stepInfo << graph->sequenceIndex+1 << "/" << graph->bbsequence.size() << " basic blocks. ";
 	else
-		stepInfo << graph->animInstructionIndex << "/" << graph->totalInstructions-1 << " instructions";
+		stepInfo << graph->animInstructionIndex << "/" << graph->totalInstructions-1 << " instructions. ";
+
+	if (graph->animLoopStartIdx)
+		stepInfo << "Iteration " << graph->loopIteration << "/" << graph->targetIterations << " of ";
+	if (!graph->active)stepInfo << graph->loopsPlayed << "/";
+	stepInfo<<graph->loopCounter << " loops";
 	stepsLabel->setText(stepInfo.str());
 }
 

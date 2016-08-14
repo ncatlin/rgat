@@ -48,25 +48,22 @@ void thread_graph_data::advance_sequence()
 	//just started loop
 	if (!animLoopStartIdx)
 	{
+		targetIterations = loopStateList.at(sequenceIndex).second;
 		animLoopIndex = 0;
 		animLoopStartIdx = sequenceIndex;
-		animLoopProgress.push_back(1);
-		printf("1loop at index %lx[%d], %d/%d its\n", sequenceIndex, animLoopIndex, animLoopProgress.at(animLoopIndex),
-			loopStateList.at(sequenceIndex).second);
+		loopIteration = 1;
+		animLoopProgress.push_back(loopIteration);
 	}
 	//block of first iteration of loop
 	else if (animLoopIndex > animLoopProgress.size() - 1)
 	{
-		animLoopProgress.push_back(1);
-		printf("2loop at index %lx[%d], %d/%d its\n", sequenceIndex, animLoopIndex, animLoopProgress.at(animLoopIndex),
-			loopStateList.at(sequenceIndex).second);
-		
+		loopIteration = 1;
+		animLoopProgress.push_back(loopIteration);
 	}
 	else
 	{
-		animLoopProgress.at(animLoopIndex)++;
-		printf("3loop at index %lx[%d], %d/%d its\n", sequenceIndex, animLoopIndex, animLoopProgress.at(animLoopIndex),
-			loopStateList.at(sequenceIndex).second);
+		loopIteration = animLoopProgress.at(animLoopIndex) +1;
+		animLoopProgress.at(animLoopIndex) = loopIteration;
 	}
 
 	//now set where to go next
@@ -78,6 +75,7 @@ void thread_graph_data::advance_sequence()
 			animLoopIndex++;
 		else
 		{
+			loopsPlayed++;
 			animLoopProgress.clear();
 			animLoopStartIdx = 0;
 			animLoopIndex = 0;
@@ -298,7 +296,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		for (unsigned int i = 0; i < e->vertSize; i++)
 		{
 			edgeAlpha = ecol[edgeStart + i*COLELEMS + 3];
-			edgeAlpha = fmax(0, edgeAlpha - alphaDelta);
+			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
 			ecol[edgeStart + i*COLELEMS + 3] = edgeAlpha;
 
 		}	
@@ -428,6 +426,9 @@ void thread_graph_data::reset_animation()
 	lastAnimatedBB = 0;
 	activeEdgeList.clear();
 	activeNodeList.clear();
+	loopsPlayed = 0;
+	loopIteration = 0;
+	targetIterations = 0;
 }
 
 void thread_graph_data::brighten_instructions(unsigned long firstIns)
