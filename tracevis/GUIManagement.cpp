@@ -129,14 +129,6 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	connectBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(connectBtn);
 
-	backStepBtn = new agui::Button();
-	backStepBtn->setFont(btnFont);
-	backStepBtn->setText("<<");
-	backStepBtn->resizeToContents();
-	backStepBtn->setBackColor(agui::Color(210, 210, 210));
-	backStepBtn->setToolTipText("Step animation back by one");
-	controlsLayout->add(backStepBtn);
-
 	backJumpBtn = new agui::Button();
 	backJumpBtn->setFont(btnFont);
 	backJumpBtn->setText("<");
@@ -145,12 +137,6 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	backJumpBtn->setToolTipText("Jump animation back by specified steps");
 	controlsLayout->add(backJumpBtn);
 
-	stepText = new agui::TextField();
-	stepText->setText("1");
-	stepText->setSize(70, backStepBtn->getHeight());
-	stepText->setNumeric(true);
-	controlsLayout->add(stepText);
-
 	forwardStepBtn = new agui::Button();
 	forwardStepBtn->setFont(btnFont);
 	forwardStepBtn->setText(">");
@@ -158,6 +144,20 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	forwardStepBtn->setBackColor(agui::Color(210, 210, 210));
 	forwardStepBtn->setToolTipText("Step animation forward by one");
 	controlsLayout->add(forwardStepBtn);
+
+	backStepBtn = new agui::Button();
+	backStepBtn->setFont(btnFont);
+	backStepBtn->setText("<<");
+	backStepBtn->resizeToContents();
+	backStepBtn->setBackColor(agui::Color(210, 210, 210));
+	backStepBtn->setToolTipText("Step animation back by one");
+	controlsLayout->add(backStepBtn);
+
+	stepText = new agui::TextField();
+	stepText->setText("1");
+	stepText->setSize(70, backStepBtn->getHeight());
+	stepText->setNumeric(true);
+	controlsLayout->add(stepText);
 
 	forwardJumpBtn = new agui::Button();
 	forwardJumpBtn->setFont(btnFont);

@@ -2,6 +2,13 @@
 #include "GUIStructs.h"
 #include "rendering.h"
 
+void gather_projection_data(PROJECTDATA *pd) {
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glGetDoublev(GL_MODELVIEW_MATRIX, pd->model_view);
+	glGetDoublev(GL_PROJECTION_MATRIX, pd->projection);
+	glGetIntegerv(GL_VIEWPORT, pd->viewport);
+}
+
 void handle_resize(VISSTATE *clientstate) {
 	glViewport(0, 0, clientstate->size.width, clientstate->size.height);
 }

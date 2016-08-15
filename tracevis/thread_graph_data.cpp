@@ -34,19 +34,41 @@ void thread_graph_data::extend_faded_edges()
 	animlinedata->release_col();
 }
 
+void thread_graph_data::highlight_externs(unsigned long targetSequence)
+{
+	//check if block called an extern
+	pair<unsigned long, int> targBlock_Size = bbsequence[targetSequence];
+	unsigned long insAddr = targBlock_Size.first;
+	int numInstructions = targBlock_Size.second;
+	INS_DATA *ins = disassembly->at(insAddr);
+	while (numInstructions > 1)
+	{
+		insAddr += ins->numbytes;
+		ins = disassembly->at(insAddr);
+		numInstructions--;
+	}
+	int nodeIdx = ins->threadvertIdx[tid];
+	if (externCallSequence.count(nodeIdx)) {
+		int todotarget = externCallSequence.at(nodeIdx).at(0).second;
+		printf("Extern %s called by node %d\n", vertDict[todotarget].nodeSym.c_str(), nodeIdx);
+	}
+}
+
 void thread_graph_data::advance_sequence()
 {
+	bool not_looping = false;
 	//if not looping
 	if (!loopStateList.at(sequenceIndex).first)
 	{
 		sequenceIndex++;
+		highlight_externs(sequenceIndex);
 		return;
 	}
 
 	//first we update loop progress
 
 	//just started loop
-	if (!animLoopStartIdx)
+	else if (!animLoopStartIdx)
 	{
 		targetIterations = loopStateList.at(sequenceIndex).second;
 		animLoopIndex = 0;
@@ -66,6 +88,8 @@ void thread_graph_data::advance_sequence()
 		animLoopProgress.at(animLoopIndex) = loopIteration;
 	}
 
+	highlight_externs(sequenceIndex);
+
 	//now set where to go next
 	//last iteration of loop
 	if (loopStateList.at(sequenceIndex).second == animLoopProgress.at(animLoopIndex))
@@ -81,11 +105,10 @@ void thread_graph_data::advance_sequence()
 			animLoopIndex = 0;
 		}
 		sequenceIndex++;
-		return;
 	}
 
 	//end of loop
-	if (loopStateList.at(sequenceIndex).first != loopStateList.at(sequenceIndex + 1).first)
+	else if (loopStateList.at(sequenceIndex).first != loopStateList.at(sequenceIndex + 1).first)
 	{
 		sequenceIndex = animLoopStartIdx;
 		animLoopIndex = 0;
@@ -541,6 +564,9 @@ void thread_graph_data::brighten_BBs()
 			if (animPosition && (bbsequence[animPosition] != bbsequence[animPosition - 1]))
 			{
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
+				if (!edgeDict.count(edgePair)) {
+					printf("WARNING 22\n"); continue;
+				}
 				edge_data *linkingEdge = &edgeDict.at(edgePair);
 				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; i++) {
@@ -554,6 +580,7 @@ void thread_graph_data::brighten_BBs()
 		for (int blockIdx = 0; blockIdx < numInstructions; blockIdx++)
 		{
 			ncol[(nodeIdx * COLELEMS) + 3] = 1;
+
 			if (std::find(activeNodeList.begin(), activeNodeList.end(), nodeIdx) == activeNodeList.end())
 				activeNodeList.push_back(nodeIdx);
 			if (blockIdx == numInstructions - 1) break;
@@ -594,10 +621,11 @@ void thread_graph_data::animate_latest(bool stepBBs)
 
 	sequenceIndex = bbsequence.size() - 1;
 	lastAnimatedBB = sequenceIndex;
+
 	if (stepBBs) 
 	{
 		firstAnimatedBB = lastAnimatedBB - ANIMATION_WIDTH;
-		brighten_BBs();
+		brighten_BBs();	
 	}
 	else
 	{
@@ -915,6 +943,26 @@ thread_graph_data::thread_graph_data(map <unsigned long, INS_DATA*> *disasPtr)
 thread_graph_data::~thread_graph_data()
 {
 }
+
+
+void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
+{
+	edge_data *e = &edgeDict.at(eIdx);
+	GLfloat *colarray = edgesdata->acquire_col();
+	for (int i = 0; i < e->vertSize; i++)
+	{
+		colarray[e->arraypos + i*COLELEMS + 3] = alpha;
+	}
+	edgesdata->release_col();
+}
+
+void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
+{
+	GLfloat *colarray = nodesdata->acquire_col();
+	colarray[nIdx*COLELEMS + 3] = alpha;
+	nodesdata->release_col();
+}
+
 
 void thread_graph_data::assign_modpath(PID_DATA *pidinfo) 
 {

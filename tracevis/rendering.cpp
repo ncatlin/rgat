@@ -521,26 +521,29 @@ void draw_func_args(VISSTATE *clientstate, thread_graph_data *graph, ALLEGRO_FON
 	int argtrack = -1;
 
 	stringstream argstring;
-	vector<pair<int, string>>::iterator argit;
+	vector<vector<pair<int, string>>>::iterator callIt;
 
 	argstring << n->nodeSym << "(";
 	obtainMutex(graph->callArgsMutex, "Locking call args", 4000);
 	//todo: this iterator has a race and will crash
-	for (argit = n->funcargs.begin(); argit != n->funcargs.end(); argit++)
+	for (callIt = n->funcargs.begin(); callIt != n->funcargs.end(); callIt++)
 	{
-		if (argit->first <= argtrack)
+		vector<pair<int, string>>::iterator argIt;
+		for (argIt = callIt->begin(); argIt != callIt->end(); argIt++)
 		{
-			argstring << ")";
-			callings.push_back(argstring.str());
-			argstring.str("");
-			argstring.clear();
-			argtrack = -1;
-			argstring << n->nodeSym << "(";
+			if (argIt->first <= argtrack)
+			{
+				argstring << ")";
+				callings.push_back(argstring.str());
+				argstring.str("");
+				argstring.clear();
+				argtrack = -1;
+				argstring << n->nodeSym << "(";
 
+			}
+			argtrack = argIt->first;
+			argstring << argtrack << ":" << argIt->second << ',';
 		}
-		argtrack = argit->first;
-		argstring << argtrack << ":" << argit->second << ',';
-
 	}
 	ReleaseMutex(graph->callArgsMutex);
 
@@ -598,12 +601,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	}
 }
 
-void gather_projection_data(PROJECTDATA *pd) {
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glGetDoublev(GL_MODELVIEW_MATRIX, pd->model_view);
-	glGetDoublev(GL_PROJECTION_MATRIX, pd->projection);
-	glGetIntegerv(GL_VIEWPORT, pd->viewport);
-}
+
 
 void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata)
 {
@@ -802,7 +800,7 @@ GRAPH_DISPLAY_DATA * display_static_graph(VISSTATE *clientstate, thread_graph_da
 	return vertsdata;
 }
 
-void display_graph(VISSTATE *clientstate, thread_graph_data *graph)
+void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
 	GRAPH_DISPLAY_DATA *vertsdata;
 	if (clientstate->modes.animation)
@@ -814,15 +812,14 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph)
 	long graphSize = graph->m_scalefactors->radius;
 	float zdiff = clientstate->zoomlevel - graphSize;
 	float zmul = (clientstate->zoomlevel - graphSize) / 1000 - 1;
-
-	PROJECTDATA pd;
-	gather_projection_data(&pd);
 	
 	if (zmul < 25)
-		show_extern_labels(clientstate, &pd, graph, vertsdata);
+		show_extern_labels(clientstate, pd, graph, vertsdata);
 
 	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
-		draw_instruction_text(clientstate, zmul, &pd, graph, vertsdata);
+		draw_instruction_text(clientstate, zmul, pd, graph, vertsdata);
+
+
 }
 
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {

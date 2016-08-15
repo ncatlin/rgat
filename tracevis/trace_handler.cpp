@@ -365,6 +365,13 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		printf("handle_arg 5 STOL ERROR: %s\n", retaddr_s.c_str());
 		return;
 	}
+	if (!pendingFunc) {
+		pendingFunc = funcpc;
+		pendingRet = returnpc;
+	}
+
+	string moreargs_s = string(strtok_s(entry, ",", &entry));
+	bool callDone = moreargs_s.at(0) == 'E' ? true : false;
 
 	//todo: b64 decode
 	string contents;
@@ -373,11 +380,13 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	else
 		contents = string("NULL");
 
+	pendingArgs.push_back(make_pair(argpos, contents));
+	if (!callDone) return;
 
 	BB_DATA* targbbptr = piddata->externdict[funcpc];
 	while (!targbbptr)
 	{
-		Sleep(1000);
+		Sleep(100);
 		printf("Sleeping until bbdict contains %lx\n", funcpc);
 		targbbptr = piddata->externdict[funcpc];
 	}
@@ -400,7 +409,11 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 			vector<pair<int, string>> *newvec = new vector<pair<int, string>>;
 			thisgraph->pendingcallargs[funcpc].emplace(returnpc, *newvec);
 		}
-		thisgraph->pendingcallargs[funcpc][returnpc].push_back(make_pair(argpos, contents));
+		
+		vector <pair<int, string>>::iterator pendcaIt = pendingArgs.begin();
+		for (; pendcaIt != pendingArgs.end(); pendcaIt++)
+			thisgraph->pendingcallargs[funcpc][returnpc].push_back(*pendcaIt);
+
 		return;
 	}
 
@@ -414,9 +427,19 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		node_data *n = thisgraph->get_vert(targv);
 		if (n->external && n->address == funcpc)
 		{
+			string sym = thisgraph->get_node_sym(n->parentIdx);
+			EXTERNCALLDATA ex;
+			ex.edgeIdx = make_pair(n->parentIdx, n->index);
+			ex.nodeIdx = n->index;
+			ex.fdata = pendingArgs;
+			thisgraph->funcQueue.push(ex);
+
 			if (n->funcargs.size() < MAX_ARG_STORAGE)
-				n->funcargs.push_back(make_pair(argpos, contents));
+				n->funcargs.push_back(pendingArgs);
 			//else discard excess args
+			pendingArgs.clear();
+			pendingFunc = 0;
+			pendingRet = 0;
 			return;
 		}
 	}
@@ -426,6 +449,8 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 			piddata->modsyms[targbbptr->modnum][funcpc].c_str());
 }
 
+/*
+//todo: this does not get used
 void thread_trace_handler::transferBufferedArgs(BB_DATA *parentbb, unsigned long targaddr, node_data *targetNode)
 {
 	INS_DATA *bb_last_ins = parentbb->inslist.back();
@@ -445,9 +470,10 @@ void thread_trace_handler::transferBufferedArgs(BB_DATA *parentbb, unsigned long
 		}
 	}
 }
+*/
 
 
-void thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats)
+int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
@@ -459,7 +485,7 @@ void thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 	
 	int callerModule = lastnode->nodeMod;
 	//if caller is external, not interested in this
-	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return;
+	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
 	BB_DATA *thisbb = 0;
 	//todo, check if this is always 0
 	int assertZero = get_extern_at_address(targaddr, &thisbb);
@@ -478,11 +504,10 @@ void thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->get_vert(targVertID);
 
-			std::pair<int, int> edgeIDPair = std::make_pair(vecit->first, vecit->second);
-			increaseWeight(&edgeDict->at(edgeIDPair), repeats);
+			*resultPair = std::make_pair(vecit->first, vecit->second);
+			increaseWeight(&edgeDict->at(*resultPair), repeats);
 
-			//todotransferBufferedArgs(parentbb, targaddr, targNode);
-			return;
+			return 1;
 		}
 		//else: thread has already called it, but from a different place
 	}
@@ -509,24 +534,23 @@ void thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
 	newTargNode.index = targVertID;
+	newTargNode.parentIdx = lastVertID;
 
 	BB_DATA *thisnode_bbdata = 0;
 	int bbInsIndex = get_extern_at_address(targaddr, &thisnode_bbdata);
 
-	//todotransferBufferedArgs(parentbb, targaddr, &newTargNode);
-	if (newTargNode.index == 0)printf("ibv2\n");
 	insert_vert(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
 	thisgraph->externList.push_back(make_pair(targVertID, returnAddress));
 
-	std::pair<int, int> edgeIDPair = std::make_pair(lastVertID, targVertID);
+	*resultPair = std::make_pair(lastVertID, targVertID);
 
 	edge_data newEdge;
 	newEdge.weight = repeats;
 	newEdge.edgeClass = ILIB;
-	insert_edge(newEdge, edgeIDPair);
+	insert_edge(newEdge, *resultPair);
 	lastRIPType = EXTERNAL;
-	return;
+	return 1;
 }
 
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
@@ -547,7 +571,11 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
 	{
 		if (lastVertID)
-			run_external(thistag.targaddr, repeats);
+		{
+			std::pair<int, int> resultPair;
+			int result = run_external(thistag.targaddr, repeats, &resultPair);
+			if (result) thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+		}
 		return;
 	}
 	else
@@ -689,8 +717,8 @@ void thread_trace_handler::TID_thread()
 					printf("start\n");
 					continue;
 				}
-				
-				else if (entry[1] == 'E') //loop end
+				//loop end
+				else if (entry[1] == 'E') 
 				{
 					vector<TAG>::iterator tagIt;
 					

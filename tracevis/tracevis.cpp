@@ -271,6 +271,61 @@ void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffR
 	((diff_plotter*)*diffRenderer)->display_diff_summary(20, 10, font, clientState);
 }
 
+struct EXTTEXT{
+	pair<unsigned int, unsigned int> edge;
+	int nodeIdx;
+	vector<pair<int, string>> args;
+	float timeRemaining;
+	float yOffset;
+} ;
+
+void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText)
+{
+	while (!graph->funcQueue.empty())
+	{
+		EXTERNCALLDATA resu = graph->funcQueue.front();
+		graph->funcQueue.pop();
+		EXTTEXT extt;
+		extt.edge = resu.edgeIdx;
+		extt.args = resu.fdata;
+		extt.nodeIdx = resu.nodeIdx;
+		extt.timeRemaining = 60;
+		extt.yOffset = 0;
+		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
+		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);
+		externFloatingText->at(graph->tid).push_back(extt);
+	}
+}
+
+void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
+{
+	if (externFloatingText->at(graph->tid).empty()) return;
+
+	vector <EXTTEXT>::iterator exttIt = externFloatingText->at(graph->tid).begin();
+
+	for (; exttIt != externFloatingText->at(graph->tid).end(); )
+	{
+		node_data *n = graph->get_vert(exttIt->nodeIdx);
+		DCOORD pos = n->get_screen_pos(graph->get_mainverts(), pd);
+
+		if (exttIt->timeRemaining <= 0) 
+		{
+			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
+			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activeverts(), 0.3);
+			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
+		}
+		else
+		{
+			//n->funcargs
+			al_draw_text(clientState->standardFont, al_col_green,
+				pos.x, clientState->size.height - pos.y - exttIt->yOffset, 0, n->nodeSym.c_str());
+			exttIt->timeRemaining -= 1;
+			exttIt->yOffset += 0.5;
+			exttIt++;
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 
@@ -367,6 +422,7 @@ int main(int argc, char **argv)
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
 	map <int, pair<int, int>> graphPositions;
+	map <int, vector<EXTTEXT>> externFloatingText;
 
 	bool running = true;
 	while (running)
@@ -393,6 +449,11 @@ int main(int argc, char **argv)
 				if (!graph->edgeDict.size()) continue;
 				clientstate.activeGraph = graph;
 				widgets->controlWindow->setAnimEnabled(!clientstate.activeGraph->active);
+				if (!externFloatingText.count(graph->tid))
+				{
+					vector<EXTTEXT> newVec;
+					externFloatingText[graph->tid] = newVec;
+				}
 				break;
 			}
 			ReleaseMutex(clientstate.pidMapMutex);
@@ -405,6 +466,11 @@ int main(int argc, char **argv)
 			widgets->controlWindow->setAnimEnabled(!clientstate.activeGraph->active);
 			clientstate.activeGraph->blockInstruction = 0;
 			clientstate.newActiveGraph = 0;
+			if (!externFloatingText.count(clientstate.activeGraph->tid))
+			{
+				vector<EXTTEXT> newVec;
+				externFloatingText[clientstate.activeGraph->tid] = newVec;
+			}
 		}
 
 		if (clientstate.activeGraph)
@@ -442,8 +508,6 @@ int main(int argc, char **argv)
 					(graph->get_mainlines()->get_renderedEdges() < graph->edgeList.size()) ||
 					clientstate.rescale)
 				{
-					printf("updating render! %d<%d or %d<%d\n", graph->get_mainverts()->get_numVerts(),
-						graph->get_num_verts(), graph->get_mainlines()->get_renderedEdges(), graph->edgeList.size());
 					updateMainRender(&clientstate);
 				}
 
@@ -474,13 +538,12 @@ int main(int argc, char **argv)
 					draw_anim_line(graph->get_active_node(), graph);
 				}
 
-				//printf("VertdictsizE: %d\n", graph->vertDict.size());
-				if (clientstate.modes.heatmap)
-					display_big_heatmap(&clientstate);
-				else if (clientstate.modes.conditional)
-					display_big_conditional(&clientstate);
+				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
+				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
 				else
 				{
+					PROJECTDATA pd;
+					gather_projection_data(&pd);
 					if (!graph->active)
 					{
 						if (graph->terminated)
@@ -489,13 +552,19 @@ int main(int argc, char **argv)
 							clientstate.modes.animation = false;
 							graph->terminated = false;
 						}
-						display_graph(&clientstate, graph);
+						display_graph(&clientstate, graph, &pd);
 					}
-					else {
+					else
+					{
 						clientstate.modes.animation = true;
 						graph->animate_latest(clientstate.stepBBs);
-						display_graph(&clientstate, graph);
+						display_graph(&clientstate, graph, &pd);
+
+						transferNewLiveCalls(graph, &externFloatingText);
+						drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 					}
+					
+					
 				}
 
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);

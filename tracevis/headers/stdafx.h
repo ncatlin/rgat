@@ -20,6 +20,7 @@ using namespace std;
 #include <set>
 #include <map>
 #include <math.h>
+#include <queue>
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_opengl.h>

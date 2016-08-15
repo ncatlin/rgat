@@ -342,6 +342,8 @@ bool loadExterns(ifstream *file, thread_graph_data *graph)
 
 bool loadNodes(ifstream *file, map<unsigned long, INS_DATA*> *insdict, thread_graph_data *graph)
 {
+	return false;
+	/*
 	if (!verifyTag(file, tag_START, 'N')) {
 		printf("Bad node data\n");
 		return false;
@@ -404,6 +406,7 @@ bool loadNodes(ifstream *file, map<unsigned long, INS_DATA*> *insdict, thread_gr
 			file->seekg(1, ios::cur);
 		//todo graph->vertDict.emplace(n->index, *n);
 	}
+	*/
 }
 
 bool loadStats(ifstream *file, thread_graph_data *graph)

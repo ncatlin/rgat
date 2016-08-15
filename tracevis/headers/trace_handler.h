@@ -40,7 +40,7 @@ protected:
 	void handle_arg(char * entry, size_t entrySize);
 	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
 	void transferBufferedArgs(BB_DATA *parentbb, unsigned long targaddr, node_data *targetNode);
-	void run_external(unsigned long targaddr, unsigned long repeats);
+	int run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair);
 
 	vector<pair<long, int>> callStack;
 
@@ -64,6 +64,10 @@ private:
 	int get_extern_at_address(long address, BB_DATA ** BB);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG thistag, unsigned long repeats);
+
+	unsigned long pendingFunc = 0;
+	unsigned long pendingRet = 0;
+	vector<pair<int, string>> pendingArgs;
 
 #define NO_LOOP 0
 #define LOOP_CACHE_BUILD 1

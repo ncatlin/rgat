@@ -21,10 +21,11 @@ public:
 	bool external = false;
 	string nodeSym;
 	int nodeMod;
-	//arg number, contents
-	vector<pair<int, string>> funcargs;
+	//list of lists of arg number, contents
+	vector<vector<pair<int, string>>> funcargs;
 	//number of external functions called
 	unsigned childexterns = 0;
 	unsigned long address = 0; //todo: this is only used in externs. bit big?
+	unsigned int parentIdx = 0;
 };
 

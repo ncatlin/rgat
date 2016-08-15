@@ -21,7 +21,7 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
 
 int render_main_graph(VISSTATE *clientstate);
 int render_preview_graph(thread_graph_data *activeGraph, bool *rescale, VISSTATE *clientState);
-void display_graph(VISSTATE *clientstate, thread_graph_data *graph);
+void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd);
 void display_big_heatmap(VISSTATE *clientstate);
 void display_big_conditional(VISSTATE *clientstate);
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer);

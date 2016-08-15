@@ -45,7 +45,7 @@ bool node_data::serialise(ofstream *outfile)
 		*outfile << 0;
 	else
 		*outfile << base64_encode((unsigned char*)nodeSym.c_str(),nodeSym.size());
-
+	/*
 	*outfile << "{";
 	vector<pair<int, string>>::iterator argit = funcargs.begin();
 	for (; argit != funcargs.end(); argit++)
@@ -55,6 +55,6 @@ bool node_data::serialise(ofstream *outfile)
 		*outfile << argit->first << "," << base64_encode(cus_argstring, argstring.size()) << "@";
 	}
 	*outfile << "}";
-
+	*/
 	return true;
 }

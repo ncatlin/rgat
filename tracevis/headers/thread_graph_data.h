@@ -10,6 +10,12 @@
 #define ANIMATION_WIDTH 8
 #define MINIMUM_FADE_ALPHA 0.2
 
+
+struct EXTERNCALLDATA {
+	pair<unsigned int, unsigned int> edgeIdx;
+	unsigned int nodeIdx;
+	vector<pair<int, string>> fdata;
+};
 class thread_graph_data
 {
 private:
@@ -21,7 +27,6 @@ private:
 	unsigned int firstAnimatedBB = 0;
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
-
 	void advance_sequence();
 
 public:
@@ -46,6 +51,9 @@ public:
 	void set_block_alpha(unsigned long firstInstruction, unsigned int quantity,
 		GLfloat *nodecols, GLfloat *edgecols,  float alpha);
 
+	string get_node_sym(unsigned int idx) { return vertDict[idx].nodeSym; }
+	void highlight_externs(unsigned long targetSequence);
+	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
 	void reset_mainlines();
 	node_data *derive_anim_node(bool stepBBs);
 	void advance_anim_instructions(int stepSize);
@@ -59,6 +67,8 @@ public:
 	void darken_animation(float alphaDelta);
 	void brighten_instructions(unsigned long firstIns);
 	void brighten_BBs();
+	void set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
+	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 
@@ -72,7 +82,7 @@ public:
 	bool terminated = false;
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
-
+	std::queue<EXTERNCALLDATA> funcQueue;
 
 
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
