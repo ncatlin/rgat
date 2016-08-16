@@ -46,7 +46,7 @@
 #define INSTEXT_ALL_ALWAYS 2
 #define INSTEXT_LAST INSTEXT_ALL_ALWAYS
 
-#define POINTSPERLINE 32
+#define POINTSPERLINE 64
 #define WIREFRAMELOOPS 18 //meant to be alterable but stuff breaks if you change this. don't.
 #define WFPOSBUFSIZE WIREFRAMELOOPS * POINTSPERLINE * POSELEMS * sizeof(GLfloat)
 #define WFCOLBUFSIZE WIREFRAMELOOPS * POINTSPERLINE * COLELEMS * sizeof(GLfloat)
@@ -109,6 +109,6 @@
 
 //offset the instruction text on the drawn node
 #define INS_X_OFF 5
-#define INS_Y_OFF -6
+#define INS_Y_OFF 3
 
 #define ANIMATION_FADE_RATE 0.05

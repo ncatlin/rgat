@@ -616,11 +616,10 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		node_data *n = graph->get_vert(i);
 		if (n->external || !n->ins->conditional) continue;
 
-		string itext("?");
-
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
 			graph->m_scalefactors->HEDGESEP)) continue;
 
+		string itext("?");
 		if (!show_all_always) {
 			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
@@ -664,8 +663,8 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 	{
 		node_data *n = graph->get_vert(graph->edgeList[i].first);
 
-		if (n->nodeSym.size()) continue; //don't care about instruction in library call
-
+		//i feel like these checks should be done on the midpoint rather than the node
+		if (n->external) continue; //don't care about instruction in library call
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, 
 			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
@@ -690,69 +689,13 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 }
 
 
-
-GRAPH_DISPLAY_DATA * display_active_graph(VISSTATE *clientstate, thread_graph_data *graph)
-{
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_activeverts();
-	GRAPH_DISPLAY_DATA *linedata = graph->get_activelines();
-
-	if (graph->needVBOReload_active)
-	{
-		//todo - main ones probably already loaded?
-		//void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines)
-		//{
-		//GLuint *VBOs = graph->activeVBOs;
-		glGenBuffers(4, graph->activeVBOs);
-
-		load_VBO(VBO_NODE_POS, graph->activeVBOs, graph->get_mainverts()->pos_size(), graph->get_mainverts()->readonly_pos());
-		load_VBO(VBO_NODE_COL, graph->activeVBOs, graph->get_activeverts()->col_size(), graph->get_activeverts()->readonly_col());
-
-		int posbufsize = graph->get_mainlines()->get_numVerts() * POSELEMS * sizeof(GLfloat);
-		load_VBO(VBO_LINE_POS, graph->activeVBOs, posbufsize, graph->get_mainlines()->readonly_pos());
-
-		int linebufsize = graph->get_activelines()->get_numVerts() * COLELEMS * sizeof(GLfloat);
-		load_VBO(VBO_LINE_COL, graph->activeVBOs, linebufsize, graph->get_activelines()->readonly_col());
-
-		//loadVBOs(graph->activeVBOs, vertsdata, linedata);
-		graph->needVBOReload_active = false;
-	}
-
-	if (clientstate->modes.nodes)
-		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph->activeVBOs, vertsdata->get_numVerts());
-
-	if (clientstate->modes.edges)
-		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graph->activeVBOs, linedata->get_numVerts());
-
-	return vertsdata;
-}
-
-GRAPH_DISPLAY_DATA * display_static_graph(VISSTATE *clientstate, thread_graph_data *graph)
-{
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
-	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
-	if (graph->needVBOReload_main)
-	{
-		loadVBOs(graph->graphVBOs, vertsdata, linedata);
-		graph->needVBOReload_main = false;
-	}
-
-	if (clientstate->modes.nodes)
-		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph->graphVBOs, vertsdata->get_numVerts());
-
-	if (clientstate->modes.edges)
-		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graph->graphVBOs, linedata->get_numVerts());
-
-	return vertsdata;
-}
-
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
 	GRAPH_DISPLAY_DATA *vertsdata;
 	if (clientstate->modes.animation)
-		vertsdata = display_active_graph(clientstate, graph);
+		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
 	else
-		vertsdata = display_static_graph(clientstate, graph);
-
+		graph->display_static(clientstate->modes.nodes, clientstate->modes.edges);
 
 	long graphSize = graph->m_scalefactors->radius;
 	float zdiff = clientstate->zoomlevel - graphSize;
@@ -761,10 +704,8 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	if (zmul < 25)
 		show_extern_labels(clientstate, pd, graph);
 
-	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
+	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_verts() > 2)
 		draw_instruction_text(clientstate, zmul, pd, graph);
-
-
 }
 
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {

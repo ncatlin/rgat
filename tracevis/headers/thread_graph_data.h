@@ -32,6 +32,10 @@ private:
 public:
 	thread_graph_data(map <unsigned long, INS_DATA*> *disassembly);
 	~thread_graph_data();
+
+	void display_active(bool showNodes, bool showEdges);
+	void display_static(bool showNodes, bool showEdges);
+
 	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
 	void extend_faded_edges();
@@ -51,6 +55,7 @@ public:
 	void set_block_alpha(unsigned long firstInstruction, unsigned int quantity,
 		GLfloat *nodecols, GLfloat *edgecols,  float alpha);
 
+	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx) { return vertDict[idx].nodeSym; }
 	void highlight_externs(unsigned long targetSequence);
 	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;

@@ -4,6 +4,55 @@
 #include "GUIStructs.h"
 
 
+//display live or animated graph with active areas on faded areas
+void thread_graph_data::display_active(bool showNodes, bool showEdges)
+{
+	GRAPH_DISPLAY_DATA *vertsdata = get_activeverts();
+	GRAPH_DISPLAY_DATA *linedata = get_activelines();
+
+	if (needVBOReload_active)
+	{
+		//todo - main ones probably already loaded?
+		//void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines)
+		//{
+		//GLuint *VBOs = graph->activeVBOs;
+		glGenBuffers(4, activeVBOs);
+
+		load_VBO(VBO_NODE_POS, activeVBOs, mainvertsdata->pos_size(), mainvertsdata->readonly_pos());
+		load_VBO(VBO_NODE_COL, activeVBOs, animvertsdata->col_size(), animvertsdata->readonly_col());
+
+		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
+		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, mainlinedata->readonly_pos());
+
+		int linebufsize = animlinedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
+		load_VBO(VBO_LINE_COL, activeVBOs, linebufsize, animlinedata->readonly_col());
+
+		needVBOReload_active = false;
+	}
+
+	if (showNodes)
+		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, vertsdata->get_numVerts());
+
+	if (showEdges)
+		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, activeVBOs, linedata->get_numVerts());
+}
+
+//display graph with everything bright and viewable
+void thread_graph_data::display_static(bool showNodes, bool showEdges)
+{
+	if (needVBOReload_main)
+	{
+		loadVBOs(graphVBOs, mainvertsdata, mainlinedata);
+		needVBOReload_main = false;
+	}
+
+	if (showNodes)
+		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainvertsdata->get_numVerts());
+
+	if (showEdges)
+		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numVerts());
+}
+
 //create faded edge version of graph for use in animations
 void thread_graph_data::extend_faded_edges()
 {
@@ -34,10 +83,9 @@ void thread_graph_data::extend_faded_edges()
 	animlinedata->release_col();
 }
 
-void thread_graph_data::highlight_externs(unsigned long targetSequence)
+INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
-	//check if block called an extern
-	pair<unsigned long, int> targBlock_Size = bbsequence[targetSequence];
+	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceId];
 	unsigned long insAddr = targBlock_Size.first;
 	int numInstructions = targBlock_Size.second;
 	INS_DATA *ins = disassembly->at(insAddr);
@@ -47,31 +95,41 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 		ins = disassembly->at(insAddr);
 		numInstructions--;
 	}
-	int nodeIdx = ins->threadvertIdx[tid];
-	if (externCallSequence.count(nodeIdx)) {
-		int targetExternIdx = externCallSequence.at(nodeIdx).at(0).second; //0 is todo
-		node_data *n = &vertDict[targetExternIdx];
-		printf("Extern %s called by node %d seqid: %ld\n", vertDict[targetExternIdx].nodeSym.c_str(), nodeIdx, sequenceIndex);
-		EXTERNCALLDATA ex;
+	return ins;
+}
 
-		ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
-		ex.nodeIdx = n->index;
-		if (!n->funcargs.empty()) 
-		{
-			int callsSoFar = callCounter[n->index];
-			if (callsSoFar < n->funcargs.size())
-			{
-				ex.fdata = n->funcargs.at(callsSoFar);
-				callCounter[n->index] = callsSoFar + 1;
-			}
-			else {
-				callCounter[n->index] = callsSoFar + 1;
-				printf("ERROR! more visits (%d) to %s than recorded args (%d)\n",
-					callsSoFar + 1, n->nodeSym.c_str(), n->funcargs.size());
-			}
-		}
-		funcQueue.push(ex);
+void thread_graph_data::highlight_externs(unsigned long targetSequence)
+{
+	//check if block called an extern
+	INS_DATA* ins = get_last_instruction(targetSequence);
+	int nodeIdx = ins->threadvertIdx[tid];
+
+	if (!externCallSequence.count(nodeIdx)) return;
+
+	int callsSoFar = callCounter[nodeIdx];
+	callCounter[nodeIdx] = callsSoFar + 1;
+	int targetExternIdx;
+	vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
+	if (callsSoFar < callList.size()) 
+		targetExternIdx = callList.at(callsSoFar).second;
+	else //todo. this should prob not happen
+		targetExternIdx = callList.at(0).second;
+
+	node_data *n = &vertDict[targetExternIdx];
+
+	EXTERNCALLDATA ex;
+	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
+	ex.nodeIdx = n->index;
+	if (!n->funcargs.empty()) 
+	{
+		callsSoFar = callCounter[n->index];
+		if (callsSoFar < n->funcargs.size())
+			ex.fdata = n->funcargs.at(callsSoFar);
+
+		callCounter[n->index] = callsSoFar + 1;
 	}
+	funcQueue.push(ex);
+
 }
 
 void thread_graph_data::advance_sequence()
@@ -139,6 +197,8 @@ void thread_graph_data::advance_sequence()
 		animLoopIndex++;
 	}
 }
+
+
 void thread_graph_data::advance_anim_instructions(int stepSize)
 {
 	unsigned long lastInstruction = totalInstructions - 1;
@@ -297,31 +357,8 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool st
 		return ANIMATION_ENDED;
 	}
 
-
-
 	return 0;
 }
-
-/*
-void thread_graph_data::clear_edges()
-{
-	GLfloat *ncol = animvertsdata->acquire_col();
-	GLfloat *ecol = animlinedata->acquire_col();
-	unsigned int lastNodeIdx = 0;
-
-	unsigned int numEdgeVerts = animlinedata->get_numVerts();
-	for (unsigned int i = 0; i < numEdgeVerts; i++)
-		ecol[i*COLELEMS + 3] = (float)0.0;
-
-	unsigned int numNodeVerts = animvertsdata->get_numVerts();
-	for (unsigned int i = 0; i < numNodeVerts; i++)
-		ncol[i*COLELEMS + 3] = (float)0.0;
-
-	animlinedata->release_col();
-	animvertsdata->release_col();
-	needVBOReload_active = true;
-}
-*/
 
 void thread_graph_data::darken_animation(float alphaDelta)
 {
@@ -402,7 +439,6 @@ void thread_graph_data::clear_final_BBs()
 		int numInstructions = targBlock_Size.second;
 		INS_DATA *ins = disassembly->at(insAddr);
 		unsigned int nodeIdx = ins->threadvertIdx.at(tid);
-
 
 		if (last_anim_start > 0)
 		{
@@ -499,13 +535,10 @@ void thread_graph_data::brighten_instructions(unsigned long firstIns)
 		if (std::find(activeNodeList.begin(), activeNodeList.end(), nodeIdx) == activeNodeList.end())
 			activeNodeList.push_back(nodeIdx);
 			
-
 		if (blockInstruction == blockInstructions-1)
 		{
 			
-			if (sequenceIndex == bbsequence.size()-1) {
-				break;
-			}
+			if (sequenceIndex == bbsequence.size()-1) break;
 			sequenceIndex++;
 			blockInstruction = 0;
 
@@ -523,7 +556,6 @@ void thread_graph_data::brighten_instructions(unsigned long firstIns)
 			}
 			if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
 				activeEdgeList.push_back(edgePair);
-
 
 			nodeIdx = nextNodeIdx;
 			currentIns = disassembly->at(insAddr);
@@ -728,136 +760,6 @@ void thread_graph_data::update_animation_render(bool stepBBs)
 		brighten_instructions(n->ins->address);
 	}
 }
-/*
-take the latestnode-ANIMATION_WIDTH->latestnode steps from the main graph
-take the rest from the faded graph
-combine, season to taste
-*/
-/*
-void thread_graph_data::update_animation_render(bool stepBBs)
-{
-	if (stepBBs)
-	{
-		
-		unsigned int animEnd = sequenceIndex;
-		unsigned int animStart;
-		if (sequenceIndex < ANIMATION_WIDTH)
-			animStart = 0;
-		else
-			animStart = sequenceIndex - ANIMATION_WIDTH;
-
-		//new animation, find everything in active window
-		if (newanim)
-		{
-			last_anim_start = animStart;
-			last_anim_stop = animStart;
-			newanim = false;
-		}
-
-		GLfloat *ncol = animvertsdata->acquire_col();
-		GLfloat *ecol = animlinedata->acquire_col();
-		unsigned int lastNodeIdx = 0;
-
-		//place faded on expired active (outside window)
-		for (; last_anim_start < animStart; last_anim_start++)
-		{
-			//find the verts + copy low alpha into them
-			pair<unsigned long,int> targBlock_Size = bbsequence[last_anim_start];
-			unsigned long insAddr = targBlock_Size.first;
-			int numInstructions = targBlock_Size.second;
-			INS_DATA *ins = disassembly->at(insAddr);
-			unsigned int nodeIdx = ins->threadvertIdx.at(tid);
-
-			//unlink lastbb
-			if (last_anim_start > 0)
-			{
-				if (!lastNodeIdx)
-				{
-					pair<unsigned long, int> lastBlock_Size = bbsequence.at(last_anim_start - 1);
-					unsigned long lastAddr = lastBlock_Size.first;
-					int numlastins = lastBlock_Size.second;
-					INS_DATA *lastins = disassembly->at(lastAddr);
-
-					while (numlastins-- > 1) {
-						lastAddr = lastins->address + lastins->numbytes;
-						lastins = disassembly->at(lastAddr);
-					}
-					lastNodeIdx = lastins->threadvertIdx.at(tid);
-				}
-
-				std::pair<unsigned int , unsigned int> linkingPair = make_pair(lastNodeIdx, nodeIdx);
-				map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeIt = edgeDict.find(linkingPair);
-				if (edgeIt == edgeDict.end()) break;
-
-				int numEdgeVerts = edgeIt->second.vertSize;
-				for (int i = 0; i < numEdgeVerts; i++) {
-					ecol[edgeIt->second.arraypos + i*COLELEMS + 3] = (float)0.0;
-				}
-			}
-
-			set_block_alpha(ins->address, numInstructions, ncol, ecol, 0.0);
-		}
-			
-		lastNodeIdx = 0;
-		//place active on new active
-		for (; last_anim_stop < animEnd; last_anim_stop++)
-		{
-			pair<unsigned long, int> targBlock_Size = bbsequence[last_anim_stop];
-			unsigned long insAddr = targBlock_Size.first;
-			int numInstructions = targBlock_Size.second;
-			INS_DATA *ins = disassembly->at(insAddr);
-			unsigned int nodeIdx = ins->threadvertIdx.at(tid);
-
-			//link lastbb to this
-			if (last_anim_stop > 0)
-			{
-				if (!lastNodeIdx)
-				{
-					pair<unsigned long, int> lastBlock_Size = bbsequence.at(last_anim_stop - 1);
-					unsigned long lastAddr = lastBlock_Size.first;
-					int numlastins = lastBlock_Size.second;
-					INS_DATA *lastins = disassembly->at(lastAddr);
-
-					while (numlastins-- > 1) {
-						lastAddr = lastins->address + lastins->numbytes;
-						lastins = disassembly->at(lastAddr);
-					}
-					lastNodeIdx = lastins->threadvertIdx.at(tid);
-				}
-
-				edge_data *linkingEdge = &edgeDict.at(make_pair(lastNodeIdx, nodeIdx));
-				int numEdgeVerts = linkingEdge->vertSize;
-				for (int i = 0; i < numEdgeVerts; i++) {
-					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
-				}
-			}
-
-			for (int blockIdx = 0; blockIdx < numInstructions; blockIdx++)
-			{
-				ncol[(nodeIdx * COLELEMS) + 3] = 1;
-				if (blockIdx == numInstructions-1) break;
-
-				//brighten short edges between internal nodes
-				INS_DATA* nextIns = disassembly->at(ins->address+ins->numbytes);
-				
-				unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
-				edge_data *internalEdge = &edgeDict[make_pair(nodeIdx, nextInsIndex)];
-				unsigned long edgeColPos = internalEdge->arraypos;
-				ecol[edgeColPos + 3] = (float)1.0;
-				ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
-				nodeIdx = nextInsIndex;
-				ins = nextIns;
-			}
-			lastNodeIdx = nodeIdx;
-		}
-		animvertsdata->release_col();
-		animlinedata->release_col();
-		
-	}
-	//shouldn't be called if nothing to animate
-	needVBOReload_active = true;
-}
-*/
 
 node_data *thread_graph_data::derive_anim_node(bool stepBBs)
 {
@@ -999,6 +901,7 @@ void thread_graph_data::assign_modpath(PID_DATA *pidinfo)
 	else
 		modPath = longmodPath;
 }
+
 bool thread_graph_data::serialise(ofstream *file)
 {
 	*file << "TID" << tid << "{";
