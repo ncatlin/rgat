@@ -94,8 +94,9 @@ public:
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE callArgsMutex = CreateMutex(NULL, FALSE, NULL);
 
-	//funcaddress	caller      	argidx   arg
-	map<unsigned long, map <unsigned long, vector<pair<int, string>>>> pendingcallargs;
+	//ugh
+	//   funcaddress	      caller					 argid  arg
+	map<unsigned long, map <unsigned long, vector<vector <pair<int, string>>>>> pendingcallargs;
 
 	//keep track of graph dimensions
 	int maxA = 0;

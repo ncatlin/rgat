@@ -563,10 +563,12 @@ void thread_graph_data::brighten_BBs()
 			//if going between two different blocks, draw edges between
 			if (animPosition && (bbsequence[animPosition] != bbsequence[animPosition - 1]))
 			{
+				//or does it crash here
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
 				if (!edgeDict.count(edgePair)) {
 					printf("WARNING 22\n"); continue;
 				}
+				//still crashes with out of range! todo...
 				edge_data *linkingEdge = &edgeDict.at(edgePair);
 				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; i++) {

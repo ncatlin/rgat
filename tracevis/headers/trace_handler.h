@@ -10,6 +10,11 @@ struct TAG {
 	int insCount;
 	int jumpModifier;
 };
+struct FAILEDARGS {
+	int caller;
+	int externid;
+	unsigned long targaddr;
+};
 
 class thread_trace_handler
 {
@@ -40,6 +45,7 @@ protected:
 	void handle_arg(char * entry, size_t entrySize);
 	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
 	void transferBufferedArgs(BB_DATA *parentbb, unsigned long targaddr, node_data *targetNode);
+	//bool insert_pending_args_into_node(unsigned long targaddress, int callerid, int externid);
 	int run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair);
 
 	vector<pair<long, int>> callStack;
@@ -68,6 +74,7 @@ private:
 	unsigned long pendingFunc = 0;
 	unsigned long pendingRet = 0;
 	vector<pair<int, string>> pendingArgs;
+	vector<FAILEDARGS> repeatArgAttempts;
 
 #define NO_LOOP 0
 #define LOOP_CACHE_BUILD 1

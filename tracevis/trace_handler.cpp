@@ -366,6 +366,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		return;
 	}
 	if (!pendingFunc) {
+		printf("\tstarting arglist for fun %lx, ret %lx\n", funcpc, returnpc);
 		pendingFunc = funcpc;
 		pendingRet = returnpc;
 	}
@@ -387,66 +388,42 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	while (!targbbptr)
 	{
 		Sleep(100);
-		printf("Sleeping until bbdict contains %lx\n", funcpc);
-		targbbptr = piddata->externdict[funcpc];
+		printf("Sleeping until basic_block_handler handles %lx\n", funcpc);
 	}
 
 	//func been called in thread already? if not, have to place args in holding buffer
 	printf("Handling arg %s of function %s module %s\n",
 		contents.c_str(),
-		piddata->modsyms[targbbptr->modnum][funcpc].c_str(),
+		piddata->modsyms[targbbptr->modnum][pendingFunc].c_str(),
 		piddata->modpaths[targbbptr->modnum].c_str());
 
-	if (!targbbptr->thread_callers.count(TID) || !targbbptr->thread_callers[TID].size())
+	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
-		if (thisgraph->pendingcallargs.count(funcpc) == 0)
-		{
-			map <unsigned long, vector<pair<int, string>>> *newmap = new map <unsigned long, vector<pair<int, string>>>;
-			thisgraph->pendingcallargs.emplace(funcpc, *newmap);
-		}
-		if (thisgraph->pendingcallargs[funcpc].count(returnpc) == 0)
-		{
-			vector<pair<int, string>> *newvec = new vector<pair<int, string>>;
-			thisgraph->pendingcallargs[funcpc].emplace(returnpc, *newvec);
-		}
+		map <unsigned long, vector<vector<pair<int, string>>>> *newmap = new map <unsigned long, vector<vector<pair<int, string>>>>;
+		thisgraph->pendingcallargs.emplace(pendingFunc, *newmap);
+		printf("placed %lx in pendcallargs\n", pendingFunc);
+	}
+	if (thisgraph->pendingcallargs.at(pendingFunc).count(pendingRet) == 0)
+	{
+		vector<vector<pair<int, string>>> *newvec = new vector<vector<pair<int, string>>>;
+		thisgraph->pendingcallargs.at(pendingFunc).emplace(pendingRet, *newvec);
+	}
 		
-		vector <pair<int, string>>::iterator pendcaIt = pendingArgs.begin();
-		for (; pendcaIt != pendingArgs.end(); pendcaIt++)
-			thisgraph->pendingcallargs[funcpc][returnpc].push_back(*pendcaIt);
+	vector <pair<int, string>>::iterator pendcaIt = pendingArgs.begin();
+	vector <pair<int, string>> thisCallArgs;
+	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
+		thisCallArgs.push_back(*pendcaIt);
 
-		return;
-	}
+	thisgraph->pendingcallargs.at(funcpc).at(returnpc).push_back(thisCallArgs);
 
-	//find extern node at this address in thread
-	vector<pair<int, int>> TIDcallers = targbbptr->thread_callers[TID];
-	vector<pair<int, int>>::iterator callit;
+	pendingArgs.clear();
+	pendingFunc = 0;
+	pendingRet = 0;
+	return;
 
-	for (callit = TIDcallers.begin(); callit != TIDcallers.end(); callit++)
-	{
-		int targv = callit->second;
-		node_data *n = thisgraph->get_vert(targv);
-		if (n->external && n->address == funcpc)
-		{
-			string sym = thisgraph->get_node_sym(n->parentIdx);
-			EXTERNCALLDATA ex;
-			ex.edgeIdx = make_pair(n->parentIdx, n->index);
-			ex.nodeIdx = n->index;
-			ex.fdata = pendingArgs;
-			thisgraph->funcQueue.push(ex);
-
-			if (n->funcargs.size() < MAX_ARG_STORAGE)
-				n->funcargs.push_back(pendingArgs);
-			//else discard excess args
-			pendingArgs.clear();
-			pendingFunc = 0;
-			pendingRet = 0;
-			return;
-		}
-	}
-
-	printf("ERROR FINDING VERT FOR EXTERN (%s->%s)\n",
-			piddata->modpaths[targbbptr->modnum].c_str(),
-			piddata->modsyms[targbbptr->modnum][funcpc].c_str());
+	//printf("ERROR FINDING VERT FOR EXTERN (%s->%s)\n",
+	//		piddata->modpaths[targbbptr->modnum].c_str(),
+	//		piddata->modsyms[targbbptr->modnum][funcpc].c_str());
 }
 
 /*
@@ -510,14 +487,21 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 			return 1;
 		}
 		//else: thread has already called it, but from a different place
+		
 	}
 	//else: thread hasnt called this function before
 
 	targVertID = thisgraph->get_num_verts();
 
-	vector<pair<int, int>> callervec;
-	callervec.push_back(make_pair(lastVertID, targVertID));
-	thisbb->thread_callers.emplace(TID, callervec);
+	if (!thisbb->thread_callers.count(TID))
+	{
+		vector<pair<int, int>> callervec;
+		callervec.push_back(make_pair(lastVertID, targVertID));
+		thisbb->thread_callers.emplace(TID, callervec);
+	}
+	else
+		thisbb->thread_callers.at(TID).push_back(make_pair(lastVertID, targVertID));
+	
 	int module = thisbb->modnum;
 
 	//make new external/library call node
@@ -552,6 +536,29 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	lastRIPType = EXTERNAL;
 	return 1;
 }
+/*
+bool thread_trace_handler::insert_pending_args_into_node(unsigned long targaddress, unsigned long returnAddr, 
+	int callerid, int externid)
+{
+		vector<vector<pair<int,string>>> argsvec = thisgraph->pendingcallargs.at(targaddress).at(returnAddr);
+		vector<vector<pair<int, string>>>::iterator argsvecIt = argsvec.begin();
+
+			while (argsvecIt != argsvec.end())
+			{
+				printf("\t success inserted arg into %s\n", n->nodeSym.c_str());
+				EXTERNCALLDATA ex;
+				ex.edgeIdx = make_pair(n->parentIdx, n->index);
+				ex.nodeIdx = n->index;
+				ex.fdata = *argsvecIt;
+				thisgraph->funcQueue.push(ex);
+
+				if (n->funcargs.size() < MAX_ARG_STORAGE)
+					n->funcargs.push_back(*argsvecIt);
+				argsvecIt = argsvec.erase(argsvecIt);
+			}
+			return true;
+}
+*/
 
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 {
@@ -570,12 +577,61 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
 	{
-		if (lastVertID)
+		if (!lastVertID) return;
+
+		
+		//caller,external vertids
+		std::pair<int, int> resultPair;
+		//add node to graph if new
+		int result = run_external(thistag.targaddr, repeats, &resultPair);
+		if (result) thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+
+		//try pending call args
+		printf("\tat extern tag of %lx\n",thistag.targaddr);
+		map<unsigned long, map <unsigned long, vector<vector <pair<int, string>>>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
+		while (pcaIt != thisgraph->pendingcallargs.end())
 		{
-			std::pair<int, int> resultPair;
-			int result = run_external(thistag.targaddr, repeats, &resultPair);
-			if (result) thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+			unsigned long funcad = pcaIt->first;
+			if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { pcaIt++; continue; }
+			vector<pair<int, int>> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+			vector<pair<int, int>>::iterator callvsIt = callvs.begin();
+			while (callvsIt != callvs.end())
+			{
+				node_data *parentn = thisgraph->get_vert(callvsIt->first);
+				unsigned long retad = parentn->ins->address + parentn->ins->numbytes;
+				node_data *targn = thisgraph->get_vert(callvsIt->second);
+
+				map <unsigned long, vector<vector <pair<int, string>>>>::iterator retIt = pcaIt->second.begin();
+				while (retIt != pcaIt->second.end())
+				{
+					if (retIt->first == retad)
+					{
+
+						vector<vector<pair<int, string>>> argsvec = retIt->second;
+						vector<vector<pair<int, string>>>::iterator argsvecIt = argsvec.begin();
+
+						while (argsvecIt != argsvec.end())
+						{
+							EXTERNCALLDATA ex;
+							ex.edgeIdx = make_pair(parentn->index, targn->index);
+							ex.nodeIdx = targn->index;
+							ex.fdata = *argsvecIt;
+							thisgraph->funcQueue.push(ex);
+
+							if (targn->funcargs.size() < MAX_ARG_STORAGE)
+								targn->funcargs.push_back(*argsvecIt);
+							argsvecIt = argsvec.erase(argsvecIt);
+						}
+						retIt->second.clear();
+					}
+					retIt++;
+				}
+				callvsIt++;
+			}
+			pcaIt++;
 		}
+
+
 		return;
 	}
 	else
@@ -588,9 +644,6 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 //thread handler to build graph for a thread
 void thread_trace_handler::TID_thread()
 {
-	
-	
-	
 	thisgraph = (thread_graph_data *)piddata->graphs[TID];
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
