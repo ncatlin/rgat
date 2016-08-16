@@ -23,6 +23,7 @@ public:
 	int nodeMod;
 	//list of lists of arg number, contents
 	vector<vector<pair<int, string>>> funcargs;
+	unsigned long calls = 1;
 	//number of external functions called
 	unsigned childexterns = 0;
 	unsigned long address = 0; //todo: this is only used in externs. bit big?

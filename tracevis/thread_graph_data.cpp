@@ -590,6 +590,7 @@ void thread_graph_data::brighten_BBs()
 					printf("WARNING 22\n"); continue;
 				}
 				//still crashes with out of range! todo...
+				//some sort of esp moan
 				edge_data *linkingEdge = &edgeDict.at(edgePair);
 				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; i++) {

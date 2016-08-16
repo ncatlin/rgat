@@ -428,7 +428,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 
 	node_data *lastnode = thisgraph->get_vert(lastVertID);
-	lastnode->childexterns += 1;
+	
 
 	//start by examining our caller
 	
@@ -440,7 +440,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	int assertZero = get_extern_at_address(targaddr, &thisbb);
 
 	//see if caller already called this
-	//if so, get the destination so we can just buff the edge
+	//if so, get the destination so we can just increase edge weight
 	auto x = thisbb->thread_callers.find(TID);
 	if (x != thisbb->thread_callers.end())
 	{
@@ -455,6 +455,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
 			increaseWeight(&edgeDict->at(*resultPair), repeats);
+			targNode->calls += repeats;
 
 			return 1;
 		}
@@ -463,6 +464,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	}
 	//else: thread hasnt called this function before
 
+	lastnode->childexterns += 1;
 	targVertID = thisgraph->get_num_verts();
 
 	if (!thisbb->thread_callers.count(TID))
@@ -520,31 +522,31 @@ void thread_trace_handler::process_new_args()
 
 		vector<pair<int, int>> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
 		vector<pair<int, int>>::iterator callvsIt = callvs.begin();
-		while (callvsIt != callvs.end())
+		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
 			node_data *parentn = thisgraph->get_vert(callvsIt->first);
 			unsigned long returnAddress = parentn->ins->address + parentn->ins->numbytes;
 			node_data *targn = thisgraph->get_vert(callvsIt->second);
 
 			map <unsigned long, vector<vector <pair<int, string>>>>::iterator retIt = pcaIt->second.begin();
-			while (retIt != pcaIt->second.end())
+			while (retIt != pcaIt->second.end())//run through each caller to this function
 			{
-				if (retIt->first != returnAddress) continue;
+				if (retIt->first != returnAddress) {retIt++; continue;}
 
-				vector<vector<pair<int, string>>> argsvec = retIt->second;
-				vector<vector<pair<int, string>>>::iterator argsvecIt = argsvec.begin();
+				vector<vector<pair<int, string>>> callsvector = retIt->second;
+				vector<vector<pair<int, string>>>::iterator callsIt = callsvector.begin();
 
-				while (argsvecIt != argsvec.end())
+				while (callsIt != callsvector.end())//run through each call made by caller
 				{
 					EXTERNCALLDATA ex;
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
-					ex.fdata = *argsvecIt;
+					ex.fdata = *callsIt;
 					thisgraph->funcQueue.push(ex);
 
 					if (targn->funcargs.size() < MAX_ARG_STORAGE)
-						targn->funcargs.push_back(*argsvecIt);
-					argsvecIt = argsvec.erase(argsvecIt);
+						targn->funcargs.push_back(*callsIt);
+					callsIt = callsvector.erase(callsIt);
 				}
 				retIt->second.clear();
 

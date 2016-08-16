@@ -512,98 +512,49 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 	return 1;
 }
 
-
-void draw_func_args(VISSTATE *clientstate, thread_graph_data *graph, ALLEGRO_FONT *font, DCOORD screenCoord, int externi, node_data *n)
+//uninstrumented library calls
+//draw text for quantity + symbol + argument indicator
+void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
-	//todo: obviously needs lots of cleanup
-	vector<string> callings;
-	int calli = 0;
-	int argtrack = -1;
-
 	stringstream argstring;
-	vector<vector<pair<int, string>>>::iterator callIt;
-
-	argstring << n->nodeSym << "(";
-	obtainMutex(graph->callArgsMutex, "Locking call args", 4000);
-	//todo: this iterator has a race and will crash
-	for (callIt = n->funcargs.begin(); callIt != n->funcargs.end(); callIt++)
-	{
-		vector<pair<int, string>>::iterator argIt;
-		for (argIt = callIt->begin(); argIt != callIt->end(); argIt++)
-		{
-			if (argIt->first <= argtrack)
-			{
-				argstring << ")";
-				callings.push_back(argstring.str());
-				argstring.str("");
-				argstring.clear();
-				argtrack = -1;
-				argstring << n->nodeSym << "(";
-
-			}
-			argtrack = argIt->first;
-			argstring << argtrack << ":" << argIt->second << ',';
-		}
-	}
-	ReleaseMutex(graph->callArgsMutex);
-
-	if (argtrack != -1)
-	{
-		argstring << ")";
-		callings.push_back(argstring.str());
-		argstring.str("");
-		argstring.clear();
-		argtrack = -1;
-		argstring << n->nodeSym << "(";
-
-	}
+	int numCalls = n->calls;
+	if (numCalls == 1)
+		argstring << n->nodeSym;
+	else
+		argstring << n->calls << "x " << n->nodeSym;
 	
-	argstring.clear();
-	argtrack = -1;
-	int cidx = 0;
-
+	//if trace recorded some arguments
+	if (n->funcargs.size()) 
+		argstring << "(...)";
+	else
+		argstring << "()";
 	
-	vector<string>::iterator callit;
-	for (callit = callings.begin(); callit != callings.end(); callit++)
-	{
-		if (cidx > 4) break;
-		al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
-			clientstate->size.height - screenCoord.y + INS_Y_OFF*++cidx, ALLEGRO_ALIGN_LEFT,
-			callit->c_str());
+	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
+		clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		argstring.str().c_str());
 
-	}
-
-	if (!cidx)
-	{
-		argstring.str("");
-		argstring.clear();
-		argstring << n->index << ":" << n->nodeSym << "(...)";
-		al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
-			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			argstring.str().c_str());
-	}
-	
 }
 
-void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertdata)
+void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph)
 {
-	size_t externi;
-	for (externi = 0; externi < graph->externList.size(); ++externi)
+	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
+
+	vector<pair<int, long>>::iterator externCallIt = graph->externList.begin();
+	for (; externCallIt != graph->externList.end(); externCallIt++)
 	{
-		int externVertIdx = graph->externList[externi].first;
+		int externVertIdx = externCallIt->first;
 		node_data *n = graph->get_vert(externVertIdx);
 		if (!n->nodeSym.size()) continue;
 
-		DCOORD screenCoord = n->get_screen_pos(vertdata, pd);
-
+		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
 		if (is_on_screen(&screenCoord, clientstate))
-			draw_func_args(clientstate, graph, clientstate->standardFont, screenCoord, externi, n);
+			draw_func_args(clientstate, clientstate->standardFont, screenCoord, n);
 	}
 }
 
 
-
-void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata)
+//iterate through all the nodes, draw instruction text for the ones in view
+void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, thread_graph_data *graph)
 {
 
 	//iterate through nodes looking for ones that map to screen coords
@@ -612,47 +563,45 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_verts();
+	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
 	for (i = 0; i < numVerts; i++)
 	{
 
 		node_data *n = graph->get_vert(i);
 		if (n->external) continue;
-
-		if (n->nodeSym.size()) continue; //don't care about instruction in library call
-		string blah = "";
-		string *itext = &blah;
 		
-		if (a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
-		{
-			if (!show_all_always) {
-				float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
+		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
+			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
+			continue;
 
-				if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
-					itext = &n->ins->ins_text;
-				else
-					itext = &n->ins->mnemonic;
-			}
+		string itext("?");
+		if (!show_all_always) {
+			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
-			//todo: experiment with performance re:how much of this check to include
-			
-			DCOORD screenCoord = n->get_screen_pos(vertsdata, pd);
-
-			if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-			if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
-
-			stringstream ss;
-			ss << std::hex << n->ins->address <<std::dec <<" ("<< n->index << "):" << *itext;
-			al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
-				clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-				//itext->c_str());
-				ss.str().c_str());
-			drawn++;
-			
+			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
+				itext = n->ins->ins_text;
+			else
+				itext = n->ins->mnemonic;
 		}
-	
+
+		//todo: experiment with performance re:how much of this check to include
+			
+		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
+
+		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+
+		stringstream ss;
+		ss << std::hex << n->ins->address <<":" << itext;
+		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
+			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			ss.str().c_str());
+		drawn++;
+
 	}
 }
 
+//only draws text for instructions with unsatisfied conditions
 void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
@@ -665,45 +614,44 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 	for (i = 0; i < numVerts; i++)
 	{
 		node_data *n = graph->get_vert(i);
-		if (!n->ins->conditional) continue;
+		if (n->external || !n->ins->conditional) continue;
 
+		string itext("?");
 
-		if (n->nodeSym.size()) continue; //don't care about instruction in library call
-		string blah = "";
-		string *itext = &blah;
+		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
+			graph->m_scalefactors->HEDGESEP)) continue;
 
-		if (a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
-		{
-			if (!show_all_always) {
-				float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
+		if (!show_all_always) {
+			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
-				if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
-					itext = &n->ins->ins_text;
-				else
-					itext = &n->ins->mnemonic;
-			}
-
-			//todo: experiment with performance re:how much of this check to include
-			DCOORD screenCoord = n->get_screen_pos(vertsdata, pd);
-
-			if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-			if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
-
-			ALLEGRO_COLOR textcol;
-			textcol.r = vcol[n->index*COLELEMS];
-			textcol.g = vcol[(n->index*COLELEMS)+1];
-			textcol.b = vcol[(n->index*COLELEMS)+2];
-			textcol.a = 1;
-			stringstream ss;
-			ss << "0x" << std::hex << n->ins->address << ": " << std::dec << *itext;
-			al_draw_text(clientstate->standardFont, textcol, screenCoord.x + INS_X_OFF,
-				clientstate->size.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
-				//itext->c_str());
-				ss.str().c_str());
-			drawn++;
+			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
+				itext = n->ins->ins_text;
+			else
+				itext = n->ins->mnemonic;
 		}
+
+		//todo: experiment with performance re:how much of this check to include
+		DCOORD screenCoord = n->get_screen_pos(vertsdata, pd);
+
+		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+
+		ALLEGRO_COLOR textcol;
+		textcol.r = vcol[n->index*COLELEMS];
+		textcol.g = vcol[(n->index*COLELEMS)+1];
+		textcol.b = vcol[(n->index*COLELEMS)+2];
+		textcol.a = 1;
+
+		stringstream ss;
+		ss << "0x" << std::hex << n->ins->address << ": " << itext;
+		al_draw_text(clientstate->standardFont, textcol, screenCoord.x + INS_X_OFF,
+			clientstate->size.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
+			ss.str().c_str());
+		drawn++;
 	}
 }
+
+//draw number of times an edge has been executed
 void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
@@ -717,30 +665,27 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 		node_data *n = graph->get_vert(graph->edgeList[i].first);
 
 		if (n->nodeSym.size()) continue; //don't care about instruction in library call
-		string blah = "";
-		string *itext = &blah;
 
-		if (true || a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
-		{
-			if (graph->edgeDict[graph->edgeList[i]].weight < 2) continue;
+		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, 
+			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
+			continue;
+		if (graph->edgeDict[graph->edgeList[i]].weight <= 1) continue;
 
-			//todo: experiment with performance re:how much of this check to include
-			DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
-			DCOORD screenCoordB = graph->get_vert(graph->edgeList[i].second)->get_screen_pos(vertsdata, pd);
-			DCOORD screenCoord;
-			midpoint(&screenCoordA, &screenCoordB, &screenCoord);
+		//todo: experiment with performance re:how much of this check to include
+		DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
+		DCOORD screenCoordB = graph->get_vert(graph->edgeList[i].second)->get_screen_pos(vertsdata, pd);
+		DCOORD screenCoord;
+		midpoint(&screenCoordA, &screenCoordB, &screenCoord);
 
-			if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-			if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
-			stringstream ss;
-			ss <<graph->edgeDict[graph->edgeList[i]].weight;
-			al_draw_text(clientstate->standardFont, al_col_orange, screenCoord.x + INS_X_OFF,
-				clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-				//itext->c_str());
-				ss.str().c_str());
-			drawn++;
-		}
+		stringstream ss;
+		ss << graph->edgeDict[graph->edgeList[i]].weight;
+		al_draw_text(clientstate->standardFont, al_col_orange, screenCoord.x + INS_X_OFF,
+			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			ss.str().c_str());
+		drawn++;
 	}
 }
 
@@ -814,10 +759,10 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	float zmul = (clientstate->zoomlevel - graphSize) / 1000 - 1;
 	
 	if (zmul < 25)
-		show_extern_labels(clientstate, pd, graph, vertsdata);
+		show_extern_labels(clientstate, pd, graph);
 
 	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
-		draw_instruction_text(clientstate, zmul, pd, graph, vertsdata);
+		draw_instruction_text(clientstate, zmul, pd, graph);
 
 
 }
@@ -855,14 +800,14 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		show_extern_labels(clientstate, &pd, graph1, graph1->get_mainverts());
+		show_extern_labels(clientstate, &pd, graph1);
 	}
 
 	if (clientstate->show_ins_text && zmul < 10 && graph1->get_num_verts() > 2)
 	{
 		if (!pdgathered) 
 			gather_projection_data(&pd);
-		draw_instruction_text(clientstate, zmul, &pd, graph1, graph1->get_mainverts());
+		draw_instruction_text(clientstate, zmul, &pd, graph1);
 	}
 }
 
@@ -907,7 +852,7 @@ void display_big_heatmap(VISSTATE *clientstate)
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	if (zmul < 25)
-		show_extern_labels(clientstate, &pd, graph, vertsdata);
+		show_extern_labels(clientstate, &pd, graph);
 
 	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
 		draw_edge_heat_text(clientstate, zmul, &pd);

@@ -410,7 +410,7 @@ int main(int argc, char **argv)
 	GetCurrentDirectoryA(255, dirbuf);
 	printf("GetCurrentDirectoryA dir: %s\n", dirbuf);
 	
-	clientstate.standardFont = al_load_ttf_font("VeraSe.ttf", 10, 0);
+	clientstate.standardFont = al_load_ttf_font("VeraSe.ttf", 12, 0);
 	ALLEGRO_FONT *PIDFont = al_load_ttf_font("VeraSe.ttf", 14, 0);
 	if (!clientstate.standardFont) {
 		fprintf(stderr, "Could not load 'VeraSe.ttf'.\n");
@@ -565,7 +565,12 @@ int main(int argc, char **argv)
 				{
 					PROJECTDATA pd;
 					gather_projection_data(&pd);
-					if (!graph->active)
+					if (graph->active)
+					{
+						clientstate.modes.animation = true;
+						graph->animate_latest(clientstate.stepBBs);
+					}
+					else
 					{
 						if (graph->terminated)
 						{
@@ -573,17 +578,10 @@ int main(int argc, char **argv)
 							clientstate.modes.animation = false;
 							graph->terminated = false;
 						}
-						display_graph(&clientstate, graph, &pd);
 					}
-					else
-					{
-						clientstate.modes.animation = true;
-						graph->animate_latest(clientstate.stepBBs);
-						display_graph(&clientstate, graph, &pd);
-					}
+					display_graph(&clientstate, graph, &pd);
 					transferNewLiveCalls(graph, &externFloatingText);
 					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
-					
 				}
 
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);

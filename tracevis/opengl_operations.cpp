@@ -21,6 +21,7 @@ void frame_gl_setup(VISSTATE* clientstate)
 	glLoadIdentity();
 	gluPerspective(45, clientstate->size.width / clientstate->size.height, 500, 
 		clientstate->zoomlevel + clientstate->activeGraph->m_scalefactors->radius);
+
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 
