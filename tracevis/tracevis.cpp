@@ -559,11 +559,9 @@ int main(int argc, char **argv)
 						clientstate.modes.animation = true;
 						graph->animate_latest(clientstate.stepBBs);
 						display_graph(&clientstate, graph, &pd);
-
-						transferNewLiveCalls(graph, &externFloatingText);
-						drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 					}
-					
+					transferNewLiveCalls(graph, &externFloatingText);
+					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 					
 				}
 

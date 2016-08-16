@@ -93,7 +93,7 @@ public:
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE callArgsMutex = CreateMutex(NULL, FALSE, NULL);
-
+	map <unsigned int, unsigned int> callCounter;
 	//ugh
 	//   funcaddress	      caller					 argid  arg
 	map<unsigned long, map <unsigned long, vector<vector <pair<int, string>>>>> pendingcallargs;

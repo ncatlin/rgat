@@ -49,8 +49,23 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	}
 	int nodeIdx = ins->threadvertIdx[tid];
 	if (externCallSequence.count(nodeIdx)) {
-		int todotarget = externCallSequence.at(nodeIdx).at(0).second;
-		printf("Extern %s called by node %d\n", vertDict[todotarget].nodeSym.c_str(), nodeIdx);
+		int targetExternIdx = externCallSequence.at(nodeIdx).at(0).second; //0 is todo
+		node_data *n = &vertDict[targetExternIdx];
+		printf("Extern %s called by node %d\n", vertDict[targetExternIdx].nodeSym.c_str(), nodeIdx);
+		EXTERNCALLDATA ex;
+
+		ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
+		ex.nodeIdx = n->index;
+		if (!n->funcargs.empty()) 
+		{
+			int callsSoFar = callCounter[n->index];
+			if (callsSoFar < n->funcargs.size())
+			{
+				ex.fdata = n->funcargs.at(callsSoFar);
+				callCounter[n->index] = callsSoFar + 1;
+			}
+		}
+		funcQueue.push(ex);
 	}
 }
 
@@ -452,6 +467,7 @@ void thread_graph_data::reset_animation()
 	loopsPlayed = 0;
 	loopIteration = 0;
 	targetIterations = 0;
+	callCounter.clear();
 }
 
 void thread_graph_data::brighten_instructions(unsigned long firstIns)

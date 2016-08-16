@@ -44,8 +44,7 @@ protected:
 	vector<pair<unsigned int, unsigned int>> *edgeList;//order of edge execution
 	void handle_arg(char * entry, size_t entrySize);
 	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
-	void transferBufferedArgs(BB_DATA *parentbb, unsigned long targaddr, node_data *targetNode);
-	//bool insert_pending_args_into_node(unsigned long targaddress, int callerid, int externid);
+	void process_new_args();
 	int run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair);
 
 	vector<pair<long, int>> callStack;
