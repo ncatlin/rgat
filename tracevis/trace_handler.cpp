@@ -517,39 +517,37 @@ void thread_trace_handler::process_new_args()
 	{
 		unsigned long funcad = pcaIt->first;
 		if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { pcaIt++; continue; }
+
 		vector<pair<int, int>> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
 		vector<pair<int, int>>::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end())
 		{
 			node_data *parentn = thisgraph->get_vert(callvsIt->first);
-			unsigned long retad = parentn->ins->address + parentn->ins->numbytes;
+			unsigned long returnAddress = parentn->ins->address + parentn->ins->numbytes;
 			node_data *targn = thisgraph->get_vert(callvsIt->second);
 
 			map <unsigned long, vector<vector <pair<int, string>>>>::iterator retIt = pcaIt->second.begin();
 			while (retIt != pcaIt->second.end())
 			{
-				if (retIt->first == retad)
+				if (retIt->first != returnAddress) continue;
+
+				vector<vector<pair<int, string>>> argsvec = retIt->second;
+				vector<vector<pair<int, string>>>::iterator argsvecIt = argsvec.begin();
+
+				while (argsvecIt != argsvec.end())
 				{
+					EXTERNCALLDATA ex;
+					ex.edgeIdx = make_pair(parentn->index, targn->index);
+					ex.nodeIdx = targn->index;
+					ex.fdata = *argsvecIt;
+					thisgraph->funcQueue.push(ex);
 
-					vector<vector<pair<int, string>>> argsvec = retIt->second;
-					vector<vector<pair<int, string>>>::iterator argsvecIt = argsvec.begin();
-
-					while (argsvecIt != argsvec.end())
-					{
-						printf("\tpushing arg to func queue\n");
-						EXTERNCALLDATA ex;
-						ex.edgeIdx = make_pair(parentn->index, targn->index);
-						ex.nodeIdx = targn->index;
-						ex.fdata = *argsvecIt;
-						thisgraph->funcQueue.push(ex);
-
-						if (targn->funcargs.size() < MAX_ARG_STORAGE)
-							targn->funcargs.push_back(*argsvecIt);
-						argsvecIt = argsvec.erase(argsvecIt);
-					}
-					retIt->second.clear();
-
+					if (targn->funcargs.size() < MAX_ARG_STORAGE)
+						targn->funcargs.push_back(*argsvecIt);
+					argsvecIt = argsvec.erase(argsvecIt);
 				}
+				retIt->second.clear();
+
 				if (retIt->second.empty())
 					retIt = pcaIt->second.erase(retIt);
 				else
@@ -570,12 +568,15 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
 		INS_DATA* firstins = piddata->disassembly[thistag.targaddr];
-		int module = firstins->modnum;
-		if (piddata->activeMods[module] == MOD_ACTIVE)
+		if (piddata->activeMods[firstins->modnum] == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
 			thisgraph->totalInstructions += thistag.insCount;
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
+			if (repeats == 1)
+				thisgraph->loopStateList.push_back(make_pair(0, 0xb4d)); 
+			else
+				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
 		return;
 	}
@@ -675,7 +676,6 @@ void thread_trace_handler::TID_thread()
 			if (entry[0] == 'j')
 			{
 				TAG thistag;
-				//printf("Got j %s\n", entry);
 				string jtarg = string(strtok_s(entry + 1, ",", &entry));
 				if (!caught_stol(jtarg, &thistag.targaddr, 16)) {
 					printf("1 STOL ERROR: %s\n", jtarg.c_str());
@@ -696,12 +696,19 @@ void thread_trace_handler::TID_thread()
 				}
 
 				if (loopState == LOOP_START) {
+					printf("LOOP %d: tag %lx,%d,%d ", loopCache.size(), thistag.targaddr, 
+						thistag.insCount, thistag.jumpModifier);
+					if (thistag.jumpModifier == 2)
+					{
+						string s = thisgraph->get_node_sym(piddata->externdict[thistag.targaddr]->thread_callers[TID].at(0).second);
+						printf("-%s", s.c_str());
+					}
+					printf("\n");
 					loopCache.push_back(thistag);
 					continue;
 				}
 
 				handle_tag(thistag);
-				thisgraph->loopStateList.push_back(make_pair(0,1));
 				continue;
 				
 			}
@@ -727,12 +734,13 @@ void thread_trace_handler::TID_thread()
 						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
 						continue;
 					}
-					printf("start\n");
+					printf("start loop\n");
 					continue;
 				}
 				//loop end
 				else if (entry[1] == 'E') 
 				{
+					printf("end loop length %d [%d iterations!]\n",loopCache.size(),loopCount);
 					vector<TAG>::iterator tagIt;
 					
 					loopState = LOOP_START;
@@ -743,7 +751,7 @@ void thread_trace_handler::TID_thread()
 					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 					{
 						handle_tag(*tagIt, loopCount);
-						thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
+						
 					}
 
 					loopCache.clear();
@@ -752,6 +760,9 @@ void thread_trace_handler::TID_thread()
 					continue;
 				}
 			}
+
+			if (thisgraph->loopStateList.size() != thisgraph->bbsequence.size())
+				printf("Size mismatch! %d loop states, %d sequences\n", thisgraph->loopStateList.size(), thisgraph->bbsequence.size());
 
 			string enter_s = string(entry);
 			if (enter_s.substr(0, 3) == "ARG")

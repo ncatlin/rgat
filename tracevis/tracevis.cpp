@@ -274,10 +274,29 @@ void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffR
 struct EXTTEXT{
 	pair<unsigned int, unsigned int> edge;
 	int nodeIdx;
-	vector<pair<int, string>> args;
+	//vector<pair<int, string>> args;
 	float timeRemaining;
 	float yOffset;
+	string displayString;
 } ;
+
+string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args)
+{
+	stringstream funcArgStr;
+	funcArgStr << graph->get_node_sym(nodeIdx) << "(";
+
+	int numargs = args.size();
+	for (int i = 0; i < numargs; i++)
+	{
+		funcArgStr << args[i].first << ": " << args[i].second;
+		if (i == numargs - 1)
+			funcArgStr << ")";
+		else
+			funcArgStr << ", ";
+	}
+
+	return funcArgStr.str();
+}
 
 void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText)
 {
@@ -285,12 +304,15 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 	{
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
+
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
-		extt.args = resu.fdata;
+		//extt.args = resu.fdata;
 		extt.nodeIdx = resu.nodeIdx;
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
+		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
+
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);
 		externFloatingText->at(graph->tid).push_back(extt);
@@ -316,9 +338,8 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		}
 		else
 		{
-			//n->funcargs
 			al_draw_text(clientState->standardFont, al_col_green,
-				pos.x, clientState->size.height - pos.y - exttIt->yOffset, 0, n->nodeSym.c_str());
+				pos.x, clientState->size.height - pos.y - exttIt->yOffset, 0, exttIt->displayString.c_str());
 			exttIt->timeRemaining -= 1;
 			exttIt->yOffset += 0.5;
 			exttIt++;

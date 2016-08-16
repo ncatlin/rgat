@@ -51,7 +51,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	if (externCallSequence.count(nodeIdx)) {
 		int targetExternIdx = externCallSequence.at(nodeIdx).at(0).second; //0 is todo
 		node_data *n = &vertDict[targetExternIdx];
-		printf("Extern %s called by node %d\n", vertDict[targetExternIdx].nodeSym.c_str(), nodeIdx);
+		printf("Extern %s called by node %d seqid: %ld\n", vertDict[targetExternIdx].nodeSym.c_str(), nodeIdx, sequenceIndex);
 		EXTERNCALLDATA ex;
 
 		ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
@@ -63,6 +63,11 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 			{
 				ex.fdata = n->funcargs.at(callsSoFar);
 				callCounter[n->index] = callsSoFar + 1;
+			}
+			else {
+				callCounter[n->index] = callsSoFar + 1;
+				printf("ERROR! more visits (%d) to %s than recorded args (%d)\n",
+					callsSoFar + 1, n->nodeSym.c_str(), n->funcargs.size());
 			}
 		}
 		funcQueue.push(ex);
