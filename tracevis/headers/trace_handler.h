@@ -4,6 +4,7 @@
 #include "edge_data.h"
 #include "thread_graph_data.h"
 #include "GUIStructs.h"
+#include "timeline.h"
 
 struct TAG {
 	unsigned long targaddr;
@@ -25,6 +26,7 @@ public:
 	int TID;
 	thread_graph_data *watchedGraph;
 	PID_DATA *piddata;
+	timeline *timelinebuilder;
 	
 
 protected:

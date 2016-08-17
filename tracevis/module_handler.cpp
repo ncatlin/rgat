@@ -52,6 +52,7 @@ void module_handler::PID_thread()
 		{	
 			if (buf[0] == 'T' && buf[1] == 'I')
 			{
+				printf("[MODTHREAD PID %d] got TI %s\n",PID, buf);
 				int TID = 0;
 				if (!extract_integer(buf, string("TI"), &TID))
 				{
@@ -64,6 +65,7 @@ void module_handler::PID_thread()
 				TID_thread->PID = PID;
 				TID_thread->TID = TID;
 				TID_thread->piddata = piddata;
+				TID_thread->timelinebuilder = clientState->timelineBuilder;
 
 				thread_graph_data *tgraph = new thread_graph_data(&piddata->disassembly);
 
@@ -74,6 +76,7 @@ void module_handler::PID_thread()
 				piddata->graphs.insert(make_pair(TID, (void*)tgraph));
 				ReleaseMutex(piddata->graphsListMutex);
 
+				clientState->timelineBuilder->notify_new_tid(PID, TID);
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_thread->ThreadEntry,
 					(LPVOID)TID_thread, 0, &threadID);

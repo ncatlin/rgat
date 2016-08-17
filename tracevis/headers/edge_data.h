@@ -8,7 +8,7 @@ public:
 
 	unsigned long weight = 0; //number of times executed
 	unsigned int vertSize = 0;
-	int arraypos = -1;
+	unsigned int arraypos = 0;
 	char edgeClass = 0;
 };
 

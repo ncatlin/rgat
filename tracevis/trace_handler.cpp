@@ -542,7 +542,10 @@ void thread_trace_handler::process_new_args()
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
 					ex.fdata = *callsIt;
+
+					obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
 					thisgraph->funcQueue.push(ex);
+					ReleaseMutex(thisgraph->funcQueueMutex);
 
 					if (targn->funcargs.size() < MAX_ARG_STORAGE)
 						targn->funcargs.push_back(*callsIt);
@@ -576,7 +579,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			thisgraph->totalInstructions += thistag.insCount;
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
 			if (repeats == 1)
-				thisgraph->loopStateList.push_back(make_pair(0, 0xb4d)); 
+				thisgraph->loopStateList.push_back(make_pair(0, 0xbad)); 
 			else
 				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
@@ -615,7 +618,7 @@ void thread_trace_handler::TID_thread()
 
 	stringstream filename;
 	filename << "C:\\tracing\\" << TID << ".txt";
-	tmpThreadSave.open(filename.str(), std::ofstream::binary);
+	//tmpThreadSave.open(filename.str(), std::ofstream::binary);
 
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
 	pipename.append(std::to_wstring(TID));
@@ -642,7 +645,7 @@ void thread_trace_handler::TID_thread()
 		DWORD bytesRead = 0;
 		ReadFile(hPipe, buf, TAGCACHESIZE, &bytesRead, NULL);
 		if (bytesRead == TAGCACHESIZE) {
-			printf("\t\tERROR: THREAD READ CACHE EXCEEDED!\n");
+			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n",buf);
 			threadRunning = false;
 			break;
 		}
@@ -656,10 +659,11 @@ void thread_trace_handler::TID_thread()
 				printf("thread %d pipe read ERROR: %d. [Closing handler]\n", TID, err);
 			else
 				printf("\t Thread %d - pipe read failure [thread exit? -closing handler]------------\n",TID);
+			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
 			tmpThreadSave.close();
-			while (!thisgraph->funcQueue.empty()) thisgraph->funcQueue.pop();
+			thisgraph->emptyArgQueue();
 			return;
 		}
 
@@ -698,14 +702,6 @@ void thread_trace_handler::TID_thread()
 				}
 
 				if (loopState == LOOP_START) {
-					printf("LOOP %d: tag %lx,%d,%d ", loopCache.size(), thistag.targaddr, 
-						thistag.insCount, thistag.jumpModifier);
-					if (thistag.jumpModifier == 2)
-					{
-						string s = thisgraph->get_node_sym(piddata->externdict[thistag.targaddr]->thread_callers[TID].at(0).second);
-						printf("-%s", s.c_str());
-					}
-					printf("\n");
 					loopCache.push_back(thistag);
 					continue;
 				}
@@ -734,15 +730,12 @@ void thread_trace_handler::TID_thread()
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stol(repeats_s, &loopCount, 10)) {
 						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
-						continue;
 					}
-					printf("start loop\n");
 					continue;
 				}
 				//loop end
 				else if (entry[1] == 'E') 
 				{
-					printf("end loop length %d [%d iterations!]\n",loopCache.size(),loopCount);
 					vector<TAG>::iterator tagIt;
 					
 					loopState = LOOP_START;
@@ -762,9 +755,6 @@ void thread_trace_handler::TID_thread()
 					continue;
 				}
 			}
-
-			if (thisgraph->loopStateList.size() != thisgraph->bbsequence.size())
-				printf("Size mismatch! %d loop states, %d sequences\n", thisgraph->loopStateList.size(), thisgraph->bbsequence.size());
 
 			string enter_s = string(entry);
 			if (enter_s.substr(0, 3) == "ARG")

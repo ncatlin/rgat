@@ -74,6 +74,7 @@ public:
 	void brighten_BBs();
 	void set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
+	void emptyArgQueue();
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 
@@ -97,7 +98,7 @@ public:
 	int baseMod = -1;
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
-	HANDLE callArgsMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
 	map <unsigned int, unsigned int> callCounter;
 	//ugh
 	//   funcaddress	      caller					 argid  arg
@@ -107,7 +108,7 @@ public:
 	int maxA = 0;
 	int maxB = 0;
 	int bigBMod = 0;
-	long zoomLevel;
+	long zoomLevel = 0;
 
 	unsigned long maxWeight = 0;
 
@@ -125,7 +126,7 @@ public:
 	GRAPH_DISPLAY_DATA *previewverts = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;
 
-
+	bool finalHeatmap = false;
 	bool needVBOReload_heatmap = false;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
@@ -153,8 +154,8 @@ public:
 
 
 	bool newanim = true;
-	unsigned int last_anim_start;
-	unsigned int last_anim_stop;
+	unsigned int last_anim_start = 0;
+	unsigned int last_anim_stop = 0;
 	//position out of all the instructions instrumented
 	unsigned long animInstructionIndex = 0;
 	unsigned long totalInstructions = 0;

@@ -13,6 +13,7 @@
 #include "preview_pane.h"
 #include "serialise.h"
 #include "diff_plotter.h"
+#include "timeline.h"
 
 //possible name: rgat
 //ridiculous/runtime graph analysis tool
@@ -56,7 +57,7 @@ void launch_saved_PID_threads(int PID, PID_DATA *piddata, VISSTATE *clientState)
 
 }
 //todo: make this a thread/mainloop check that listens for new processes
-void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
+void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
 	PID_DATA *piddata = new PID_DATA;
 	piddata->PID = PID;
 
@@ -66,6 +67,7 @@ void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 
 	DWORD threadID;
 
+	//handles new threads for process
 	module_handler *tPIDThread = new module_handler;
 	tPIDThread->clientState = clientState;
 	tPIDThread->PID = PID;
@@ -75,6 +77,7 @@ void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 		NULL, 0, (LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry,
 		(LPVOID)tPIDThread, 0, &threadID);
 
+	//handles new disassembly data
 	basicblock_handler *tBBThread = new basicblock_handler;
 	tBBThread->clientState = clientState;
 	tBBThread->PID = PID;
@@ -84,7 +87,7 @@ void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 		NULL, 0, (LPTHREAD_START_ROUTINE)tBBThread->ThreadEntry,
 		(LPVOID)tBBThread, 0, &threadID);
 
-	
+	//renders threads for preview pane
 	graph_renderer *render_preview_thread = new graph_renderer;
 	render_preview_thread->clientState = clientState;
 	render_preview_thread->PID = PID;
@@ -94,6 +97,7 @@ void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
 		(LPVOID)render_preview_thread, 0, &threadID);
 	
+	//renders heatmaps
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
 	heatmap_thread->clientState = clientState;
 	heatmap_thread->piddata = piddata;
@@ -102,6 +106,7 @@ void launch_running_PID_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
 		(LPVOID)heatmap_thread, 0, &threadID);
 	
+	//renders conditionals
 	conditional_renderer *conditional_thread = new conditional_renderer;
 	conditional_thread->clientState = clientState;
 	conditional_thread->piddata = piddata;
@@ -144,10 +149,17 @@ void windows_execute_tracer(string executable) {
 	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
 }
 
-int launch_target() {
+void launch_test_exe() {
+	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	windows_execute_tracer(executable);
+	Sleep(800);
+}
+
+int process_coordinator_thread(VISSTATE *clientState) {
+	printf("In process coordinator thread...\n");
 	//todo: posibly worry about pre-existing if pidthreads dont work
 	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT,
+		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 65536, 65536, 300, NULL);
 
 	if (hPipe == INVALID_HANDLE_VALUE)
@@ -156,35 +168,38 @@ int launch_target() {
 		return -1;
 	}
 
-	//runpath.append("C:\\Users\\nia\\Documents\\tracevis\\vulnerableapp.exe");
-	//runpath.append("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe -l -p 9989");
-	string executable("C:\\tracing\\testdllloader.exe");
-	windows_execute_tracer(executable);
-	Sleep(800);
+	
 
-	//todo: genericise this?
 	DWORD bread = 0;
 	char buf[40];
-	bool res = ReadFile(hPipe, buf, 30, &bread, NULL);
-	if (!bread){
-		printf("Read 0 when waiting for PID. Try again\n");
-		return -1;
-	}
-	buf[bread] = 0;
-
-	int PID = 0;
-	if (!extract_integer(buf, string("PID"), &PID))
+	while (true)
 	{
-		//todo: fail here soemtimes
-		printf("ERROR: Something bad happen in extract_integer, string is: %s\n", buf);
-		return -1;
+		int conresult = ConnectNamedPipe(hPipe, NULL);
+		printf("boostrap conresult : %d\n", conresult);
+		ReadFile(hPipe, buf, 30, &bread, NULL);
+		DisconnectNamedPipe(hPipe);
+		if (!bread) {
+			printf("Read 0 when waiting for PID. Try again\n");
+			continue;
+		}
+		buf[bread] = 0;
+		printf("process_coordinator thread read: [%s]\n", buf);
+
+		int PID = 0;
+		if (!extract_integer(buf, string("PID"), &PID))
+		{
+			//todo: fail here soemtimes
+			printf("ERROR: Something bad happen in extract_integer, string is: %s\n", buf);
+			return -1;
+		}
+
+		clientState->timelineBuilder->notify_new_pid(PID);
+		launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
 	}
-	return PID;
 }
 
 void updateMainRender(VISSTATE *clientState)
 {
-	ALLEGRO_DISPLAY *display = clientState->maindisplay;
 	render_main_graph(clientState);
 
 	//todo: change to on size change?
@@ -195,7 +210,7 @@ void updateMainRender(VISSTATE *clientState)
 	plot_wireframe(clientState);
 
 	plot_colourpick_sphere(clientState);
-	updateTitle_NumPrimitives(display, clientState, clientState->activeGraph->get_mainverts()->get_numVerts(),
+	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainverts()->get_numVerts(),
 		clientState->activeGraph->get_mainlines()->get_renderedEdges());
 	clientState->rescale = false;
 
@@ -289,12 +304,10 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pai
 	for (int i = 0; i < numargs; i++)
 	{
 		funcArgStr << args[i].first << ": " << args[i].second;
-		if (i == numargs - 1)
-			funcArgStr << ")";
-		else
+		if (i < numargs - 1)
 			funcArgStr << ", ";
 	}
-
+	funcArgStr << ")";
 	return funcArgStr.str();
 }
 
@@ -302,12 +315,13 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 {
 	while (!graph->funcQueue.empty())
 	{
+		obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
+		ReleaseMutex(graph->funcQueueMutex);
 
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
-		//extt.args = resu.fdata;
 		extt.nodeIdx = resu.nodeIdx;
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
@@ -381,8 +395,8 @@ int main(int argc, char **argv)
 	GLint *wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
 	for (int i = 0; i < WIREFRAMELOOPS; i++)
 	{
-		wireframeStarts[i] = i*POINTSPERLINE;
-		wireframeSizes[i] = POINTSPERLINE;
+		wireframeStarts[i] = i*WF_POINTSPERLINE;
+		wireframeSizes[i] = WF_POINTSPERLINE;
 	}
 
 	int bufsize = 0;
@@ -445,6 +459,12 @@ int main(int argc, char **argv)
 	map <int, pair<int, int>> graphPositions;
 	map <int, vector<EXTTEXT>> externFloatingText;
 
+	HANDLE hProcessCoordinator = CreateThread(
+		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
+		(LPVOID)&clientstate, 0, 0);
+
+	clientstate.timelineBuilder = new timeline;
+
 	bool running = true;
 	while (running)
 	{
@@ -483,9 +503,17 @@ int main(int argc, char **argv)
 		//active graph changed
 		if (clientstate.newActiveGraph)
 		{
+			
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
+			printf("GRAPH CHANGED to tid %d\n", clientstate.activeGraph->tid);
+			if (!clientstate.activeGraph->get_num_verts()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
+			clientstate.activeGraph->reset_animation();
 			widgets->controlWindow->setAnimEnabled(!clientstate.activeGraph->active);
-			clientstate.activeGraph->blockInstruction = 0;
+			if (!clientstate.activeGraph->active)
+				clientstate.modes.animation = false;
+
+			clientstate.activeGraph->emptyArgQueue();
+
 			clientstate.newActiveGraph = 0;
 			if (!externFloatingText.count(clientstate.activeGraph->tid))
 			{
@@ -498,7 +526,6 @@ int main(int argc, char **argv)
 		{
 
 			al_set_target_bitmap(clientstate.mainGraphBMP);
-
 			frame_gl_setup(&clientstate);
 
 			//todo: move to a clearcolour variable in state
@@ -588,7 +615,7 @@ int main(int argc, char **argv)
 			}
 
 			frame_gl_teardown();
-
+			al_set_target_backbuffer(clientstate.maindisplay);
 			if (clientstate.modes.preview)
 			{
 
@@ -597,16 +624,11 @@ int main(int argc, char **argv)
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}
-
-				al_set_target_backbuffer(clientstate.maindisplay);
 				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.size.width - PREVIEW_PANE_WIDTH, 0, 0);
 			}
-			else
-				al_set_target_backbuffer(clientstate.maindisplay);
+
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
-
 			widgets->updateRenderWidgets(clientstate.activeGraph);
-
 			al_flip_display();
 		}
 
@@ -626,7 +648,20 @@ int main(int argc, char **argv)
 				widgets->processEvent(&ev);
 				if (clientstate.newPID > -1)
 				{
-					printf("TODO: CHANGE PID HERE TO %d\n", clientstate.newPID);
+					clientstate.activePid = clientstate.glob_piddata_map[clientstate.newPID];
+					map<int, void *> *pidGraphList = &clientstate.glob_piddata_map[clientstate.newPID]->graphs;
+					map<int, void *>::iterator pidIt;
+					//get first graph with some verts
+					for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); pidIt++)
+					{
+						pair<int, void *> graphPair = *(pidGraphList->begin());
+						thread_graph_data *graph = (thread_graph_data *)graphPair.second;
+						if (graph->get_num_verts())
+						{
+							clientstate.newActiveGraph = graph;
+							break;
+						}
+					}				 
 					clientstate.newPID = -1;
 				}
 				break;
@@ -634,8 +669,8 @@ int main(int argc, char **argv)
 			case EV_BTN_RUN:
 			{
 				printf("run clicked! need to use file dialogue or cmdline?");
-				int PID = launch_target();
-				launch_running_PID_threads(PID, &clientstate.glob_piddata_map, clientstate.pidMapMutex, &clientstate);
+				launch_test_exe();
+				//todo: start timeline
 				break;
 			}
 			case EV_BTN_QUIT:
@@ -652,8 +687,6 @@ int main(int argc, char **argv)
 		fps = 1 / (al_get_time() - frame_start_time);
 		//if (fps < 50) printf("FPS WARNING! %f (unlocked: %f)\n", fps, fps_unlocked);
 		updateTitle_FPS(clientstate.maindisplay, clientstate.title, fps, fps_unlocked);
-
-		
 	}
 
 	free(wireframeStarts);
@@ -735,9 +768,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		return EV_RESIZE;
 	}
 
-	
-
-	
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
 		if (!clientstate->activeGraph) return 0;
@@ -824,6 +854,9 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			clientstate->mouse_dragging = true;
 		else
 		{
+			TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
+			if (widgets->dropdownDropped()) return EV_MOUSE;
+			printf("Setting graph from mouseover\n");
 			int PID, TID;
 			if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 				set_active_graph(clientstate, PID, TID);		

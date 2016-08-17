@@ -181,6 +181,7 @@
     <ClInclude Include="headers\thread_graph_data.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="serialise.h" />
+    <ClInclude Include="timeline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Agui-master\src\Agui\ActionEvent.cpp" />
@@ -276,6 +277,7 @@
     <ClCompile Include="opengl_operations.cpp" />
     <ClCompile Include="serialise.cpp" />
     <ClCompile Include="thread_graph_data.cpp" />
+    <ClCompile Include="timeline.cpp" />
     <ClCompile Include="traceMisc.cpp" />
     <ClCompile Include="trace_handler.cpp" />
     <ClCompile Include="rendering.cpp" />

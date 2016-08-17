@@ -58,9 +58,11 @@ void thread_graph_data::extend_faded_edges()
 {
 	GLfloat *animecol = animlinedata->acquire_col();
 	GLfloat *mainecol = mainlinedata->acquire_col();
-	unsigned int endVerts = mainlinedata->get_numVerts();
-	//printf("Fade start tid%d with endverts %d\n", tid, endVerts*COLELEMS);
-	int pendingVerts = endVerts - animlinedata->get_numVerts();
+	unsigned int drawnVerts = mainlinedata->get_numVerts();
+	unsigned int animatedVerts = animlinedata->get_numVerts();
+
+	assert(drawnVerts >= animatedVerts);
+	int pendingVerts = drawnVerts - animatedVerts;
 	if (!pendingVerts) return;
 
 	unsigned int fadedIndex = animlinedata->get_numVerts() *COLELEMS;
@@ -71,15 +73,11 @@ void thread_graph_data::extend_faded_edges()
 	mainlinedata->release_col();
 
 	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
-	unsigned int end = endVerts*COLELEMS;
+	unsigned int end = drawnVerts*COLELEMS;
 	for (; index2 < end; index2 += 4)
-	{
 		animecol[index2 + 3] = 0.1;
-		//animecol[index2 + 4 +3] = 0.1;
-	}
-	animlinedata->set_numVerts(endVerts);
-	//printf("Fade done tid %d with endverts %d\n", tid, endVerts*COLELEMS);
-	
+
+	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col();
 }
 
@@ -128,8 +126,18 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 		callCounter[n->index] = callsSoFar + 1;
 	}
-	funcQueue.push(ex);
 
+	obtainMutex(funcQueueMutex, "FuncQueue Push Animation", INFINITE);
+	funcQueue.push(ex);
+	ReleaseMutex(funcQueueMutex);
+
+}
+
+void thread_graph_data::emptyArgQueue()
+{
+	obtainMutex(funcQueueMutex, "End thread purge args", 3000);
+	while (!funcQueue.empty()) funcQueue.pop();
+	ReleaseMutex(funcQueueMutex);
 }
 
 void thread_graph_data::advance_sequence()
@@ -598,7 +606,8 @@ void thread_graph_data::brighten_BBs()
 	GLfloat *ecol = animlinedata->acquire_col();
 
 	unsigned int animPosition = firstAnimatedBB; 
-
+	obtainMutex(edMutex, "Before BB brighten", 1000);
+	
 	//place active on new active
 	for (; animPosition < animEnd; animPosition++)
 	{
@@ -623,10 +632,10 @@ void thread_graph_data::brighten_BBs()
 				}
 				//still crashes with out of range! todo...
 				//some sort of esp moan
-				edge_data *linkingEdge = &edgeDict.at(edgePair);
-				int numEdgeVerts = linkingEdge->vertSize;
+				edge_data linkingEdge = edgeDict.at(edgePair);
+				int numEdgeVerts = linkingEdge.vertSize;
 				for (int i = 0; i < numEdgeVerts; i++) {
-					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
+					ecol[linkingEdge.arraypos + i*COLELEMS + 3] = (float)1.0;
 				}
 				if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
 					activeEdgeList.push_back(edgePair);
@@ -659,6 +668,7 @@ void thread_graph_data::brighten_BBs()
 		lastNodeIdx = nodeIdx;
 	}
 
+	ReleaseMutex(edMutex);
 	animvertsdata->release_col();
 	animlinedata->release_col();
 	latest_active_node = &vertDict[lastNodeIdx];
@@ -790,6 +800,8 @@ node_data *thread_graph_data::derive_anim_node(bool stepBBs)
 void thread_graph_data::reset_mainlines() {
 	delete mainlinedata;
 	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
+	delete animlinedata;
+	animlinedata = new GRAPH_DISPLAY_DATA(40000);
 }
 
 int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,	
@@ -818,10 +830,13 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 	if (forceColour) edgeColour = forceColour;
 	else
 		edgeColour = &lineColours->at(e->edgeClass);
+
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);
+
 	e->vertSize = vertsDrawn;
-	e->arraypos = arraypos;
+	if (!preview)
+		e->arraypos = arraypos;
 
 	return 1;
 
@@ -839,9 +854,6 @@ thread_graph_data::thread_graph_data(map <unsigned long, INS_DATA*> *disasPtr)
 	disassembly = disasPtr;
 	mainvertsdata = new GRAPH_DISPLAY_DATA(40000);
 	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
-
-	//fadedlinedata = new GRAPH_DISPLAY_DATA(40000);
-	//fadedvertsdata = new GRAPH_DISPLAY_DATA(40000);
 
 	animlinedata = new GRAPH_DISPLAY_DATA(40000);
 	animvertsdata = new GRAPH_DISPLAY_DATA(40000);

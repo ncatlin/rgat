@@ -2,6 +2,10 @@
 #include "render_heatmap_thread.h"
 #include "traceMisc.h"
 
+void __stdcall heatmap_renderer::ThreadEntry(void* pUserData) {
+	return ((heatmap_renderer*)pUserData)->heatmap_thread();
+}
+
 bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
@@ -10,7 +14,6 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit;
 
-	//would be quicker to track dirty edges instead of rescanning all the edges again
 	//build set of all heat values
 	std::set<long> heatValues;
 	for (edgeit = graph->edgeDict.begin(); edgeit != graph->edgeDict.end(); edgeit++)
@@ -50,51 +53,50 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	if (graph->heatmaplines->col_size() < newsize)
 		graph->heatmaplines->expand(newsize * 2);
 
-	GLfloat *vcol = graph->heatmaplines->acquire_col();
+	GLfloat *ecol = graph->heatmaplines->acquire_col();
 	for (size_t i = 0; i < linedata->get_numVerts(); ++i) 
-		vcol[i] = 1.0;
+		ecol[i] = 1.0; //hello memset
+
 
 	int newDrawn = 0;
 	for (edgeit = graph->edgeDict.begin(); edgeit != graph->edgeDict.end(); edgeit++)
 	{
 		if (!edgeit->second.vertSize)
 		{
-			printf("WARNING : uninit edge\n");
+			printf("WARNING : uninit heatmap edge\n");
 			break;
 		}
 
 		COLSTRUCT *edgecol = &heatColours[edgeit->second.weight];
-		unsigned int vidx = 0;
-		unsigned int vidxpos = 0;
-		for (; vidx < edgeit->second.vertSize; vidx++)
+		unsigned int vertIdx = 0;
+		for (; vertIdx < edgeit->second.vertSize; vertIdx++)
 		{
-			vidxpos = vidx * 4;
-			vcol[edgeit->second.arraypos + vidxpos] = edgecol->r;
-			vcol[edgeit->second.arraypos + vidxpos + 1] = edgecol->g;
-			vcol[edgeit->second.arraypos + vidxpos + 2] = edgecol->b;
-			vcol[edgeit->second.arraypos + vidxpos + 3] = (float)1;
+			unsigned int arraypos = edgeit->second.arraypos + vertIdx * 4;
+			ecol[arraypos] = edgecol->r;
+			ecol[arraypos + 1] = edgecol->g;
+			ecol[arraypos + 2] = edgecol->b;
+			ecol[arraypos + 3] = (float)1;
 		}
 		newDrawn++;
 	}
-	
+
 	if (newDrawn)
 	{
 		graph->heatmaplines->set_numVerts(linedata->get_numVerts());
 		graph->needVBOReload_heatmap = true;
 	}
+
 	graph->heatmaplines->release_col();
 	ReleaseMutex(graph->edMutex);
 	return true;
 }
 
-void __stdcall heatmap_renderer::ThreadEntry(void* pUserData) {
-	return ((heatmap_renderer*)pUserData)->heatmap_thread();
-}
-
+//convert 0-255 rgb to 0-1
 float fcol(int value)
 {
 	return (float)value / 255.0;
 }
+
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
 void heatmap_renderer::heatmap_thread()
@@ -130,8 +132,18 @@ void heatmap_renderer::heatmap_thread()
 		{
 			thread_graph_data *graph = (thread_graph_data *)graphit->second;
 			if (clientState->activeGraph == graph)
-				render_graph_heatmap(graph);
-
+			{
+				//rendering iterates over the entire graph
+				//only rerender if graph is changing
+				if (graph->active)
+					render_graph_heatmap(graph);
+				else 
+					if (!graph->finalHeatmap)
+					{
+						graph->finalHeatmap = true;
+						render_graph_heatmap(graph);
+					}
+			}
 			graphit++;
 		}
 

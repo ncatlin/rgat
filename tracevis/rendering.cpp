@@ -7,7 +7,7 @@ void plot_wireframe(VISSTATE *clientstate)
 {
 	int ii, pp, index;
 	int diam = clientstate->activeGraph->m_scalefactors->radius;
-	int points = POINTSPERLINE;
+	int points = WF_POINTSPERLINE;
 	int numSphereCurves = 0;
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
@@ -17,16 +17,16 @@ void plot_wireframe(VISSTATE *clientstate)
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
-		for (pp = 0; pp < POINTSPERLINE; pp++) {
+		for (pp = 0; pp < WF_POINTSPERLINE; pp++) {
 
-			float angle = (2 * M_PI * pp) / POINTSPERLINE;
+			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
 
-			index = numSphereCurves * POINTSPERLINE * POSELEMS + pp * POSELEMS;
+			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
 			vpos[index] = ringSize * cos(angle);
 			vpos[index + 1] = diam * cos((ii*M_PI) / 180);
 			vpos[index + 2] = ringSize * sin(angle);
 
-			index = numSphereCurves * POINTSPERLINE * COLELEMS + pp * COLELEMS;
+			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
 			vcol[index] = wireframe_col.r;
 			vcol[index + 1] = wireframe_col.g;
 			vcol[index + 2] = wireframe_col.b;
@@ -43,12 +43,12 @@ void plot_wireframe(VISSTATE *clientstate)
 			float angle = (2 * M_PI * pp) / points;
 			float cosangle = cos(angle);
 
-			index = numSphereCurves * POINTSPERLINE * POSELEMS + pp * POSELEMS;
+			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
 			vpos[index] = diam * cosangle * cos(degs2);
 			vpos[index + 1] = diam * sin(angle);
 			vpos[index + 2] = diam * cosangle * sin(degs2);
 
-			index = numSphereCurves * POINTSPERLINE * COLELEMS + pp * COLELEMS;
+			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
 			vcol[index] = wireframe_col.r;
 			vcol[index + 1] = wireframe_col.g;
 			vcol[index + 2] = wireframe_col.b;
@@ -189,9 +189,9 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	// describe the normal
 	FCOORD middleC;
 	midpoint(startC, endC, &middleC);
-	float eLen = distance(startC, endC);
+	float eLen = linedist(startC, endC);
 
-	FCOORD *bezierC;
+	FCOORD bezierC;
 	int curvePoints;
 
 	switch (edgeType)
@@ -200,13 +200,13 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		{
 			//todo: this number depends on the scale!
 			curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
-			bezierC = &middleC;
+			bezierC = middleC;
 			break;
 		}
 		case ICALL:
 		{
 			curvePoints = LONGCURVEPTS;
-			bezierC = &middleC;
+			bezierC = middleC;
 			break;
 		}
 
@@ -216,21 +216,20 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			//no idea what this does
 			float a = BACKVERTA;
 			curvePoints = LONGCURVEPTS;
-			// divergence = -random.uniform(eLen / 5, eLen / 2)
+
 			if (eLen < 2) 
-				bezierC = &middleC;
+				bezierC = middleC;
 			else
 			{
 				float oldMidA, oldMidB;
 				FCOORD bezierC2;
-				bezierC = &bezierC2;
 				sphereAB(&middleC, &oldMidA, &oldMidB, dimensions);
-				sphereCoord(oldMidA, oldMidB, bezierC, dimensions, -(eLen / 2));
+				sphereCoord(oldMidA, oldMidB, &bezierC, dimensions, -(eLen / 2));
 
 				// i dont know why this maths problem happens or why this fixes it
 				// but at this point i'm too afraid to ask.
-				if ((bezierC->x > 0) && (startC->x < 0 && endC->x < 0))
-					bezierC->x = -bezierC->x;
+				if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
+					bezierC.x = -bezierC.x;
 			}
 			break;
 		}
@@ -238,7 +237,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		case ILIB: 
 		{
 			curvePoints = LONGCURVEPTS;
-			bezierC = &middleC;
+			bezierC = middleC;
 			break;
 		}
 
@@ -251,7 +250,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	{
 		case LONGCURVEPTS:
 		{
-			int vertsdrawn = drawLongCurvePoints(bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
+			int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
 			return vertsdrawn; 
 		}
 
@@ -356,7 +355,6 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	if (vertit == vertEnd) return 0;
 
-	printf("NEW VERTS (tid:%d)! Drawing....\n",graph->tid);
 	for (; vertit != vertEnd; ++vertit)
 	{
 	 if (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
@@ -402,7 +400,7 @@ int render_main_graph(VISSTATE *clientState)
 	bool doResize = false;
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
-	printf("%d,", graph->get_mainverts()->get_numVerts());
+
 	adjustedDiam = graph->maxA * 10;
 	adjustedDiam = max(adjustedDiam, 30000)* graph->m_scalefactors->userDiamModifier;
 	recalculate_scale(graph->m_scalefactors, adjustedDiam);
@@ -412,9 +410,12 @@ int render_main_graph(VISSTATE *clientState)
 	
 	if (abs(adjustedDiam - graph->zoomLevel) > 5000 || clientState->rescale)
 	{
+		printf("resize triggered! adjdiam %d - g->zl %d  > 5000\n", adjustedDiam, graph->zoomLevel);
 		doResize = true;
 		clientState->rescale = false;
 	}
+	else
+		printf("no resize. adjdiam %d - g->zl %d  <= 5000\n", adjustedDiam, graph->zoomLevel);
 	
 	if (doResize)
 	{
@@ -454,7 +455,7 @@ int render_main_graph(VISSTATE *clientState)
 	if (edgeIt != graph->edgeList.end())
 		graph->needVBOReload_main = true;
 
-	for (; edgeIt != graph->edgeList.end(); ++edgeIt)
+	for(; edgeIt != graph->edgeList.end(); ++edgeIt)
 	{
 		graph->render_edge(*edgeIt, lines, &clientState->guidata->lineColoursArr);
 		graph->extend_faded_edges();
@@ -592,7 +593,7 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
 		stringstream ss;
-		ss << std::hex << n->ins->address <<":" << itext;
+		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address <<":" << itext;
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
@@ -783,6 +784,8 @@ void display_big_heatmap(VISSTATE *clientstate)
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->heatmapEdgeVBO[0]);
 		glColorPointer(4, GL_FLOAT, 0, 0);
+
+		//know this is fine
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 

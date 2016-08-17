@@ -102,6 +102,9 @@
     <ClInclude Include="headers\graph_display_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="timeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -396,6 +399,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="graph_display_data.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

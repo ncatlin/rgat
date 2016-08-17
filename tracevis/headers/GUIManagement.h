@@ -75,6 +75,8 @@ public:
 		{ widgetInputHandler->processEvent(*ev); 
 			widgets->logic();
 		}
+	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
+	//bool dropdownClose() { dropDownWidget->}
 
 	ComparisonBox *diffWindow = NULL;
 	AnimControls *controlWindow = NULL;

@@ -5,6 +5,7 @@
 #include "GUIConstants.h"
 #include "traceStructs.h"
 #include "thread_graph_data.h"
+#include "timeline.h"
 
 struct DIFFIDS {
 	int pid1 = -1;
@@ -88,6 +89,8 @@ struct VISSTATE {
 
 	std::map<int, PID_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
+
+	timeline *timelineBuilder;
 
 };
 

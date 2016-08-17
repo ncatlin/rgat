@@ -213,6 +213,7 @@ RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1,
 
 void TraceVisGUI::addPID(int PID) {
 	string pidstring = " "+std::to_string(PID);
+	//todo: crash here?
 	dropDownWidget->addItem(pidstring);
 }
 void TraceVisGUI::setActivePID(int PID) {
@@ -471,6 +472,10 @@ void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPS
 
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
+	if (!clientState->activeGraph->get_num_verts())
+	{
+		printf("ERROR NO VERTS in summary activegraph\n"); return;
+	}
 	stringstream infotxt;
 	ALLEGRO_COLOR textcol;
 
