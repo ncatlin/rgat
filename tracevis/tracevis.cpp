@@ -63,7 +63,7 @@ void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 
 	if (!obtainMutex(pidmutex, "Launch PID threads")) return;
 	glob_piddata_map->insert_or_assign(PID, piddata);
-	ReleaseMutex(pidmutex);
+	dropMutex(pidmutex, "Launch PID threads");
 
 	DWORD threadID;
 
@@ -318,7 +318,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
-		ReleaseMutex(graph->funcQueueMutex);
+		dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
 				}
 				break;
 			}
-			ReleaseMutex(clientstate.pidMapMutex);
+			dropMutex(clientstate.pidMapMutex, "Main Loop");
 		}
 
 		//active graph changed
@@ -585,6 +585,8 @@ int main(int argc, char **argv)
 					//the draw_text in the graph drawing screws this up if we do it afterwards
 					draw_anim_line(graph->get_active_node(), graph);
 				}
+				else
+					draw_anim_line(graph->get_active_node(), graph);
 
 				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
 				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
@@ -734,7 +736,7 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 
 	if (!obtainMutex(clientstate->pidMapMutex, "load graph")) return 0;
 	clientstate->glob_piddata_map[PID] = newpiddata;
-	ReleaseMutex(clientstate->pidMapMutex);
+	dropMutex(clientstate->pidMapMutex, "load graph");
 
 	launch_saved_PID_threads(PID, newpiddata, clientstate);
 	return true;

@@ -50,10 +50,17 @@ int caught_stol(string s, unsigned long *result, int base) {
 
 bool obtainMutex(HANDLE mutex, char *errorLocation, int waitTime)
 {
+	
 	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
 	if (waitresult == WAIT_TIMEOUT) {
-		printf("\n\nERROR! Mutex wait expired at %s ERROR!\n",errorLocation);
+		printf("ERROR! Mutex %x wait expired at %s ERROR!\n", mutex, errorLocation);
 		return false;
 	}
+	//if (errorLocation) printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
 	return true;
+}
+
+void dropMutex(HANDLE mutex, char *location) {
+	//if (location) printf("Dropping mutex %x -> %s\n", mutex, location);
+	ReleaseMutex(mutex);
 }

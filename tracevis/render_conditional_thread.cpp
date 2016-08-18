@@ -17,7 +17,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		std::advance(vertit, graph->conditionalverts->get_numVerts());
 		if (vertit == vertEnd) return 0;
 
-		GLfloat *vcol = graph->conditionalverts->acquire_col();
+		GLfloat *vcol = graph->conditionalverts->acquire_col("1f");
 		for (; vertit != vertEnd; vertit++)
 		{
 			int arraypos = vertit->second.index * COLELEMS;
@@ -72,7 +72,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	if (graph->conditionallines->col_size() < newsize)
 		graph->conditionallines->expand(newsize * 2);
 
-	GLfloat *vcol = graph->conditionallines->acquire_col();
+	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
 	for (edgeit != graph->edgeDict.end(); edgeit != graph->edgeDict.end(); edgeit++)
 	{
 		if (!edgeit->second.vertSize) break;
@@ -90,7 +90,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	graph->conditionallines->set_numVerts(graph->get_mainlines()->get_numVerts());
 	graph->conditionallines->release_col();
 	if (newDrawn) graph->needVBOReload_conditional = true;
-	ReleaseMutex(graph->edMutex);
+	dropMutex(graph->edMutex, "render graph conditional end");
 	return 1;
 }
 
@@ -124,7 +124,7 @@ void conditional_renderer::conditional_thread()
 			graphit++;
 		}
 
-		ReleaseMutex(piddata->graphsListMutex);
+		dropMutex(piddata->graphsListMutex, "Render Preview Thread");
 		Sleep(CONDITIONAL_DELAY_MS);
 	}
 }

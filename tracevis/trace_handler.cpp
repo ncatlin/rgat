@@ -32,7 +32,7 @@ void thread_trace_handler::insert_edge(edge_data e, pair<int,int> edgePair)
 	if (e.weight > thisgraph->maxWeight)
 		thisgraph->maxWeight = e.weight;
 
-	ReleaseMutex(thisgraph->edMutex);
+	dropMutex(thisgraph->edMutex, "Insert Edge");
 }
 
 void thread_trace_handler::insert_vert(int targVertID, node_data thisNode)
@@ -41,7 +41,7 @@ void thread_trace_handler::insert_vert(int targVertID, node_data thisNode)
 	if (thisNode.index == 0)
 		printf("INSERTED IDX VERT!\n");
 	thisgraph->add_vert(make_pair(targVertID, thisNode));
-	ReleaseMutex(thisgraph->edMutex);
+	dropMutex(thisgraph->edMutex, "Insert Vert");
 }
 
 bool thread_trace_handler::new_instruction(INS_DATA *instruction)
@@ -92,7 +92,6 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_
 			}
 		}
 	}
-
 
 	if (lastRIPType != FIRST_IN_THREAD)
 	{
@@ -536,21 +535,21 @@ void thread_trace_handler::process_new_args()
 				vector<vector<pair<int, string>>> callsvector = retIt->second;
 				vector<vector<pair<int, string>>>::iterator callsIt = callsvector.begin();
 
+				obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
 					EXTERNCALLDATA ex;
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
 					ex.fdata = *callsIt;
-
-					obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
+					
 					thisgraph->funcQueue.push(ex);
-					ReleaseMutex(thisgraph->funcQueueMutex);
-
+					
 					if (targn->funcargs.size() < MAX_ARG_STORAGE)
 						targn->funcargs.push_back(*callsIt);
 					callsIt = callsvector.erase(callsIt);
 				}
+				dropMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live");
 				retIt->second.clear();
 
 				if (retIt->second.empty())

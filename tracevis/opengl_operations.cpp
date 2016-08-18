@@ -122,8 +122,8 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 	int rowAngle = (int)(360 / BDIVISIONS);
 	int quads = 0;
 	int bufpos = 0;
-	GLfloat *spherepos = spheredata->acquire_pos();
-	GLfloat *spherecol = spheredata->acquire_col();
+	GLfloat *spherepos = spheredata->acquire_pos("1a");
+	GLfloat *spherecol = spheredata->acquire_col("1a");
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) {
 		float colb = (float)rowi / 180;
 		float ringSizeTop, ringSizeBase, anglel, angler;

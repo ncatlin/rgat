@@ -40,7 +40,7 @@ void graph_renderer::rendering_thread()
 			graphit++;
 		}
 		
-		ReleaseMutex(piddata->graphsListMutex);
+		dropMutex(piddata->graphsListMutex, "Render Preview Thread");
 		Sleep(PREVIEW_UPDATE_DELAY_MS);
 	}
 }

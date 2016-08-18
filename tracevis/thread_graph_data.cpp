@@ -56,8 +56,8 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 //create faded edge version of graph for use in animations
 void thread_graph_data::extend_faded_edges()
 {
-	GLfloat *animecol = animlinedata->acquire_col();
-	GLfloat *mainecol = mainlinedata->acquire_col();
+	GLfloat *animecol = animlinedata->acquire_col("2c");
+	GLfloat *mainecol = mainlinedata->acquire_col("2c");
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
@@ -114,7 +114,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 		targetExternIdx = callList.at(0).second;
 
 	node_data *n = &vertDict[targetExternIdx];
-
+	printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
@@ -127,9 +127,9 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 		callCounter[n->index] = callsSoFar + 1;
 	}
 
-	obtainMutex(funcQueueMutex, "FuncQueue Push Animation", INFINITE);
+	obtainMutex(funcQueueMutex, "End Highlight Externs", INFINITE);
 	funcQueue.push(ex);
-	ReleaseMutex(funcQueueMutex);
+	dropMutex(funcQueueMutex, "End Highlight Externs");
 
 }
 
@@ -137,7 +137,7 @@ void thread_graph_data::emptyArgQueue()
 {
 	obtainMutex(funcQueueMutex, "End thread purge args", 3000);
 	while (!funcQueue.empty()) funcQueue.pop();
-	ReleaseMutex(funcQueueMutex);
+	dropMutex(funcQueueMutex, "End thread purge args");
 }
 
 void thread_graph_data::advance_sequence()
@@ -371,7 +371,7 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool st
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	
-	GLfloat *ecol = animlinedata->acquire_col();
+	GLfloat *ecol = animlinedata->acquire_col("2a");
 
 	vector<pair<unsigned int, unsigned int>>::iterator activeEdgeIt = activeEdgeList.begin();
 	vector <pair<unsigned int, unsigned int>> edgeRemovalList;
@@ -394,7 +394,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	}
 	animlinedata->release_col();
 
-	GLfloat *ncol = animvertsdata->acquire_col();
+	GLfloat *ncol = animvertsdata->acquire_col("2b");
 	vector<unsigned int>::iterator activeNodeIt = activeNodeList.begin();
 	vector <unsigned int> nodeRemovalList;
 
@@ -435,8 +435,8 @@ void thread_graph_data::darken_animation(float alphaDelta)
 
 void thread_graph_data::clear_final_BBs()
 {
-	GLfloat *ncol = animvertsdata->acquire_col();
-	GLfloat *ecol = animlinedata->acquire_col();
+	GLfloat *ncol = animvertsdata->acquire_col("1k");
+	GLfloat *ecol = animlinedata->acquire_col("1k");
 	unsigned int lastNodeIdx = 0;
 	//place faded on expired active (outside window)
 	for (; last_anim_start < last_anim_stop; last_anim_start++)
@@ -521,8 +521,8 @@ void thread_graph_data::reset_animation()
 
 void thread_graph_data::brighten_instructions(unsigned long firstIns)
 {
-	GLfloat *ncol = animvertsdata->acquire_col();
-	GLfloat *ecol = animlinedata->acquire_col();
+	GLfloat *ncol = animvertsdata->acquire_col("1l");
+	GLfloat *ecol = animlinedata->acquire_col("1l");
 
 	unsigned int lastNodeIdx = 0;
 	unsigned int nextNodeIdx = 0;
@@ -602,15 +602,22 @@ void thread_graph_data::brighten_BBs()
 	unsigned int lastNodeIdx = 0;
 	unsigned int animEnd = sequenceIndex;
 
-	GLfloat *ncol = animvertsdata->acquire_col();
-	GLfloat *ecol = animlinedata->acquire_col();
-
 	unsigned int animPosition = firstAnimatedBB; 
-	obtainMutex(edMutex, "Before BB brighten", 1000);
-	
+	if (animPosition == animEnd) return;
+	if(!obtainMutex(edMutex, "Before BB brighten", 3000)) return;
+
+	map <unsigned long, bool> recentHighlights;
 	//place active on new active
 	for (; animPosition < animEnd; animPosition++)
 	{
+		highlight_externs(animPosition);
+		//dont re-brighten on same animation frame
+		if (recentHighlights.count(animPosition)) continue;
+		recentHighlights[animPosition] = true;
+		
+		GLfloat *ncol = animvertsdata->acquire_col("1m");
+		GLfloat *ecol = animlinedata->acquire_col("1m");
+		
 		pair<unsigned long, int> targBlock_Size = bbsequence[animPosition];
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
@@ -666,11 +673,12 @@ void thread_graph_data::brighten_BBs()
 			ins = nextIns;
 		}
 		lastNodeIdx = nodeIdx;
+		animvertsdata->release_col();
+		animlinedata->release_col();
 	}
 
-	ReleaseMutex(edMutex);
-	animvertsdata->release_col();
-	animlinedata->release_col();
+	dropMutex(edMutex, "Brighten BBs end");
+	printf("latest active: %d\n", lastNodeIdx);
 	latest_active_node = &vertDict[lastNodeIdx];
 	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;
@@ -686,11 +694,13 @@ void thread_graph_data::animate_latest(bool stepBBs)
 	darken_animation(ANIMATION_FADE_RATE);
 
 	sequenceIndex = bbsequence.size() - 1;
-	lastAnimatedBB = sequenceIndex;
+	
 
 	if (stepBBs) 
 	{
-		firstAnimatedBB = lastAnimatedBB - ANIMATION_WIDTH;
+		firstAnimatedBB = lastAnimatedBB;
+		lastAnimatedBB = sequenceIndex;
+
 		brighten_BBs();	
 	}
 	else
@@ -886,7 +896,7 @@ thread_graph_data::~thread_graph_data()
 void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
 	edge_data *e = &edgeDict.at(eIdx);
-	GLfloat *colarray = edgesdata->acquire_col();
+	GLfloat *colarray = edgesdata->acquire_col("2e");
 	for (int i = 0; i < e->vertSize; i++)
 	{
 		colarray[e->arraypos + i*COLELEMS + 3] = alpha;
@@ -896,7 +906,7 @@ void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GR
 
 void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
 {
-	GLfloat *colarray = nodesdata->acquire_col();
+	GLfloat *colarray = nodesdata->acquire_col("2f");
 	colarray[nIdx*COLELEMS + 3] = alpha;
 	nodesdata->release_col();
 }

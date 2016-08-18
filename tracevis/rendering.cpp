@@ -12,8 +12,8 @@ void plot_wireframe(VISSTATE *clientstate)
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
 
-	GLfloat *vpos = wireframe_data->acquire_pos();
-	GLfloat *vcol = wireframe_data->acquire_col();
+	GLfloat *vpos = wireframe_data->acquire_pos("1c");
+	GLfloat *vcol = wireframe_data->acquire_col("1c");
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -67,8 +67,8 @@ void plot_wireframe(VISSTATE *clientstate)
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
 
-	GLfloat* vertpos = vertdata->acquire_pos();
-	GLfloat* vertcol = vertdata->acquire_col();
+	GLfloat* vertpos = vertdata->acquire_pos("1b");
+	GLfloat* vertcol = vertdata->acquire_col("1b");
 
 	int numverts = vertdata->get_numVerts();
 	int posi = numverts * POSELEMS;
@@ -160,8 +160,8 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	coldata[ci++] = 1;
 
 	int numverts = vertdata->get_numVerts();
-	float *vpos = vertdata->acquire_pos() + numverts * POSELEMS;
-	float *vcol = vertdata->acquire_col() + numverts * COLELEMS;
+	float *vpos = vertdata->acquire_pos("1d") + numverts * POSELEMS;
+	float *vcol = vertdata->acquire_col("1d") + numverts * COLELEMS;
 	*arraypos = numverts * COLELEMS;
 
 	memcpy(vpos, posdata, POSELEMS * curvePoints * sizeof(float));
@@ -277,7 +277,7 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	int vertIdx = n->index;
 
-	GLfloat *vpos = vertdata->acquire_pos();
+	GLfloat *vpos = vertdata->acquire_pos("1h");
 	vpos[(vertIdx * POSELEMS)] = screenc.x;
 	vpos[(vertIdx * POSELEMS) + 1] = screenc.y;
 	vpos[(vertIdx * POSELEMS) + 2] = screenc.z;
@@ -321,24 +321,25 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		}
 	}
 
-	GLfloat *vcol = vertdata->acquire_col();
+	GLfloat *vcol = vertdata->acquire_col("1g");
 	vcol[(vertIdx * COLELEMS)] = active_col->r;
 	vcol[(vertIdx * COLELEMS) + 1] = active_col->g;
 	vcol[(vertIdx * COLELEMS) + 2] = active_col->b;
 	vcol[(vertIdx * COLELEMS) + 3] = 1;
 
 	vertdata->set_numVerts(vertdata->get_numVerts()+1);
+
 	vertdata->release_col();
 	vertdata->release_pos();
 	vertdata->release_fcoord();
-
-	GLfloat *vcol2 = animvertdata->acquire_col();
+	GLfloat *vcol2 = animvertdata->acquire_col("1e");
 	vcol2[(vertIdx * COLELEMS)] = active_col->r;
 	vcol2[(vertIdx * COLELEMS) + 1] = active_col->g;
 	vcol2[(vertIdx * COLELEMS) + 2] = active_col->b;
 	vcol2[(vertIdx * COLELEMS) + 3] = 0;
 
 	animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
+
 	animvertdata->release_col();
 
 	return 1;
@@ -355,7 +356,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	if (vertit == vertEnd) return 0;
 
-	for (; vertit != vertEnd; ++vertit)
+	for (; vertit != vertEnd; vertit++)
 	{
 	 if (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
 		{
@@ -363,7 +364,6 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 			return -1;
 		}
 	}
-
 	return 1;
 }
 
@@ -376,7 +376,7 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	map<unsigned int, node_data>::iterator vertit = graph->get_vertStart();
 	map<unsigned int, node_data>::iterator target = graph->get_vertStart();
 
-	GLfloat *vpos = vertsdata->acquire_pos();
+	GLfloat *vpos = vertsdata->acquire_pos("1i");
 	GLfloat *fcoord = vertsdata->acquire_fcoord();
 	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; vertit++)
 	{
@@ -410,12 +410,9 @@ int render_main_graph(VISSTATE *clientState)
 	
 	if (abs(adjustedDiam - graph->zoomLevel) > 5000 || clientState->rescale)
 	{
-		printf("resize triggered! adjdiam %d - g->zl %d  > 5000\n", adjustedDiam, graph->zoomLevel);
 		doResize = true;
 		clientState->rescale = false;
 	}
-	else
-		printf("no resize. adjdiam %d - g->zl %d  <= 5000\n", adjustedDiam, graph->zoomLevel);
 	
 	if (doResize)
 	{
@@ -427,7 +424,7 @@ int render_main_graph(VISSTATE *clientState)
 	int drawCount = draw_new_verts(graph, graph->get_mainverts());
 	if (drawCount < 0)
 	{
-		ReleaseMutex(graph->edMutex);
+		dropMutex(graph->edMutex, "Render Main Graph");
 		printf("\n\nFATAL 5: Failed drawing verts!\n\n");
 		return 0;
 	}
@@ -461,7 +458,7 @@ int render_main_graph(VISSTATE *clientState)
 		graph->extend_faded_edges();
 		lines->inc_edgesRendered();
 	}
-	ReleaseMutex(graph->edMutex);
+	dropMutex(graph->edMutex, "Render Main Graph");
 	return 1;
 }
 
@@ -499,6 +496,7 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewverts);
 	if (vresult == -1)
 	{
+		dropMutex(previewGraph->edMutex, "Render Preview Graph");
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
 		return 0;
 	}
@@ -506,10 +504,11 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 	vresult = draw_new_preview_edges(clientState, previewGraph);
 	if (!vresult)
 	{
+		dropMutex(previewGraph->edMutex, "Render Preview Graph");
 		printf("\n\nFATAL 6: Failed drawing new edges! returned:%d\n\n", vresult);
 		return 0;
 	}
-	ReleaseMutex(previewGraph->edMutex);
+	dropMutex(previewGraph->edMutex, "Render Preview Graph");
 	return 1;
 }
 

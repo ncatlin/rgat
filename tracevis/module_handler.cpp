@@ -74,7 +74,7 @@ void module_handler::PID_thread()
 				if (piddata->graphs.count(TID) > 0)
 					printf("\n\n\t\tDUPICATE THREAD ID! TODO:MOVE TO INACTIVE\n\n");
 				piddata->graphs.insert(make_pair(TID, (void*)tgraph));
-				ReleaseMutex(piddata->graphsListMutex);
+				dropMutex(piddata->graphsListMutex, "Module Handler");
 
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
 				HANDLE hOutThread = CreateThread(

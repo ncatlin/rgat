@@ -7,8 +7,8 @@ public:
 	GRAPH_DISPLAY_DATA(int initialValue);
 	~GRAPH_DISPLAY_DATA();
 	//todo - split these up?
-	float *acquire_pos();
-	float *acquire_col();
+	float *acquire_pos(char *location);
+	float *acquire_col(char *location);
 	void debg(int m);
 	//need to work out if this is a problem. might be
 	float *readonly_col() { return vcolarray; }

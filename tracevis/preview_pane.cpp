@@ -201,7 +201,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 		threadit++;
 	}
 	glPopMatrix();
-	ReleaseMutex(clientState->pidMapMutex);
+	dropMutex(clientState->pidMapMutex, "Preview Pane");
 	al_set_target_bitmap(prevBmp);
 
 	if (clientState->previewSpin)

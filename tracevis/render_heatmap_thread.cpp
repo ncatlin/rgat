@@ -53,7 +53,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	if (graph->heatmaplines->col_size() < newsize)
 		graph->heatmaplines->expand(newsize * 2);
 
-	GLfloat *ecol = graph->heatmaplines->acquire_col();
+	GLfloat *ecol = graph->heatmaplines->acquire_col("3b");
 	for (size_t i = 0; i < linedata->get_numVerts(); ++i) 
 		ecol[i] = 1.0; //hello memset
 
@@ -87,7 +87,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	}
 
 	graph->heatmaplines->release_col();
-	ReleaseMutex(graph->edMutex);
+	dropMutex(graph->edMutex, "Render Graph Heatmap");
 	return true;
 }
 
@@ -147,7 +147,7 @@ void heatmap_renderer::heatmap_thread()
 			graphit++;
 		}
 
-		ReleaseMutex(piddata->graphsListMutex);
+		dropMutex(piddata->graphsListMutex, "Heatmap Thread");
 		Sleep(HEATMAP_DELAY_MS);
 	}
 }

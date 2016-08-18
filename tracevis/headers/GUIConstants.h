@@ -111,4 +111,4 @@
 #define INS_X_OFF 5
 #define INS_Y_OFF 3
 
-#define ANIMATION_FADE_RATE 0.05
+#define ANIMATION_FADE_RATE 0.01

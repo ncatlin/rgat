@@ -49,7 +49,7 @@ void timeline::notify_new_tid(unsigned int pid, unsigned int tid)
 	ev.TID = tid;
 	creationLog.push_back(ev);
 	pidlist[pid].push_back(&ev);
-	ReleaseMutex(accessMutex);
+	dropMutex(accessMutex, "TL TID START");
 }
 
 void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
@@ -61,5 +61,5 @@ void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
 	ev.PID = pid;
 	ev.TID = tid;
 	creationLog.push_back(ev);
-	ReleaseMutex(accessMutex);
+	dropMutex(accessMutex, "TL TID END");
 }

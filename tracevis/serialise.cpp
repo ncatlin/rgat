@@ -103,7 +103,7 @@ void saveTrace(VISSTATE * clientState)
 		thread_graph_data *graph = (thread_graph_data *)graphit->second;
 		graph->serialise(&savefile);
 	}
-	ReleaseMutex(clientState->activePid->graphsListMutex);
+	dropMutex(clientState->activePid->graphsListMutex, "Save Trace");
 
 	savefile.close();
 	clientState->saveInProgress = false;

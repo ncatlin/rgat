@@ -1,4 +1,5 @@
 #include <graph_display_data.h>
+#include <traceMisc.h>
 
 //time to split line/node data sperate
 GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(int initialValue)
@@ -37,37 +38,38 @@ FCOORD GRAPH_DISPLAY_DATA::get_coord(unsigned int index)
 	return result;
 }
 
-float *GRAPH_DISPLAY_DATA::acquire_pos()
+float *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
 {
-	WaitForSingleObject(posmutex, INFINITE);
+	obtainMutex(posmutex, 0, 1000);
 	return vposarray;
 }
 
-float *GRAPH_DISPLAY_DATA::acquire_col()
+float *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
 {
-	WaitForSingleObject(colmutex, INFINITE);
+
+	obtainMutex(colmutex, 0, 1000);
 	return vcolarray;
 }
 
 float *GRAPH_DISPLAY_DATA::acquire_fcoord()
 {
-	WaitForSingleObject(coordmutex, INFINITE);
+	obtainMutex(coordmutex, 0, 1000);
 	return fcoordarray;
 }
 
 void GRAPH_DISPLAY_DATA::release_pos()
 {
-	ReleaseMutex(posmutex);	
+	dropMutex(posmutex);	
 }
 
 void GRAPH_DISPLAY_DATA::release_col()
 {
-	ReleaseMutex(colmutex);
+	dropMutex(colmutex);
 }
 
 void GRAPH_DISPLAY_DATA::release_fcoord()
 {
-	ReleaseMutex(coordmutex);
+	dropMutex(coordmutex);
 }
 
 void GRAPH_DISPLAY_DATA::debg(int m)
@@ -80,9 +82,9 @@ void GRAPH_DISPLAY_DATA::debg(int m)
 }
 
 void GRAPH_DISPLAY_DATA::expand(unsigned int minsize) {
-	WaitForSingleObject(colmutex, INFINITE);
-	WaitForSingleObject(posmutex, INFINITE);
-	WaitForSingleObject(coordmutex, INFINITE);
+	obtainMutex(colmutex,"expand", INFINITE);
+	obtainMutex(posmutex, "expand", INFINITE);
+	obtainMutex(coordmutex, "expand", INFINITE);
 
 	unsigned int expandValue = max(minsize, 30000);
 	vpsize += expandValue;
@@ -96,9 +98,9 @@ void GRAPH_DISPLAY_DATA::expand(unsigned int minsize) {
 	newAddress = (float *)realloc(vcolarray, vcsize);
 	if (newAddress) vcolarray = newAddress;
 
-	ReleaseMutex(colmutex);
-	ReleaseMutex(posmutex);
-	ReleaseMutex(coordmutex);
+	release_col();
+	release_pos();
+	release_fcoord();
 }
 
 //when number of verts increases also checks buffer sizes
