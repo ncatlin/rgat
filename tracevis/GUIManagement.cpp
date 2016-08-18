@@ -5,18 +5,37 @@
 class AnimButtonListener : public agui::ActionListener
 {
 public:
-	AnimButtonListener(VISSTATE *state, agui::TextField *tfl) { clientState = state; stepq = tfl; }
+	AnimButtonListener(AnimControls *mycontrols, int *stateAddress, VISSTATE *state)
+	{ controls = mycontrols; animState = stateAddress; clientState = state;}
+
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		//dunno if there is a builtin ID value for buttons instead of doing this
+		//todo: if not it's worth adding
+		int currentState = *animState;
+
 		string btntext = evt.getSource()->getText();
+		if (btntext == "Stop" || btntext == "Play")
+		{
+			if (currentState == ANIM_LIVE || currentState == ANIM_REPLAY)
+				controls->setAnimState(ANIM_INACTIVE);
+			else
+				controls->setAnimState(ANIM_ACTIVATED);
+		}
+
+		//one step forward
 		if (btntext == ">")
 		{
-			clientState->animationUpdate = 1;
+			if (currentState == ANIM_INACTIVE)
+				clientState->animationUpdate = 1;
 			return;
 		}
+
+		//one step back
 		if (btntext == "<")
 		{
-			clientState->animationUpdate = -1;
+			if (currentState == ANIM_INACTIVE)
+				clientState->animationUpdate = -1;
 			return;
 		}
 
@@ -24,8 +43,27 @@ public:
 		{
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
+			clientState->activeGraph->reset_animation();
 			evt.getSource()->setText("Play");
 			evt.getSource()->resizeToContents();
+			return;
+		}
+
+		if (btntext == "Pause")
+		{
+			evt.getSource()->setText("Continue");
+			evt.getSource()->resizeToContents();
+			clientState->modes.animation = false;
+			return;
+		}
+
+		int quantity = std::stoi(controls->stepText->getText());
+		if (btntext == "Continue")
+		{
+			clientState->animationUpdate = quantity;
+			evt.getSource()->setText("Pause");
+			evt.getSource()->resizeToContents();
+			clientState->modes.animation = true;
 			return;
 		}
 
@@ -35,44 +73,103 @@ public:
 			return;
 		}
 
-		int quantity = std::stoi(stepq->getText());
+		
+		
 		if (btntext == ">>")
 		{
-			clientState->animationUpdate = quantity;
+			if (currentState == ANIM_INACTIVE)
+			{
+				clientState->animationUpdate = quantity;
+			}
+			else if (currentState == ANIM_REPLAY)
+			{
+				quantity++;
+				controls->stepText->setText(to_string(quantity));
+				clientState->animationUpdate = quantity;
+			}
 			return;
 		}
 
 		if (btntext == "<<")
 		{
-			clientState->animationUpdate = -quantity;
+			if (currentState == ANIM_INACTIVE)
+			{
+				clientState->animationUpdate = -quantity;
+			}
+			else if (currentState == ANIM_REPLAY)
+			{
+				if (quantity == 0) return;
+				quantity--;
+				controls->stepText->setText(to_string(quantity));
+				clientState->animationUpdate = quantity;
+			}
 			return;
-		}
-
-		if (btntext == "Play")
-		{
-			clientState->animationUpdate = quantity;
-			clientState->modes.animation = true;
-			evt.getSource()->setText("Stop");
-			evt.getSource()->resizeToContents();
-			return;
-		}
-
+		}	
 	}
 private:
+	AnimControls *controls;
+	int *animState;
 	VISSTATE *clientState;
-	agui::TextField *stepq;
 };
 
 void AnimControls::notifyAnimFinished()
 {
-	playBtn->setText("Play");
-	playBtn->resizeToContents();
+	setAnimState(ANIM_INACTIVE);
+}
+
+void AnimControls::setAnimState(int newAnimState)
+{
+	if (newAnimState == animationState) return;
+	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
+	{
+		if (!clientState->activeGraph->active)
+		{
+			newAnimState = ANIM_REPLAY;
+			clientState->animationUpdate = std::stoi(this->stepText->getText());
+			clientState->modes.animation = true;
+		}
+		else
+			printf("How did we get here?\n");
+	}
+
+	switch (newAnimState)
+	{
+		case ANIM_INACTIVE:
+		{
+			clientState->animationUpdate = 0;
+			clientState->modes.animation = false;
+			this->playBtn->setText("Play");
+			this->playBtn->resizeToContents();
+			this->pauseBtn->setVisibility(false);
+			connectBtn->setVisibility(false);
+			break;
+		}
+		case ANIM_LIVE:
+		{
+			connectBtn->setText("Disconnect");
+			connectBtn->resizeToContents();
+			connectBtn->setVisibility(true);
+			break;
+		}
+		case ANIM_REPLAY:
+		{
+			clientState->animationUpdate = std::stoi(this->stepText->getText());
+			clientState->modes.animation = true;
+			playBtn->setText("Stop");
+			playBtn->resizeToContents();
+			pauseBtn->setVisibility(true);
+			pauseBtn->setText("Pause");
+			pauseBtn->resizeToContents();
+			break;
+		}
+	}
+	animationState = newAnimState;
 }
 
 void AnimControls::update(thread_graph_data *graph)
 {
-	if (graph->active == enableState)
-		setAnimEnabled(!graph->active);
+	if (!graph->active && animationState == ANIM_LIVE)
+		setAnimState(ANIM_INACTIVE);
 
 	stringstream stepInfo;
 	if (clientState->stepBBs)
@@ -87,6 +184,7 @@ void AnimControls::update(thread_graph_data *graph)
 	stepsLabel->setText(stepInfo.str());
 }
 
+/*
 void AnimControls::setAnimEnabled(bool newState)
 {
 	enableState = newState;
@@ -112,6 +210,7 @@ void AnimControls::setAnimEnabled(bool newState)
 	}
 	
 }
+*/
 
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	guiwidgets = widgets;
@@ -123,9 +222,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 
 	connectBtn = new agui::Button();
 	connectBtn->setFont(btnFont);
-	connectBtn->setText("Disconnect");
 	connectBtn->setMargins(0, 8, 0, 8);
-	connectBtn->resizeToContents();
 	connectBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(connectBtn);
 
@@ -177,6 +274,16 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	playBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(playBtn);
 
+	pauseBtn = new agui::Button();
+	pauseBtn->setFont(btnFont);
+	pauseBtn->setText("Pause");
+	pauseBtn->setToolTipText("Pause replay");
+	pauseBtn->setMargins(0, 8, 0, 8);
+	pauseBtn->resizeToContents();
+	pauseBtn->setBackColor(agui::Color(210, 210, 210));
+	pauseBtn->setVisibility(true);
+	controlsLayout->add(pauseBtn);
+
 	stepsLabel = new agui::Label();
 	stepsLabel->setFont(btnFont);
 	stepsLabel->setFontColor(agui::Color(210, 210, 210));
@@ -191,17 +298,25 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	controlsLayout->setLocation(50, clientState->size.height - playBtn->getHeight()*2.2);
 	controlsLayout->setHorizontalSpacing(10);
 	widgets->add(controlsLayout);
-	setAnimEnabled(false);
 
-	AnimButtonListener *btnListen = new AnimButtonListener(clientState, stepText);
+	if (!clientState->activeGraph || clientState->activeGraph->active)
+		animationState = ANIM_LIVE;
+	else
+		if (clientState->modes.animation)
+			animationState = ANIM_REPLAY;
+		else
+			animationState = ANIM_INACTIVE;
+
+	AnimButtonListener *btnListen = new AnimButtonListener(this, &animationState, clientState);
 	connectBtn->addActionListener(btnListen);
 	backStepBtn->addActionListener(btnListen);
 	backJumpBtn->addActionListener(btnListen);
 	forwardStepBtn->addActionListener(btnListen);
 	forwardJumpBtn->addActionListener(btnListen);
 	playBtn->addActionListener(btnListen);
+	pauseBtn->addActionListener(btnListen);
 
-
+	setAnimState(animationState);
 }
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)

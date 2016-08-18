@@ -12,13 +12,20 @@
 
 #define DIFF_INFOLABEL_X_OFFSET 25
 
+#define ANIM_INACTIVE 0
+#define ANIM_LIVE 1
+#define ANIM_REPLAY 2
+#define ANIM_ACTIVATED 3
+
 class AnimControls {
 public:
 	AnimControls(agui::Gui *widgets, VISSTATE *cState);
-	void setAnimEnabled(bool enabled);
+	void setAnimState(int animState);
 	bool isEnabled() { return enableState; }
 	void update(thread_graph_data *graph);
 	void notifyAnimFinished();
+	agui::TextField *stepText = NULL;
+
 private:
 	agui::FlowLayout *controlsLayout = NULL;
 	agui::Button *connectBtn = NULL;
@@ -27,12 +34,15 @@ private:
 	agui::Button *forwardStepBtn = NULL;
 	agui::Button *forwardJumpBtn = NULL;
 	agui::Button *playBtn = NULL;
-	agui::TextField *stepText = NULL;
+	agui::Button *pauseBtn = NULL;
+	
+	
 	agui::Font *btnFont;
 	agui::Label *stepsLabel;
 	bool enableState = true;
 	agui::Gui *guiwidgets;
 	VISSTATE *clientState;
+	int animationState = -1;
 };
 
 class ComparisonBox {
@@ -82,7 +92,7 @@ public:
 	AnimControls *controlWindow = NULL;
 
 protected:
-
+	
 	agui::Gui *widgets;
 	VISSTATE *clientState;
 	agui::Allegro5Graphics *widgetGraphicsHandler;

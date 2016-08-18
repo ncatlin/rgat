@@ -102,19 +102,26 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	INS_DATA* ins = get_last_instruction(targetSequence);
 	int nodeIdx = ins->threadvertIdx[tid];
 
-	if (!externCallSequence.count(nodeIdx)) return;
+	obtainMutex(callSeqMutex, "highlight externs", 1000);
+	if (!externCallSequence.count(nodeIdx)) 
+	{
+		dropMutex(callSeqMutex, "highlight externs");
+		return; 
+	}
+		vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
 
-	int callsSoFar = callCounter[nodeIdx];
-	callCounter[nodeIdx] = callsSoFar + 1;
-	int targetExternIdx;
-	vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
-	if (callsSoFar < callList.size()) 
-		targetExternIdx = callList.at(callsSoFar).second;
-	else //todo. this should prob not happen
-		targetExternIdx = callList.at(0).second;
+		int callsSoFar = callCounter[nodeIdx];
+		callCounter[nodeIdx] = callsSoFar + 1;
+		int targetExternIdx;
+	
+		if (callsSoFar < callList.size()) 
+			targetExternIdx = callList.at(callsSoFar).second;
+		else //todo. this should prob not happen
+			targetExternIdx = callList.at(0).second;
+	dropMutex(callSeqMutex, "highlight externs");
 
 	node_data *n = &vertDict[targetExternIdx];
-	printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
+	//printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
@@ -140,21 +147,27 @@ void thread_graph_data::emptyArgQueue()
 	dropMutex(funcQueueMutex, "End thread purge args");
 }
 
-void thread_graph_data::advance_sequence()
+bool thread_graph_data::decrease_sequence()
 {
-	bool not_looping = false;
+	return true;
+}
+
+bool thread_graph_data::advance_sequence()
+{
+	
 	//if not looping
 	if (!loopStateList.at(sequenceIndex).first)
 	{
+		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
 		highlight_externs(sequenceIndex);
-		return;
+		return true;
 	}
 
 	//first we update loop progress
 
 	//just started loop
-	else if (!animLoopStartIdx)
+	if (!animLoopStartIdx)
 	{
 		targetIterations = loopStateList.at(sequenceIndex).second;
 		animLoopIndex = 0;
@@ -190,6 +203,7 @@ void thread_graph_data::advance_sequence()
 			animLoopStartIdx = 0;
 			animLoopIndex = 0;
 		}
+		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
 	}
 
@@ -201,9 +215,11 @@ void thread_graph_data::advance_sequence()
 	}
 	else
 	{
+		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
 		animLoopIndex++;
 	}
+	return true;
 }
 
 
@@ -310,22 +326,15 @@ void thread_graph_data::performStep(bool stepBBs, int stepSize)
 	{
 		if (stepSize > 0)
 		{
-			if ((sequenceIndex + stepSize) >= bbsequence.size() - 1)
-				sequenceIndex = bbsequence.size() - 1;
-			else
-				for (int i = 0; i < stepSize; i++)
-					advance_sequence();
+			for (int i = 0; i < stepSize; i++)
+				if (!advance_sequence()) break;
 
 		}
 		else if (stepSize < 0)
 		{
-			if (((signed long)sequenceIndex + stepSize) < 0)
-				sequenceIndex = 0;
-			else
-			{
-				for (int i = 0; i < stepSize; i++)
-					advance_sequence();
-			}
+
+			for (int i = stepSize; stepSize < 0; i++)
+				decrease_sequence();
 		}
 	}
 	else
@@ -678,7 +687,7 @@ void thread_graph_data::brighten_BBs()
 	}
 
 	dropMutex(edMutex, "Brighten BBs end");
-	printf("latest active: %d\n", lastNodeIdx);
+	//printf("latest active: %d\n", lastNodeIdx);
 	latest_active_node = &vertDict[lastNodeIdx];
 	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;

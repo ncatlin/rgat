@@ -619,7 +619,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
 			graph->m_scalefactors->HEDGESEP)) continue;
 
-		string itext("?");
+		string itext;
 		if (!show_all_always) {
 			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
@@ -628,6 +628,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 			else
 				itext = n->ins->mnemonic;
 		}
+		else itext = "?";
 
 		//todo: experiment with performance re:how much of this check to include
 		DCOORD screenCoord = n->get_screen_pos(vertsdata, pd);

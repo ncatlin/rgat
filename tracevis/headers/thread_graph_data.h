@@ -27,7 +27,8 @@ private:
 	unsigned int firstAnimatedBB = 0;
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
-	void advance_sequence();
+	bool advance_sequence();
+	bool decrease_sequence();
 
 public:
 	thread_graph_data(map <unsigned long, INS_DATA*> *disassembly);
@@ -58,7 +59,8 @@ public:
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx) { return vertDict[idx].nodeSym; }
 	void highlight_externs(unsigned long targetSequence);
-	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
+	
+
 	void reset_mainlines();
 	node_data *derive_anim_node(bool stepBBs);
 	void advance_anim_instructions(int stepSize);
@@ -90,14 +92,17 @@ public:
 	ALLEGRO_BITMAP *previewBMP = NULL;
 	std::queue<EXTERNCALLDATA> funcQueue;
 
+	HANDLE callSeqMutex = CreateMutex(NULL, FALSE, NULL);
+	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
 
+	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
 	vector<pair<int, long>> externList; //list of external calls
 	string modPath;
 	int baseMod = -1;
 
-	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
+
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
 	map <unsigned int, unsigned int> callCounter;
 	//ugh

@@ -593,7 +593,9 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		std::pair<int, int> resultPair;
 		//add node to graph if new
 		int result = run_external(thistag.targaddr, repeats, &resultPair);
+		obtainMutex(thisgraph->callSeqMutex, "Extern run", 1000);
 		if (result) thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+		dropMutex(thisgraph->callSeqMutex, "Extern run");
 
 		process_new_args();
 		return;

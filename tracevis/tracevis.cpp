@@ -489,7 +489,11 @@ int main(int argc, char **argv)
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->edgeDict.size()) continue;
 				clientstate.activeGraph = graph;
-				widgets->controlWindow->setAnimEnabled(!clientstate.activeGraph->active);
+				if (graph->active)
+					widgets->controlWindow->setAnimState(ANIM_LIVE);
+				else
+					widgets->controlWindow->setAnimState(ANIM_INACTIVE);
+
 				if (!externFloatingText.count(graph->tid))
 				{
 					vector<EXTTEXT> newVec;
@@ -507,10 +511,15 @@ int main(int argc, char **argv)
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
 			printf("GRAPH CHANGED to tid %d\n", clientstate.activeGraph->tid);
 			if (!clientstate.activeGraph->get_num_verts()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
-			clientstate.activeGraph->reset_animation();
-			widgets->controlWindow->setAnimEnabled(!clientstate.activeGraph->active);
-			if (!clientstate.activeGraph->active)
+			
+			if (clientstate.activeGraph->active)
+				widgets->controlWindow->setAnimState(ANIM_LIVE);
+			else
+			{
+				widgets->controlWindow->setAnimState(ANIM_INACTIVE);
+				clientstate.activeGraph->reset_animation();
 				clientstate.modes.animation = false;
+			}
 
 			clientstate.activeGraph->emptyArgQueue();
 
@@ -596,8 +605,8 @@ int main(int argc, char **argv)
 					gather_projection_data(&pd);
 					if (graph->active)
 					{
-						clientstate.modes.animation = true;
-						graph->animate_latest(clientstate.stepBBs);
+						if(clientstate.modes.animation)
+							graph->animate_latest(clientstate.stepBBs);
 					}
 					else
 					{

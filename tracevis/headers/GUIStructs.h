@@ -1,6 +1,5 @@
 #pragma once
 #include "stdafx.h"
-//#include "GUIManagement.h"
 #include "graph_display_data.h"
 #include "GUIConstants.h"
 #include "traceStructs.h"
