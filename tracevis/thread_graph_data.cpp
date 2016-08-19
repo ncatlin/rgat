@@ -154,11 +154,12 @@ bool thread_graph_data::decrease_sequence()
 
 bool thread_graph_data::advance_sequence()
 {
-	
+	if (sequenceIndex + 1 >= bbsequence.size()) return false;
+
+	animInstructionIndex += bbsequence[sequenceIndex].second;
 	//if not looping
 	if (!loopStateList.at(sequenceIndex).first)
 	{
-		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
 		highlight_externs(sequenceIndex);
 		return true;
@@ -332,8 +333,8 @@ void thread_graph_data::performStep(bool stepBBs, int stepSize)
 		}
 		else if (stepSize < 0)
 		{
-
-			for (int i = stepSize; stepSize < 0; i++)
+			stepSize *= -1;
+			for (int i = 0; i < stepSize; i++)
 				decrease_sequence();
 		}
 	}

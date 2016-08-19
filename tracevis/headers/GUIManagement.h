@@ -9,6 +9,7 @@
 #include "Agui\Widgets\Frame\Frame.hpp"
 #include "Agui\FlowLayout.hpp"
 #include "Agui\Widgets\TextField\TextField.hpp"
+#include "Agui\Widgets\ToolTip\ToolTip.hpp"
 
 #define DIFF_INFOLABEL_X_OFFSET 25
 

@@ -45,14 +45,13 @@ public:
 			clientState->modes.animation = false;
 			clientState->activeGraph->reset_animation();
 			evt.getSource()->setText("Play");
-			evt.getSource()->resizeToContents();
 			return;
 		}
 
 		if (btntext == "Pause")
 		{
 			evt.getSource()->setText("Continue");
-			evt.getSource()->resizeToContents();
+			evt.getSource()->setSize(120, evt.getSource()->getHeight());
 			clientState->modes.animation = false;
 			return;
 		}
@@ -61,9 +60,9 @@ public:
 		if (btntext == "Continue")
 		{
 			clientState->animationUpdate = quantity;
-			evt.getSource()->setText("Pause");
-			evt.getSource()->resizeToContents();
 			clientState->modes.animation = true;
+			evt.getSource()->setText("Pause");
+			evt.getSource()->setSize(100, evt.getSource()->getHeight());
 			return;
 		}
 
@@ -131,39 +130,59 @@ void AnimControls::setAnimState(int newAnimState)
 		else
 			printf("How did we get here?\n");
 	}
+	animationState = newAnimState;
 
-	switch (newAnimState)
+	if (newAnimState == ANIM_LIVE)
 	{
-		case ANIM_INACTIVE:
+		connectBtn->setVisibility(true);
+		pauseBtn->setVisibility(true);
+		backJumpBtn->setVisibility(false);
+		backStepBtn->setVisibility(false);
+		forwardStepBtn->setVisibility(false);
+		forwardJumpBtn->setVisibility(false);
+		playBtn->setVisibility(false);
+		stepText->setVisibility(false);
+
+	}
+
+	if (newAnimState == ANIM_INACTIVE)
 		{
+			backJumpBtn->setVisibility(true);
+			backStepBtn->setVisibility(true);
+			forwardStepBtn->setVisibility(true);
+			forwardJumpBtn->setVisibility(true);
+			playBtn->setText("Play");
+			
+			stepText->setVisibility(true);
+			
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
-			this->playBtn->setText("Play");
-			this->playBtn->resizeToContents();
-			this->pauseBtn->setVisibility(false);
 			connectBtn->setVisibility(false);
-			break;
+			pauseBtn->setVisibility(false);
+			playBtn->setVisibility(true);
 		}
-		case ANIM_LIVE:
-		{
-			connectBtn->setText("Disconnect");
-			connectBtn->resizeToContents();
-			connectBtn->setVisibility(true);
-			break;
-		}
-		case ANIM_REPLAY:
-		{
-			clientState->animationUpdate = std::stoi(this->stepText->getText());
-			clientState->modes.animation = true;
-			playBtn->setText("Stop");
-			playBtn->resizeToContents();
-			pauseBtn->setVisibility(true);
-			pauseBtn->setText("Pause");
-			pauseBtn->resizeToContents();
-			break;
-		}
+
+	else if (newAnimState == ANIM_REPLAY)
+	{
+		backJumpBtn->setVisibility(true);
+		backStepBtn->setVisibility(false);
+		forwardStepBtn->setVisibility(false);
+		forwardJumpBtn->setVisibility(true);
+		playBtn->setVisibility(true);
+		playBtn->setText("Stop");
+
+		stepText->setVisibility(true);
+		connectBtn->setVisibility(false);
+
+		clientState->animationUpdate = std::stoi(this->stepText->getText());
+		clientState->modes.animation = true;
+		
+
+		pauseBtn->setVisibility(true);
+		pauseBtn->setText("Pause");
+		pauseBtn->setSize(100, forwardStepBtn->getHeight());
 	}
-	animationState = newAnimState;
+	
 }
 
 void AnimControls::update(thread_graph_data *graph)
@@ -172,45 +191,28 @@ void AnimControls::update(thread_graph_data *graph)
 		setAnimState(ANIM_INACTIVE);
 
 	stringstream stepInfo;
-	if (clientState->stepBBs)
-		stepInfo << graph->sequenceIndex+1 << "/" << graph->bbsequence.size() << " basic blocks. ";
-	else
-		stepInfo << graph->animInstructionIndex << "/" << graph->totalInstructions-1 << " instructions. ";
+	//if (clientState->stepBBs)
+	//	stepInfo << graph->sequenceIndex+1 << "/" << graph->bbsequence.size() << " basic blocks. ";
+	//else
 
-	if (graph->animLoopStartIdx)
-		stepInfo << "Iteration " << graph->loopIteration << "/" << graph->targetIterations << " of ";
-	if (!graph->active)stepInfo << graph->loopsPlayed << "/";
-	stepInfo<<graph->loopCounter << " loops";
+	stepInfo << graph->animInstructionIndex << "/";
+	if (graph->totalInstructions < 10000)
+		stepInfo << graph->totalInstructions-1 << " instructions. ";
+	else if (graph->totalInstructions < 1000000)
+		stepInfo << (graph->totalInstructions - 1)/1000 << "K instructions. ";
+	else
+		stepInfo << (graph->totalInstructions - 1)/1000000 << "M instructions. ";
+
+	if (graph->loopCounter)
+	{
+		if (graph->animLoopStartIdx)
+			stepInfo << "Iteration " << graph->loopIteration << "/" << graph->targetIterations << " of ";
+		if (!graph->active)stepInfo << graph->loopsPlayed << "/";
+		stepInfo << graph->loopCounter << " loops";
+	}
+	//todo: can crash here
 	stepsLabel->setText(stepInfo.str());
 }
-
-/*
-void AnimControls::setAnimEnabled(bool newState)
-{
-	enableState = newState;
-	if (enableState)
-	{
-		connectBtn->setVisibility(false);
-		backJumpBtn->setVisibility(true);
-		backStepBtn->setVisibility(true);
-		forwardStepBtn->setVisibility(true);
-		forwardJumpBtn->setVisibility(true);
-		playBtn->setVisibility(true);
-		stepText->setVisibility(true);
-	}
-	else
-	{
-		connectBtn->setVisibility(true);
-		backJumpBtn->setVisibility(false);
-		backStepBtn->setVisibility(false);
-		forwardStepBtn->setVisibility(false);
-		forwardJumpBtn->setVisibility(false);
-		playBtn->setVisibility(false);
-		stepText->setVisibility(false);
-	}
-	
-}
-*/
 
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	guiwidgets = widgets;
@@ -219,12 +221,6 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 
 	
 	btnFont = agui::Font::load("VeraSe.ttf", 22);
-
-	connectBtn = new agui::Button();
-	connectBtn->setFont(btnFont);
-	connectBtn->setMargins(0, 8, 0, 8);
-	connectBtn->setBackColor(agui::Color(210, 210, 210));
-	controlsLayout->add(connectBtn);
 
 	backJumpBtn = new agui::Button();
 	backJumpBtn->setFont(btnFont);
@@ -242,6 +238,8 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	forwardStepBtn->setToolTipText("Step animation forward by one");
 	controlsLayout->add(forwardStepBtn);
 
+	int btnHeight = forwardStepBtn->getHeight();
+
 	backStepBtn = new agui::Button();
 	backStepBtn->setFont(btnFont);
 	backStepBtn->setText("<<");
@@ -252,7 +250,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 
 	stepText = new agui::TextField();
 	stepText->setText("1");
-	stepText->setSize(70, backStepBtn->getHeight());
+	stepText->setSize(70, btnHeight);
 	stepText->setNumeric(true);
 	controlsLayout->add(stepText);
 
@@ -269,19 +267,27 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	playBtn->setText("Play");
 	playBtn->setToolTipText("Play animation at specified steps per frame");
 	playBtn->setMargins(0, 8, 0, 8);
-	playBtn->resizeToContents();
-	playBtn->setSize(playBtn->getWidth(), forwardStepBtn->getHeight());
+	playBtn->setSize(80, btnHeight);
 	playBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(playBtn);
+
+	connectBtn = new agui::Button();
+	connectBtn->setFont(btnFont);
+	connectBtn->setText("Disconnect");
+	connectBtn->setMargins(0, 8, 0, 8);
+	connectBtn->setBackColor(agui::Color(210, 210, 210));
+	connectBtn->resizeToContents();
+	connectBtn->setSize(connectBtn->getWidth(), btnHeight);
+	controlsLayout->add(connectBtn);
 
 	pauseBtn = new agui::Button();
 	pauseBtn->setFont(btnFont);
 	pauseBtn->setText("Pause");
 	pauseBtn->setToolTipText("Pause replay");
 	pauseBtn->setMargins(0, 8, 0, 8);
-	pauseBtn->resizeToContents();
 	pauseBtn->setBackColor(agui::Color(210, 210, 210));
 	pauseBtn->setVisibility(true);
+	pauseBtn->setSize(100, btnHeight);
 	controlsLayout->add(pauseBtn);
 
 	stepsLabel = new agui::Label();
@@ -299,13 +305,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	controlsLayout->setHorizontalSpacing(10);
 	widgets->add(controlsLayout);
 
-	if (!clientState->activeGraph || clientState->activeGraph->active)
-		animationState = ANIM_LIVE;
-	else
-		if (clientState->modes.animation)
-			animationState = ANIM_REPLAY;
-		else
-			animationState = ANIM_INACTIVE;
+	animationState = -1;
 
 	AnimButtonListener *btnListen = new AnimButtonListener(this, &animationState, clientState);
 	connectBtn->addActionListener(btnListen);
@@ -316,7 +316,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	playBtn->addActionListener(btnListen);
 	pauseBtn->addActionListener(btnListen);
 
-	setAnimState(animationState);
+	//setAnimState(animationState);
 }
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)

@@ -318,7 +318,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
-		dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
+		
 
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
@@ -326,9 +326,12 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
+		assert(resu.edgeIdx.first != resu.edgeIdx.second);
+		
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);
+		dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 		externFloatingText->at(graph->tid).push_back(extt);
 	}
 }
@@ -484,15 +487,23 @@ int main(int argc, char **argv)
 			map<int, void *>::iterator graphIt;
 			graphIt = activePid->graphs.begin();
 
-			for (;graphIt != activePid->graphs.end();graphIt++)
+			for (; graphIt != activePid->graphs.end(); graphIt++)
 			{
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->edgeDict.size()) continue;
 				clientstate.activeGraph = graph;
 				if (graph->active)
+				{
+					clientstate.modes.animation = true;
+					clientstate.animationUpdate = 1;
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
-				else
+				}
+				else 
+				{
+					clientstate.modes.animation = true;
+					clientstate.animationUpdate = 1;
 					widgets->controlWindow->setAnimState(ANIM_INACTIVE);
+				}
 
 				if (!externFloatingText.count(graph->tid))
 				{
@@ -513,7 +524,11 @@ int main(int argc, char **argv)
 			if (!clientstate.activeGraph->get_num_verts()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
 			
 			if (clientstate.activeGraph->active)
+			{
 				widgets->controlWindow->setAnimState(ANIM_LIVE);
+				clientstate.modes.animation = true;
+				clientstate.animationUpdate = 1;
+			}
 			else
 			{
 				widgets->controlWindow->setAnimState(ANIM_INACTIVE);
@@ -651,7 +666,6 @@ int main(int argc, char **argv)
 			switch (eventResult)
 			{
 			case EV_KEYBOARD:
-				printf("EV KEY!\n");
 				widgets->processEvent(&ev);
 				break;
 
@@ -660,19 +674,21 @@ int main(int argc, char **argv)
 				if (clientstate.newPID > -1)
 				{
 					clientstate.activePid = clientstate.glob_piddata_map[clientstate.newPID];
-					map<int, void *> *pidGraphList = &clientstate.glob_piddata_map[clientstate.newPID]->graphs;
+					map<int, void *> *pidGraphList = &clientstate.activePid->graphs;
 					map<int, void *>::iterator pidIt;
 					//get first graph with some verts
+					clientstate.newActiveGraph = 0;
 					for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); pidIt++)
 					{
-						pair<int, void *> graphPair = *(pidGraphList->begin());
+						pair<int, void *> graphPair = *pidIt;
 						thread_graph_data *graph = (thread_graph_data *)graphPair.second;
 						if (graph->get_num_verts())
 						{
 							clientstate.newActiveGraph = graph;
 							break;
 						}
-					}				 
+					}			
+					if (!clientstate.newActiveGraph) printf("ERROR: No graph found!\n");
 					clientstate.newPID = -1;
 				}
 				break;

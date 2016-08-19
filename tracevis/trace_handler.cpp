@@ -575,12 +575,18 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		if (piddata->activeMods[firstins->modnum] == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
-			thisgraph->totalInstructions += thistag.insCount;
+
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
 			if (repeats == 1)
-				thisgraph->loopStateList.push_back(make_pair(0, 0xbad)); 
+			{
+				thisgraph->totalInstructions += thistag.insCount;
+				thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
+			}
 			else
+			{
+				thisgraph->totalInstructions += thistag.insCount*loopCount;
 				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
+			}
 		}
 		return;
 	}

@@ -3,6 +3,7 @@
 #include "node_data.h"
 #include "edge_data.h"
 #include "graph_display_data.h"
+#include "traceMisc.h"
 
 //max length to display in diff summary
 #define MAX_DIFF_PATH_LENGTH 50
@@ -45,8 +46,17 @@ public:
 	GRAPH_DISPLAY_DATA *get_mainverts() { return mainvertsdata; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activeverts() { return animvertsdata; }
-	node_data *get_vert(unsigned int index) { return &vertDict.at(index); }
-	void add_vert(pair<unsigned int, node_data> newnodepair) { vertDict.insert(newnodepair); }
+
+	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
+	node_data *get_vert(unsigned int index)
+	{
+		obtainMutex(vertDMutex, 0, 500); node_data *n = &vertDict.at(index); dropMutex(vertDMutex); return n;
+	}
+	void add_vert(pair<unsigned int, node_data> newnodepair) 
+	{
+		obtainMutex(vertDMutex, 0, 500); vertDict.insert(newnodepair); dropMutex(vertDMutex);
+	}
+
 	bool vert_exists(unsigned int idx) { if (vertDict.count(idx)) return true; return false; }
 	unsigned int get_num_verts() { return vertDict.size();}
 	map<unsigned int, node_data>::iterator get_vertStart() { return vertDict.begin(); }
