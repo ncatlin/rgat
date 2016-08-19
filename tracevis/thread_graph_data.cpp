@@ -786,7 +786,6 @@ void thread_graph_data::update_animation_render(bool stepBBs)
 	else
 	{
 		node_data *n = derive_anim_node(stepBBs);
-		printf("animating from node %d seq[%d/%d]\n", n->index, sequenceIndex, bbsequence.size());
 		brighten_instructions(n->ins->address);
 	}
 }
@@ -853,10 +852,12 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);
-
-	e->vertSize = vertsDrawn;
+	
 	if (!preview)
+	{
+		e->vertSize = vertsDrawn;
 		e->arraypos = arraypos;
+	}
 
 	return 1;
 

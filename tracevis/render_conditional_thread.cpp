@@ -73,17 +73,19 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		graph->conditionallines->expand(newsize * 2);
 
 	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
+	
 	for (edgeit != graph->edgeDict.end(); edgeit != graph->edgeDict.end(); edgeit++)
 	{
 		if (!edgeit->second.vertSize) break;
-
+		edge_data *e = &edgeit->second;
+		
 		unsigned int vidx = 0;
-		for (; vidx < edgeit->second.vertSize; vidx++)
+		for (; vidx < e->vertSize; vidx++)
 		{
-			vcol[edgeit->second.arraypos + (vidx*4)] = 0.5;
-			vcol[edgeit->second.arraypos + (vidx * 4) + 1] = 0.5;
-			vcol[edgeit->second.arraypos + (vidx * 4) + 2] = 0.5;
-			vcol[edgeit->second.arraypos + (vidx * 4) + 3] = (float)1.0;
+			vcol[e->arraypos + (vidx*4)] = 0;
+			vcol[e->arraypos + (vidx * 4) + 1] = 0;
+			vcol[e->arraypos + (vidx * 4) + 2] = 0;
+			vcol[e->arraypos + (vidx * 4) + 3] = (float)1;
 		}
 		newDrawn++;
 	}

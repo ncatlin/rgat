@@ -542,7 +542,7 @@ void thread_trace_handler::process_new_args()
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
 					ex.fdata = *callsIt;
-					
+					assert(parentn->index != targn->index);
 					thisgraph->funcQueue.push(ex);
 					
 					if (targn->funcargs.size() < MAX_ARG_STORAGE)

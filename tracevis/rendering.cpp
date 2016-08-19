@@ -251,7 +251,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		case LONGCURVEPTS:
 		{
 			int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
-			return vertsdrawn; 
+			return vertsdrawn;
 		}
 
 		case 1:
@@ -401,6 +401,7 @@ int render_main_graph(VISSTATE *clientState)
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 
+	//todo, need to handle high maxB as well
 	adjustedDiam = graph->maxA * 10;
 	adjustedDiam = max(adjustedDiam, 30000)* graph->m_scalefactors->userDiamModifier;
 	recalculate_scale(graph->m_scalefactors, adjustedDiam);
@@ -455,6 +456,8 @@ int render_main_graph(VISSTATE *clientState)
 	for(; edgeIt != graph->edgeList.end(); ++edgeIt)
 	{
 		graph->render_edge(*edgeIt, lines, &clientState->guidata->lineColoursArr);
+		if (edgeIt->first == 365 && edgeIt->second == 366)
+			printf("%d at 365, edge sz = %d\n", graph->tid, graph->edgeDict[*edgeIt].vertSize);
 		graph->extend_faded_edges();
 		lines->inc_edgesRendered();
 	}

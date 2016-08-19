@@ -103,7 +103,7 @@ namespace agui
 				mouseEvent.alt(),mouseEvent.alt(),
 				mouseEvent.shift(),mouseEvent.getSourceWidget());
 		}
-		//todo: bug? kept increasing next hover time so it never triggered
+		//todo: bug? kept increasing next hover time so it never resize
 		//resetHoverTime();
 		
 		//if the mouse wheel has changed, it is a mouse wheel event

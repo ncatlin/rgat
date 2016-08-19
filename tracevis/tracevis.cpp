@@ -135,6 +135,7 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
 
 void windows_execute_tracer(string executable) {
 	string drpath = "C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe -c ";
+	//string runpath = drpath + "C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -l \"-p 666\" -- ";
 	string runpath = drpath + "C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -- ";
 	runpath.append(executable);
 
@@ -151,6 +152,7 @@ void windows_execute_tracer(string executable) {
 
 void launch_test_exe() {
 	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
 	windows_execute_tracer(executable);
 	Sleep(800);
 }
@@ -341,12 +343,10 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	if (externFloatingText->at(graph->tid).empty()) return;
 
 	vector <EXTTEXT>::iterator exttIt = externFloatingText->at(graph->tid).begin();
-
+	map <EXTTEXT*, int> drawMap;
+	map <int, EXTTEXT*> drawnNodes;
 	for (; exttIt != externFloatingText->at(graph->tid).end(); )
 	{
-		node_data *n = graph->get_vert(exttIt->nodeIdx);
-		DCOORD pos = n->get_screen_pos(graph->get_mainverts(), pd);
-
 		if (exttIt->timeRemaining <= 0) 
 		{
 			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
@@ -355,12 +355,34 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		}
 		else
 		{
-			al_draw_text(clientState->standardFont, al_col_green,
-				pos.x, clientState->size.height - pos.y - exttIt->yOffset, 0, exttIt->displayString.c_str());
+			if (drawnNodes.count(exttIt->nodeIdx))
+			{
+				EXTTEXT *bex = drawnNodes.at(exttIt->nodeIdx);
+				drawMap[bex]++;
+			}
+			else
+			{
+				EXTTEXT *exaddr = &*exttIt;
+				drawMap[exaddr] = 1;
+				drawnNodes[exttIt->nodeIdx] = exaddr;
+			}
 			exttIt->timeRemaining -= 1;
 			exttIt->yOffset += 0.5;
 			exttIt++;
 		}
+	}
+
+	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
+	for (; drawIt != drawMap.end(); drawIt++)
+	{
+		EXTTEXT* ex = drawIt->first;
+		node_data *n = graph->get_vert(ex->nodeIdx);
+		DCOORD pos = n->get_screen_pos(graph->get_mainverts(), pd);
+		string displayString = ex->displayString;
+		if (drawIt->second > 1)
+			displayString.append(" x" + to_string(drawIt->second));
+		al_draw_text(clientState->standardFont, al_col_green,
+			pos.x, clientState->size.height - pos.y - ex->yOffset, 0, displayString.c_str());
 	}
 }
 
