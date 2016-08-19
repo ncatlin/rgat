@@ -328,7 +328,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
-		assert(resu.edgeIdx.first != resu.edgeIdx.second);
+		if (resu.edgeIdx.first == resu.edgeIdx.second) { printf("WARNING: bad argument edge!\n"); continue; }
 		
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
@@ -672,6 +672,9 @@ int main(int argc, char **argv)
 			}
 
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
+			al_draw_filled_rectangle(0, clientstate.size.height - CONTROLS_Y, 	
+				clientstate.size.width - PREVIEW_PANE_WIDTH,clientstate.size.height, al_map_rgba(0, 0, 0, 150));
+
 			widgets->updateRenderWidgets(clientstate.activeGraph);
 			al_flip_display();
 		}
@@ -800,6 +803,12 @@ void set_active_graph(VISSTATE *clientState, int PID, int TID)
 		clientState->modes.diff = 0;
 }
 
+bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
+{
+	return (clientState->modes.preview &&
+		mousex > (clientState->size.width - PREVIEW_PANE_WIDTH));
+}
+
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	ALLEGRO_DISPLAY *display = clientstate->maindisplay;
 	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
@@ -883,7 +892,19 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 				snprintf(tistring, 200, "xt:%f, yt:%f", fmod(clientstate->xturn, 360), fmod(clientstate->yturn, 360));
 				updateTitle_dbg(display, clientstate->title, tistring);
 			}
-
+			else 
+			{
+				if (mouse_in_previewpane(clientstate, ev->mouse.x))
+				{
+					TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
+					if (!widgets->dropdownDropped())
+					{
+						int PID, TID;
+						if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
+							printf("show tooltip pid %d tid %d\n",PID,TID);
+					}
+				}
+			}
 			updateTitle_Mouse(display, clientstate->title, ev->mouse.x, ev->mouse.y);
 		}
 
@@ -895,7 +916,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
 	{
 		//state.buttons & 1 || state.buttons & 4)
-		if (!clientstate->modes.preview || ev->mouse.x < (clientstate->size.width - PREVIEW_PANE_WIDTH))
+		if (!mouse_in_previewpane(clientstate, ev->mouse.x))
 			clientstate->mouse_dragging = true;
 		else
 		{

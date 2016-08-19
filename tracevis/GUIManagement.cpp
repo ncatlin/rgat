@@ -28,8 +28,12 @@ public:
 		{
 			if (currentState == ANIM_INACTIVE)
 				clientState->animationUpdate = 1;
-			else if(currentState == ANIM_REPLAY)
-				clientState->skipLoop = true;
+			return;
+		}
+
+		if (btntext == "Skip")
+		{
+			clientState->skipLoop = true;
 			return;
 		}
 
@@ -53,7 +57,7 @@ public:
 		if (btntext == "Pause")
 		{
 			evt.getSource()->setText("Continue");
-			evt.getSource()->setSize(120, evt.getSource()->getHeight());
+			evt.getSource()->setSize(115, evt.getSource()->getHeight());
 			clientState->modes.animation = false;
 			return;
 		}
@@ -64,7 +68,7 @@ public:
 			clientState->animationUpdate = quantity;
 			clientState->modes.animation = true;
 			evt.getSource()->setText("Pause");
-			evt.getSource()->setSize(100, evt.getSource()->getHeight());
+			evt.getSource()->setSize(90, evt.getSource()->getHeight());
 			return;
 		}
 
@@ -152,6 +156,7 @@ void AnimControls::setAnimState(int newAnimState)
 			backJumpBtn->setVisibility(true);
 			backStepBtn->setVisibility(true);
 			forwardStepBtn->setVisibility(true);
+			forwardStepBtn->setToolTipText("Step animation forward by one");
 			forwardJumpBtn->setVisibility(true);
 			playBtn->setText("Play");
 			
@@ -166,12 +171,14 @@ void AnimControls::setAnimState(int newAnimState)
 
 	else if (newAnimState == ANIM_REPLAY)
 	{
-		backJumpBtn->setVisibility(false);
-		backStepBtn->setVisibility(true);
+		backStepBtn->setVisibility(false);
+		backJumpBtn->setVisibility(true);
 		forwardStepBtn->setVisibility(true);
+		forwardStepBtn->setToolTipText("Skip loop");
 		forwardJumpBtn->setVisibility(true);
 		playBtn->setVisibility(true);
 		playBtn->setText("Stop");
+		
 
 		stepText->setVisibility(true);
 		connectBtn->setVisibility(false);
@@ -182,7 +189,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 		pauseBtn->setVisibility(true);
 		pauseBtn->setText("Pause");
-		pauseBtn->setSize(100, forwardStepBtn->getHeight());
+		pauseBtn->setSize(90,forwardStepBtn->getHeight());
 	}
 	
 }
@@ -208,10 +215,19 @@ void AnimControls::update(thread_graph_data *graph)
 	if (graph->loopCounter)
 	{
 		if (graph->animLoopStartIdx)
+		{
+			if(!graph->active)
+				skipBtn->setVisibility(true);
 			stepInfo << "Iteration " << graph->loopIteration << "/" << graph->targetIterations << " of ";
+		}
+		else
+			skipBtn->setVisibility(false);
+
 		if (!graph->active)stepInfo << graph->loopsPlayed << "/";
 		stepInfo << graph->loopCounter << " loops";
 	}
+
+
 	//todo: can crash here
 	stepsLabel->setText(stepInfo.str());
 }
@@ -219,18 +235,40 @@ void AnimControls::update(thread_graph_data *graph)
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	guiwidgets = widgets;
 	clientState = cstate;
-	controlsLayout = new agui::FlowLayout;
-
-	
 	btnFont = agui::Font::load("VeraSe.ttf", 22);
 
-	backJumpBtn = new agui::Button();
-	backJumpBtn->setFont(btnFont);
-	backJumpBtn->setText("<");
-	backJumpBtn->resizeToContents();
-	backJumpBtn->setBackColor(agui::Color(210, 210, 210));
-	backJumpBtn->setToolTipText("Jump animation back by specified steps");
-	controlsLayout->add(backJumpBtn);
+	labelsLayout = new agui::FlowLayout;
+
+	stepsLabel = new agui::Label();
+	stepsLabel->setFont(btnFont);
+	stepsLabel->setFontColor(agui::Color(210, 210, 210));
+	stepsLabel->setText("x Steps total");
+	stepsLabel->resizeToContents();
+	stepsLabel->setBackColor(agui::Color(0, 0, 210));
+	stepsLabel->setVisibility(true);
+	stepsLabel->setEnabled(true);
+	labelsLayout->add(stepsLabel);
+
+	labelsLayout->resizeToContents();
+	labelsLayout->setLocation(15, clientState->size.height - (CONTROLS_Y+15));
+	labelsLayout->setHorizontalSpacing(10);
+	labelsLayout->setBackColor(agui::Color(0, 0, 210));
+	labelsLayout->setOpacity(1);
+	widgets->add(labelsLayout);
+
+
+
+	controlsLayout = new agui::FlowLayout;
+	
+	
+
+	backStepBtn = new agui::Button();
+	backStepBtn->setFont(btnFont);
+	backStepBtn->setText("<");
+	backStepBtn->resizeToContents();
+	backStepBtn->setBackColor(agui::Color(210, 210, 210));
+	backStepBtn->setToolTipText("Step animation back by one");
+	controlsLayout->add(backStepBtn);
 
 	forwardStepBtn = new agui::Button();
 	forwardStepBtn->setFont(btnFont);
@@ -242,13 +280,13 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 
 	int btnHeight = forwardStepBtn->getHeight();
 
-	backStepBtn = new agui::Button();
-	backStepBtn->setFont(btnFont);
-	backStepBtn->setText("<<");
-	backStepBtn->resizeToContents();
-	backStepBtn->setBackColor(agui::Color(210, 210, 210));
-	backStepBtn->setToolTipText("Step animation back by one");
-	controlsLayout->add(backStepBtn);
+	backJumpBtn = new agui::Button();
+	backJumpBtn->setFont(btnFont);
+	backJumpBtn->setText("<<");
+	backJumpBtn->resizeToContents();
+	backJumpBtn->setBackColor(agui::Color(210, 210, 210));
+	backJumpBtn->setToolTipText("Jump animation back by specified steps");
+	controlsLayout->add(backJumpBtn);
 
 	stepText = new agui::TextField();
 	stepText->setText("1");
@@ -289,21 +327,22 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	pauseBtn->setMargins(0, 8, 0, 8);
 	pauseBtn->setBackColor(agui::Color(210, 210, 210));
 	pauseBtn->setVisibility(true);
-	pauseBtn->setSize(100, btnHeight);
+	pauseBtn->setSize(90, btnHeight);
 	controlsLayout->add(pauseBtn);
 
-	stepsLabel = new agui::Label();
-	stepsLabel->setFont(btnFont);
-	stepsLabel->setFontColor(agui::Color(210, 210, 210));
-	stepsLabel->setText("x Steps total");
-	stepsLabel->resizeToContents();
-	stepsLabel->setBackColor(agui::Color(210, 210, 210));
-	stepsLabel->setVisibility(true);
-	stepsLabel->setEnabled(true);
-	controlsLayout->add(stepsLabel);
+
+	skipBtn = new agui::Button();
+	skipBtn->setFont(btnFont);
+	skipBtn->setText("Skip");
+	skipBtn->setToolTipText("Skip Loop");
+	skipBtn->setMargins(0, 8, 0, 8);
+	skipBtn->setBackColor(agui::Color(210, 210, 210));
+	skipBtn->setVisibility(false);
+	skipBtn->setSize(65, btnHeight);
+	controlsLayout->add(skipBtn);
 
 	controlsLayout->resizeToContents();
-	controlsLayout->setLocation(50, clientState->size.height - playBtn->getHeight()*2.2);
+	controlsLayout->setLocation(15, clientState->size.height - playBtn->getHeight()*2.2);
 	controlsLayout->setHorizontalSpacing(10);
 	widgets->add(controlsLayout);
 
@@ -317,6 +356,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	forwardJumpBtn->addActionListener(btnListen);
 	playBtn->addActionListener(btnListen);
 	pauseBtn->addActionListener(btnListen);
+	skipBtn->addActionListener(btnListen);
 
 	//setAnimState(animationState);
 }
@@ -617,6 +657,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	infotxt << piddata->modpaths[activeModule];
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
+	al_draw_filled_rectangle(0, 0, clientState->size.width - PREVIEW_PANE_WIDTH, 50, al_map_rgba(0, 0, 0, 150));
 	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 

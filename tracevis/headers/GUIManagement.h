@@ -12,7 +12,7 @@
 #include "Agui\Widgets\ToolTip\ToolTip.hpp"
 
 #define DIFF_INFOLABEL_X_OFFSET 25
-
+#define CONTROLS_Y 80
 #define ANIM_INACTIVE 0
 #define ANIM_LIVE 1
 #define ANIM_REPLAY 2
@@ -29,6 +29,7 @@ public:
 
 private:
 	agui::FlowLayout *controlsLayout = NULL;
+	agui::FlowLayout *labelsLayout = NULL;
 	agui::Button *connectBtn = NULL;
 	agui::Button *backJumpBtn = NULL;
 	agui::Button *backStepBtn = NULL;
@@ -36,7 +37,7 @@ private:
 	agui::Button *forwardJumpBtn = NULL;
 	agui::Button *playBtn = NULL;
 	agui::Button *pauseBtn = NULL;
-	
+	agui::Button *skipBtn = NULL;
 	
 	agui::Font *btnFont;
 	agui::Label *stepsLabel;

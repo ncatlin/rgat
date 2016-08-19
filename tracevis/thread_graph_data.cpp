@@ -170,7 +170,9 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 	//just started loop
 	if (!animLoopStartIdx)
 	{
+		
 		targetIterations = loopStateList.at(sequenceIndex).second;
+		printf("start loop %d seq:%d, %d its\n", loopsPlayed, sequenceIndex, targetIterations);
 		animLoopIndex = 0;
 		animLoopStartIdx = sequenceIndex;
 		loopIteration = 1;
@@ -197,6 +199,8 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 		//end of loop
 		if ((animLoopIndex >= animLoopProgress.size() - 1) || skipLoop)
 		{
+			
+			printf("End loop %d seq:%d\n", loopsPlayed, sequenceIndex);
 			loopsPlayed++;
 			animLoopProgress.clear();
 			animLoopStartIdx = 0;
@@ -205,9 +209,12 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 		else
 			animLoopIndex++;
 		
-		
 		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
+
+		if (skipLoop)
+			while (loopStateList.at(sequenceIndex).first)
+				sequenceIndex++;
 	}
 
 	//end of loop
@@ -412,84 +419,6 @@ void thread_graph_data::reset_animation()
 	targetIterations = 0;
 	callCounter.clear();
 }
-/*
-void thread_graph_data::brighten_instructions(unsigned long firstIns)
-{
-	GLfloat *ncol = animvertsdata->acquire_col("1l");
-	GLfloat *ecol = animlinedata->acquire_col("1l");
-
-	unsigned int lastNodeIdx = 0;
-	unsigned int nextNodeIdx = 0;
-
-	//iterate through instructions to highlight them
-	unsigned int remainingInstructions = ANIMATION_WIDTH;
-	INS_DATA* currentIns = disassembly->at(firstIns);
-	unsigned int nodeIdx = currentIns->threadvertIdx[tid];
-	
-	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceIndex];
-	unsigned long insAddr = firstIns;
-	int blockInstructions = targBlock_Size.second;
-
-	for (remainingInstructions = ANIMATION_WIDTH; remainingInstructions; remainingInstructions--)
-	{
-		//highlight the vert
-		ncol[(nodeIdx * COLELEMS) + 3] = 1;
-		if (std::find(activeNodeList.begin(), activeNodeList.end(), nodeIdx) == activeNodeList.end())
-			activeNodeList.push_back(nodeIdx);
-			
-		if (blockInstruction == blockInstructions-1)
-		{
-			
-			if (sequenceIndex == bbsequence.size()-1) break;
-			sequenceIndex++;
-			blockInstruction = 0;
-
-			targBlock_Size = bbsequence.at(sequenceIndex);
-			insAddr = targBlock_Size.first;
-			blockInstructions = targBlock_Size.second;
-			nextNodeIdx = disassembly->at(insAddr)->threadvertIdx[tid];
-
-			//highlight the edge linking the blocks together
-			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextNodeIdx);
-			edge_data *linkingEdge = &edgeDict.at(edgePair);
-			int numEdgeVerts = linkingEdge->vertSize;
-			for (int i = 0; i < numEdgeVerts; i++) {
-				ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
-			}
-			if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
-				activeEdgeList.push_back(edgePair);
-
-			nodeIdx = nextNodeIdx;
-			currentIns = disassembly->at(insAddr);
-			continue;
-		}
-
-		insAddr += currentIns->numbytes;
-		INS_DATA* nextIns = disassembly->at(insAddr);
-		nextNodeIdx = nextIns->threadvertIdx[tid];
-
-		//highlight edges within block
-
-		pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextNodeIdx);
-		edge_data *internalEdge = &edgeDict[edgePair];
-		unsigned long edgeColPos = internalEdge->arraypos;
-		ecol[edgeColPos + 3] = (float)1.0;
-		ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
-		if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
-			activeEdgeList.push_back(edgePair);
-
-		nodeIdx = nextNodeIdx;
-		currentIns = nextIns;
-		lastNodeIdx = nodeIdx;
-		blockInstruction++;
-	}
-
-	animvertsdata->release_col();
-	animlinedata->release_col();
-	latest_active_node = &vertDict[lastNodeIdx];
-	needVBOReload_active = true;
-}
-*/
 
 void thread_graph_data::brighten_BBs()
 {

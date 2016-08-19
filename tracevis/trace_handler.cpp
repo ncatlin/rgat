@@ -38,8 +38,6 @@ void thread_trace_handler::insert_edge(edge_data e, pair<int,int> edgePair)
 void thread_trace_handler::insert_vert(int targVertID, node_data thisNode)
 {
 	if (!obtainMutex(thisgraph->edMutex, "Insert Vert")) return;
-	if (thisNode.index == 0)
-		printf("INSERTED IDX VERT!\n");
 	thisgraph->add_vert(make_pair(targVertID, thisNode));
 	dropMutex(thisgraph->edMutex, "Insert Vert");
 }
@@ -586,6 +584,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			{
 				thisgraph->totalInstructions += thistag.insCount*loopCount;
 				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
+				printf("loop inserted %d,%d into seq %d\n", thisgraph->loopCounter, loopCount, thisgraph->bbsequence.size());
 			}
 		}
 		return;
@@ -738,6 +737,7 @@ void thread_trace_handler::TID_thread()
 					if (!caught_stol(repeats_s, &loopCount, 10)) {
 						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
 					}
+					printf("loop %d start seq %d (%d its)\n", thisgraph->loopCounter, thisgraph->bbsequence.size(), loopCount);
 					continue;
 				}
 				//loop end
@@ -747,18 +747,22 @@ void thread_trace_handler::TID_thread()
 					
 					loopState = LOOP_START;
 
-					unsigned long edgeIdx = thisgraph->sequenceEdges.size();
+					if (loopCache.empty())
+					{
+						loopState = NO_LOOP;
+						continue;
+					}
 
+					thisgraph->loopCounter++;
 					//put the verts/edges on the graph
 					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 					{
 						handle_tag(*tagIt, loopCount);
-						
 					}
 
+					printf("loop %d end seq %d\n", thisgraph->loopCounter, thisgraph->bbsequence.size());
 					loopCache.clear();
 					loopState = NO_LOOP;
-					thisgraph->loopCounter++;
 					continue;
 				}
 			}

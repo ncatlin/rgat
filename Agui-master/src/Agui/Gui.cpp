@@ -1688,7 +1688,6 @@ namespace agui
 			hasHiddenToolTip = false;
 			lastToolTipTime = getElapsedTime();
 		}
-		else printf("is not !length!\n");
 	}
 
 	double Gui::getToolTipShowLength() const
