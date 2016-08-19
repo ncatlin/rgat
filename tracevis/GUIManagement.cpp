@@ -471,12 +471,20 @@ void TraceVisGUI::widgetSetup() {
 	widgetInputHandler = new agui::Allegro5Input();
 	widgetGraphicsHandler = new agui::Allegro5Graphics();
 	widgets = new agui::Gui();
-	
+
 	agui::Font *defaultFont = agui::Font::load("VeraSe.ttf", 14);
 	agui::Widget::setGlobalFont(defaultFont);
 
 	widgets->setGraphics(widgetGraphicsHandler);
 	widgets->setInput(widgetInputHandler);
+
+	agui::ToolTip *tippy = new agui::ToolTip();
+	tippy->setFont(defaultFont);
+	tippy->setSize(400, 100);
+	widgets->add(tippy);
+	widgets->setToolTip(tippy);
+	widgets->setHoverInterval(0.1);
+
 
 	int framex = clientState->size.width - PREVIEW_PANE_WIDTH + PREV_THREAD_X_PAD;
 	int framey = 12;
@@ -503,6 +511,9 @@ void TraceVisGUI::widgetSetup() {
 
 	diffWindow = new ComparisonBox(widgets, clientState);
 	controlWindow = new AnimControls(widgets, clientState);
+	
+
+
 }
 
 ALLEGRO_DISPLAY* displaySetup() {

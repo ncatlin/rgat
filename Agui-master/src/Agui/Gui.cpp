@@ -103,8 +103,8 @@ namespace agui
 				mouseEvent.alt(),mouseEvent.alt(),
 				mouseEvent.shift(),mouseEvent.getSourceWidget());
 		}
-
-		resetHoverTime();
+		//todo: bug? kept increasing next hover time so it never triggered
+		//resetHoverTime();
 		
 		//if the mouse wheel has changed, it is a mouse wheel event
 		if(mouseEvent.getMouseWheelChange() != 0 && !isLocationEvent)
@@ -900,6 +900,7 @@ namespace agui
 
 	void Gui::handleHover()
 	{
+		
 		if(controlWithLock != NULL && !focusMan.getModalWidget())
 		{
 			return;
@@ -909,32 +910,31 @@ namespace agui
             return;
 
 		//dispatches a hover event
-		if(input->getTime() > timeUntilNextHover)
+		if (input->getTime() > timeUntilNextHover)
 		{
 			resetHoverTime();
-
-			if(widgetUnderMouse != lastHoveredControl)
+			if (widgetUnderMouse != lastHoveredControl)
 			{
 				lastHoveredControl = widgetUnderMouse;
-				if(widgetUnderMouse && widgetExists(baseWidget,widgetUnderMouse))
+				if (widgetUnderMouse && widgetExists(baseWidget, widgetUnderMouse))
 				{
-					if((focusMan.getModalWidget() && widgetIsModalChild(widgetUnderMouse))
+					if ((focusMan.getModalWidget() && widgetIsModalChild(widgetUnderMouse))
 						|| !focusMan.getModalWidget())
 					{
-						if( widgetExists(baseWidget,widgetUnderMouse))
+						if (widgetExists(baseWidget, widgetUnderMouse))
 						{
 							makeRelArgs(widgetUnderMouse);
 							widgetUnderMouse->_dispatchMouseListenerEvent(
-								MouseEvent::MOUSE_HOVER,relArgs);
+								MouseEvent::MOUSE_HOVER, relArgs);
 						}
-						if(widgetExists(baseWidget,widgetUnderMouse))
+						if (widgetExists(baseWidget, widgetUnderMouse))
 						{
 							showToolTip(widgetUnderMouse,
-								mouseEvent.getX(),mouseEvent.getY());
+								mouseEvent.getX(), mouseEvent.getY());
 							widgetUnderMouse->mouseHover(relArgs);
 						}
 					}
-					
+
 				}
 			}
 		}
@@ -1688,6 +1688,7 @@ namespace agui
 			hasHiddenToolTip = false;
 			lastToolTipTime = getElapsedTime();
 		}
+		else printf("is not !length!\n");
 	}
 
 	double Gui::getToolTipShowLength() const
