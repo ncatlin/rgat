@@ -61,8 +61,7 @@ struct VISSTATE {
 
 	void *widgets;
 	int animationUpdate = 0;
-	//animation steps over bbs. false = instructions
-	bool stepBBs = true;
+	bool skipLoop = false;
 
 	bool saveInProgress = false;
 	bool mouse_dragging = false;

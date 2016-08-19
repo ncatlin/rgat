@@ -28,6 +28,8 @@ public:
 		{
 			if (currentState == ANIM_INACTIVE)
 				clientState->animationUpdate = 1;
+			else if(currentState == ANIM_REPLAY)
+				clientState->skipLoop = true;
 			return;
 		}
 
@@ -164,9 +166,9 @@ void AnimControls::setAnimState(int newAnimState)
 
 	else if (newAnimState == ANIM_REPLAY)
 	{
-		backJumpBtn->setVisibility(true);
-		backStepBtn->setVisibility(false);
-		forwardStepBtn->setVisibility(false);
+		backJumpBtn->setVisibility(false);
+		backStepBtn->setVisibility(true);
+		forwardStepBtn->setVisibility(true);
 		forwardJumpBtn->setVisibility(true);
 		playBtn->setVisibility(true);
 		playBtn->setText("Stop");

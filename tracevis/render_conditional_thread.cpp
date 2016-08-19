@@ -2,6 +2,10 @@
 #include "render_conditional_thread.h"
 #include "traceMisc.h"
 
+void __stdcall conditional_renderer::ThreadEntry(void* pUserData) {
+	return ((conditional_renderer*)pUserData)->conditional_thread();
+}
+
 bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
@@ -82,10 +86,10 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		unsigned int vidx = 0;
 		for (; vidx < e->vertSize; vidx++)
 		{
-			vcol[e->arraypos + (vidx*4)] = 0;
-			vcol[e->arraypos + (vidx * 4) + 1] = 0;
-			vcol[e->arraypos + (vidx * 4) + 2] = 0;
-			vcol[e->arraypos + (vidx * 4) + 3] = (float)1;
+			vcol[e->arraypos + (vidx*4)] = 0.2;
+			vcol[e->arraypos + (vidx * 4) + 1] = 0.2;
+			vcol[e->arraypos + (vidx * 4) + 2] = 0.2;
+			vcol[e->arraypos + (vidx * 4) + 3] = 1.0;
 		}
 		newDrawn++;
 	}
@@ -94,10 +98,6 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	if (newDrawn) graph->needVBOReload_conditional = true;
 	dropMutex(graph->edMutex, "render graph conditional end");
 	return 1;
-}
-
-void __stdcall conditional_renderer::ThreadEntry(void* pUserData) {
-	return ((conditional_renderer*)pUserData)->conditional_thread();
 }
 
 //thread handler to build graph for each thread

@@ -152,7 +152,7 @@ bool thread_graph_data::decrease_sequence()
 	return true;
 }
 
-bool thread_graph_data::advance_sequence()
+bool thread_graph_data::advance_sequence(bool skipLoop = false)
 {
 	if (sequenceIndex + 1 >= bbsequence.size()) return false;
 
@@ -192,18 +192,20 @@ bool thread_graph_data::advance_sequence()
 
 	//now set where to go next
 	//last iteration of loop
-	if (loopStateList.at(sequenceIndex).second == animLoopProgress.at(animLoopIndex))
+	if (skipLoop || (loopStateList.at(sequenceIndex).second == animLoopProgress.at(animLoopIndex)))
 	{
 		//end of loop
-		if (animLoopIndex < animLoopProgress.size() - 1)
-			animLoopIndex++;
-		else
+		if ((animLoopIndex >= animLoopProgress.size() - 1) || skipLoop)
 		{
 			loopsPlayed++;
 			animLoopProgress.clear();
 			animLoopStartIdx = 0;
 			animLoopIndex = 0;
 		}
+		else
+			animLoopIndex++;
+		
+		
 		if (sequenceIndex + 1 >= bbsequence.size()) return false;
 		sequenceIndex++;
 	}
@@ -223,157 +225,39 @@ bool thread_graph_data::advance_sequence()
 	return true;
 }
 
-
-void thread_graph_data::advance_anim_instructions(int stepSize)
-{
-	unsigned long lastInstruction = totalInstructions - 1;
-	if (stepSize > 0 && animInstructionIndex < lastInstruction)
-	{
-		//if trying to jump past last instruction, point to last
-		if (animInstructionIndex + stepSize > lastInstruction)
-		{
-			animInstructionIndex = lastInstruction;
-			sequenceIndex = bbsequence.size() - 1;
-			pair<unsigned long, int> targBlock_Size = bbsequence[sequenceIndex];
-			unsigned long blockAddr = targBlock_Size.first;
-			int numInstructions = targBlock_Size.second;
-			blockInstruction = numInstructions - 1;
-		}
-		//iterate through instructions to desired step. THIS. IS. SLOOOOOOOOOW.
-		else
-		{
-			pair<unsigned long, int> targBlock_Size = bbsequence[sequenceIndex];
-			unsigned long blockAddr = targBlock_Size.first;
-			int numInstructions = targBlock_Size.second;
-
-			while (stepSize > 0)
-			{
-				int bbremaining = (numInstructions - 1) - blockInstruction;
-				if (bbremaining >= stepSize)
-				{
-					blockInstruction += stepSize;
-					animInstructionIndex += stepSize;
-					stepSize = 0;
-					break;
-				}
-				stepSize -= (bbremaining + 1);
-				animInstructionIndex += (bbremaining + 1);
-				
-				if (sequenceIndex == bbsequence.size()-1)
-				{
-					blockInstruction = numInstructions-1;
-					break;
-				}
-				else
-					advance_sequence();
-
-
-				pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceIndex);
-				unsigned long insAddr = targBlock_Size.first;
-				numInstructions = targBlock_Size.second;
-	
-				if (!disassembly->count(insAddr))
-					sequenceIndex++;
-				blockInstruction = 0;
-			}
-		}
-	}
-}
-
-void thread_graph_data::decrease_anim_instructions(int stepSize)
+void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 {
 
-	if (stepSize < 0 && animInstructionIndex > 0)
+	if (stepSize > 0)
 	{
-		//if trying to jump past first instruction, point to first
-		if (((signed long)animInstructionIndex + stepSize) < 0)
-		{
-			animInstructionIndex = 0;
-			sequenceIndex = 0;
-			blockInstruction = 0;
-		}
-		//iterate through blocks to desired step. THIS. IS. SLOOOOOOOOOW.
-		else
-		{
+		for (int i = 0; i < stepSize; i++)
+			if (!advance_sequence(skipLoop)) break;
 
-			while (stepSize < 0)
-			{
-				if (blockInstruction >= abs(stepSize))
-				{
-					blockInstruction += stepSize;
-					animInstructionIndex += stepSize;
-					stepSize = 0;
-					break;
-				}
-				stepSize += (blockInstruction + 1);
-				animInstructionIndex -= (blockInstruction + 1);
-				sequenceIndex--;
-
-				pair<unsigned long, int> targBlock_Size = bbsequence[sequenceIndex];
-				unsigned long insAddr = targBlock_Size.first;
-				int numInstructions = targBlock_Size.second;
-
-				if (!disassembly->count(insAddr))
-					sequenceIndex--;
-				blockInstruction = numInstructions-1;
-			}
-		}
 	}
-}
-
-void thread_graph_data::performStep(bool stepBBs, int stepSize)
-{
-	if (stepBBs)
+	else if (stepSize < 0)
 	{
-		if (stepSize > 0)
-		{
-			for (int i = 0; i < stepSize; i++)
-				if (!advance_sequence()) break;
-
-		}
-		else if (stepSize < 0)
-		{
-			stepSize *= -1;
-			for (int i = 0; i < stepSize; i++)
-				decrease_sequence();
-		}
-	}
-	else
-	{
-		if (stepSize > 0)
-			advance_anim_instructions(stepSize);
-		else if (stepSize < 0)
-			decrease_anim_instructions(stepSize);
+		stepSize *= -1;
+		for (int i = 0; i < stepSize; i++)
+			decrease_sequence();
 	}
 
-	latest_active_node = derive_anim_node(stepBBs);
+	latest_active_node = derive_anim_node();
 }
 
 
 //return true if animation has ended
-unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool stepBBs, bool animationMode)
+unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop = false)
 {
 	if (vertDict.empty()) return ANIMATION_ENDED;
 
-	performStep(stepBBs, updateSize);
+	performStep(updateSize, skipLoop);
 	if (!animationMode) return 0;
 
 	bool animation_end = false;
 
-	if (stepBBs)
-	{
-		if (sequenceIndex == bbsequence.size() - 1)
-		{
-			//clear_final_BBs();
-			//animation_end = true;
-			return ANIMATION_ENDED;
-		}
-	}
-	else if (animInstructionIndex == (totalInstructions - 1))
-	{
-		//animation_end = true;
+	if (sequenceIndex == bbsequence.size() - 1)
 		return ANIMATION_ENDED;
-	}
+
 
 	return 0;
 }
@@ -528,7 +412,7 @@ void thread_graph_data::reset_animation()
 	targetIterations = 0;
 	callCounter.clear();
 }
-
+/*
 void thread_graph_data::brighten_instructions(unsigned long firstIns)
 {
 	GLfloat *ncol = animvertsdata->acquire_col("1l");
@@ -605,6 +489,7 @@ void thread_graph_data::brighten_instructions(unsigned long firstIns)
 	latest_active_node = &vertDict[lastNodeIdx];
 	needVBOReload_active = true;
 }
+*/
 
 void thread_graph_data::brighten_BBs()
 {
@@ -699,53 +584,17 @@ take the latestnode-ANIMATION_WIDTH->latestnode steps from the main graph
 take the rest from the faded graph
 combine, season to taste
 */
-void thread_graph_data::animate_latest(bool stepBBs)
+void thread_graph_data::animate_latest()
 {
 	darken_animation(ANIMATION_FADE_RATE);
 
 	sequenceIndex = bbsequence.size() - 1;
 	
+	firstAnimatedBB = lastAnimatedBB;
+	lastAnimatedBB = sequenceIndex;
 
-	if (stepBBs) 
-	{
-		firstAnimatedBB = lastAnimatedBB;
-		lastAnimatedBB = sequenceIndex;
+	brighten_BBs();	
 
-		brighten_BBs();	
-	}
-	else
-	{
-		//iterate through blocks to get the -ANIMATION_WIDTH instruction in the sequence
-		int remainingInstructions = ANIMATION_WIDTH;
-		INS_DATA *targetins;
-
-		pair<unsigned long, int> startBlock_Size = bbsequence[sequenceIndex];
-		unsigned long currentAddr = startBlock_Size.first;
-		int blockInstructions = startBlock_Size.second;
-
-		while (remainingInstructions)
-		{
-			if (blockInstructions >= remainingInstructions)
-			{
-				blockInstruction = blockInstructions - remainingInstructions;
-				for (int i = 0; i < blockInstruction; i++)
-				{
-					targetins = disassembly->at(currentAddr);
-					currentAddr += targetins->numbytes;
-				}
-				break;
-			}
-			remainingInstructions -= blockInstructions;
-			sequenceIndex--;
-			pair<unsigned long, int> startBlock_Size = bbsequence[sequenceIndex];
-			currentAddr = startBlock_Size.first;
-			blockInstructions = startBlock_Size.second;
-		}
-		firstAnimatedBB = sequenceIndex;
-
-		brighten_instructions(currentAddr);
-	}
-	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;
 }
 
@@ -774,23 +623,15 @@ void thread_graph_data::set_block_alpha(unsigned long firstInstruction,unsigned 
 	}
 }
 
-void thread_graph_data::update_animation_render(bool stepBBs)
+void thread_graph_data::update_animation_render()
 {
 	darken_animation(ANIMATION_FADE_RATE);
 
-	if (stepBBs)
-	{
-		firstAnimatedBB = sequenceIndex - ANIMATION_WIDTH;
-		brighten_BBs();
-	}
-	else
-	{
-		node_data *n = derive_anim_node(stepBBs);
-		brighten_instructions(n->ins->address);
-	}
+	firstAnimatedBB = sequenceIndex - ANIMATION_WIDTH;
+	brighten_BBs();
 }
 
-node_data *thread_graph_data::derive_anim_node(bool stepBBs)
+node_data *thread_graph_data::derive_anim_node()
 {
 
 	//good thing we are only doing this once per frame
@@ -799,16 +640,13 @@ node_data *thread_graph_data::derive_anim_node(bool stepBBs)
 	int remainingInstructions = blockInstruction;
 	INS_DATA *target_ins = disassembly->at(bbseq);
 	
-	if (!stepBBs)
-	{	
-		//would put the end sequence instead of doing this
-		//but that ruins us if something jumps in middle of an opcode
-		while (remainingInstructions)
-		{
-			bbseq += target_ins->numbytes;
-			target_ins = disassembly->at(bbseq);
-			remainingInstructions--;
-		}
+	//would put the end sequence instead of doing this
+	//but that ruins us if something jumps in middle of an opcode
+	while (remainingInstructions)
+	{
+		bbseq += target_ins->numbytes;
+		target_ins = disassembly->at(bbseq);
+		remainingInstructions--;
 	}
 
 	node_data *n = &vertDict[target_ins->threadvertIdx.at(tid)];

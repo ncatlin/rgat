@@ -355,12 +355,7 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		}
 		else
 		{
-			if (drawnNodes.count(exttIt->nodeIdx))
-			{
-				EXTTEXT *bex = drawnNodes.at(exttIt->nodeIdx);
-				drawMap[bex]++;
-			}
-			else
+			if (!drawnNodes.count(exttIt->nodeIdx))
 			{
 				EXTTEXT *exaddr = &*exttIt;
 				drawMap[exaddr] = 1;
@@ -379,8 +374,6 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		node_data *n = graph->get_vert(ex->nodeIdx);
 		DCOORD pos = n->get_screen_pos(graph->get_mainverts(), pd);
 		string displayString = ex->displayString;
-		if (drawIt->second > 1)
-			displayString.append(" x" + to_string(drawIt->second));
 		al_draw_text(clientState->standardFont, al_col_green,
 			pos.x, clientState->size.height - pos.y - ex->yOffset, 0, displayString.c_str());
 	}
@@ -548,8 +541,8 @@ int main(int argc, char **argv)
 			if (clientstate.activeGraph->active)
 			{
 				widgets->controlWindow->setAnimState(ANIM_LIVE);
-				clientstate.modes.animation = true;
 				clientstate.animationUpdate = 1;
+				clientstate.modes.animation = true;
 			}
 			else
 			{
@@ -609,8 +602,11 @@ int main(int argc, char **argv)
 				{
 					if (clientstate.animationUpdate)
 					{
-						int result = graph->updateAnimation(clientstate.animationUpdate, clientstate.stepBBs,
-							clientstate.modes.animation);
+			
+						int result = graph->updateAnimation(clientstate.animationUpdate,
+							clientstate.modes.animation, clientstate.skipLoop);
+						if (clientstate.skipLoop) clientstate.skipLoop = false;
+							
 
 						if (clientstate.modes.animation)
 						{
@@ -622,7 +618,7 @@ int main(int argc, char **argv)
 								widgets->controlWindow->notifyAnimFinished();
 							}
 							else
-								graph->update_animation_render(clientstate.stepBBs);
+								graph->update_animation_render();
 						}
 						else
 							clientstate.animationUpdate = 0;
@@ -643,7 +639,7 @@ int main(int argc, char **argv)
 					if (graph->active)
 					{
 						if(clientstate.modes.animation)
-							graph->animate_latest(clientstate.stepBBs);
+							graph->animate_latest();
 					}
 					else
 					{
@@ -1022,11 +1018,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			break;
 		case EV_BTN_DIFF:
 			((TraceVisGUI *)clientstate->widgets)->showHideDiffFrame();
-			break;
-		case EV_BTN_STEPPING:
-			clientstate->stepBBs = !clientstate->stepBBs;
-			if (!clientstate->stepBBs)
-				clientstate->activeGraph->blockInstruction = 0;
 			break;
 		case EV_BTN_SAVE:
 			if (clientstate->activeGraph)

@@ -28,7 +28,7 @@ private:
 	unsigned int firstAnimatedBB = 0;
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
-	bool advance_sequence();
+	bool advance_sequence(bool);
 	bool decrease_sequence();
 
 public:
@@ -62,7 +62,7 @@ public:
 	map<unsigned int, node_data>::iterator get_vertStart() { return vertDict.begin(); }
 	map<unsigned int, node_data>::iterator get_vertEnd() { return vertDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
-	void animate_latest( bool stepBBs);
+	void animate_latest();
 	void set_block_alpha(unsigned long firstInstruction, unsigned int quantity,
 		GLfloat *nodecols, GLfloat *edgecols,  float alpha);
 
@@ -72,13 +72,11 @@ public:
 	
 
 	void reset_mainlines();
-	node_data *derive_anim_node(bool stepBBs);
-	void advance_anim_instructions(int stepSize);
-	void decrease_anim_instructions(int stepSize);
-	void performStep(bool stepBBs, int stepSize);
-	unsigned int updateAnimation(unsigned int updateSize, bool stepBBs, bool animationMode);
+	node_data *derive_anim_node();
+	void performStep(int stepSize, bool skipLoop);
+	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	node_data * get_active_node();
-	void update_animation_render(bool stepBBs);
+	void update_animation_render();
 	void clear_final_BBs();
 	void reset_animation();
 	void darken_animation(float alphaDelta);
