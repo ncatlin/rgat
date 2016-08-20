@@ -604,37 +604,29 @@ int main(int argc, char **argv)
 					updateMainRender(&clientstate);
 				}
 
-				if (!graph->active)
+				if (!graph->active && clientstate.animationUpdate)
 				{
-					if (clientstate.animationUpdate)
-					{
-			
-						int result = graph->updateAnimation(clientstate.animationUpdate,
-							clientstate.modes.animation, clientstate.skipLoop);
-						if (clientstate.skipLoop) clientstate.skipLoop = false;
-							
+					int result = graph->updateAnimation(clientstate.animationUpdate,
+						clientstate.modes.animation, clientstate.skipLoop);
+					if (clientstate.skipLoop) clientstate.skipLoop = false;
 
-						if (clientstate.modes.animation)
+					if (clientstate.modes.animation)
+					{
+						if (result == ANIMATION_ENDED)
 						{
-							if (result == ANIMATION_ENDED)
-							{
-								graph->reset_animation();
-								clientstate.animationUpdate = 0;
-								clientstate.modes.animation = false;
-								widgets->controlWindow->notifyAnimFinished();
-							}
-							else
-								graph->update_animation_render();
+							graph->reset_animation();
+							clientstate.animationUpdate = 0;
+							clientstate.modes.animation = false;
+							widgets->controlWindow->notifyAnimFinished();
 						}
 						else
-							clientstate.animationUpdate = 0;
-					
+							graph->update_animation_render();
 					}
-					//the draw_text in the graph drawing screws this up if we do it afterwards
-					draw_anim_line(graph->get_active_node(), graph);
+					else
+						clientstate.animationUpdate = 0;
 				}
-				else
-					draw_anim_line(graph->get_active_node(), graph);
+
+				draw_anim_line(graph->get_active_node(), graph);
 
 				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
 				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
@@ -648,14 +640,13 @@ int main(int argc, char **argv)
 							graph->animate_latest();
 					}
 					else
-					{
 						if (graph->terminated)
 						{
 							graph->reset_animation();
 							clientstate.modes.animation = false;
 							graph->terminated = false;
 						}
-					}
+
 					display_graph(&clientstate, graph, &pd);
 					transferNewLiveCalls(graph, &externFloatingText);
 					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
@@ -911,13 +902,13 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			}
 			else 
 			{
-				if (mouse_in_previewpane(clientstate, ev->mouse.x))
+				if (mouse_in_previewpane(clientstate, ev->mouse.x) && !widgets->dropdownDropped())
 				{
-					if (!widgets->dropdownDropped())
+					int PID, TID;
+					if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 					{
-						int PID, TID;
-						if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
-							printf("show tooltip pid %d tid %d\n",PID,TID);
+						thread_graph_data *graph = (thread_graph_data *)clientstate->glob_piddata_map[PID]->graphs[TID];
+						widgets->showToolTip(graph, ev->mouse.x, ev->mouse.y);
 					}
 				}
 			}

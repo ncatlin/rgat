@@ -104,13 +104,14 @@ public:
 			widgets->logic();
 		}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
+	void showToolTip(thread_graph_data *graph, int x, int y);
 	//bool dropdownClose() { dropDownWidget->}
 
 	ComparisonBox *diffWindow = NULL;
 	AnimControls *controlWindow = NULL;
 
 protected:
-	
+	agui::ToolTip *tippy;
 	agui::Gui *widgets;
 	VISSTATE *clientState;
 	agui::Allegro5Graphics *widgetGraphicsHandler;

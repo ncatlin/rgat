@@ -581,8 +581,13 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
-		INS_DATA* firstins = piddata->disassembly[thistag.targaddr];
-		if (piddata->activeMods[firstins->modnum] == MOD_ACTIVE)
+		while (!piddata->disassembly.count(thistag.targaddr))
+		{
+			printf("Waiting for disassembly of %lx\n", thistag.targaddr);
+			Sleep(15);
+		}
+		INS_DATA* firstins = piddata->disassembly.at(thistag.targaddr);
+		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
 
@@ -734,7 +739,7 @@ void thread_trace_handler::TID_thread()
 			{
 				string jtarg(entry+3);
 				if (!caught_stol(jtarg, &conditionalTaken, 16)) {
-					printf("2 STOL ERROR: %s\n", jtarg.c_str());
+					printf("tj STOL ERROR: %s\n", jtarg.c_str());
 				}
 				continue;
 			}

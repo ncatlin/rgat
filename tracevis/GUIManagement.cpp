@@ -508,6 +508,12 @@ void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
 	widgets->render();
 }
 
+void TraceVisGUI::showToolTip(thread_graph_data *graph, int x, int y) {
+	printf("show tooltip pid %d tid %d (%d,%d)\n", graph->pid, graph->tid,x,y);
+	tippy->setLocation(x, y);
+	tippy->show();
+}
+
 void TraceVisGUI::widgetSetup() {
 
 	//agui::Image::setImageLoader(new agui::Allegro5ImageLoader);
@@ -523,7 +529,7 @@ void TraceVisGUI::widgetSetup() {
 	widgets->setGraphics(widgetGraphicsHandler);
 	widgets->setInput(widgetInputHandler);
 
-	agui::ToolTip *tippy = new agui::ToolTip();
+	tippy = new agui::ToolTip();
 	tippy->setFont(defaultFont);
 	tippy->setSize(400, 100);
 	widgets->add(tippy);
