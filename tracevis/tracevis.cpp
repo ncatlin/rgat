@@ -328,7 +328,6 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
-		
 
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
@@ -337,7 +336,6 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
 		if (resu.edgeIdx.first == resu.edgeIdx.second) { printf("WARNING: bad argument edge!\n"); continue; }
-		
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);

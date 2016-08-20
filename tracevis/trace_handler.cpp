@@ -387,10 +387,10 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	}
 
 	//func been called in thread already? if not, have to place args in holding buffer
-	printf("Handling arg %s of function %s module %s\n",
-		contents.c_str(),
-		piddata->modsyms[targbbptr->modnum][pendingFunc].c_str(),
-		piddata->modpaths[targbbptr->modnum].c_str());
+	//printf("Handling arg %s of function %s module %s\n",
+	//	contents.c_str(),
+	//	piddata->modsyms[targbbptr->modnum][pendingFunc].c_str(),
+	//	piddata->modpaths[targbbptr->modnum].c_str());
 
 	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
@@ -496,9 +496,14 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	insert_vert(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
+	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
 	thisgraph->externList.push_back(make_pair(targVertID, returnAddress));
-
+	dropMutex(thisgraph->funcQueueMutex, "Push Externlist");
 	*resultPair = std::make_pair(lastVertID, targVertID);
+
+	printf("Handled sym %s of module %s\n",
+		newTargNode.nodeSym.c_str(),
+		piddata->modpaths[module].c_str());
 
 	edge_data newEdge;
 	newEdge.weight = repeats;

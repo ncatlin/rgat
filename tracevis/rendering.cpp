@@ -540,8 +540,13 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 {
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
 
-	vector<pair<int, long>>::iterator externCallIt = graph->externList.begin();
-	for (; externCallIt != graph->externList.end(); externCallIt++)
+	//todo: maintain local copy, update on size change?
+	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
+	vector<pair<int, long>> externListCopy = graph->externList;
+	dropMutex(graph->funcQueueMutex, "Display externlist");
+
+	vector<pair<int, long>>::iterator externCallIt = externListCopy.begin();
+	for (; externCallIt != externListCopy.end(); externCallIt++)
 	{
 		int externVertIdx = externCallIt->first;
 		node_data *n = graph->get_vert(externVertIdx);

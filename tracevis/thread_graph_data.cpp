@@ -275,7 +275,6 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	GLfloat *ecol = animlinedata->acquire_col("2a");
 
 	vector<pair<unsigned int, unsigned int>>::iterator activeEdgeIt = activeEdgeList.begin();
-	vector <pair<unsigned int, unsigned int>> edgeRemovalList;
 
 	while (activeEdgeIt != activeEdgeList.end())
 	{
@@ -289,48 +288,30 @@ void thread_graph_data::darken_animation(float alphaDelta)
 			ecol[edgeStart + i*COLELEMS + 3] = edgeAlpha;
 
 		}	
-		if (!edgeAlpha)
-			edgeRemovalList.push_back(*activeEdgeIt);
-		activeEdgeIt++;
+		if (edgeAlpha == MINIMUM_FADE_ALPHA)
+			activeEdgeIt = activeEdgeList.erase(activeEdgeIt);
+		else
+			activeEdgeIt++;
 	}
 	animlinedata->release_col();
 
 	GLfloat *ncol = animvertsdata->acquire_col("2b");
 	vector<unsigned int>::iterator activeNodeIt = activeNodeList.begin();
-	vector <unsigned int> nodeRemovalList;
 
 	while (activeNodeIt != activeNodeList.end())
 	{
 		node_data *n = &vertDict[*activeNodeIt];
 		unsigned int nodeIndex = n->index;
 		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
-		currentAlpha = fmax(0, currentAlpha - alphaDelta);
+		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
 		ncol[(nodeIndex * COLELEMS) + 3] = currentAlpha;
-		if (!currentAlpha)
-			nodeRemovalList.push_back(*activeNodeIt);
-		activeNodeIt++;
+		if (currentAlpha == 0.02)
+			activeNodeIt = activeNodeList.erase(activeNodeIt);
+		else
+			activeNodeIt++;
 	}
 
 	animvertsdata->release_col();
-
-	
-	vector <unsigned int>::iterator nodeRemovalIt = nodeRemovalList.begin();
-	while (nodeRemovalIt != nodeRemovalList.end())
-	{
-		vector <unsigned int>::iterator nodePos = find(activeNodeList.begin(), activeNodeList.end(), *nodeRemovalIt);
-		activeNodeList.erase(nodePos);
-		nodeRemovalIt++;
-	}
-
-	//it might be time for some typedefs
-	vector<pair<unsigned int, unsigned int>>::iterator edgeRemovalIt = edgeRemovalList.begin();
-	while (edgeRemovalIt != edgeRemovalList.end())
-	{
-		vector <pair<unsigned int, unsigned int>>::iterator edgePos = find(activeEdgeList.begin(), activeEdgeList.end(), *edgeRemovalIt);
-		activeEdgeList.erase(edgePos);
-		edgeRemovalIt++;
-	}
-
 	needVBOReload_active = true;
 }
 
@@ -523,8 +504,6 @@ void thread_graph_data::animate_latest()
 	lastAnimatedBB = sequenceIndex;
 
 	brighten_BBs();	
-
-	needVBOReload_active = true;
 }
 
 void thread_graph_data::set_block_alpha(unsigned long firstInstruction,unsigned int quantity, 

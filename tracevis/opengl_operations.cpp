@@ -47,7 +47,7 @@ void frame_gl_teardown()
 void load_VBO(int index, GLuint *VBOs, int bufsize, float *data)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[index]);
-	glBufferData(GL_ARRAY_BUFFER, bufsize, data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, bufsize, data, GL_DYNAMIC_DRAW);
 
 }
 
