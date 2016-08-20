@@ -572,6 +572,13 @@ void thread_trace_handler::process_new_args()
 
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 {
+	/*
+	printf("handling tag %lx, jmpmod:%d", thistag.targaddr, thistag.jumpModifier);
+	if (thistag.jumpModifier == 2)
+		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.targaddr]->modnum][thistag.targaddr].c_str());
+	else printf("\n");
+	*/
+
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
 		INS_DATA* firstins = piddata->disassembly[thistag.targaddr];
@@ -589,9 +596,9 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			{
 				thisgraph->totalInstructions += thistag.insCount*loopCount;
 				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
-				printf("loop inserted %d,%d into seq %d\n", thisgraph->loopCounter, loopCount, thisgraph->bbsequence.size());
 			}
 		}
+		thisgraph->set_active_node(lastVertID);
 		return;
 	}
 
@@ -608,11 +615,12 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		dropMutex(thisgraph->callSeqMutex, "Extern run");
 
 		process_new_args();
+		thisgraph->set_active_node(resultPair.second);
 		return;
 	}
 	else
 	{
-		printf("ERROR: BAD JUMP MODIFIER\n CORRUPT TRACE\n");
+		printf("ERROR: BAD JUMP MODIFIER\n CORRUPT TRACE?\n");
 		return;
 	}
 }
@@ -623,7 +631,7 @@ void thread_trace_handler::TID_thread()
 	thisgraph = (thread_graph_data *)piddata->graphs[TID];
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
-	//vertDict = &thisgraph->vertDict;
+
 	edgeDict = &thisgraph->edgeDict;
 	edgeList = &thisgraph->edgeList;
 
@@ -719,7 +727,6 @@ void thread_trace_handler::TID_thread()
 
 				handle_tag(thistag);
 				continue;
-				
 			}
 
 			//mark a conditional jump as taken
@@ -776,6 +783,27 @@ void thread_trace_handler::TID_thread()
 			if (enter_s.substr(0, 3) == "ARG")
 			{
 				handle_arg(entry, bytesRead);
+				continue;
+			}
+
+			if (enter_s.substr(0, 3) == "BLK")
+			{
+				unsigned long funcpc;
+				string funcpc_s = string(strtok_s(entry+4, ",", &entry));
+				if (!caught_stol(funcpc_s, &funcpc, 16)) {
+					printf("handle_arg 4 STOL ERROR: %s\n", funcpc_s.c_str());
+					return;
+				}
+
+				unsigned long retpc;
+				string retpc_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stol(retpc_s, &retpc, 16)) {
+					printf("handle_arg 4 STOL ERROR: %s\n", retpc_s.c_str());
+					return;
+				}
+
+				BB_DATA* extfunc = piddata->externdict[funcpc];
+				//thisgraph->set_active_node(extfunc->thread_callers[TID])
 				continue;
 			}
 

@@ -121,7 +121,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	dropMutex(callSeqMutex, "highlight externs");
 
 	node_data *n = &vertDict[targetExternIdx];
-	//printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
+	printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
@@ -484,7 +484,7 @@ void thread_graph_data::brighten_BBs()
 
 	dropMutex(edMutex, "Brighten BBs end");
 	//printf("latest active: %d\n", lastNodeIdx);
-	latest_active_node = &vertDict[lastNodeIdx];
+	//latest_active_node = &vertDict[lastNodeIdx];
 	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;
 }

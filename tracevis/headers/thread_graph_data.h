@@ -76,6 +76,7 @@ public:
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	node_data * get_active_node();
+	void set_active_node(int idx) {	latest_active_node = &vertDict[idx];}
 	void update_animation_render();
 	void clear_final_BBs();
 	void reset_animation();
