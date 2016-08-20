@@ -488,12 +488,10 @@ int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
 
 int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTATE *clientState)
 {
-	int adjustedDiam;
 	bool doResize = false;
-	
+
 	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph")) return 0;
 
-	adjustedDiam = previewGraph->maxA * 10;
 	previewGraph->needVBOReload_preview = true;
 
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewverts);

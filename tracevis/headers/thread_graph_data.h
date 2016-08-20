@@ -80,7 +80,7 @@ public:
 	void clear_final_BBs();
 	void reset_animation();
 	void darken_animation(float alphaDelta);
-	void brighten_instructions(unsigned long firstIns);
+
 	void brighten_BBs();
 	void set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);

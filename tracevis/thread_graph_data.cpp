@@ -602,6 +602,7 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 		scaling = p_scalefactors;
 	else
 		scaling = m_scalefactors;
+
 	FCOORD srcc = sourceNode->sphereCoordB(scaling, 0);
 	FCOORD targc = targetNode->sphereCoordB(scaling, 0);
 
@@ -611,6 +612,7 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 		printf("ILLEGAL COLOUR!\n");
 		return 0;
 	}
+
 	int arraypos = 0;
 	ALLEGRO_COLOR *edgeColour;
 	if (forceColour) edgeColour = forceColour;

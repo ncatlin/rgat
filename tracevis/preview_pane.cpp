@@ -98,8 +98,6 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) {
 
 	glRotatef(30, 1, 0, 0);
 	glRotatef(clientState->previewYAngle, 0, 1, 0);
-	//glRotatef(clientstate->yturn, 1, 0, 0);
-	//glRotatef(clientstate->xturn, 0, 1, 0);
 	glRotatef(90 / 1.0, 0, 1, 0);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
