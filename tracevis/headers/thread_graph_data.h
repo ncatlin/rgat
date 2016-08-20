@@ -16,6 +16,8 @@ struct EXTERNCALLDATA {
 	pair<unsigned int, unsigned int> edgeIdx;
 	unsigned int nodeIdx;
 	vector<pair<int, string>> fdata;
+	unsigned long callerAddr = 0;
+	string externPath;
 };
 class thread_graph_data
 {
@@ -86,6 +88,7 @@ public:
 	void set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	void emptyArgQueue();
+	vector <string> loggedCalls;
 
 	map <unsigned long, vector <BB_DATA *>> mutationMap;
 

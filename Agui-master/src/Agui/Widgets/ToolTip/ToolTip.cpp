@@ -64,7 +64,6 @@ namespace agui {
 	{
 		this->invoker = invoker;
 
-		
 		int w = width <= 0 ? 1000 : width;
 		resizableText.makeTextLines(getFont(),text,wrappedText,w);
 

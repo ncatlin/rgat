@@ -239,6 +239,13 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 
 	labelsLayout = new agui::FlowLayout;
 
+	//agui seems to need a widget under the mouse to display a tooltip
+	//so we put an invisible pane over the previews
+	agui::Layout *mouseLayout = new agui::FlowLayout;
+	mouseLayout->setSize(PREVIEW_PANE_WIDTH, clientState->size.height-30);
+	mouseLayout->setLocation(clientState->size.width - PREVIEW_PANE_WIDTH, 30);
+	widgets->add(mouseLayout);
+
 	stepsLabel = new agui::Label();
 	stepsLabel->setFont(btnFont);
 	stepsLabel->setFontColor(agui::Color(210, 210, 210));
@@ -362,6 +369,8 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	scrollbar->setSize(SCROLLBAR_WIDTH, clientState->size.height-20);
 	scrollbar->setLocation(clientState->size.width - SCROLLBAR_WIDTH, 0);
 	widgets->add(scrollbar);
+
+
 }
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)
@@ -508,10 +517,24 @@ void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
 	widgets->render();
 }
 
-void TraceVisGUI::showToolTip(thread_graph_data *graph, int x, int y) {
-	printf("show tooltip pid %d tid %d (%d,%d)\n", graph->pid, graph->tid,x,y);
-	tippy->setLocation(x, y);
-	tippy->show();
+void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, int x, int y) {
+	if (!graph)
+	{
+		tippy->hide(); 
+		return;
+	}
+
+	if (graph->modPath.empty())	graph->assign_modpath(piddata);
+
+	stringstream tipText;
+	tipText << "Path: " << graph->modPath << endl;
+	tipText << "Nodes: " << graph->get_num_verts() << endl;
+	tipText << "Edges: " << graph->edgeDict.size() << endl;
+	tipText << "Instructions: " << graph->totalInstructions << endl;
+
+	//diff frame is at 0,0 so paint it relative to that
+	agui::Widget *widget = this->diffWindow->diffFrame;
+	tippy->showToolTip(tipText.str(),200,x,y,widget);
 }
 
 void TraceVisGUI::widgetSetup() {
@@ -531,7 +554,7 @@ void TraceVisGUI::widgetSetup() {
 
 	tippy = new agui::ToolTip();
 	tippy->setFont(defaultFont);
-	tippy->setSize(400, 100);
+	tippy->setSize(80, 20);
 	widgets->add(tippy);
 	widgets->setToolTip(tippy);
 	widgets->setHoverInterval(0.1);
@@ -710,6 +733,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "&Conditionals", EV_BTN_CONDITION, 0, NULL },
 		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
 		{ "&Diff", EV_BTN_DIFF, 0, NULL },
+		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },
 
 		ALLEGRO_START_OF_MENU("Settings", 3),
 		{ "Instruction Stepping", EV_BTN_STEPPING, 0, NULL },

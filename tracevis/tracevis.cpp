@@ -61,7 +61,7 @@ void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 	PID_DATA *piddata = new PID_DATA;
 	piddata->PID = PID;
 
-	if (!obtainMutex(pidmutex, "Launch PID threads")) return;
+	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return;
 	glob_piddata_map->insert_or_assign(PID, piddata);
 	dropMutex(pidmutex, "Launch PID threads");
 
@@ -153,6 +153,7 @@ void windows_execute_tracer(string executable) {
 void launch_test_exe() {
 	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
 	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
+	//string executable("C:\\tracing\\you_are_very_good_at_this.exe");
 	windows_execute_tracer(executable);
 	Sleep(800);
 }
@@ -321,7 +322,7 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pai
 	return funcArgStr.str();
 }
 
-void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText)
+void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PID_DATA* piddata)
 {
 	while (!graph->funcQueue.empty())
 	{
@@ -335,7 +336,31 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
+
 		if (resu.edgeIdx.first == resu.edgeIdx.second) { printf("WARNING: bad argument edge!\n"); continue; }
+
+		if (graph->active )
+		{
+			if (!resu.callerAddr)
+			{
+				node_data* parentn = graph->get_vert(resu.edgeIdx.first);
+				node_data* externn = graph->get_vert(resu.edgeIdx.second);
+				resu.callerAddr = parentn->ins->address;
+				resu.externPath = piddata->modpaths[externn->nodeMod];
+				if (extt.displayString == "()")
+				{
+					stringstream hexaddr;
+					hexaddr << "NOSYM:<0x" << std::hex << externn->address << ">";
+					extt.displayString = hexaddr.str();
+				}
+			}
+			stringstream callLog;
+			callLog << "0x" << std::hex << resu.callerAddr << ": ";
+			callLog << resu.externPath << " -> ";
+			callLog << extt.displayString << "\n";
+			printf("Transferlive %s\n", extt.displayString.c_str());
+			graph->loggedCalls.push_back(callLog.str());	
+		}
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);
@@ -385,14 +410,33 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	}
 }
 
+unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, thread_graph_data *graph, unsigned int logSize)
+{
+	vector <string>::iterator logIt = graph->loggedCalls.begin();
+	advance(logIt, logSize);
+	while (logIt != graph->loggedCalls.end())
+	{
+		al_append_native_text_log(textlog, logIt->c_str());
+		logSize++;
+		logIt++;
+	}
+	return logSize;
+}
+
+void closeTextLog(VISSTATE *clientState)
+{
+	al_close_native_text_log(clientState->textlog);
+	clientState->textlog = 0;
+	clientState->logSize = 0;
+}
+
 int main(int argc, char **argv)
 {
 
 	VISSTATE clientstate;
 	printf("Starting visualiser\n");
 
-	ALLEGRO_EVENT_QUEUE *event_queue = 0;
-	if (!GUI_init(&event_queue, &clientstate)) {
+	if (!GUI_init(&clientstate.event_queue, &clientstate)) {
 		printf("GUI init failed\n");
 		return 0;
 	}
@@ -488,6 +532,7 @@ int main(int argc, char **argv)
 		(LPVOID)&clientstate, 0, 0);
 
 	clientstate.timelineBuilder = new timeline;
+	
 
 	bool running = true;
 	while (running)
@@ -499,7 +544,7 @@ int main(int argc, char **argv)
 		//todo set to own function when we OOP this
 		if (!clientstate.activeGraph && clientstate.glob_piddata_map.size() > 0)
 		{
-			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop")) return 0;
+			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop",2000)) return 0;
 
 			PID_DATA *activePid = clientstate.glob_piddata_map.begin()->second;
 			
@@ -539,7 +584,6 @@ int main(int argc, char **argv)
 		//active graph changed
 		if (clientstate.newActiveGraph)
 		{
-			
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
 			printf("GRAPH CHANGED to tid %d\n", clientstate.activeGraph->tid);
 			if (!clientstate.activeGraph->get_num_verts()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
@@ -565,6 +609,9 @@ int main(int argc, char **argv)
 				vector<EXTTEXT> newVec;
 				externFloatingText[clientstate.activeGraph->tid] = newVec;
 			}
+			
+			if (clientstate.textlog) closeTextLog(&clientstate);
+			
 		}
 
 		if (clientstate.activeGraph)
@@ -647,8 +694,12 @@ int main(int argc, char **argv)
 							graph->terminated = false;
 						}
 
+					if (clientstate.textlog && clientstate.logSize < graph->loggedCalls.size())
+							clientstate.logSize = fill_extern_log(clientstate.textlog,
+								clientstate.activeGraph, clientstate.logSize);
+
 					display_graph(&clientstate, graph, &pd);
-					transferNewLiveCalls(graph, &externFloatingText);
+					transferNewLiveCalls(graph, &externFloatingText, clientstate.activePid);
 					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 				}
 
@@ -679,7 +730,7 @@ int main(int argc, char **argv)
 		}
 
 		//ui events
-		while (al_get_next_event(event_queue, &ev))
+		while (al_get_next_event(clientstate.event_queue, &ev))
 		{
 			int eventResult = handle_event(&ev, &clientstate);
 			if (!eventResult) continue;
@@ -694,6 +745,7 @@ int main(int argc, char **argv)
 				if (clientstate.newPID > -1)
 				{
 					clientstate.activePid = clientstate.glob_piddata_map[clientstate.newPID];
+					clientstate.graphPositions.clear();
 					map<int, void *> *pidGraphList = &clientstate.activePid->graphs;
 					map<int, void *>::iterator pidIt;
 					//get first graph with some verts
@@ -908,7 +960,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 					if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 					{
 						thread_graph_data *graph = (thread_graph_data *)clientstate->glob_piddata_map[PID]->graphs[TID];
-						widgets->showToolTip(graph, ev->mouse.x, ev->mouse.y);
+						widgets->showGraphToolTip(graph, clientstate->glob_piddata_map[PID], ev->mouse.x, ev->mouse.y);
 					}
 				}
 			}
@@ -1047,6 +1099,20 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case EV_BTN_DIFF:
 			((TraceVisGUI *)clientstate->widgets)->showHideDiffFrame();
 			break;
+		case EV_BTN_EXTERNLOG:
+			if (!clientstate->textlog)
+			{
+				stringstream windowName;
+				windowName << "Extern calls [TID: " << clientstate->activeGraph->tid << "]";
+				clientstate->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
+				ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientstate->textlog);
+				al_register_event_source(clientstate->event_queue, logevents);
+				clientstate->logSize = fill_extern_log(clientstate->textlog, clientstate->activeGraph, clientstate->logSize);
+			}
+			else
+				closeTextLog(clientstate);
+
+			break;
 		case EV_BTN_SAVE:
 			if (clientstate->activeGraph)
 			{
@@ -1067,7 +1133,14 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 
 	case ALLEGRO_EVENT_DISPLAY_CLOSE:
 		return EV_BTN_QUIT;
+
+	case ALLEGRO_EVENT_NATIVE_DIALOG_CLOSE:
+		closeTextLog(clientstate);
+		return EV_NONE;
 	}
+
+
+
 
 	switch (ev->type) {
 	case ALLEGRO_EVENT_DISPLAY_SWITCH_IN:
@@ -1076,7 +1149,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	case ALLEGRO_EVENT_DISPLAY_SWITCH_OUT:
 		printf("event: main display switch out\n");
 		return EV_NONE;
-	case ALLEGRO_EVENT_KEY_DOWN: //agui wont get this
+	case ALLEGRO_EVENT_KEY_DOWN: //agui wont get thisf
 	case ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY:
 	case ALLEGRO_EVENT_KEY_UP:
 	case ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY:

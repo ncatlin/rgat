@@ -541,10 +541,14 @@ void thread_trace_handler::process_new_args()
 				obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
+
 					EXTERNCALLDATA ex;
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
+					ex.callerAddr = parentn->ins->address;
+					ex.externPath = piddata->modpaths[piddata->externdict.at(funcad)->modnum];
 					ex.fdata = *callsIt;
+
 					assert(parentn->index != targn->index);
 					thisgraph->funcQueue.push(ex);
 					
@@ -581,10 +585,14 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
-		while (!piddata->disassembly.count(thistag.targaddr))
+		if (!piddata->disassembly.count(thistag.targaddr))
 		{
-			printf("Waiting for disassembly of %lx\n", thistag.targaddr);
-			Sleep(15);
+			int waitTime = 150;
+			do {
+				printf("Waiting for disassembly of %lx\n", thistag.targaddr);
+				Sleep(waitTime);
+				waitTime += 100;
+			} while (!piddata->disassembly.count(thistag.targaddr));
 		}
 		INS_DATA* firstins = piddata->disassembly.at(thistag.targaddr);
 		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
@@ -604,7 +612,6 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			}
 		}
 		thisgraph->set_active_node(lastVertID);
-		return;
 	}
 
 	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
@@ -621,12 +628,10 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
-		return;
 	}
 	else
 	{
 		printf("ERROR: BAD JUMP MODIFIER\n CORRUPT TRACE?\n");
-		return;
 	}
 }
 

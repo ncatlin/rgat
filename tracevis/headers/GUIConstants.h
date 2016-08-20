@@ -41,7 +41,7 @@
 #define HEATMAP_DELAY_MS 1000
 #define CONDITIONAL_DELAY_MS 1000
 
-#define wireframe_col al_map_rgba(255, 255, 255, 255)
+#define wireframe_col al_map_rgba(255, 255, 255, 150)
 #define INSTEXT_FIRST 0
 #define INSTEXT_NONE INSTEXT_FIRST
 #define INSTEXT_AUTO 1
@@ -75,7 +75,8 @@
 #define EV_BTN_PREVIEW EV_BTN_CONDITION+1
 #define EV_BTN_LOAD EV_BTN_PREVIEW+1
 #define EV_BTN_SAVE EV_BTN_LOAD+1
-#define EV_RESIZE EV_BTN_SAVE+1
+#define EV_BTN_EXTERNLOG EV_BTN_SAVE+1
+#define EV_RESIZE EV_BTN_EXTERNLOG+1
 #define EV_BTN_DIFF EV_RESIZE+1
 
 #define DIFF_SELECTED 1

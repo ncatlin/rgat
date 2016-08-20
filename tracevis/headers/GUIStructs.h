@@ -48,6 +48,7 @@ struct VISSTATE {
 	ALLEGRO_BITMAP *mainGraphBMP = 0;
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
 	ALLEGRO_FONT *standardFont;
+	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	TITLE *title;
 	float zoomlevel = INITIALZOOM;
@@ -89,7 +90,8 @@ struct VISSTATE {
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
 	timeline *timelineBuilder;
-
+	ALLEGRO_TEXTLOG *textlog = 0;
+	unsigned int logSize = 0;
 };
 
 //screen top bottom red green

@@ -108,31 +108,28 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 		dropMutex(callSeqMutex, "highlight externs");
 		return; 
 	}
-		vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
 
-		int callsSoFar = callCounter[nodeIdx];
-		callCounter[nodeIdx] = callsSoFar + 1;
-		int targetExternIdx;
+	vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
+
+	int callsSoFar = callCounter[nodeIdx];
+	callCounter[nodeIdx] = callsSoFar + 1;
+	int targetExternIdx;
 	
-		if (callsSoFar < callList.size()) 
-			targetExternIdx = callList.at(callsSoFar).second;
-		else //todo. this should prob not happen
-			targetExternIdx = callList.at(0).second;
+	if (callsSoFar < callList.size()) 
+		targetExternIdx = callList.at(callsSoFar).second;
+	else //todo. this should prob not happen?
+		targetExternIdx = callList.at(0).second;
+
 	dropMutex(callSeqMutex, "highlight externs");
 
 	node_data *n = &vertDict[targetExternIdx];
+	if (!n->funcargs.empty())
+		return; //handled elsewhere by arg processor
+
 	printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
-	if (!n->funcargs.empty()) 
-	{
-		callsSoFar = callCounter[n->index];
-		if (callsSoFar < n->funcargs.size())
-			ex.fdata = n->funcargs.at(callsSoFar);
-
-		callCounter[n->index] = callsSoFar + 1;
-	}
 
 	obtainMutex(funcQueueMutex, "End Highlight Externs", INFINITE);
 	funcQueue.push(ex);

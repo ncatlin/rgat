@@ -29,6 +29,7 @@ public:
 	void notifyAnimFinished();
 	void setScrollbarVisible(bool enabled) { scrollbar->setVisibility(enabled); }
 	void setScrollbarMax(int val) { scrollbar->setMaxValue(val); }
+	agui::VScrollBar getScrollbar() { return scrollbar; }
 	int getScroll() { return scrollbar->getValue(); }
 	agui::TextField *stepText = NULL;
 	void doScroll(int z) {
@@ -104,7 +105,7 @@ public:
 			widgets->logic();
 		}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
-	void showToolTip(thread_graph_data *graph, int x, int y);
+	void showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, int x, int y);
 	//bool dropdownClose() { dropDownWidget->}
 
 	ComparisonBox *diffWindow = NULL;
