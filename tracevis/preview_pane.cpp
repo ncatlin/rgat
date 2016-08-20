@@ -2,7 +2,7 @@
 #include "GUIStructs.h"
 #include "opengl_operations.h"
 #include "traceMisc.h"
-
+#include "GUIManagement.h"
 
 
 void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const char *label)
@@ -172,8 +172,12 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 	int windowHeight = al_get_display_height(clientState->maindisplay);
 	int windowWidth = 400;
 	int bitmapWidth = (windowWidth - PREV_THREAD_X_PAD) - PREV_SCROLLBAR_WIDTH;
-#define PREVIEW_GRAPH_Y_OFFSET 12
-	int graphy = 50;
+
+#define Y_MULTIPLIER (PREVIEW_GRAPH_HEIGHT + PREVIEW_GRAPH_Y_OFFSET)
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	int graphy = 50 - Y_MULTIPLIER*widgets->getScroll();
+	int numGraphs = 0;
+	int graphsHeight = 0; 
 
 	al_set_target_bitmap(clientState->previewPaneBMP);
 	al_clear_to_color(preview_bgcol);
@@ -195,14 +199,22 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 			al_draw_bitmap(previewGraph->previewBMP, PREV_THREAD_X_PAD, graphy, 0);
 
 			clientState->graphPositions[graphy] = make_pair(clientState->activePid->PID, TID);
-			graphy += (PREVIEW_GRAPH_HEIGHT + PREVIEW_GRAPH_Y_OFFSET);
+			graphy += Y_MULTIPLIER;
+			graphsHeight += Y_MULTIPLIER;
+			numGraphs++;
 		}
-
+		
 		threadit++;
 	}
+
 	glPopMatrix();
 	dropMutex(clientState->pidMapMutex, "Preview Pane");
 	al_set_target_bitmap(prevBmp);
+
+	int scrollDiff = graphsHeight - clientState->size.height;
+	if (scrollDiff < 0) widgets->setScrollbarMax(0);
+	else
+		widgets->setScrollbarMax(numGraphs - clientState->size.height/ Y_MULTIPLIER);
 
 	if (clientState->previewSpin)
 	{

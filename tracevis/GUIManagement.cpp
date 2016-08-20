@@ -358,7 +358,10 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
 	pauseBtn->addActionListener(btnListen);
 	skipBtn->addActionListener(btnListen);
 
-	//setAnimState(animationState);
+	scrollbar = new agui::VScrollBar;
+	scrollbar->setSize(SCROLLBAR_WIDTH, clientState->size.height-20);
+	scrollbar->setLocation(clientState->size.width - SCROLLBAR_WIDTH, 0);
+	widgets->add(scrollbar);
 }
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)
@@ -554,6 +557,8 @@ void TraceVisGUI::widgetSetup() {
 	diffWindow = new ComparisonBox(widgets, clientState);
 	controlWindow = new AnimControls(widgets, clientState);
 	
+	
+
 
 
 }
@@ -657,7 +662,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	infotxt << piddata->modpaths[activeModule];
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
-	al_draw_filled_rectangle(0, 0, clientState->size.width - PREVIEW_PANE_WIDTH, 50, al_map_rgba(0, 0, 0, 150));
+	al_draw_filled_rectangle(0, 0, clientState->size.width, 32, al_map_rgba(0, 0, 0, 255));
 	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 

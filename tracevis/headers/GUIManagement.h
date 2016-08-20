@@ -10,6 +10,7 @@
 #include "Agui\FlowLayout.hpp"
 #include "Agui\Widgets\TextField\TextField.hpp"
 #include "Agui\Widgets\ToolTip\ToolTip.hpp"
+#include "Agui\Widgets\ScrollBar\VScrollBar.hpp"
 
 #define DIFF_INFOLABEL_X_OFFSET 25
 #define CONTROLS_Y 80
@@ -17,6 +18,7 @@
 #define ANIM_LIVE 1
 #define ANIM_REPLAY 2
 #define ANIM_ACTIVATED 3
+#define PREVIEW_GRAPH_Y_OFFSET 12
 
 class AnimControls {
 public:
@@ -25,7 +27,16 @@ public:
 	bool isEnabled() { return enableState; }
 	void update(thread_graph_data *graph);
 	void notifyAnimFinished();
+	void setScrollbarVisible(bool enabled) { scrollbar->setVisibility(enabled); }
+	void setScrollbarMax(int val) { scrollbar->setMaxValue(val); }
+	int getScroll() { return scrollbar->getValue(); }
 	agui::TextField *stepText = NULL;
+	void doScroll(int z) {
+		if (z > 0) scrollbar->scrollUp(); 
+		else  
+			scrollbar->scrollDown();
+		printf("scroll val:%d / max %d\n", getScroll(), scrollbar->getMaxValue());
+	}
 
 private:
 	agui::FlowLayout *controlsLayout = NULL;
@@ -38,7 +49,8 @@ private:
 	agui::Button *playBtn = NULL;
 	agui::Button *pauseBtn = NULL;
 	agui::Button *skipBtn = NULL;
-	
+	agui::VScrollBar *scrollbar = NULL;
+
 	agui::Font *btnFont;
 	agui::Label *stepsLabel;
 	bool enableState = true;
@@ -79,6 +91,10 @@ public:
 	agui::Allegro5Input *inputHandler() { return widgetInputHandler; }
 	agui::DropDown *dropdown() { return dropDownWidget; }
 	void updateRenderWidgets(thread_graph_data *graph);
+	void setScrollbarVisible(bool enabled) { controlWindow->setScrollbarVisible(enabled); }
+	void doScroll(int z) { controlWindow->doScroll(z); }
+	int getScroll() { return controlWindow->getScroll(); }
+	void setScrollbarMax(int val) { controlWindow->setScrollbarMax(val); }
 	void doLogic() { widgets->logic(); }
 	void setActivePID(int PID);
 	void addPID(int PID);

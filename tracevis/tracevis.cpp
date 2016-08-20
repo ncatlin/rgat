@@ -219,43 +219,51 @@ void updateMainRender(VISSTATE *clientState)
 }
 
 
-void change_mode(VISSTATE *clientstate, int mode)
+void change_mode(VISSTATE *clientState, int mode)
 {
 	switch (mode)
 	{
 	case EV_BTN_WIREFRAME:
-		clientstate->modes.wireframe = !clientstate->modes.wireframe;
+		clientState->modes.wireframe = !clientState->modes.wireframe;
 		//todo: change icon
 		return;
 
 	case EV_BTN_CONDITION:
-		clientstate->modes.conditional = !clientstate->modes.conditional;
-		if (clientstate->modes.conditional) clientstate->modes.heatmap = false;
+		clientState->modes.conditional = !clientState->modes.conditional;
+		if (clientState->modes.conditional) clientState->modes.heatmap = false;
 		//todo: change icon
 		return;
 
 	case EV_BTN_HEATMAP:
 
-		clientstate->modes.heatmap = !clientstate->modes.heatmap;
-		clientstate->modes.nodes = !clientstate->modes.heatmap;
-		if (clientstate->modes.heatmap) clientstate->modes.conditional = false;
+		clientState->modes.heatmap = !clientState->modes.heatmap;
+		clientState->modes.nodes = !clientState->modes.heatmap;
+		if (clientState->modes.heatmap) clientState->modes.conditional = false;
 		//todo: change icon
 		return;
 
 	case EV_BTN_PREVIEW:
+		{
+			al_destroy_bitmap(clientState->mainGraphBMP);
+			clientState->modes.preview = !clientState->modes.preview;
 
-		al_destroy_bitmap(clientstate->mainGraphBMP);
-		if (clientstate->modes.preview)
-			clientstate->mainGraphBMP = al_create_bitmap(clientstate->size.width, clientstate->size.height);
-		else
-			clientstate->mainGraphBMP = al_create_bitmap(clientstate->size.width - PREVIEW_PANE_WIDTH, clientstate->size.height);
-		clientstate->modes.preview = !clientstate->modes.preview;
-		//todo: change icon
-		return;
+			TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+			if (clientState->modes.preview)
+			{
+				widgets->setScrollbarVisible(true);
+				clientState->mainGraphBMP = al_create_bitmap(clientState->size.width - PREVIEW_PANE_WIDTH, clientState->size.height);
+			}
+			else
+			{
+				widgets->setScrollbarVisible(false);
+				clientState->mainGraphBMP = al_create_bitmap(clientState->size.width, clientState->size.height);
+			}
 
+			return;
+		}
 	case EV_BTN_DIFF:
-		clientstate->modes.heatmap = false;
-		clientstate->modes.conditional = false;
+		clientState->modes.heatmap = false;
+		clientState->modes.conditional = false;
 		return;
 
 	}
@@ -655,7 +663,6 @@ int main(int argc, char **argv)
 					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 				}
 
-				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 			}
 
 			frame_gl_teardown();
@@ -674,6 +681,9 @@ int main(int argc, char **argv)
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
 			al_draw_filled_rectangle(0, clientstate.size.height - CONTROLS_Y, 	
 				clientstate.size.width - PREVIEW_PANE_WIDTH,clientstate.size.height, al_map_rgba(0, 0, 0, 150));
+
+			if (clientstate.activeGraph)
+				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 
 			widgets->updateRenderWidgets(clientstate.activeGraph);
 			al_flip_display();
@@ -825,6 +835,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
 		if (!clientstate->activeGraph) return 0;
+
+		TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		float diam = mainscale->radius;
 		long maxZoomIn = diam + 5; //prevent zoom into globe
@@ -833,23 +845,30 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 
 		float zoomdiff = abs(mainscale->radius - clientstate->zoomlevel);
 
-		if (ev->mouse.dz) {
-			//adjust speed of zoom depending on how close we are
-			int zoomfactor;
-
-			if (clientstate->zoomlevel > 40000)
-				zoomfactor = -5000;
+		if (ev->mouse.dz) 
+		{
+			if (mouse_in_previewpane(clientstate, ev->mouse.x))
+			{
+				widgets->doScroll(ev->mouse.dz);
+			}
 			else
-				zoomfactor = -1000;
+			{
+				//adjust speed of zoom depending on how close we are
+				int zoomfactor;
+				if (clientstate->zoomlevel > 40000)
+					zoomfactor = -5000;
+				else
+					zoomfactor = -1000;
 
-			float newZoom = clientstate->zoomlevel + zoomfactor * ev->mouse.dz;
-			if (newZoom >= maxZoomIn)
-				clientstate->zoomlevel = newZoom;
-			if (clientstate->zoomlevel == 0)
-				clientstate->zoomlevel = 1; //delme testing only
+				float newZoom = clientstate->zoomlevel + zoomfactor * ev->mouse.dz;
+				if (newZoom >= maxZoomIn)
+					clientstate->zoomlevel = newZoom;
+				if (clientstate->zoomlevel == 0)
+					clientstate->zoomlevel = 1; //delme testing only
 
-			if (clientstate->activeGraph)
-				updateTitle_Zoom(display, clientstate->title, (clientstate->zoomlevel - clientstate->activeGraph->zoomLevel));
+				if (clientstate->activeGraph)
+					updateTitle_Zoom(display, clientstate->title, (clientstate->zoomlevel - clientstate->activeGraph->zoomLevel));
+			}
 		}
 
 
@@ -896,7 +915,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			{
 				if (mouse_in_previewpane(clientstate, ev->mouse.x))
 				{
-					TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
 					if (!widgets->dropdownDropped())
 					{
 						int PID, TID;
