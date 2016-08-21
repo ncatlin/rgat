@@ -149,8 +149,9 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 	unsigned long targetAddress = startAddress;
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
-
-		INS_DATA *instruction = getDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly);
+		//conspicuous lack of mutation handling here
+		//we could check this by looking at the mutation state of all members of the block
+		INS_DATA *instruction = getLastDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly, 0);
 
 		long nextAddress = instruction->address + instruction->numbytes;
 
@@ -582,14 +583,17 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
-
-		INS_DATA* firstins = getDisassembly(thistag.targaddr, piddata->disassemblyMutex, &piddata->disassembly);
+		int mutation = -1;
+		INS_DATA* firstins = getLastDisassembly(thistag.targaddr, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
 
 		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
 
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
+			//could probably break this by mutating code in a running loop
+			thisgraph->mutationSequence.push_back(mutation); 
+			//printf("placing %lx mutation %d in bbs\n", thistag.targaddr, mutation);
 			if (repeats == 1)
 			{
 				thisgraph->totalInstructions += thistag.insCount;

@@ -66,8 +66,6 @@ public:
 	map<unsigned int, node_data>::iterator get_vertEnd() { return vertDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest();
-	void set_block_alpha(unsigned long firstInstruction, unsigned int quantity,
-		GLfloat *nodecols, GLfloat *edgecols,  float alpha);
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx) { return vertDict[idx].nodeSym; }
@@ -153,8 +151,11 @@ public:
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalverts = 0;
 
-	vector <pair<unsigned long,int>> bbsequence;
+	
+	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
 	vector <pair<unsigned int, unsigned int>> sequenceEdges;
+	vector <int> mutationSequence;
+
 	//loop end/loop iterations pair
 	vector <pair<unsigned int, unsigned long>> loopStateList;
 	vector<unsigned int> animLoopProgress;

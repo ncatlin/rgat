@@ -86,12 +86,13 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceId];
 	unsigned long insAddr = targBlock_Size.first;
 	int numInstructions = targBlock_Size.second;
-	
-	INS_DATA *ins = getDisassembly(insAddr, disassemblyMutex, disassembly);
+	int mutation = mutationSequence[sequenceId];
+	INS_DATA *ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, true);
 	while (numInstructions > 1)
 	{
 		insAddr += ins->numbytes;
-		ins = getDisassembly(insAddr, disassemblyMutex, disassembly);
+		//bad feeling about blindly using same mutation here
+		ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, false);
 		numInstructions--;
 	}
 	return ins;
@@ -377,11 +378,11 @@ void thread_graph_data::brighten_BBs()
 		pair<unsigned long, int> targBlock_Size = bbsequence[animPosition];
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
-
-		INS_DATA *ins = getDisassembly(insAddr,disassemblyMutex,disassembly);
+		int mutation = mutationSequence[animPosition];
+		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
 		if (!ins->threadvertIdx.count(tid))
 		{
-			//TODO printf("WARNING: BrightenBBs going too far? Breaking!\n");
+			printf("WARNING: BrightenBBs going too far? Breaking!\n");
 			animvertsdata->release_col();
 			animlinedata->release_col();
 			break;
@@ -398,8 +399,8 @@ void thread_graph_data::brighten_BBs()
 				//or does it crash here
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
 				if (!edgeDict.count(edgePair)) {
-					//TODO printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
-					//	lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
+					printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
+						lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
 					continue;
 				}
 				//still crashes with out of range! todo...
@@ -424,7 +425,7 @@ void thread_graph_data::brighten_BBs()
 
 			//brighten short edges between internal nodes
 			unsigned long nextAddress = ins->address + ins->numbytes;
-			INS_DATA* nextIns = getDisassembly(nextAddress, disassemblyMutex, disassembly);
+			INS_DATA* nextIns = getDisassembly(nextAddress, mutation, disassemblyMutex, disassembly, false);
 
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
@@ -467,33 +468,6 @@ void thread_graph_data::animate_latest()
 	brighten_BBs();	
 }
 
-void thread_graph_data::set_block_alpha(unsigned long firstInstruction,unsigned int quantity, 
-	GLfloat *nodecols, GLfloat *edgecols, float alpha)
-{
-	INS_DATA* ins = getDisassembly(firstInstruction, disassemblyMutex, disassembly); 
-	unsigned int nodeIdx = ins->threadvertIdx[tid];
-
-	//fade short edges between internal nodes
-	for (unsigned int blockIdx = 0; blockIdx < quantity; blockIdx++)
-	{
-
-		nodecols[(nodeIdx * COLELEMS) + 3] = alpha;
-		if (blockIdx == quantity - 1) break;
-
-		unsigned long nextAddress = ins->address + ins->numbytes;
-
-		ins = getDisassembly(nextAddress, disassemblyMutex, disassembly);
-
-		unsigned int nextInsIndex = ins->threadvertIdx.at(tid);
-		edge_data *internalEdge = &edgeDict[make_pair(nodeIdx, nextInsIndex)];
-		unsigned long edgeColPos = internalEdge->arraypos;
-
-		edgecols[edgeColPos + 3] = alpha;
-		edgecols[edgeColPos + COLELEMS + 3] = alpha;
-		nodeIdx = nextInsIndex;
-	}
-}
-
 void thread_graph_data::update_animation_render()
 {
 	darken_animation(ANIMATION_FADE_RATE);
@@ -509,14 +483,15 @@ node_data *thread_graph_data::derive_anim_node()
 	pair<unsigned long, int> seq_size = bbsequence[sequenceIndex];
 	unsigned long bbseq = seq_size.first;
 	int remainingInstructions = blockInstruction;
-	INS_DATA *target_ins = getDisassembly(bbseq, disassemblyMutex, disassembly);
+	int mutation = mutationSequence[sequenceIndex];
+	INS_DATA *target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, true);
 	
 	//would put the end sequence instead of doing this
 	//but that ruins us if something jumps in middle of an opcode
 	while (remainingInstructions)
 	{
 		bbseq += target_ins->numbytes;
-		target_ins = getDisassembly(bbseq, disassemblyMutex, disassembly);
+		target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, false);
 		remainingInstructions--;
 	}
 

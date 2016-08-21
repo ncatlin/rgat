@@ -151,9 +151,9 @@ void windows_execute_tracer(string executable) {
 }
 
 void launch_test_exe() {
-	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	//string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
 	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
-	//string executable("C:\\tracing\\you_are_very_good_at_this.exe");
+	string executable("C:\\tracing\\you_are_very_good_at_this.exe");
 	windows_execute_tracer(executable);
 	Sleep(800);
 }
@@ -1032,11 +1032,11 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			clientstate->rescale = true;
 			break;
 		case ALLEGRO_KEY_DOWN:
-			mainscale->userVEDGESEP += 0.05;
+			mainscale->userVEDGESEP += 0.01;
 			clientstate->rescale = true;
 			break;
 		case ALLEGRO_KEY_UP:
-			mainscale->userVEDGESEP -= 0.05;
+			mainscale->userVEDGESEP -= 0.01;
 			clientstate->rescale = true;
 			break;
 		case ALLEGRO_KEY_PAD_PLUS:
