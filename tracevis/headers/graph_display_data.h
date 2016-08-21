@@ -40,6 +40,7 @@ private:
 	//for realloc groundskeeping
 	unsigned int vpsize = 0;
 	unsigned int vcsize = 0;
+	string cholder;
 
 	float *vposarray;
 	float *vcolarray;

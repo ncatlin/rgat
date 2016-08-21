@@ -114,40 +114,35 @@ void heatmap_renderer::heatmap_thread()
 	colourRange.insert(colourRange.begin() + 8, COLSTRUCT{ fcol(255), fcol(182), 0 });
 	colourRange.insert(colourRange.begin() + 9, COLSTRUCT{ fcol(255), fcol(228 ), fcol(167)});
 
+	while (!piddata || piddata->graphs.empty())
+	{
+		Sleep(200);
+		continue;
+	}
+
 	while (true)
 	{
 
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
-		if (!piddata || piddata->graphs.empty())
-		{
-			Sleep(200);
-			continue;
-		}
+		if (!obtainMutex(piddata->graphsListMutex, "Heatmap Thread glm")) return;
 
-		if (!obtainMutex(piddata->graphsListMutex, "Heatmap Thread")) return;
-
+		vector<thread_graph_data *> graphlist;
 		map <int, void *>::iterator graphit = piddata->graphs.begin();
-		while (graphit != piddata->graphs.end())
+		for (; graphit != piddata->graphs.end(); graphit++)
+			graphlist.push_back((thread_graph_data *)graphit->second);
+		dropMutex(piddata->graphsListMutex, "Heatmap Thread glm");
+
+		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
+		while (graphlistIt != graphlist.end())
 		{
-			thread_graph_data *graph = (thread_graph_data *)graphit->second;
-			if (clientState->activeGraph == graph)
-			{
-				//rendering iterates over the entire graph
-				//only rerender if graph is changing
-				if (graph->active)
-					render_graph_heatmap(graph);
-				else 
-					if (!graph->finalHeatmap)
-					{
-						graph->finalHeatmap = true;
-						render_graph_heatmap(graph);
-					}
-			}
-			graphit++;
+			thread_graph_data *graph = *graphlistIt;
+			render_graph_heatmap(graph);
+			graphlistIt++;
+			Sleep(80);
 		}
 
-		dropMutex(piddata->graphsListMutex, "Heatmap Thread");
+		
 		Sleep(HEATMAP_DELAY_MS);
 	}
 }

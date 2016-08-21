@@ -24,6 +24,8 @@ struct MULTIPLIERS {
 	float VEDGESEP = 0;
 	float userVEDGESEP = 0;
 	float userDiamModifier = 1;
+	int sphereMaxA = 360;
+	int sphereMaxB = 180;
 };
 
 struct PROJECTDATA {

@@ -62,10 +62,10 @@ struct PID_DATA {
 	//graph data for each thread in process
 	map <int, void *> graphs;
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);
-
+	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
 	//maps instruction addresses (string) to all data about it
-	map <unsigned long, INS_DATA*> disassembly;
-	
+	map <unsigned long, vector<INS_DATA *>> disassembly;
+
 	vector <int> activeMods;
 
 	/*

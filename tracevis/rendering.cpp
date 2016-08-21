@@ -277,13 +277,26 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	int vertIdx = n->index;
 
-	GLfloat *vpos = vertdata->acquire_pos("1h");
+	GLfloat *vpos = vertdata->acquire_pos("334");
+	GLfloat *vcol = vertdata->acquire_col("33f");
+	GLfloat *fcoord = vertdata->acquire_fcoord();
+	GLfloat *vcol2 = animvertdata->acquire_col("1e");
+	if (!vpos || !vcol || !fcoord || !vcol2)
+	{
+		printf("vp%d, vc%d, fc%d, vc%d\n", vpos, vcol, fcoord, vcol2);
+		vertdata->release_pos();
+		vertdata->release_col();
+		vertdata->release_fcoord();
+		animvertdata->release_col();
+		return 0;
+	}
+
 	vpos[(vertIdx * POSELEMS)] = screenc.x;
 	vpos[(vertIdx * POSELEMS) + 1] = screenc.y;
 	vpos[(vertIdx * POSELEMS) + 2] = screenc.z;
 
 	//todo: why do they have the same stuff in...?
-	GLfloat *fcoord = vertdata->acquire_fcoord();
+	
 	fcoord[(vertIdx * POSELEMS)] = screenc.x;
 	fcoord[(vertIdx * POSELEMS) + 1] = screenc.y;
 	fcoord[(vertIdx * POSELEMS) + 2] = screenc.z;
@@ -321,7 +334,7 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		}
 	}
 
-	GLfloat *vcol = vertdata->acquire_col("1g");
+	
 	vcol[(vertIdx * COLELEMS)] = active_col->r;
 	vcol[(vertIdx * COLELEMS) + 1] = active_col->g;
 	vcol[(vertIdx * COLELEMS) + 2] = active_col->b;
@@ -332,7 +345,7 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vertdata->release_col();
 	vertdata->release_pos();
 	vertdata->release_fcoord();
-	GLfloat *vcol2 = animvertdata->acquire_col("1e");
+
 	vcol2[(vertIdx * COLELEMS)] = active_col->r;
 	vcol2[(vertIdx * COLELEMS) + 1] = active_col->g;
 	vcol2[(vertIdx * COLELEMS) + 2] = active_col->b;
@@ -355,14 +368,21 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	std::advance(vertit, vertsdata->get_numVerts());
 
 	if (vertit == vertEnd) return 0;
-
+	int maxVerts = 50;
 	for (; vertit != vertEnd; vertit++)
 	{
-	 if (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
+		int retries = 0;
+	 while (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
 		{
-			printf("Exiting with error in add vert\n");
-			return -1;
+			dropMutex(graph->edMutex);
+			Sleep(50);
+			obtainMutex(graph->edMutex, "Addvert retry", 500);
+			if (retries++ > 25)
+				printf("MUTEX BLOCKAGE?\n");
 		}
+	 if (retries > 25)
+		 printf("BLOCKAGE CLEARED\n");
+	 if (!maxVerts--)break;
 	}
 	return 1;
 }
@@ -396,25 +416,50 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 int render_main_graph(VISSTATE *clientState)
 {
 	
-	int adjustedDiam;
+	int adjustedDiamA, adjustedDiamB;
 	bool doResize = false;
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
-
-	//todo, need to handle high maxB as well
-	adjustedDiam = graph->maxA * 10;
-	adjustedDiam = max(adjustedDiam, 30000)* graph->m_scalefactors->userDiamModifier;
-	recalculate_scale(graph->m_scalefactors, adjustedDiam);
-	graph->m_scalefactors->radius = adjustedDiam;
-
 	if (!obtainMutex(graph->edMutex, "Render Main Graph")) return 0;
-	
-	if (abs(adjustedDiam - graph->zoomLevel) > 5000 || clientState->rescale)
+	printf("graph->maxB %d, graph->m_scalefactors->sphereMaxB %d\n", graph->maxB, graph->m_scalefactors->sphereMaxB);
+	if (graph->maxB > graph->m_scalefactors->sphereMaxB)
 	{
+		graph->m_scalefactors->sphereMaxB += 60;
+		int newDiam = max(graph->m_scalefactors->sphereMaxB*10, 20000) *graph->m_scalefactors->userDiamModifier;
+		recalculate_scale(graph->m_scalefactors, newDiam);
 		doResize = true;
 		clientState->rescale = false;
 	}
+	//todo, need to handle high maxB as well
+	/*
+	adjustedDiamA = graph->maxA * 10;
+	adjustedDiamA = max(adjustedDiamA, 30000)* graph->m_scalefactors->userDiamModifier;
 	
+	adjustedDiamB = graph->maxB * 10;
+	adjustedDiamB = max(adjustedDiamB, 30000)* graph->m_scalefactors->userDiamModifier;
+
+	
+	
+	int comparisonA = abs(adjustedDiamA - graph->zoomLevel);
+	int comparisonB = abs(adjustedDiamB - graph->zoomLevel);
+	if (comparisonA > 5000 || clientState->rescale)
+	{
+		doResize = true;
+		clientState->rescale = false;
+		graph->m_scalefactors->radius = adjustedDiamA;
+		recalculate_scale(graph->m_scalefactors, adjustedDiamA);
+	}
+	else if (comparisonB > 5000 || clientState->rescale)
+	{
+		doResize = true;
+		clientState->rescale = false;
+		graph->m_scalefactors->radius = adjustedDiamB;
+		recalculate_scale(graph->m_scalefactors, adjustedDiamB);
+	}
+	
+	*/
+
+
 	if (doResize)
 	{
 		resize_verts(graph, graph->get_mainverts());
@@ -472,7 +517,7 @@ int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
 	if (edgeIt != graph->edgeList.end())
 		graph->needVBOReload_preview = true;
-
+	int maxEdges = 50;
 	for (; edgeIt != graph->edgeList.end(); ++edgeIt)
 	{
 		if (!graph->render_edge(*edgeIt, graph->previewlines, &clientstate->guidata->lineColoursArr, 0, true))
@@ -481,6 +526,7 @@ int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
 			return 0; //todo make error -1 and give it name
 		}
 		graph->previewlines->inc_edgesRendered();
+		if (!maxEdges--)break;
 	}
 
 	return 1;
@@ -490,26 +536,29 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 {
 	bool doResize = false;
 
-	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph")) return 0;
+	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph Vert")) return 0;
 
 	previewGraph->needVBOReload_preview = true;
 
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewverts);
 	if (vresult == -1)
 	{
-		dropMutex(previewGraph->edMutex, "Render Preview Graph");
+		dropMutex(previewGraph->edMutex, "Render Preview Graph Vert");
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
 		return 0;
 	}
+	dropMutex(previewGraph->edMutex, "Render Preview Graph Vert");
+	Sleep(10);
+	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph Edge")) return 0;
 
 	vresult = draw_new_preview_edges(clientState, previewGraph);
 	if (!vresult)
 	{
-		dropMutex(previewGraph->edMutex, "Render Preview Graph");
+		dropMutex(previewGraph->edMutex, "Render Preview Graph Edge");
 		printf("\n\nFATAL 6: Failed drawing new edges! returned:%d\n\n", vresult);
 		return 0;
 	}
-	dropMutex(previewGraph->edMutex, "Render Preview Graph");
+	dropMutex(previewGraph->edMutex, "Render Preview Graph Edge");
 	return 1;
 }
 

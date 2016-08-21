@@ -21,12 +21,16 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(int initialValue)
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
-	WaitForSingleObject(colmutex, INFINITE);
-	WaitForSingleObject(posmutex, INFINITE);
-	WaitForSingleObject(coordmutex, INFINITE);
+	obtainMutex(colmutex, "Destruct", INFINITE);
+	obtainMutex(posmutex, "Destruct", INFINITE);
+	obtainMutex(coordmutex, "Destruct", INFINITE);
+	colmutex = 0;
+	posmutex = 0;
+	coordmutex = 0;
 	free(vcolarray);
 	free(vposarray);
 	free(fcoordarray);
+	dropMutex(colmutex);
 }
 
 FCOORD GRAPH_DISPLAY_DATA::get_coord(unsigned int index)
@@ -40,20 +44,27 @@ FCOORD GRAPH_DISPLAY_DATA::get_coord(unsigned int index)
 
 float *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
 {
-	obtainMutex(posmutex, 0, 1000);
+	bool result = obtainMutex(posmutex, 0, 50);
+	if (!result) return 0;
 	return vposarray;
 }
 
 float *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
 {
 
-	obtainMutex(colmutex, 0, 1000);
+	bool result = obtainMutex(colmutex, location, 50);
+	if (!result) {
+		printf("failed to obtain %x lst holder = %s\n", colmutex, cholder.c_str()); return 0;
+	}
+	cholder = string(location);
 	return vcolarray;
 }
 
 float *GRAPH_DISPLAY_DATA::acquire_fcoord()
 {
-	obtainMutex(coordmutex, 0, 1000);
+
+	bool result = obtainMutex(coordmutex, 0, 50);
+	if (!result) return 0;
 	return fcoordarray;
 }
 
@@ -83,12 +94,14 @@ void GRAPH_DISPLAY_DATA::debg(int m)
 
 void GRAPH_DISPLAY_DATA::expand(unsigned int minsize) {
 	obtainMutex(colmutex,"expand", INFINITE);
+	cholder = "expand";
 	obtainMutex(posmutex, "expand", INFINITE);
 	obtainMutex(coordmutex, "expand", INFINITE);
 
 	unsigned int expandValue = max(minsize, 30000);
 	vpsize += expandValue;
 	vcsize += expandValue;
+	printf("Expanding to %d\n", expandValue);
 
 	float* newAddress;
 	newAddress = (float *)realloc(vposarray, vpsize);

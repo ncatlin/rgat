@@ -37,6 +37,8 @@ void writetag(ofstream *file, char tag, int id = 0) {
 
 void saveProcessData(PID_DATA *piddata, ofstream *file)
 {
+	return;
+	/*
 	writetag(file, tag_START, tag_PROCESSDATA);
 
 	//save module paths
@@ -73,11 +75,11 @@ void saveProcessData(PID_DATA *piddata, ofstream *file)
 	*file << " ";
 
 	writetag(file, tag_START, tag_DISAS);
-	/*dump disassembly - could try to be concise and reconstruct on load
-	however we have more diskspace than we have time or RAM and the
-	"small files for sharing" ship has probably sailed, so sod it; be verbose.*/
-	//todo: this is broken by irip change
-	map <unsigned long, INS_DATA*>::iterator disasIt = piddata->disassembly.begin();
+	//dump disassembly - could try to be concise and reconstruct on load
+	//however we have more diskspace than we have time or RAM and the
+	//"small files for sharing" ship has probably sailed, so sod it; be verbose.
+	todo: this is broken by irip change
+	map <unsigned long, vector<INS_DATA*>>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); disasIt++)
 	{
 		*file << disasIt->first << ",";
@@ -85,6 +87,7 @@ void saveProcessData(PID_DATA *piddata, ofstream *file)
 	writetag(file, tag_END, tag_DISAS);
 
 	writetag(file, tag_END, tag_PROCESSDATA);
+	*/
 }
 
 void saveTrace(VISSTATE * clientState)
@@ -165,9 +168,9 @@ int extractmodsyms(stringstream *blob, int modnum, PID_DATA* piddata)
 	}
 }
 
-bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata, map<unsigned long, INS_DATA*> *insdict)
+bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata, map<unsigned long, vector<INS_DATA*>> *insdict)
 {
-
+	/*
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
 		printf("Corrupt save (process data start)\n");
 		return false;
@@ -267,7 +270,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata, m
 		printf("Corrupt save (process data end)\n");
 		return false;
 	}
-
+	*/
 	return true;
 }
 
@@ -340,7 +343,7 @@ bool loadExterns(ifstream *file, thread_graph_data *graph)
 	}
 }
 
-bool loadNodes(ifstream *file, map<unsigned long, INS_DATA*> *insdict, thread_graph_data *graph)
+bool loadNodes(ifstream *file, map<unsigned long, vector<INS_DATA*>> *insdict, thread_graph_data *graph)
 {
 	return false;
 	/*
@@ -428,7 +431,7 @@ bool loadStats(ifstream *file, thread_graph_data *graph)
 	return true;
 }
 
-bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata, map<unsigned long, INS_DATA*> *insdict)
+bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata, map<unsigned long, vector<INS_DATA*>> *insdict)
 {
 	char tagbuf[3]; int TID; string tidstring;
 	printf("Loading thread graphs...\n");
@@ -439,7 +442,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata,
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoi(tidstring, &TID, 10)) return false;
-		thread_graph_data *graph = new thread_graph_data(&piddata->disassembly);
+		thread_graph_data *graph = new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
 		piddata->graphs.emplace(TID, graph);
 		graph->tid = TID;
 		graph->pid = piddata->PID;

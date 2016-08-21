@@ -154,7 +154,9 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 	unsigned long targetAddress = startAddress;
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
-		INS_DATA *instruction = piddata->disassembly[targetAddress];
+
+		INS_DATA *instruction = getDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly);
+
 		long nextAddress = instruction->address + instruction->numbytes;
 
 		if (lastRIPType != FIRST_IN_THREAD)
@@ -165,8 +167,8 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 				return;
 			}
 			lastNode = thisgraph->get_vert(lastVertID);
-			
 		}
+
 		newVert = new_instruction(instruction);
 		if (newVert)
 			handle_new_instruction(instruction, bb_inslist_index, lastNode);
@@ -580,21 +582,14 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	printf("handling tag %lx, jmpmod:%d", thistag.targaddr, thistag.jumpModifier);
 	if (thistag.jumpModifier == 2)
 		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.targaddr]->modnum][thistag.targaddr].c_str());
-	else printf("\n");
-	*/
+	else printf("\n");*/
+	
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
-		if (!piddata->disassembly.count(thistag.targaddr))
-		{
-			int waitTime = 150;
-			do {
-				printf("Waiting for disassembly of %lx\n", thistag.targaddr);
-				Sleep(waitTime);
-				waitTime += 100;
-			} while (!piddata->disassembly.count(thistag.targaddr));
-		}
-		INS_DATA* firstins = piddata->disassembly.at(thistag.targaddr);
+
+		INS_DATA* firstins = getDisassembly(thistag.targaddr, piddata->disassemblyMutex, &piddata->disassembly);
+
 		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
@@ -612,6 +607,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			}
 		}
 		thisgraph->set_active_node(lastVertID);
+		
 	}
 
 	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library

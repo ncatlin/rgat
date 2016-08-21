@@ -25,16 +25,17 @@ private:
 	GRAPH_DISPLAY_DATA *mainvertsdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 	map<unsigned int, node_data> vertDict; //node id to node data
-	map <unsigned long, INS_DATA*> *disassembly;
+	map <unsigned long, vector<INS_DATA*>> *disassembly;
 	unsigned int lastAnimatedBB = 0;
 	unsigned int firstAnimatedBB = 0;
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
 	bool advance_sequence(bool);
 	bool decrease_sequence();
+	HANDLE disassemblyMutex;
 
 public:
-	thread_graph_data(map <unsigned long, INS_DATA*> *disassembly);
+	thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disassembly, HANDLE disasMutex);
 	~thread_graph_data();
 
 	void display_active(bool showNodes, bool showEdges);
@@ -52,7 +53,7 @@ public:
 	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
 	node_data *get_vert(unsigned int index)
 	{
-		obtainMutex(vertDMutex, 0, 500); node_data *n = &vertDict.at(index); dropMutex(vertDMutex); return n;
+		obtainMutex(vertDMutex,0, 500); node_data *n = &vertDict.at(index); dropMutex(vertDMutex); return n;
 	}
 	void add_vert(pair<unsigned int, node_data> newnodepair) 
 	{

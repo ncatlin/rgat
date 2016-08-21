@@ -72,9 +72,10 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	int newDrawn = 0;
 	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit = graph->edgeDict.begin();
 
-	unsigned int newsize = linedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
-	if (graph->conditionallines->col_size() < newsize)
-		graph->conditionallines->expand(newsize * 2);
+	unsigned int newColSize = linedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
+	unsigned int newPosSize = linedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
+	if (graph->conditionallines->col_size() < newColSize || graph->conditionallines->pos_size() < newPosSize)
+		graph->conditionallines->expand(max(newColSize,newPosSize) * 2);
 
 	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
 	
@@ -104,29 +105,31 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 //allows display in thumbnail style format
 void conditional_renderer::conditional_thread()
 {
+	while (!piddata || piddata->graphs.empty())
+	{
+		Sleep(200);
+		continue;
+	}
+
 	while (true)
 	{
-		//only write we are protecting against happens while creating new threads
-		//so not important to release this quickly
-		if (!piddata || piddata->graphs.empty())
-		{
-			Sleep(200);
-			continue;
-		}
+		if (!obtainMutex(piddata->graphsListMutex, "conditional Thread glm")) return;
 
-		if (!obtainMutex(piddata->graphsListMutex, "Render Preview Thread")) return;
-
+		vector<thread_graph_data *> graphlist;
 		map <int, void *>::iterator graphit = piddata->graphs.begin();
-		while (graphit != piddata->graphs.end())
+		for (; graphit != piddata->graphs.end(); graphit++)
+			graphlist.push_back((thread_graph_data *)graphit->second);
+		dropMutex(piddata->graphsListMutex, "conditional Thread glm");
+
+		
+		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
+		while (graphlistIt != graphlist.end())
 		{
-			thread_graph_data *graph = (thread_graph_data *)graphit->second;
-			if (clientState->activeGraph == graph)
-				render_graph_conditional(graph);
-
-			graphit++;
+			thread_graph_data *graph = *graphlistIt;
+			render_graph_conditional(graph);
+			graphlistIt++;
+			Sleep(80);
 		}
-
-		dropMutex(piddata->graphsListMutex, "Render Preview Thread");
 		Sleep(CONDITIONAL_DELAY_MS);
 	}
 }

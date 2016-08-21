@@ -1,5 +1,27 @@
 #include "stdafx.h"
+#include "traceMisc.h"
 
+INS_DATA* getDisassembly(unsigned long address, HANDLE mutex, map<unsigned long,vector<INS_DATA *>> *disas)
+{
+	obtainMutex(mutex, 0, 4000);
+	if (!disas->count(address))
+	{
+		dropMutex(mutex, 0);
+		int waitTime = 150;
+		while (true)
+		{
+			Sleep(waitTime);
+			obtainMutex(mutex, 0, 4000);
+			if (disas->count(address))
+				break;
+			dropMutex(mutex, 0);
+			waitTime += 100;
+		}
+	}
+	INS_DATA *result = disas->at(address).back();
+	dropMutex(mutex, 0);
+	return result;
+}
 //takes MARKER1234 buf, marker and target int
 //if MARKER matches marker, converts 1234 to integer and places
 //in target
@@ -50,17 +72,19 @@ int caught_stol(string s, unsigned long *result, int base) {
 
 bool obtainMutex(HANDLE mutex, char *errorLocation, int waitTime)
 {
-	
 	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
 	if (waitresult == WAIT_TIMEOUT) {
-		printf("ERROR! Mutex %x wait expired at %s ERROR!\n", mutex, errorLocation);
+		if (errorLocation)
+			printf("WARNING! Mutex %x wait expired at %s ERROR!\n", mutex, errorLocation);
 		return false;
 	}
-	//if (errorLocation) printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
+	//if (errorLocation) 	
+	//	printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
 	return true;
 }
 
 void dropMutex(HANDLE mutex, char *location) {
-	//if (location) printf("Dropping mutex %x -> %s\n", mutex, location);
+	//if (location) 
+	//	printf("Dropping mutex %x -> %s\n", mutex, location);
 	ReleaseMutex(mutex);
 }

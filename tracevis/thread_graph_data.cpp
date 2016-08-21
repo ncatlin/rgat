@@ -86,11 +86,12 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceId];
 	unsigned long insAddr = targBlock_Size.first;
 	int numInstructions = targBlock_Size.second;
-	INS_DATA *ins = disassembly->at(insAddr);
+	
+	INS_DATA *ins = getDisassembly(insAddr, disassemblyMutex, disassembly);
 	while (numInstructions > 1)
 	{
 		insAddr += ins->numbytes;
-		ins = disassembly->at(insAddr);
+		ins = getDisassembly(insAddr, disassemblyMutex, disassembly);
 		numInstructions--;
 	}
 	return ins;
@@ -102,7 +103,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	INS_DATA* ins = get_last_instruction(targetSequence);
 	int nodeIdx = ins->threadvertIdx[tid];
 
-	obtainMutex(callSeqMutex, "highlight externs", 1000);
+	obtainMutex(callSeqMutex, 0, 1000);
 	if (!externCallSequence.count(nodeIdx)) 
 	{
 		dropMutex(callSeqMutex, "highlight externs");
@@ -111,7 +112,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 	vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
 
-	int callsSoFar = callCounter[nodeIdx];
+	unsigned int callsSoFar = callCounter[nodeIdx];
 	callCounter[nodeIdx] = callsSoFar + 1;
 	int targetExternIdx;
 	
@@ -324,7 +325,7 @@ void thread_graph_data::clear_final_BBs()
 		pair<unsigned long, int> targBlock_Size = bbsequence[last_anim_start];
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
-		INS_DATA *ins = disassembly->at(insAddr);
+		INS_DATA *ins = disassembly->at(insAddr).back();
 		unsigned int nodeIdx = ins->threadvertIdx.at(tid);
 
 		if (last_anim_start > 0)
@@ -334,11 +335,11 @@ void thread_graph_data::clear_final_BBs()
 				pair<unsigned long, int> lastBlock_Size = bbsequence.at(last_anim_start - 1);
 				unsigned long lastAddr = lastBlock_Size.first;
 				int numlastins = lastBlock_Size.second;
-				INS_DATA *lastins = disassembly->at(lastAddr);
+				INS_DATA *lastins = disassembly->at(lastAddr).back();
 
 				while (numlastins-- > 1) {
 					lastAddr = lastins->address + lastins->numbytes;
-					lastins = disassembly->at(lastAddr);
+					lastins = disassembly->at(lastAddr).back();
 				}
 				lastNodeIdx = lastins->threadvertIdx.at(tid);
 			}
@@ -357,7 +358,7 @@ void thread_graph_data::clear_final_BBs()
 
 			if (blockIdx == numInstructions - 1) break;
 			//fade short edges between internal nodes
-			INS_DATA* nextIns = disassembly->at(ins->address + ins->numbytes);
+			INS_DATA* nextIns = disassembly->at(ins->address + ins->numbytes).back();
 
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			edge_data *internalEdge = &edgeDict[make_pair(nodeIdx, nextInsIndex)];
@@ -406,7 +407,7 @@ void thread_graph_data::brighten_BBs()
 
 	unsigned int animPosition = firstAnimatedBB; 
 	if (animPosition == animEnd) return;
-	if(!obtainMutex(edMutex, "Before BB brighten", 3000)) return;
+	if(!obtainMutex(edMutex, "Before BB brighten s", 3000)) return;
 
 	map <unsigned long, bool> recentHighlights;
 	//place active on new active
@@ -417,15 +418,34 @@ void thread_graph_data::brighten_BBs()
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
 		
+		
 		GLfloat *ncol = animvertsdata->acquire_col("1m");
 		GLfloat *ecol = animlinedata->acquire_col("1m");
-		
+		while (!ncol || !ecol)
+		{
+			animvertsdata->release_col();
+			animlinedata->release_col();
+			dropMutex(edMutex, "BBBrighten");
+			printf("BBbright fail\n");
+			Sleep(75);
+			obtainMutex(edMutex, "Before BB brighten", 200);
+			ncol = animvertsdata->acquire_col("1m2");
+			ecol = animlinedata->acquire_col("1m2");
+		}
+
 		pair<unsigned long, int> targBlock_Size = bbsequence[animPosition];
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
-		map <unsigned long, INS_DATA*>::iterator insIt = disassembly->find(insAddr);
-		if (insIt == disassembly->end()) break;
-		INS_DATA *ins = insIt->second;
+
+		INS_DATA *ins = getDisassembly(insAddr,disassemblyMutex,disassembly);
+		if (!ins->threadvertIdx.count(tid))
+		{
+			printf("WARNING: BrightenBBs going too far? Breaking!\n");
+			animvertsdata->release_col();
+			animlinedata->release_col();
+			break;
+		}
+	
 		unsigned int nodeIdx = ins->threadvertIdx.at(tid);
 
 		//link lastbb to this
@@ -460,7 +480,8 @@ void thread_graph_data::brighten_BBs()
 			if (blockIdx == numInstructions - 1) break;
 
 			//brighten short edges between internal nodes
-			INS_DATA* nextIns = disassembly->at(ins->address + ins->numbytes);
+			unsigned long nextAddress = ins->address + ins->numbytes;
+			INS_DATA* nextIns = disassembly->at(nextAddress).back();
 
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
@@ -506,17 +527,17 @@ void thread_graph_data::animate_latest()
 void thread_graph_data::set_block_alpha(unsigned long firstInstruction,unsigned int quantity, 
 	GLfloat *nodecols, GLfloat *edgecols, float alpha)
 {
-	INS_DATA* ins = disassembly->at(firstInstruction);
+	INS_DATA* ins = disassembly->at(firstInstruction).back();
 	unsigned int nodeIdx = ins->threadvertIdx[tid];
 
 	//fade short edges between internal nodes
-	for (int blockIdx = 0; blockIdx < quantity; blockIdx++)
+	for (unsigned int blockIdx = 0; blockIdx < quantity; blockIdx++)
 	{
 
 		nodecols[(nodeIdx * COLELEMS) + 3] = alpha;
 		if (blockIdx == quantity - 1) break;
 
-		ins = disassembly->at(ins->address + ins->numbytes);
+		ins = disassembly->at(ins->address + ins->numbytes).back();
 
 		unsigned int nextInsIndex = ins->threadvertIdx.at(tid);
 		edge_data *internalEdge = &edgeDict[make_pair(nodeIdx, nextInsIndex)];
@@ -543,14 +564,14 @@ node_data *thread_graph_data::derive_anim_node()
 	pair<unsigned long, int> seq_size = bbsequence[sequenceIndex];
 	unsigned long bbseq = seq_size.first;
 	int remainingInstructions = blockInstruction;
-	INS_DATA *target_ins = disassembly->at(bbseq);
+	INS_DATA *target_ins = disassembly->at(bbseq).back();
 	
 	//would put the end sequence instead of doing this
 	//but that ruins us if something jumps in middle of an opcode
 	while (remainingInstructions)
 	{
 		bbseq += target_ins->numbytes;
-		target_ins = disassembly->at(bbseq);
+		target_ins = disassembly->at(bbseq).back();
 		remainingInstructions--;
 	}
 
@@ -615,9 +636,11 @@ node_data* thread_graph_data::get_active_node()
 	return latest_active_node;
 }
 
-thread_graph_data::thread_graph_data(map <unsigned long, INS_DATA*> *disasPtr)
+thread_graph_data::thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disasPtr, HANDLE mutex)
 {
 	disassembly = disasPtr;
+	disassemblyMutex = mutex;
+
 	mainvertsdata = new GRAPH_DISPLAY_DATA(40000);
 	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
 
@@ -653,7 +676,7 @@ void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GR
 {
 	edge_data *e = &edgeDict.at(eIdx);
 	GLfloat *colarray = edgesdata->acquire_col("2e");
-	for (int i = 0; i < e->vertSize; i++)
+	for (unsigned int i = 0; i < e->vertSize; i++)
 	{
 		colarray[e->arraypos + i*COLELEMS + 3] = alpha;
 	}

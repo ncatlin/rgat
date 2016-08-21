@@ -180,27 +180,27 @@ void basicblock_handler::PID_BB_thread()
 
 			while (true)
 			{
+				bool mutation = false;
 				string opcodes(strtok_s(next_token, "@", &next_token));
-				//to get here we extend from new instructions into a previous BB
-				//add a link to that BB at end of this one
-				if (piddata->disassembly.count(targetaddr) != 0)
+				obtainMutex(piddata->disassemblyMutex, "Internaltag", 4000);
+				if (!piddata->disassembly.count(targetaddr))
 				{
-					INS_DATA *insd = piddata->disassembly[targetaddr];
+					vector<INS_DATA *> disVec;
+					piddata->disassembly[targetaddr] = disVec;
+				}
+				else
+				{
+					INS_DATA *insd = piddata->disassembly[targetaddr].back();
 					if (insd->opcodes == opcodes)
 					{
+						dropMutex(piddata->disassemblyMutex, "Inserted Dis");
 						targetaddr += insd->numbytes;
 						if (next_token >= buf + bread) break;
 						i++;
 						continue;
 					}
-					else
-					{
-						printf("WARNING: Mutation! %lx already has %s (tid:%d) now %s\n", targetaddr, insd->opcodes.c_str(), 
-							tid, opcodes.c_str());
-						return;
-					}
 				}
-
+				
 				//the address has not been seen before, disassemble it from new
 				INS_DATA *insdata = new INS_DATA;
 				insdata->opcodes = opcodes;
@@ -210,12 +210,15 @@ void basicblock_handler::PID_BB_thread()
 					printf("BAD DISASSEMBLE for bb [%s]\n",savedbuf.c_str());
 					return;
 				}
-				piddata->disassembly[targetaddr] = insdata;
+
+				printf("Added %lx to disassembly\n", targetaddr);
+				piddata->disassembly[targetaddr].push_back(insdata);
+				dropMutex(piddata->disassemblyMutex, "Inserted Dis");
+
 				targetaddr += insdata->numbytes;
 				if (next_token >= buf + bread) break;
 				i++;
 			}
-			//printf("BBEND\n");
 			continue;
 		}
 

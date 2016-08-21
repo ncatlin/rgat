@@ -67,7 +67,7 @@ void module_handler::PID_thread()
 				TID_thread->piddata = piddata;
 				TID_thread->timelinebuilder = clientState->timelineBuilder;
 
-				thread_graph_data *tgraph = new thread_graph_data(&piddata->disassembly);
+				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
 
 				tgraph->tid = TID; //todo: dont need this
 				if (!obtainMutex(piddata->graphsListMutex, "Module Handler")) return;

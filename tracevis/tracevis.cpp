@@ -151,9 +151,9 @@ void windows_execute_tracer(string executable) {
 }
 
 void launch_test_exe() {
-	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	//string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
 	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
-	//string executable("C:\\tracing\\you_are_very_good_at_this.exe");
+	string executable("C:\\tracing\\you_are_very_good_at_this.exe");
 	windows_execute_tracer(executable);
 	Sleep(800);
 }
@@ -816,7 +816,7 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 	else printf("Loading saved PID: %d\n", PID);
 	loadfile.seekg(1, ios::cur);
 
-	map<unsigned long, INS_DATA*> insdict;
+	map<unsigned long, vector<INS_DATA*>> insdict;
 	PID_DATA *newpiddata = new PID_DATA;
 	newpiddata->PID = PID;
 	if (!loadProcessData(clientstate, &loadfile, newpiddata, &insdict))
@@ -1100,7 +1100,9 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			((TraceVisGUI *)clientstate->widgets)->showHideDiffFrame();
 			break;
 		case EV_BTN_EXTERNLOG:
-			if (!clientstate->textlog)
+			if (clientstate->textlog)
+				closeTextLog(clientstate);
+			else
 			{
 				stringstream windowName;
 				windowName << "Extern calls [TID: " << clientstate->activeGraph->tid << "]";
@@ -1108,11 +1110,9 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 				ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientstate->textlog);
 				al_register_event_source(clientstate->event_queue, logevents);
 				clientstate->logSize = fill_extern_log(clientstate->textlog, clientstate->activeGraph, clientstate->logSize);
-			}
-			else
-				closeTextLog(clientstate);
-
+			}	
 			break;
+
 		case EV_BTN_SAVE:
 			if (clientstate->activeGraph)
 			{
@@ -1144,12 +1144,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 
 	switch (ev->type) {
 	case ALLEGRO_EVENT_DISPLAY_SWITCH_IN:
-		printf("event: main display switch in\n");
-		return EV_NONE;
 	case ALLEGRO_EVENT_DISPLAY_SWITCH_OUT:
-		printf("event: main display switch out\n");
-		return EV_NONE;
-	case ALLEGRO_EVENT_KEY_DOWN: //agui wont get thisf
+	case ALLEGRO_EVENT_KEY_DOWN: //agui doesn't like this
 	case ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY:
 	case ALLEGRO_EVENT_KEY_UP:
 	case ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY:
