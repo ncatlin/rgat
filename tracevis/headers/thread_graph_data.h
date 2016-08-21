@@ -81,7 +81,6 @@ public:
 	node_data * get_active_node();
 	void set_active_node(int idx) {	latest_active_node = &vertDict[idx];}
 	void update_animation_render();
-	void clear_final_BBs();
 	void reset_animation();
 	void darken_animation(float alphaDelta);
 

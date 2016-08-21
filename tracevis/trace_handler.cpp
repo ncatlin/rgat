@@ -6,10 +6,6 @@
 
 int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 
-	//if (thisgraph->mutationMap.count(address)) {
-	//	return thisgraph->mutationMap[address].back();
-	//}
-
 	BB_DATA* targbbptr = piddata->externdict[address];
 	while (!targbbptr)
 	{
@@ -17,7 +13,6 @@ int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 		printf("Sleeping until bbdict contains %lx\n", address);
 		targbbptr = piddata->externdict[address];
 	}
-
 
 	BB_DATA *tempBB = targbbptr;
 	*BB = tempBB;
