@@ -51,7 +51,7 @@ struct VISSTATE {
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	TITLE *title;
-	float zoomlevel = INITIALZOOM;
+	long zoomlevel = INITIALZOOM;
 	float xturn = 135;
 	float yturn = -25;
 	HEIGHTWIDTH size;

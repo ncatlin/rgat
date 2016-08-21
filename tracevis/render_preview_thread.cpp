@@ -22,7 +22,6 @@ void graph_renderer::rendering_thread()
 
 	while (true)
 	{
-		
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 

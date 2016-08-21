@@ -18,11 +18,12 @@ struct VCOORD {
 };
 
 struct MULTIPLIERS {
-	float radius = 0;
-	float HEDGESEP = 0;
-	float userHEDGESEP = 0;
-	float VEDGESEP = 0;
-	float userVEDGESEP = 0;
+	long radius = 20000;
+	long baseRadius = 20000;
+	float HEDGESEP = 1;
+	float userHEDGESEP = 1;
+	float VEDGESEP = 1;
+	float userVEDGESEP = 1;
 	float userDiamModifier = 1;
 	int sphereMaxA = 360;
 	int sphereMaxB = 180;

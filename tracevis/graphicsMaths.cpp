@@ -4,19 +4,19 @@
 #include "graphicsMaths.h"
 #include "traceStructs.h"
 
-void recalculate_scale(MULTIPLIERS *mults, long radius)
+void recalculate_scale(MULTIPLIERS *mults)
 {
-	mults->radius = radius;
+	mults->radius = mults->baseRadius * mults->userDiamModifier;
 
 	float HSCALE = 3;
 	float HMULTIPLIER = float(mults->radius / HSCALE);
 	float HRANGE = float(360 * HSCALE);
-	mults->HEDGESEP = float((360 / HRANGE) * (HMULTIPLIER / mults->radius)) + mults->userHEDGESEP;
+	mults->HEDGESEP = float((360 / HRANGE) * (HMULTIPLIER / mults->radius)) + (mults->userHEDGESEP-1);
 
 	float VSCALE = 3;
 	float VMULTIPLIER = float(mults->radius / VSCALE);
 	float VRANGE = float(360 * VSCALE);
-	mults->VEDGESEP = float((360 / VRANGE) * (VMULTIPLIER / mults->radius)) + mults->userVEDGESEP;
+	mults->VEDGESEP = float((360 / VRANGE) * (VMULTIPLIER / mults->radius)) + (mults->userVEDGESEP-1);
 
 }
 

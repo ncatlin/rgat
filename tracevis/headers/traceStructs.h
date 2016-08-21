@@ -26,6 +26,7 @@ struct INS_DATA {
 	unsigned int modnum;
 	//this instruction marks the joining of two BB's
 	bool link_instruction = false;
+	bool dataEx = false;
 
 	//this was added later, might be worth ditching other stuff in exchange
 	string opcodes;

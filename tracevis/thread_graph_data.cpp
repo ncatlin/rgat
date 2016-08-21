@@ -279,13 +279,17 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		edge_data *e = &edgeDict[*activeEdgeIt];
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
+		if (!e->vertSize)
+		{
+			printf("WARNING: 0 vertsize in darken\n"); animlinedata->release_col();  return;
+		}
 		for (unsigned int i = 0; i < e->vertSize; i++)
 		{
 			edgeAlpha = ecol[edgeStart + i*COLELEMS + 3];
 			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
 			ecol[edgeStart + i*COLELEMS + 3] = edgeAlpha;
-
 		}	
+
 		if (edgeAlpha == MINIMUM_FADE_ALPHA)
 			activeEdgeIt = activeEdgeList.erase(activeEdgeIt);
 		else
@@ -440,7 +444,7 @@ void thread_graph_data::brighten_BBs()
 		INS_DATA *ins = getDisassembly(insAddr,disassemblyMutex,disassembly);
 		if (!ins->threadvertIdx.count(tid))
 		{
-			printf("WARNING: BrightenBBs going too far? Breaking!\n");
+			//TODO printf("WARNING: BrightenBBs going too far? Breaking!\n");
 			animvertsdata->release_col();
 			animlinedata->release_col();
 			break;
@@ -457,7 +461,9 @@ void thread_graph_data::brighten_BBs()
 				//or does it crash here
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
 				if (!edgeDict.count(edgePair)) {
-					printf("WARNING 22\n"); continue;
+					//TODO printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
+					//	lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
+					continue;
 				}
 				//still crashes with out of range! todo...
 				//some sort of esp moan

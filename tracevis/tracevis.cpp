@@ -151,9 +151,9 @@ void windows_execute_tracer(string executable) {
 }
 
 void launch_test_exe() {
-	//string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
 	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
-	string executable("C:\\tracing\\you_are_very_good_at_this.exe");
+	//string executable("C:\\tracing\\you_are_very_good_at_this.exe");
 	windows_execute_tracer(executable);
 	Sleep(800);
 }
@@ -230,8 +230,13 @@ void change_mode(VISSTATE *clientState, int mode)
 		return;
 
 	case EV_BTN_CONDITION:
+		
 		clientState->modes.conditional = !clientState->modes.conditional;
-		if (clientState->modes.conditional) clientState->modes.heatmap = false;
+		if (clientState->modes.conditional)
+		{
+			clientState->modes.nodes = true;
+			clientState->modes.heatmap = false;
+		}
 		//todo: change icon
 		return;
 

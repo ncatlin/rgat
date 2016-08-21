@@ -130,7 +130,6 @@ void basicblock_handler::PID_BB_thread()
 
 		if (buf[0] == 'B')
 		{
-			//printf("[BBSTART %s]\n", savedbuf.c_str());
 			size_t count;
 			char *next_token = buf + 1;
 			size_t i = 0;
@@ -157,11 +156,15 @@ void basicblock_handler::PID_BB_thread()
 			}
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);
-			bool instrumented;
+			bool instrumented, dataExecution = false;
 			if (instrumented_s[0] == '0')
 				instrumented = false;
-			else
+			else {
 				instrumented = true;
+				if (instrumented_s[0] == '2')
+					dataExecution = true;
+			}
+				
 			//todo: externs still need this for callargs
 			if (!instrumented)
 			{
@@ -182,14 +185,11 @@ void basicblock_handler::PID_BB_thread()
 			{
 				bool mutation = false;
 				string opcodes(strtok_s(next_token, "@", &next_token));
-				obtainMutex(piddata->disassemblyMutex, "Internaltag", 4000);
-				if (!piddata->disassembly.count(targetaddr))
+
+				obtainMutex(piddata->disassemblyMutex, "DisassemblyStart", 4000);
+				if (piddata->disassembly.count(targetaddr))
 				{
-					vector<INS_DATA *> disVec;
-					piddata->disassembly[targetaddr] = disVec;
-				}
-				else
-				{
+					//ignore if address has been seen and opcodes are most recent
 					INS_DATA *insd = piddata->disassembly[targetaddr].back();
 					if (insd->opcodes == opcodes)
 					{
@@ -199,20 +199,28 @@ void basicblock_handler::PID_BB_thread()
 						i++;
 						continue;
 					}
+					//if we get here it's a mutation of previously seen code
+				}
+				else
+				{
+					//the address has not been seen before, disassemble it from new
+					vector<INS_DATA *> disVec;
+					piddata->disassembly[targetaddr] = disVec;
 				}
 				
-				//the address has not been seen before, disassemble it from new
 				INS_DATA *insdata = new INS_DATA;
 				insdata->opcodes = opcodes;
 				insdata->modnum = modnum;
+				insdata->dataEx = dataExecution;
+
 				count = disassemble_ins(hCapstone, opcodes, insdata, targetaddr);
 				if (!count) {
 					printf("BAD DISASSEMBLE for bb [%s]\n",savedbuf.c_str());
 					return;
 				}
 
-				printf("Added %lx to disassembly\n", targetaddr);
 				piddata->disassembly[targetaddr].push_back(insdata);
+				//printf("Added %lx to disassembly (%d)\n", targetaddr, piddata->disassembly[targetaddr].size());
 				dropMutex(piddata->disassemblyMutex, "Inserted Dis");
 
 				targetaddr += insdata->numbytes;

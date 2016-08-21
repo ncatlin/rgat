@@ -169,8 +169,6 @@ public:
 	//which instruction we are pointing to in the BB
 	unsigned long blockInstruction = 0;
 
-
-
 	bool newanim = true;
 	unsigned int last_anim_start = 0;
 	unsigned int last_anim_stop = 0;

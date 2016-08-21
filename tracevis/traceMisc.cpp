@@ -79,12 +79,12 @@ bool obtainMutex(HANDLE mutex, char *errorLocation, int waitTime)
 		return false;
 	}
 	//if (errorLocation) 	
-	//	printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
+	//printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
 	return true;
 }
 
 void dropMutex(HANDLE mutex, char *location) {
 	//if (location) 
-	//	printf("Dropping mutex %x -> %s\n", mutex, location);
+	//printf("Dropping mutex %x -> %s\n", mutex, location);
 	ReleaseMutex(mutex);
 }

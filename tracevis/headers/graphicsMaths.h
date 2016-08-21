@@ -2,7 +2,7 @@
 #include <stdafx.h>
 #include "mathStructs.h"
 
-void recalculate_scale(MULTIPLIERS *mults, long diam);
+void recalculate_scale(MULTIPLIERS *mults);
 //take longitude a, latitude b, output coord in space
 void sphereCoord(int ia, float b, FCOORD *c, MULTIPLIERS *dimensions, float diamModifier = 0);
 float linedist(FCOORD *c1, FCOORD *c2);

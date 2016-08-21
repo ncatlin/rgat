@@ -6,7 +6,7 @@
 void plot_wireframe(VISSTATE *clientstate)
 {
 	int ii, pp, index;
-	int diam = clientstate->activeGraph->m_scalefactors->radius;
+	long diam = clientstate->activeGraph->m_scalefactors->radius;
 	int points = WF_POINTSPERLINE;
 	int numSphereCurves = 0;
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
@@ -279,14 +279,12 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	GLfloat *vpos = vertdata->acquire_pos("334");
 	GLfloat *vcol = vertdata->acquire_col("33f");
-	GLfloat *fcoord = vertdata->acquire_fcoord();
 	GLfloat *vcol2 = animvertdata->acquire_col("1e");
-	if (!vpos || !vcol || !fcoord || !vcol2)
+	if (!vpos || !vcol || !vcol2)
 	{
-		printf("vp%d, vc%d, fc%d, vc%d\n", vpos, vcol, fcoord, vcol2);
+		//printf("vp%f, vc%f, fc%f, vc%f\n", vpos, vcol, fcoord, vcol2);
 		vertdata->release_pos();
 		vertdata->release_col();
-		vertdata->release_fcoord();
 		animvertdata->release_col();
 		return 0;
 	}
@@ -294,13 +292,6 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vpos[(vertIdx * POSELEMS)] = screenc.x;
 	vpos[(vertIdx * POSELEMS) + 1] = screenc.y;
 	vpos[(vertIdx * POSELEMS) + 2] = screenc.z;
-
-	//todo: why do they have the same stuff in...?
-	
-	fcoord[(vertIdx * POSELEMS)] = screenc.x;
-	fcoord[(vertIdx * POSELEMS) + 1] = screenc.y;
-	fcoord[(vertIdx * POSELEMS) + 2] = screenc.z;
-
 
 	//todo: find better way, esp for custom colours
 	if (n->external)
@@ -344,7 +335,6 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	vertdata->release_col();
 	vertdata->release_pos();
-	vertdata->release_fcoord();
 
 	vcol2[(vertIdx * COLELEMS)] = active_col->r;
 	vcol2[(vertIdx * COLELEMS) + 1] = active_col->g;
@@ -395,9 +385,8 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	map<unsigned int, node_data>::iterator vertit = graph->get_vertStart();
 	map<unsigned int, node_data>::iterator target = graph->get_vertStart();
-
+	printf("starting resize\n");
 	GLfloat *vpos = vertsdata->acquire_pos("1i");
-	GLfloat *fcoord = vertsdata->acquire_fcoord();
 	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; vertit++)
 	{
 		FCOORD c = vertit->second.sphereCoordB(scalefactors, 0);
@@ -405,12 +394,10 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 		vpos[(vertIdx * POSELEMS)] = c.x;
 		vpos[(vertIdx * POSELEMS) + 1] = c.y;
 		vpos[(vertIdx * POSELEMS) + 2] = c.z;
-		fcoord[(vertIdx * POSELEMS)] = c.x;
-		fcoord[(vertIdx * POSELEMS) + 1] = c.y;
-		fcoord[(vertIdx * POSELEMS) + 2] = c.z;
 	}
+	
 	vertsdata->release_pos();
-	vertsdata->release_fcoord();
+	printf("resizedone\n");
 }
 
 int render_main_graph(VISSTATE *clientState)
@@ -421,44 +408,41 @@ int render_main_graph(VISSTATE *clientState)
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 	if (!obtainMutex(graph->edMutex, "Render Main Graph")) return 0;
-	printf("graph->maxB %d, graph->m_scalefactors->sphereMaxB %d\n", graph->maxB, graph->m_scalefactors->sphereMaxB);
-	if (graph->maxB > graph->m_scalefactors->sphereMaxB)
-	{
-		graph->m_scalefactors->sphereMaxB += 60;
-		int newDiam = max(graph->m_scalefactors->sphereMaxB*10, 20000) *graph->m_scalefactors->userDiamModifier;
-		recalculate_scale(graph->m_scalefactors, newDiam);
-		doResize = true;
-		clientState->rescale = false;
-	}
-	//todo, need to handle high maxB as well
-	/*
-	adjustedDiamA = graph->maxA * 10;
-	adjustedDiamA = max(adjustedDiamA, 30000)* graph->m_scalefactors->userDiamModifier;
-	
-	adjustedDiamB = graph->maxB * 10;
-	adjustedDiamB = max(adjustedDiamB, 30000)* graph->m_scalefactors->userDiamModifier;
 
-	
-	
-	int comparisonA = abs(adjustedDiamA - graph->zoomLevel);
-	int comparisonB = abs(adjustedDiamB - graph->zoomLevel);
-	if (comparisonA > 5000 || clientState->rescale)
+	if (clientState->rescale)
 	{
-		doResize = true;
+		recalculate_scale(graph->m_scalefactors);
 		clientState->rescale = false;
-		graph->m_scalefactors->radius = adjustedDiamA;
-		recalculate_scale(graph->m_scalefactors, adjustedDiamA);
-	}
-	else if (comparisonB > 5000 || clientState->rescale)
-	{
 		doResize = true;
-		clientState->rescale = false;
-		graph->m_scalefactors->radius = adjustedDiamB;
-		recalculate_scale(graph->m_scalefactors, adjustedDiamB);
 	}
-	
-	*/
 
+	//doesn't take bmod into account
+	//keeps graph away from the south pole
+	unsigned int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+	if (lowestPoint > 70)
+	{
+		while (lowestPoint > 70)
+		{
+			graph->m_scalefactors->userVEDGESEP *= 0.99;
+			recalculate_scale(graph->m_scalefactors);
+			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+		}
+		doResize = true;
+	}
+
+	//more straightforward, stops graph from wrapping around the globe
+	unsigned int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+	printf("widest point %d\n", widestPoint);
+	if (widestPoint > 300)
+	{
+		while (widestPoint > 300)
+		{
+			graph->m_scalefactors->userHEDGESEP *= 0.99;
+			recalculate_scale(graph->m_scalefactors);
+			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+		}
+		doResize = true;
+	}
 
 	if (doResize)
 	{
@@ -747,7 +731,6 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
-	GRAPH_DISPLAY_DATA *vertsdata;
 	if (clientstate->modes.animation)
 		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
 	else

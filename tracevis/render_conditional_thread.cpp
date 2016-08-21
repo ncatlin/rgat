@@ -111,16 +111,14 @@ void conditional_renderer::conditional_thread()
 		continue;
 	}
 
+	vector<thread_graph_data *> graphlist;
+	map <int, void *>::iterator graphit;
 	while (true)
 	{
 		if (!obtainMutex(piddata->graphsListMutex, "conditional Thread glm")) return;
-
-		vector<thread_graph_data *> graphlist;
-		map <int, void *>::iterator graphit = piddata->graphs.begin();
-		for (; graphit != piddata->graphs.end(); graphit++)
+		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex, "conditional Thread glm");
-
 		
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())
@@ -130,6 +128,7 @@ void conditional_renderer::conditional_thread()
 			graphlistIt++;
 			Sleep(80);
 		}
+		graphlist.clear();
 		Sleep(CONDITIONAL_DELAY_MS);
 	}
 }
