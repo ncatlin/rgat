@@ -33,6 +33,12 @@ private:
 	bool advance_sequence(bool);
 	bool decrease_sequence();
 	HANDLE disassemblyMutex;
+	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
+	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
+
+	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
+
 
 public:
 	thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disassembly, HANDLE disasMutex);
@@ -43,14 +49,18 @@ public:
 
 	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
+	edge_data *get_edge(pair<int, int> edgePair);
+	bool edge_exists(pair<int, int> edgePair);
+	void add_edge(edge_data e, pair<int, int> edgePair);
+	void insert_vert(int targVertID, node_data node); 
 	void extend_faded_edges();
 	void assign_modpath(PID_DATA *);
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
 	GRAPH_DISPLAY_DATA *get_mainverts() { return mainvertsdata; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activeverts() { return animvertsdata; }
-
-	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
+	void render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr);
+	
 	node_data *get_vert(unsigned int index)
 	{
 		obtainMutex(vertDMutex,0, 500); node_data *n = &vertDict.at(index); dropMutex(vertDMutex); return n;
@@ -62,6 +72,16 @@ public:
 
 	bool vert_exists(unsigned int idx) { if (vertDict.count(idx)) return true; return false; }
 	unsigned int get_num_verts() { return vertDict.size();}
+	unsigned int get_num_edges() { return edgeDict.size(); }
+
+	void start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeit,
+		map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd);
+	void stop_edgeD_iteration();
+
+	void start_edgeL_iteration(vector<pair<unsigned int, unsigned int>>::iterator *edgeIt,
+		vector<pair<unsigned int, unsigned int>>::iterator *edgeEnd);
+	void stop_edgeL_iteration();
+
 	map<unsigned int, node_data>::iterator get_vertStart() { return vertDict.begin(); }
 	map<unsigned int, node_data>::iterator get_vertEnd() { return vertDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
@@ -105,9 +125,6 @@ public:
 	HANDLE callSeqMutex = CreateMutex(NULL, FALSE, NULL);
 	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
 
-	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
-	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
-	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
 	vector<pair<int, long>> externList; //list of external calls
 	string modPath;
 	int baseMod = -1;

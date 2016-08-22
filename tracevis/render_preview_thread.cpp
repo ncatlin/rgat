@@ -37,7 +37,7 @@ void graph_renderer::rendering_thread()
 		{
 			thread_graph_data *graph = *graphlistIt;
 			if ((graph->previewverts->get_numVerts() < graph->get_num_verts()) ||
-				(graph->previewlines->get_renderedEdges() < graph->edgeList.size()))
+				(graph->previewlines->get_renderedEdges() < graph->get_num_edges()))
 				render_preview_graph(graph, false, clientState);
 			Sleep(80);
 			graphlistIt++;

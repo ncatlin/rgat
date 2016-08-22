@@ -364,9 +364,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 		int retries = 0;
 	 while (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
 		{
-			dropMutex(graph->edMutex);
 			Sleep(50);
-			obtainMutex(graph->edMutex, "Addvert retry", 500);
 			if (retries++ > 25)
 				printf("MUTEX BLOCKAGE?\n");
 		}
@@ -407,7 +405,6 @@ int render_main_graph(VISSTATE *clientState)
 	bool doResize = false;
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
-	if (!obtainMutex(graph->edMutex, "Render Main Graph")) return 0;
 
 	if (clientState->rescale)
 	{
@@ -454,95 +451,57 @@ int render_main_graph(VISSTATE *clientState)
 	int drawCount = draw_new_verts(graph, graph->get_mainverts());
 	if (drawCount < 0)
 	{
-		dropMutex(graph->edMutex, "Render Main Graph");
 		printf("\n\nFATAL 5: Failed drawing verts!\n\n");
 		return 0;
 	}
 	if (drawCount)
 		graph->needVBOReload_main = true;
 
-
-	//draw edges
-	GRAPH_DISPLAY_DATA *lines = graph->get_mainlines();
-	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
-
-	if (doResize)
-	{
-		printf("resetting mainlines for resize\n");
-		graph->reset_mainlines();
-		lines = graph->get_mainlines();
-		edgeIt = graph->edgeList.begin();
-	}
-	else
-	{
-		edgeIt = graph->edgeList.begin();
-		std::advance(edgeIt, lines->get_renderedEdges());
-	}
-
-	if (edgeIt != graph->edgeList.end())
-		graph->needVBOReload_main = true;
-
-	for(; edgeIt != graph->edgeList.end(); ++edgeIt)
-	{
-		graph->render_edge(*edgeIt, lines, &clientState->guidata->lineColoursArr);
-		if (edgeIt->first == 365 && edgeIt->second == 366)
-			printf("%d at 365, edge sz = %d\n", graph->tid, graph->edgeDict[*edgeIt].vertSize);
-		graph->extend_faded_edges();
-		lines->inc_edgesRendered();
-	}
-	dropMutex(graph->edMutex, "Render Main Graph");
+	graph->render_new_edges(doResize, &clientState->guidata->lineColoursArr);
 	return 1;
 }
 
 int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
 {
 	//draw edges
-	vector<pair<unsigned int, unsigned int>>::iterator edgeIt = graph->edgeList.begin();
+	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
+	vector<pair<unsigned int, unsigned int>>::iterator edgeEnd;
+	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
+
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
-	if (edgeIt != graph->edgeList.end())
+	if (edgeIt != edgeEnd)
 		graph->needVBOReload_preview = true;
+
 	int maxEdges = 50;
-	for (; edgeIt != graph->edgeList.end(); ++edgeIt)
+	for (; edgeIt != edgeEnd; edgeIt++)
 	{
-		if (!graph->render_edge(*edgeIt, graph->previewlines, &clientstate->guidata->lineColoursArr, 0, true))
-		{
-			printf("ERROR: Failed to add edge to preview graph\n");
-			return 0; //todo make error -1 and give it name
-		}
+		graph->render_edge(*edgeIt, graph->previewlines, &clientstate->guidata->lineColoursArr, 0, true);
 		graph->previewlines->inc_edgesRendered();
 		if (!maxEdges--)break;
 	}
-
+	graph->stop_edgeL_iteration();
 	return 1;
 }
 
 int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTATE *clientState)
 {
 	bool doResize = false;
-
-	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph Vert")) return 0;
-
-	previewGraph->needVBOReload_preview = true;
+		previewGraph->needVBOReload_preview = true;
 
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewverts);
 	if (vresult == -1)
 	{
-		dropMutex(previewGraph->edMutex, "Render Preview Graph Vert");
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
 		return 0;
 	}
-	dropMutex(previewGraph->edMutex, "Render Preview Graph Vert");
 	Sleep(10);
-	if (!obtainMutex(previewGraph->edMutex, "Render Preview Graph Edge")) return 0;
 
 	vresult = draw_new_preview_edges(clientState, previewGraph);
 	if (!vresult)
 	{
-		dropMutex(previewGraph->edMutex, "Render Preview Graph Edge");
 		printf("\n\nFATAL 6: Failed drawing new edges! returned:%d\n\n", vresult);
 		return 0;
 	}
-	dropMutex(previewGraph->edMutex, "Render Preview Graph Edge");
 	return 1;
 }
 
@@ -695,24 +654,29 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
 	//iterate through nodes looking for ones that map to screen coords
-	unsigned int i, drawn = 0;
+	unsigned int i;
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
-	for (i = 0; i < graph->edgeList.size(); i++)
+
+	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
+	vector<pair<unsigned int, unsigned int>>::iterator edgeEnd;
+	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
+
+	for (; edgeIt != edgeEnd; edgeIt++)
 	{
-		node_data *n = graph->get_vert(graph->edgeList[i].first);
+		node_data *n = graph->get_vert(edgeIt->first);
 
 		//i feel like these checks should be done on the midpoint rather than the node
 		if (n->external) continue; //don't care about instruction in library call
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, 
 			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
-		if (graph->edgeDict[graph->edgeList[i]].weight <= 1) continue;
+		if (graph->get_edge(*edgeIt)->weight <= 1) continue;
 
 		//todo: experiment with performance re:how much of this check to include
 		DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
-		DCOORD screenCoordB = graph->get_vert(graph->edgeList[i].second)->get_screen_pos(vertsdata, pd);
+		DCOORD screenCoordB = graph->get_vert(edgeIt->second)->get_screen_pos(vertsdata, pd);
 		DCOORD screenCoord;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoord);
 
@@ -720,12 +684,12 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
 		stringstream ss;
-		ss << graph->edgeDict[graph->edgeList[i]].weight;
+		ss << graph->get_edge(*edgeIt)->weight;
 		al_draw_text(clientstate->standardFont, al_col_orange, screenCoord.x + INS_X_OFF,
 			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
-		drawn++;
 	}
+	graph->stop_edgeL_iteration();
 }
 
 

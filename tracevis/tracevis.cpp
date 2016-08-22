@@ -561,7 +561,7 @@ int main(int argc, char **argv)
 			for (; graphIt != activePid->graphs.end(); graphIt++)
 			{
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
-				if (!graph->edgeDict.size()) continue;
+				if (!graph->get_num_edges()) continue;
 				clientstate.activeGraph = graph;
 				if (graph->active)
 				{
@@ -650,7 +650,7 @@ int main(int argc, char **argv)
 				thread_graph_data *graph = clientstate.activeGraph;
 				if (
 					(graph->get_mainverts()->get_numVerts() < graph->get_num_verts()) ||
-					(graph->get_mainlines()->get_renderedEdges() < graph->edgeList.size()) ||
+					(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
 					clientstate.rescale)
 				{
 					updateMainRender(&clientstate);

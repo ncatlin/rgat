@@ -25,7 +25,7 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 	infotxt1 << "Green (PID: " << graph2->pid << " TID: " << graph2->tid <<
 		") Path: " << graph2->modPath << " (" << divergenceIdx << " common edges)";
 	infotxt2 << "Red+Green (PID:" << graph1->pid << " TID:" << graph1->tid <<
-		") Path: " << graph1->modPath << " (" << graph1->edgeList.size() - divergenceIdx << " edges total)";
+		") Path: " << graph1->modPath << " (" << graph1->get_num_edges() - divergenceIdx << " edges total)";
 
 	int textVSep = font->height + 5;
 	al_draw_text(font, al_col_white, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
@@ -35,43 +35,56 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 //first edge pair in graph 1 that is different in graphs 1 and 2
 unsigned long diff_plotter::first_divering_edge()
 {
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1 = graph1->edgeList.begin();
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG2 = graph2->edgeList.begin();
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1;
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG1;
+	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
+
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG2;
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG2;
+	graph2->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
+
 	unsigned long seqIndex = 0;
-	for (; edgeSeqItG1 != graph1->edgeList.end(); )
+	for (; edgeSeqItG1 != edgeSeqEndG1; )
 	{
 		int target1 = edgeSeqItG1->second;
 		int target2 = edgeSeqItG2->second;
 
-		if (target1 != target2) return seqIndex;
+		if (target1 != target2) break;
 
 		node_data *n1targ = graph1->get_vert(target1);
 		node_data *n2targ = graph2->get_vert(target2);
 
-		if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) return seqIndex;
-		if (n1targ->ins->op_str != n2targ->ins->op_str) return seqIndex;
+		if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) break;
+		if (n1targ->ins->op_str != n2targ->ins->op_str) break;
 
 		seqIndex++;
 		edgeSeqItG1++;
 		edgeSeqItG2++;
 	}
-	return graph1->edgeList.size()-1;
+	graph1->stop_edgeL_iteration();
+	graph2->stop_edgeL_iteration();
+
+	if (edgeSeqItG1 != edgeSeqEndG1)
+		return seqIndex;
+	return graph1->get_num_edges()-1;
 }
 
 void diff_plotter::render() {
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1 = graph1->edgeList.begin();
-
-	if (edgeSeqItG1 == graph1->edgeList.end()) return;//todo: get rid of this?
-
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1;
+	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG1;
+	
 	divergenceIdx = first_divering_edge();
 	unsigned long renderIdx = 0;
 
 	GRAPH_DISPLAY_DATA *linedata = diffgraph->get_mainlines();
 	ALLEGRO_COLOR *edgeColour = &al_col_green;
-	for (; edgeSeqItG1 != graph1->edgeList.end(); edgeSeqItG1++)
+
+	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
+	for (; edgeSeqItG1 != edgeSeqEndG1; edgeSeqItG1++)
 	{
 		if (renderIdx++ == divergenceIdx) edgeColour = &al_col_red;
 		graph1->render_edge(*edgeSeqItG1, linedata, &clientState->guidata->lineColoursArr, edgeColour);
 	}
+	graph1->stop_edgeL_iteration();
 	diffgraph->needVBOReload_main = true;
 }

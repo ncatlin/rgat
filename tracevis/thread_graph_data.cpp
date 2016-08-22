@@ -81,6 +81,38 @@ void thread_graph_data::extend_faded_edges()
 	animlinedata->release_col();
 }
 
+//draw edges
+void thread_graph_data::render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr)
+{
+
+	GRAPH_DISPLAY_DATA *lines = get_mainlines();
+	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
+	obtainMutex(edMutex); //not sure if i should make a list-specific mutex
+	if (doResize)
+	{
+		printf("resetting mainlines for resize\n");
+		reset_mainlines();
+		lines = get_mainlines();
+		edgeIt = edgeList.begin();
+	}
+	else
+	{
+		edgeIt = edgeList.begin();
+		std::advance(edgeIt, lines->get_renderedEdges());
+	}
+
+	if (edgeIt != edgeList.end())
+		needVBOReload_main = true;
+
+	for (; edgeIt != edgeList.end(); ++edgeIt)
+	{
+		render_edge(*edgeIt, lines, lineColoursArr);
+		extend_faded_edges();
+		lines->inc_edgesRendered();
+	}
+	dropMutex(edMutex);
+}
+
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
 	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceId];
@@ -277,7 +309,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 
 	while (activeEdgeIt != activeEdgeList.end())
 	{
-		edge_data *e = &edgeDict[*activeEdgeIt];
+		edge_data *e = get_edge(*activeEdgeIt);
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
 		if (!e->vertSize)
@@ -349,7 +381,7 @@ void thread_graph_data::brighten_BBs()
 
 	unsigned int animPosition = firstAnimatedBB; 
 	if (animPosition == animEnd) return;
-	if(!obtainMutex(edMutex, "Before BB brighten s", 3000)) return;
+	
 
 	map <unsigned long, bool> recentHighlights;
 	//place active on new active
@@ -367,10 +399,8 @@ void thread_graph_data::brighten_BBs()
 		{
 			animvertsdata->release_col();
 			animlinedata->release_col();
-			dropMutex(edMutex, "BBBrighten");
 			printf("BBbright fail\n");
 			Sleep(75);
-			obtainMutex(edMutex, "Before BB brighten", 200);
 			ncol = animvertsdata->acquire_col("1m2");
 			ecol = animlinedata->acquire_col("1m2");
 		}
@@ -394,21 +424,20 @@ void thread_graph_data::brighten_BBs()
 		if (lastNodeIdx)
 		{
 			//if going between two different blocks, draw edges between
-			if (animPosition && (bbsequence[animPosition] != bbsequence[animPosition - 1]))
+			if (animPosition && (bbsequence.at(animPosition) != bbsequence.at(animPosition - 1)))
 			{
-				//or does it crash here
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
-				if (!edgeDict.count(edgePair)) {
+				if (!edge_exists(edgePair)) {
 					printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
 						lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
 					continue;
 				}
-				//still crashes with out of range! todo...
-				//some sort of esp moan
-				edge_data linkingEdge = edgeDict.at(edgePair);
-				int numEdgeVerts = linkingEdge.vertSize;
+
+				edge_data *linkingEdge = get_edge(edgePair);
+
+				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; i++) {
-					ecol[linkingEdge.arraypos + i*COLELEMS + 3] = (float)1.0;
+					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
 				}
 				if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
 					activeEdgeList.push_back(edgePair);
@@ -429,8 +458,8 @@ void thread_graph_data::brighten_BBs()
 
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
-			edge_data *internalEdge = &edgeDict[edgePair];
-			unsigned long edgeColPos = internalEdge->arraypos;
+
+			unsigned long edgeColPos = get_edge(edgePair)->arraypos;
 			ecol[edgeColPos + 3] = (float)1.0;
 			ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
 			if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
@@ -444,10 +473,6 @@ void thread_graph_data::brighten_BBs()
 		animlinedata->release_col();
 	}
 
-	dropMutex(edMutex, "Brighten BBs end");
-	//printf("latest active: %d\n", lastNodeIdx);
-	//latest_active_node = &vertDict[lastNodeIdx];
-	//shouldn't be called if nothing to animate
 	needVBOReload_active = true;
 }
 
@@ -507,13 +532,31 @@ void thread_graph_data::reset_mainlines() {
 	animlinedata = new GRAPH_DISPLAY_DATA(40000);
 }
 
+bool thread_graph_data::edge_exists(pair<int, int> edgePair)
+{
+	bool result = false;
+	obtainMutex(edMutex);
+	if (edgeDict.count(edgePair)) result = true;
+	dropMutex(edMutex);
+	return result;
+}
+
+edge_data *thread_graph_data::get_edge(pair<int, int> edgePair)
+{
+	obtainMutex(edMutex);
+	edge_data *linkingEdge = &edgeDict.at(edgePair);
+	dropMutex(edMutex);
+	return linkingEdge;
+}
+
 int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,	
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 
-	node_data *sourceNode = &vertDict[ePair.first];
-	node_data *targetNode = &vertDict[ePair.second];
-	edge_data *e = &edgeDict[ePair];
+	node_data *sourceNode = &vertDict.at(ePair.first);
+	node_data *targetNode = &vertDict.at(ePair.second);
+	edge_data *e = get_edge(ePair);
+
 	MULTIPLIERS *scaling;
 	if (preview)
 		scaling = p_scalefactors;
@@ -587,6 +630,47 @@ thread_graph_data::thread_graph_data(map <unsigned long, vector<INS_DATA*>> *dis
 }
 
 
+void thread_graph_data::start_edgeL_iteration(vector<pair<unsigned int, unsigned int>>::iterator *edgeIt,
+	vector<pair<unsigned int, unsigned int>>::iterator *edgeEnd)
+{
+	obtainMutex(edMutex);
+	*edgeIt = edgeList.begin();
+	*edgeEnd = edgeList.end();
+}
+
+void thread_graph_data::stop_edgeL_iteration()
+{
+	dropMutex(edMutex);
+}
+
+void thread_graph_data::start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeIt,
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd)
+{
+	obtainMutex(edMutex);
+	*edgeIt = edgeDict.begin();
+	*edgeEnd = edgeDict.end();
+}
+
+void thread_graph_data::insert_vert(int targVertID, node_data node)
+{
+	obtainMutex(vertDMutex, "Insert Vert");
+	vertDict.insert(make_pair(targVertID, node));
+	dropMutex(vertDMutex, "Insert Vert");
+}
+
+void thread_graph_data::stop_edgeD_iteration()
+{
+	dropMutex(edMutex);
+}
+
+void thread_graph_data::add_edge(edge_data e, pair<int, int> edgePair)
+{
+	obtainMutex(edMutex);
+	edgeDict.insert(make_pair(edgePair, e));
+	edgeList.insert(edgeList.end(), edgePair);
+	dropMutex(edMutex);
+}
+
 thread_graph_data::~thread_graph_data()
 {
 }
@@ -594,7 +678,7 @@ thread_graph_data::~thread_graph_data()
 
 void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
-	edge_data *e = &edgeDict.at(eIdx);
+	edge_data *e = get_edge(eIdx);
 	GLfloat *colarray = edgesdata->acquire_col("2e");
 	for (unsigned int i = 0; i < e->vertSize; i++)
 	{

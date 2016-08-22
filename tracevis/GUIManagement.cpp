@@ -409,7 +409,7 @@ void ComparisonBox::setDiffGraph(thread_graph_data *graph) {
 	graphText << "[Thread " << std::to_string(graphIdx + 1) << "] PID:" << graph->pid << " TID:" << graph->tid;
 
 	stringstream threadSummary;
-	threadSummary << "Edges:" << graph->edgeList.size()
+	threadSummary << "Edges:" << graph->get_num_edges()
 		<< "Verts:" << graph->get_num_verts();
 
 	if (graphIdx == 0)
@@ -529,7 +529,7 @@ void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, 
 	stringstream tipText;
 	tipText << "Path: " << graph->modPath << endl;
 	tipText << "Nodes: " << graph->get_num_verts() << endl;
-	tipText << "Edges: " << graph->edgeDict.size() << endl;
+	tipText << "Edges: " << graph->get_num_edges() << endl;
 	tipText << "Instructions: " << graph->totalInstructions << endl;
 
 	//diff frame is at 0,0 so paint it relative to that

@@ -278,7 +278,7 @@ bool loadEdgeDict(ifstream *file, thread_graph_data *graph)
 {
 	string index_s, weight_s, source_s, target_s, edgeclass_s;
 	int source, target;
-	while (true)
+	/*while (true)
 	{
 		edge_data *edge = new edge_data;
 		getline(*file, weight_s, ',');
@@ -295,11 +295,14 @@ bool loadEdgeDict(ifstream *file, thread_graph_data *graph)
 		edge->edgeClass = edgeclass_s.c_str()[0];
 		pair<int, int>stpair = make_pair(source, target);
 		graph->edgeDict.emplace(stpair, *edge);
-	}
+	}*/
+	return false;
 }
 
 bool loadEdgeList(ifstream *file, thread_graph_data *graph)
 {
+	return false;
+	/*
 	string endtag;
 	getline(*file, endtag, '{');
 	if (endtag.c_str()[0] != 'L') return false;
@@ -317,7 +320,7 @@ bool loadEdgeList(ifstream *file, thread_graph_data *graph)
 		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
 		graph->edgeList.push_back(make_pair(source, target));
 	}
-
+	*/
 }
 
 bool loadExterns(ifstream *file, thread_graph_data *graph)

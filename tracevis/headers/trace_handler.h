@@ -41,9 +41,6 @@ protected:
 	thread_graph_data *thisgraph;
 
 	//important lists!
-	//map<unsigned int, node_data> *vertDict; //vert id to vert data
-	map<std::pair<unsigned int, unsigned int>, edge_data> *edgeDict; //vert id pairs to edge data
-	vector<pair<unsigned int, unsigned int>> *edgeList;//order of edge execution
 	void handle_arg(char * entry, size_t entrySize);
 	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
 	void process_new_args();
@@ -64,7 +61,6 @@ private:
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, int bMod);
 	void insert_edge(edge_data e, pair<int, int> edgepair);
-	void insert_vert(int targVertID, node_data thisNode);
 	bool new_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction, int bb_inslist_index, node_data *lastNode);
 	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);

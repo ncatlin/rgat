@@ -10,14 +10,17 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	if (!linedata || !linedata->get_numVerts())  return false;
-	if (!obtainMutex(graph->edMutex, "Render Graph Heatmap")) return false;
-
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit;
 
 	//build set of all heat values
 	std::set<long> heatValues;
-	for (edgeit = graph->edgeDict.begin(); edgeit != graph->edgeDict.end(); edgeit++)
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit;
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeEnd;
+	
+	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
+	for (; edgeit != edgeEnd; edgeit++)
 		heatValues.insert(edgeit->second.weight);
+	graph->stop_edgeD_iteration();
+
 	int heatrange = heatValues.size();
 
 	//create map of distances of each value in set, creating blue->red range
@@ -59,14 +62,10 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 
 	int newDrawn = 0;
-	for (edgeit = graph->edgeDict.begin(); edgeit != graph->edgeDict.end(); edgeit++)
-	{
-		if (!edgeit->second.vertSize)
-		{
-			printf("WARNING : uninit heatmap edge\n");
-			break;
-		}
 
+	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
+	for (; edgeit != edgeEnd; edgeit++)
+	{
 		COLSTRUCT *edgecol = &heatColours[edgeit->second.weight];
 		unsigned int vertIdx = 0;
 		for (; vertIdx < edgeit->second.vertSize; vertIdx++)
@@ -79,15 +78,14 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 		}
 		newDrawn++;
 	}
+	graph->stop_edgeD_iteration();
 
 	if (newDrawn)
 	{
 		graph->heatmaplines->set_numVerts(linedata->get_numVerts());
 		graph->needVBOReload_heatmap = true;
 	}
-
 	graph->heatmaplines->release_col();
-	dropMutex(graph->edMutex, "Render Graph Heatmap");
 	return true;
 }
 

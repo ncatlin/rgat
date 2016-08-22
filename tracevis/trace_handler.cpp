@@ -21,20 +21,9 @@ int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 }
 void thread_trace_handler::insert_edge(edge_data e, pair<int,int> edgePair) 
 {
-	if (!obtainMutex(thisgraph->edMutex, "Insert Edge")) return;
-	edgeDict->insert(make_pair(edgePair, e));
-	auto x = edgeList->insert(edgeList->end(), edgePair);
+	thisgraph->add_edge(e, edgePair);
 	if (e.weight > thisgraph->maxWeight)
 		thisgraph->maxWeight = e.weight;
-
-	dropMutex(thisgraph->edMutex, "Insert Edge");
-}
-
-void thread_trace_handler::insert_vert(int targVertID, node_data thisNode)
-{
-	if (!obtainMutex(thisgraph->edMutex, "Insert Vert")) return;
-	thisgraph->add_vert(make_pair(targVertID, thisNode));
-	dropMutex(thisgraph->edMutex, "Insert Vert");
 }
 
 bool thread_trace_handler::new_instruction(INS_DATA *instruction)
@@ -112,7 +101,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
 	if (thisnode.index == 0)printf("iv1\n");
-	insert_vert(targVertID, thisnode);
+	thisgraph->insert_vert(targVertID, thisnode);
 
 	instruction->threadvertIdx[TID] = targVertID;
 }
@@ -182,9 +171,9 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 			}
 		}
 		pair<int, int> edgeIDPair = make_pair(lastVertID, targVertID);
-		if (edgeDict->count(edgeIDPair))
+		if (thisgraph->edge_exists(edgeIDPair))
 		{
-			increaseWeight(&edgeDict->at(edgeIDPair), repeats);
+			increaseWeight(thisgraph->get_edge(edgeIDPair), repeats);
 		}
 		else if (lastRIPType != FIRST_IN_THREAD)
 		{
@@ -449,7 +438,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 			node_data *targNode = thisgraph->get_vert(targVertID);
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
-			increaseWeight(&edgeDict->at(*resultPair), repeats);
+			increaseWeight(thisgraph->get_edge(*resultPair), repeats);
 			targNode->calls += repeats;
 
 			return 1;
@@ -492,7 +481,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	BB_DATA *thisnode_bbdata = 0;
 	int bbInsIndex = get_extern_at_address(targaddr, &thisnode_bbdata);
 
-	insert_vert(targVertID, newTargNode);
+	thisgraph->insert_vert(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
 	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
 	thisgraph->externList.push_back(make_pair(targVertID, returnAddress));
@@ -636,9 +625,6 @@ void thread_trace_handler::TID_thread()
 	thisgraph = (thread_graph_data *)piddata->graphs[TID];
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
-
-	edgeDict = &thisgraph->edgeDict;
-	edgeList = &thisgraph->edgeList;
 
 	stringstream filename;
 	filename << "C:\\tracing\\" << TID << ".txt";

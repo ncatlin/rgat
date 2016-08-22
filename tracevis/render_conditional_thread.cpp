@@ -10,7 +10,6 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	if (!linedata || !linedata->get_numVerts()) return false;
-	if (!obtainMutex(graph->edMutex, "Render Graph Conditional")) return false;
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
 
 	map<unsigned int, node_data>::iterator vertit = graph->get_vertStart();
@@ -70,20 +69,22 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	graph->conditionalverts->release_col();
 
 	int newDrawn = 0;
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit = graph->edgeDict.begin();
+	
 
 	unsigned int newColSize = linedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
 	unsigned int newPosSize = linedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
 	if (graph->conditionallines->col_size() < newColSize || graph->conditionallines->pos_size() < newPosSize)
 		graph->conditionallines->expand(max(newColSize,newPosSize) * 2);
 
-	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
 	
-	for (edgeit != graph->edgeDict.end(); edgeit != graph->edgeDict.end(); edgeit++)
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit;
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeEnd;
+
+	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
+	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
+	for (; edgeit != edgeEnd; edgeit++)
 	{
-		if (!edgeit->second.vertSize) break;
 		edge_data *e = &edgeit->second;
-		
 		unsigned int vidx = 0;
 		for (; vidx < e->vertSize; vidx++)
 		{
@@ -94,10 +95,11 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		}
 		newDrawn++;
 	}
+	graph->stop_edgeD_iteration();
 	graph->conditionallines->set_numVerts(graph->get_mainlines()->get_numVerts());
 	graph->conditionallines->release_col();
+
 	if (newDrawn) graph->needVBOReload_conditional = true;
-	dropMutex(graph->edMutex, "render graph conditional end");
 	return 1;
 }
 
