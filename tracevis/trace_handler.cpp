@@ -31,8 +31,18 @@ bool thread_trace_handler::new_instruction(INS_DATA *instruction)
 	return (instruction->threadvertIdx.count(TID) == 0);
 }
 
+
+void thread_trace_handler::set_conditional_state(unsigned long address, int state)
+{
+	INS_DATA *instruction = getLastDisassembly(address, piddata->disassemblyMutex, &piddata->disassembly, 0);
+	node_data *n = thisgraph->get_vert(instruction->threadvertIdx[TID]);
+	n->conditional |= state;
+
+}
+
 void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_inslist_index, node_data *lastNode)
 {
+	printf("new ins %lx\n", instruction->address);
 	node_data thisnode;
 	thisnode.ins = instruction;
 	if (instruction->conditional) thisnode.conditional = CONDUNUSED;
@@ -48,31 +58,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_
 			a = 0;
 			b = 0;
 		}
-		else
-		{
-			//should now know if any previous conditional jump was taken
-			//todo: why would last vertid not be in vertdict?
-			int lastCondition = lastNode->conditional;
-			if (conditionalTaken && thisgraph->get_num_verts() >= lastVertID)
-			{
-				long lastPC = lastNode->ins->address;
-				if (conditionalTaken == lastPC)
-				{
-					lastRIPType = JUMP;
-					if (lastCondition != NOTCONDITIONAL && (lastCondition & CONDTAKEN) == 0)
-						lastNode->conditional |= CONDTAKEN;
-				}
-				else
-					printf("\tWARNING: Condition taken notified but not for last instruction? Trace may be faulty!\n");
-				conditionalTaken = 0;
-			}
-			else if (lastRIPType == NONFLOW)
-			{
-				bMod = lastNode->vcoord.bMod;
-				if (lastCondition != NOTCONDITIONAL && (lastCondition & CONDNOTTAKEN) == 0)
-					lastNode->conditional |= CONDNOTTAKEN;
-			}
-		}
+
 	}
 
 	if (lastRIPType != FIRST_IN_THREAD)
@@ -116,17 +102,7 @@ void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction, node_data *lastNode)
 {
-	int lastCondition = lastNode->conditional;
-	long lastInstruction = thisgraph->get_vert(lastVertID)->ins->address;
-	if (conditionalTaken == lastInstruction)
-	{
-		if (lastCondition != NOTCONDITIONAL && (lastCondition & CONDNOTTAKEN) == 0)
-			lastNode->conditional |= CONDNOTTAKEN;
-	}
-	else
-		if (lastCondition != NOTCONDITIONAL && (lastCondition & CONDTAKEN) == 0)
-			lastNode->conditional |= CONDTAKEN;
-
+	//printf("old ins %lx\n", instruction->address);
 	targVertID = instruction->threadvertIdx[TID];
 }
 
@@ -723,10 +699,24 @@ void thread_trace_handler::TID_thread()
 			//mark a conditional jump as taken
 			if (entry[0] == 't' && entry[1] == 'j')
 			{
+				unsigned long conditionalAddr;
 				string jtarg(entry+3);
-				if (!caught_stol(jtarg, &conditionalTaken, 16)) {
+				if (!caught_stol(jtarg, &conditionalAddr, 16)) {
 					printf("tj STOL ERROR: %s\n", jtarg.c_str());
 				}
+				set_conditional_state(conditionalAddr, CONDTAKEN);
+				continue;
+			}
+
+			//mark a conditional jump as not taken
+			if (entry[0] == 'n' && entry[1] == 'j')
+			{
+				unsigned long conditionalAddr;
+				string jtarg(entry + 3);
+				if (!caught_stol(jtarg, &conditionalAddr, 16)) {
+					printf("tj STOL ERROR: %s\n", jtarg.c_str());
+				}
+				set_conditional_state(conditionalAddr, CONDNOTTAKEN);
 				continue;
 			}
 

@@ -35,7 +35,6 @@ protected:
 	unsigned int lastVertID = 0; //the vert that led to this instruction
 	unsigned int targVertID = 0; //new vert we are creating
 	char lastRIPType = FIRST_IN_THREAD;
-	unsigned long conditionalTaken = 0;
 	bool afterReturn = false;
 
 	thread_graph_data *thisgraph;
@@ -67,6 +66,7 @@ private:
 	int get_extern_at_address(long address, BB_DATA ** BB);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG thistag, unsigned long repeats);
+	void set_conditional_state(unsigned long address, int state);
 
 	unsigned long pendingFunc = 0;
 	unsigned long pendingRet = 0;
