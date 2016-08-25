@@ -19,8 +19,8 @@ public:
 	int conditional = NOTCONDITIONAL;
 	INS_DATA* ins = NULL;
 	bool external = false;
-	string nodeSym;
 	int nodeMod;
+	int mutation;
 	//list of lists of arg number, contents
 	vector<vector<pair<int, string>>> funcargs;
 	unsigned long calls = 1;

@@ -61,7 +61,7 @@ private:
 	void updateStats(int a, int b, int bMod);
 	void insert_edge(edge_data e, pair<int, int> edgepair);
 	bool new_instruction(INS_DATA *instruction);
-	void handle_new_instruction(INS_DATA *instruction, int bb_inslist_index, node_data *lastNode);
+	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index, node_data *lastNode);
 	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);
 	int get_extern_at_address(long address, BB_DATA ** BB);
 	void increaseWeight(edge_data *edge, long executions);

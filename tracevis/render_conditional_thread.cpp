@@ -23,10 +23,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		GLfloat *vcol = graph->conditionalverts->acquire_col("1f");
 		for (; vertit != vertEnd; vertit++)
 		{
-			if (vertit->second.ins && vertit->second.ins->conditional)
-				printf("iscon\n");
 			int arraypos = vertit->second.index * COLELEMS;
-
 			if (!vertit->second.ins || vertit->second.ins->conditional == false)
 			{
 				vcol[arraypos] = 0;
@@ -51,9 +48,9 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			//jump seen to both fail and succeed
 			if (jumpTaken && jumpMissed)
 			{
-				vcol[arraypos] = 1;
-				vcol[arraypos + 1] = 0.5;
-				vcol[arraypos + 2] = 0.3;
+				vcol[arraypos] = 0;
+				vcol[arraypos + 1] = 1;
+				vcol[arraypos + 2] = 0;
 				vcol[arraypos + 3] = 1;
 				continue;
 			}

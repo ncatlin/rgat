@@ -26,6 +26,14 @@
 
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
 
+string getModulePath()
+{
+	char buffer[MAX_PATH];
+	GetModuleFileNameA(NULL, buffer, MAX_PATH);
+	string::size_type pos = string(buffer).find_last_of("\\/");
+	return string(buffer).substr(0, pos);
+}
+
 void launch_saved_PID_threads(int PID, PID_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
@@ -121,9 +129,17 @@ void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 
 
 int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
-	clientState->maindisplay = displaySetup();
-	if (!clientState->maindisplay) return 0;
-	if (!controlSetup()) return 0;
+	ALLEGRO_DISPLAY *newDisplay = displaySetup();
+	clientState->maindisplay = newDisplay;
+	if (!clientState->maindisplay) {
+		printf("Display creation failed: returned %x\n", newDisplay);
+		return 0;
+	}
+
+	if (!controlSetup()) {
+		printf("Control setup failed\n");
+		return 0;
+	}
 
 	*evq = al_create_event_queue();
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_mouse_event_source());
@@ -133,33 +149,72 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
 	return 1;
 }
 
-void windows_execute_tracer(string executable) {
-	string drpath = "C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe -c ";
+//stacko code
+BOOL DirectoryExists(LPCTSTR szPath)
+{
+	DWORD dwAttrib = GetFileAttributes(szPath);
+
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+wstring get_dr_path(string exeDir)
+{
+	//first try reading from config file
+
+	//in the event of it not working, try going with an 'it just works' philosophy and check exe dir
+
+	//kludge for demo
+	if (DirectoryExists(L"C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\"))
+	{
+		wstring retstring = L"C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe";
+		retstring.append(L" -c \"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\drgat\\Debug\\drgat.dll\" -- ");
+		return retstring;
+	}
+	else if (DirectoryExists(L"C:\\tracing\\DynamoRIO-Windows-6.1.0-2\\bin32\\"))
+	{
+
+		wstring retstring = wstring(L"C:\\tracing\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe");
+		retstring.append(L" -c c:\\tracing\\rgat\\Debug\\drgat\\traceclient.dll -- ");
+		return retstring;
+	}
+	else {
+		printf("Could not find dynamorio\n");
+		assert(0);
+		return 0;
+	}
+}
+void windows_execute_tracer(string exeDir, wstring executable) {
+	//wstring drpath = get_dr_path(exeDir);
+	
 	//string runpath = drpath + "C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -l \"-p 666\" -- ";
-	string runpath = drpath + "C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -- ";
+	//wstring runpath = drpath + L" -c C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -- ";
+	
+
+	wstring runpath = get_dr_path(exeDir);
 	runpath.append(executable);
 
-	STARTUPINFOA si;
+	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	printf("Starting execution of target...\n");
-	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
+	printf("Starting execution using command line [%S]\n", runpath.c_str());
+	CreateProcessW(NULL, (wchar_t *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
 }
 
 void launch_test_exe() {
-	//string executable("\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
+	wstring executable(L"\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
 	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
-	string executable("C:\\tracing\\you_are_very_good_at_this.exe");
-	windows_execute_tracer(executable);
+	//wstring executable(L"C:\\tracing\\you_are_very_good_at_this.exe");
+	windows_execute_tracer(getModulePath(), executable);
 	Sleep(800);
 }
 
 int process_coordinator_thread(VISSTATE *clientState) {
-	printf("In process coordinator thread...\n");
+	
 	//todo: posibly worry about pre-existing if pidthreads dont work
 	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
@@ -172,7 +227,7 @@ int process_coordinator_thread(VISSTATE *clientState) {
 	}
 
 	
-
+	printf("In process coordinator thread, listening on pipe...\n");
 	DWORD bread = 0;
 	char buf[40];
 	while (true)
@@ -272,6 +327,14 @@ void change_mode(VISSTATE *clientState, int mode)
 		clientState->modes.conditional = false;
 		return;
 
+	case EV_BTN_NODES:
+		clientState->modes.nodes = !clientState->modes.nodes;
+		return;
+
+	case EV_BTN_EDGES:
+		clientState->modes.edges = !clientState->modes.edges;
+		return;
+
 	}
 
 }
@@ -311,10 +374,10 @@ struct EXTTEXT{
 	string displayString;
 } ;
 
-string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args)
+string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args, PID_DATA* piddata)
 {
 	stringstream funcArgStr;
-	funcArgStr << graph->get_node_sym(nodeIdx) << "(";
+	funcArgStr << graph->get_node_sym(nodeIdx, piddata) << "(";
 
 	int numargs = args.size();
 	for (int i = 0; i < numargs; i++)
@@ -340,7 +403,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.nodeIdx = resu.nodeIdx;
 		extt.timeRemaining = 60;
 		extt.yOffset = 0;
-		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata);
+		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata, piddata);
 
 		if (resu.edgeIdx.first == resu.edgeIdx.second) { printf("WARNING: bad argument edge!\n"); continue; }
 
@@ -493,20 +556,22 @@ int main(int argc, char **argv)
 
 	al_init_font_addon();
 	al_init_ttf_addon();
-	char dirbuf[255];
-	GetCurrentDirectoryA(255, dirbuf);
-	printf("GetCurrentDirectoryA dir: %s\n", dirbuf);
-	
-	clientstate.standardFont = al_load_ttf_font("VeraSe.ttf", 12, 0);
-	ALLEGRO_FONT *PIDFont = al_load_ttf_font("VeraSe.ttf", 14, 0);
+	string moduleDir = getModulePath();
+
+	//todo: handle failure here
+	stringstream fontPath_ss;
+	fontPath_ss << moduleDir << "\\" << "VeraSe.ttf";
+	string fontPath = fontPath_ss.str();
+	clientstate.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
+	ALLEGRO_FONT *PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
 	if (!clientstate.standardFont) {
-		fprintf(stderr, "Could not load 'VeraSe.ttf'.\n");
+		fprintf(stderr, "Could not load font file %s\n", fontPath.c_str());
 		return -1;
 	}
 
 	TraceVisGUI* widgets = new TraceVisGUI(&clientstate);
 	clientstate.widgets = (void *)widgets;
-	widgets->widgetSetup();
+	widgets->widgetSetup(fontPath);
 
 	//preload glyphs in cache
 	al_get_text_width(clientstate.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
@@ -704,6 +769,7 @@ int main(int argc, char **argv)
 								clientstate.activeGraph, clientstate.logSize);
 
 					display_graph(&clientstate, graph, &pd);
+
 					transferNewLiveCalls(graph, &externFloatingText, clientstate.activePid);
 					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
 				}
@@ -821,13 +887,16 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 	else printf("Loading saved PID: %d\n", PID);
 	loadfile.seekg(1, ios::cur);
 
-	map<unsigned long, vector<INS_DATA*>> insdict;
 	PID_DATA *newpiddata = new PID_DATA;
 	newpiddata->PID = PID;
-	if (!loadProcessData(clientstate, &loadfile, newpiddata, &insdict))
+	if (!loadProcessData(clientstate, &loadfile, newpiddata))
+	{
+		printf("Process data load failed\n");
 		return false;
+	}
+	printf("Loaded process data. Loading graphs...\n");
 
-	if (!loadProcessGraphs(clientstate, &loadfile, newpiddata, &insdict))
+	if (!loadProcessGraphs(clientstate, &loadfile, newpiddata))
 	{
 		printf("Process Graph load failed\n");
 		return false;
@@ -1099,6 +1168,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case EV_BTN_PREVIEW:
 		case EV_BTN_CONDITION:
 		case EV_BTN_HEATMAP:
+		case EV_BTN_NODES:
+		case EV_BTN_EDGES:
 			change_mode(clientstate, ev->user.data1);
 			break;
 		case EV_BTN_DIFF:
@@ -1128,6 +1199,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case EV_BTN_LOAD:
 			printf("Opening file dialogue\n");
 			loadTrace(clientstate, string("C:\\tracing\\testsave.txt"));
+			clientstate->modes.animation = false;
 			break;
 		default:
 			printf("UNHANDLED MENU EVENT? %d\n", ev->user.data1);

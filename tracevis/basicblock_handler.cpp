@@ -29,7 +29,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	size_t count;
 	count = cs_disasm(hCapstone, opcodes_u, pairs, insaddr, 0, &insn);
 	if (count != 1) {
-		printf("\tFATAL: bb_handler:Failed disassembly for BB block:\n opcodes: %s\n count: %d\n",  
+		printf("\tFATAL: Failed disassembly for opcodes: %s\n count: %d\n",  
 			opcodes.c_str(), count);  //TODO: THIS HAS HAPPENED, DEAL WITH IT
 		return NULL;
 	}

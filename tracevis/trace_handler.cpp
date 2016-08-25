@@ -6,16 +6,14 @@
 
 int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 
-	BB_DATA* targbbptr = piddata->externdict[address];
-	while (!targbbptr)
+	
+	while (!piddata->externdict.count(address))
 	{
 		Sleep(100);
 		printf("Sleeping until bbdict contains %lx\n", address);
-		targbbptr = piddata->externdict[address];
 	}
 
-	BB_DATA *tempBB = targbbptr;
-	*BB = tempBB;
+	*BB = piddata->externdict.at(address);
 	return 0;
 
 }
@@ -40,9 +38,8 @@ void thread_trace_handler::set_conditional_state(unsigned long address, int stat
 
 }
 
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_inslist_index, node_data *lastNode)
+void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mutation, int bb_inslist_index, node_data *lastNode)
 {
-	printf("new ins %lx\n", instruction->address);
 	node_data thisnode;
 	thisnode.ins = instruction;
 	if (instruction->conditional) thisnode.conditional = CONDUNUSED;
@@ -83,10 +80,12 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int bb_
 	thisnode.vcoord.bMod = bMod;
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
+	thisnode.address = instruction->address;
+	thisnode.mutation = mutation;
 
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
-	if (thisnode.index == 0)printf("iv1\n");
+
 	thisgraph->insert_vert(targVertID, thisnode);
 
 	instruction->threadvertIdx[TID] = targVertID;
@@ -116,7 +115,8 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 	{
 		//conspicuous lack of mutation handling here
 		//we could check this by looking at the mutation state of all members of the block
-		INS_DATA *instruction = getLastDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly, 0);
+		int mutation;
+		INS_DATA *instruction = getLastDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
 
 		long nextAddress = instruction->address + instruction->numbytes;
 
@@ -132,14 +132,14 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 
 		newVert = new_instruction(instruction);
 		if (newVert)
-			handle_new_instruction(instruction, bb_inslist_index, lastNode);
+			handle_new_instruction(instruction, mutation, bb_inslist_index, lastNode);
 		else //target vert already on this threads graph
 			handle_existing_instruction(instruction, lastNode);
 		//tmpThreadSave << std::hex << instruction->address << ":" << instruction->ins_text << "\n";
 		
 		if (bb_inslist_index == startIndex)
 		{
-			thisgraph->sequenceEdges.push_back(make_pair(lastVertID, targVertID));
+			//thisgraph->sequenceEdges.push_back(make_pair(lastVertID, targVertID));
 			if (loopState == LOOP_START)
 			{
 				firstLoopVert = targVertID;
@@ -324,6 +324,8 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		printf("handle_arg 5 STOL ERROR: %s\n", retaddr_s.c_str());
 		return;
 	}
+
+
 	if (!pendingFunc) {
 		pendingFunc = funcpc;
 		pendingRet = returnpc;
@@ -339,21 +341,21 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	else
 		contents = string("NULL");
 
+	BB_DATA* targbbptr;
+	get_extern_at_address(funcpc, &targbbptr);
+	printf("Handling arg %s of function %s module %s\n",
+		contents.c_str(),
+		piddata->modsyms[targbbptr->modnum][funcpc].c_str(),
+		piddata->modpaths[targbbptr->modnum].c_str());
+
 	pendingArgs.push_back(make_pair(argpos, contents));
 	if (!callDone) return;
 
-	BB_DATA* targbbptr = piddata->externdict[funcpc];
-	while (!targbbptr)
-	{
-		Sleep(100);
-		printf("Sleeping until basic_block_handler handles %lx\n", funcpc);
-	}
+
 
 	//func been called in thread already? if not, have to place args in holding buffer
-	//printf("Handling arg %s of function %s module %s\n",
-	//	contents.c_str(),
-	//	piddata->modsyms[targbbptr->modnum][pendingFunc].c_str(),
-	//	piddata->modpaths[targbbptr->modnum].c_str());
+
+
 
 	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
@@ -441,7 +443,6 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//make new external/library call node
 	node_data newTargNode;
 	newTargNode.nodeMod = module;
-	newTargNode.nodeSym = piddata->modsyms[module][targaddr];
 
 	int parentExterns = thisgraph->get_vert(lastVertID)->childexterns;
 	VCOORD lastnodec = thisgraph->get_vert(lastVertID)->vcoord;
@@ -464,10 +465,6 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	dropMutex(thisgraph->funcQueueMutex, "Push Externlist");
 	*resultPair = std::make_pair(lastVertID, targVertID);
 
-	printf("Handled sym %s of module %s\n",
-		newTargNode.nodeSym.c_str(),
-		piddata->modpaths[module].c_str());
-
 	edge_data newEdge;
 	newEdge.weight = repeats;
 	newEdge.edgeClass = ILIB;
@@ -483,7 +480,10 @@ void thread_trace_handler::process_new_args()
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		unsigned long funcad = pcaIt->first;
-		if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { pcaIt++; continue; }
+		if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { 
+			//TODO: keep track of this. printf("Failed to find call for %lx in externdict\n", funcad);
+			pcaIt++; continue; 
+		}
 
 		vector<pair<int, int>> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
 		vector<pair<int, int>>::iterator callvsIt = callvs.begin();
@@ -554,10 +554,13 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
 		{
 			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
-
+		
+			obtainMutex(thisgraph->animationListsMutex);
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
 			//could probably break this by mutating code in a running loop
 			thisgraph->mutationSequence.push_back(mutation); 
+			obtainMutex(thisgraph->animationListsMutex);
+
 			//printf("placing %lx mutation %d in bbs\n", thistag.targaddr, mutation);
 			if (repeats == 1)
 			{
@@ -582,9 +585,14 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		std::pair<int, int> resultPair;
 		//add node to graph if new
 		int result = run_external(thistag.targaddr, repeats, &resultPair);
-		obtainMutex(thisgraph->callSeqMutex, "Extern run", 1000);
-		if (result) thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
-		dropMutex(thisgraph->callSeqMutex, "Extern run");
+		
+		if (result)
+		{
+			obtainMutex(thisgraph->animationListsMutex, "Extern run", 1000);
+			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+			dropMutex(thisgraph->animationListsMutex, "Extern run");
+		}
+		
 
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
@@ -730,7 +738,6 @@ void thread_trace_handler::TID_thread()
 					if (!caught_stol(repeats_s, &loopCount, 10)) {
 						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
 					}
-					printf("loop %d start seq %d (%d its)\n", thisgraph->loopCounter, thisgraph->bbsequence.size(), loopCount);
 					continue;
 				}
 				//loop end
@@ -753,7 +760,6 @@ void thread_trace_handler::TID_thread()
 						handle_tag(*tagIt, loopCount);
 					}
 
-					printf("loop %d end seq %d\n", thisgraph->loopCounter, thisgraph->bbsequence.size());
 					loopCache.clear();
 					loopState = NO_LOOP;
 					continue;
@@ -764,6 +770,26 @@ void thread_trace_handler::TID_thread()
 			if (enter_s.substr(0, 3) == "ARG")
 			{
 				handle_arg(entry, bytesRead);
+				continue;
+			}
+
+			if (enter_s.substr(0, 3) == "EXC")
+			{
+				unsigned long e_ip;
+				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
+				if (!caught_stol(e_ip_s, &e_ip, 16)) {
+					printf("handle_arg 4 STOL ERROR: %s\n", e_ip_s.c_str());
+					return;
+				}
+
+				unsigned long e_code;
+				string e_code_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stol(e_code_s, &e_code, 16)) {
+					printf("handle_arg 4 STOL ERROR: %s\n", e_code_s.c_str());
+					return;
+				}
+
+				printf("Target exception code %lx at address %lx\n", e_code, e_ip);
 				continue;
 			}
 
@@ -783,7 +809,7 @@ void thread_trace_handler::TID_thread()
 					return;
 				}
 
-				BB_DATA* extfunc = piddata->externdict[funcpc];
+				//TODO? BB_DATA* extfunc = piddata->externdict.at(funcpc);
 				//thisgraph->set_active_node(extfunc->thread_callers[TID])
 				continue;
 			}

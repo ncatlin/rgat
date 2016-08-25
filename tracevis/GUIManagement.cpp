@@ -232,10 +232,10 @@ void AnimControls::update(thread_graph_data *graph)
 	stepsLabel->setText(stepInfo.str());
 }
 
-AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate) {
+AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *font) {
 	guiwidgets = widgets;
 	clientState = cstate;
-	btnFont = agui::Font::load("VeraSe.ttf", 22);
+	btnFont = font;
 
 	labelsLayout = new agui::FlowLayout;
 
@@ -449,7 +449,7 @@ void TraceVisGUI::showHideDiffFrame() {
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
-ComparisonBox::ComparisonBox(agui::Gui *widgets, VISSTATE *clientState) {
+ComparisonBox::ComparisonBox(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) {
 	int paneHeight = 400;
 	diffFrame = new agui::Frame;
 	diffFrame->setSize(480, paneHeight);
@@ -464,7 +464,7 @@ ComparisonBox::ComparisonBox(agui::Gui *widgets, VISSTATE *clientState) {
 	selectLabel->resizeToContents();
 	diffFrame->add(selectLabel);
 
-	diffFont = agui::Font::load("VeraSe.ttf", 22);
+	diffFont = font;
 	firstDiffLabel = new agui::RadioButton;
 	firstDiffLabel->setLocation(10, 70);
 	firstDiffLabel->setFont(diffFont);
@@ -537,7 +537,7 @@ void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, 
 	tippy->showToolTip(tipText.str(),200,x,y,widget);
 }
 
-void TraceVisGUI::widgetSetup() {
+void TraceVisGUI::widgetSetup(string fontpath) {
 
 	//agui::Image::setImageLoader(new agui::Allegro5ImageLoader);
 	agui::Font::setFontLoader(new agui::Allegro5FontLoader);
@@ -546,9 +546,9 @@ void TraceVisGUI::widgetSetup() {
 	widgetGraphicsHandler = new agui::Allegro5Graphics();
 	widgets = new agui::Gui();
 
-	agui::Font *defaultFont = agui::Font::load("VeraSe.ttf", 14);
-	agui::Widget::setGlobalFont(defaultFont);
+	agui::Font *defaultFont = agui::Font::load(fontpath.c_str(), 14);
 
+	agui::Widget::setGlobalFont(defaultFont);
 	widgets->setGraphics(widgetGraphicsHandler);
 	widgets->setInput(widgetInputHandler);
 
@@ -558,7 +558,6 @@ void TraceVisGUI::widgetSetup() {
 	widgets->add(tippy);
 	widgets->setToolTip(tippy);
 	widgets->setHoverInterval(0.1);
-
 
 	int framex = clientState->size.width - PREVIEW_PANE_WIDTH + PREV_THREAD_X_PAD;
 	int framey = 12;
@@ -583,9 +582,9 @@ void TraceVisGUI::widgetSetup() {
 	dropDownWidget->addItem("0123456789 ");
 	dropDownWidget->removeItemAt(0);
 
-	diffWindow = new ComparisonBox(widgets, clientState);
-	controlWindow = new AnimControls(widgets, clientState);
-	
+	diffWindow = new ComparisonBox(widgets, clientState, defaultFont);
+	controlWindow = new AnimControls(widgets, clientState, defaultFont);
+
 	
 
 
@@ -605,8 +604,15 @@ ALLEGRO_DISPLAY* displaySetup() {
 
 	ALLEGRO_DISPLAY *display = al_create_display(STARTWWIDTH, STARTWHEIGHT);
 	if (!display) {
-		fprintf(stderr, "failed to create display!\n");
-		return NULL;
+		if (!display)
+		{
+			fprintf(stderr, "Failed to create display! error: %d\n", al_get_errno());
+			printf("Running this on VirtualBox?\n");
+			printf("\tVB Manual:\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"");
+			return NULL;
+		}
+		else
+			printf("Created basic display %x...\n",display);
 	}
 
 	return display;
@@ -736,8 +742,8 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },
 
 		ALLEGRO_START_OF_MENU("Settings", 3),
-		{ "Instruction Stepping", EV_BTN_STEPPING, 0, NULL },
-		{ "Other setting", 5, 0, NULL },
+		{ "Show Nodes", EV_BTN_NODES, 0, NULL },
+		{ "Show Edges", EV_BTN_EDGES, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Help", 7),

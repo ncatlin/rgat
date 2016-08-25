@@ -429,7 +429,6 @@ int render_main_graph(VISSTATE *clientState)
 
 	//more straightforward, stops graph from wrapping around the globe
 	unsigned int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
-	printf("widest point %d\n", widestPoint);
 	if (widestPoint > 300)
 	{
 		while (widestPoint > 300)
@@ -511,10 +510,11 @@ void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoor
 {
 	stringstream argstring;
 	int numCalls = n->calls;
+	string symString = clientstate->activePid->modsyms[n->nodeMod][n->address];
 	if (numCalls == 1)
-		argstring << n->nodeSym;
+		argstring << symString;
 	else
-		argstring << n->calls << "x " << n->nodeSym;
+		argstring << n->calls << "x " << symString;
 	
 	//if trace recorded some arguments
 	if (n->funcargs.size()) 
@@ -542,7 +542,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	{
 		int externVertIdx = externCallIt->first;
 		node_data *n = graph->get_vert(externVertIdx);
-		if (!n->nodeSym.size()) continue;
+		if (!n->external) continue;
 
 		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
 		if (is_on_screen(&screenCoord, clientstate))

@@ -22,7 +22,7 @@
 
 class AnimControls {
 public:
-	AnimControls(agui::Gui *widgets, VISSTATE *cState);
+	AnimControls(agui::Gui *widgets, VISSTATE *cState, agui::Font *font);
 	void setAnimState(int animState);
 	bool isEnabled() { return enableState; }
 	void update(thread_graph_data *graph);
@@ -62,7 +62,7 @@ private:
 
 class ComparisonBox {
 public:
-	ComparisonBox(agui::Gui *widgets, VISSTATE *clientState);
+	ComparisonBox(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
 	agui::RadioButton *firstDiffLabel;
 	agui::RadioButton *secondDiffLabel;
 	//todo make class for this
@@ -88,7 +88,7 @@ class TraceVisGUI {
 
 public:
 	TraceVisGUI(VISSTATE *cstate) { clientState = cstate; }
-	void widgetSetup();
+	void widgetSetup(string fontpath);
 	agui::Allegro5Input *inputHandler() { return widgetInputHandler; }
 	agui::DropDown *dropdown() { return dropDownWidget; }
 	void updateRenderWidgets(thread_graph_data *graph);

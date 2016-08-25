@@ -74,7 +74,6 @@ void GRAPH_DISPLAY_DATA::expand(unsigned int minsize) {
 	unsigned int expandValue = max(minsize, 30000);
 	vpsize += expandValue;
 	vcsize += expandValue;
-	printf("Expanding to %d\n", expandValue);
 
 	float* newAddress;
 	newAddress = (float *)realloc(vposarray, vpsize);

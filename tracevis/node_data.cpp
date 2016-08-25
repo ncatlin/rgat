@@ -38,23 +38,31 @@ bool node_data::serialise(ofstream *outfile)
 	*outfile << vcoord.a << "," <<
 		vcoord.b << "," <<
 		vcoord.bMod << "," <<
-		conditional << "," <<
-		ins->address << "," <<
-		external << "," << nodeMod << ",";
-	if (!nodeSym.size())
-		*outfile << 0;
+		conditional << "," << nodeMod << ",";
+	*outfile << address << ",";
+	*outfile << external << ",";
+
+	if (!external)
+		*outfile << mutation;
 	else
-		*outfile << base64_encode((unsigned char*)nodeSym.c_str(),nodeSym.size());
-	/*
-	*outfile << "{";
-	vector<pair<int, string>>::iterator argit = funcargs.begin();
-	for (; argit != funcargs.end(); argit++)
 	{
-		string argstring = string(argit->second);
-		const unsigned char* cus_argstring = reinterpret_cast<const unsigned char*>(argstring.c_str());
-		*outfile << argit->first << "," << base64_encode(cus_argstring, argstring.size()) << "@";
+		*outfile << funcargs.size() << "{"; //number of calls
+		vector<vector<pair<int, string>>>::iterator callIt = funcargs.begin();
+		vector<pair<int, string>>::iterator argIt;
+		printf("node %d: Saving %d calls\n", index,funcargs.size());
+		for (; callIt != funcargs.end(); callIt++)
+		{
+			printf("\tnSaving %d args\n", callIt->size());
+			*outfile << callIt->size() << ",";
+			for (argIt = callIt->begin(); argIt != callIt->end(); argIt++)
+			{
+				string argstring = argIt->second;
+				const unsigned char* cus_argstring = reinterpret_cast<const unsigned char*>(argstring.c_str());
+				*outfile << argIt->first << "," << base64_encode(cus_argstring, argstring.size()) << ",";
+			}
+		}
 	}
 	*outfile << "}";
-	*/
+
 	return true;
 }

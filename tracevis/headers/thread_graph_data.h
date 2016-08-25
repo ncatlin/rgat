@@ -88,7 +88,7 @@ public:
 	void animate_latest();
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
-	string get_node_sym(unsigned int idx) { return vertDict[idx].nodeSym; }
+	string get_node_sym(unsigned int idx, PID_DATA* piddata);
 	void highlight_externs(unsigned long targetSequence);
 	
 
@@ -108,8 +108,6 @@ public:
 	void emptyArgQueue();
 	vector <string> loggedCalls;
 
-	map <unsigned long, vector <BB_DATA *>> mutationMap;
-
 	node_data * latest_active_node = 0;
 
 	bool serialise(ofstream *file);
@@ -122,7 +120,7 @@ public:
 	ALLEGRO_BITMAP *previewBMP = NULL;
 	std::queue<EXTERNCALLDATA> funcQueue;
 
-	HANDLE callSeqMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
 	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
 
 	vector<pair<int, long>> externList; //list of external calls
@@ -168,9 +166,8 @@ public:
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalverts = 0;
 
-	
 	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
-	vector <pair<unsigned int, unsigned int>> sequenceEdges;
+	//vector <pair<unsigned int, unsigned int>> sequenceEdges;
 	vector <int> mutationSequence;
 
 	//loop end/loop iterations pair

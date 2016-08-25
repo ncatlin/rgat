@@ -115,10 +115,14 @@ void thread_graph_data::render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *l
 
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
-	pair<unsigned long, int> targBlock_Size = bbsequence[sequenceId];
+	obtainMutex(animationListsMutex);
+	pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceId);
+	int mutation = mutationSequence.at(sequenceId);
+	dropMutex(animationListsMutex);
+
 	unsigned long insAddr = targBlock_Size.first;
 	int numInstructions = targBlock_Size.second;
-	int mutation = mutationSequence[sequenceId];
+	
 	INS_DATA *ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, true);
 	while (numInstructions > 1)
 	{
@@ -136,10 +140,10 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	INS_DATA* ins = get_last_instruction(targetSequence);
 	int nodeIdx = ins->threadvertIdx[tid];
 
-	obtainMutex(callSeqMutex, 0, 1000);
+	obtainMutex(animationListsMutex, 0, 1000);
 	if (!externCallSequence.count(nodeIdx)) 
 	{
-		dropMutex(callSeqMutex, "highlight externs");
+		dropMutex(animationListsMutex, "highlight externs");
 		return; 
 	}
 
@@ -154,13 +158,12 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	else //todo. this should prob not happen?
 		targetExternIdx = callList.at(0).second;
 
-	dropMutex(callSeqMutex, "highlight externs");
+	dropMutex(animationListsMutex, "highlight externs");
 
 	node_data *n = &vertDict[targetExternIdx];
 	if (!n->funcargs.empty())
 		return; //handled elsewhere by arg processor
 
-	printf("node %d calls node %d (%s)\n", nodeIdx, targetExternIdx, n->nodeSym.c_str());
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
@@ -169,6 +172,16 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	funcQueue.push(ex);
 	dropMutex(funcQueueMutex, "End Highlight Externs");
 
+}
+
+string thread_graph_data::get_node_sym(unsigned int idx, PID_DATA* piddata)
+{
+	node_data *n = get_vert(idx);
+	map<long, string> *modSyms = &piddata->modsyms.at(n->nodeMod);
+	if (modSyms->count(n->address))
+		return piddata->modsyms.at(n->nodeMod).at(n->address);
+	else 
+		return("NOSYM");
 }
 
 void thread_graph_data::emptyArgQueue()
@@ -405,10 +418,14 @@ void thread_graph_data::brighten_BBs()
 			ecol = animlinedata->acquire_col("1m2");
 		}
 
-		pair<unsigned long, int> targBlock_Size = bbsequence[animPosition];
+		obtainMutex(animationListsMutex);
+		pair<unsigned long, int> targBlock_Size = bbsequence.at(animPosition);
+		int mutation = mutationSequence.at(animPosition);
+		dropMutex(animationListsMutex);
+
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
-		int mutation = mutationSequence[animPosition];
+		
 		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
 		if (!ins->threadvertIdx.count(tid))
 		{
@@ -504,11 +521,15 @@ void thread_graph_data::update_animation_render()
 node_data *thread_graph_data::derive_anim_node()
 {
 
-	//good thing we are only doing this once per frame
-	pair<unsigned long, int> seq_size = bbsequence[sequenceIndex];
+	//TODO this code appears 3 times, genericise it
+	obtainMutex(animationListsMutex);
+	pair<unsigned long, int> seq_size = bbsequence.at(sequenceIndex);
+	int mutation = mutationSequence.at(sequenceIndex);
+	dropMutex(animationListsMutex);
+
 	unsigned long bbseq = seq_size.first;
 	int remainingInstructions = blockInstruction;
-	int mutation = mutationSequence[sequenceIndex];
+	
 	INS_DATA *target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, true);
 	
 	//would put the end sequence instead of doing this
@@ -723,17 +744,6 @@ bool thread_graph_data::serialise(ofstream *file)
 		edgeDit->second.serialise(file, edgeDit->first.first, edgeDit->first.second);
 	*file << "}D,";
 
-	*file << "L{";
-	vector<pair<unsigned int, unsigned int>>::iterator edgeLit = edgeList.begin();
-	for (; edgeLit != edgeList.end(); edgeLit++)
-	{
-		*file << edgeLit->first << "," << edgeLit->second << ",";
-		pair<int, int> testpair = make_pair(edgeLit->first, edgeLit->second);
-		if (edgeDict.count(testpair) == 0)
-			printf("SAVE ERROR: LIST ITEM NOT IN DICT %d,%d\n", edgeLit->first, edgeLit->second);
-	}
-	*file << "}L,";
-
 	*file << "E{";
 	vector<pair<int, long>>::iterator externit = externList.begin();
 	for (; externit != externList.end(); externit++)
@@ -741,9 +751,27 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}E,";
 
 	//S for stats
-	*file << "S{" << maxA << ","
+	*file << "S{" 
+		<< maxA << ","
 		<< maxB << ","
-		<< maxWeight << "}S";
+		<< maxWeight << ","
+		<< totalInstructions
+		<< "}S";
+
+
+	*file << "A{";
+	for (unsigned long i = 0; i < bbsequence.size(); ++i)
+	{
+		//this->bbsequence
+		//this->mutationSequence
+		//this->loopStateList
+	}
+	
+	*file << "}A";
+
+	*file << "C{";
+	//this->externCallSequence
+	*file << "{C";
 
 	*file << "}";
 	return true;
