@@ -19,26 +19,48 @@ struct EXTERNCALLDATA {
 	unsigned long callerAddr = 0;
 	string externPath;
 };
+
 class thread_graph_data
 {
 private:
 	GRAPH_DISPLAY_DATA *mainvertsdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
-	map<unsigned int, node_data> vertDict; //node id to node data
-	map <unsigned long, vector<INS_DATA*>> *disassembly;
+
 	unsigned int lastAnimatedBB = 0;
 	unsigned int firstAnimatedBB = 0;
+	int baseMod = -1;
+	HANDLE disassemblyMutex;
+
+	map<unsigned int, node_data> vertDict; //node id to node data
+	map <unsigned long, vector<INS_DATA*>> *disassembly;
+
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
 	vector <unsigned int> activeNodeList;
-	bool advance_sequence(bool);
-	bool decrease_sequence();
-	HANDLE disassemblyMutex;
 	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
 
+	bool advance_sequence(bool);
+	bool decrease_sequence();
+
+	bool loadEdgeDict(ifstream *file);
+	bool loadExterns(ifstream *file);
+	bool loadNodes(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
+	bool loadStats(ifstream *file);
+	bool loadAnimationData(ifstream *file);
+	bool loadCallSequence(ifstream *file);
+
+
+
+	//which BB we are pointing to in the sequence list
+	unsigned long sequenceIndex = 0;
+	//which instruction we are pointing to in the BB
+	unsigned long blockInstruction = 0;
+	bool newanim = true;
+	unsigned int last_anim_start = 0;
+	unsigned int last_anim_stop = 0;
 
 public:
 	thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disassembly, HANDLE disasMutex);
@@ -60,19 +82,26 @@ public:
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activeverts() { return animvertsdata; }
 	void render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr);
-	
+
+	bool serialise(ofstream *file);
+	bool unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
+
 	node_data *get_vert(unsigned int index)
 	{
-		obtainMutex(vertDMutex,0, 500); node_data *n = &vertDict.at(index); dropMutex(vertDMutex); return n;
+		obtainMutex(vertDMutex,0, 500); 
+		node_data *n = &vertDict.at(index); 
+		dropMutex(vertDMutex); return n;
 	}
 	void add_vert(pair<unsigned int, node_data> newnodepair) 
 	{
-		obtainMutex(vertDMutex, 0, 500); vertDict.insert(newnodepair); dropMutex(vertDMutex);
+		obtainMutex(vertDMutex, 0, 500); 
+		vertDict.insert(newnodepair); 
+		dropMutex(vertDMutex);
 	}
 
 	bool vert_exists(unsigned int idx) { if (vertDict.count(idx)) return true; return false; }
 	unsigned int get_num_verts() { return vertDict.size();}
-	unsigned int get_num_edges() { return edgeDict.size(); }
+	unsigned int get_num_edges() { return edgeDict.size();}
 
 	void start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeit,
 		map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd);
@@ -90,7 +119,6 @@ public:
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx, PID_DATA* piddata);
 	void highlight_externs(unsigned long targetSequence);
-	
 
 	void reset_mainlines();
 	node_data *derive_anim_node();
@@ -110,8 +138,6 @@ public:
 
 	node_data * latest_active_node = 0;
 
-	bool serialise(ofstream *file);
-
 	unsigned int tid = 0;
 	unsigned int pid = 0;
 	bool active = true;
@@ -125,7 +151,6 @@ public:
 
 	vector<pair<int, long>> externList; //list of external calls
 	string modPath;
-	int baseMod = -1;
 
 
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
@@ -167,25 +192,17 @@ public:
 	GRAPH_DISPLAY_DATA *conditionalverts = 0;
 
 	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
-	//vector <pair<unsigned int, unsigned int>> sequenceEdges;
 	vector <int> mutationSequence;
 
-	//loop end/loop iterations pair
+	//<which loop this is, how many iterations>
 	vector <pair<unsigned int, unsigned long>> loopStateList;
+
 	vector<unsigned int> animLoopProgress;
-	unsigned long animLoopStartIdx= 0;
+	unsigned long animLoopStartIdx = 0;
 	unsigned long animLoopIndex = 0;
-	//number of individual loops
+	//total number of individual loops
 	unsigned int loopCounter = 0;
 
-	//which BB we are pointing to in the sequence list
-	unsigned long sequenceIndex = 0;
-	//which instruction we are pointing to in the BB
-	unsigned long blockInstruction = 0;
-
-	bool newanim = true;
-	unsigned int last_anim_start = 0;
-	unsigned int last_anim_stop = 0;
 	//position out of all the instructions instrumented
 	unsigned long animInstructionIndex = 0;
 	unsigned long totalInstructions = 0;

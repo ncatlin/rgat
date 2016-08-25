@@ -200,9 +200,6 @@ void AnimControls::update(thread_graph_data *graph)
 		setAnimState(ANIM_INACTIVE);
 
 	stringstream stepInfo;
-	//if (clientState->stepBBs)
-	//	stepInfo << graph->sequenceIndex+1 << "/" << graph->bbsequence.size() << " basic blocks. ";
-	//else
 
 	stepInfo << graph->animInstructionIndex << "/";
 	if (graph->totalInstructions < 10000)

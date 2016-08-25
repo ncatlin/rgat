@@ -339,12 +339,6 @@ void change_mode(VISSTATE *clientState, int mode)
 
 }
 
-
-
-
-
-
-
 void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffRenderer)
 {
 	if (clientState->modes.diff == DIFF_STARTED) 
@@ -529,7 +523,7 @@ int main(int argc, char **argv)
 	//this is a pain in the neck to have, see wireframe code
 	GLint *wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
 	GLint *wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	for (int i = 0; i < WIREFRAMELOOPS; i++)
+	for (int i = 0; i < WIREFRAMELOOPS; ++i)
 	{
 		wireframeStarts[i] = i*WF_POINTSPERLINE;
 		wireframeSizes[i] = WF_POINTSPERLINE;
@@ -627,6 +621,7 @@ int main(int argc, char **argv)
 			{
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->get_num_edges()) continue;
+				printf("ACTIVATING FOUND GRAPH\n");
 				clientstate.activeGraph = graph;
 				if (graph->active)
 				{
@@ -684,6 +679,7 @@ int main(int argc, char **argv)
 			
 		}
 
+		if (!clientstate.activeGraph) printf("INACTIVE GRAPH\n");
 		if (clientstate.activeGraph)
 		{
 
@@ -751,6 +747,7 @@ int main(int argc, char **argv)
 				{
 					PROJECTDATA pd;
 					gather_projection_data(&pd);
+
 					if (graph->active)
 					{
 						if(clientstate.modes.animation)
@@ -788,7 +785,6 @@ int main(int argc, char **argv)
 				}
 				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.size.width - PREVIEW_PANE_WIDTH, 0, 0);
 			}
-
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
 			al_draw_filled_rectangle(0, clientstate.size.height - CONTROLS_Y, 	
 				clientstate.size.width - PREVIEW_PANE_WIDTH,clientstate.size.height, al_map_rgba(0, 0, 0, 150));

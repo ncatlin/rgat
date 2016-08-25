@@ -175,9 +175,8 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 			quads += 4;
 		}
 	}
-	printf("Generating buffers\n");
+
 	glGenBuffers(2, clientstate->colSphereVBOs);
-	printf("Buffer gen done\n");
 	load_VBO(VBO_SPHERE_POS, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, spherepos);
 	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, spherecol);
 	spheredata->release_col();

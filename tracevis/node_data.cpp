@@ -41,6 +41,7 @@ bool node_data::serialise(ofstream *outfile)
 		conditional << "," << nodeMod << ",";
 	*outfile << address << ",";
 	*outfile << external << ",";
+	printf("saving Node %d address %lx\n", index, address);
 
 	if (!external)
 		*outfile << mutation;

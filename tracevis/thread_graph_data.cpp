@@ -2,6 +2,7 @@
 #include "thread_graph_data.h"
 #include "rendering.h"
 #include "GUIStructs.h"
+#include "serialise.h"
 
 
 //display live or animated graph with active areas on faded areas
@@ -115,7 +116,7 @@ void thread_graph_data::render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *l
 
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
-	obtainMutex(animationListsMutex);
+	obtainMutex(animationListsMutex, "get last ins", 1000);
 	pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceId);
 	int mutation = mutationSequence.at(sequenceId);
 	dropMutex(animationListsMutex);
@@ -755,24 +756,277 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< maxA << ","
 		<< maxB << ","
 		<< maxWeight << ","
+		<< loopCounter << ","
 		<< totalInstructions
-		<< "}S";
-
+		<< "}S,";
 
 	*file << "A{";
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
-		//this->bbsequence
-		//this->mutationSequence
-		//this->loopStateList
+		pair<unsigned long, int> seq_size = bbsequence.at(i);
+		int mutation = mutationSequence.at(i);
+
+		*file << seq_size.first << "," << seq_size.second << ","
+			<< mutationSequence[i] << ","
+			<< loopStateList[i].first << ",";
+		if (loopStateList[i].first )
+			*file << loopStateList[i].second << ",";
 	}
-	
-	*file << "}A";
+	*file << "}A,";
 
 	*file << "C{";
-	//this->externCallSequence
-	*file << "{C";
+	map<unsigned int, vector<std::pair<int, int>>>::iterator externCallIt;
+	vector<std::pair<int, int>>::iterator callListIt;
+	for (externCallIt = externCallSequence.begin(); externCallIt != externCallSequence.end(); ++externCallIt)
+	{
+		vector<std::pair<int, int>> *callList = &externCallIt->second;
+		*file << externCallIt->first << "," << callList->size() << ",";
+
+		for (callListIt = callList->begin(); callListIt != callList->end(); ++callListIt)
+			*file << callListIt->first << "," << callListIt->second << ",";
+	}
+	*file << "}C,";
 
 	*file << "}";
 	return true;
+}
+
+bool thread_graph_data::loadEdgeDict(ifstream *file)
+{
+	string index_s, weight_s, source_s, target_s, edgeclass_s;
+	int source, target;
+	while (true)
+	{
+		edge_data *edge = new edge_data;
+		getline(*file, weight_s, ',');
+		if (!caught_stol(weight_s, (unsigned long *)&edge->weight, 10))
+		{
+			if (weight_s == string("}D"))
+				return true;
+			else
+				return false;
+		}
+		getline(*file, source_s, ',');
+		if (!caught_stoi(source_s, (int *)&source, 10)) return false;
+		getline(*file, target_s, ',');
+		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
+		getline(*file, edgeclass_s, '@');
+		edge->edgeClass = edgeclass_s.c_str()[0];
+		pair<int, int>stpair = make_pair(source, target);
+		add_edge(*edge, stpair);
+	}
+	return false;
+}
+
+bool thread_graph_data::loadExterns(ifstream *file)
+{
+	string endtag;
+	getline(*file, endtag, '{');
+	if (endtag.c_str()[0] != 'E') return false;
+
+	int index;
+	unsigned long address;
+	string address_s, index_s;
+
+	while (true) {
+		getline(*file, index_s, ',');
+		if (!caught_stoi(index_s, (int *)&index, 10))
+		{
+			if (index_s == string("}E")) return true;
+			return false;
+		}
+		getline(*file, address_s, ',');
+		if (!caught_stol(address_s, &address, 10)) return false;
+		externList.push_back(make_pair(index, address));
+	}
+}
+
+bool thread_graph_data::unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly)
+{
+	if (!loadNodes(file, disassembly)) { printf("Node load failed\n");  return false; }
+	if (!loadEdgeDict(file)) { printf("EdgeD load failed\n");  return false; }
+	if (!loadExterns(file)) { printf("Externs load failed\n");  return false; }
+	if (!loadStats(file)) { printf("Stats load failed\n");  return false; }
+	if (!loadAnimationData(file)) { printf("Animation load failed\n");  return false; }
+	if (!loadCallSequence(file)) { printf("Call sequence load failed\n"); return false; }
+	return true;
+}
+
+bool thread_graph_data::loadCallSequence(ifstream *file)
+{
+	string endtag;
+	getline(*file, endtag, '{');
+	if (endtag.c_str()[0] != 'C') return false;
+
+	string value_s;
+	int nodeIdx, listSize;
+	pair<int, int> callPair;
+	while (true)
+	{
+		getline(*file, value_s, ',');
+		if (value_s == "}C") return true;
+
+		vector<std::pair<int, int>> callList;
+		if (!caught_stoi(value_s, &nodeIdx, 10)) break;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, &listSize, 10)) break;
+		for (int i = 0; i < listSize; i++)
+		{
+			getline(*file, value_s, ',');
+			if (!caught_stoi(value_s, &callPair.first, 10)) break;
+			getline(*file, value_s, ',');
+			if (!caught_stoi(value_s, &callPair.second, 10)) break;
+			callList.push_back(callPair);
+		}
+		externCallSequence.emplace(nodeIdx, callList);
+	}
+	return false;
+}
+
+bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly)
+{
+
+	if (!verifyTag(file, tag_START, 'N')) {
+		printf("Bad node data\n");
+		return false;
+	}
+	string endtag("}N,D");
+	string value_s;
+	while (true)
+	{
+		node_data *n = new node_data;
+		
+		getline(*file, value_s, '{');
+		if (value_s == endtag) return true;
+
+		if (!caught_stoi(value_s, (int *)&n->index, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, (int *)&n->vcoord.a, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, (int *)&n->vcoord.b, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, (int *)&n->vcoord.bMod, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, (int *)&n->conditional, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, &n->nodeMod, 10))
+			return false;
+		getline(*file, value_s, ',');
+		if (!caught_stol(value_s, &n->address, 10))
+			return false;
+
+		getline(*file, value_s, ',');
+		if (value_s.at(0) == '0')
+		{
+			n->external = false;
+
+			getline(*file, value_s, '}');
+			if (!caught_stoi(value_s, (int *)&n->mutation, 10))
+				return false;
+			n->ins = disassembly->at(n->address).at(n->mutation);
+			insert_vert(n->index, *n);
+			continue;
+		}
+
+		n->external = true;
+
+		int numCalls;
+		getline(*file, value_s, '{');
+		if (!caught_stoi(value_s, &numCalls, 10))
+			return false;
+
+		vector <vector<pair<int, string>>> funcCalls;
+		for (int i = 0; i < numCalls; i++)
+		{
+			int argidx, numArgs = 0;
+			getline(*file, value_s, ',');
+			if (!caught_stoi(value_s, &numArgs, 10))
+				return false;
+			vector<pair<int, string>> callArgs;
+
+			for (int i = 0; i < numArgs; i++)
+			{
+				getline(*file, value_s, ',');
+				if (!caught_stoi(value_s, &argidx, 10))
+					return false;
+				getline(*file, value_s, ',');
+				string decodedarg = base64_decode(value_s);
+				callArgs.push_back(make_pair(argidx, decodedarg));
+			}
+			if (!callArgs.empty())
+				funcCalls.push_back(callArgs);
+		}
+		if (!funcCalls.empty())
+			n->funcargs = funcCalls;
+		file->seekg(1, ios::cur); //skip closing brace
+		insert_vert(n->index, *n);
+	}
+}
+//todo: move this and the other graph loads to graph class!
+bool thread_graph_data::loadStats(ifstream *file)
+{
+	string endtag;
+	getline(*file, endtag, '{');
+	if (endtag.c_str()[0] != 'S') return false;
+
+	string value_s;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &maxA, 10)) return false;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &maxB, 10)) return false;
+	getline(*file, value_s, ',');
+	if (!caught_stol(value_s, (unsigned long*)&maxWeight, 10)) return false;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&loopCounter, 10)) return false;
+	getline(*file, value_s, '}');
+	if (!caught_stol(value_s, (unsigned long*)&totalInstructions, 10)) return false;
+
+	getline(*file, endtag, ',');
+	if (endtag.c_str()[0] != 'S') return false;
+	return true;
+}
+
+bool thread_graph_data::loadAnimationData(ifstream *file)
+{
+	string endtag;
+	getline(*file, endtag, '{');
+	if (endtag.c_str()[0] != 'A') return false;
+
+	string sequence_s, size_s, mutation_s, loopstateIdx_s, loopstateIts_s;
+	pair<unsigned long, int> seq_size;
+	pair<unsigned int, unsigned long> loopstateIdx_Its;
+	int mutation;
+	unsigned long sequenceIdx, mutationIts;
+
+	while (true)
+	{
+		getline(*file, sequence_s, ',');
+		if (sequence_s == "}A") return true;
+		if (!caught_stol(sequence_s, &seq_size.first, 10)) break;
+		getline(*file, size_s, ',');
+		if (!caught_stoi(size_s, &seq_size.second, 10)) break;
+		bbsequence.push_back(seq_size);
+
+		getline(*file, mutation_s, ',');
+		if (!caught_stoi(mutation_s, &mutation, 10)) break;
+		mutationSequence.push_back(mutation);
+
+		getline(*file, loopstateIdx_s, ',');
+		if (!caught_stoi(loopstateIdx_s, (int *)&loopstateIdx_Its.first, 10)) break;
+		if (loopstateIdx_Its.first)
+		{
+			getline(*file, loopstateIts_s, ',');
+			if (!caught_stol(loopstateIts_s, &loopstateIdx_Its.second, 10)) break;
+		}
+		else
+			loopstateIdx_Its.second = 0xbad;
+
+		loopStateList.push_back(loopstateIdx_Its);
+	}
+	return false;
 }

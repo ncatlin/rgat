@@ -86,7 +86,12 @@ void saveDisassembly(PID_DATA *piddata, ofstream *file)
 		for (; mutationIt != disasIt->second.end(); mutationIt++)
 		{
 			INS_DATA *ins = *mutationIt;
-			*file << ins->opcodes<<",";
+			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
+			map<int, int>::iterator threadVertIt = ins->threadvertIdx.begin();
+			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
+			{
+				*file << threadVertIt->first << "," << threadVertIt->second << ",";
+			}
 		}
 	}
 	writetag(file, tag_END, tag_DISAS);
@@ -280,7 +285,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 			printf("stoi failed with [%s]\n", address_s.c_str()); return false;
 		}
 		vector <INS_DATA *> mutationVector;
-		for (int i = 0; i < mutations; i++)
+		for (int midx = 0; midx < mutations; midx++)
 		{
 			INS_DATA *ins = new INS_DATA;
 			getline(*file, address_s, ',');
@@ -290,6 +295,22 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 			getline(*file, opcodes, ',');
 			disassemble_ins(hCapstone, opcodes, ins, address);
 			mutationVector.push_back(ins);
+
+			string threadVertSize_s;
+			int threadVertSize;
+			getline(*file, threadVertSize_s, ',');
+			if (!caught_stoi(threadVertSize_s, &threadVertSize, 10)) return false;
+
+			for (int tvIdx = 0; tvIdx < threadVertSize; ++tvIdx)
+			{
+				int callTID, calledNode;
+				string callerTID_s, calledNode_s;
+				getline(*file, callerTID_s, ',');
+				if (!caught_stoi(callerTID_s, &callTID, 10)) return false;
+				getline(*file, calledNode_s, ',');
+				if (!caught_stoi(calledNode_s, &calledNode, 10)) return false;
+				ins->threadvertIdx.emplace(callTID, calledNode);
+			}	
 		}
 		piddata->disassembly.insert(make_pair(address, mutationVector));
 	}
@@ -308,164 +329,6 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 	return true;
 }
 
-bool loadEdgeDict(ifstream *file, thread_graph_data *graph)
-{
-	string index_s, weight_s, source_s, target_s, edgeclass_s;
-	int source, target;
-	while (true)
-	{
-		edge_data *edge = new edge_data;
-		getline(*file, weight_s, ',');
-		if (!caught_stol(weight_s, (unsigned long *)&edge->weight, 10))
-		{
-			if (weight_s == string("}D")) 
-				return true;
-			else
-				return false;
-		}
-		getline(*file, source_s, ',');
-		if (!caught_stoi(source_s, (int *)&source, 10)) return false;
-		getline(*file, target_s, ',');
-		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
-		getline(*file, edgeclass_s, '@');
-		edge->edgeClass = edgeclass_s.c_str()[0];
-		pair<int, int>stpair = make_pair(source, target);
-		graph->add_edge(*edge, stpair);
-	}
-	return false;
-}
-
-bool loadExterns(ifstream *file, thread_graph_data *graph)
-{
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'E') return false;
-
-	int index;
-	unsigned long address;
-	string address_s, index_s;
-
-	while (true) {
-		getline(*file, index_s, ',');
-		if (!caught_stoi(index_s, (int *)&index, 10))
-		{
-			if (index_s == string("}E")) return true;
-			return false;
-		}
-		getline(*file, address_s, ',');
-		if (!caught_stol(address_s, &address, 10)) return false;
-		graph->externList.push_back(make_pair(index, address));
-	}
-}
-
-bool loadNodes(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly, thread_graph_data *graph)
-{
-
-	if (!verifyTag(file, tag_START, 'N')) {
-		printf("Bad node data\n");
-		return false;
-	}
-	string endtag("}N,D");
-	unsigned long address;
-	while (true)
-	{
-		node_data *n = new node_data;
-		string nodeid, apos, bpos, bmod, cond, address_s, isExternal, b64func, modfile, mutation_s;
-		getline(*file, nodeid, '{');
-		if (nodeid == endtag) return true;
-
-		if (!caught_stoi(nodeid, (int *)&n->index, 10))
-			return false;
-		getline(*file, apos, ',');
-		if (!caught_stoi(apos, (int *)&n->vcoord.a, 10)) 
-			return false;
-		getline(*file, bpos, ',');
-		if (!caught_stoi(bpos, (int *)&n->vcoord.b, 10)) 
-			return false;
-		getline(*file, bmod, ',');
-		if (!caught_stoi(bmod, (int *)&n->vcoord.bMod, 10)) 
-			return false;
-		getline(*file, cond, ',');
-		if (!caught_stoi(cond, (int *)&n->conditional, 10)) 
-			return false;
-		getline(*file, modfile, ',');
-		if (!caught_stoi(modfile, &n->nodeMod, 10)) 
-			return false;
-		getline(*file, address_s, ',');
-		if (!caught_stol(address_s, &address, 10)) 
-			return false;
-
-		getline(*file, isExternal, ',');
-		if (isExternal.at(0) == '0')
-		{
-			n->external = false;
-
-			getline(*file, mutation_s, '}');
-			if (!caught_stoi(mutation_s, (int *)&n->mutation, 10)) 
-				return false;
-			n->ins = disassembly->at(address).at(n->mutation);
-			graph->insert_vert(n->index, *n);
-			continue;
-		}
-
-		n->external = true;
-
-		string numCalls_s;
-		int numCalls;
-		string arglist;
-		getline(*file, numCalls_s, '{');
-		if (!caught_stoi(numCalls_s, &numCalls, 10)) 
-			return false;
-		printf("\vert load loading %d calls\n", numCalls);
-		vector <vector<pair<int, string>>> funcCalls;
-		for (int i = 0; i < numCalls; i++)
-		{
-			string numArgs_s, argidx_s, argb64;
-			int argidx, numArgs = 0;
-			getline(*file, numArgs_s, ',');
-			if (!caught_stoi(numArgs_s, &numArgs, 10)) 
-				return false;
-			vector<pair<int, string>> callArgs;
-			printf("\t\tloading %d args\n", numArgs);
-			for (int i = 0; i < numArgs; i++)
-			{
-				getline(*file, argidx_s, ',');
-				if (!caught_stoi(argidx_s, &argidx, 10)) 
-					return false;
-				getline(*file, argb64, ',');
-				string decodedarg = base64_decode(argb64);
-				callArgs.push_back(make_pair(argidx, decodedarg));
-			}
-			if (!callArgs.empty())
-				funcCalls.push_back(callArgs);
-		}
-		if (!funcCalls.empty())
-			n->funcargs = funcCalls;
-		file->seekg(1, ios::cur); //skip closing brace
-		graph->insert_vert(n->index, *n);
-	}
-}
-
-bool loadStats(ifstream *file, thread_graph_data *graph)
-{
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'S') return false;
-
-	string value_s;
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &graph->maxA, 10)) return false;
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &graph->maxB, 10)) return false;
-	getline(*file, value_s, ',');
-	if (!caught_stol(value_s, (unsigned long*)&graph->maxWeight, 10)) return false;
-	getline(*file, value_s, ',');
-	if (!caught_stol(value_s, (unsigned long*)&graph->totalInstructions, 10)) return false;
-
-	getline(*file, endtag, '}');
-	if (endtag.c_str()[0] != 'S') return false;
-	return true;
-}
 
 bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 {
@@ -479,15 +342,16 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 		getline(*file, tidstring, '{');
 		if (!caught_stoi(tidstring, &TID, 10)) return false;
 		thread_graph_data *graph = new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
-		piddata->graphs.emplace(TID, graph);
+		
 		graph->tid = TID;
 		graph->pid = piddata->PID;
 		graph->active = false;
 
-		if (!loadNodes(file, &piddata->disassembly, graph)) { printf("Node load failed\n");  return false; }
-		if (!loadEdgeDict(file, graph))	{ printf("EdgeD load failed\n");  return false; }
-		if (!loadExterns(file, graph)) { printf("Externs load failed\n");  return false; }
-		if (!loadStats(file, graph)) { printf("Stats load failed\n");  return false; }
+		if(graph->unserialise(file, &piddata->disassembly))
+			piddata->graphs.emplace(TID, graph);
+		else 
+			return false;
+
 		printf("Loaded thread graph %d\n", TID);
 		if (file->peek() != 'T') break;
 	}

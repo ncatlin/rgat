@@ -101,8 +101,7 @@ void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction, node_data *lastNode)
 {
-	//printf("old ins %lx\n", instruction->address);
-	targVertID = instruction->threadvertIdx[TID];
+	targVertID = instruction->threadvertIdx.at(TID);
 }
 
 void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int numInstructions, int repeats = 1)
@@ -557,9 +556,10 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		
 			obtainMutex(thisgraph->animationListsMutex);
 			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
+
 			//could probably break this by mutating code in a running loop
 			thisgraph->mutationSequence.push_back(mutation); 
-			obtainMutex(thisgraph->animationListsMutex);
+			dropMutex(thisgraph->animationListsMutex);
 
 			//printf("placing %lx mutation %d in bbs\n", thistag.targaddr, mutation);
 			if (repeats == 1)
