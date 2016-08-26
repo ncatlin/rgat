@@ -55,25 +55,30 @@ public:
 		case HL_HIGHLIGHT_ADDRESS:
 			{
 				string address_s = hl_frame->addressText->getText();
-				unsigned long addr;
-				if (!caught_stol(address_s, &addr, 16)) break;
-				printf("initiating highlight of address %s->%lx\n", address_s.c_str(), addr);
+				if (!caught_stol(address_s, &clientState->highlightData.highlightAddr, 16)) break;
 				hl_frame->highlightFrame->setVisibility(false);
+				if (clientState->activePid->disassembly.count(clientState->highlightData.highlightAddr))
+					clientState->highlightData.highlightState = HL_HIGHLIGHT_ADDRESS;
+				else
+					clientState->highlightData.highlightState = 0;
 				break;
 			}
 		case HL_HIGHLIGHT_SYM:
 			{
 				if (hl_frame->symbolDropdown->getSelectedIndex() < 0) break;
-				printf("initiating highlight of sym %s [%d]\n", hl_frame->symbolDropdown->getText().c_str(), hl_frame->symbolDropdown->getSelectedIndex());
 				hl_frame->highlightFrame->setVisibility(false);
+				
+				clientState->highlightData.highlight_s = hl_frame->symbolDropdown->getText();
+				clientState->highlightData.highlightState = HL_HIGHLIGHT_SYM;
 				break; 
 			}
 
 		case HL_HIGHLIGHT_MODULE:
 			{
 				if (hl_frame->moduleDropdown->getSelectedIndex() < 0) break;
-				printf("initiating highlight of mod %s [%d]\n", hl_frame->moduleDropdown->getText().c_str(), hl_frame->moduleDropdown->getSelectedIndex());
 				hl_frame->highlightFrame->setVisibility(false);
+				clientState->highlightData.highlightModule = hl_frame->moduleDropdown->getSelectedIndex();
+				clientState->highlightData.highlightState = HL_HIGHLIGHT_MODULE;
 				break; 
 			}
 		}

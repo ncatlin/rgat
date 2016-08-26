@@ -11,7 +11,9 @@ void HighlightSelectionFrame::refreshDropdowns()
 		map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
 		for (; pathIt != clientState->activePid->modpaths.end(); pathIt++)
 		{
-			if (pathIt->second != "NULL")
+			if (pathIt->second == "NULL")
+				moduleDropdown->addItem("[UNKNOWN]");
+			else
 				moduleDropdown->addItem(pathIt->second);
 		}
 		lastModCount = clientState->activePid->modpaths.size();

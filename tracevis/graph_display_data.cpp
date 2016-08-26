@@ -89,6 +89,8 @@ void GRAPH_DISPLAY_DATA::expand(unsigned int minsize) {
 //mutexes are bit dodgy, expect them to be held by caller
 void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 { 
+	obtainMutex(posmutex, "set", INFINITE);
+	obtainMutex(colmutex, "set", INFINITE);
 	numVerts = num;
 
 	int posremaining = vpsize - numVerts * POSELEMS * sizeof(float);
@@ -107,4 +109,6 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 		newAddress = (float *)realloc(vcolarray, vcsize);
 		if (newAddress) vcolarray = newAddress;
 	}
+	release_col();
+	release_pos();
 }

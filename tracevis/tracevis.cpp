@@ -489,6 +489,49 @@ void closeTextLog(VISSTATE *clientState)
 	clientState->logSize = 0;
 }
 
+void performHighlighting(HIGHLIGHT_DATA *highlightData,thread_graph_data *graph, PROCESS_DATA* activePid)
+{
+	if (!highlightData->highlightState) return;
+
+	switch (highlightData->highlightState)
+	{
+	case HL_HIGHLIGHT_ADDRESS:
+		{
+			vector<INS_DATA*> insList = activePid->disassembly.at(highlightData->highlightAddr);
+			vector<INS_DATA*>::iterator insListIt = insList.begin();
+			int currentTid = graph->tid;
+			for (; insListIt != insList.end(); insListIt++)
+			{
+				INS_DATA *target = *insListIt;
+				printf("highlight vert %d\n", target->threadvertIdx.at(currentTid));
+			}
+			break;
+		}
+
+	case HL_HIGHLIGHT_SYM:
+		{
+			vector<int>::iterator externIt = graph->externList.begin();
+			for (; externIt != graph->externList.end(); externIt++)
+			{
+				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
+					printf("highlight vert %d\n", *externIt);
+			}
+			break;
+		}
+
+	case HL_HIGHLIGHT_MODULE:
+		{
+			vector<int>::iterator externIt = graph->externList.begin();
+			for (; externIt != graph->externList.end(); externIt++)
+			{
+				if (highlightData->highlightModule == graph->get_vert(*externIt)->nodeMod)
+					printf("highlight vert %d\n", *externIt);
+			}
+			break;
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 
@@ -736,6 +779,8 @@ int main(int argc, char **argv)
 				}
 
 				draw_anim_line(graph->get_active_node(), graph);
+				performHighlighting(&clientstate.highlightData, graph, clientstate.activePid);
+				
 
 				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
 				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
@@ -1068,9 +1113,34 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		switch (ev->keyboard.keycode)
 		{
-		case ALLEGRO_KEY_ESCAPE:
-			return EV_BTN_QUIT;
+		case ALLEGRO_KEY_ESCAPE: 
+		{
+			TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
+			if (widgets->diffWindow->diffFrame->isVisible())
+			{
+				widgets->diffWindow->diffFrame->setVisibility(false);
+				break; 
+			}
 
+			if (widgets->highlightWindow->highlightFrame->isVisible())
+			{
+				widgets->highlightWindow->highlightFrame->setVisibility(false);
+				break;
+			}
+
+			if (clientstate->highlightData.highlightState)
+			{
+				clientstate->highlightData.highlightState = 0;
+				break;
+			}
+
+			if (clientstate->modes.diff == true)
+			{
+				printf("cancel diff");
+				break;
+			}
+			return EV_BTN_QUIT;
+		}
 		case ALLEGRO_KEY_Y:
 			change_mode(clientstate, EV_BTN_WIREFRAME);
 			break;

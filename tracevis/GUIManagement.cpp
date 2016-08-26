@@ -256,10 +256,14 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		ALLEGRO_END_OF_MENU,
 
 		{ "&Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
+
+		ALLEGRO_START_OF_MENU("Views", 3),
 		{ "&Heatmap", EV_BTN_HEATMAP, 0, NULL },
 		{ "&Conditionals", EV_BTN_CONDITION, 0, NULL },
 		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
 		{ "&Diff", EV_BTN_DIFF, 0, NULL },
+		ALLEGRO_END_OF_MENU,
+
 		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },
 		{ "&Highlight", EV_BTN_HIGHLIGHT, 0, NULL },
 

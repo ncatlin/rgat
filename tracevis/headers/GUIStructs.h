@@ -42,6 +42,12 @@ struct GUI_DATA {
 	vector<ALLEGRO_COLOR> lineColoursArr;
 };
 
+struct HIGHLIGHT_DATA {
+	int highlightState = 0;
+	string highlight_s;
+	unsigned long highlightAddr;
+	int highlightModule = 0;
+};
 struct VISSTATE {
 	
 	ALLEGRO_DISPLAY *maindisplay = 0;
@@ -92,6 +98,8 @@ struct VISSTATE {
 	timeline *timelineBuilder;
 	ALLEGRO_TEXTLOG *textlog = 0;
 	unsigned int logSize = 0;
+
+	HIGHLIGHT_DATA highlightData;
 };
 
 //screen top bottom red green

@@ -39,7 +39,6 @@ public:
 		}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
 	void showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y);
-	//bool dropdownClose() { dropDownWidget->}
 
 	DiffSelectionFrame *diffWindow = NULL;
 	HighlightSelectionFrame *highlightWindow = NULL;
