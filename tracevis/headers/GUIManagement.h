@@ -60,9 +60,9 @@ private:
 	int animationState = -1;
 };
 
-class ComparisonBox {
+class DiffSelectionFrame {
 public:
-	ComparisonBox(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
+	DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
 	agui::RadioButton *firstDiffLabel;
 	agui::RadioButton *secondDiffLabel;
 	//todo make class for this
@@ -84,6 +84,27 @@ private:
 	thread_graph_data *graph2 = 0;
 };
 
+
+class HighlightSelectionFrame {
+public:
+	HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
+	agui::TextField *addressText;
+	agui::Button *addressBtn;
+
+	agui::TextField *symbolText;
+	agui::Button *symbolBtn;
+
+	agui::TextField *moduleText;
+	agui::Button *moduleBtn;
+	
+	//todo make class for this
+	agui::Frame *highlightFrame = NULL;
+	agui::Font *highlightFont;
+
+private:
+
+};
+
 class TraceVisGUI {
 
 public:
@@ -100,15 +121,17 @@ public:
 	void setActivePID(int PID);
 	void addPID(int PID);
 	void showHideDiffFrame();
+	void showHideHighlightFrame();
 	void processEvent(ALLEGRO_EVENT *ev) 
 		{ widgetInputHandler->processEvent(*ev); 
 			widgets->logic();
 		}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
-	void showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, int x, int y);
+	void showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y);
 	//bool dropdownClose() { dropDownWidget->}
 
-	ComparisonBox *diffWindow = NULL;
+	DiffSelectionFrame *diffWindow = NULL;
+	HighlightSelectionFrame *highlightWindow = NULL;
 	AnimControls *controlWindow = NULL;
 
 protected:

@@ -4,13 +4,13 @@
 #include "traceMisc.h"
 #include "rendering.h"
 
-void __stdcall graph_renderer::ThreadEntry(void* pUserData) {
-	return ((graph_renderer*)pUserData)->rendering_thread();
+void __stdcall preview_renderer::ThreadEntry(void* pUserData) {
+	return ((preview_renderer*)pUserData)->rendering_thread();
 }
 
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
-void graph_renderer::rendering_thread()
+void preview_renderer::rendering_thread()
 {
 	thread_graph_data *activeGraph = 0;
 

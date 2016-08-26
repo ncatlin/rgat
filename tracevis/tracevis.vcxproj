@@ -154,15 +154,15 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="diff_plotter.h" />
+    <ClInclude Include="headers\diff_plotter.h" />
     <ClInclude Include="mathStructs.h" />
     <ClInclude Include="headers\edge_data.h" />
     <ClInclude Include="headers\graph_display_data.h" />
     <ClInclude Include="headers\node_data.h" />
     <ClInclude Include="headers\preview_pane.h" />
-    <ClInclude Include="render_conditional_thread.h" />
-    <ClInclude Include="render_heatmap_thread.h" />
-    <ClInclude Include="render_preview_thread.h" />
+    <ClInclude Include="headers\render_conditional_thread.h" />
+    <ClInclude Include="headers\render_heatmap_thread.h" />
+    <ClInclude Include="headers\render_preview_thread.h" />
     <ClInclude Include="headers\basicblock_handler.h" />
     <ClInclude Include="headers\b64.h" />
     <ClInclude Include="headers\graphicsMaths.h" />

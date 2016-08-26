@@ -54,7 +54,7 @@ struct FUNCARG {
 	FUNCARG *nextarg;
 };
 
-struct PID_DATA {
+struct PROCESS_DATA {
 	bool active = true;
 	map <int, string>modpaths;
 	int PID = -1;

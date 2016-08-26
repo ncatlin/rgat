@@ -78,7 +78,7 @@ struct VISSTATE {
 	thread_graph_data *activeGraph = NULL;
 	void *newActiveGraph = NULL;
 	int newPID = -1;
-	PID_DATA *activePid = NULL;
+	PROCESS_DATA *activePid = NULL;
 	GUI_DATA *guidata;
 
 	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
@@ -86,7 +86,7 @@ struct VISSTATE {
 	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
 	GLuint wireframeVBOs[2];
 
-	std::map<int, PID_DATA *> glob_piddata_map;
+	std::map<int, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
 	timeline *timelineBuilder;

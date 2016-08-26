@@ -175,7 +175,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 }
 
-string thread_graph_data::get_node_sym(unsigned int idx, PID_DATA* piddata)
+string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_vert(idx);
 	map<long, string> *modSyms = &piddata->modsyms.at(n->nodeMod);
@@ -717,7 +717,7 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 }
 
 
-void thread_graph_data::assign_modpath(PID_DATA *pidinfo) 
+void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo) 
 {
 	baseMod = vertDict[0].nodeMod;
 	if (baseMod >= (int)pidinfo->modpaths.size()) return;
@@ -1001,7 +1001,6 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 	pair<unsigned long, int> seq_size;
 	pair<unsigned int, unsigned long> loopstateIdx_Its;
 	int mutation;
-	unsigned long sequenceIdx, mutationIts;
 
 	while (true)
 	{

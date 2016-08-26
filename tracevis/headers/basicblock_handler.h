@@ -10,7 +10,7 @@ public:
 	//thread_start_data startData;
 	static void __stdcall ThreadEntry(void* pUserData);
 	int PID;
-	PID_DATA *piddata = 0;
+	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
 protected:

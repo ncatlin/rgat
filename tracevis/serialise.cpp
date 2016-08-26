@@ -35,7 +35,7 @@ void writetag(ofstream *file, char tag, int id = 0) {
 	}
 }
 
-void saveModulePaths(PID_DATA *piddata, ofstream *file)
+void saveModulePaths(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_PATH);
 
@@ -49,7 +49,7 @@ void saveModulePaths(PID_DATA *piddata, ofstream *file)
 }
 
 //big, but worth doing in case environments differ
-void saveModuleSymbols(PID_DATA *piddata, ofstream *file)
+void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_SYM);
 	*file << " ";
@@ -70,7 +70,7 @@ void saveModuleSymbols(PID_DATA *piddata, ofstream *file)
 	writetag(file, tag_END, tag_SYM);
 }
 
-void saveDisassembly(PID_DATA *piddata, ofstream *file)
+void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_DISAS);
 	//dump disassembly - could try to be concise and reconstruct on load
@@ -97,7 +97,7 @@ void saveDisassembly(PID_DATA *piddata, ofstream *file)
 	writetag(file, tag_END, tag_DISAS);
 }
 
-void saveProcessData(PID_DATA *piddata, ofstream *file)
+void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_PROCESSDATA);
 
@@ -178,7 +178,7 @@ int extractb64path(ifstream *file, unsigned long *id, string *modpath, string en
 
 //take a {} enclosed blog of , separated b64 encoded symbols
 //insert into respective piddata
-int extractmodsyms(stringstream *blob, int modnum, PID_DATA* piddata)
+int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 {
 	string symAddress_s, b64Sym;
 	unsigned long symAddress;
@@ -197,7 +197,7 @@ int extractmodsyms(stringstream *blob, int modnum, PID_DATA* piddata)
 	}
 }
 
-bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
+bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
 	
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
@@ -330,7 +330,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
 }
 
 
-bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PID_DATA* piddata)
+bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
 	char tagbuf[3]; int TID; string tidstring;
 	printf("Loading thread graphs...\n");

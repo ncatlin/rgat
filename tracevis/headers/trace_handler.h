@@ -25,7 +25,7 @@ public:
 	int PID;
 	int TID;
 	thread_graph_data *watchedGraph;
-	PID_DATA *piddata;
+	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
 	
 

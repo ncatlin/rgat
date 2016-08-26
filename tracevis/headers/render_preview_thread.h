@@ -3,14 +3,14 @@
 #include "traceStructs.h"
 #include "GUIStructs.h"
 
-class graph_renderer
+class preview_renderer
 {
 public:
 	//thread_start_data startData;
 	static void __stdcall ThreadEntry(void* pUserData);
 	int PID;
 	bool sizeChanged;
-	PID_DATA *piddata = 0;
+	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
 protected:

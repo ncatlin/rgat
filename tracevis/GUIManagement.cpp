@@ -387,20 +387,20 @@ void TraceVisGUI::setActivePID(int PID) {
 	dropDownWidget->setText(pidstring);
 }
 
-int ComparisonBox::getSelectedDiff() {
+int DiffSelectionFrame::getSelectedDiff() {
 	if (firstDiffLabel->getCheckedState()) return 0;
 	if (secondDiffLabel->getCheckedState()) return 1;
 	return 0;
 }
 
-thread_graph_data *ComparisonBox::get_graph(int idx)
+thread_graph_data *DiffSelectionFrame::get_graph(int idx)
 {
 	if (idx == 1) return graph1;
 	if (idx == 2) return graph2;
 	return 0;
 }
 
-void ComparisonBox::setDiffGraph(thread_graph_data *graph) {
+void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 	int graphIdx = getSelectedDiff();
 	stringstream graphText;
 	graphText << "[Thread " << std::to_string(graphIdx + 1) << "] PID:" << graph->pid << " TID:" << graph->tid;
@@ -446,7 +446,44 @@ void TraceVisGUI::showHideDiffFrame() {
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
-ComparisonBox::ComparisonBox(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) {
+void TraceVisGUI::showHideHighlightFrame() {
+	highlightWindow->highlightFrame->setVisibility(!highlightWindow->highlightFrame->isVisible());
+}
+
+HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font)
+{
+	highlightFrame = new agui::Frame;
+	highlightFrame->setSize(300, 200);
+	highlightFrame->setLocation(200, 300);
+	widgets->add(highlightFrame);
+	highlightFrame->setVisibility(false);
+
+	addressText = new agui::TextField;
+	addressText->setLocation(20, 20);
+	addressText->setText("Address");
+	addressText->resizeToContents();
+	highlightFrame->add(addressText);
+
+	addressBtn = new agui::Button;
+	addressBtn->setLocation(90, 20);
+	addressBtn->setText("Highlight");
+	addressBtn->resizeToContents();
+	highlightFrame->add(addressBtn);
+
+	symbolText = new agui::TextField;
+	symbolText->setLocation(20, 60);
+	symbolText->setText("symbolText");
+	symbolText->resizeToContents();
+	highlightFrame->add(symbolText);
+
+	moduleText = new agui::TextField;
+	moduleText->setLocation(20, 100);
+	moduleText->setText("moduleText");
+	moduleText->resizeToContents();
+	highlightFrame->add(moduleText);
+}
+
+DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) {
 	int paneHeight = 400;
 	diffFrame = new agui::Frame;
 	diffFrame->setSize(480, paneHeight);
@@ -514,7 +551,7 @@ void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
 	widgets->render();
 }
 
-void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PID_DATA *piddata, int x, int y) {
+void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {
 	if (!graph)
 	{
 		tippy->hide(); 
@@ -579,12 +616,9 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	dropDownWidget->addItem("0123456789 ");
 	dropDownWidget->removeItemAt(0);
 
-	diffWindow = new ComparisonBox(widgets, clientState, defaultFont);
+	diffWindow = new DiffSelectionFrame(widgets, clientState, defaultFont);
 	controlWindow = new AnimControls(widgets, clientState, defaultFont);
-
-	
-
-
+	highlightWindow = new HighlightSelectionFrame(widgets, clientState, defaultFont);
 
 }
 
@@ -684,7 +718,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	stringstream infotxt;
 	ALLEGRO_COLOR textcol;
 
-	PID_DATA *piddata = clientState->activePid;
+	PROCESS_DATA *piddata = clientState->activePid;
 	if (piddata->active)
 		textcol = al_col_white;
 	else
@@ -737,6 +771,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
 		{ "&Diff", EV_BTN_DIFF, 0, NULL },
 		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },
+		{ "&Highlight", EV_BTN_HIGHLIGHT, 0, NULL },
 
 		ALLEGRO_START_OF_MENU("Settings", 3),
 		{ "Show Nodes", EV_BTN_NODES, 0, NULL },

@@ -60,15 +60,6 @@
     <ClInclude Include="headers\GUIManagement.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="render_preview_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="render_heatmap_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="render_conditional_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\b64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -90,9 +81,6 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="diff_plotter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\preview_pane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -103,6 +91,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="timeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_heatmap_thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_conditional_thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_preview_thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\diff_plotter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

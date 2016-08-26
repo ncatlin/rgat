@@ -22,8 +22,6 @@
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
 
-//#include <allegro5/allegro_primitives.h>
-
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
 
 string getModulePath()
@@ -34,10 +32,10 @@ string getModulePath()
 	return string(buffer).substr(0, pos);
 }
 
-void launch_saved_PID_threads(int PID, PID_DATA *piddata, VISSTATE *clientState)
+void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
-	graph_renderer *render_thread = new graph_renderer;
+	preview_renderer *render_thread = new preview_renderer;
 	render_thread->clientState = clientState;
 	render_thread->PID = PID;
 	render_thread->piddata = piddata;
@@ -65,8 +63,8 @@ void launch_saved_PID_threads(int PID, PID_DATA *piddata, VISSTATE *clientState)
 
 }
 //todo: make this a thread/mainloop check that listens for new processes
-void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
-	PID_DATA *piddata = new PID_DATA;
+void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
+	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
 
 	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return;
@@ -96,7 +94,7 @@ void launch_new_process_threads(int PID, std::map<int, PID_DATA *> *glob_piddata
 		(LPVOID)tBBThread, 0, &threadID);
 
 	//renders threads for preview pane
-	graph_renderer *render_preview_thread = new graph_renderer;
+	preview_renderer *render_preview_thread = new preview_renderer;
 	render_preview_thread->clientState = clientState;
 	render_preview_thread->PID = PID;
 	render_preview_thread->piddata = piddata;
@@ -368,7 +366,7 @@ struct EXTTEXT{
 	string displayString;
 } ;
 
-string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args, PID_DATA* piddata)
+string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args, PROCESS_DATA* piddata)
 {
 	stringstream funcArgStr;
 	funcArgStr << graph->get_node_sym(nodeIdx, piddata) << "(";
@@ -384,7 +382,7 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pai
 	return funcArgStr.str();
 }
 
-void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PID_DATA* piddata)
+void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
 	while (!graph->funcQueue.empty())
 	{
@@ -610,7 +608,7 @@ int main(int argc, char **argv)
 		{
 			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop",2000)) return 0;
 
-			PID_DATA *activePid = clientstate.glob_piddata_map.begin()->second;
+			PROCESS_DATA *activePid = clientstate.glob_piddata_map.begin()->second;
 			
 			widgets->setActivePID(activePid->PID);
 			clientstate.activePid = activePid;
@@ -679,7 +677,6 @@ int main(int argc, char **argv)
 			
 		}
 
-		if (!clientstate.activeGraph) printf("INACTIVE GRAPH\n");
 		if (clientstate.activeGraph)
 		{
 
@@ -883,7 +880,7 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 	else printf("Loading saved PID: %d\n", PID);
 	loadfile.seekg(1, ios::cur);
 
-	PID_DATA *newpiddata = new PID_DATA;
+	PROCESS_DATA *newpiddata = new PROCESS_DATA;
 	newpiddata->PID = PID;
 	if (!loadProcessData(clientstate, &loadfile, newpiddata))
 	{
@@ -911,7 +908,7 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 
 void set_active_graph(VISSTATE *clientState, int PID, int TID)
 {
-	PID_DATA* target_pid = clientState->glob_piddata_map[PID];
+	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
 	clientState->newActiveGraph = target_pid->graphs[TID];
 
 	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
@@ -1168,6 +1165,11 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case EV_BTN_EDGES:
 			change_mode(clientstate, ev->user.data1);
 			break;
+
+		case EV_BTN_HIGHLIGHT:
+			((TraceVisGUI *)clientstate->widgets)->showHideHighlightFrame();
+			break;
+
 		case EV_BTN_DIFF:
 			((TraceVisGUI *)clientstate->widgets)->showHideDiffFrame();
 			break;

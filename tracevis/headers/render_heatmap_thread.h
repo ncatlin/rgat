@@ -16,7 +16,7 @@ public:
 	//thread_start_data startData;
 	static void __stdcall ThreadEntry(void* pUserData);
 	bool sizeChanged;
-	PID_DATA *piddata = 0;
+	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
 protected:

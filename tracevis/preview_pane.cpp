@@ -162,7 +162,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 
 	if (!obtainMutex(clientState->pidMapMutex, "Preview Pane")) return;
 
-	//std::map<int, PID_DATA *>::iterator pidit = clientState->glob_piddata_map.begin();
+	//std::map<int, PROCESS_DATA *>::iterator pidit = clientState->glob_piddata_map.begin();
 	std::map<int, void *>::iterator threadit;
 
 	thread_graph_data *previewGraph = 0;

@@ -76,7 +76,7 @@ public:
 	void add_edge(edge_data e, pair<int, int> edgePair);
 	void insert_vert(int targVertID, node_data node); 
 	void extend_faded_edges();
-	void assign_modpath(PID_DATA *);
+	void assign_modpath(PROCESS_DATA *);
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
 	GRAPH_DISPLAY_DATA *get_mainverts() { return mainvertsdata; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
@@ -117,7 +117,7 @@ public:
 	void animate_latest();
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
-	string get_node_sym(unsigned int idx, PID_DATA* piddata);
+	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
 	void highlight_externs(unsigned long targetSequence);
 
 	void reset_mainlines();
