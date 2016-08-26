@@ -50,22 +50,6 @@ void HighlightSelectionFrame::refreshDropdowns()
 {
 	thread_graph_data *graph = clientState->activeGraph;
 	if (!clientState->activePid || !graph) return;
-	
-	if (lastModCount != clientState->activePid->modpaths.size())
-	{
-		moduleDropdown->clearItems();
-		map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
-		for (; pathIt != clientState->activePid->modpaths.end(); pathIt++)
-		{
-			if (pathIt->second == "NULL")
-				moduleDropdown->addItem("[UNKNOWN]");
-			else
-				moduleDropdown->addItem(pathIt->second);
-		}
-		lastModCount = clientState->activePid->modpaths.size();
-	}
-
-	if (lastSymCount == graph->externList.size()) return;
 
 	if (graph->get_num_verts())
 	{
@@ -75,18 +59,24 @@ void HighlightSelectionFrame::refreshDropdowns()
 		addressText->setText(hexaddress.str());
 	}
 
+	if (lastSymCount == graph->externList.size()) return;
+
 	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
 	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex, "Display externlist");
 	vector<int>::iterator externIt = externListCopy.begin();
 
 	vector<string> addedSyms;
+	map<int,int> activeModules;
 	for (; externIt != externListCopy.end(); externIt++)
 	{
 		string sym = graph->get_node_sym(*externIt, clientState->activePid);
 		bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
 		if (newSym)
 			addedSyms.push_back(sym);
+		node_data* node = graph->get_vert(*externIt);
+		++activeModules[node->nodeMod];
+
 	}
 	lastSymCount = externListCopy.size();
 
@@ -95,6 +85,22 @@ void HighlightSelectionFrame::refreshDropdowns()
 	symbolDropdown->clearItems();
 	for (symIt = addedSyms.begin(); symIt != addedSyms.end(); ++symIt)
 		symbolDropdown->addItem(*symIt);
+
+	moduleDropdown->clearItems();
+	map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
+	for (; pathIt != clientState->activePid->modpaths.end(); pathIt++)
+	{
+		stringstream pathString;
+		if (pathIt->second == "NULL")
+			pathString << "[UNKNOWN]";
+		else
+			pathString << pathIt->second;
+		
+		if (activeModules.count(pathIt->first))
+			pathString << " (" << activeModules.at(pathIt->first) << ")";
+		moduleDropdown->addItem(pathString.str());
+	}
+	lastModCount = clientState->activePid->modpaths.size();
 
 }
 

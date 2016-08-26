@@ -748,7 +748,6 @@ int main(int argc, char **argv)
 				if(clientstate.highlightData.highlightState)
 					graph->highlightNodes(&clientstate.highlightData.highlightNodes);
 				
-
 				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
 				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
 				else
@@ -789,7 +788,6 @@ int main(int argc, char **argv)
 			al_set_target_backbuffer(clientstate.maindisplay);
 			if (clientstate.modes.preview)
 			{
-
 				if (previewRenderFrame++ % (60 / PREVIEW_RENDER_FPS))
 				{
 					drawPreviewGraphs(&clientstate, &graphPositions);
@@ -863,7 +861,6 @@ int main(int argc, char **argv)
 		fps_unlocked = 1 / (al_get_time() - frame_start_time);
 		al_wait_for_event(frame_timer_queue, &tev);
 		fps = 1 / (al_get_time() - frame_start_time);
-		//if (fps < 50) printf("FPS WARNING! %f (unlocked: %f)\n", fps, fps_unlocked);
 		updateTitle_FPS(clientstate.maindisplay, clientstate.title, fps, fps_unlocked);
 	}
 
@@ -1105,7 +1102,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 				break;
 			}
 
-			if (clientstate->modes.diff == true)
+			if (clientstate->modes.diff)
 			{
 				printf("cancel diff");
 				break;
