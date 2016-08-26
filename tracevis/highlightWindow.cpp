@@ -13,7 +13,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		vector<INS_DATA*> insList = activePid->disassembly.at(highlightData->highlightAddr);
 		vector<INS_DATA*>::iterator insListIt = insList.begin();
 		int currentTid = graph->tid;
-		for (; insListIt != insList.end(); insListIt++)
+		for (; insListIt != insList.end(); ++insListIt)
 		{
 			INS_DATA *target = *insListIt;
 			node_data *n = graph->get_vert(target->threadvertIdx.at(currentTid));
@@ -25,7 +25,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 	case HL_HIGHLIGHT_SYM:
 	{
 		vector<int>::iterator externIt = graph->externList.begin();
-		for (; externIt != graph->externList.end(); externIt++)
+		for (; externIt != graph->externList.end(); ++externIt)
 		{
 			if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
 				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
@@ -36,7 +36,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 	case HL_HIGHLIGHT_MODULE:
 	{
 		vector<int>::iterator externIt = graph->externList.begin();
-		for (; externIt != graph->externList.end(); externIt++)
+		for (; externIt != graph->externList.end(); ++externIt)
 		{
 			if (highlightData->highlightModule == graph->get_vert(*externIt)->nodeMod)
 				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
@@ -68,7 +68,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 
 	vector<string> addedSyms;
 	map<int,int> activeModules;
-	for (; externIt != externListCopy.end(); externIt++)
+	for (; externIt != externListCopy.end(); ++externIt)
 	{
 		string sym = graph->get_node_sym(*externIt, clientState->activePid);
 		bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
@@ -88,7 +88,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 
 	moduleDropdown->clearItems();
 	map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
-	for (; pathIt != clientState->activePid->modpaths.end(); pathIt++)
+	for (; pathIt != clientState->activePid->modpaths.end(); ++pathIt)
 	{
 		stringstream pathString;
 		if (pathIt->second == "NULL")

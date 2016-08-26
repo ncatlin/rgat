@@ -372,7 +372,7 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pai
 	funcArgStr << graph->get_node_sym(nodeIdx, piddata) << "(";
 
 	int numargs = args.size();
-	for (int i = 0; i < numargs; i++)
+	for (int i = 0; i < numargs; ++i)
 	{
 		funcArgStr << args[i].first << ": " << args[i].second;
 		if (i < numargs - 1)
@@ -458,7 +458,7 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	}
 
 	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
-	for (; drawIt != drawMap.end(); drawIt++)
+	for (; drawIt != drawMap.end(); ++drawIt)
 	{
 		EXTTEXT* ex = drawIt->first;
 		node_data *n = graph->get_vert(ex->nodeIdx);
@@ -616,7 +616,7 @@ int main(int argc, char **argv)
 			map<int, void *>::iterator graphIt;
 			graphIt = activePid->graphs.begin();
 
-			for (; graphIt != activePid->graphs.end(); graphIt++)
+			for (; graphIt != activePid->graphs.end(); ++graphIt)
 			{
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->get_num_edges()) continue;
@@ -827,7 +827,7 @@ int main(int argc, char **argv)
 					map<int, void *>::iterator pidIt;
 					//get first graph with some verts
 					clientstate.newActiveGraph = 0;
-					for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); pidIt++)
+					for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)
 					{
 						pair<int, void *> graphPair = *pidIt;
 						thread_graph_data *graph = (thread_graph_data *)graphPair.second;

@@ -128,7 +128,7 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) {
 		float colb = (float)rowi / 180;
 		float ringSizeTop, ringSizeBase, anglel, angler;
-		for (coli = 0; coli < ADIVISIONS; coli++) {
+		for (coli = 0; coli < ADIVISIONS; ++coli) {
 
 			float cola = 1 - ((float)coli / ADIVISIONS);
 
@@ -153,7 +153,7 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 			brz = ringSizeBase * sin(angler);
 
 			int i;
-			for (i = 0; i < 4; i++)
+			for (i = 0; i < 4; ++i)
 			{
 				spherecol[bufpos + i*3] = colb;
 				spherecol[bufpos + i*3 + 1] = cola;

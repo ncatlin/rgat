@@ -205,7 +205,7 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 	//if not looping
 	if (!loopStateList.at(sequenceIndex).first)
 	{
-		sequenceIndex++;
+		++sequenceIndex;
 		highlight_externs(sequenceIndex);
 		return true;
 	}
@@ -246,20 +246,20 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 		{
 			
 			printf("End loop %d seq:%d\n", loopsPlayed, sequenceIndex);
-			loopsPlayed++;
+			++loopsPlayed;
 			animLoopProgress.clear();
 			animLoopStartIdx = 0;
 			animLoopIndex = 0;
 		}
 		else
-			animLoopIndex++;
+			++animLoopIndex;
 		
 		if (sequenceIndex + 1 >= bbsequence.size()) return false;
-		sequenceIndex++;
+		++sequenceIndex;
 
 		if (skipLoop)
 			while (loopStateList.at(sequenceIndex).first)
-				sequenceIndex++;
+				++sequenceIndex;
 	}
 
 	//end of loop
@@ -271,8 +271,8 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 	else
 	{
 		if (sequenceIndex + 1 >= bbsequence.size()) return false;
-		sequenceIndex++;
-		animLoopIndex++;
+		++sequenceIndex;
+		++animLoopIndex;
 	}
 	return true;
 }
@@ -282,14 +282,14 @@ void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 
 	if (stepSize > 0)
 	{
-		for (int i = 0; i < stepSize; i++)
+		for (int i = 0; i < stepSize; ++i)
 			if (!advance_sequence(skipLoop)) break;
 
 	}
 	else if (stepSize < 0)
 	{
 		stepSize *= -1;
-		for (int i = 0; i < stepSize; i++)
+		for (int i = 0; i < stepSize; ++i)
 			decrease_sequence();
 	}
 
@@ -330,7 +330,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		{
 			printf("WARNING: 0 vertsize in darken\n"); animlinedata->release_col();  return;
 		}
-		for (unsigned int i = 0; i < e->vertSize; i++)
+		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
 			edgeAlpha = ecol[edgeStart + i*COLELEMS + 3];
 			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
@@ -340,7 +340,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		if (edgeAlpha == MINIMUM_FADE_ALPHA)
 			activeEdgeIt = activeEdgeList.erase(activeEdgeIt);
 		else
-			activeEdgeIt++;
+			++activeEdgeIt;
 	}
 	animlinedata->release_col();
 
@@ -357,7 +357,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		if (currentAlpha == 0.02)
 			activeNodeIt = activeNodeList.erase(activeNodeIt);
 		else
-			activeNodeIt++;
+			++activeNodeIt;
 	}
 
 	animvertsdata->release_col();
@@ -399,7 +399,7 @@ void thread_graph_data::brighten_BBs()
 
 	map <unsigned long, bool> recentHighlights;
 	//place active on new active
-	for (; animPosition < animEnd; animPosition++)
+	for (; animPosition < animEnd; ++animPosition)
 	{
 		highlight_externs(animPosition);
 		//dont re-brighten on same animation frame
@@ -454,7 +454,7 @@ void thread_graph_data::brighten_BBs()
 				edge_data *linkingEdge = get_edge(edgePair);
 
 				int numEdgeVerts = linkingEdge->vertSize;
-				for (int i = 0; i < numEdgeVerts; i++) {
+				for (int i = 0; i < numEdgeVerts; ++i) {
 					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
 				}
 				if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
@@ -462,7 +462,7 @@ void thread_graph_data::brighten_BBs()
 			}
 		}
 
-		for (int blockIdx = 0; blockIdx < numInstructions; blockIdx++)
+		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
 			ncol[(nodeIdx * COLELEMS) + 3] = 1;
 
@@ -711,7 +711,7 @@ void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GR
 {
 	edge_data *e = get_edge(eIdx);
 	GLfloat *colarray = edgesdata->acquire_col("2e");
-	for (unsigned int i = 0; i < e->vertSize; i++)
+	for (unsigned int i = 0; i < e->vertSize; ++i)
 	{
 		colarray[e->arraypos + i*COLELEMS + 3] = alpha;
 	}
@@ -744,19 +744,19 @@ bool thread_graph_data::serialise(ofstream *file)
 
 	*file << "N{";
 	map<unsigned int, node_data>::iterator vertit = vertDict.begin();
-	for (; vertit != vertDict.end(); vertit++)
+	for (; vertit != vertDict.end(); ++vertit)
 		vertit->second.serialise(file);
 	*file << "}N,";
 
 	*file << "D{";
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeDit = edgeDict.begin();
-	for (; edgeDit != edgeDict.end(); edgeDit++)
-		edgeDit->second.serialise(file, edgeDit->first.first, edgeDit->first.second);
+	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeDIt = edgeDict.begin();
+	for (; edgeDIt != edgeDict.end(); ++edgeDIt)
+		edgeDIt->second.serialise(file, edgeDIt->first.first, edgeDIt->first.second);
 	*file << "}D,";
 
 	*file << "E{";
 	vector<int>::iterator externit = externList.begin();
-	for (; externit != externList.end(); externit++)
+	for (; externit != externList.end(); ++externit)
 		*file << *externit << ",";
 	*file << "}E,";
 
@@ -879,7 +879,7 @@ bool thread_graph_data::loadCallSequence(ifstream *file)
 		if (!caught_stoi(value_s, &nodeIdx, 10)) break;
 		getline(*file, value_s, ',');
 		if (!caught_stoi(value_s, &listSize, 10)) break;
-		for (int i = 0; i < listSize; i++)
+		for (int i = 0; i < listSize; ++i)
 		{
 			getline(*file, value_s, ',');
 			if (!caught_stoi(value_s, &callPair.first, 10)) break;
@@ -950,7 +950,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS
 			return false;
 
 		vector <vector<pair<int, string>>> funcCalls;
-		for (int i = 0; i < numCalls; i++)
+		for (int i = 0; i < numCalls; ++i)
 		{
 			int argidx, numArgs = 0;
 			getline(*file, value_s, ',');
@@ -958,7 +958,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS
 				return false;
 			vector<pair<int, string>> callArgs;
 
-			for (int i = 0; i < numArgs; i++)
+			for (int i = 0; i < numArgs; ++i)
 			{
 				getline(*file, value_s, ',');
 				if (!caught_stoi(value_s, &argidx, 10))

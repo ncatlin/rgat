@@ -17,7 +17,7 @@ void plot_wireframe(VISSTATE *clientstate)
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
-		for (pp = 0; pp < WF_POINTSPERLINE; pp++) {
+		for (pp = 0; pp < WF_POINTSPERLINE; ++pp) {
 
 			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
 
@@ -38,7 +38,7 @@ void plot_wireframe(VISSTATE *clientstate)
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float degs2 = (ii*M_PI) / 180;  
-		for (pp = 0; pp < points; pp++) {
+		for (pp = 0; pp < points; ++pp) {
 
 			float angle = (2 * M_PI * pp) / points;
 			float cosangle = cos(angle);
@@ -119,7 +119,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	FCOORD resultC;
 
 	int segments = float(curvePoints) / 2;
-	for (dt = 1; dt < segments + 1; dt++)
+	for (dt = 1; dt < segments + 1; ++dt)
 	{
 
 		bezierPT(startC, bezierC, endC, dt, segments, &resultC);
@@ -357,7 +357,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	if (vertit == vertEnd) return 0;
 	int maxVerts = 50;
-	for (; vertit != vertEnd; vertit++)
+	for (; vertit != vertEnd; ++vertit)
 	{
 		int retries = 0;
 	 while (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
@@ -383,7 +383,7 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	map<unsigned int, node_data>::iterator target = graph->get_vertStart();
 	printf("starting resize\n");
 	GLfloat *vpos = vertsdata->acquire_pos("1i");
-	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; vertit++)
+	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; ++vertit)
 	{
 		FCOORD c = vertit->second.sphereCoordB(scalefactors, 0);
 		int vertIdx = vertit->second.index;
@@ -470,7 +470,7 @@ int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
 		graph->needVBOReload_preview = true;
 
 	int maxEdges = 50;
-	for (; edgeIt != edgeEnd; edgeIt++)
+	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		graph->render_edge(*edgeIt, graph->previewlines, &clientstate->guidata->lineColoursArr, 0, true);
 		graph->previewlines->inc_edgesRendered();
@@ -536,7 +536,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	dropMutex(graph->funcQueueMutex, "Display externlist");
 
 	vector<int>::iterator externCallIt = externListCopy.begin();
-	for (; externCallIt != externListCopy.end(); externCallIt++)
+	for (; externCallIt != externListCopy.end(); ++externCallIt)
 	{
 		int externVertIdx = *externCallIt;
 		node_data *n = graph->get_vert(externVertIdx);
@@ -560,7 +560,7 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_verts();
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
-	for (i = 0; i < numVerts; i++)
+	for (i = 0; i < numVerts; ++i)
 	{
 
 		node_data *n = graph->get_vert(i);
@@ -607,7 +607,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
-	for (i = 0; i < numVerts; i++)
+	for (i = 0; i < numVerts; ++i)
 	{
 		node_data *n = graph->get_vert(i);
 		if (n->external || !n->ins->conditional) continue;
@@ -661,7 +661,7 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 	vector<pair<unsigned int, unsigned int>>::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
-	for (; edgeIt != edgeEnd; edgeIt++)
+	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		node_data *n = graph->get_vert(edgeIt->first);
 
