@@ -1,5 +1,51 @@
 #include "highlightWindow.h"
 
+void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData, 
+	thread_graph_data *graph, PROCESS_DATA* activePid)
+{
+	highlightData->highlightNodes.clear();
+	if (!highlightData->highlightState) return;
+
+	switch (highlightData->highlightState)
+	{
+	case HL_HIGHLIGHT_ADDRESS:
+	{
+		vector<INS_DATA*> insList = activePid->disassembly.at(highlightData->highlightAddr);
+		vector<INS_DATA*>::iterator insListIt = insList.begin();
+		int currentTid = graph->tid;
+		for (; insListIt != insList.end(); insListIt++)
+		{
+			INS_DATA *target = *insListIt;
+			node_data *n = graph->get_vert(target->threadvertIdx.at(currentTid));
+			highlightData->highlightNodes.push_back(n);
+		}
+		break;
+	}
+
+	case HL_HIGHLIGHT_SYM:
+	{
+		vector<int>::iterator externIt = graph->externList.begin();
+		for (; externIt != graph->externList.end(); externIt++)
+		{
+			if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
+				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
+		}
+		break;
+	}
+
+	case HL_HIGHLIGHT_MODULE:
+	{
+		vector<int>::iterator externIt = graph->externList.begin();
+		for (; externIt != graph->externList.end(); externIt++)
+		{
+			if (highlightData->highlightModule == graph->get_vert(*externIt)->nodeMod)
+				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
+		}
+		break;
+	}
+	}
+}
+
 void HighlightSelectionFrame::refreshDropdowns()
 {
 	thread_graph_data *graph = clientState->activeGraph;

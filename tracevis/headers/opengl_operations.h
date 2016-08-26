@@ -25,4 +25,5 @@ void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes);
 int plot_colourpick_sphere(VISSTATE *clientstate);
 
 void drawRedLine(FCOORD p1, FCOORD p2);
+void drawHighlightLine(FCOORD p1, FCOORD p2);
 void gather_projection_data(PROJECTDATA *pd);

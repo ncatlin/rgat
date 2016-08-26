@@ -265,8 +265,6 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	return curvePoints;
 }
 
-
-
 int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions)
 {
 	ALLEGRO_COLOR *active_col;
@@ -860,7 +858,7 @@ void display_big_conditional(VISSTATE *clientstate)
 	}
 }
 
-void draw_anim_line(node_data *node, thread_graph_data *graph)
+void draw_anim_line(node_data *node, MULTIPLIERS *scale)
 {
 	if (!node) return;
 
@@ -872,6 +870,22 @@ void draw_anim_line(node_data *node, thread_graph_data *graph)
 	FCOORD nodeCoord;
 	VCOORD *npos = &node->vcoord;
 	float adjB = npos->b + float(npos->bMod * BMODMAG);
-	sphereCoord(npos->a, adjB, &nodeCoord, graph->m_scalefactors, 0);
+	sphereCoord(npos->a, adjB, &nodeCoord, scale, 0);
 	drawRedLine(center, nodeCoord);
+}
+
+void drawHighlight(node_data *node, MULTIPLIERS *scale)
+{
+	if (!node) return;
+
+	FCOORD center;
+	center.x = 0;
+	center.y = 0;
+	center.z = 0;
+
+	FCOORD nodeCoord;
+	VCOORD *npos = &node->vcoord;
+	float adjB = npos->b + float(npos->bMod * BMODMAG);
+	sphereCoord(npos->a, adjB, &nodeCoord, scale, 2000);
+	drawHighlightLine(center, nodeCoord);
 }

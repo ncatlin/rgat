@@ -271,3 +271,11 @@ void drawRedLine(FCOORD p1, FCOORD p2) {
 	glVertex3f(p2.x, p2.y, p2.z);
 	glEnd();
 }
+
+void drawHighlightLine(FCOORD p1, FCOORD p2) {
+	glColor3f(0, 1, 0);
+	glBegin(GL_LINES);
+	glVertex3f(p1.x, p1.y, p1.z);
+	glVertex3f(p2.x, p2.y, p2.z);
+	glEnd();
+}

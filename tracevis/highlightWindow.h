@@ -26,6 +26,7 @@ public:
 	agui::Frame *highlightFrame = NULL;
 	agui::Font *highlightFont;
 	void refreshDropdowns();
+	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, thread_graph_data *graph, PROCESS_DATA* activePid);
 
 private:
 	int lastModCount = 0;
@@ -82,7 +83,11 @@ public:
 				break; 
 			}
 		}
+		hl_frame->updateHighlightNodes(&clientState->highlightData,
+			clientState->activeGraph,
+			clientState->activePid);
 	}
+
 private:
 	VISSTATE *clientState;
 	int id;

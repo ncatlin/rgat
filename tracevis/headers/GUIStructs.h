@@ -47,6 +47,7 @@ struct HIGHLIGHT_DATA {
 	string highlight_s;
 	unsigned long highlightAddr;
 	int highlightModule = 0;
+	vector<node_data *> highlightNodes;
 };
 struct VISSTATE {
 	

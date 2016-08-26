@@ -489,48 +489,7 @@ void closeTextLog(VISSTATE *clientState)
 	clientState->logSize = 0;
 }
 
-void performHighlighting(HIGHLIGHT_DATA *highlightData,thread_graph_data *graph, PROCESS_DATA* activePid)
-{
-	if (!highlightData->highlightState) return;
 
-	switch (highlightData->highlightState)
-	{
-	case HL_HIGHLIGHT_ADDRESS:
-		{
-			vector<INS_DATA*> insList = activePid->disassembly.at(highlightData->highlightAddr);
-			vector<INS_DATA*>::iterator insListIt = insList.begin();
-			int currentTid = graph->tid;
-			for (; insListIt != insList.end(); insListIt++)
-			{
-				INS_DATA *target = *insListIt;
-				printf("highlight vert %d\n", target->threadvertIdx.at(currentTid));
-			}
-			break;
-		}
-
-	case HL_HIGHLIGHT_SYM:
-		{
-			vector<int>::iterator externIt = graph->externList.begin();
-			for (; externIt != graph->externList.end(); externIt++)
-			{
-				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
-					printf("highlight vert %d\n", *externIt);
-			}
-			break;
-		}
-
-	case HL_HIGHLIGHT_MODULE:
-		{
-			vector<int>::iterator externIt = graph->externList.begin();
-			for (; externIt != graph->externList.end(); externIt++)
-			{
-				if (highlightData->highlightModule == graph->get_vert(*externIt)->nodeMod)
-					printf("highlight vert %d\n", *externIt);
-			}
-			break;
-		}
-	}
-}
 
 int main(int argc, char **argv)
 {
@@ -738,6 +697,13 @@ int main(int argc, char **argv)
 				edge_picking_colours(&clientstate, &TBRG, true);
 				clientstate.leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 				clientstate.rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
+				if (clientstate.highlightData.highlightState && clientstate.activeGraph->active)
+				{
+					TraceVisGUI *widgets = (TraceVisGUI *)clientstate.widgets;
+					widgets->highlightWindow->updateHighlightNodes(&clientstate.highlightData, 
+						clientstate.activeGraph, clientstate.activePid);
+				}
+
 			}
 
 			if (clientstate.modes.wireframe)
@@ -778,8 +744,9 @@ int main(int argc, char **argv)
 						clientstate.animationUpdate = 0;
 				}
 
-				draw_anim_line(graph->get_active_node(), graph);
-				performHighlighting(&clientstate.highlightData, graph, clientstate.activePid);
+				draw_anim_line(graph->get_active_node(), graph->m_scalefactors);
+				if(clientstate.highlightData.highlightState)
+					graph->highlightNodes(&clientstate.highlightData.highlightNodes);
 				
 
 				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
@@ -800,6 +767,10 @@ int main(int argc, char **argv)
 							graph->reset_animation();
 							clientstate.modes.animation = false;
 							graph->terminated = false;
+							if (clientstate.highlightData.highlightState)
+								widgets->highlightWindow->updateHighlightNodes(&clientstate.highlightData,
+									clientstate.activeGraph, 
+									clientstate.activePid);
 						}
 
 					if (clientstate.textlog && clientstate.logSize < graph->loggedCalls.size())

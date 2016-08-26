@@ -23,5 +23,6 @@ void display_big_heatmap(VISSTATE *clientstate);
 void display_big_conditional(VISSTATE *clientstate);
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer);
 
-void draw_anim_line(node_data *node, thread_graph_data *graph);
+void draw_anim_line(node_data *node, MULTIPLIERS *scale);
+void drawHighlight(node_data *node, MULTIPLIERS *scale);
 void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph);

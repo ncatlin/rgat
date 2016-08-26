@@ -673,6 +673,15 @@ void thread_graph_data::start_edgeD_iteration(map<std::pair<unsigned int, unsign
 	*edgeEnd = edgeDict.end();
 }
 
+void thread_graph_data::highlightNodes(vector<node_data *> *nodeList)
+{
+	vector<node_data *>::iterator nodeIt;
+	for (nodeIt = nodeList->begin(); nodeIt != nodeList->end(); ++nodeIt)
+	{
+		drawHighlight(*nodeIt, m_scalefactors);
+	}
+}
+
 void thread_graph_data::insert_vert(int targVertID, node_data node)
 {
 	obtainMutex(vertDMutex, "Insert Vert");

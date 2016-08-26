@@ -217,5 +217,7 @@ public:
 	//active areas + inactive areas
 	GRAPH_DISPLAY_DATA *animvertsdata = 0;
 	GRAPH_DISPLAY_DATA *animlinedata = 0;
+
+	void highlightNodes(vector<node_data *> *nodeList);
 };
 
