@@ -16,6 +16,15 @@
     <Filter Include="Source Files\agui">
       <UniqueIdentifier>{0587d8ad-39e7-4586-a730-dc7cf35a1e94}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\interface">
+      <UniqueIdentifier>{4469b0aa-cd4d-440c-a17f-223b9e96a6c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\interface">
+      <UniqueIdentifier>{fb31469c-5f01-48ef-afdd-4622a5d592ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\threads">
+      <UniqueIdentifier>{3d1ee23c-88d9-4d04-9846-2b61b1a10508}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -57,9 +66,6 @@
     <ClInclude Include="headers\trace_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\GUIManagement.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\b64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -79,9 +85,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\preview_pane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\opengl_operations.h">
@@ -105,6 +108,21 @@
     <ClInclude Include="headers\diff_plotter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="animControls.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="diffWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="highlightWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\GUIManagement.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\preview_pane.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -119,34 +137,13 @@
     <ClCompile Include="rendering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="basicblock_handler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="trace_handler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GUIManagement.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="module_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="traceMisc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="opengl_operations.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="render_preview_thread.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="render_heatmap_thread.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="preview_pane.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="render_conditional_thread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="b64.cpp">
@@ -403,6 +400,36 @@
     </ClCompile>
     <ClCompile Include="timeline.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="animControls.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="diffWindow.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="highlightWindow.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="preview_pane.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="render_conditional_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="render_heatmap_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="render_preview_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="basicblock_handler.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="module_handler.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="trace_handler.cpp">
+      <Filter>Source Files\threads</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

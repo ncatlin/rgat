@@ -418,7 +418,6 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 			callLog << "0x" << std::hex << resu.callerAddr << ": ";
 			callLog << resu.externPath << " -> ";
 			callLog << extt.displayString << "\n";
-			printf("Transferlive %s\n", extt.displayString.c_str());
 			graph->loggedCalls.push_back(callLog.str());	
 		}
 

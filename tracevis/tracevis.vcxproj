@@ -154,7 +154,10 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="animControls.h" />
+    <ClInclude Include="diffWindow.h" />
     <ClInclude Include="headers\diff_plotter.h" />
+    <ClInclude Include="highlightWindow.h" />
     <ClInclude Include="mathStructs.h" />
     <ClInclude Include="headers\edge_data.h" />
     <ClInclude Include="headers\graph_display_data.h" />
@@ -261,10 +264,13 @@
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\TextField\TextField.cpp" />
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\TextField\TextFieldListener.cpp" />
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\ToolTip\ToolTip.cpp" />
+    <ClCompile Include="animControls.cpp" />
     <ClCompile Include="b64.cpp" />
+    <ClCompile Include="diffWindow.cpp" />
     <ClCompile Include="diff_plotter.cpp" />
     <ClCompile Include="edge_data.cpp" />
     <ClCompile Include="graph_display_data.cpp" />
+    <ClCompile Include="highlightWindow.cpp" />
     <ClCompile Include="node_data.cpp" />
     <ClCompile Include="preview_pane.cpp" />
     <ClCompile Include="render_conditional_thread.cpp" />

@@ -460,7 +460,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	thisgraph->insert_vert(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
 	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
-	thisgraph->externList.push_back(make_pair(targVertID, returnAddress));
+	thisgraph->externList.push_back(targVertID);
 	dropMutex(thisgraph->funcQueueMutex, "Push Externlist");
 	*resultPair = std::make_pair(lastVertID, targVertID);
 

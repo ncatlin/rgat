@@ -746,9 +746,9 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}D,";
 
 	*file << "E{";
-	vector<pair<int, long>>::iterator externit = externList.begin();
+	vector<int>::iterator externit = externList.begin();
 	for (; externit != externList.end(); externit++)
-		*file << externit->first << "," << externit->second << ",";
+		*file << *externit << ",";
 	*file << "}E,";
 
 	//S for stats
@@ -835,9 +835,9 @@ bool thread_graph_data::loadExterns(ifstream *file)
 			if (index_s == string("}E")) return true;
 			return false;
 		}
-		getline(*file, address_s, ',');
-		if (!caught_stol(address_s, &address, 10)) return false;
-		externList.push_back(make_pair(index, address));
+		//getline(*file, address_s, ',');
+		//if (!caught_stol(address_s, &address, 10)) return false;
+		externList.push_back(index);
 	}
 }
 

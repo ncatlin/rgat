@@ -534,15 +534,15 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 
 	//todo: maintain local copy, update on size change?
 	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
-	vector<pair<int, long>> externListCopy = graph->externList;
+	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex, "Display externlist");
 
-	vector<pair<int, long>>::iterator externCallIt = externListCopy.begin();
+	vector<int>::iterator externCallIt = externListCopy.begin();
 	for (; externCallIt != externListCopy.end(); externCallIt++)
 	{
-		int externVertIdx = externCallIt->first;
+		int externVertIdx = *externCallIt;
 		node_data *n = graph->get_vert(externVertIdx);
-		if (!n->external) continue;
+		assert(n->external);
 
 		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
 		if (is_on_screen(&screenCoord, clientstate))

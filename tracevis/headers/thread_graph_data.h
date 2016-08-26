@@ -149,7 +149,7 @@ public:
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
 	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
 
-	vector<pair<int, long>> externList; //list of external calls
+	vector<int> externList; //list of external calls
 	string modPath;
 
 
