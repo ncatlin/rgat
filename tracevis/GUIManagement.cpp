@@ -128,8 +128,6 @@ ALLEGRO_DISPLAY* displaySetup() {
 			printf("\tVB Manual:\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"");
 			return NULL;
 		}
-		else
-			printf("Created basic display %x...\n",display);
 	}
 
 	return display;
@@ -137,9 +135,13 @@ ALLEGRO_DISPLAY* displaySetup() {
 
 void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	if (!title) return;
-
-	snprintf(title->title, 255, "TraceVis. Mouse:(%s) Zoom:(%s) %s FPS: %s [%s]", title->MPos, title->zoom, title->Primitives, title->FPS, title->dbg);
-	al_set_window_title(display, title->title);
+	stringstream newTitle;
+	newTitle << "TraceVis. Mouse:(" << title->MPos
+		<< ") Zoom:(" << title->zoom << ") "
+		<< title->Primitives
+		<< "FPS: " << title->FPS;
+	//snprintf(title->title, 255, "TraceVis. Mouse:(%s) Zoom:(%s) %s FPS: %s [%s]", title->MPos, title->zoom, title->Primitives, title->FPS, title->dbg);
+	al_set_window_title(display, newTitle.str().c_str());
 }
 
 GUI_DATA *init_GUI_Colours()

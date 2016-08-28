@@ -53,11 +53,10 @@ public:
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
 		ALLEGRO_FILECHOOSER *fileDialog;
-		printf("opening native file d\n");
 		fileDialog = al_create_native_file_dialog(lastPath.c_str(), "Choose target to execute", "*.exe;*.*;",
 			ALLEGRO_FILECHOOSER_FILE_MUST_EXIST | ALLEGRO_FILECHOOSER_SHOW_HIDDEN);
 		al_show_native_file_dialog(clientState->maindisplay, fileDialog);
-		printf("native file d done\n");
+
 		const char* result = al_get_native_file_dialog_path(fileDialog, 0);
 		al_destroy_native_file_dialog(fileDialog);
 		if (!al_filename_exists(result)) return;
@@ -84,8 +83,6 @@ public:
 		if (!al_filename_exists(path.c_str())) return;
 		execute_tracer(path);
 		exe_wind->hide();
-		//agui::Gui *gui = (agui::Gui *)clientState->widgets;
-		//gui->render();
 	}
 
 private:

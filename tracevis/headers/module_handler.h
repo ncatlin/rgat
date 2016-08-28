@@ -13,9 +13,6 @@ public:
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
-protected:
-	unsigned int focusedThread = -1;
-
 private:
 	void PID_thread();
 };

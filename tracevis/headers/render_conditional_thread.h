@@ -13,9 +13,6 @@ public:
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
-protected:
-	unsigned int delme = -1;
-
 private:
 	void conditional_thread();
 	bool render_graph_conditional (thread_graph_data *graph);

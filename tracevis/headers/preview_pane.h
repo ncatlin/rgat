@@ -3,7 +3,6 @@
 
 void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const char *label);
 void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *graph, int x, int y);
-//void write_pid_text(int pid, PROCESS_DATA *piddata, int x, int y, ALLEGRO_FONT *font);
 
 void uploadPreviewGraph(thread_graph_data *previewgraph);
 void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState);

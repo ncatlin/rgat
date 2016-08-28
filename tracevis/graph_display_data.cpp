@@ -7,9 +7,11 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(int initialValue)
 	posmutex = CreateMutex(NULL, FALSE, NULL);
 	colmutex = CreateMutex(NULL, FALSE, NULL);
 	vposarray = (float *)malloc(initialValue);
+	assert(vposarray);
 	memset(vposarray, 0, initialValue);
 	vpsize = initialValue;
 	vcolarray = (float *)malloc(initialValue);
+	assert(vcolarray);
 	vcsize = initialValue;
 	memset(vcolarray, 0, initialValue);
 	numVerts = 0;
@@ -48,10 +50,9 @@ float *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
 {
 
 	bool result = obtainMutex(colmutex, location, 50);
-	//if (!result) {
-	//	printf("failed to obtain %x lst holder = %s\n", colmutex, cholder.c_str()); return 0;
-	//}
-	cholder = string(location);
+	if (!result) {
+		printf("failed to obtain colmutex %x\n", (unsigned int)colmutex); return 0;
+	}
 	return vcolarray;
 }
 

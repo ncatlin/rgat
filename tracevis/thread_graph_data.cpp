@@ -548,6 +548,8 @@ node_data *thread_graph_data::derive_anim_node()
 }
 
 void thread_graph_data::reset_mainlines() {
+	mainlinedata->acquire_col("rm");
+	mainlinedata->acquire_pos("rm");
 	delete mainlinedata;
 	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
 	delete animlinedata;
@@ -834,7 +836,6 @@ bool thread_graph_data::loadExterns(ifstream *file)
 	if (endtag.c_str()[0] != 'E') return false;
 
 	int index;
-	unsigned long address;
 	string address_s, index_s;
 
 	while (true) {

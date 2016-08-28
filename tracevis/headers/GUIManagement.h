@@ -46,7 +46,7 @@ public:
 	AnimControls *controlWindow = NULL;
 	exeWindow *exeSelector = NULL;
 
-protected:
+private:
 	agui::ToolTip *tippy;
 	agui::Gui *widgets;
 	VISSTATE *clientState;
@@ -54,8 +54,6 @@ protected:
 	agui::Label *pidDropLabel;
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
-
-	
 };
 
 class PIDDropdownListener : public agui::ActionListener

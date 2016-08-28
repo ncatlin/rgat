@@ -749,7 +749,6 @@ int main(int argc, char **argv)
 
 			if (clientstate.activeGraph)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
-			
 		}
 		else
 			al_clear_to_color(al_map_rgb(0, 0, 0));

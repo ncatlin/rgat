@@ -398,8 +398,6 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 int render_main_graph(VISSTATE *clientState)
 {
-	
-	int adjustedDiamA, adjustedDiamB;
 	bool doResize = false;
 
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
@@ -652,13 +650,12 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
 	//iterate through nodes looking for ones that map to screen coords
-	unsigned int i;
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
 
-	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
-	vector<pair<unsigned int, unsigned int>>::iterator edgeEnd;
+	vector<VERTPAIR>::iterator edgeIt;
+	vector<VERTPAIR>::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	for (; edgeIt != edgeEnd; ++edgeIt)

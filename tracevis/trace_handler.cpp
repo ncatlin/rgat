@@ -17,7 +17,7 @@ int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 	return 0;
 
 }
-void thread_trace_handler::insert_edge(edge_data e, pair<int,int> edgePair) 
+void thread_trace_handler::insert_edge(edge_data e, VERTPAIR edgePair)
 {
 	thisgraph->add_edge(e, edgePair);
 	if (e.weight > thisgraph->maxWeight)
@@ -45,7 +45,8 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 	if (instruction->conditional) thisnode.conditional = CONDUNUSED;
 
 	targVertID = thisgraph->get_num_verts();
-	int a, b, bMod = 0;
+	int a = 0, b = 0;
+	int bMod = 0;
 
 	//first instruction in bb,
 	if (bb_inslist_index == 0)
@@ -55,7 +56,6 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 			a = 0;
 			b = 0;
 		}
-
 	}
 
 	if (lastRIPType != FIRST_IN_THREAD)
@@ -134,22 +134,17 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 			handle_new_instruction(instruction, mutation, bb_inslist_index, lastNode);
 		else //target vert already on this threads graph
 			handle_existing_instruction(instruction, lastNode);
-		//tmpThreadSave << std::hex << instruction->address << ":" << instruction->ins_text << "\n";
-		
-		if (bb_inslist_index == startIndex)
+
+		if (bb_inslist_index == startIndex && loopState == LOOP_START)
 		{
-			//thisgraph->sequenceEdges.push_back(make_pair(lastVertID, targVertID));
-			if (loopState == LOOP_START)
-			{
-				firstLoopVert = targVertID;
-				loopState = LOOP_PROGRESS;
-			}
+			firstLoopVert = targVertID;
+			loopState = LOOP_PROGRESS;
 		}
-		pair<int, int> edgeIDPair = make_pair(lastVertID, targVertID);
+
+		VERTPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 		if (thisgraph->edge_exists(edgeIDPair))
-		{
 			increaseWeight(thisgraph->get_edge(edgeIDPair), repeats);
-		}
+
 		else if (lastRIPType != FIRST_IN_THREAD)
 		{
 			edge_data newEdge;
@@ -302,7 +297,6 @@ void __stdcall thread_trace_handler::ThreadEntry(void* pUserData) {
 	return ((thread_trace_handler*)pUserData)->TID_thread();
 }
 
-
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	unsigned long funcpc, returnpc;
 	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
@@ -323,7 +317,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		printf("handle_arg 5 STOL ERROR: %s\n", retaddr_s.c_str());
 		return;
 	}
-
 
 	if (!pendingFunc) {
 		pendingFunc = funcpc;
@@ -350,12 +343,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	pendingArgs.push_back(make_pair(argpos, contents));
 	if (!callDone) return;
 
-
-
 	//func been called in thread already? if not, have to place args in holding buffer
-
-
-
 	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
 		map <unsigned long, vector<vector<pair<int, string>>>> *newmap = new map <unsigned long, vector<vector<pair<int, string>>>>;
@@ -379,18 +367,15 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	pendingRet = 0;
 
 	process_new_args();
-	
-	return;
 }
 
-int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair)
+int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, VERTPAIR *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 
 	node_data *lastnode = thisgraph->get_vert(lastVertID);
 	
-
 	//start by examining our caller
 	
 	int callerModule = lastnode->nodeMod;
@@ -405,7 +390,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	auto x = thisbb->thread_callers.find(TID);
 	if (x != thisbb->thread_callers.end())
 	{
-		vector<pair<int, int>>::iterator vecit = x->second.begin();
+		vector<VERTPAIR>::iterator vecit = x->second.begin();
 		for (; vecit != x->second.end(); vecit++)
 		{
 			if (vecit->first != lastVertID) continue;
@@ -430,7 +415,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	if (!thisbb->thread_callers.count(TID))
 	{
-		vector<pair<int, int>> callervec;
+		vector<VERTPAIR> callervec;
 		callervec.push_back(make_pair(lastVertID, targVertID));
 		thisbb->thread_callers.emplace(TID, callervec);
 	}
@@ -484,8 +469,8 @@ void thread_trace_handler::process_new_args()
 			pcaIt++; continue; 
 		}
 
-		vector<pair<int, int>> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
-		vector<pair<int, int>>::iterator callvsIt = callvs.begin();
+		vector<VERTPAIR> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+		vector<VERTPAIR>::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
 			node_data *parentn = thisgraph->get_vert(callvsIt->first);
@@ -561,7 +546,6 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			thisgraph->mutationSequence.push_back(mutation); 
 			dropMutex(thisgraph->animationListsMutex);
 
-			//printf("placing %lx mutation %d in bbs\n", thistag.targaddr, mutation);
 			if (repeats == 1)
 			{
 				thisgraph->totalInstructions += thistag.insCount;
@@ -574,7 +558,6 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			}
 		}
 		thisgraph->set_active_node(lastVertID);
-		
 	}
 
 	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
@@ -582,7 +565,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		if (!lastVertID) return;
 
 		//caller,external vertids
-		std::pair<int, int> resultPair;
+		VERTPAIR resultPair;
 		//add node to graph if new
 		int result = run_external(thistag.targaddr, repeats, &resultPair);
 		
@@ -609,10 +592,6 @@ void thread_trace_handler::TID_thread()
 	thisgraph = (thread_graph_data *)piddata->graphs[TID];
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
-
-	stringstream filename;
-	filename << "C:\\tracing\\" << TID << ".txt";
-	//tmpThreadSave.open(filename.str(), std::ofstream::binary);
 
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
 	pipename.append(std::to_wstring(TID));
@@ -656,7 +635,6 @@ void thread_trace_handler::TID_thread()
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
-			tmpThreadSave.close();
 			thisgraph->emptyArgQueue();
 			return;
 		}

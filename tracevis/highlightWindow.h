@@ -11,24 +11,26 @@
 class HighlightSelectionFrame {
 public:
 	HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
-	agui::Label *addressLabel;
+
+	void refreshDropdowns();
+	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, thread_graph_data *graph, PROCESS_DATA* activePid);
+	agui::Frame *highlightFrame = NULL;
+	agui::DropDown *symbolDropdown;
+	agui::DropDown *moduleDropdown;
 	agui::TextField *addressText;
+
+private:
+	agui::Label *addressLabel;
 	agui::Button *addressBtn;
 
 	agui::Label *symbolLabel;
-	agui::DropDown *symbolDropdown;
 	agui::Button *symbolBtn;
 
 	agui::Label *moduleLabel;
-	agui::DropDown *moduleDropdown;
 	agui::Button *moduleBtn;
-
-	agui::Frame *highlightFrame = NULL;
+	
 	agui::Font *highlightFont;
-	void refreshDropdowns();
-	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, thread_graph_data *graph, PROCESS_DATA* activePid);
 
-private:
 	int lastModCount = 0;
 	int lastSymCount = 0;
 	VISSTATE *clientState;

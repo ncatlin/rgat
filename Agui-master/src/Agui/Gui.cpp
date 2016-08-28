@@ -298,7 +298,6 @@ namespace agui
 						}
 					}
 					
-
 				//send the new one an enter
 				if(widgetUnderMouse == controlWithLock)
 				{

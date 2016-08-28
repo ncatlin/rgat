@@ -28,9 +28,7 @@ public:
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
 	
-
-protected:
-
+private:
 	//important state variables!
 	unsigned int lastVertID = 0; //the vert that led to this instruction
 	unsigned int targVertID = 0; //new vert we are creating
@@ -43,23 +41,18 @@ protected:
 	void handle_arg(char * entry, size_t entrySize);
 	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
 	void process_new_args();
-	int run_external(unsigned long targaddr, unsigned long repeats, std::pair<int, int> *resultPair);
+	int run_external(unsigned long targaddr, unsigned long repeats, VERTPAIR *resultPair);
 
 	vector<pair<long, int>> callStack;
 
 	//keep track of which a,b coords are occupied
 	map<int, map<int,bool>> usedCoords;
-	
-
-
-private:
-	ofstream tmpThreadSave;
 
 	void TID_thread();
 	void runBB(unsigned long startAddress, int startIndex, int insCount, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, int bMod);
-	void insert_edge(edge_data e, pair<int, int> edgepair);
+	void insert_edge(edge_data e, VERTPAIR edgepair);
 	bool new_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index, node_data *lastNode);
 	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);
@@ -83,9 +76,7 @@ private:
 	int loopState = NO_LOOP;
 	//tag address, mod type
 	vector<TAG> loopCache;
-	pair<unsigned int, unsigned int> repeatStart;
-	pair<unsigned int, unsigned int> repeatEnd;
+	VERTPAIR repeatStart;
+	VERTPAIR repeatEnd;
 	
 };
-
-//void TID_thread(thread_start_data *startData);

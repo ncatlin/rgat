@@ -9,7 +9,13 @@ void __stdcall heatmap_renderer::ThreadEntry(void* pUserData) {
 bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
-	if (!linedata || !linedata->get_numVerts())  return false;
+	unsigned int numLineVerts;
+	if (linedata)
+	{
+		numLineVerts = linedata->get_numVerts();
+		if(!numLineVerts)  return false;
+	} 
+	else return false; 
 
 	//build set of all heat values
 	std::set<long> heatValues;
@@ -52,12 +58,12 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	if (heatColours.size() > 1)
 		heatColours[lastColour] = *colourRange.rbegin();
 
-	unsigned int newsize = linedata->get_numVerts() * COLELEMS * sizeof(GLfloat) * 2;
+	unsigned int newsize = numLineVerts * COLELEMS * sizeof(GLfloat) * 2;
 	if (graph->heatmaplines->col_size() < newsize)
 		graph->heatmaplines->expand(newsize * 2);
 
 	GLfloat *ecol = graph->heatmaplines->acquire_col("3b");
-	for (size_t i = 0; i < linedata->get_numVerts(); ++i) 
+	for (size_t i = 0; i < numLineVerts; ++i)
 		ecol[i] = 1.0; //hello memset
 
 
@@ -74,7 +80,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 			ecol[arraypos] = edgecol->r;
 			ecol[arraypos + 1] = edgecol->g;
 			ecol[arraypos + 2] = edgecol->b;
-			ecol[arraypos + 3] = (float)1;
+			ecol[arraypos + 3] = 1.0;
 		}
 		newDrawn++;
 	}
@@ -82,7 +88,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	if (newDrawn)
 	{
-		graph->heatmaplines->set_numVerts(linedata->get_numVerts());
+		graph->heatmaplines->set_numVerts(numLineVerts);
 		graph->needVBOReload_heatmap = true;
 	}
 	graph->heatmaplines->release_col();
@@ -99,7 +105,7 @@ float fcol(int value)
 //allows display in thumbnail style format
 void heatmap_renderer::heatmap_thread()
 {
-	//allegro color keeps breaking here and driving me insane
+	//allegro_color kept breaking here and driving me insane
 	//hence own implementation
 	colourRange.insert(colourRange.begin(), COLSTRUCT{ 0, 0, fcol(255) });
 	colourRange.insert(colourRange.begin() + 1, COLSTRUCT{ fcol(105), 0,  fcol(255) });
@@ -113,16 +119,10 @@ void heatmap_renderer::heatmap_thread()
 	colourRange.insert(colourRange.begin() + 9, COLSTRUCT{ fcol(255), fcol(228 ), fcol(167)});
 
 	while (!piddata || piddata->graphs.empty())
-	{
 		Sleep(200);
-		continue;
-	}
 
 	while (true)
 	{
-
-		//only write we are protecting against happens while creating new threads
-		//so not important to release this quickly
 		if (!obtainMutex(piddata->graphsListMutex, "Heatmap Thread glm")) return;
 
 		vector<thread_graph_data *> graphlist;
@@ -139,7 +139,6 @@ void heatmap_renderer::heatmap_thread()
 			graphlistIt++;
 			Sleep(80);
 		}
-
 		
 		Sleep(HEATMAP_DELAY_MS);
 	}

@@ -49,6 +49,7 @@ struct HIGHLIGHT_DATA {
 	int highlightModule = 0;
 	vector<node_data *> highlightNodes;
 };
+
 struct VISSTATE {
 	
 	ALLEGRO_DISPLAY *maindisplay = 0;
@@ -75,7 +76,7 @@ struct VISSTATE {
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;
 	map <int, pair<int, int>> graphPositions;
-	void *tDisplayPreview = NULL;
+
 	float previewYAngle = -30;
 	bool previewSpin = true;
 

@@ -25,6 +25,9 @@
     <Filter Include="Source Files\threads">
       <UniqueIdentifier>{3d1ee23c-88d9-4d04-9846-2b61b1a10508}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\threads">
+      <UniqueIdentifier>{f0e2bab1-bdb0-4b19-9a07-ab6cb836c3db}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -48,16 +51,10 @@
     <ClInclude Include="headers\rendering.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\basicblock_handler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\traceConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\traceStructs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\module_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\traceMisc.h">
@@ -96,15 +93,6 @@
     <ClInclude Include="timeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\render_heatmap_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\render_conditional_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\render_preview_thread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\diff_plotter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -128,6 +116,21 @@
     </ClInclude>
     <ClInclude Include="OSspecific.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\basicblock_handler.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\module_handler.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_preview_thread.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_heatmap_thread.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\render_conditional_thread.h">
+      <Filter>Header Files\threads</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
