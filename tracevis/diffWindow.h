@@ -6,6 +6,7 @@
 #include "Agui\Widgets\Label\Label.hpp"
 #include "Agui\Widgets\RadioButton\RadioButton.hpp"
 #include "Agui\Widgets\Frame\Frame.hpp"
+#include "OSspecific.h"
 
 #define DIFF_INFOLABEL_X_OFFSET 25
 

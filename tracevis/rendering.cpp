@@ -845,17 +845,14 @@ void display_big_conditional(VISSTATE *clientstate)
 		glDrawArrays(GL_LINES, 0, graph->conditionallines->get_numVerts());
 	}
 
-
 	float zdiff = clientstate->zoomlevel - graph->zoomLevel;
 	float zmul = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
-	{
-		
 		draw_condition_ins_text(clientstate, zmul, &pd, graph->get_mainverts());
-	}
+
 }
 
 void draw_anim_line(node_data *node, MULTIPLIERS *scale)

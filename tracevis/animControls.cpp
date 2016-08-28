@@ -129,7 +129,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	stepsLabel = new agui::Label();
 	stepsLabel->setFont(btnFont);
 	stepsLabel->setFontColor(agui::Color(210, 210, 210));
-	stepsLabel->setText("x Steps total");
+	stepsLabel->setText("Waiting for target");
 	stepsLabel->resizeToContents();
 	stepsLabel->setBackColor(agui::Color(0, 0, 210));
 	stepsLabel->setVisibility(true);
@@ -229,7 +229,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	controlsLayout->add(skipBtn);
 
 	controlsLayout->resizeToContents();
-	controlsLayout->setLocation(15, clientState->size.height - playBtn->getHeight()*2.2);
+	controlsLayout->setLocation(15, clientState->size.height - playBtn->getHeight()*3);
 	controlsLayout->setHorizontalSpacing(10);
 	widgets->add(controlsLayout);
 

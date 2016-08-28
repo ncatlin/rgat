@@ -4,6 +4,7 @@
 #include "diffWindow.h"
 #include "highlightWindow.h"
 #include "animControls.h"
+#include "exeWindow.h"
 
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
@@ -43,6 +44,7 @@ public:
 	DiffSelectionFrame *diffWindow = NULL;
 	HighlightSelectionFrame *highlightWindow = NULL;
 	AnimControls *controlWindow = NULL;
+	exeWindow *exeSelector = NULL;
 
 protected:
 	agui::ToolTip *tippy;

@@ -123,6 +123,12 @@
     <ClInclude Include="headers\preview_pane.h">
       <Filter>Header Files\interface</Filter>
     </ClInclude>
+    <ClInclude Include="exeWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="OSspecific.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -430,6 +436,12 @@
     </ClCompile>
     <ClCompile Include="trace_handler.cpp">
       <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="exeWindow.cpp">
+      <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="osSpecific.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

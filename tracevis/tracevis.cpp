@@ -14,6 +14,7 @@
 #include "serialise.h"
 #include "diff_plotter.h"
 #include "timeline.h"
+#include "OSspecific.h"
 
 //possible name: rgat
 //ridiculous/runtime graph analysis tool
@@ -24,13 +25,6 @@
 
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
 
-string getModulePath()
-{
-	char buffer[MAX_PATH];
-	GetModuleFileNameA(NULL, buffer, MAX_PATH);
-	string::size_type pos = string(buffer).find_last_of("\\/");
-	return string(buffer).substr(0, pos);
-}
 
 void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
@@ -130,7 +124,7 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
 	ALLEGRO_DISPLAY *newDisplay = displaySetup();
 	clientState->maindisplay = newDisplay;
 	if (!clientState->maindisplay) {
-		printf("Display creation failed: returned %x\n", newDisplay);
+		printf("Display creation failed: returned %x\n", (int)newDisplay);
 		return 0;
 	}
 
@@ -147,69 +141,7 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
 	return 1;
 }
 
-//stacko code
-BOOL DirectoryExists(LPCTSTR szPath)
-{
-	DWORD dwAttrib = GetFileAttributes(szPath);
 
-	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-}
-
-wstring get_dr_path(string exeDir)
-{
-	//first try reading from config file
-
-	//in the event of it not working, try going with an 'it just works' philosophy and check exe dir
-
-	//kludge for demo
-	if (DirectoryExists(L"C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\"))
-	{
-		wstring retstring = L"C:\\Users\\nia\\Documents\\tracevis\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe";
-		retstring.append(L" -c \"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\drgat\\Debug\\drgat.dll\" -- ");
-		return retstring;
-	}
-	else if (DirectoryExists(L"C:\\tracing\\DynamoRIO-Windows-6.1.0-2\\bin32\\"))
-	{
-
-		wstring retstring = wstring(L"C:\\tracing\\DynamoRIO-Windows-6.1.0-2\\bin32\\drrun.exe");
-		retstring.append(L" -c c:\\tracing\\rgat\\Debug\\drgat\\traceclient.dll -- ");
-		return retstring;
-	}
-	else {
-		printf("Could not find dynamorio\n");
-		assert(0);
-		return 0;
-	}
-}
-void windows_execute_tracer(string exeDir, wstring executable) {
-	//wstring drpath = get_dr_path(exeDir);
-	
-	//string runpath = drpath + "C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -l \"-p 666\" -- ";
-	//wstring runpath = drpath + L" -c C:\\Users\\nia\\Documents\\tracevis\\traceclient\\Debug\\traceclient.dll -- ";
-	
-
-	wstring runpath = get_dr_path(exeDir);
-	runpath.append(executable);
-
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	ZeroMemory(&pi, sizeof(pi));
-
-	printf("Starting execution using command line [%S]\n", runpath.c_str());
-	CreateProcessW(NULL, (wchar_t *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
-}
-
-void launch_test_exe() {
-	wstring executable(L"\"C:\\Users\\nia\\Documents\\Visual Studio 2015\\Projects\\testdllloader\\Debug\\testdllloader.exe\"");
-	//string executable("C:\\Users\\nia\\Desktop\\retools\\netcat-1.11\\nc.exe\"");
-	//wstring executable(L"C:\\tracing\\you_are_very_good_at_this.exe");
-	windows_execute_tracer(getModulePath(), executable);
-	Sleep(800);
-}
 
 int process_coordinator_thread(VISSTATE *clientState) {
 	
@@ -489,10 +421,104 @@ void closeTextLog(VISSTATE *clientState)
 	clientState->logSize = 0;
 }
 
+void performIrregularActions(VISSTATE *clientState)
+{
+	SCREEN_EDGE_PIX TBRG;
+	//update where camera is pointing on sphere
+	edge_picking_colours(clientState, &TBRG, true);
+	clientState->leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
+	clientState->rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 
+	//update highlight nodes
+	if (clientState->highlightData.highlightState && clientState->activeGraph->active)
+	{
+		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+		widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
+			clientState->activeGraph, clientState->activePid);
+	}
+}
+
+void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
+{
+	TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
+	thread_graph_data *graph = clientState->activeGraph;
+
+	if (
+		(graph->get_mainverts()->get_numVerts() < graph->get_num_verts()) ||
+		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
+		clientState->rescale)
+	{
+		updateMainRender(clientState);
+	}
+
+	if (!graph->active && clientState->animationUpdate)
+	{
+		int result = graph->updateAnimation(clientState->animationUpdate,
+			clientState->modes.animation, clientState->skipLoop);
+		if (clientState->skipLoop) clientState->skipLoop = false;
+
+		if (clientState->modes.animation)
+		{
+			if (result == ANIMATION_ENDED)
+			{
+				graph->reset_animation();
+				clientState->animationUpdate = 0;
+				clientState->modes.animation = false;
+				widgets->controlWindow->notifyAnimFinished();
+			}
+			else
+				graph->update_animation_render();
+		}
+		else
+			clientState->animationUpdate = 0;
+	}
+	
+	draw_anim_line(graph->get_active_node(), graph->m_scalefactors);
+	if (clientState->highlightData.highlightState)
+		graph->highlightNodes(&clientState->highlightData.highlightNodes);
+	
+
+	if (clientState->modes.heatmap) display_big_heatmap(clientState);
+	else if (clientState->modes.conditional) display_big_conditional(clientState);
+	else
+	{
+		
+		if (graph->active)
+		{
+			if (clientState->modes.animation)
+				graph->animate_latest();
+		}
+		else
+			if (graph->terminated)
+			{
+				graph->reset_animation();
+				clientState->modes.animation = false;
+				graph->terminated = false;
+				if (clientState->highlightData.highlightState)
+					widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
+						clientState->activeGraph,
+						clientState->activePid);
+			}
+			
+		if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
+			clientState->logSize = fill_extern_log(clientState->textlog,
+				clientState->activeGraph, clientState->logSize);
+		
+		PROJECTDATA pd;
+		gather_projection_data(&pd);
+		display_graph(clientState, graph, &pd);
+
+		transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
+		drawExternTexts(graph, externFloatingText, clientState, &pd);
+	}
+}
 
 int main(int argc, char **argv)
 {
+	string moduleDir = getModulePath();
+	string configPath = moduleDir + "\\rgat.cfg";
+	ALLEGRO_CONFIG* cfg = al_load_config_file(configPath.c_str());
+
 
 	VISSTATE clientstate;
 	printf("Starting visualiser\n");
@@ -549,7 +575,7 @@ int main(int argc, char **argv)
 
 	al_init_font_addon();
 	al_init_ttf_addon();
-	string moduleDir = getModulePath();
+	
 
 	//todo: handle failure here
 	stringstream fontPath_ss;
@@ -584,7 +610,6 @@ int main(int argc, char **argv)
 	GRAPH_DISPLAY_DATA *linedata = NULL;
 	map<int, node_data>::iterator vertit;
 
-	SCREEN_EDGE_PIX TBRG;
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
 	map <int, pair<int, int>> graphPositions;
@@ -690,20 +715,11 @@ int main(int argc, char **argv)
 			else
 				al_clear_to_color(al_map_rgb(0, 0, 0));
 
-			//note where on the sphere the camera is pointing
+			//regular (but not every frame) updates
 			if (!al_is_event_queue_empty(pos_update_timer_queue))
 			{
+				performIrregularActions(&clientstate);
 				al_flush_event_queue(pos_update_timer_queue);
-				edge_picking_colours(&clientstate, &TBRG, true);
-				clientstate.leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
-				clientstate.rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
-				if (clientstate.highlightData.highlightState && clientstate.activeGraph->active)
-				{
-					TraceVisGUI *widgets = (TraceVisGUI *)clientstate.widgets;
-					widgets->highlightWindow->updateHighlightNodes(&clientstate.highlightData, 
-						clientstate.activeGraph, clientstate.activePid);
-				}
-
 			}
 
 			if (clientstate.modes.wireframe)
@@ -712,79 +728,11 @@ int main(int argc, char **argv)
 			if (clientstate.modes.diff)
 				processDiff(&clientstate, PIDFont, &diffRenderer);
 			else
-			{
-				thread_graph_data *graph = clientstate.activeGraph;
-				if (
-					(graph->get_mainverts()->get_numVerts() < graph->get_num_verts()) ||
-					(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
-					clientstate.rescale)
-				{
-					updateMainRender(&clientstate);
-				}
-
-				if (!graph->active && clientstate.animationUpdate)
-				{
-					int result = graph->updateAnimation(clientstate.animationUpdate,
-						clientstate.modes.animation, clientstate.skipLoop);
-					if (clientstate.skipLoop) clientstate.skipLoop = false;
-
-					if (clientstate.modes.animation)
-					{
-						if (result == ANIMATION_ENDED)
-						{
-							graph->reset_animation();
-							clientstate.animationUpdate = 0;
-							clientstate.modes.animation = false;
-							widgets->controlWindow->notifyAnimFinished();
-						}
-						else
-							graph->update_animation_render();
-					}
-					else
-						clientstate.animationUpdate = 0;
-				}
-
-				draw_anim_line(graph->get_active_node(), graph->m_scalefactors);
-				if(clientstate.highlightData.highlightState)
-					graph->highlightNodes(&clientstate.highlightData.highlightNodes);
+				performMainGraphRendering(&clientstate, &externFloatingText);
 				
-				if (clientstate.modes.heatmap) display_big_heatmap(&clientstate);
-				else if (clientstate.modes.conditional) display_big_conditional(&clientstate);
-				else
-				{
-					PROJECTDATA pd;
-					gather_projection_data(&pd);
-
-					if (graph->active)
-					{
-						if(clientstate.modes.animation)
-							graph->animate_latest();
-					}
-					else
-						if (graph->terminated)
-						{
-							graph->reset_animation();
-							clientstate.modes.animation = false;
-							graph->terminated = false;
-							if (clientstate.highlightData.highlightState)
-								widgets->highlightWindow->updateHighlightNodes(&clientstate.highlightData,
-									clientstate.activeGraph, 
-									clientstate.activePid);
-						}
-
-					if (clientstate.textlog && clientstate.logSize < graph->loggedCalls.size())
-							clientstate.logSize = fill_extern_log(clientstate.textlog,
-								clientstate.activeGraph, clientstate.logSize);
-
-					display_graph(&clientstate, graph, &pd);
-
-					transferNewLiveCalls(graph, &externFloatingText, clientstate.activePid);
-					drawExternTexts(graph, &externFloatingText, &clientstate, &pd);
-				}
-
-			}
 
 			frame_gl_teardown();
+
 			al_set_target_backbuffer(clientstate.maindisplay);
 			if (clientstate.modes.preview)
 			{
@@ -801,10 +749,13 @@ int main(int argc, char **argv)
 
 			if (clientstate.activeGraph)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
-
-			widgets->updateRenderWidgets(clientstate.activeGraph);
-			al_flip_display();
+			
 		}
+		else
+			al_clear_to_color(al_map_rgb(0, 0, 0));
+
+		widgets->updateRenderWidgets(clientstate.activeGraph);
+		al_flip_display();
 
 		//ui events
 		while (al_get_next_event(clientstate.event_queue, &ev))
@@ -843,12 +794,16 @@ int main(int argc, char **argv)
 				break;
 
 			case EV_BTN_RUN:
-			{
-				printf("run clicked! need to use file dialogue or cmdline?");
-				launch_test_exe();
-				//todo: start timeline
-				break;
-			}
+				{
+					//string path = "C:\\tracing\\testdllloader.exe";//"C:\\tracing\\you_are_very_good_at_this.exe";
+					//string path = exe_wind->getPath();
+					//if (al_filename_exists(path.c_str()))
+					//	execute_tracer(path);
+					//printf("run clicked! need to use file dialogue or cmdline?");
+					widgets->exeSelector->show();
+					//todo: start timeline
+					break;
+				}
 			case EV_BTN_QUIT:
 				running = false;
 				break;
@@ -1190,10 +1145,9 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	{
 		switch (ev->user.data1)
 		{
-		case EV_BTN_RUN:
-			return EV_BTN_RUN;
-		case EV_BTN_QUIT:
-			return EV_BTN_QUIT;
+		case EV_BTN_RUN:  return EV_BTN_RUN;
+		case EV_BTN_QUIT: return EV_BTN_QUIT;
+
 		case EV_BTN_WIREFRAME:
 		case EV_BTN_PREVIEW:
 		case EV_BTN_CONDITION:

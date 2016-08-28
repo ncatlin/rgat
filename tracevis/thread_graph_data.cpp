@@ -161,7 +161,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 	dropMutex(animationListsMutex, "highlight externs");
 
-	node_data *n = &vertDict[targetExternIdx];
+	node_data *n = get_vert(targetExternIdx);
 	if (!n->funcargs.empty())
 		return; //handled elsewhere by arg processor
 
@@ -349,7 +349,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 
 	while (activeNodeIt != activeNodeList.end())
 	{
-		node_data *n = &vertDict[*activeNodeIt];
+		node_data *n = get_vert(*activeNodeIt);
 		unsigned int nodeIndex = n->index;
 		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
 		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
@@ -542,7 +542,7 @@ node_data *thread_graph_data::derive_anim_node()
 		remainingInstructions--;
 	}
 
-	node_data *n = &vertDict[target_ins->threadvertIdx.at(tid)];
+	node_data *n = get_vert(target_ins->threadvertIdx.at(tid));
 	return n;
 
 }
@@ -575,8 +575,8 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 
-	node_data *sourceNode = &vertDict.at(ePair.first);
-	node_data *targetNode = &vertDict.at(ePair.second);
+	node_data *sourceNode = get_vert(ePair.first);
+	node_data *targetNode = get_vert(ePair.second);
 	edge_data *e = get_edge(ePair);
 
 	MULTIPLIERS *scaling;
@@ -617,7 +617,7 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 node_data* thread_graph_data::get_active_node()
 {
 	if (!latest_active_node && !vertDict.empty())
-		latest_active_node = &vertDict[0];
+		latest_active_node = get_vert(0);
 	return latest_active_node;
 }
 
@@ -728,7 +728,7 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 
 void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo) 
 {
-	baseMod = vertDict[0].nodeMod;
+	baseMod = get_vert(0)->nodeMod;
 	if (baseMod >= (int)pidinfo->modpaths.size()) return;
 	string longmodPath = pidinfo->modpaths[baseMod];
 

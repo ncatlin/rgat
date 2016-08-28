@@ -2,10 +2,6 @@
 #include "GUIConstants.h"
 #include "GUIManagement.h"
 
-
-
-
-
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)
 {
 	source1 = s1;
@@ -37,7 +33,7 @@ void TraceVisGUI::showHideDiffFrame() {
 }
 
 void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
-	controlWindow->update(graph);
+	if(graph) controlWindow->update(graph);
 	widgets->render();
 }
 
@@ -97,8 +93,8 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	widgets->add(dropDownWidget);
 	//todo: generic way of working out height. font height, padding, margins, blah blah blah
 	dropDownWidget->setLocation(framex + pidDropLabel->getSize().getWidth(), framey - 4); 
-	dropDownWidget->setSize(80, 25);
-	dropDownWidget->setText("Select PID");
+	dropDownWidget->setSize(110, 25);
+	dropDownWidget->setText(" Select PID");
 	PIDDropdownListener *dropListen = new PIDDropdownListener(clientState);
 	dropDownWidget->addActionListener(dropListen);
 
@@ -109,7 +105,7 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	diffWindow = new DiffSelectionFrame(widgets, clientState, defaultFont);
 	controlWindow = new AnimControls(widgets, clientState, defaultFont);
 	highlightWindow = new HighlightSelectionFrame(widgets, clientState, defaultFont);
-
+	exeSelector = new exeWindow(widgets, clientState, defaultFont);
 }
 
 ALLEGRO_DISPLAY* displaySetup() {
@@ -258,8 +254,8 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "&Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
 
 		ALLEGRO_START_OF_MENU("Views", 3),
-		{ "&Heatmap", EV_BTN_HEATMAP, 0, NULL },
-		{ "&Conditionals", EV_BTN_CONDITION, 0, NULL },
+		{ "&Heatmap [k]", EV_BTN_HEATMAP, 0, NULL },
+		{ "&Conditionals [j]", EV_BTN_CONDITION, 0, NULL },
 		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
 		{ "&Diff", EV_BTN_DIFF, 0, NULL },
 		ALLEGRO_END_OF_MENU,

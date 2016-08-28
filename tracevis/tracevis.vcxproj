@@ -77,6 +77,7 @@
     <Allegro_AddonFont>true</Allegro_AddonFont>
     <Allegro_AddonTTF>true</Allegro_AddonTTF>
     <Allegro_AddonDialog>true</Allegro_AddonDialog>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -101,6 +102,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Program Files\Common Files\Freeglut\lib;C:\Users\nia\Documents\tracevis\tracevis\capstone;C:\allegro\bin;C:\allegro\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -156,6 +158,7 @@
   <ItemGroup>
     <ClInclude Include="animControls.h" />
     <ClInclude Include="diffWindow.h" />
+    <ClInclude Include="exeWindow.h" />
     <ClInclude Include="headers\diff_plotter.h" />
     <ClInclude Include="highlightWindow.h" />
     <ClInclude Include="mathStructs.h" />
@@ -182,6 +185,7 @@
     <ClInclude Include="headers\trace_handler.h" />
     <ClInclude Include="headers\opengl_operations.h" />
     <ClInclude Include="headers\thread_graph_data.h" />
+    <ClInclude Include="OSspecific.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="serialise.h" />
     <ClInclude Include="timeline.h" />
@@ -269,9 +273,11 @@
     <ClCompile Include="diffWindow.cpp" />
     <ClCompile Include="diff_plotter.cpp" />
     <ClCompile Include="edge_data.cpp" />
+    <ClCompile Include="exeWindow.cpp" />
     <ClCompile Include="graph_display_data.cpp" />
     <ClCompile Include="highlightWindow.cpp" />
     <ClCompile Include="node_data.cpp" />
+    <ClCompile Include="osSpecific.cpp" />
     <ClCompile Include="preview_pane.cpp" />
     <ClCompile Include="render_conditional_thread.cpp" />
     <ClCompile Include="render_heatmap_thread.cpp" />
