@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "clientConfig.h"
 #include "configdefaults.h"
+#include "GUIConstants.h"
+#include "traceConstants.h"
 
 clientConfig::clientConfig(string filepath)
 {
@@ -53,10 +55,23 @@ void clientConfig::loadDefaults()
 	conditional.cond_both = CONDITIONAL_cond_both;
 
 	heatmap.delay = HEATMAP_DELAY_MS;
+	heatmap.lineTextCol = HEAT_EDGE_TEXT_COL;
 
 	mainBackground = MAIN_BACKGROUND_COLOUR;
 
 	lowB = GRAPH_LOW_B;
 	farA = GRAPH_FAR_A;
+
+	graphColours.lineColours.insert(graphColours.lineColours.begin() + ICALL, DEFAULT_EDGE_CALL);
+	graphColours.lineColours.insert(graphColours.lineColours.begin() + IOLD, DEFAULT_EDGE_OLD);
+	graphColours.lineColours.insert(graphColours.lineColours.begin() + IRET, DEFAULT_EDGE_RET);
+	graphColours.lineColours.insert(graphColours.lineColours.begin() + ILIB, DEFAULT_EDGE_LIB);
+	graphColours.lineColours.insert(graphColours.lineColours.begin() + INEW, DEFAULT_EDGE_NEW);
+
+	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + NONFLOW, DEFAULT_NODE_STD);
+	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + JUMP, DEFAULT_NODE_JUMP);
+	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + CALL, DEFAULT_NODE_CALL);
+	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + RETURN, DEFAULT_NODE_RET);
+	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + EXTERNAL, DEFAULT_NODE_EXT);
 
 }

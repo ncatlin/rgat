@@ -219,7 +219,6 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 		break;
 
 	case NONFLOW:
-	case NOJUMP:
 		bMod += 1 * BMULT;
 		break;
 

@@ -83,7 +83,7 @@ void diff_plotter::render() {
 	for (; edgeSeqItG1 != edgeSeqEndG1; edgeSeqItG1++)
 	{
 		if (renderIdx++ == divergenceIdx) edgeColour = &al_col_red;
-		graph1->render_edge(*edgeSeqItG1, linedata, &clientState->guidata->lineColoursArr, edgeColour);
+		graph1->render_edge(*edgeSeqItG1, linedata, NULL, edgeColour);
 	}
 	graph1->stop_edgeL_iteration();
 	diffgraph->needVBOReload_main = true;

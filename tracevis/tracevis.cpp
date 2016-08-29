@@ -538,7 +538,6 @@ int main(int argc, char **argv)
 		printf("GUI init failed - todo - nongraphical mode\n");
 		return 0;
 	}
-	clientstate.guidata = init_GUI_Colours(); //integrate with config
 
 	clientstate.size.height = al_get_display_height(clientstate.maindisplay);
 	clientstate.size.width = al_get_display_width(clientstate.maindisplay);

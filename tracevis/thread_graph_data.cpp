@@ -592,18 +592,14 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 	FCOORD srcc = sourceNode->sphereCoordB(scaling, 0);
 	FCOORD targc = targetNode->sphereCoordB(scaling, 0);
 
-	unsigned int eClass = e->edgeClass;
-	if (eClass >= lineColours->size())
-	{
-		printf("ILLEGAL COLOUR!\n");
-		return 0;
-	}
-
 	int arraypos = 0;
 	ALLEGRO_COLOR *edgeColour;
 	if (forceColour) edgeColour = forceColour;
 	else
+	{
+		assert(e->edgeClass < lineColours->size());
 		edgeColour = &lineColours->at(e->edgeClass);
+	}
 
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);

@@ -47,9 +47,7 @@ struct HEIGHTWIDTH {
 	int width;
 };
 
-struct GUI_DATA {
-	vector<ALLEGRO_COLOR> lineColoursArr;
-};
+
 
 struct HIGHLIGHT_DATA {
 	int highlightState = 0;
@@ -96,7 +94,6 @@ struct VISSTATE {
 	void *newActiveGraph = NULL;
 	int newPID = -1;
 	PROCESS_DATA *activePid = NULL;
-	GUI_DATA *guidata;
 
 	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
 	GLuint colSphereVBOs[2];

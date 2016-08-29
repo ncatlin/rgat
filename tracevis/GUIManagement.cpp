@@ -139,17 +139,6 @@ void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	al_set_window_title(display, newTitle.str().c_str());
 }
 
-GUI_DATA *init_GUI_Colours()
-{
-	GUI_DATA *guidata = new GUI_DATA;
-	guidata->lineColoursArr.insert(guidata->lineColoursArr.begin() + ICALL, al_col_purple);
-	guidata->lineColoursArr.insert(guidata->lineColoursArr.begin() + IOLD, al_col_white);
-	guidata->lineColoursArr.insert(guidata->lineColoursArr.begin() + IRET, al_col_orange);
-	guidata->lineColoursArr.insert(guidata->lineColoursArr.begin() + ILIB, al_col_green);
-	guidata->lineColoursArr.insert(guidata->lineColoursArr.begin() + INEW, al_col_yellow);
-	return guidata;
-}
-
 void updateTitle_Mouse(ALLEGRO_DISPLAY *display, TITLE *title, int x, int y) {
 	if (!title->MPos) return;
 	snprintf(title->MPos, 25, "x:%d, y:%d", x, y);

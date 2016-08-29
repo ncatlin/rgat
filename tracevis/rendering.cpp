@@ -296,7 +296,6 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vpos[(vertIdx * POSELEMS) + YOFF] = screenc.y;
 	vpos[(vertIdx * POSELEMS) + ZOFF] = screenc.z;
 
-	//todo: find better way, esp for custom colours
 	if (n->external)
 		active_col = &al_col_green;
 	else {
@@ -318,7 +317,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 				active_col = &al_col_purple;
 				break;
 
-			case ISYS: //todo: never used
+			case ISYS: //todo: never used - intended for syscalls
 				active_col = &al_col_grey;
 				break;
 
@@ -456,7 +455,7 @@ int render_main_graph(VISSTATE *clientState)
 	if (drawCount)
 		graph->needVBOReload_main = true;
 
-	graph->render_new_edges(doResize, &clientState->guidata->lineColoursArr);
+	graph->render_new_edges(doResize, &clientState->config->graphColours.lineColours);
 	return 1;
 }
 
@@ -472,9 +471,10 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 		graph->needVBOReload_preview = true;
 
 	int remainingEdges = clientState->config->preview.edgesPerRender;
+	vector<ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
-		graph->render_edge(*edgeIt, graph->previewlines, &clientState->guidata->lineColoursArr, 0, true);
+		graph->render_edge(*edgeIt, graph->previewlines, lineColours, 0, true);
 		graph->previewlines->inc_edgesRendered();
 		if (!remainingEdges--)break;
 	}
@@ -650,14 +650,14 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 }
 
 //draw number of times an edge has been executed
-void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
+void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
-	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
-	//iterate through nodes looking for ones that map to screen coords
+	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
+	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 
+	//iterate through nodes looking for ones that map to screen coords
 	vector<NODEPAIR>::iterator edgeIt;
 	vector<NODEPAIR>::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
@@ -668,8 +668,8 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 
 		//i feel like these checks should be done on the midpoint rather than the node
 		if (n->external) continue; //don't care about instruction in library call
-		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, 
-			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
+		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 		if (graph->get_edge(*edgeIt)->weight <= 1) continue;
 
@@ -679,13 +679,13 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 		DCOORD screenCoord;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoord);
 
-		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientState->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientState->size.height || screenCoord.y < -100) continue;
 
 		stringstream ss;
 		ss << graph->get_edge(*edgeIt)->weight;
-		al_draw_text(clientstate->standardFont, al_col_orange, screenCoord.x + INS_X_OFF,
-			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoord.x + INS_X_OFF,
+			clientState->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 	}
 	graph->stop_edgeL_iteration();
@@ -788,7 +788,6 @@ void display_big_heatmap(VISSTATE *clientstate)
 
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
-
 
 	float zdiff = clientstate->zoomlevel - graph->zoomLevel;
 	float zmul = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;

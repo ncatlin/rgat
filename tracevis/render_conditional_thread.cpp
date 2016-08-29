@@ -51,18 +51,18 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			//jump seen to both fail and succeed
 			if (jumpTaken && jumpMissed)
 			{
-				vcol[arraypos + ROFF] = failOnly.r;
-				vcol[arraypos + GOFF] = failOnly.g;
-				vcol[arraypos + BOFF] = failOnly.b;
-				vcol[arraypos + AOFF] = failOnly.a;
+				vcol[arraypos + ROFF] = bothPaths.r;
+				vcol[arraypos + GOFF] = bothPaths.g;
+				vcol[arraypos + BOFF] = bothPaths.b;
+				vcol[arraypos + AOFF] = bothPaths.a;
 				continue;
 			}
 
 			//no notifications, assume failed
-			vcol[arraypos + ROFF] = bothPaths.r;
-			vcol[arraypos + GOFF] = bothPaths.g;
-			vcol[arraypos + BOFF] = bothPaths.b;
-			vcol[arraypos + AOFF] = bothPaths.a;
+			vcol[arraypos + ROFF] = failOnly.r;
+			vcol[arraypos + GOFF] = failOnly.g;
+			vcol[arraypos + BOFF] = failOnly.b;
+			vcol[arraypos + AOFF] = failOnly.a;
 			continue;
 		}
 

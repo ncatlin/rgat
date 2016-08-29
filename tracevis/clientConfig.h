@@ -23,15 +23,21 @@ public:
 
 	struct {
 		int delay;
+		ALLEGRO_COLOR lineTextCol;
 	} heatmap;
 
-	struct previewStruct {
+	struct {
 		int FPS;
 		int processDelay;
 		int threadDelay;
 		int spinPerFrame;
 		int edgesPerRender;
 	} preview;
+
+	struct {
+		vector<ALLEGRO_COLOR> lineColours;
+		vector<ALLEGRO_COLOR> nodeColours;
+	} graphColours;
 
 	ALLEGRO_COLOR mainBackground;
 	int lowB;

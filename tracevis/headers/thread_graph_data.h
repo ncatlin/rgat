@@ -92,12 +92,13 @@ public:
 		node_data *n = &nodeDict.at(index); 
 		dropMutex(nodeDMutex); return n;
 	}
+	/*
 	void add_node(pair<unsigned int, node_data> newnodepair) 
 	{
 		obtainMutex(nodeDMutex, 0, 500);
 		nodeDict.insert(newnodepair); 
 		dropMutex(nodeDMutex);
-	}
+	}*/
 
 	bool node_exists(unsigned int idx) { if (nodeDict.count(idx)) return true; return false; }
 	unsigned int get_num_nodes() { return nodeDict.size();}

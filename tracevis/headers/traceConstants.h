@@ -18,19 +18,13 @@
 #define JUMP 1
 #define CALL 2
 #define RETURN 3
-#define NOJUMP 4
-#define EXTERNAL 5
+#define EXTERNAL 4
 #define NOSYM 8
 #define AFTERRETURN 9
 #define FIRST_IN_THREAD 10
 
 #define INTERNAL_CODE 1 
 #define EXTERNAL_CODE 2
-
-#define NODESTANDARD 'v'
-#define NODEEXTERNS 'e'
-#define NODELIBRARY 'l'
-#define NODEFUNCARGS 'a'
 
 #define MOD_INACTIVE 0  //don't plot this
 #define MOD_ACTIVE 1	//plot this
