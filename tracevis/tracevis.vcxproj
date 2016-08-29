@@ -157,6 +157,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animControls.h" />
+    <ClInclude Include="clientConfig.h" />
+    <ClInclude Include="configDefaults.h" />
     <ClInclude Include="diffWindow.h" />
     <ClInclude Include="exeWindow.h" />
     <ClInclude Include="headers\diff_plotter.h" />
@@ -270,6 +272,7 @@
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\ToolTip\ToolTip.cpp" />
     <ClCompile Include="animControls.cpp" />
     <ClCompile Include="b64.cpp" />
+    <ClCompile Include="clientConfig.cpp" />
     <ClCompile Include="diffWindow.cpp" />
     <ClCompile Include="diff_plotter.cpp" />
     <ClCompile Include="edge_data.cpp" />

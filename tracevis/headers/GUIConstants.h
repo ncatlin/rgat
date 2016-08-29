@@ -5,7 +5,6 @@
 #define BDIVISIONS 16
 
 //don't know, please figure out how to derive properly. 
-//this is good for a couple of wraps around the sphere, which is prob too many
 //change it by whatever factor you change ADIVISIONS
 #define COLOUR_PICKING_MYSTERY_CONSTANTA 11.115
 
@@ -34,14 +33,9 @@
 #define PREVIEW_GRAPH_HEIGHT 200
 #define PREVIEW_GRAPH_WIDTH (280-SCROLLBAR_WIDTH)
 #define PREVIEW_PANE_WIDTH 300
-#define PREVIEW_RENDER_FPS 10
-#define PREVIEW_UPDATE_DELAY_MS 400
-#define PREVIEW_SPIN_PER_FRAME 0.6
 
-#define HEATMAP_DELAY_MS 1000
-#define CONDITIONAL_DELAY_MS 1000
 
-#define wireframe_col al_map_rgba(255, 255, 255, 150)
+
 #define INSTEXT_FIRST 0
 #define INSTEXT_NONE INSTEXT_FIRST
 #define INSTEXT_AUTO 1

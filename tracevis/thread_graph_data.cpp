@@ -8,7 +8,7 @@
 //display live or animated graph with active areas on faded areas
 void thread_graph_data::display_active(bool showNodes, bool showEdges)
 {
-	GRAPH_DISPLAY_DATA *vertsdata = get_activeverts();
+	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
 	GRAPH_DISPLAY_DATA *linedata = get_activelines();
 
 	if (needVBOReload_active)
@@ -19,8 +19,8 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		//GLuint *VBOs = graph->activeVBOs;
 		glGenBuffers(4, activeVBOs);
 
-		load_VBO(VBO_NODE_POS, activeVBOs, mainvertsdata->pos_size(), mainvertsdata->readonly_pos());
-		load_VBO(VBO_NODE_COL, activeVBOs, animvertsdata->col_size(), animvertsdata->readonly_col());
+		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
+		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
 		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, mainlinedata->readonly_pos());
@@ -32,7 +32,7 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 	}
 
 	if (showNodes)
-		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, vertsdata->get_numVerts());
+		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, nodesdata->get_numVerts());
 
 	if (showEdges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, activeVBOs, linedata->get_numVerts());
@@ -43,12 +43,12 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 {
 	if (needVBOReload_main)
 	{
-		loadVBOs(graphVBOs, mainvertsdata, mainlinedata);
+		loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
 	}
 
 	if (showNodes)
-		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainvertsdata->get_numVerts());
+		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainnodesdata->get_numVerts());
 
 	if (showEdges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numVerts());
@@ -161,7 +161,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 	dropMutex(animationListsMutex, "highlight externs");
 
-	node_data *n = get_vert(targetExternIdx);
+	node_data *n = get_node(targetExternIdx);
 	if (!n->funcargs.empty())
 		return; //handled elsewhere by arg processor
 
@@ -177,7 +177,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 
 string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
-	node_data *n = get_vert(idx);
+	node_data *n = get_node(idx);
 	map<long, string> *modSyms = &piddata->modsyms.at(n->nodeMod);
 	if (modSyms->count(n->address))
 		return piddata->modsyms.at(n->nodeMod).at(n->address);
@@ -300,7 +300,7 @@ void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 //return true if animation has ended
 unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop = false)
 {
-	if (vertDict.empty()) return ANIMATION_ENDED;
+	if (nodeDict.empty()) return ANIMATION_ENDED;
 
 	performStep(updateSize, skipLoop);
 	if (!animationMode) return 0;
@@ -344,12 +344,12 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	}
 	animlinedata->release_col();
 
-	GLfloat *ncol = animvertsdata->acquire_col("2b");
+	GLfloat *ncol = animnodesdata->acquire_col("2b");
 	vector<unsigned int>::iterator activeNodeIt = activeNodeList.begin();
 
 	while (activeNodeIt != activeNodeList.end())
 	{
-		node_data *n = get_vert(*activeNodeIt);
+		node_data *n = get_node(*activeNodeIt);
 		unsigned int nodeIndex = n->index;
 		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
 		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
@@ -360,7 +360,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 			++activeNodeIt;
 	}
 
-	animvertsdata->release_col();
+	animnodesdata->release_col();
 	needVBOReload_active = true;
 }
 
@@ -374,8 +374,8 @@ void thread_graph_data::reset_animation()
 
 	sequenceIndex = 0;
 	blockInstruction = 0;
-	if (!vertDict.empty())
-		latest_active_node = &vertDict.at(0);
+	if (!nodeDict.empty())
+		latest_active_node = &nodeDict.at(0);
 	darken_animation(1.0);
 	firstAnimatedBB = 0;
 	lastAnimatedBB = 0;
@@ -407,15 +407,15 @@ void thread_graph_data::brighten_BBs()
 		recentHighlights[animPosition] = true;
 		
 		
-		GLfloat *ncol = animvertsdata->acquire_col("1m");
+		GLfloat *ncol = animnodesdata->acquire_col("1m");
 		GLfloat *ecol = animlinedata->acquire_col("1m");
 		while (!ncol || !ecol)
 		{
-			animvertsdata->release_col();
+			animnodesdata->release_col();
 			animlinedata->release_col();
 			printf("BBbright fail\n");
 			Sleep(75);
-			ncol = animvertsdata->acquire_col("1m2");
+			ncol = animnodesdata->acquire_col("1m2");
 			ecol = animlinedata->acquire_col("1m2");
 		}
 
@@ -431,12 +431,14 @@ void thread_graph_data::brighten_BBs()
 		if (!ins->threadvertIdx.count(tid))
 		{
 			printf("WARNING: BrightenBBs going too far? Breaking!\n");
-			animvertsdata->release_col();
+			animnodesdata->release_col();
 			animlinedata->release_col();
 			break;
 		}
 	
+		obtainMutex(disassemblyMutex, 0, 50);
 		unsigned int nodeIdx = ins->threadvertIdx.at(tid);
+		dropMutex(disassemblyMutex, 0);
 
 		//link lastbb to this
 		if (lastNodeIdx)
@@ -487,7 +489,7 @@ void thread_graph_data::brighten_BBs()
 			ins = nextIns;
 		}
 		lastNodeIdx = nodeIdx;
-		animvertsdata->release_col();
+		animnodesdata->release_col();
 		animlinedata->release_col();
 	}
 
@@ -542,7 +544,7 @@ node_data *thread_graph_data::derive_anim_node()
 		remainingInstructions--;
 	}
 
-	node_data *n = get_vert(target_ins->threadvertIdx.at(tid));
+	node_data *n = get_node(target_ins->threadvertIdx.at(tid));
 	return n;
 
 }
@@ -577,8 +579,8 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 
-	node_data *sourceNode = get_vert(ePair.first);
-	node_data *targetNode = get_vert(ePair.second);
+	node_data *sourceNode = get_node(ePair.first);
+	node_data *targetNode = get_node(ePair.second);
 	edge_data *e = get_edge(ePair);
 
 	MULTIPLIERS *scaling;
@@ -618,8 +620,8 @@ int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edg
 
 node_data* thread_graph_data::get_active_node()
 {
-	if (!latest_active_node && !vertDict.empty())
-		latest_active_node = get_vert(0);
+	if (!latest_active_node && !nodeDict.empty())
+		latest_active_node = get_node(0);
 	return latest_active_node;
 }
 
@@ -628,19 +630,19 @@ thread_graph_data::thread_graph_data(map <unsigned long, vector<INS_DATA*>> *dis
 	disassembly = disasPtr;
 	disassemblyMutex = mutex;
 
-	mainvertsdata = new GRAPH_DISPLAY_DATA(40000);
+	mainnodesdata = new GRAPH_DISPLAY_DATA(40000);
 	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
 
 	animlinedata = new GRAPH_DISPLAY_DATA(40000);
-	animvertsdata = new GRAPH_DISPLAY_DATA(40000);
+	animnodesdata = new GRAPH_DISPLAY_DATA(40000);
 
 	previewlines = new GRAPH_DISPLAY_DATA(40000);
 	previewlines->setPreview();
-	previewverts = new GRAPH_DISPLAY_DATA(40000);
-	previewverts->setPreview();
+	previewnodes = new GRAPH_DISPLAY_DATA(40000);
+	previewnodes->setPreview();
 
 	conditionallines = new GRAPH_DISPLAY_DATA(40000);
-	conditionalverts = new GRAPH_DISPLAY_DATA(40000);
+	conditionalnodes = new GRAPH_DISPLAY_DATA(40000);
 	heatmaplines = new GRAPH_DISPLAY_DATA(40000);
 	needVBOReload_conditional = true;
 	needVBOReload_heatmap = true;
@@ -684,11 +686,11 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodeList)
 	}
 }
 
-void thread_graph_data::insert_vert(int targVertID, node_data node)
+void thread_graph_data::insert_node(int targVertID, node_data node)
 {
-	obtainMutex(vertDMutex, "Insert Vert");
-	vertDict.insert(make_pair(targVertID, node));
-	dropMutex(vertDMutex, "Insert Vert");
+	obtainMutex(nodeDMutex, "Insert Vert");
+	nodeDict.insert(make_pair(targVertID, node));
+	dropMutex(nodeDMutex, "Insert Vert");
 }
 
 void thread_graph_data::stop_edgeD_iteration()
@@ -730,7 +732,7 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 
 void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo) 
 {
-	baseMod = get_vert(0)->nodeMod;
+	baseMod = get_node(0)->nodeMod;
 	if (baseMod >= (int)pidinfo->modpaths.size()) return;
 	string longmodPath = pidinfo->modpaths[baseMod];
 
@@ -745,8 +747,8 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "TID" << tid << "{";
 
 	*file << "N{";
-	map<unsigned int, node_data>::iterator vertit = vertDict.begin();
-	for (; vertit != vertDict.end(); ++vertit)
+	map<unsigned int, node_data>::iterator vertit = nodeDict.begin();
+	for (; vertit != nodeDict.end(); ++vertit)
 		vertit->second.serialise(file);
 	*file << "}N,";
 
@@ -939,7 +941,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS
 			if (!caught_stoi(value_s, (int *)&n->mutation, 10))
 				return false;
 			n->ins = disassembly->at(n->address).at(n->mutation);
-			insert_vert(n->index, *n);
+			insert_node(n->index, *n);
 			continue;
 		}
 
@@ -974,7 +976,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS
 		if (!funcCalls.empty())
 			n->funcargs = funcCalls;
 		file->seekg(1, ios::cur); //skip closing brace
-		insert_vert(n->index, *n);
+		insert_node(n->index, *n);
 	}
 }
 //todo: move this and the other graph loads to graph class!

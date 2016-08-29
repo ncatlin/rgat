@@ -5,6 +5,12 @@
 //we could just memset the colours array but leaving it here for the sake of adapatbility
 void plot_wireframe(VISSTATE *clientstate)
 {
+	ALLEGRO_COLOR *wireframe_col = &clientstate->config->wireframe.edgeColor;
+	const int r = wireframe_col->r;
+	const int g = wireframe_col->g;
+	const int b = wireframe_col->b;
+	const int a = wireframe_col->a;
+
 	int ii, pp, index;
 	long diam = clientstate->activeGraph->m_scalefactors->radius;
 	int points = WF_POINTSPERLINE;
@@ -22,15 +28,15 @@ void plot_wireframe(VISSTATE *clientstate)
 			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
 
 			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
-			vpos[index] = ringSize * cos(angle);
-			vpos[index + 1] = diam * cos((ii*M_PI) / 180);
-			vpos[index + 2] = ringSize * sin(angle);
+			vpos[index + XOFF] = ringSize * cos(angle);
+			vpos[index + YOFF] = diam * cos((ii*M_PI) / 180);
+			vpos[index + ZOFF] = ringSize * sin(angle);
 
 			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol[index] = wireframe_col.r;
-			vcol[index + 1] = wireframe_col.g;
-			vcol[index + 2] = wireframe_col.b;
-			vcol[index + 3] = wireframe_col.a;
+			vcol[index + ROFF] = r;
+			vcol[index + GOFF] = g;
+			vcol[index + BOFF] = b;
+			vcol[index + AOFF] = a;
 		}
 		numSphereCurves += 1;
 	}
@@ -42,17 +48,17 @@ void plot_wireframe(VISSTATE *clientstate)
 
 			float angle = (2 * M_PI * pp) / points;
 			float cosangle = cos(angle);
-
+			
 			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
-			vpos[index] = diam * cosangle * cos(degs2);
-			vpos[index + 1] = diam * sin(angle);
-			vpos[index + 2] = diam * cosangle * sin(degs2);
+			vpos[index + XOFF] = diam * cosangle * cos(degs2);
+			vpos[index + YOFF] = diam * sin(angle);
+			vpos[index + ZOFF] = diam * cosangle * sin(degs2);
 
 			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol[index] = wireframe_col.r;
-			vcol[index + 1] = wireframe_col.g;
-			vcol[index + 2] = wireframe_col.b;
-			vcol[index + 3] = wireframe_col.a;
+			vcol[index + ROFF] = r;
+			vcol[index + GOFF] = g;
+			vcol[index + BOFF] = b;
+			vcol[index + AOFF] = a;
 		}
 		numSphereCurves += 1;
 	}
@@ -95,8 +101,8 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		0.3, 0.3, 0.5, 0.7, 0.9, 1 };
 	
 	curvePoints += 2;
-	float *posdata = (float *)malloc((curvePoints + 2) * 3 * sizeof(float));
-	float *coldata = (float *)malloc((curvePoints + 2) * 4 * sizeof(float));
+	float *posdata = (float *)malloc((curvePoints + 2) * POSELEMS * sizeof(float));
+	float *coldata = (float *)malloc((curvePoints + 2) * COLELEMS * sizeof(float));
 	if (!posdata || !coldata) return 0;
 	int ci = 0;
 	int pi = 0;
@@ -265,7 +271,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	return curvePoints;
 }
 
-int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions)
+int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions)
 {
 	ALLEGRO_COLOR *active_col;
 
@@ -280,16 +286,15 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	GLfloat *vcol2 = animvertdata->acquire_col("1e");
 	if (!vpos || !vcol || !vcol2)
 	{
-		//printf("vp%f, vc%f, fc%f, vc%f\n", vpos, vcol, fcoord, vcol2);
 		vertdata->release_pos();
 		vertdata->release_col();
 		animvertdata->release_col();
 		return 0;
 	}
 
-	vpos[(vertIdx * POSELEMS)] = screenc.x;
-	vpos[(vertIdx * POSELEMS) + 1] = screenc.y;
-	vpos[(vertIdx * POSELEMS) + 2] = screenc.z;
+	vpos[(vertIdx * POSELEMS) + XOFF] = screenc.x;
+	vpos[(vertIdx * POSELEMS) + YOFF] = screenc.y;
+	vpos[(vertIdx * POSELEMS) + ZOFF] = screenc.z;
 
 	//todo: find better way, esp for custom colours
 	if (n->external)
@@ -324,20 +329,20 @@ int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	}
 
 	
-	vcol[(vertIdx * COLELEMS)] = active_col->r;
-	vcol[(vertIdx * COLELEMS) + 1] = active_col->g;
-	vcol[(vertIdx * COLELEMS) + 2] = active_col->b;
-	vcol[(vertIdx * COLELEMS) + 3] = 1;
+	vcol[(vertIdx * COLELEMS) + ROFF] = active_col->r;
+	vcol[(vertIdx * COLELEMS) + GOFF] = active_col->g;
+	vcol[(vertIdx * COLELEMS) + BOFF] = active_col->b;
+	vcol[(vertIdx * COLELEMS) + AOFF] = 1;
 
 	vertdata->set_numVerts(vertdata->get_numVerts()+1);
 
 	vertdata->release_col();
 	vertdata->release_pos();
 
-	vcol2[(vertIdx * COLELEMS)] = active_col->r;
-	vcol2[(vertIdx * COLELEMS) + 1] = active_col->g;
-	vcol2[(vertIdx * COLELEMS) + 2] = active_col->b;
-	vcol2[(vertIdx * COLELEMS) + 3] = 0;
+	vcol2[(vertIdx * COLELEMS) + ROFF] = active_col->r;
+	vcol2[(vertIdx * COLELEMS) + GOFF] = active_col->g;
+	vcol2[(vertIdx * COLELEMS) + BOFF] = active_col->b;
+	vcol2[(vertIdx * COLELEMS) + AOFF] = 0;
 
 	animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
 
@@ -350,8 +355,8 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
-	map<unsigned int, node_data>::iterator vertit = graph->get_vertStart();
-	map<unsigned int, node_data>::iterator vertEnd = graph->get_vertEnd();
+	map<unsigned int, node_data>::iterator vertit = graph->get_nodeStart();
+	map<unsigned int, node_data>::iterator vertEnd = graph->get_nodeEnd();
 	if (vertit == vertEnd) return 0;
 	std::advance(vertit, vertsdata->get_numVerts());
 
@@ -360,7 +365,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	for (; vertit != vertEnd; ++vertit)
 	{
 		int retries = 0;
-	 while (!add_vert(&vertit->second, vertsdata, graph->animvertsdata, scalefactors))
+	 while (!add_node(&vertit->second, vertsdata, graph->animnodesdata, scalefactors))
 		{
 			Sleep(50);
 			if (retries++ > 25)
@@ -379,21 +384,20 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
-	map<unsigned int, node_data>::iterator vertit = graph->get_vertStart();
-	map<unsigned int, node_data>::iterator target = graph->get_vertStart();
+	map<unsigned int, node_data>::iterator vertit = graph->get_nodeStart();
+	map<unsigned int, node_data>::iterator target = graph->get_nodeStart();
 	printf("starting resize\n");
 	GLfloat *vpos = vertsdata->acquire_pos("1i");
 	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; ++vertit)
 	{
 		FCOORD c = vertit->second.sphereCoordB(scalefactors, 0);
 		int vertIdx = vertit->second.index;
-		vpos[(vertIdx * POSELEMS)] = c.x;
-		vpos[(vertIdx * POSELEMS) + 1] = c.y;
-		vpos[(vertIdx * POSELEMS) + 2] = c.z;
+		vpos[(vertIdx * POSELEMS) + XOFF] = c.x;
+		vpos[(vertIdx * POSELEMS) + YOFF] = c.y;
+		vpos[(vertIdx * POSELEMS) + ZOFF] = c.z;
 	}
 	
 	vertsdata->release_pos();
-	printf("resizedone\n");
 }
 
 int render_main_graph(VISSTATE *clientState)
@@ -412,9 +416,9 @@ int render_main_graph(VISSTATE *clientState)
 	//doesn't take bmod into account
 	//keeps graph away from the south pole
 	unsigned int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
-	if (lowestPoint > 70)
+	if (lowestPoint > clientState->config->lowB)
 	{
-		while (lowestPoint > 70)
+		while (lowestPoint > clientState->config->lowB)
 		{
 			graph->m_scalefactors->userVEDGESEP *= 0.99;
 			recalculate_scale(graph->m_scalefactors);
@@ -425,9 +429,9 @@ int render_main_graph(VISSTATE *clientState)
 
 	//more straightforward, stops graph from wrapping around the globe
 	unsigned int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
-	if (widestPoint > 300)
+	if (widestPoint > clientState->config->farA)
 	{
-		while (widestPoint > 300)
+		while (widestPoint > clientState->config->farA)
 		{
 			graph->m_scalefactors->userHEDGESEP *= 0.99;
 			recalculate_scale(graph->m_scalefactors);
@@ -438,12 +442,12 @@ int render_main_graph(VISSTATE *clientState)
 
 	if (doResize)
 	{
-		resize_verts(graph, graph->get_mainverts());
+		resize_verts(graph, graph->get_mainnodes());
 		graph->zoomLevel = graph->m_scalefactors->radius;
 		graph->needVBOReload_main = true;
 	}
 
-	int drawCount = draw_new_verts(graph, graph->get_mainverts());
+	int drawCount = draw_new_verts(graph, graph->get_mainnodes());
 	if (drawCount < 0)
 	{
 		printf("\n\nFATAL 5: Failed drawing verts!\n\n");
@@ -456,23 +460,23 @@ int render_main_graph(VISSTATE *clientState)
 	return 1;
 }
 
-int draw_new_preview_edges(VISSTATE* clientstate, thread_graph_data *graph)
+int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 {
 	//draw edges
-	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
-	vector<pair<unsigned int, unsigned int>>::iterator edgeEnd;
+	vector<NODEPAIR>::iterator edgeIt;
+	vector<NODEPAIR>::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
 	if (edgeIt != edgeEnd)
 		graph->needVBOReload_preview = true;
 
-	int maxEdges = 50;
+	int remainingEdges = clientState->config->preview.edgesPerRender;
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
-		graph->render_edge(*edgeIt, graph->previewlines, &clientstate->guidata->lineColoursArr, 0, true);
+		graph->render_edge(*edgeIt, graph->previewlines, &clientState->guidata->lineColoursArr, 0, true);
 		graph->previewlines->inc_edgesRendered();
-		if (!maxEdges--)break;
+		if (!remainingEdges--)break;
 	}
 	graph->stop_edgeL_iteration();
 	return 1;
@@ -483,7 +487,7 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 	bool doResize = false;
 		previewGraph->needVBOReload_preview = true;
 
-	int vresult = draw_new_verts(previewGraph, previewGraph->previewverts);
+	int vresult = draw_new_verts(previewGraph, previewGraph->previewnodes);
 	if (vresult == -1)
 	{
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
@@ -526,7 +530,7 @@ void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoor
 
 void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph)
 {
-	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
+	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
 	//todo: maintain local copy, update on size change?
 	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
@@ -537,7 +541,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	for (; externCallIt != externListCopy.end(); ++externCallIt)
 	{
 		int externVertIdx = *externCallIt;
-		node_data *n = graph->get_vert(externVertIdx);
+		node_data *n = graph->get_node(externVertIdx);
 		assert(n->external);
 
 		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
@@ -556,12 +560,12 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
-	unsigned int numVerts = graph->get_num_verts();
-	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainverts();
+	unsigned int numVerts = graph->get_num_nodes();
+	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 	for (i = 0; i < numVerts; ++i)
 	{
 
-		node_data *n = graph->get_vert(i);
+		node_data *n = graph->get_node(i);
 		if (n->external) continue;
 		
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
@@ -607,7 +611,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (i = 0; i < numVerts; ++i)
 	{
-		node_data *n = graph->get_vert(i);
+		node_data *n = graph->get_node(i);
 		if (n->external || !n->ins->conditional) continue;
 
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
@@ -631,9 +635,9 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
 		ALLEGRO_COLOR textcol;
-		textcol.r = vcol[n->index*COLELEMS];
-		textcol.g = vcol[(n->index*COLELEMS)+1];
-		textcol.b = vcol[(n->index*COLELEMS)+2];
+		textcol.r = vcol[n->index*COLELEMS + ROFF];
+		textcol.g = vcol[n->index*COLELEMS + GOFF];
+		textcol.b = vcol[n->index*COLELEMS + BOFF];
 		textcol.a = 1;
 
 		stringstream ss;
@@ -652,15 +656,15 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
+	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 
-	vector<VERTPAIR>::iterator edgeIt;
-	vector<VERTPAIR>::iterator edgeEnd;
+	vector<NODEPAIR>::iterator edgeIt;
+	vector<NODEPAIR>::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
-		node_data *n = graph->get_vert(edgeIt->first);
+		node_data *n = graph->get_node(edgeIt->first);
 
 		//i feel like these checks should be done on the midpoint rather than the node
 		if (n->external) continue; //don't care about instruction in library call
@@ -671,7 +675,7 @@ void draw_edge_heat_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd)
 
 		//todo: experiment with performance re:how much of this check to include
 		DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
-		DCOORD screenCoordB = graph->get_vert(edgeIt->second)->get_screen_pos(vertsdata, pd);
+		DCOORD screenCoordB = graph->get_node(edgeIt->second)->get_screen_pos(vertsdata, pd);
 		DCOORD screenCoord;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoord);
 
@@ -702,14 +706,14 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	if (zmul < 25)
 		show_extern_labels(clientstate, pd, graph);
 
-	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_verts() > 2)
+	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientstate, zmul, pd, graph);
 }
 
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	thread_graph_data *graph1 = diffRenderer->get_graph(1);
 	thread_graph_data *diffgraph = diffRenderer->get_diff_graph();
-	GRAPH_DISPLAY_DATA *vertsdata = graph1->get_mainverts();
+	GRAPH_DISPLAY_DATA *vertsdata = graph1->get_mainnodes();
 	GRAPH_DISPLAY_DATA *linedata = graph1->get_mainlines();
 
 	if (graph1->needVBOReload_main)
@@ -742,7 +746,7 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 		show_extern_labels(clientstate, &pd, graph1);
 	}
 
-	if (clientstate->show_ins_text && zmul < 10 && graph1->get_num_verts() > 2)
+	if (clientstate->show_ins_text && zmul < 10 && graph1->get_num_nodes() > 2)
 	{
 		if (!pdgathered) 
 			gather_projection_data(&pd);
@@ -763,7 +767,7 @@ void display_big_heatmap(VISSTATE *clientstate)
 		graph->needVBOReload_heatmap = false;
 	}
 
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainverts();
+	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	if (graph->needVBOReload_main)
 	{
@@ -777,12 +781,11 @@ void display_big_heatmap(VISSTATE *clientstate)
 	if (clientstate->modes.edges)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_LINE_POS]);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
+		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->heatmapEdgeVBO[0]);
-		glColorPointer(4, GL_FLOAT, 0, 0);
+		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
-		//know this is fine
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
@@ -795,20 +798,20 @@ void display_big_heatmap(VISSTATE *clientstate)
 	if (zmul < 25)
 		show_extern_labels(clientstate, &pd, graph);
 
-	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
+	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_nodes() > 2)
 		draw_edge_heat_text(clientstate, zmul, &pd);
 }
 
 void display_big_conditional(VISSTATE *clientstate)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
-	if (!graph->conditionallines || !graph->conditionalverts) return;
+	if (!graph->conditionallines || !graph->conditionalnodes) return;
 
 	if (graph->needVBOReload_conditional)
 	{
 		glGenBuffers(2, graph->conditionalVBOs);
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
-		glBufferData(GL_ARRAY_BUFFER, graph->conditionalverts->col_size(), graph->conditionalverts->readonly_col(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);
 		glBufferData(GL_ARRAY_BUFFER, graph->conditionallines->col_size(), graph->conditionallines->readonly_col(), GL_STATIC_DRAW);
@@ -818,37 +821,36 @@ void display_big_conditional(VISSTATE *clientstate)
 
 	if (graph->needVBOReload_main)
 	{
-		loadVBOs(graph->graphVBOs, graph->get_mainverts(), graph->get_mainlines());
+		loadVBOs(graph->graphVBOs, graph->get_mainnodes(), graph->get_mainlines());
 		graph->needVBOReload_main = false;
 	}
 
 	if (clientstate->modes.nodes)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_NODE_POS]);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
+		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
-		glColorPointer(4, GL_FLOAT, 0, 0);
-		glDrawArrays(GL_POINTS, 0, graph->conditionalverts->get_numVerts());
+		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
+		glDrawArrays(GL_POINTS, 0, graph->conditionalnodes->get_numVerts());
 	}
 
 	if (clientstate->modes.edges)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_LINE_POS]);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
+		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);
-		glColorPointer(4, GL_FLOAT, 0, 0);
+		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 		glDrawArrays(GL_LINES, 0, graph->conditionallines->get_numVerts());
 	}
 
-	float zdiff = clientstate->zoomlevel - graph->zoomLevel;
-	float zmul = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zoomDiffMult = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
-	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_verts() > 2)
-		draw_condition_ins_text(clientstate, zmul, &pd, graph->get_mainverts());
+	if (clientstate->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
+		draw_condition_ins_text(clientstate, zoomDiffMult, &pd, graph->get_mainnodes());
 
 }
 

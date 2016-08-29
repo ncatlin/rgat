@@ -15,6 +15,7 @@
 #include "diff_plotter.h"
 #include "timeline.h"
 #include "OSspecific.h"
+#include "clientConfig.h"
 
 //possible name: rgat
 //ridiculous/runtime graph analysis tool
@@ -101,6 +102,7 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
 	heatmap_thread->clientState = clientState;
 	heatmap_thread->piddata = piddata;
+	heatmap_thread->setUpdateDelay(clientState->config->heatmap.delay);
 
 	HANDLE hHeatThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
@@ -110,6 +112,7 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	conditional_renderer *conditional_thread = new conditional_renderer;
 	conditional_thread->clientState = clientState;
 	conditional_thread->piddata = piddata;
+	conditional_thread->setUpdateDelay(clientState->config->conditional.delay);
 
 	Sleep(200);
 	HANDLE hConditionThread = CreateThread(
@@ -198,7 +201,7 @@ void updateMainRender(VISSTATE *clientState)
 	plot_wireframe(clientState);
 
 	plot_colourpick_sphere(clientState);
-	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainverts()->get_numVerts(),
+	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainnodes()->get_numVerts(),
 		clientState->activeGraph->get_mainlines()->get_renderedEdges());
 	clientState->rescale = false;
 
@@ -335,8 +338,8 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		{
 			if (!resu.callerAddr)
 			{
-				node_data* parentn = graph->get_vert(resu.edgeIdx.first);
-				node_data* externn = graph->get_vert(resu.edgeIdx.second);
+				node_data* parentn = graph->get_node(resu.edgeIdx.first);
+				node_data* externn = graph->get_node(resu.edgeIdx.second);
 				resu.callerAddr = parentn->ins->address;
 				resu.externPath = piddata->modpaths[externn->nodeMod];
 				if (extt.displayString == "()")
@@ -354,7 +357,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		}
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
-		graph->set_node_alpha(resu.nodeIdx, graph->get_activeverts(), 1.0);
+		graph->set_node_alpha(resu.nodeIdx, graph->get_activenodes(), 1.0);
 		dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 		externFloatingText->at(graph->tid).push_back(extt);
 	}
@@ -372,7 +375,7 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		if (exttIt->timeRemaining <= 0) 
 		{
 			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
-			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activeverts(), 0.3);
+			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
 			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
 		}
 		else
@@ -393,8 +396,8 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	for (; drawIt != drawMap.end(); ++drawIt)
 	{
 		EXTTEXT* ex = drawIt->first;
-		node_data *n = graph->get_vert(ex->nodeIdx);
-		DCOORD pos = n->get_screen_pos(graph->get_mainverts(), pd);
+		node_data *n = graph->get_node(ex->nodeIdx);
+		DCOORD pos = n->get_screen_pos(graph->get_mainnodes(), pd);
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
 			pos.x, clientState->size.height - pos.y - ex->yOffset, 0, displayString.c_str());
@@ -444,7 +447,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 	thread_graph_data *graph = clientState->activeGraph;
 
 	if (
-		(graph->get_mainverts()->get_numVerts() < graph->get_num_verts()) ||
+		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
 		clientState->rescale)
 	{
@@ -515,19 +518,28 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 
 int main(int argc, char **argv)
 {
+	//first deal with any command line arguments
+	VISSTATE clientstate;
+
 	string moduleDir = getModulePath();
 	string configPath = moduleDir + "\\rgat.cfg";
-	ALLEGRO_CONFIG* cfg = al_load_config_file(configPath.c_str());
+	
+	if (!al_init()) {
+		fprintf(stderr, "failed to initialize allegro!\n");
+		return NULL;
+	}
 
+	clientstate.config = new clientConfig(configPath);
+	clientConfig *config = clientstate.config;
 
-	VISSTATE clientstate;
 	printf("Starting visualiser\n");
 
 	if (!GUI_init(&clientstate.event_queue, &clientstate)) {
-		printf("GUI init failed\n");
+		printf("GUI init failed - todo - nongraphical mode\n");
 		return 0;
 	}
-	clientstate.guidata = init_GUI_Colours();
+	clientstate.guidata = init_GUI_Colours(); //integrate with config
+
 	clientstate.size.height = al_get_display_height(clientstate.maindisplay);
 	clientstate.size.width = al_get_display_width(clientstate.maindisplay);
 	clientstate.mainGraphBMP = al_create_bitmap(clientstate.size.width - PREVIEW_PANE_WIDTH, clientstate.size.height);
@@ -567,8 +579,8 @@ int main(int argc, char **argv)
 
 	//edge_picking_colours() is a hefty call, but doesn't need calling often
 	ALLEGRO_TIMER *updatetimer = al_create_timer(40.0 / 60.0);
-	ALLEGRO_EVENT_QUEUE *pos_update_timer_queue = al_create_event_queue();
-	al_register_event_source(pos_update_timer_queue, al_get_timer_event_source(updatetimer));
+	ALLEGRO_EVENT_QUEUE *low_frequency_timer_queue = al_create_event_queue();
+	al_register_event_source(low_frequency_timer_queue, al_get_timer_event_source(updatetimer));
 	al_start_timer(updatetimer);
 
 	if (!frametimer || !updatetimer) printf("Failed timer creation\n");
@@ -621,6 +633,10 @@ int main(int argc, char **argv)
 
 	clientstate.timelineBuilder = new timeline;
 	
+	//breaks if we use a pointer
+	ALLEGRO_COLOR mainBackground = clientstate.config->mainBackground;
+	printf("clearcol: %f,%f,%f,%f\n", mainBackground.r, mainBackground.g, mainBackground.b, mainBackground.a);
+	ALLEGRO_COLOR conditionalBackground = clientstate.config->conditional.background;
 
 	bool running = true;
 	while (running)
@@ -647,19 +663,13 @@ int main(int argc, char **argv)
 				if (!graph->get_num_edges()) continue;
 				printf("ACTIVATING FOUND GRAPH\n");
 				clientstate.activeGraph = graph;
+				clientstate.modes.animation = true;
+				clientstate.animationUpdate = 1;
 				if (graph->active)
-				{
-					clientstate.modes.animation = true;
-					clientstate.animationUpdate = 1;
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
-				}
 				else 
-				{
-					clientstate.modes.animation = true;
-					clientstate.animationUpdate = 1;
 					widgets->controlWindow->setAnimState(ANIM_INACTIVE);
-				}
-
+				
 				if (!externFloatingText.count(graph->tid))
 				{
 					vector<EXTTEXT> newVec;
@@ -675,7 +685,7 @@ int main(int argc, char **argv)
 		{
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
 			printf("GRAPH CHANGED to tid %d\n", clientstate.activeGraph->tid);
-			if (!clientstate.activeGraph->get_num_verts()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
+			if (!clientstate.activeGraph->get_num_nodes()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
 			
 			if (clientstate.activeGraph->active)
 			{
@@ -709,17 +719,15 @@ int main(int argc, char **argv)
 			al_set_target_bitmap(clientstate.mainGraphBMP);
 			frame_gl_setup(&clientstate);
 
-			//todo: move to a clearcolour variable in state
 			if (clientstate.modes.conditional)
-				al_clear_to_color(al_map_rgb(240, 240, 240));
+				al_clear_to_color(conditionalBackground);
 			else
-				al_clear_to_color(al_map_rgb(0, 0, 0));
+				al_clear_to_color(mainBackground);
 
-			//regular (but not every frame) updates
-			if (!al_is_event_queue_empty(pos_update_timer_queue))
+			if (!al_is_event_queue_empty(low_frequency_timer_queue))
 			{
+				al_flush_event_queue(low_frequency_timer_queue);
 				performIrregularActions(&clientstate);
-				al_flush_event_queue(pos_update_timer_queue);
 			}
 
 			if (clientstate.modes.wireframe)
@@ -730,13 +738,12 @@ int main(int argc, char **argv)
 			else
 				performMainGraphRendering(&clientstate, &externFloatingText);
 				
-
 			frame_gl_teardown();
 
 			al_set_target_backbuffer(clientstate.maindisplay);
 			if (clientstate.modes.preview)
 			{
-				if (previewRenderFrame++ % (60 / PREVIEW_RENDER_FPS))
+				if (previewRenderFrame++ % (60 / clientstate.config->preview.FPS))
 				{
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
@@ -751,7 +758,7 @@ int main(int argc, char **argv)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 		}
 		else
-			al_clear_to_color(al_map_rgb(0, 0, 0));
+			al_clear_to_color(mainBackground);
 
 		widgets->updateRenderWidgets(clientstate.activeGraph);
 		al_flip_display();
@@ -781,7 +788,7 @@ int main(int argc, char **argv)
 					{
 						pair<int, void *> graphPair = *pidIt;
 						thread_graph_data *graph = (thread_graph_data *)graphPair.second;
-						if (graph->get_num_verts())
+						if (graph->get_num_nodes())
 						{
 							clientstate.newActiveGraph = graph;
 							break;
@@ -794,11 +801,6 @@ int main(int argc, char **argv)
 
 			case EV_BTN_RUN:
 				{
-					//string path = "C:\\tracing\\testdllloader.exe";//"C:\\tracing\\you_are_very_good_at_this.exe";
-					//string path = exe_wind->getPath();
-					//if (al_filename_exists(path.c_str()))
-					//	execute_tracer(path);
-					//printf("run clicked! need to use file dialogue or cmdline?");
 					widgets->exeSelector->show();
 					//todo: start timeline
 					break;

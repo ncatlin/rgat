@@ -140,7 +140,7 @@ void heatmap_renderer::heatmap_thread()
 			Sleep(80);
 		}
 		
-		Sleep(HEATMAP_DELAY_MS);
+		Sleep(updateDelayMS);
 	}
 }
 

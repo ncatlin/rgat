@@ -20,6 +20,9 @@ void preview_renderer::rendering_thread()
 		continue;
 	}
 
+	const int outerDelay = clientState->config->preview.processDelay;
+	const int innerDelay = clientState->config->preview.threadDelay;
+
 	while (true)
 	{
 		//only write we are protecting against happens while creating new threads
@@ -36,14 +39,14 @@ void preview_renderer::rendering_thread()
 		while (graphlistIt != graphlist.end())
 		{
 			thread_graph_data *graph = *graphlistIt;
-			if ((graph->previewverts->get_numVerts() < graph->get_num_verts()) ||
+			if ((graph->previewnodes->get_numVerts() < graph->get_num_nodes()) ||
 				(graph->previewlines->get_renderedEdges() < graph->get_num_edges()))
 				render_preview_graph(graph, false, clientState);
-			Sleep(80);
+			Sleep(innerDelay);
 			graphlistIt++;
 		}
 		
-		Sleep(PREVIEW_UPDATE_DELAY_MS);
+		Sleep(outerDelay);
 	}
 }
 

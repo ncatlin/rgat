@@ -4,9 +4,8 @@
 #include "GUIConstants.h"
 
 
-int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
+void thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 
-	
 	while (!piddata->externdict.count(address))
 	{
 		Sleep(100);
@@ -14,26 +13,28 @@ int thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 	}
 
 	*BB = piddata->externdict.at(address);
-	return 0;
-
 }
-void thread_trace_handler::insert_edge(edge_data e, VERTPAIR edgePair)
+
+void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 {
 	thisgraph->add_edge(e, edgePair);
 	if (e.weight > thisgraph->maxWeight)
 		thisgraph->maxWeight = e.weight;
 }
 
-bool thread_trace_handler::new_instruction(INS_DATA *instruction)
+bool thread_trace_handler::is_new_instruction(INS_DATA *instruction)
 {
-	return (instruction->threadvertIdx.count(TID) == 0);
+	obtainMutex(piddata->disassemblyMutex, 0, 100);
+	bool result = instruction->threadvertIdx.count(TID) == 0;
+	dropMutex(piddata->disassemblyMutex, 0);
+	return result;
 }
 
 
 void thread_trace_handler::set_conditional_state(unsigned long address, int state)
 {
 	INS_DATA *instruction = getLastDisassembly(address, piddata->disassemblyMutex, &piddata->disassembly, 0);
-	node_data *n = thisgraph->get_vert(instruction->threadvertIdx[TID]);
+	node_data *n = thisgraph->get_node(instruction->threadvertIdx[TID]);
 	n->conditional |= state;
 
 }
@@ -44,18 +45,15 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 	thisnode.ins = instruction;
 	if (instruction->conditional) thisnode.conditional = CONDUNUSED;
 
-	targVertID = thisgraph->get_num_verts();
+	targVertID = thisgraph->get_num_nodes();
 	int a = 0, b = 0;
 	int bMod = 0;
 
 	//first instruction in bb,
-	if (bb_inslist_index == 0)
+	if (bb_inslist_index == 0 && lastRIPType == FIRST_IN_THREAD)
 	{
-		if (lastRIPType == FIRST_IN_THREAD)
-		{
 			a = 0;
 			b = 0;
-		}
 	}
 
 	if (lastRIPType != FIRST_IN_THREAD)
@@ -86,9 +84,11 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
 
-	thisgraph->insert_vert(targVertID, thisnode);
+	thisgraph->insert_node(targVertID, thisnode);
 
+	obtainMutex(piddata->disassemblyMutex, 0, 100);
 	instruction->threadvertIdx[TID] = targVertID;
+	dropMutex(piddata->disassemblyMutex, 0);
 }
 
 
@@ -101,7 +101,9 @@ void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction, node_data *lastNode)
 {
+	obtainMutex(piddata->disassemblyMutex, 0, 100);
 	targVertID = instruction->threadvertIdx.at(TID);
+	dropMutex(piddata->disassemblyMutex, 0);
 }
 
 void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int numInstructions, int repeats = 1)
@@ -121,15 +123,15 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 
 		if (lastRIPType != FIRST_IN_THREAD)
 		{
-			if (!thisgraph->vert_exists(lastVertID))
+			if (!thisgraph->node_exists(lastVertID))
 			{
 				printf("\t\tFatal error last vert not found\n");
 				return;
 			}
-			lastNode = thisgraph->get_vert(lastVertID);
+			lastNode = thisgraph->get_node(lastVertID);
 		}
 
-		newVert = new_instruction(instruction);
+		newVert = is_new_instruction(instruction);
 		if (newVert)
 			handle_new_instruction(instruction, mutation, bb_inslist_index, lastNode);
 		else //target vert already on this threads graph
@@ -141,7 +143,7 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 			loopState = LOOP_PROGRESS;
 		}
 
-		VERTPAIR edgeIDPair = make_pair(lastVertID, targVertID);
+		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 		if (thisgraph->edge_exists(edgeIDPair))
 			increaseWeight(thisgraph->get_edge(edgeIDPair), repeats);
 
@@ -265,7 +267,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 
 			if (result != -1)
 			{
-				VCOORD *caller = &thisgraph->get_vert(result)->vcoord;
+				VCOORD *caller = &thisgraph->get_node(result)->vcoord;
 				a = caller->a + RETURNA_OFFSET;
 				b = caller->b + RETURNB_OFFSET;
 				bMod = caller->bMod;
@@ -369,12 +371,12 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	process_new_args();
 }
 
-int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, VERTPAIR *resultPair)
+int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 
-	node_data *lastnode = thisgraph->get_vert(lastVertID);
+	node_data *lastnode = thisgraph->get_node(lastVertID);
 	
 	//start by examining our caller
 	
@@ -382,22 +384,21 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//if caller is external, not interested in this
 	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
 	BB_DATA *thisbb = 0;
-	//todo, check if this is always 0
-	int assertZero = get_extern_at_address(targaddr, &thisbb);
+	get_extern_at_address(targaddr, &thisbb);
 
 	//see if caller already called this
 	//if so, get the destination so we can just increase edge weight
 	auto x = thisbb->thread_callers.find(TID);
 	if (x != thisbb->thread_callers.end())
 	{
-		vector<VERTPAIR>::iterator vecit = x->second.begin();
+		vector<NODEPAIR>::iterator vecit = x->second.begin();
 		for (; vecit != x->second.end(); vecit++)
 		{
 			if (vecit->first != lastVertID) continue;
 
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
-			node_data *targNode = thisgraph->get_vert(targVertID);
+			node_data *targNode = thisgraph->get_node(targVertID);
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
 			increaseWeight(thisgraph->get_edge(*resultPair), repeats);
@@ -411,11 +412,11 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//else: thread hasnt called this function before
 
 	lastnode->childexterns += 1;
-	targVertID = thisgraph->get_num_verts();
+	targVertID = thisgraph->get_num_nodes();
 
 	if (!thisbb->thread_callers.count(TID))
 	{
-		vector<VERTPAIR> callervec;
+		vector<NODEPAIR> callervec;
 		callervec.push_back(make_pair(lastVertID, targVertID));
 		thisbb->thread_callers.emplace(TID, callervec);
 	}
@@ -428,8 +429,8 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	node_data newTargNode;
 	newTargNode.nodeMod = module;
 
-	int parentExterns = thisgraph->get_vert(lastVertID)->childexterns;
-	VCOORD lastnodec = thisgraph->get_vert(lastVertID)->vcoord;
+	int parentExterns = thisgraph->get_node(lastVertID)->childexterns;
+	VCOORD lastnodec = thisgraph->get_node(lastVertID)->vcoord;
 
 	newTargNode.vcoord.a = lastnodec.a + 2 * parentExterns + 5;
 	newTargNode.vcoord.b = lastnodec.b + parentExterns + 5;
@@ -440,9 +441,9 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	newTargNode.parentIdx = lastVertID;
 
 	BB_DATA *thisnode_bbdata = 0;
-	int bbInsIndex = get_extern_at_address(targaddr, &thisnode_bbdata);
+	get_extern_at_address(targaddr, &thisnode_bbdata);
 
-	thisgraph->insert_vert(targVertID, newTargNode);
+	thisgraph->insert_node(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
 	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
 	thisgraph->externList.push_back(targVertID);
@@ -469,13 +470,13 @@ void thread_trace_handler::process_new_args()
 			pcaIt++; continue; 
 		}
 
-		vector<VERTPAIR> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
-		vector<VERTPAIR>::iterator callvsIt = callvs.begin();
+		vector<NODEPAIR> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+		vector<NODEPAIR>::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
-			node_data *parentn = thisgraph->get_vert(callvsIt->first);
+			node_data *parentn = thisgraph->get_node(callvsIt->first);
 			unsigned long returnAddress = parentn->ins->address + parentn->ins->numbytes;
-			node_data *targn = thisgraph->get_vert(callvsIt->second);
+			node_data *targn = thisgraph->get_node(callvsIt->second);
 
 			map <unsigned long, vector<vector <pair<int, string>>>>::iterator retIt = pcaIt->second.begin();
 			while (retIt != pcaIt->second.end())//run through each caller to this function
@@ -565,7 +566,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		if (!lastVertID) return;
 
 		//caller,external vertids
-		VERTPAIR resultPair;
+		NODEPAIR resultPair;
 		//add node to graph if new
 		int result = run_external(thistag.targaddr, repeats, &resultPair);
 		
@@ -582,7 +583,8 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	}
 	else
 	{
-		printf("ERROR: BAD JUMP MODIFIER\n CORRUPT TRACE?\n");
+		printf("ERROR: BAD JUMP MODIFIER 0x%x: CORRUPT TRACE?\n", thistag.jumpModifier);
+		assert(0);
 	}
 }
 
@@ -630,8 +632,7 @@ void thread_trace_handler::TID_thread()
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
 				printf("thread %d pipe read ERROR: %d. [Closing handler]\n", TID, err);
-			else
-				printf("\t Thread %d - pipe read failure [thread exit? -closing handler]------------\n",TID);
+
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
@@ -643,7 +644,6 @@ void thread_trace_handler::TID_thread()
 		while (true)
 		{
 			//todo: check if buf is sensible - suspicious repeats?
-
 			if (next_token >= buf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) {
@@ -667,7 +667,6 @@ void thread_trace_handler::TID_thread()
 				}
 		
 				string jcount_s = string(strtok_s(entry, ",", &entry));
-
 				if (!caught_stoi(jcount_s, &thistag.insCount, 10)) {
 					printf("1 STOL ERROR: %s\n", jcount_s.c_str());
 					continue;

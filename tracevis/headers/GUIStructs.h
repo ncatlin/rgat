@@ -5,6 +5,15 @@
 #include "traceStructs.h"
 #include "thread_graph_data.h"
 #include "timeline.h"
+#include "clientConfig.h"
+
+#define XOFF 0
+#define YOFF 1
+#define ZOFF 2
+#define ROFF 0
+#define GOFF 1
+#define BOFF 2
+#define AOFF 3
 
 struct DIFFIDS {
 	int pid1 = -1;
@@ -102,6 +111,7 @@ struct VISSTATE {
 	unsigned int logSize = 0;
 
 	HIGHLIGHT_DATA highlightData;
+	clientConfig *config;
 };
 
 //screen top bottom red green

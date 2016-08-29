@@ -12,8 +12,10 @@ public:
 	bool sizeChanged;
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
+	void setUpdateDelay(int delay) { updateDelayMS = delay; }
 
 private:
+	int updateDelayMS = 200;
 	void conditional_thread();
 	bool render_graph_conditional (thread_graph_data *graph);
 

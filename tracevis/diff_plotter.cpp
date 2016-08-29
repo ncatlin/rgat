@@ -51,8 +51,8 @@ unsigned long diff_plotter::first_divering_edge()
 
 		if (target1 != target2) break;
 
-		node_data *n1targ = graph1->get_vert(target1);
-		node_data *n2targ = graph2->get_vert(target2);
+		node_data *n1targ = graph1->get_node(target1);
+		node_data *n2targ = graph2->get_node(target2);
 
 		if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) break;
 		if (n1targ->ins->op_str != n2targ->ins->op_str) break;

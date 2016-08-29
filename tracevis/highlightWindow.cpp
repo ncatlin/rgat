@@ -16,7 +16,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		for (; insListIt != insList.end(); ++insListIt)
 		{
 			INS_DATA *target = *insListIt;
-			node_data *n = graph->get_vert(target->threadvertIdx.at(currentTid));
+			node_data *n = graph->get_node(target->threadvertIdx.at(currentTid));
 			highlightData->highlightNodes.push_back(n);
 		}
 		break;
@@ -28,7 +28,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		for (; externIt != graph->externList.end(); ++externIt)
 		{
 			if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
-				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
+				highlightData->highlightNodes.push_back(graph->get_node(*externIt));
 		}
 		break;
 	}
@@ -38,8 +38,8 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		vector<int>::iterator externIt = graph->externList.begin();
 		for (; externIt != graph->externList.end(); ++externIt)
 		{
-			if (highlightData->highlightModule == graph->get_vert(*externIt)->nodeMod)
-				highlightData->highlightNodes.push_back(graph->get_vert(*externIt));
+			if (highlightData->highlightModule == graph->get_node(*externIt)->nodeMod)
+				highlightData->highlightNodes.push_back(graph->get_node(*externIt));
 		}
 		break;
 	}
@@ -51,9 +51,9 @@ void HighlightSelectionFrame::refreshDropdowns()
 	thread_graph_data *graph = clientState->activeGraph;
 	if (!clientState->activePid || !graph) return;
 
-	if (graph->get_num_verts())
+	if (graph->get_num_nodes())
 	{
-		unsigned long firstAddress = graph->get_vert(0)->address;
+		unsigned long firstAddress = graph->get_node(0)->address;
 		stringstream hexaddress;
 		hexaddress << "0x" << hex << firstAddress;
 		addressText->setText(hexaddress.str());
@@ -74,7 +74,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 		bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
 		if (newSym)
 			addedSyms.push_back(sym);
-		node_data* node = graph->get_vert(*externIt);
+		node_data* node = graph->get_node(*externIt);
 		++activeModules[node->nodeMod];
 
 	}

@@ -23,7 +23,7 @@ struct EXTERNCALLDATA {
 class thread_graph_data
 {
 private:
-	GRAPH_DISPLAY_DATA *mainvertsdata = 0;
+	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 
 	unsigned int lastAnimatedBB = 0;
@@ -31,7 +31,7 @@ private:
 	int baseMod = -1;
 	HANDLE disassemblyMutex;
 
-	map<unsigned int, node_data> vertDict; //node id to node data
+	map<unsigned int, node_data> nodeDict; //node id to node data
 	map <unsigned long, vector<INS_DATA*>> *disassembly;
 
 	vector<pair<unsigned int, unsigned int>> activeEdgeList;
@@ -40,7 +40,7 @@ private:
 	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
-	HANDLE vertDMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE nodeDMutex = CreateMutex(NULL, FALSE, NULL);
 
 	bool advance_sequence(bool);
 	bool decrease_sequence();
@@ -74,33 +74,33 @@ public:
 	edge_data *get_edge(pair<int, int> edgePair);
 	bool edge_exists(pair<int, int> edgePair);
 	void add_edge(edge_data e, pair<int, int> edgePair);
-	void insert_vert(int targVertID, node_data node); 
+	void insert_node(int targVertID, node_data node); 
 	void extend_faded_edges();
 	void assign_modpath(PROCESS_DATA *);
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
-	GRAPH_DISPLAY_DATA *get_mainverts() { return mainvertsdata; }
+	GRAPH_DISPLAY_DATA *get_mainnodes() { return mainnodesdata; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
-	GRAPH_DISPLAY_DATA *get_activeverts() { return animvertsdata; }
+	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
 	void render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr);
 
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
 
-	node_data *get_vert(unsigned int index)
+	node_data *get_node(unsigned int index)
 	{
-		obtainMutex(vertDMutex,0, 500); 
-		node_data *n = &vertDict.at(index); 
-		dropMutex(vertDMutex); return n;
+		obtainMutex(nodeDMutex,0, 500); 
+		node_data *n = &nodeDict.at(index); 
+		dropMutex(nodeDMutex); return n;
 	}
-	void add_vert(pair<unsigned int, node_data> newnodepair) 
+	void add_node(pair<unsigned int, node_data> newnodepair) 
 	{
-		obtainMutex(vertDMutex, 0, 500); 
-		vertDict.insert(newnodepair); 
-		dropMutex(vertDMutex);
+		obtainMutex(nodeDMutex, 0, 500);
+		nodeDict.insert(newnodepair); 
+		dropMutex(nodeDMutex);
 	}
 
-	bool vert_exists(unsigned int idx) { if (vertDict.count(idx)) return true; return false; }
-	unsigned int get_num_verts() { return vertDict.size();}
+	bool node_exists(unsigned int idx) { if (nodeDict.count(idx)) return true; return false; }
+	unsigned int get_num_nodes() { return nodeDict.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}
 
 	void start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeit,
@@ -111,8 +111,8 @@ public:
 		vector<pair<unsigned int, unsigned int>>::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
-	map<unsigned int, node_data>::iterator get_vertStart() { return vertDict.begin(); }
-	map<unsigned int, node_data>::iterator get_vertEnd() { return vertDict.end(); }
+	map<unsigned int, node_data>::iterator get_nodeStart() { return nodeDict.begin(); }
+	map<unsigned int, node_data>::iterator get_nodeEnd() { return nodeDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest();
 
@@ -125,7 +125,7 @@ public:
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	node_data * get_active_node();
-	void set_active_node(int idx) {	latest_active_node = &vertDict[idx];}
+	void set_active_node(int idx) {	latest_active_node = &nodeDict[idx];}
 	void update_animation_render();
 	void reset_animation();
 	void darken_animation(float alphaDelta);
@@ -178,7 +178,7 @@ public:
 	//node+edge col+pos
 	bool needVBOReload_preview = false;
 	GLuint previewVBOs[4] = { 0,0,0,0 };
-	GRAPH_DISPLAY_DATA *previewverts = 0;
+	GRAPH_DISPLAY_DATA *previewnodes = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;
 
 	bool finalHeatmap = false;
@@ -189,7 +189,7 @@ public:
 	bool needVBOReload_conditional = false;
 	GLuint conditionalVBOs[2] = { 0 };
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
-	GRAPH_DISPLAY_DATA *conditionalverts = 0;
+	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
 
 	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
 	vector <int> mutationSequence;
@@ -215,7 +215,7 @@ public:
 	GLuint activeVBOs[4] = { 0,0,0,0 };
 
 	//active areas + inactive areas
-	GRAPH_DISPLAY_DATA *animvertsdata = 0;
+	GRAPH_DISPLAY_DATA *animnodesdata = 0;
 	GRAPH_DISPLAY_DATA *animlinedata = 0;
 
 	void highlightNodes(vector<node_data *> *nodeList);

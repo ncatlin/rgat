@@ -48,7 +48,7 @@ void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *pidda
 
 	stringstream tipText;
 	tipText << "Path: " << graph->modPath << endl;
-	tipText << "Nodes: " << graph->get_num_verts() << endl;
+	tipText << "Nodes: " << graph->get_num_nodes() << endl;
 	tipText << "Edges: " << graph->get_num_edges() << endl;
 	tipText << "Instructions: " << graph->totalInstructions << endl;
 
@@ -109,11 +109,6 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 }
 
 ALLEGRO_DISPLAY* displaySetup() {
-
-	if (!al_init()) {
-		fprintf(stderr, "failed to initialize allegro!\n");
-		return NULL;
-	}
 
 	al_set_new_window_position(100, 100);
 	al_set_new_display_flags(ALLEGRO_OPENGL | ALLEGRO_WINDOWED | ALLEGRO_RESIZABLE);
@@ -199,7 +194,7 @@ void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPS
 
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
-	if (!clientState->activeGraph->get_num_verts())
+	if (!clientState->activeGraph->get_num_nodes())
 	{
 		printf("ERROR NO VERTS in summary activegraph\n"); return;
 	}
@@ -212,7 +207,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	else
 		textcol = al_col_red;
 
-	int activeModule = clientState->activeGraph->get_vert(0)->nodeMod;
+	int activeModule = clientState->activeGraph->get_node(0)->nodeMod;
 	infotxt << piddata->modpaths[activeModule];
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 

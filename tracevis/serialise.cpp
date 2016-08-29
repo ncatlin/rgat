@@ -126,7 +126,7 @@ void saveTrace(VISSTATE * clientState)
 	for (; graphit != clientState->activePid->graphs.end(); graphit++)
 	{
 		thread_graph_data *graph = (thread_graph_data *)graphit->second;
-		if (!graph->get_num_verts()){
+		if (!graph->get_num_nodes()){
 			printf("Ignoring empty graph %d\n", graph->tid);
 			continue;
 		}

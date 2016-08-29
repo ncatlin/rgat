@@ -132,6 +132,12 @@
     <ClInclude Include="headers\render_conditional_thread.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
+    <ClInclude Include="clientConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="configDefaults.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -444,6 +450,9 @@
       <Filter>Source Files\interface</Filter>
     </ClCompile>
     <ClCompile Include="osSpecific.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clientConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

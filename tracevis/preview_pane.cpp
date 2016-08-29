@@ -34,8 +34,8 @@ void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *grap
 void uploadPreviewGraph(thread_graph_data *previewgraph) {
 	GLuint *VBOs = previewgraph->previewVBOs;
 	glGenBuffers(4, VBOs);
-	load_VBO(VBO_NODE_POS, VBOs, previewgraph->previewverts->pos_size(), previewgraph->previewverts->readonly_pos());
-	load_VBO(VBO_NODE_COL, VBOs, previewgraph->previewverts->col_size(), previewgraph->previewverts->readonly_col());
+	load_VBO(VBO_NODE_POS, VBOs, previewgraph->previewnodes->pos_size(), previewgraph->previewnodes->readonly_pos());
+	load_VBO(VBO_NODE_COL, VBOs, previewgraph->previewnodes->col_size(), previewgraph->previewnodes->readonly_col());
 
 	int posbufsize = previewgraph->previewlines->get_numVerts() * POSELEMS * sizeof(GLfloat);
 	int linebufsize = previewgraph->previewlines->get_numVerts() * COLELEMS * sizeof(GLfloat);
@@ -103,7 +103,7 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewverts->get_numVerts());
+	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewnodes->get_numVerts());
 	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph->previewVBOs, previewgraph->previewlines->get_numVerts());
 	glPopMatrix();
 
@@ -188,7 +188,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 	{
 		previewGraph = (thread_graph_data *)threadit->second;
 		int TID = threadit->first;
-		if (previewGraph && previewGraph->previewverts->get_numVerts())
+		if (previewGraph && previewGraph->previewnodes->get_numVerts())
 		{
 			if (clientState->previewSpin || previewGraph->needVBOReload_preview)
 				drawGraphBitmap(previewGraph, clientState);
@@ -214,9 +214,10 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 	else
 		widgets->setScrollbarMax(numGraphs - clientState->size.height/ Y_MULTIPLIER);
 
-	if (clientState->previewSpin)
+	const int spinPerFrame = clientState->config->preview.spinPerFrame;
+	if (spinPerFrame)
 	{
-		clientState->previewYAngle -= PREVIEW_SPIN_PER_FRAME;
+		clientState->previewYAngle -= spinPerFrame;
 		if (clientState->previewYAngle < -360) clientState->previewYAngle = 0;
 	}
 }

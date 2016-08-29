@@ -19,10 +19,11 @@ public:
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 
-protected:
-	unsigned int delme = -1;
+	void setUpdateDelay(int delay) { updateDelayMS = delay; }
 
 private:
+	int updateDelayMS = 200;
+
 	void heatmap_thread();
 	bool render_graph_heatmap(thread_graph_data *graph);
 	vector<COLSTRUCT> colourRange;

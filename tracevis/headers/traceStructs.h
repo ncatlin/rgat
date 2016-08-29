@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-typedef std::pair<unsigned int, unsigned int> VERTPAIR;
+typedef std::pair<unsigned int, unsigned int> NODEPAIR;
 
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN {
@@ -43,7 +43,7 @@ struct BB_DATA {
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
 	//  tid      src   targ
-	map <int, vector<VERTPAIR>> thread_callers;
+	map <int, vector<NODEPAIR>> thread_callers;
 	//this is so bad
 	//   tid		caller     argidx, arg 
 	map <int, map<long, vector<pair<int, string>>>> pendingcallargs;

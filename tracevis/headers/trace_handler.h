@@ -34,29 +34,25 @@ private:
 	unsigned int targVertID = 0; //new vert we are creating
 	char lastRIPType = FIRST_IN_THREAD;
 	bool afterReturn = false;
-
-	thread_graph_data *thisgraph;
-
-	//important lists!
-	void handle_arg(char * entry, size_t entrySize);
-	map<int, long> vertBBDict; //basicblock address of each vert //delme?? todo
-	void process_new_args();
-	int run_external(unsigned long targaddr, unsigned long repeats, VERTPAIR *resultPair);
-
 	vector<pair<long, int>> callStack;
 
+	thread_graph_data *thisgraph;
 	//keep track of which a,b coords are occupied
-	map<int, map<int,bool>> usedCoords;
+	map<int, map<int, bool>> usedCoords;
+
+	void handle_arg(char * entry, size_t entrySize);
+	void process_new_args();
+	int run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
 	void runBB(unsigned long startAddress, int startIndex, int insCount, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, int bMod);
-	void insert_edge(edge_data e, VERTPAIR edgepair);
-	bool new_instruction(INS_DATA *instruction);
+	void insert_edge(edge_data e, NODEPAIR edgepair);
+	bool is_new_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index, node_data *lastNode);
 	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);
-	int get_extern_at_address(long address, BB_DATA ** BB);
+	void get_extern_at_address(long address, BB_DATA ** BB);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG thistag, unsigned long repeats);
 	void set_conditional_state(unsigned long address, int state);
@@ -76,7 +72,7 @@ private:
 	int loopState = NO_LOOP;
 	//tag address, mod type
 	vector<TAG> loopCache;
-	VERTPAIR repeatStart;
-	VERTPAIR repeatEnd;
+	NODEPAIR repeatStart;
+	NODEPAIR repeatEnd;
 	
 };

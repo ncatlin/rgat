@@ -8,11 +8,13 @@
 #include "traceMisc.h"
 #include "diff_plotter.h"
 
+
+
 int drawCurve(GRAPH_DISPLAY_DATA *vertdata, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, int edgetype, MULTIPLIERS *dimensions, int *arraypos);
 
 void plot_wireframe(VISSTATE *clientstate);
 
-int add_vert(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions);
+int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions);
 int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
 void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
 
