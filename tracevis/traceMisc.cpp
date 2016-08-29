@@ -101,6 +101,16 @@ int caught_stoi(string s,int *result, int base) {
 	return 1;
 }
 
+int caught_stoi(string s, unsigned int *result, int base) {
+	try {
+		*result = std::stoi(s, 0, base);
+	}
+	catch (std::exception const & e) {
+		return 0;
+	}
+	return 1;
+}
+
 int caught_stol(string s, unsigned long *result, int base) {
 	try {
 		*result = std::stoll(s,0,base);

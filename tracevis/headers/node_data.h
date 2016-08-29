@@ -22,7 +22,7 @@ public:
 	int nodeMod;
 	int mutation;
 	//list of lists of arg number, contents
-	vector<vector<pair<int, string>>> funcargs;
+	vector<ARGLIST> funcargs;
 	unsigned long calls = 1;
 	//number of external functions called
 	unsigned childexterns = 0;

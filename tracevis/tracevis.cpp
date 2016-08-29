@@ -293,15 +293,14 @@ void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffR
 }
 
 struct EXTTEXT{
-	pair<unsigned int, unsigned int> edge;
+	NODEPAIR edge;
 	int nodeIdx;
-	//vector<pair<int, string>> args;
 	float timeRemaining;
 	float yOffset;
 	string displayString;
 } ;
 
-string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, vector<pair<int, string>> args, PROCESS_DATA* piddata)
+string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST args, PROCESS_DATA* piddata)
 {
 	stringstream funcArgStr;
 	funcArgStr << graph->get_node_sym(nodeIdx, piddata) << "(";
@@ -526,7 +525,7 @@ int main(int argc, char **argv)
 	string configPath = moduleDir + "\\rgat.cfg";
 	
 	if (!al_init()) {
-		fprintf(stderr, "failed to initialize allegro!\n");
+		fprintf(stderr, "Failed to initialise allegro!\n");
 		return NULL;
 	}
 
@@ -624,7 +623,7 @@ int main(int argc, char **argv)
 
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
-	map <int, pair<int, int>> graphPositions;
+	map <int, NODEPAIR> graphPositions;
 	map <int, vector<EXTTEXT>> externFloatingText;
 
 	HANDLE hProcessCoordinator = CreateThread(
@@ -829,7 +828,7 @@ int main(int argc, char **argv)
 
 
 
-bool loadTrace(VISSTATE *clientstate, string filename) {
+bool loadTrace(VISSTATE *clientState, string filename) {
 
 	ifstream loadfile;
 	loadfile.open(filename, std::ifstream::binary);
@@ -850,14 +849,14 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 
 	PROCESS_DATA *newpiddata = new PROCESS_DATA;
 	newpiddata->PID = PID;
-	if (!loadProcessData(clientstate, &loadfile, newpiddata))
+	if (!loadProcessData(clientState, &loadfile, newpiddata))
 	{
 		printf("Process data load failed\n");
 		return false;
 	}
 	printf("Loaded process data. Loading graphs...\n");
 
-	if (!loadProcessGraphs(clientstate, &loadfile, newpiddata))
+	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
 	{
 		printf("Process Graph load failed\n");
 		return false;
@@ -866,11 +865,14 @@ bool loadTrace(VISSTATE *clientstate, string filename) {
 	printf("Loading completed successfully\n");
 	loadfile.close();
 
-	if (!obtainMutex(clientstate->pidMapMutex, "load graph")) return 0;
-	clientstate->glob_piddata_map[PID] = newpiddata;
-	dropMutex(clientstate->pidMapMutex, "load graph");
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 
-	launch_saved_PID_threads(PID, newpiddata, clientstate);
+	if (!obtainMutex(clientState->pidMapMutex, "load graph")) return 0;
+	clientState->glob_piddata_map[PID] = newpiddata;
+	widgets->addPID(PID);
+	dropMutex(clientState->pidMapMutex, "load graph");
+
+	launch_saved_PID_threads(PID, newpiddata, clientState);
 	return true;
 }
 
@@ -1009,7 +1011,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	{
 	case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
 	{
-		//state.buttons & 1 || state.buttons & 4)
 		if (!mouse_in_previewpane(clientstate, ev->mouse.x))
 			clientstate->mouse_dragging = true;
 		else
@@ -1021,7 +1022,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 				set_active_graph(clientstate, PID, TID);		
 		}
-		//switch(ev->mouse.button) 
 		return EV_MOUSE;
 	}
 

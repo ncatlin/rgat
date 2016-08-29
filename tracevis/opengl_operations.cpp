@@ -70,10 +70,10 @@ void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[POSVBO]);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
+	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[COLVBO]);
-	glColorPointer(4, GL_FLOAT, 0, 0);
+	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
 	//Check VBOs have been loaded if crashing here
 	glDrawArrays(prim, 0, quantity);

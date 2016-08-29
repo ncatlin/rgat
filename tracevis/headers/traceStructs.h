@@ -3,6 +3,8 @@
 
 typedef std::pair<unsigned int, unsigned int> NODEPAIR;
 typedef vector<NODEPAIR> EDGELIST;
+typedef pair<int, string> ARGIDXDATA;
+typedef vector<ARGIDXDATA> ARGLIST;
 
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN {
@@ -43,11 +45,11 @@ struct BB_DATA {
 	//list of threads that call this BB
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
-	//  tid      src   targ
+	//  tid     
 	map <int, EDGELIST> thread_callers;
-	//this is so bad
-	//   tid		caller     argidx, arg 
-	map <int, map<long, vector<pair<int, string>>>> pendingcallargs;
+
+	//   tid	caller    
+	map <int, map<long, ARGLIST>> pendingcallargs;
 	string symbol;
 };
 

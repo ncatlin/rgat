@@ -8,4 +8,4 @@ void uploadPreviewGraph(thread_graph_data *previewgraph);
 void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState);
 bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *PID, int* TID);
 void display_preview_mouseover();
-void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPositions);
+void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions);

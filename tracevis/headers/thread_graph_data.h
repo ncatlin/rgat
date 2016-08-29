@@ -13,9 +13,9 @@
 
 
 struct EXTERNCALLDATA {
-	pair<unsigned int, unsigned int> edgeIdx;
+	NODEPAIR edgeIdx;
 	unsigned int nodeIdx;
-	vector<pair<int, string>> fdata;
+	ARGLIST fdata;
 	unsigned long callerAddr = 0;
 	string externPath;
 };
@@ -34,10 +34,10 @@ private:
 	map<unsigned int, node_data> nodeDict; //node id to node data
 	map <unsigned long, vector<INS_DATA*>> *disassembly;
 
-	vector<pair<unsigned int, unsigned int>> activeEdgeList;
+	EDGELIST activeEdgeList;
 	vector <unsigned int> activeNodeList;
-	map<std::pair<unsigned int, unsigned int>, edge_data> edgeDict; //node id pairs to edge data
-	vector<pair<unsigned int, unsigned int>> edgeList; //order of edge execution
+	map<NODEPAIR, edge_data> edgeDict; //node id pairs to edge data
+	EDGELIST edgeList; //order of edge execution
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE nodeDMutex = CreateMutex(NULL, FALSE, NULL);
@@ -51,8 +51,6 @@ private:
 	bool loadStats(ifstream *file);
 	bool loadAnimationData(ifstream *file);
 	bool loadCallSequence(ifstream *file);
-
-
 
 	//which BB we are pointing to in the sequence list
 	unsigned long sequenceIndex = 0;
@@ -69,11 +67,11 @@ public:
 	void display_active(bool showNodes, bool showEdges);
 	void display_static(bool showNodes, bool showEdges);
 
-	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
+	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
-	edge_data *get_edge(pair<int, int> edgePair);
-	bool edge_exists(pair<int, int> edgePair);
-	void add_edge(edge_data e, pair<int, int> edgePair);
+	edge_data *get_edge(NODEPAIR edge);
+	bool edge_exists(NODEPAIR edge);
+	void add_edge(edge_data e, NODEPAIR edge);
 	void insert_node(int targVertID, node_data node); 
 	void extend_faded_edges();
 	void assign_modpath(PROCESS_DATA *);
@@ -92,24 +90,16 @@ public:
 		node_data *n = &nodeDict.at(index); 
 		dropMutex(nodeDMutex); return n;
 	}
-	/*
-	void add_node(pair<unsigned int, node_data> newnodepair) 
-	{
-		obtainMutex(nodeDMutex, 0, 500);
-		nodeDict.insert(newnodepair); 
-		dropMutex(nodeDMutex);
-	}*/
 
 	bool node_exists(unsigned int idx) { if (nodeDict.count(idx)) return true; return false; }
 	unsigned int get_num_nodes() { return nodeDict.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}
 
-	void start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeit,
-		map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd);
+	void start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeit,
+		map<NODEPAIR, edge_data>::iterator *edgeEnd);
 	void stop_edgeD_iteration();
 
-	void start_edgeL_iteration(vector<pair<unsigned int, unsigned int>>::iterator *edgeIt,
-		vector<pair<unsigned int, unsigned int>>::iterator *edgeEnd);
+	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
 	map<unsigned int, node_data>::iterator get_nodeStart() { return nodeDict.begin(); }
@@ -132,7 +122,7 @@ public:
 	void darken_animation(float alphaDelta);
 
 	void brighten_BBs();
-	void set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
+	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	void emptyArgQueue();
 	vector <string> loggedCalls;
@@ -148,7 +138,7 @@ public:
 	std::queue<EXTERNCALLDATA> funcQueue;
 
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
-	map<unsigned int, vector<std::pair<int, int>>> externCallSequence;
+	map<unsigned int, EDGELIST> externCallSequence;
 
 	vector<int> externList; //list of external calls
 	string modPath;
@@ -157,8 +147,8 @@ public:
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
 	map <unsigned int, unsigned int> callCounter;
 	//ugh
-	//   funcaddress	      caller					 argid  arg
-	map<unsigned long, map <unsigned long, vector<vector <pair<int, string>>>>> pendingcallargs;
+	//   funcaddress	      caller		
+	map<unsigned long, map <unsigned long, vector<ARGLIST>>> pendingcallargs;
 
 	//keep track of graph dimensions
 	int maxA = 0;

@@ -59,7 +59,7 @@ private:
 
 	unsigned long pendingFunc = 0;
 	unsigned long pendingRet = 0;
-	vector<pair<int, string>> pendingArgs;
+	ARGLIST pendingArgs;
 	vector<FAILEDARGS> repeatArgAttempts;
 
 #define NO_LOOP 0

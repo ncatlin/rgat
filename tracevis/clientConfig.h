@@ -30,8 +30,11 @@ public:
 		int FPS;
 		int processDelay;
 		int threadDelay;
-		int spinPerFrame;
+		float spinPerFrame;
 		int edgesPerRender;
+		ALLEGRO_COLOR background;
+		ALLEGRO_COLOR inactiveHighlight;
+		ALLEGRO_COLOR activeHighlight;
 	} preview;
 
 	struct {

@@ -40,6 +40,9 @@ void clientConfig::loadDefaults()
 	preview.threadDelay = PREVIEW_DELAY_PER_GRAPH;
 	preview.spinPerFrame = PREVIEW_SPIN_PER_FRAME;
 	preview.FPS = PREVIEW_RENDER_FPS;
+	preview.activeHighlight = PREVIEW_ACTIVE_HIGHLIGHT;
+	preview.inactiveHighlight = PREVIEW_INACTIVE_HIGHLIGHT;
+	preview.background = PREVIEW_BACKGROUND;
 
 	conditional.delay = CONDITIONAL_DELAY_MS;
 	conditional.edgeColor = CONDITIONAL_edgeColor;

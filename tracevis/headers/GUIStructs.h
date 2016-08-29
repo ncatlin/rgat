@@ -82,7 +82,7 @@ struct VISSTATE {
 	bool saveInProgress = false;
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;
-	map <int, pair<int, int>> graphPositions;
+	map <int, NODEPAIR> graphPositions;
 
 	float previewYAngle = -30;
 	bool previewSpin = true;

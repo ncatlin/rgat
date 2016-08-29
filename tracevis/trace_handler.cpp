@@ -347,17 +347,17 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	//func been called in thread already? if not, have to place args in holding buffer
 	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
-		map <unsigned long, vector<vector<pair<int, string>>>> *newmap = new map <unsigned long, vector<vector<pair<int, string>>>>;
+		map <unsigned long, vector<ARGLIST>> *newmap = new map <unsigned long, vector<ARGLIST>>;
 		thisgraph->pendingcallargs.emplace(pendingFunc, *newmap);
 	}
 	if (thisgraph->pendingcallargs.at(pendingFunc).count(pendingRet) == 0)
 	{
-		vector<vector<pair<int, string>>> *newvec = new vector<vector<pair<int, string>>>;
+		vector<ARGLIST> *newvec = new vector<ARGLIST>;
 		thisgraph->pendingcallargs.at(pendingFunc).emplace(pendingRet, *newvec);
 	}
 		
-	vector <pair<int, string>>::iterator pendcaIt = pendingArgs.begin();
-	vector <pair<int, string>> thisCallArgs;
+	ARGLIST::iterator pendcaIt = pendingArgs.begin();
+	ARGLIST thisCallArgs;
 	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
 		thisCallArgs.push_back(*pendcaIt);
 
@@ -460,7 +460,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 void thread_trace_handler::process_new_args()
 {
 	//can we please do something about this
-	map<unsigned long, map <unsigned long, vector<vector <pair<int, string>>>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
+	map<unsigned long, map <unsigned long, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		unsigned long funcad = pcaIt->first;
@@ -477,13 +477,13 @@ void thread_trace_handler::process_new_args()
 			unsigned long returnAddress = parentn->ins->address + parentn->ins->numbytes;
 			node_data *targn = thisgraph->get_node(callvsIt->second);
 
-			map <unsigned long, vector<vector <pair<int, string>>>>::iterator retIt = pcaIt->second.begin();
+			map <unsigned long, vector<ARGLIST>>::iterator retIt = pcaIt->second.begin();
 			while (retIt != pcaIt->second.end())//run through each caller to this function
 			{
 				if (retIt->first != returnAddress) {retIt++; continue;}
 
-				vector<vector<pair<int, string>>> callsvector = retIt->second;
-				vector<vector<pair<int, string>>>::iterator callsIt = callsvector.begin();
+				vector<ARGLIST> callsvector = retIt->second;
+				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
 				obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
 				while (callsIt != callsvector.end())//run through each call made by caller
@@ -576,7 +576,6 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			dropMutex(thisgraph->animationListsMutex, "Extern run");
 		}
 		
-
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
 	}
@@ -732,9 +731,7 @@ void thread_trace_handler::TID_thread()
 					thisgraph->loopCounter++;
 					//put the verts/edges on the graph
 					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
-					{
 						handle_tag(*tagIt, loopCount);
-					}
 
 					loopCache.clear();
 					loopState = NO_LOOP;
@@ -765,7 +762,7 @@ void thread_trace_handler::TID_thread()
 					return;
 				}
 
-				printf("Target exception code %lx at address %lx\n", e_code, e_ip);
+				printf("Target exception [code %lx] at address %lx\n", e_code, e_ip);
 				continue;
 			}
 

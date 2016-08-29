@@ -62,9 +62,9 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) {
 	al_set_target_bitmap(previewgraph->previewBMP);
 	ALLEGRO_COLOR preview_gcol;
 	if (previewgraph->active)
-		preview_gcol = al_map_rgb(0, 20, 0);
+		preview_gcol = clientState->config->preview.activeHighlight;
 	else
-		preview_gcol = al_map_rgb(20, 0, 0);
+		preview_gcol = clientState->config->preview.inactiveHighlight;
 	al_clear_to_color(preview_gcol);
 
 	//draw white box around it
@@ -119,7 +119,7 @@ bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *P
 	int graphsX = (clientState->size.width - PREVIEW_PANE_WIDTH) + PREV_THREAD_X_PAD;
 	if (mousex >= graphsX && mousex <= clientState->size.width)
 	{
-		map <int, pair<int, int>>::iterator graphPosIt = clientState->graphPositions.begin();
+		map <int, NODEPAIR>::iterator graphPosIt = clientState->graphPositions.begin();
 		while (graphPosIt != clientState->graphPositions.end())
 		{
 			if (mousey >= graphPosIt->first && mousey <= (graphPosIt->first + 200))
@@ -144,7 +144,7 @@ void display_preview_mouseover()
 }
 
 
-void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPositions) {
+void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions) {
 
 	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph) {
 		printf("pid map empty, exiting ...\n");
@@ -155,16 +155,12 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 
 	glPointSize(5);
 
-	ALLEGRO_COLOR preview_bgcol = al_map_rgb(0, 0, 0);
-	ALLEGRO_COLOR red = al_col_red;
-	ALLEGRO_COLOR white = al_col_white;
+	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
 	int first = 0;
 
 	if (!obtainMutex(clientState->pidMapMutex, "Preview Pane")) return;
 
-	//std::map<int, PROCESS_DATA *>::iterator pidit = clientState->glob_piddata_map.begin();
 	std::map<int, void *>::iterator threadit;
-
 	thread_graph_data *previewGraph = 0;
 
 	int windowHeight = al_get_display_height(clientState->maindisplay);
@@ -176,6 +172,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 	int graphy = 50 - Y_MULTIPLIER*widgets->getScroll();
 	int numGraphs = 0;
 	int graphsHeight = 0; 
+	const float spinPerFrame = clientState->config->preview.spinPerFrame;
 
 	al_set_target_bitmap(clientState->previewPaneBMP);
 	al_clear_to_color(preview_bgcol);
@@ -190,7 +187,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 		int TID = threadit->first;
 		if (previewGraph && previewGraph->previewnodes->get_numVerts())
 		{
-			if (clientState->previewSpin || previewGraph->needVBOReload_preview)
+			if (spinPerFrame || previewGraph->needVBOReload_preview)
 				drawGraphBitmap(previewGraph, clientState);
 
 			al_set_target_bitmap(clientState->previewPaneBMP);
@@ -214,7 +211,6 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, pair<int, int>> *graphPo
 	else
 		widgets->setScrollbarMax(numGraphs - clientState->size.height/ Y_MULTIPLIER);
 
-	const int spinPerFrame = clientState->config->preview.spinPerFrame;
 	if (spinPerFrame)
 	{
 		clientState->previewYAngle -= spinPerFrame;

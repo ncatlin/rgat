@@ -87,7 +87,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 {
 
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
-	vector<pair<unsigned int, unsigned int>>::iterator edgeIt;
+	EDGELIST::iterator edgeIt;
 	obtainMutex(edMutex); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
@@ -148,7 +148,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 		return; 
 	}
 
-	vector<pair<int, int>> callList = externCallSequence.at(nodeIdx);
+	EDGELIST callList = externCallSequence.at(nodeIdx);
 
 	unsigned int callsSoFar = callCounter[nodeIdx];
 	callCounter[nodeIdx] = callsSoFar + 1;
@@ -558,16 +558,16 @@ void thread_graph_data::reset_mainlines() {
 	animlinedata = new GRAPH_DISPLAY_DATA(40000);
 }
 
-bool thread_graph_data::edge_exists(pair<int, int> edgePair)
+bool thread_graph_data::edge_exists(NODEPAIR edge)
 {
 	bool result = false;
 	obtainMutex(edMutex);
-	if (edgeDict.count(edgePair)) result = true;
+	if (edgeDict.count(edge)) result = true;
 	dropMutex(edMutex);
 	return result;
 }
 
-edge_data *thread_graph_data::get_edge(pair<int, int> edgePair)
+edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
 	obtainMutex(edMutex);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
@@ -575,7 +575,7 @@ edge_data *thread_graph_data::get_edge(pair<int, int> edgePair)
 	return linkingEdge;
 }
 
-int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,	
+int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 
@@ -694,7 +694,7 @@ void thread_graph_data::stop_edgeD_iteration()
 	dropMutex(edMutex);
 }
 
-void thread_graph_data::add_edge(edge_data e, pair<int, int> edgePair)
+void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
 	obtainMutex(edMutex);
 	edgeDict.insert(make_pair(edgePair, e));
@@ -707,7 +707,7 @@ thread_graph_data::~thread_graph_data()
 }
 
 
-void thread_graph_data::set_edge_alpha(pair<unsigned int, unsigned int> eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
+void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
 	edge_data *e = get_edge(eIdx);
 	GLfloat *colarray = edgesdata->acquire_col("2e");
@@ -749,7 +749,7 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}N,";
 
 	*file << "D{";
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeDIt = edgeDict.begin();
+	map<NODEPAIR, edge_data>::iterator edgeDIt = edgeDict.begin();
 	for (; edgeDIt != edgeDict.end(); ++edgeDIt)
 		edgeDIt->second.serialise(file, edgeDIt->first.first, edgeDIt->first.second);
 	*file << "}D,";
@@ -784,11 +784,11 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}A,";
 
 	*file << "C{";
-	map<unsigned int, vector<std::pair<int, int>>>::iterator externCallIt;
-	vector<std::pair<int, int>>::iterator callListIt;
+	map<unsigned int, EDGELIST>::iterator externCallIt;
+	EDGELIST::iterator callListIt;
 	for (externCallIt = externCallSequence.begin(); externCallIt != externCallSequence.end(); ++externCallIt)
 	{
-		vector<std::pair<int, int>> *callList = &externCallIt->second;
+		EDGELIST *callList = &externCallIt->second;
 		*file << externCallIt->first << "," << callList->size() << ",";
 
 		for (callListIt = callList->begin(); callListIt != callList->end(); ++callListIt)
@@ -821,7 +821,7 @@ bool thread_graph_data::loadEdgeDict(ifstream *file)
 		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
 		getline(*file, edgeclass_s, '@');
 		edge->edgeClass = edgeclass_s.c_str()[0];
-		pair<int, int>stpair = make_pair(source, target);
+		NODEPAIR stpair = make_pair(source, target);
 		add_edge(*edge, stpair);
 	}
 	return false;
@@ -868,13 +868,13 @@ bool thread_graph_data::loadCallSequence(ifstream *file)
 
 	string value_s;
 	int nodeIdx, listSize;
-	pair<int, int> callPair;
+	NODEPAIR callPair;
 	while (true)
 	{
 		getline(*file, value_s, ',');
 		if (value_s == "}C") return true;
 
-		vector<std::pair<int, int>> callList;
+		EDGELIST callList;
 		if (!caught_stoi(value_s, &nodeIdx, 10)) break;
 		getline(*file, value_s, ',');
 		if (!caught_stoi(value_s, &listSize, 10)) break;
@@ -948,14 +948,14 @@ bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS
 		if (!caught_stoi(value_s, &numCalls, 10))
 			return false;
 
-		vector <vector<pair<int, string>>> funcCalls;
+		vector <ARGLIST> funcCalls;
 		for (int i = 0; i < numCalls; ++i)
 		{
 			int argidx, numArgs = 0;
 			getline(*file, value_s, ',');
 			if (!caught_stoi(value_s, &numArgs, 10))
 				return false;
-			vector<pair<int, string>> callArgs;
+			ARGLIST callArgs;
 
 			for (int i = 0; i < numArgs; ++i)
 			{

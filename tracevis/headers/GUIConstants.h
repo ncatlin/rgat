@@ -15,6 +15,7 @@
 #define al_col_orange al_map_rgb(255, 126, 0)
 #define al_col_yellow al_map_rgb(255, 255, 0)
 #define al_col_grey al_map_rgb(0.3 * 255, 0.3 * 255, 0.3 * 255)
+#define al_col_black al_map_rgb(0, 0, 0)
 
 
 #define ICALL 0

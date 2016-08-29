@@ -9,6 +9,7 @@ INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned l
 int extract_integer(char *char_buf, string marker, int *target);
 
 int caught_stoi(string s, int *result, int base);
+int caught_stoi(string s, unsigned int *result, int base);
 int caught_stol(string s, unsigned long *result, int base);
 
 bool obtainMutex(HANDLE mutex, char *errorLocation = 0, int waitTime = MUTEXWAITPERIOD);

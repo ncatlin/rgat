@@ -47,8 +47,8 @@ bool node_data::serialise(ofstream *outfile)
 	else
 	{
 		*outfile << funcargs.size() << "{"; //number of calls
-		vector<vector<pair<int, string>>>::iterator callIt = funcargs.begin();
-		vector<pair<int, string>>::iterator argIt;
+		vector<ARGLIST>::iterator callIt = funcargs.begin();
+		ARGLIST::iterator argIt;
 		printf("node %d: Saving %d calls\n", index,funcargs.size());
 		for (; callIt != funcargs.end(); callIt++)
 		{
