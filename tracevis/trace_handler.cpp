@@ -2,7 +2,7 @@
 #include "trace_handler.h"
 #include "traceMisc.h"
 #include "GUIConstants.h"
-
+#include "traceStructs.h"
 
 void thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 
@@ -390,7 +390,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	auto x = thisbb->thread_callers.find(TID);
 	if (x != thisbb->thread_callers.end())
 	{
-		vector<NODEPAIR>::iterator vecit = x->second.begin();
+		EDGELIST::iterator vecit = x->second.begin();
 		for (; vecit != x->second.end(); vecit++)
 		{
 			if (vecit->first != lastVertID) continue;
@@ -415,7 +415,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	if (!thisbb->thread_callers.count(TID))
 	{
-		vector<NODEPAIR> callervec;
+		EDGELIST callervec;
 		callervec.push_back(make_pair(lastVertID, targVertID));
 		thisbb->thread_callers.emplace(TID, callervec);
 	}
@@ -469,8 +469,8 @@ void thread_trace_handler::process_new_args()
 			pcaIt++; continue; 
 		}
 
-		vector<NODEPAIR> callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
-		vector<NODEPAIR>::iterator callvsIt = callvs.begin();
+		EDGELIST callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
 			node_data *parentn = thisgraph->get_node(callvsIt->first);

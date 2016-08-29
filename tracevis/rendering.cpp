@@ -462,8 +462,8 @@ int render_main_graph(VISSTATE *clientState)
 int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 {
 	//draw edges
-	vector<NODEPAIR>::iterator edgeIt;
-	vector<NODEPAIR>::iterator edgeEnd;
+	EDGELIST::iterator edgeIt;
+	EDGELIST::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
@@ -471,7 +471,7 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 		graph->needVBOReload_preview = true;
 
 	int remainingEdges = clientState->config->preview.edgesPerRender;
-	vector<ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
+	map<int, ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		graph->render_edge(*edgeIt, graph->previewlines, lineColours, 0, true);
@@ -658,34 +658,33 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 
 	//iterate through nodes looking for ones that map to screen coords
-	vector<NODEPAIR>::iterator edgeIt;
-	vector<NODEPAIR>::iterator edgeEnd;
+	EDGELIST::iterator edgeIt;
+	EDGELIST::iterator edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		node_data *n = graph->get_node(edgeIt->first);
 
-		//i feel like these checks should be done on the midpoint rather than the node
+		//should these checks should be done on the midpoint rather than the first node?
 		if (n->external) continue; //don't care about instruction in library call
 		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
 			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 		if (graph->get_edge(*edgeIt)->weight <= 1) continue;
 
-		//todo: experiment with performance re:how much of this check to include
 		DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
 		DCOORD screenCoordB = graph->get_node(edgeIt->second)->get_screen_pos(vertsdata, pd);
-		DCOORD screenCoord;
-		midpoint(&screenCoordA, &screenCoordB, &screenCoord);
+		DCOORD screenCoordMid;
+		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 
-		if (screenCoord.x > clientState->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientState->size.height || screenCoord.y < -100) continue;
+		if (screenCoordMid.x > clientState->size.width || screenCoordMid.x < -100) continue;
+		if (screenCoordMid.y > clientState->size.height || screenCoordMid.y < -100) continue;
 
 		stringstream ss;
 		ss << graph->get_edge(*edgeIt)->weight;
-		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoord.x + INS_X_OFF,
-			clientState->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
+			clientState->size.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 	}
 	graph->stop_edgeL_iteration();
@@ -853,7 +852,7 @@ void display_big_conditional(VISSTATE *clientstate)
 
 }
 
-void draw_anim_line(node_data *node, MULTIPLIERS *scale)
+void drawHighlight(node_data *node, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	if (!node) return;
 
@@ -865,22 +864,6 @@ void draw_anim_line(node_data *node, MULTIPLIERS *scale)
 	FCOORD nodeCoord;
 	VCOORD *npos = &node->vcoord;
 	float adjB = npos->b + float(npos->bMod * BMODMAG);
-	sphereCoord(npos->a, adjB, &nodeCoord, scale, 0);
-	drawRedLine(center, nodeCoord);
-}
-
-void drawHighlight(node_data *node, MULTIPLIERS *scale)
-{
-	if (!node) return;
-
-	FCOORD center;
-	center.x = 0;
-	center.y = 0;
-	center.z = 0;
-
-	FCOORD nodeCoord;
-	VCOORD *npos = &node->vcoord;
-	float adjB = npos->b + float(npos->bMod * BMODMAG);
-	sphereCoord(npos->a, adjB, &nodeCoord, scale, 2000);
-	drawHighlightLine(center, nodeCoord);
+	sphereCoord(npos->a, adjB, &nodeCoord, scale, lengthModifier);
+	drawHighlightLine(center, nodeCoord, colour);
 }

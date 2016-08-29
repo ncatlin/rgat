@@ -83,7 +83,7 @@ void thread_graph_data::extend_faded_edges()
 }
 
 //draw edges
-void thread_graph_data::render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr)
+void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr)
 {
 
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
@@ -575,7 +575,7 @@ edge_data *thread_graph_data::get_edge(pair<int, int> edgePair)
 	return linkingEdge;
 }
 
-int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,	
+int thread_graph_data::render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,	
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 
@@ -673,12 +673,12 @@ void thread_graph_data::start_edgeD_iteration(map<std::pair<unsigned int, unsign
 	*edgeEnd = edgeDict.end();
 }
 
-void thread_graph_data::highlightNodes(vector<node_data *> *nodeList)
+void thread_graph_data::highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	vector<node_data *>::iterator nodeIt;
 	for (nodeIt = nodeList->begin(); nodeIt != nodeList->end(); ++nodeIt)
 	{
-		drawHighlight(*nodeIt, m_scalefactors);
+		drawHighlight(*nodeIt, m_scalefactors, colour, lengthModifier);
 	}
 }
 

@@ -15,9 +15,8 @@ clientConfig::clientConfig(string filepath)
 	}
 	else
 	{
-		printf("Config file %s not found, creating from defaults...\n", filepath.c_str());
+		printf("Config file %s not found, loading from defaults...\n", filepath.c_str());
 		loadDefaults();
-		//saveToFile();
 	}
 }
 
@@ -30,11 +29,6 @@ void clientConfig::loadFromFile()
 {
 	ALLEGRO_CONFIG *alConfig = al_load_config_file(configFilePath.c_str());
 	al_destroy_config(alConfig);
-}
-
-void clientConfig::saveToFile()
-{
-
 }
 
 void clientConfig::loadDefaults()
@@ -58,20 +52,23 @@ void clientConfig::loadDefaults()
 	heatmap.lineTextCol = HEAT_EDGE_TEXT_COL;
 
 	mainBackground = MAIN_BACKGROUND_COLOUR;
+	highlightColour = HIGHLIGHT_LINE_COLOUR;
+	highlightProtrusion = HIGHLIGHT_LINE_PROTRUSION;
+	activityLineColour = ACTIVITY_LINE_COLOUR;
 
 	lowB = GRAPH_LOW_B;
 	farA = GRAPH_FAR_A;
 
-	graphColours.lineColours.insert(graphColours.lineColours.begin() + ICALL, DEFAULT_EDGE_CALL);
-	graphColours.lineColours.insert(graphColours.lineColours.begin() + IOLD, DEFAULT_EDGE_OLD);
-	graphColours.lineColours.insert(graphColours.lineColours.begin() + IRET, DEFAULT_EDGE_RET);
-	graphColours.lineColours.insert(graphColours.lineColours.begin() + ILIB, DEFAULT_EDGE_LIB);
-	graphColours.lineColours.insert(graphColours.lineColours.begin() + INEW, DEFAULT_EDGE_NEW);
+	graphColours.lineColours[ICALL] = DEFAULT_EDGE_CALL;
+	graphColours.lineColours[IOLD] = DEFAULT_EDGE_OLD;
+	graphColours.lineColours[IRET] = DEFAULT_EDGE_RET;
+	graphColours.lineColours[ILIB] = DEFAULT_EDGE_LIB;
+	graphColours.lineColours[INEW] = DEFAULT_EDGE_NEW;
 
-	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + NONFLOW, DEFAULT_NODE_STD);
-	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + JUMP, DEFAULT_NODE_JUMP);
-	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + CALL, DEFAULT_NODE_CALL);
-	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + RETURN, DEFAULT_NODE_RET);
-	graphColours.nodeColours.insert(graphColours.nodeColours.begin() + EXTERNAL, DEFAULT_NODE_EXT);
+	graphColours.nodeColours[NONFLOW] = DEFAULT_NODE_STD;
+	graphColours.nodeColours[JUMP] = DEFAULT_NODE_JUMP;
+	graphColours.nodeColours[CALL] = DEFAULT_NODE_CALL;
+	graphColours.nodeColours[RETURN] = DEFAULT_NODE_RET;
+	graphColours.nodeColours[EXTERNAL] = DEFAULT_NODE_EXT;
 
 }

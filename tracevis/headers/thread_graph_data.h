@@ -69,7 +69,7 @@ public:
 	void display_active(bool showNodes, bool showEdges);
 	void display_static(bool showNodes, bool showEdges);
 
-	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, vector<ALLEGRO_COLOR> *lineColours,
+	int render_edge(pair<int, int> ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
 	edge_data *get_edge(pair<int, int> edgePair);
 	bool edge_exists(pair<int, int> edgePair);
@@ -81,7 +81,7 @@ public:
 	GRAPH_DISPLAY_DATA *get_mainnodes() { return mainnodesdata; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
-	void render_new_edges(bool doResize, vector<ALLEGRO_COLOR> *lineColoursArr);
+	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
 
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
@@ -219,6 +219,6 @@ public:
 	GRAPH_DISPLAY_DATA *animnodesdata = 0;
 	GRAPH_DISPLAY_DATA *animlinedata = 0;
 
-	void highlightNodes(vector<node_data *> *nodeList);
+	void highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 };
 

@@ -48,7 +48,6 @@ void load_VBO(int index, GLuint *VBOs, int bufsize, float *data)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[index]);
 	glBufferData(GL_ARRAY_BUFFER, bufsize, data, GL_DYNAMIC_DRAW);
-
 }
 
 void load_edge_VBOS(GLuint *VBOs, GRAPH_DISPLAY_DATA *lines)
@@ -68,7 +67,6 @@ void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines
 	load_edge_VBOS(VBOs, lines);
 }
 
-
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[POSVBO]);
@@ -77,7 +75,7 @@ void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantit
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[COLVBO]);
 	glColorPointer(4, GL_FLOAT, 0, 0);
 
-	//crashing here? Check VBOs have been loaded
+	//Check VBOs have been loaded if crashing here
 	glDrawArrays(prim, 0, quantity);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -89,13 +87,10 @@ void initial_gl_setup(VISSTATE *clientstate)
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_DEPTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_ALWAYS);
 
-
-	//glDisable(GL_LIGHTING);
 	glMatrixMode(GL_MODELVIEW);
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
@@ -205,7 +200,7 @@ void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doC
 	gluPerspective(45, clientstate->size.width / clientstate->size.height, 500, clientstate->zoomlevel);
 	glLoadIdentity();
 
-	//adjust view dist so we only see the side of the sphere facing camera
+	//adjust view distance so we only see the side of the sphere facing camera
 	double farval = clientstate->zoomlevel - 10000;
 
 	rotate_to_user_view(clientstate);
@@ -264,16 +259,16 @@ void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes)
 	glMultiDrawArrays(GL_LINE_LOOP, starts, sizes, WIREFRAMELOOPS);
 }
 
-void drawRedLine(FCOORD p1, FCOORD p2) {
-	glColor3f(1, 0, 0);
+void drawActiveLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour) {
+	glColor4f(colour->r, colour->g, colour->b, colour->a);
 	glBegin(GL_LINES);
 	glVertex3f(p1.x, p1.y, p1.z);
 	glVertex3f(p2.x, p2.y, p2.z);
 	glEnd();
 }
 
-void drawHighlightLine(FCOORD p1, FCOORD p2) {
-	glColor3f(0, 1, 0);
+void drawHighlightLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour) {
+	glColor4f(colour->r, colour->g, colour->b, colour->a);
 	glBegin(GL_LINES);
 	glVertex3f(p1.x, p1.y, p1.z);
 	glVertex3f(p2.x, p2.y, p2.z);

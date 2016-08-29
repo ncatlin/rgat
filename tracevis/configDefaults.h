@@ -34,3 +34,7 @@
 #define DEFAULT_NODE_CALL al_col_purple
 #define DEFAULT_NODE_RET al_col_orange
 #define DEFAULT_NODE_EXT al_col_green
+
+#define HIGHLIGHT_LINE_COLOUR al_col_green
+#define HIGHLIGHT_LINE_PROTRUSION 3000
+#define ACTIVITY_LINE_COLOUR al_col_red

@@ -35,11 +35,14 @@ public:
 	} preview;
 
 	struct {
-		vector<ALLEGRO_COLOR> lineColours;
-		vector<ALLEGRO_COLOR> nodeColours;
+		map<int, ALLEGRO_COLOR> lineColours;
+		map<int, ALLEGRO_COLOR> nodeColours;
 	} graphColours;
 
 	ALLEGRO_COLOR mainBackground;
+	ALLEGRO_COLOR highlightColour;
+	int highlightProtrusion;
+	ALLEGRO_COLOR activityLineColour;
 	int lowB;
 	int farA;
 

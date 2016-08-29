@@ -476,9 +476,10 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 			clientState->animationUpdate = 0;
 	}
 	
-	draw_anim_line(graph->get_active_node(), graph->m_scalefactors);
+	drawHighlight(graph->get_active_node(), graph->m_scalefactors,&clientState->config->activityLineColour, 0);
 	if (clientState->highlightData.highlightState)
-		graph->highlightNodes(&clientState->highlightData.highlightNodes);
+		graph->highlightNodes(&clientState->highlightData.highlightNodes, 
+			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
 	
 
 	if (clientState->modes.heatmap) display_big_heatmap(clientState);
