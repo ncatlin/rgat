@@ -319,11 +319,11 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	
 	GLfloat *ecol = animlinedata->acquire_col("2a");
 
-	vector<pair<unsigned int, unsigned int>>::iterator activeEdgeIt = activeEdgeList.begin();
+	map<NODEPAIR, unsigned int>::iterator activeEdgeIt = activeEdgeMap.begin();
 
-	while (activeEdgeIt != activeEdgeList.end())
+	while (activeEdgeIt != activeEdgeMap.end())
 	{
-		edge_data *e = get_edge(*activeEdgeIt);
+		edge_data *e = get_edge(activeEdgeIt->first);
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
 		if (!e->vertSize)
@@ -338,24 +338,24 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		}	
 
 		if (edgeAlpha == MINIMUM_FADE_ALPHA)
-			activeEdgeIt = activeEdgeList.erase(activeEdgeIt);
+			activeEdgeIt = activeEdgeMap.erase(activeEdgeIt);
 		else
 			++activeEdgeIt;
 	}
 	animlinedata->release_col();
 
 	GLfloat *ncol = animnodesdata->acquire_col("2b");
-	vector<unsigned int>::iterator activeNodeIt = activeNodeList.begin();
+	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
 
-	while (activeNodeIt != activeNodeList.end())
+	while (activeNodeIt != activeNodeMap.end())
 	{
-		node_data *n = get_node(*activeNodeIt);
+		node_data *n = get_node(activeNodeIt->first);
 		unsigned int nodeIndex = n->index;
 		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
 		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
 		ncol[(nodeIndex * COLELEMS) + 3] = currentAlpha;
 		if (currentAlpha == 0.02)
-			activeNodeIt = activeNodeList.erase(activeNodeIt);
+			activeNodeIt = activeNodeMap.erase(activeNodeIt);
 		else
 			++activeNodeIt;
 	}
@@ -379,8 +379,8 @@ void thread_graph_data::reset_animation()
 	darken_animation(1.0);
 	firstAnimatedBB = 0;
 	lastAnimatedBB = 0;
-	activeEdgeList.clear();
-	activeNodeList.clear();
+	activeEdgeMap.clear();
+	activeNodeMap.clear();
 	loopsPlayed = 0;
 	loopIteration = 0;
 	targetIterations = 0;
@@ -461,8 +461,8 @@ void thread_graph_data::brighten_BBs()
 				for (int i = 0; i < numEdgeVerts; ++i) {
 					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
 				}
-				if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
-					activeEdgeList.push_back(edgePair);
+				if (!activeEdgeMap.count(edgePair))
+					activeEdgeMap[edgePair] = true;
 			}
 		}
 
@@ -470,8 +470,8 @@ void thread_graph_data::brighten_BBs()
 		{
 			ncol[(nodeIdx * COLELEMS) + 3] = 1;
 
-			if (std::find(activeNodeList.begin(), activeNodeList.end(), nodeIdx) == activeNodeList.end())
-				activeNodeList.push_back(nodeIdx);
+			if (!activeNodeMap.count(nodeIdx))
+				activeNodeMap[nodeIdx] = true;
 			if (blockIdx == numInstructions - 1) break;
 
 			//brighten short edges between internal nodes
@@ -484,8 +484,8 @@ void thread_graph_data::brighten_BBs()
 			unsigned long edgeColPos = get_edge(edgePair)->arraypos;
 			ecol[edgeColPos + 3] = (float)1.0;
 			ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
-			if (std::find(activeEdgeList.begin(), activeEdgeList.end(), edgePair) == activeEdgeList.end())
-				activeEdgeList.push_back(edgePair);
+			if (!activeEdgeMap.count(edgePair))
+				activeEdgeMap[edgePair] = true;
 
 			nodeIdx = nextInsIndex;
 			ins = nextIns;

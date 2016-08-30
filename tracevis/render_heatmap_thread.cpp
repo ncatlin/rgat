@@ -95,7 +95,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 }
 
 //convert 0-255 rgb to 0-1
-float fcol(int value)
+inline float fcol(int value)
 {
 	return (float)value / 255.0;
 }
@@ -140,11 +140,12 @@ void heatmap_renderer::heatmap_thread()
 
 			if (graph->active)
 				render_graph_heatmap(graph);
-			else if (!finishedGraphs[graph])
-			{
-				finishedGraphs[graph] = true;
-				render_graph_heatmap(graph);
-			}
+			else 
+				if (!finishedGraphs[graph])
+				{
+					finishedGraphs[graph] = true;
+					render_graph_heatmap(graph);
+				}
 			Sleep(80);
 		}
 		

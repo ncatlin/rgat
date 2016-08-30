@@ -34,8 +34,8 @@ private:
 	map<unsigned int, node_data> nodeDict; //node id to node data
 	map <unsigned long, INSLIST> *disassembly;
 
-	EDGELIST activeEdgeList;
-	vector <unsigned int> activeNodeList;
+	map <NODEPAIR, unsigned int> activeEdgeMap;
+	map <unsigned int, unsigned int> activeNodeMap;
 	map<NODEPAIR, edge_data> edgeDict; //node id pairs to edge data
 	EDGELIST edgeList; //order of edge execution
 

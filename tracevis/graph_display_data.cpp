@@ -62,7 +62,7 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 { 
 	
 	numVerts = num;
-	unsigned int currentMaxSize = col_buf_size_floats();
+	unsigned int currentMaxSize = col_buf_capacity_floats();
 	unsigned int targetDataSize = numVerts * COLELEMS * sizeof(GLfloat);
 	if (targetDataSize > currentMaxSize)
 	{
