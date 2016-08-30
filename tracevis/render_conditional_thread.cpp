@@ -26,13 +26,13 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
 		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
 
-		GLfloat *vcol = conditionalNodes->acquire_col("1f");
+		GLfloat *nodeCol = conditionalNodes->acquire_col("1f");
 		for (; vertit != vertEnd; vertit++)
 		{
 			int arraypos = vertit->second.index * COLELEMS;
 			if (!vertit->second.ins || vertit->second.ins->conditional == false)
 			{
-				vcol[arraypos + AOFF] = 0;
+				nodeCol[arraypos + AOFF] = 0;
 				continue;
 			}
 
@@ -41,28 +41,28 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			//jump only seen to succeed
 			if (jumpTaken && !jumpMissed)
 			{
-				vcol[arraypos + ROFF] = succeedOnly.r;
-				vcol[arraypos + GOFF] = succeedOnly.g;
-				vcol[arraypos + BOFF] = succeedOnly.b;
-				vcol[arraypos + AOFF] = succeedOnly.a;
+				nodeCol[arraypos + ROFF] = succeedOnly.r;
+				nodeCol[arraypos + GOFF] = succeedOnly.g;
+				nodeCol[arraypos + BOFF] = succeedOnly.b;
+				nodeCol[arraypos + AOFF] = succeedOnly.a;
 				continue;
 			}
 
 			//jump seen to both fail and succeed
 			if (jumpTaken && jumpMissed)
 			{
-				vcol[arraypos + ROFF] = bothPaths.r;
-				vcol[arraypos + GOFF] = bothPaths.g;
-				vcol[arraypos + BOFF] = bothPaths.b;
-				vcol[arraypos + AOFF] = bothPaths.a;
+				nodeCol[arraypos + ROFF] = bothPaths.r;
+				nodeCol[arraypos + GOFF] = bothPaths.g;
+				nodeCol[arraypos + BOFF] = bothPaths.b;
+				nodeCol[arraypos + AOFF] = bothPaths.a;
 				continue;
 			}
 
 			//no notifications, assume failed
-			vcol[arraypos + ROFF] = failOnly.r;
-			vcol[arraypos + GOFF] = failOnly.g;
-			vcol[arraypos + BOFF] = failOnly.b;
-			vcol[arraypos + AOFF] = failOnly.a;
+			nodeCol[arraypos + ROFF] = failOnly.r;
+			nodeCol[arraypos + GOFF] = failOnly.g;
+			nodeCol[arraypos + BOFF] = failOnly.b;
+			nodeCol[arraypos + AOFF] = failOnly.a;
 			continue;
 		}
 
@@ -72,33 +72,35 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 	int newDrawn = 0;
 	
-
-	unsigned int newColSize = linedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
-	unsigned int newPosSize = linedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
-	if (graph->conditionallines->col_size() < newColSize || graph->conditionallines->pos_size() < newPosSize)
-		graph->conditionallines->expand(max(newColSize,newPosSize) * 2);
-
 	map<NODEPAIR, edge_data>::iterator edgeit;
 	map<NODEPAIR, edge_data>::iterator edgeEnd;
 
+	int targetNumVerts = graph->get_mainlines()->get_numVerts();
+	graph->conditionallines->set_numVerts(targetNumVerts);
+
 	const ALLEGRO_COLOR edgeColour = clientState->config->conditional.edgeColor;
-	GLfloat *vcol = graph->conditionallines->acquire_col("3a");
+	GLfloat *edgecol = graph->conditionallines->acquire_col("3a");
 	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
+	unsigned int bufsize = graph->conditionallines->col_size() - 1000;
 	for (; edgeit != edgeEnd; edgeit++)
 	{
 		edge_data *e = &edgeit->second;
 		unsigned int vidx = 0;
 		for (; vidx < e->vertSize; vidx++)
 		{
-			vcol[e->arraypos + (vidx * COLELEMS) + ROFF] = edgeColour.r;
-			vcol[e->arraypos + (vidx * COLELEMS) + GOFF] = edgeColour.g;
-			vcol[e->arraypos + (vidx * COLELEMS) + BOFF] = edgeColour.b;
-			vcol[e->arraypos + (vidx * COLELEMS) + AOFF] = edgeColour.a;
+			int arraypos = e->arraypos;
+			edgecol[arraypos + (vidx * COLELEMS) + ROFF] = edgeColour.r;
+			edgecol[arraypos + (vidx * COLELEMS) + GOFF] = edgeColour.g;
+			edgecol[arraypos + (vidx * COLELEMS) + BOFF] = edgeColour.b;
+			edgecol[arraypos + (vidx * COLELEMS) + AOFF] = edgeColour.a;
+			newDrawn += 4;
+			
+			if(newDrawn >= targetNumVerts) break;
+			assert(newDrawn < graph->conditionallines->col_size());
 		}
-		newDrawn++;
+		
 	}
 	graph->stop_edgeD_iteration();
-	graph->conditionallines->set_numVerts(graph->get_mainlines()->get_numVerts());
 	graph->conditionallines->release_col();
 
 	if (newDrawn) graph->needVBOReload_conditional = true;
@@ -115,6 +117,7 @@ void conditional_renderer::conditional_thread()
 		continue;
 	}
 
+	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphit;
 	while (true)
@@ -128,8 +131,15 @@ void conditional_renderer::conditional_thread()
 		while (graphlistIt != graphlist.end())
 		{
 			thread_graph_data *graph = *graphlistIt;
-			render_graph_conditional(graph);
 			graphlistIt++;
+
+			if (graph->active)
+				render_graph_conditional(graph);
+			else if (!finishedGraphs[graph])
+			{
+				finishedGraphs[graph] = true;
+				render_graph_conditional(graph);
+			}
 			Sleep(80);
 		}
 		graphlist.clear();

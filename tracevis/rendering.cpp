@@ -80,6 +80,7 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 	int posi = numverts * POSELEMS;
 	int coli = numverts * COLELEMS;
 	*arraypos = coli;
+	//printf("small curve at arraypos %d size:%d -> %d\n", *arraypos, 8, * arraypos+ 8);
 
 	memcpy(vertpos + posi, startC, POSELEMS * sizeof(float));
 	posi += POSELEMS;
@@ -169,7 +170,10 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	float *vpos = vertdata->acquire_pos("1d") + numverts * POSELEMS;
 	float *vcol = vertdata->acquire_col("1d") + numverts * COLELEMS;
 	*arraypos = numverts * COLELEMS;
+	//printf("Big curve at arraypos %d size:%d -> %d\n", *arraypos, 
+	//	COLELEMS * (curvePoints+2), *arraypos+ COLELEMS * (curvePoints + 2));
 
+	//printf("memcpy bigline from 0x%lx to 0x%lx\n", vcol, vcol + COLELEMS * curvePoints *sizeof(float));
 	memcpy(vpos, posdata, POSELEMS * curvePoints * sizeof(float));
 	memcpy(vcol, coldata, COLELEMS * curvePoints * sizeof(float));
 
@@ -219,8 +223,6 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		case IRET:
 		case IOLD:
 		{
-			//no idea what this does
-			float a = BACKVERTA;
 			curvePoints = LONGCURVEPTS;
 
 			if (eLen < 2) 
@@ -809,6 +811,7 @@ void display_big_conditional(VISSTATE *clientstate)
 	{
 		glGenBuffers(2, graph->conditionalVBOs);
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
+
 		glBufferData(GL_ARRAY_BUFFER, graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);

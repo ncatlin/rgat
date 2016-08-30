@@ -204,7 +204,7 @@ void basicblock_handler::PID_BB_thread()
 				else
 				{
 					//the address has not been seen before, disassemble it from new
-					vector<INS_DATA *> disVec;
+					INSLIST disVec;
 					piddata->disassembly[targetaddr] = disVec;
 				}
 				
@@ -220,7 +220,6 @@ void basicblock_handler::PID_BB_thread()
 				}
 
 				piddata->disassembly[targetaddr].push_back(insdata);
-				//printf("Added %lx to disassembly (%d)\n", targetaddr, piddata->disassembly[targetaddr].size());
 				dropMutex(piddata->disassemblyMutex, "Inserted Dis");
 
 				targetaddr += insdata->numbytes;

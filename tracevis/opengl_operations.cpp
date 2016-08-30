@@ -102,6 +102,7 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 {
 	GRAPH_DISPLAY_DATA *spheredata = clientstate->col_pick_sphere;
 	if (spheredata) {
+		printf("in colpick, deleting old spheredata\n");
 		delete spheredata;
 	}
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);

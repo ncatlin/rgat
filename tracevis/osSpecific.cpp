@@ -45,7 +45,7 @@ string get_dr_path()
 void execute_tracer(string executable) {
 
 	string runpath = get_dr_path();
-	runpath.append(executable);
+	runpath = runpath + "\"" + executable + "\"";
 
 	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;

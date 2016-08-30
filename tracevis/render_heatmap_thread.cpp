@@ -58,40 +58,39 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	if (heatColours.size() > 1)
 		heatColours[lastColour] = *colourRange.rbegin();
 
-	unsigned int newsize = numLineVerts * COLELEMS * sizeof(GLfloat) * 2;
-	if (graph->heatmaplines->col_size() < newsize)
-		graph->heatmaplines->expand(newsize * 2);
+	graph->heatmaplines->set_numVerts(numLineVerts);
+	graph->heatmaplines->clear();
 
 	GLfloat *ecol = graph->heatmaplines->acquire_col("3b");
-	for (size_t i = 0; i < numLineVerts; ++i)
-		ecol[i] = 1.0; //hello memset
-
-
-	int newDrawn = 0;
-
+	unsigned int vertsWritten = 0;
 	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
+	int lastAP = 0;
 	for (; edgeit != edgeEnd; edgeit++)
 	{
-		COLSTRUCT *edgecol = &heatColours[edgeit->second.weight];
+		edge_data *edge = &edgeit->second;
+		COLSTRUCT *edgecol = &heatColours[edge->weight];
 		unsigned int vertIdx = 0;
-		for (; vertIdx < edgeit->second.vertSize; vertIdx++)
+		//printf("Drawing heat arraypos %d (edge %d->%d vert %d of %d)\n",edge->arraypos,
+		//	edgeit->first.first, edgeit->first.second, vertsWritten, numLineVerts);
+
+		for (; vertIdx < edge->vertSize; vertIdx++)
 		{
-			unsigned int arraypos = edgeit->second.arraypos + vertIdx * 4;
+			unsigned int arraypos = (edge->arraypos) + vertIdx * 4;
 			ecol[arraypos] = edgecol->r;
 			ecol[arraypos + 1] = edgecol->g;
 			ecol[arraypos + 2] = edgecol->b;
 			ecol[arraypos + 3] = 1.0;
+			lastAP = arraypos + 4;
+			vertsWritten += 1;
 		}
-		newDrawn++;
+		if (vertsWritten >= numLineVerts)
+			break;
 	}
 	graph->stop_edgeD_iteration();
 
-	if (newDrawn)
-	{
-		graph->heatmaplines->set_numVerts(numLineVerts);
-		graph->needVBOReload_heatmap = true;
-	}
 	graph->heatmaplines->release_col();
+	if (vertsWritten) graph->needVBOReload_heatmap = true;
+	
 	return true;
 }
 
@@ -121,6 +120,8 @@ void heatmap_renderer::heatmap_thread()
 	while (!piddata || piddata->graphs.empty())
 		Sleep(200);
 
+	map<thread_graph_data *, bool> finishedGraphs;
+
 	while (true)
 	{
 		if (!obtainMutex(piddata->graphsListMutex, "Heatmap Thread glm")) return;
@@ -135,8 +136,15 @@ void heatmap_renderer::heatmap_thread()
 		while (graphlistIt != graphlist.end())
 		{
 			thread_graph_data *graph = *graphlistIt;
-			render_graph_heatmap(graph);
 			graphlistIt++;
+
+			if (graph->active)
+				render_graph_heatmap(graph);
+			else if (!finishedGraphs[graph])
+			{
+				finishedGraphs[graph] = true;
+				render_graph_heatmap(graph);
+			}
 			Sleep(80);
 		}
 		

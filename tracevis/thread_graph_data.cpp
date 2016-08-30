@@ -387,6 +387,8 @@ void thread_graph_data::reset_animation()
 	callCounter.clear();
 }
 
+//TODO: find() in this is a significant bottleneck
+//we can do it with a map instead
 void thread_graph_data::brighten_BBs()
 {
 
@@ -501,9 +503,9 @@ take the latestnode-ANIMATION_WIDTH->latestnode steps from the main graph
 take the rest from the faded graph
 combine, season to taste
 */
-void thread_graph_data::animate_latest()
+void thread_graph_data::animate_latest(float fadeRate)
 {
-	darken_animation(ANIMATION_FADE_RATE);
+	darken_animation(fadeRate);
 
 	sequenceIndex = bbsequence.size() - 1;
 	
@@ -513,9 +515,9 @@ void thread_graph_data::animate_latest()
 	brighten_BBs();	
 }
 
-void thread_graph_data::update_animation_render()
+void thread_graph_data::update_animation_render(float fadeRate)
 {
-	darken_animation(ANIMATION_FADE_RATE);
+	darken_animation(fadeRate);
 
 	firstAnimatedBB = sequenceIndex - ANIMATION_WIDTH;
 	brighten_BBs();
@@ -550,12 +552,9 @@ node_data *thread_graph_data::derive_anim_node()
 }
 
 void thread_graph_data::reset_mainlines() {
-	mainlinedata->acquire_col("rm");
-	mainlinedata->acquire_pos("rm");
-	delete mainlinedata;
-	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
-	delete animlinedata;
-	animlinedata = new GRAPH_DISPLAY_DATA(40000);
+
+	mainlinedata->clear();
+	animlinedata->clear();
 }
 
 bool thread_graph_data::edge_exists(NODEPAIR edge)
@@ -601,9 +600,10 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		edgeColour = &lineColours->at(e->edgeClass);
 	}
 
+	
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);
-	
+
 	if (!preview)
 	{
 		e->vertSize = vertsDrawn;
@@ -621,7 +621,7 @@ node_data* thread_graph_data::get_active_node()
 	return latest_active_node;
 }
 
-thread_graph_data::thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disasPtr, HANDLE mutex)
+thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HANDLE mutex)
 {
 	disassembly = disasPtr;
 	disassemblyMutex = mutex;
@@ -652,8 +652,7 @@ thread_graph_data::thread_graph_data(map <unsigned long, vector<INS_DATA*>> *dis
 }
 
 
-void thread_graph_data::start_edgeL_iteration(vector<pair<unsigned int, unsigned int>>::iterator *edgeIt,
-	vector<pair<unsigned int, unsigned int>>::iterator *edgeEnd)
+void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
 	obtainMutex(edMutex);
 	*edgeIt = edgeList.begin();
@@ -665,7 +664,7 @@ void thread_graph_data::stop_edgeL_iteration()
 	dropMutex(edMutex);
 }
 
-void thread_graph_data::start_edgeD_iteration(map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeIt,
+void thread_graph_data::start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeIt,
 	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd)
 {
 	obtainMutex(edMutex);
@@ -684,6 +683,7 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodeList, ALLEGRO_CO
 
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
+	printf("inserting vertid %d/%x\n", targVertID, targVertID);
 	obtainMutex(nodeDMutex, "Insert Vert");
 	nodeDict.insert(make_pair(targVertID, node));
 	dropMutex(nodeDMutex, "Insert Vert");
@@ -704,6 +704,10 @@ void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 
 thread_graph_data::~thread_graph_data()
 {
+	printf("deleting animlinedata after threaed die");
+	delete animlinedata;
+	printf("deleting animvertsdata after threaed die");
+	delete animnodesdata;
 }
 
 
@@ -849,7 +853,7 @@ bool thread_graph_data::loadExterns(ifstream *file)
 	}
 }
 
-bool thread_graph_data::unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly)
+bool thread_graph_data::unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly)
 {
 	if (!loadNodes(file, disassembly)) { printf("Node load failed\n");  return false; }
 	if (!loadEdgeDict(file)) { printf("EdgeD load failed\n");  return false; }
@@ -891,7 +895,7 @@ bool thread_graph_data::loadCallSequence(ifstream *file)
 	return false;
 }
 
-bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly)
+bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, INSLIST> *disassembly)
 {
 
 	if (!verifyTag(file, tag_START, 'N')) {

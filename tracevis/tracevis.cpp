@@ -94,9 +94,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	render_preview_thread->PID = PID;
 	render_preview_thread->piddata = piddata;
 
-	HANDLE hPreviewThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
-		(LPVOID)render_preview_thread, 0, &threadID);
+	//HANDLE hPreviewThread = CreateThread(
+	//	NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
+	//	(LPVOID)render_preview_thread, 0, &threadID);
 	
 	//renders heatmaps
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
@@ -195,7 +195,10 @@ void updateMainRender(VISSTATE *clientState)
 
 	//todo: change to on size change?
 	if (clientState->wireframe_sphere)
+	{
+		printf("deleting wireframe data\n");
 		delete clientState->wireframe_sphere;
+	}
 
 	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	plot_wireframe(clientState);
@@ -469,7 +472,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 				widgets->controlWindow->notifyAnimFinished();
 			}
 			else
-				graph->update_animation_render();
+				graph->update_animation_render(clientState->config->animationFadeRate);
 		}
 		else
 			clientState->animationUpdate = 0;
@@ -485,11 +488,10 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 	else if (clientState->modes.conditional) display_big_conditional(clientState);
 	else
 	{
-		
 		if (graph->active)
 		{
 			if (clientState->modes.animation)
-				graph->animate_latest();
+				graph->animate_latest(clientState->config->animationFadeRate);
 		}
 		else
 			if (graph->terminated)
@@ -632,9 +634,7 @@ int main(int argc, char **argv)
 
 	clientstate.timelineBuilder = new timeline;
 	
-	//breaks if we use a pointer
 	ALLEGRO_COLOR mainBackground = clientstate.config->mainBackground;
-	printf("clearcol: %f,%f,%f,%f\n", mainBackground.r, mainBackground.g, mainBackground.b, mainBackground.a);
 	ALLEGRO_COLOR conditionalBackground = clientstate.config->conditional.background;
 
 	bool running = true;
@@ -660,7 +660,7 @@ int main(int argc, char **argv)
 			{
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->get_num_edges()) continue;
-				printf("ACTIVATING FOUND GRAPH\n");
+
 				clientstate.activeGraph = graph;
 				clientstate.modes.animation = true;
 				clientstate.animationUpdate = 1;
@@ -683,8 +683,6 @@ int main(int argc, char **argv)
 		if (clientstate.newActiveGraph)
 		{
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
-			printf("GRAPH CHANGED to tid %d\n", clientstate.activeGraph->tid);
-			if (!clientstate.activeGraph->get_num_nodes()) printf("GRAPH %d HAS NO VERTS\n", clientstate.activeGraph->tid);
 			
 			if (clientstate.activeGraph->active)
 			{
@@ -835,7 +833,7 @@ bool loadTrace(VISSTATE *clientState, string filename) {
 	//load process data
 	string s1;
 
-	loadfile >> s1;//
+	loadfile >> s1;
 	if (s1 != "PID") {
 		printf("Corrupt save, start = %s\n", s1.c_str());
 		return false;
@@ -1170,6 +1168,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 				closeTextLog(clientstate);
 			else
 			{
+				if (!clientstate->activeGraph) break;
 				stringstream windowName;
 				windowName << "Extern calls [TID: " << clientstate->activeGraph->tid << "]";
 				clientstate->textlog = al_open_native_text_log(windowName.str().c_str(), 0);

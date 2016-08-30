@@ -35,8 +35,6 @@
 #define PREVIEW_GRAPH_WIDTH (280-SCROLLBAR_WIDTH)
 #define PREVIEW_PANE_WIDTH 300
 
-
-
 #define INSTEXT_FIRST 0
 #define INSTEXT_NONE INSTEXT_FIRST
 #define INSTEXT_AUTO 1
@@ -88,7 +86,6 @@
 
 #define DEFAULTPOINTSIZE 5
 
-#define BACKVERTA 0.5
 #define BMODMAG  0.55
 #define BAdj 35
 
@@ -111,5 +108,3 @@
 //offset the instruction text on the drawn node
 #define INS_X_OFF 5
 #define INS_Y_OFF 3
-
-#define ANIMATION_FADE_RATE 0.01

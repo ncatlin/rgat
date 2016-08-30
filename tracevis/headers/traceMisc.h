@@ -3,8 +3,8 @@
 #include "traceConstants.h"
 #include "traceStructs.h"
 
-INS_DATA* getDisassembly(unsigned long address, int mutation, HANDLE mutex, map<unsigned long, vector<INS_DATA *>> *disas, bool fuzzy);
-INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, vector<INS_DATA *>> *disas, int *mutation);
+INS_DATA* getDisassembly(unsigned long address, int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool fuzzy);
+INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutation);
 
 int extract_integer(char *char_buf, string marker, int *target);
 

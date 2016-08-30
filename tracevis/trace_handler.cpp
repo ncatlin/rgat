@@ -459,7 +459,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 void thread_trace_handler::process_new_args()
 {
-	//can we please do something about this
+
 	map<unsigned long, map <unsigned long, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{

@@ -77,12 +77,12 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 	//however we have more diskspace than we have time or RAM and the
 	//"small files for sharing" ship has probably sailed, so sod it; be verbose.
 	//todo: this is broken by irip change
-	map <unsigned long, vector<INS_DATA*>>::iterator disasIt = piddata->disassembly.begin();
+	map <unsigned long, INSLIST>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); disasIt++)
 	{
 		*file << disasIt->second.size() << ",";
 		*file  << disasIt->first << ",";
-		vector<INS_DATA*>::iterator mutationIt = disasIt->second.begin();
+		INSLIST::iterator mutationIt = disasIt->second.begin();
 		for (; mutationIt != disasIt->second.end(); mutationIt++)
 		{
 			INS_DATA *ins = *mutationIt;
@@ -284,7 +284,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 		if (!caught_stoi(mutations_s, &mutations, 10)) {
 			printf("stoi failed with [%s]\n", address_s.c_str()); return false;
 		}
-		vector <INS_DATA *> mutationVector;
+		INSLIST mutationVector;
 		for (int midx = 0; midx < mutations; midx++)
 		{
 			INS_DATA *ins = new INS_DATA;

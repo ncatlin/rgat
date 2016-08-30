@@ -32,7 +32,7 @@ private:
 	HANDLE disassemblyMutex;
 
 	map<unsigned int, node_data> nodeDict; //node id to node data
-	map <unsigned long, vector<INS_DATA*>> *disassembly;
+	map <unsigned long, INSLIST> *disassembly;
 
 	EDGELIST activeEdgeList;
 	vector <unsigned int> activeNodeList;
@@ -47,7 +47,7 @@ private:
 
 	bool loadEdgeDict(ifstream *file);
 	bool loadExterns(ifstream *file);
-	bool loadNodes(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
+	bool loadNodes(ifstream *file, map <unsigned long, INSLIST> *disassembly);
 	bool loadStats(ifstream *file);
 	bool loadAnimationData(ifstream *file);
 	bool loadCallSequence(ifstream *file);
@@ -61,7 +61,7 @@ private:
 	unsigned int last_anim_stop = 0;
 
 public:
-	thread_graph_data(map <unsigned long, vector<INS_DATA*>> *disassembly, HANDLE disasMutex);
+	thread_graph_data(map <unsigned long, INSLIST> *disassembly, HANDLE disasMutex);
 	~thread_graph_data();
 
 	void display_active(bool showNodes, bool showEdges);
@@ -82,7 +82,7 @@ public:
 	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
 
 	bool serialise(ofstream *file);
-	bool unserialise(ifstream *file, map <unsigned long, vector<INS_DATA *>> *disassembly);
+	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
 
 	node_data *get_node(unsigned int index)
 	{
@@ -105,7 +105,7 @@ public:
 	map<unsigned int, node_data>::iterator get_nodeStart() { return nodeDict.begin(); }
 	map<unsigned int, node_data>::iterator get_nodeEnd() { return nodeDict.end(); }
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
-	void animate_latest();
+	void animate_latest(float fadeRate);
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
@@ -117,7 +117,7 @@ public:
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	node_data * get_active_node();
 	void set_active_node(int idx) {	latest_active_node = &nodeDict[idx];}
-	void update_animation_render();
+	void update_animation_render(float fadeRate);
 	void reset_animation();
 	void darken_animation(float alphaDelta);
 
@@ -143,10 +143,9 @@ public:
 	vector<int> externList; //list of external calls
 	string modPath;
 
-
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
 	map <unsigned int, unsigned int> callCounter;
-	//ugh
+
 	//   funcaddress	      caller		
 	map<unsigned long, map <unsigned long, vector<ARGLIST>>> pendingcallargs;
 

@@ -2,7 +2,7 @@
 #include "traceMisc.h"
 
 //gets [mutation]'th disassembly of [address]. if absent and [fuzzy] then returns the most recent 
-INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long,vector<INS_DATA *>> *disas, bool fuzzy = false)
+INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool fuzzy = false)
 {
 	obtainMutex(mutex, 0, 4000);
 
@@ -40,7 +40,7 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 	return result;
 }
 
-INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, vector<INS_DATA *>> *disas, int *mutation)
+INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutation)
 {
 	obtainMutex(mutex, 0, 4000);
 

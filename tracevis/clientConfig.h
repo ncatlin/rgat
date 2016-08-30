@@ -49,6 +49,8 @@ public:
 	int lowB;
 	int farA;
 
+	float animationFadeRate;
+
 private:
 	string configFilePath;
 	void loadFromFile();

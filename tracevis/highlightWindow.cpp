@@ -10,8 +10,8 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 	{
 	case HL_HIGHLIGHT_ADDRESS:
 	{
-		vector<INS_DATA*> insList = activePid->disassembly.at(highlightData->highlightAddr);
-		vector<INS_DATA*>::iterator insListIt = insList.begin();
+		INSLIST insList = activePid->disassembly.at(highlightData->highlightAddr);
+		INSLIST::iterator insListIt = insList.begin();
 		int currentTid = graph->tid;
 		for (; insListIt != insList.end(); ++insListIt)
 		{

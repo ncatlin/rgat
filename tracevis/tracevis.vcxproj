@@ -96,6 +96,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\Users\nia\Documents\tracevis\tracevis\Agui-master\include;C:\Program Files\Common Files\Freeglut\include;C:\Users\nia\Documents\tracevis\tracevis\tracevis\headers;C:\Users\nia\Documents\tracevis\tracevis\packages\Allegro.5.2.0.0\build\native\include;C:\Users\nia\Documents\tracevis\tracevis\capstone\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -6,6 +6,7 @@ typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
 
+
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN {
 	int vertid;
@@ -39,8 +40,10 @@ struct INS_DATA {
 	//string serialize_opstr;
 };
 
+typedef vector<INS_DATA *> INSLIST;
+
 struct BB_DATA {
-	vector<INS_DATA *> inslist;
+	INSLIST inslist;
 	int modnum;
 	//list of threads that call this BB
 	//inside is list of the threads verts that call it
@@ -71,7 +74,7 @@ struct PROCESS_DATA {
 	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
 
 	//maps instruction addresses to all data about it
-	map <unsigned long, vector<INS_DATA *>> disassembly;
+	map <unsigned long, INSLIST> disassembly;
 
 	vector <int> activeMods;
 	map <long, BB_DATA *> externdict;

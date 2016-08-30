@@ -74,4 +74,5 @@ void clientConfig::loadDefaults()
 	graphColours.nodeColours[RETURN] = DEFAULT_NODE_RET;
 	graphColours.nodeColours[EXTERNAL] = DEFAULT_NODE_EXT;
 
+	animationFadeRate = ANIMATION_FADE_RATE;
 }

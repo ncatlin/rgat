@@ -10,18 +10,19 @@ public:
 	float *acquire_pos(char *location);
 	float *acquire_col(char *location);
 
-	float *readonly_col() { return vcolarray; }
-	float *readonly_pos() { return vposarray; }
+	float *readonly_col() { return &vcolarray.at(0); }
+	float *readonly_pos() { return &vposarray.at(0); }
 
 	void release_pos();
 	void release_col();
-	unsigned int col_size() { return vcsize; }
-	unsigned int pos_size() { return vpsize; }
+	void clear();
+	unsigned int col_size() { return get_numVerts()*COLELEMS * sizeof(float); }
+	unsigned int pos_size() { return get_numVerts()*POSELEMS * sizeof(float); }
+	unsigned int col_buf_size_floats() { return vcolarray.size(); }
 	unsigned int get_numVerts() { return numVerts; }
 	void set_numVerts(unsigned int num);
 	unsigned int get_renderedEdges() { return edgesRendered; }
 	void inc_edgesRendered() { edgesRendered++; }
-	void expand(unsigned int minsize);
 
 	FCOORD get_coord(unsigned int index);
 
@@ -33,13 +34,9 @@ private:
 	HANDLE colmutex;
 	unsigned int numVerts = 0;
 
-	//for realloc groundskeeping
-	unsigned int vpsize = 0;
-	unsigned int vcsize = 0;
-	string cholder;
+	vector<GLfloat> vposarray;
+	vector<GLfloat> vcolarray;
 
-	float *vposarray;
-	float *vcolarray;
 
 	//not used for nodes
 	unsigned int edgesRendered = 0;
