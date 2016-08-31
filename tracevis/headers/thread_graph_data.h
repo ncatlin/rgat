@@ -31,7 +31,7 @@ private:
 	int baseMod = -1;
 	HANDLE disassemblyMutex;
 
-	map<unsigned int, node_data> nodeDict; //node id to node data
+	vector<node_data> nodeList; //node id to node data
 	map <unsigned long, INSLIST> *disassembly;
 
 	map <NODEPAIR, unsigned int> activeEdgeMap;
@@ -40,7 +40,7 @@ private:
 	EDGELIST edgeList; //order of edge execution
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
-	HANDLE nodeDMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE nodeLMutex = CreateMutex(NULL, FALSE, NULL);
 
 	bool advance_sequence(bool);
 	bool decrease_sequence();
@@ -69,7 +69,7 @@ public:
 
 	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
-	edge_data *get_edge(NODEPAIR edge);
+	
 	bool edge_exists(NODEPAIR edge);
 	void add_edge(edge_data e, NODEPAIR edge);
 	void insert_node(int targVertID, node_data node); 
@@ -84,15 +84,20 @@ public:
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
 
-	node_data *get_node(unsigned int index)
+	//TODO:these 2 calls are 40% of cpu usage...
+	//TODO:not sure how to improve this one, vector for each start node?
+	inline edge_data *get_edge(NODEPAIR edge);
+
+	//TODO: this looks like a job for a simple vector!
+	inline node_data *get_node(unsigned int index)
 	{
-		obtainMutex(nodeDMutex,0, 500); 
-		node_data *n = &nodeDict.at(index); 
-		dropMutex(nodeDMutex); return n;
+		obtainMutex(nodeLMutex,0, 500); 
+		node_data *n = &nodeList.at(index); 
+		dropMutex(nodeLMutex); return n;
 	}
 
-	bool node_exists(unsigned int idx) { if (nodeDict.count(idx)) return true; return false; }
-	unsigned int get_num_nodes() { return nodeDict.size();}
+	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
+	unsigned int get_num_nodes() { return nodeList.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}
 
 	void start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeit,
@@ -102,8 +107,9 @@ public:
 	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
-	map<unsigned int, node_data>::iterator get_nodeStart() { return nodeDict.begin(); }
-	map<unsigned int, node_data>::iterator get_nodeEnd() { return nodeDict.end(); }
+	vector<node_data>::iterator get_nodeStart() { return nodeList.begin(); }
+	vector<node_data>::iterator get_nodeEnd() { return nodeList.end(); }
+
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest(float fadeRate);
 
@@ -116,7 +122,7 @@ public:
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	node_data * get_active_node();
-	void set_active_node(int idx) {	latest_active_node = &nodeDict[idx];}
+	void set_active_node(int idx) {	latest_active_node = &nodeList.at(idx);}
 	void update_animation_render(float fadeRate);
 	void reset_animation();
 	void darken_animation(float alphaDelta);

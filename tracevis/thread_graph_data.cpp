@@ -296,7 +296,7 @@ void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 //return true if animation has ended
 unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop = false)
 {
-	if (nodeDict.empty()) return ANIMATION_ENDED;
+	if (nodeList.empty()) return ANIMATION_ENDED;
 
 	performStep(updateSize, skipLoop);
 	if (!animationMode) return 0;
@@ -370,8 +370,8 @@ void thread_graph_data::reset_animation()
 
 	sequenceIndex = 0;
 	blockInstruction = 0;
-	if (!nodeDict.empty())
-		latest_active_node = &nodeDict.at(0);
+	if (!nodeList.empty())
+		latest_active_node = &nodeList.at(0);
 	darken_animation(1.0);
 	firstAnimatedBB = 0;
 	lastAnimatedBB = 0;
@@ -561,7 +561,7 @@ bool thread_graph_data::edge_exists(NODEPAIR edge)
 	return result;
 }
 
-edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
+inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
 	obtainMutex(edMutex);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
@@ -611,7 +611,7 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 
 node_data* thread_graph_data::get_active_node()
 {
-	if (!latest_active_node && !nodeDict.empty())
+	if (!latest_active_node && !nodeList.empty())
 		latest_active_node = get_node(0);
 	return latest_active_node;
 }
@@ -669,18 +669,20 @@ void thread_graph_data::start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator
 
 void thread_graph_data::highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier)
 {
-	vector<node_data *>::iterator nodeIt;
-	for (nodeIt = nodeList->begin(); nodeIt != nodeList->end(); ++nodeIt)
+	int nodeListSize = nodeList->size();
+	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
 	{
-		drawHighlight(*nodeIt, m_scalefactors, colour, lengthModifier);
+		drawHighlight(nodeList->at(nodeIdx), m_scalefactors, colour, lengthModifier);
 	}
 }
 
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
-	obtainMutex(nodeDMutex, "Insert Vert");
-	nodeDict.insert(make_pair(targVertID, node));
-	dropMutex(nodeDMutex, "Insert Vert");
+	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
+	obtainMutex(nodeLMutex, "Insert Vert");
+	nodeList.push_back(node);
+	dropMutex(nodeLMutex, "Insert Vert");
+
 }
 
 void thread_graph_data::stop_edgeD_iteration()
@@ -741,9 +743,9 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "TID" << tid << "{";
 
 	*file << "N{";
-	map<unsigned int, node_data>::iterator vertit = nodeDict.begin();
-	for (; vertit != nodeDict.end(); ++vertit)
-		vertit->second.serialise(file);
+	vector<node_data>::iterator vertit = nodeList.begin();
+	for (; vertit != nodeList.end(); ++vertit)
+		vertit->serialise(file);
 	*file << "}N,";
 
 	*file << "D{";

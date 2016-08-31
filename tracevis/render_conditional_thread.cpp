@@ -14,30 +14,31 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 	GRAPH_DISPLAY_DATA *conditionalNodes = graph->conditionalnodes;
 
-	map<unsigned int, node_data>::iterator vertit = graph->get_nodeStart();
-	map<unsigned int, node_data>::iterator vertEnd = graph->get_nodeEnd();
-	if (vertit == vertEnd) return 0;
+	int nodeIdx = 0;
+	int nodeEnd = graph->get_num_nodes();
+	if (nodeIdx == nodeEnd) return 0;
 	if (conditionalNodes->get_numVerts() != vertsdata->get_numVerts())
 	{
-		std::advance(vertit, conditionalNodes->get_numVerts());
-		if (vertit == vertEnd) return 0;
+		nodeIdx += conditionalNodes->get_numVerts();
+		if (nodeIdx == nodeEnd) return 0;
 
 		const ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
 		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
 		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
 
 		GLfloat *nodeCol = conditionalNodes->acquire_col("1f");
-		for (; vertit != vertEnd; vertit++)
+		for (; nodeIdx != nodeEnd; ++nodeIdx)
 		{
-			int arraypos = vertit->second.index * COLELEMS;
-			if (!vertit->second.ins || vertit->second.ins->conditional == false)
+			node_data *n = graph->get_node(nodeIdx);
+			int arraypos = n->index * COLELEMS;
+			if (!n->ins || n->ins->conditional == false)
 			{
 				nodeCol[arraypos + AOFF] = 0;
 				continue;
 			}
 
-			bool jumpTaken = vertit->second.conditional & CONDTAKEN;
-			bool jumpMissed = vertit->second.conditional & CONDNOTTAKEN;
+			bool jumpTaken = n->conditional & CONDTAKEN;
+			bool jumpMissed = n->conditional & CONDNOTTAKEN;
 			//jump only seen to succeed
 			if (jumpTaken && !jumpMissed)
 			{

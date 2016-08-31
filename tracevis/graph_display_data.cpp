@@ -56,6 +56,7 @@ void GRAPH_DISPLAY_DATA::release_col()
 	dropMutex(colmutex);
 }
 
+//TODO: this is awful. need to add to vector ert by vert
 //when number of verts increases also checks buffer sizes
 //mutexes are bit dodgy, expect them to be held by caller
 void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)

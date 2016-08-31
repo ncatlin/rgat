@@ -356,17 +356,17 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
-	map<unsigned int, node_data>::iterator vertit = graph->get_nodeStart();
-	map<unsigned int, node_data>::iterator vertEnd = graph->get_nodeEnd();
-	if (vertit == vertEnd) return 0;
-	std::advance(vertit, vertsdata->get_numVerts());
+	int nodeIdx = 0;
+	int nodeEnd = graph->get_num_nodes();
+	if (nodeIdx == nodeEnd) return 0;
+	nodeIdx += vertsdata->get_numVerts();
 
-	if (vertit == vertEnd) return 0;
+	if (nodeIdx == nodeEnd) return 0;
 	int maxVerts = 50;
-	for (; vertit != vertEnd; ++vertit)
+	for (; nodeIdx != nodeEnd; ++nodeIdx)
 	{
 		int retries = 0;
-	 while (!add_node(&vertit->second, vertsdata, graph->animnodesdata, scalefactors))
+	 while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors))
 		{
 			Sleep(50);
 			if (retries++ > 25)
@@ -385,17 +385,19 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
-	map<unsigned int, node_data>::iterator vertit = graph->get_nodeStart();
-	map<unsigned int, node_data>::iterator target = graph->get_nodeStart();
+	int nodeIdx = 0;
+	int targetIdx = graph->get_num_nodes();
 	printf("starting resize\n");
 	GLfloat *vpos = vertsdata->acquire_pos("1i");
-	for (std::advance(target, vertsdata->get_numVerts()); vertit != target; ++vertit)
+	for (nodeIdx = vertsdata->get_numVerts(); nodeIdx != targetIdx; ++nodeIdx)
 	{
-		FCOORD c = vertit->second.sphereCoordB(scalefactors, 0);
-		int vertIdx = vertit->second.index;
-		vpos[(vertIdx * POSELEMS) + XOFF] = c.x;
-		vpos[(vertIdx * POSELEMS) + YOFF] = c.y;
-		vpos[(vertIdx * POSELEMS) + ZOFF] = c.z;
+		node_data *n = graph->get_node(nodeIdx);
+		FCOORD c = n->sphereCoordB(scalefactors, 0);
+		assert(nodeIdx == n->index);
+		//todo get rid of equiv multiply
+		vpos[(nodeIdx * POSELEMS) + XOFF] = c.x;
+		vpos[(nodeIdx * POSELEMS) + YOFF] = c.y;
+		vpos[(nodeIdx * POSELEMS) + ZOFF] = c.z;
 	}
 	
 	vertsdata->release_pos();
