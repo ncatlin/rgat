@@ -67,9 +67,9 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 	if (targetDataSize > currentMaxSize)
 	{
 		acquire_pos();
-		acquire_col(); //todo: move this into the if, if we can
+		acquire_col(); 
 		printf("Resizing to %d\n", targetDataSize + 64000);
-		//this is a big bottleneck... must be a better way
+		//this is the biggest bottleneck... must be a better way
 		vposarray.resize(targetDataSize + 64000, 0);
 		vcolarray.resize(targetDataSize + 64000, 0);
 		release_col();

@@ -195,10 +195,7 @@ void updateMainRender(VISSTATE *clientState)
 
 	//todo: change to on size change?
 	if (clientState->wireframe_sphere)
-	{
-		printf("deleting wireframe data\n");
 		delete clientState->wireframe_sphere;
-	}
 
 	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	plot_wireframe(clientState);
@@ -330,7 +327,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		EXTTEXT extt;
 		extt.edge = resu.edgeIdx;
 		extt.nodeIdx = resu.nodeIdx;
-		extt.timeRemaining = 60;
+		extt.timeRemaining = 5;
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata, piddata);
 

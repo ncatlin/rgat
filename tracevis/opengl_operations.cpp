@@ -101,10 +101,9 @@ void initial_gl_setup(VISSTATE *clientstate)
 int plot_colourpick_sphere(VISSTATE *clientstate)
 {
 	GRAPH_DISPLAY_DATA *spheredata = clientstate->col_pick_sphere;
-	if (spheredata) {
-		printf("in colpick, deleting old spheredata\n");
+	if (spheredata)
 		delete spheredata;
-	}
+
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
 	clientstate->col_pick_sphere = spheredata;
 
@@ -258,14 +257,6 @@ void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes)
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
 	glMultiDrawArrays(GL_LINE_LOOP, starts, sizes, WIREFRAMELOOPS);
-}
-
-void drawActiveLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour) {
-	glColor4f(colour->r, colour->g, colour->b, colour->a);
-	glBegin(GL_LINES);
-	glVertex3f(p1.x, p1.y, p1.z);
-	glVertex3f(p2.x, p2.y, p2.z);
-	glEnd();
 }
 
 void drawHighlightLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour) {

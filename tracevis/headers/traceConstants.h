@@ -1,5 +1,5 @@
 #pragma once
-#define BBBUFSIZE 4048
+#define BBBUFSIZE 64*1024
 #define MAX_OPCODES 30
 
 #define TAGCACHESIZE 15256

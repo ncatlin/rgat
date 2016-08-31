@@ -12,7 +12,9 @@ void thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
 		printf("Sleeping until bbdict contains %lx\n", address);
 	}
 
+	obtainMutex(piddata->externDictMutex, 0, 1000);
 	*BB = piddata->externdict.at(address);
+	dropMutex(piddata->externDictMutex, 0);
 }
 
 void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
@@ -464,12 +466,17 @@ void thread_trace_handler::process_new_args()
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		unsigned long funcad = pcaIt->first;
+		obtainMutex(piddata->externDictMutex, 0, 1000);
 		if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { 
+			dropMutex(piddata->externDictMutex, 0);
 			//TODO: keep track of this. printf("Failed to find call for %lx in externdict\n", funcad);
 			pcaIt++; continue; 
 		}
 
+		
 		EDGELIST callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+		dropMutex(piddata->externDictMutex, 0);
+
 		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{

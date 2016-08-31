@@ -542,8 +542,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	vector<int>::iterator externCallIt = externListCopy.begin();
 	for (; externCallIt != externListCopy.end(); ++externCallIt)
 	{
-		int externVertIdx = *externCallIt;
-		node_data *n = graph->get_node(externVertIdx);
+		node_data *n = graph->get_node(*externCallIt);
 		assert(n->external);
 
 		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);

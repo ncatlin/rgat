@@ -72,6 +72,7 @@ struct PROCESS_DATA {
 	map <int, void *> graphs;
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);
 	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
+	HANDLE externDictMutex = CreateMutex(NULL, false, NULL);
 
 	//maps instruction addresses to all data about it
 	map <unsigned long, INSLIST> disassembly;

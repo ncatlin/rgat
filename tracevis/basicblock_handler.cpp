@@ -30,7 +30,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	count = cs_disasm(hCapstone, opcodes_u, pairs, insaddr, 0, &insn);
 	if (count != 1) {
 		printf("\tFATAL: Failed disassembly for opcodes: %s\n count: %d\n",  
-			opcodes.c_str(), count);  //TODO: THIS HAS HAPPENED, DEAL WITH IT
+			opcodes.c_str(), count);
 		return NULL;
 	}
 	int ida = insn->id;
@@ -98,17 +98,19 @@ void basicblock_handler::PID_BB_thread()
 	std::map<long, string> oldstuf;
 
 	ConnectNamedPipe(hPipe, NULL);
-	char buf[4048] = { 0 };
+	char buf[BBBUFSIZE] = { 0 };
 	int PIDcount = 0;
 	printf("[vis bb thread] pipe connected, waiting for input...\n");
 	while (true)
 	{
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, BBBUFSIZE, &bread, NULL)) {
-			printf("\tERROR: Failed basic block pipe read for PID %d!\n",PID);
+			int err = GetLastError();
+			//could just read more
+			if (err == ERROR_MORE_DATA) printf("Error! Basic block data exceeding BBBUFSIZE!\n");
+			printf("\tERROR: Failed basic block pipe read for PID %d, error:%x!\n",PID,err);
 			return;
 		}
-
 		string savedbuf = string(buf);
 		//printf("read buffer [%s]\n", buf);
 
@@ -171,13 +173,14 @@ void basicblock_handler::PID_BB_thread()
 			BB_DATA *bbdata = new BB_DATA;
 			bbdata->modnum = modnum;
 			bbdata->symbol.clear();
-			//bbdata->address = 
+
+			obtainMutex(piddata->externDictMutex, 0, 1000);
 			piddata->externdict.insert(make_pair(targetaddr, bbdata));
-			//i don't know why this sometimes happens. please tell me
+			
 			if (piddata->externdict[targetaddr] == 0)
 				piddata->externdict[targetaddr] = bbdata;
+			dropMutex(piddata->externDictMutex, 0);
 
-			//printf("Inserting extern at address %lx -> %lx\n", targetaddr, piddata->externdict[targetaddr]);
 			continue;
 			}
 

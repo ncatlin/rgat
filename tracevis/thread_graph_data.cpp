@@ -194,7 +194,7 @@ void thread_graph_data::emptyArgQueue()
 
 bool thread_graph_data::decrease_sequence()
 {
-	return true;
+	return true; //unimplemented
 }
 
 bool thread_graph_data::advance_sequence(bool skipLoop = false)
@@ -215,9 +215,7 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 	//just started loop
 	if (!animLoopStartIdx)
 	{
-		
 		targetIterations = loopStateList.at(sequenceIndex).second;
-		printf("start loop %d seq:%d, %d its\n", loopsPlayed, sequenceIndex, targetIterations);
 		animLoopIndex = 0;
 		animLoopStartIdx = sequenceIndex;
 		loopIteration = 1;
@@ -231,7 +229,7 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 	}
 	else
 	{
-		loopIteration = animLoopProgress.at(animLoopIndex) +1;
+		loopIteration = animLoopProgress.at(animLoopIndex) + 1;
 		animLoopProgress.at(animLoopIndex) = loopIteration;
 	}
 
@@ -244,8 +242,6 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 		//end of loop
 		if ((animLoopIndex >= animLoopProgress.size() - 1) || skipLoop)
 		{
-			
-			printf("End loop %d seq:%d\n", loopsPlayed, sequenceIndex);
 			++loopsPlayed;
 			animLoopProgress.clear();
 			animLoopStartIdx = 0;
@@ -332,9 +328,9 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		}
 		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
-			edgeAlpha = ecol[edgeStart + i*COLELEMS + 3];
+			edgeAlpha = ecol[edgeStart + i*COLELEMS + AOFF];
 			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
-			ecol[edgeStart + i*COLELEMS + 3] = edgeAlpha;
+			ecol[edgeStart + i*COLELEMS + AOFF] = edgeAlpha;
 		}	
 
 		if (edgeAlpha == MINIMUM_FADE_ALPHA)
@@ -353,7 +349,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		unsigned int nodeIndex = n->index;
 		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
 		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
-		ncol[(nodeIndex * COLELEMS) + 3] = currentAlpha;
+		ncol[(nodeIndex * COLELEMS) + AOFF] = currentAlpha;
 		if (currentAlpha == 0.02)
 			activeNodeIt = activeNodeMap.erase(activeNodeIt);
 		else
@@ -387,8 +383,6 @@ void thread_graph_data::reset_animation()
 	callCounter.clear();
 }
 
-//TODO: find() in this is a significant bottleneck
-//we can do it with a map instead
 void thread_graph_data::brighten_BBs()
 {
 
@@ -397,17 +391,17 @@ void thread_graph_data::brighten_BBs()
 
 	unsigned int animPosition = firstAnimatedBB; 
 	if (animPosition == animEnd) return;
-	
+
+	if((animEnd - animPosition) > 100);
+		animPosition = animEnd - 100;
 
 	map <unsigned long, bool> recentHighlights;
-	//place active on new active
 	for (; animPosition < animEnd; ++animPosition)
 	{
 		highlight_externs(animPosition);
 		//dont re-brighten on same animation frame
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
-		
 		
 		GLfloat *ncol = animnodesdata->acquire_col("1m");
 		GLfloat *ecol = animlinedata->acquire_col("1m");
@@ -468,13 +462,14 @@ void thread_graph_data::brighten_BBs()
 
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
-			ncol[(nodeIdx * COLELEMS) + 3] = 1;
+			//brighten the node
+			ncol[(nodeIdx * COLELEMS) + AOFF] = 1;
 
 			if (!activeNodeMap.count(nodeIdx))
 				activeNodeMap[nodeIdx] = true;
 			if (blockIdx == numInstructions - 1) break;
 
-			//brighten short edges between internal nodes
+			//brighten short edge between internal nodes
 			unsigned long nextAddress = ins->address + ins->numbytes;
 			INS_DATA* nextIns = getDisassembly(nextAddress, mutation, disassemblyMutex, disassembly, false);
 
@@ -482,8 +477,8 @@ void thread_graph_data::brighten_BBs()
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
 
 			unsigned long edgeColPos = get_edge(edgePair)->arraypos;
-			ecol[edgeColPos + 3] = (float)1.0;
-			ecol[edgeColPos + COLELEMS + 3] = (float)1.0;
+			ecol[edgeColPos + AOFF] = 1.0;
+			ecol[edgeColPos + COLELEMS + AOFF] = 1.0;
 			if (!activeEdgeMap.count(edgePair))
 				activeEdgeMap[edgePair] = true;
 
@@ -665,7 +660,7 @@ void thread_graph_data::stop_edgeL_iteration()
 }
 
 void thread_graph_data::start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeIt,
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator *edgeEnd)
+	map<NODEPAIR, edge_data>::iterator *edgeEnd)
 {
 	obtainMutex(edMutex);
 	*edgeIt = edgeDict.begin();
@@ -683,7 +678,6 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodeList, ALLEGRO_CO
 
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
-	printf("inserting vertid %d/%x\n", targVertID, targVertID);
 	obtainMutex(nodeDMutex, "Insert Vert");
 	nodeDict.insert(make_pair(targVertID, node));
 	dropMutex(nodeDMutex, "Insert Vert");
