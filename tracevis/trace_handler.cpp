@@ -378,7 +378,8 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 
 	node_data *lastnode = thisgraph->get_node(lastVertID);
-	
+	assert(lastnode->ins->numbytes);
+
 	//start by examining our caller
 	
 	int callerModule = lastnode->nodeMod;
@@ -443,9 +444,10 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	BB_DATA *thisnode_bbdata = 0;
 	get_extern_at_address(targaddr, &thisnode_bbdata);
-
-	thisgraph->insert_node(targVertID, newTargNode);
 	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
+
+	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
+
 	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
 	thisgraph->externList.push_back(targVertID);
 	dropMutex(thisgraph->funcQueueMutex, "Push Externlist");

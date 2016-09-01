@@ -57,8 +57,8 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 //create faded edge version of graph for use in animations
 void thread_graph_data::extend_faded_edges()
 {
-	GLfloat *animecol = animlinedata->acquire_col("2c");
-	GLfloat *mainecol = mainlinedata->acquire_col("2c");
+	vector<GLfloat> *animecol = animlinedata->acquire_col("2c");
+	vector<GLfloat> *mainecol = mainlinedata->acquire_col("2c");
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
@@ -66,6 +66,38 @@ void thread_graph_data::extend_faded_edges()
 	int pendingVerts = drawnVerts - animatedVerts;
 	if (!pendingVerts) return;
 
+	//copy the colours over
+	unsigned int fadedIndex = animlinedata->get_numVerts() *COLELEMS;
+	vector<float>::iterator mainEIt= mainecol->begin();
+	advance(mainEIt, fadedIndex);
+	animecol->insert(animecol->end(), mainEIt, mainecol->end());
+	mainlinedata->release_col();
+
+	//fade new colours alpha
+	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
+	unsigned int end = drawnVerts*COLELEMS;
+	for (; index2 < end; index2 += 4)
+	{
+		animecol->at(index2 + AOFF) = 0.1;
+	}
+	animlinedata->set_numVerts(drawnVerts);
+	animlinedata->release_col();
+}
+
+/*
+//create faded edge version of graph for use in animations
+void thread_graph_data::extend_faded_edges()
+{
+	vector<GLfloat> *animecol = animlinedata->acquire_col("2c");
+	vector<GLfloat> *mainecol = mainlinedata->acquire_col("2c");
+	unsigned int drawnVerts = mainlinedata->get_numVerts();
+	unsigned int animatedVerts = animlinedata->get_numVerts();
+
+	assert(drawnVerts >= animatedVerts);
+	int pendingVerts = drawnVerts - animatedVerts;
+	if (!pendingVerts) return;
+
+	//copy the colours over
 	unsigned int fadedIndex = animlinedata->get_numVerts() *COLELEMS;
 	unsigned int copysize = pendingVerts*COLELEMS * sizeof(GLfloat);
 	void *targaddr = animecol + fadedIndex;
@@ -81,7 +113,7 @@ void thread_graph_data::extend_faded_edges()
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col();
 }
-
+*/
 //draw edges
 void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr)
 {
@@ -312,8 +344,7 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 
 void thread_graph_data::darken_animation(float alphaDelta)
 {
-	
-	GLfloat *ecol = animlinedata->acquire_col("2a");
+	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
 
 	map<NODEPAIR, unsigned int>::iterator activeEdgeIt = activeEdgeMap.begin();
 
@@ -322,15 +353,18 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		edge_data *e = get_edge(activeEdgeIt->first);
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
-		if (!e->vertSize)
-		{
-			printf("WARNING: 0 vertsize in darken\n"); animlinedata->release_col();  return;
-		}
+		assert(e->vertSize);
 		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
-			edgeAlpha = ecol[edgeStart + i*COLELEMS + AOFF];
+			const int colBufIndex = edgeStart + i*COLELEMS + AOFF;
+			if (colBufIndex >= animlinedata->col_buf_capacity_floats())
+			{
+				printf("skup darkening\n");
+				break;
+			}
+			edgeAlpha = ecol[colBufIndex];
 			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
-			ecol[edgeStart + i*COLELEMS + AOFF] = edgeAlpha;
+			ecol[colBufIndex] = edgeAlpha;
 		}	
 
 		if (edgeAlpha == MINIMUM_FADE_ALPHA)
@@ -340,17 +374,19 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	}
 	animlinedata->release_col();
 
-	GLfloat *ncol = animnodesdata->acquire_col("2b");
+	GLfloat *ncol = &animnodesdata->acquire_col("2b")->at(0);
 	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
 
 	while (activeNodeIt != activeNodeMap.end())
 	{
 		node_data *n = get_node(activeNodeIt->first);
 		unsigned int nodeIndex = n->index;
-		float currentAlpha = ncol[(nodeIndex * COLELEMS) + 3];
-		currentAlpha = fmax(0.02, currentAlpha - alphaDelta);
-		ncol[(nodeIndex * COLELEMS) + AOFF] = currentAlpha;
-		if (currentAlpha == 0.02)
+		int colBufIndex = (nodeIndex * COLELEMS) + AOFF;
+		if (colBufIndex >= animnodesdata->col_buf_capacity_floats()) break;
+		float currentAlpha = ncol[colBufIndex];
+		currentAlpha = fmax(0.01, currentAlpha - alphaDelta);
+		ncol[colBufIndex] = currentAlpha;
+		if (currentAlpha == 0.01)
 			activeNodeIt = activeNodeMap.erase(activeNodeIt);
 		else
 			++activeNodeIt;
@@ -385,16 +421,16 @@ void thread_graph_data::reset_animation()
 
 void thread_graph_data::brighten_BBs()
 {
-
 	unsigned int lastNodeIdx = 0;
 	unsigned int animEnd = sequenceIndex;
 
 	unsigned int animPosition = firstAnimatedBB; 
 	if (animPosition == animEnd) return;
 
-	if((animEnd - animPosition) > 100);
+	if((animEnd - animPosition) > 100)
 		animPosition = animEnd - 100;
 
+	bool dropout = false;
 	map <unsigned long, bool> recentHighlights;
 	for (; animPosition < animEnd; ++animPosition)
 	{
@@ -403,16 +439,17 @@ void thread_graph_data::brighten_BBs()
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
 		
-		GLfloat *ncol = animnodesdata->acquire_col("1m");
-		GLfloat *ecol = animlinedata->acquire_col("1m");
-		while (!ncol || !ecol)
+		
+		GLfloat *ncol = &animnodesdata->acquire_col("1m")->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col("1m")->at(0);
+		while (!ncol || !ecol) // this will probably fail now
 		{
 			animnodesdata->release_col();
 			animlinedata->release_col();
 			printf("BBbright fail\n");
 			Sleep(75);
-			ncol = animnodesdata->acquire_col("1m2");
-			ecol = animlinedata->acquire_col("1m2");
+			ncol = &animnodesdata->acquire_col("1m2")->at(0);
+			ecol = &animlinedata->acquire_col("1m2")->at(0);
 		}
 
 		obtainMutex(animationListsMutex);
@@ -452,19 +489,35 @@ void thread_graph_data::brighten_BBs()
 				edge_data *linkingEdge = get_edge(edgePair);
 
 				int numEdgeVerts = linkingEdge->vertSize;
-				for (int i = 0; i < numEdgeVerts; ++i) {
-					ecol[linkingEdge->arraypos + i*COLELEMS + 3] = (float)1.0;
+				for (int i = 0; i < numEdgeVerts; ++i) 
+				{
+					const int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
+					if (colArrIndex >= animlinedata->col_buf_capacity_floats())
+					{
+						printf("DROPOUT EDGE\n");
+						dropout = true;
+						break;
+					}
+					ecol[colArrIndex] = (float)1.0;
 				}
+
 				if (!activeEdgeMap.count(edgePair))
 					activeEdgeMap[edgePair] = true;
 			}
 		}
 
+
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
-			//brighten the node
-			ncol[(nodeIdx * COLELEMS) + AOFF] = 1;
+			const int colArrIndex = (nodeIdx * COLELEMS) + AOFF;
+			if (colArrIndex >= animnodesdata->col_buf_capacity_floats())
+			{
+				dropout = true;
+				break;
+			}
 
+			//brighten the node
+			ncol[colArrIndex] = 1;
 			if (!activeNodeMap.count(nodeIdx))
 				activeNodeMap[nodeIdx] = true;
 			if (blockIdx == numInstructions - 1) break;
@@ -479,6 +532,7 @@ void thread_graph_data::brighten_BBs()
 			unsigned long edgeColPos = get_edge(edgePair)->arraypos;
 			ecol[edgeColPos + AOFF] = 1.0;
 			ecol[edgeColPos + COLELEMS + AOFF] = 1.0;
+			assert(edgeColPos + COLELEMS + AOFF < animlinedata->col_buf_capacity_floats());
 			if (!activeEdgeMap.count(edgePair))
 				activeEdgeMap[edgePair] = true;
 
@@ -488,6 +542,7 @@ void thread_graph_data::brighten_BBs()
 		lastNodeIdx = nodeIdx;
 		animnodesdata->release_col();
 		animlinedata->release_col();
+		if (dropout) break;
 	}
 
 	needVBOReload_active = true;
@@ -659,20 +714,20 @@ void thread_graph_data::stop_edgeL_iteration()
 	dropMutex(edMutex);
 }
 
-void thread_graph_data::start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeIt,
-	map<NODEPAIR, edge_data>::iterator *edgeEnd)
+void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
+	EDGEMAP::iterator *edgeEnd)
 {
 	obtainMutex(edMutex);
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
 }
 
-void thread_graph_data::highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier)
+void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO_COLOR *colour, int lengthModifier)
 {
-	int nodeListSize = nodeList->size();
+	int nodeListSize = nodePtrList->size();
 	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
 	{
-		drawHighlight(nodeList->at(nodeIdx), m_scalefactors, colour, lengthModifier);
+		drawHighlight(nodePtrList->at(nodeIdx), m_scalefactors, colour, lengthModifier);
 	}
 }
 
@@ -710,18 +765,23 @@ thread_graph_data::~thread_graph_data()
 void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
 	edge_data *e = get_edge(eIdx);
-	GLfloat *colarray = edgesdata->acquire_col("2e");
+	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
+	GLfloat *colarray = &edgesdata->acquire_col("2e")->at(0);
 	for (unsigned int i = 0; i < e->vertSize; ++i)
 	{
-		colarray[e->arraypos + i*COLELEMS + 3] = alpha;
+		unsigned int bufIndex = e->arraypos + i*COLELEMS + AOFF;
+		if (bufIndex > bufsize) break;
+		colarray[bufIndex] = alpha;
 	}
 	edgesdata->release_col();
 }
 
 void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
 {
-	GLfloat *colarray = nodesdata->acquire_col("2f");
-	colarray[nIdx*COLELEMS + 3] = alpha;
+	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
+	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
+	GLfloat *colarray = &nodesdata->acquire_col("2f")->at(0);
+	colarray[bufIndex] = alpha;
 	nodesdata->release_col();
 }
 
@@ -749,7 +809,7 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}N,";
 
 	*file << "D{";
-	map<NODEPAIR, edge_data>::iterator edgeDIt = edgeDict.begin();
+	EDGEMAP::iterator edgeDIt = edgeDict.begin();
 	for (; edgeDIt != edgeDict.end(); ++edgeDIt)
 		edgeDIt->second.serialise(file, edgeDIt->first.first, edgeDIt->first.second);
 	*file << "}D,";

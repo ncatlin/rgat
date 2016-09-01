@@ -118,8 +118,8 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 	int quads = 0;
 	int bufpos = 0;
 
-	GLfloat *spherepos = spheredata->acquire_pos("1a");
-	GLfloat *spherecol = spheredata->acquire_col("1a");
+	vector<GLfloat> *spherepos = spheredata->acquire_pos("1a");
+	vector<GLfloat> *spherecol = spheredata->acquire_col("1a");
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) {
 		float colb = (float)rowi / 180;
 		float ringSizeTop, ringSizeBase, anglel, angler;
@@ -150,30 +150,30 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 			int i;
 			for (i = 0; i < 4; ++i)
 			{
-				spherecol[bufpos + i*3] = colb;
-				spherecol[bufpos + i*3 + 1] = cola;
-				spherecol[bufpos + i*3 + 2] = 0;
+				spherecol->push_back(colb);
+				spherecol->push_back(cola);
+				spherecol->push_back(0);
 			}
 
-			spherepos[bufpos++] = tlx;
-			spherepos[bufpos++] = ytop;
-			spherepos[bufpos++] = tlz;
-			spherepos[bufpos++] = trx;
-			spherepos[bufpos++] = ytop;
-			spherepos[bufpos++] = trz;
-			spherepos[bufpos++] = brx;
-			spherepos[bufpos++] = ybase;
-			spherepos[bufpos++] = brz;
-			spherepos[bufpos++] = blx;
-			spherepos[bufpos++] = ybase;
-			spherepos[bufpos++] = blz;
+			spherepos->push_back(tlx);
+			spherepos->push_back(ytop);
+			spherepos->push_back(tlz);
+			spherepos->push_back(trx);
+			spherepos->push_back(ytop);
+			spherepos->push_back(trz);
+			spherepos->push_back(brx);
+			spherepos->push_back(ybase);
+			spherepos->push_back(brz);
+			spherepos->push_back(blx);
+			spherepos->push_back(ybase);
+			spherepos->push_back(blz);
 			quads += 4;
 		}
 	}
 
 	glGenBuffers(2, clientstate->colSphereVBOs);
-	load_VBO(VBO_SPHERE_POS, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, spherepos);
-	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, spherecol);
+	load_VBO(VBO_SPHERE_POS, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
+	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
 	spheredata->release_col();
 	spheredata->release_pos();
 	return 0;
@@ -194,14 +194,12 @@ void rotate_to_user_view(VISSTATE *clientstate)
 //pass doclear false if you want to see it, just for debugging
 void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doClear)
 {
+	
 	if (!clientstate->col_pick_sphere)
 		plot_colourpick_sphere(clientstate);
 	glPushMatrix();
 	gluPerspective(45, clientstate->size.width / clientstate->size.height, 500, clientstate->zoomlevel);
 	glLoadIdentity();
-
-	//adjust view distance so we only see the side of the sphere facing camera
-	double farval = clientstate->zoomlevel - 10000;
 
 	rotate_to_user_view(clientstate);
 
@@ -213,13 +211,14 @@ void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doC
 	glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
 
 	GLfloat pixelRGB[3];
-
+	
 	//no idea why this ajustment needed, found by trial and error
 	int height = clientstate->size.height - 20;
 	int width = al_get_bitmap_width(clientstate->mainGraphBMP);
 	int halfheight = height / 2;
 	int halfwidth = width / 2;
 
+	//TODO think we might not use top and bottom
 	glReadPixels(0, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
 	TBRG->leftgreen = pixelRGB[1];
 	glReadPixels(width - 1, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);

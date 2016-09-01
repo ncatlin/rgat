@@ -7,8 +7,10 @@ public:
 	GRAPH_DISPLAY_DATA(int initialValue);
 	~GRAPH_DISPLAY_DATA();
 
-	float *acquire_pos(char *location);
-	float *acquire_col(char *location);
+	//float *acquire_pos(char *location);
+	//float *acquire_col(char *location);
+	vector <float>*acquire_pos(char *location);
+	vector <float>*acquire_col(char *location);
 
 	float *readonly_col() { return &vcolarray.at(0); }
 	float *readonly_pos() { return &vposarray.at(0); }
@@ -24,7 +26,7 @@ public:
 	unsigned int get_renderedEdges() { return edgesRendered; }
 	void inc_edgesRendered() { edgesRendered++; }
 
-	FCOORD get_coord(unsigned int index);
+	bool get_coord(unsigned int index, FCOORD* result);
 
 	bool isPreview() { return preview; }
 	void setPreview() { preview = true; }

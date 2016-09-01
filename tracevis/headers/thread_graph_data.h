@@ -36,7 +36,7 @@ private:
 
 	map <NODEPAIR, unsigned int> activeEdgeMap;
 	map <unsigned int, unsigned int> activeNodeMap;
-	map<NODEPAIR, edge_data> edgeDict; //node id pairs to edge data
+	EDGEMAP edgeDict; //node id pairs to edge data
 	EDGELIST edgeList; //order of edge execution
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
@@ -88,27 +88,23 @@ public:
 	//TODO:not sure how to improve this one, vector for each start node?
 	inline edge_data *get_edge(NODEPAIR edge);
 
-	//TODO: this looks like a job for a simple vector!
 	inline node_data *get_node(unsigned int index)
 	{
-		obtainMutex(nodeLMutex,0, 500); 
+		obtainMutex(nodeLMutex,0, 500);
 		node_data *n = &nodeList.at(index); 
-		dropMutex(nodeLMutex); return n;
+		dropMutex(nodeLMutex); 
+		return n;
 	}
 
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
 	unsigned int get_num_nodes() { return nodeList.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}
 
-	void start_edgeD_iteration(map<NODEPAIR, edge_data>::iterator *edgeit,
-		map<NODEPAIR, edge_data>::iterator *edgeEnd);
+	void start_edgeD_iteration(EDGEMAP::iterator *edgeit, EDGEMAP::iterator *edgeEnd);
 	void stop_edgeD_iteration();
 
 	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
-
-	vector<node_data>::iterator get_nodeStart() { return nodeList.begin(); }
-	vector<node_data>::iterator get_nodeEnd() { return nodeList.end(); }
 
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest(float fadeRate);

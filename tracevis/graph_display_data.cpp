@@ -6,8 +6,6 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(int initialValue)
 {
 	posmutex = CreateMutex(NULL, FALSE, NULL);
 	colmutex = CreateMutex(NULL, FALSE, NULL);
-	vposarray.assign(initialValue, 0);
-	vcolarray.assign(initialValue, 0);
 	numVerts = 0;
 	edgesRendered = 0;
 }
@@ -18,32 +16,34 @@ GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 	obtainMutex(posmutex, "Destruct", INFINITE);
 }
 
-FCOORD GRAPH_DISPLAY_DATA::get_coord(unsigned int index)
+bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 {
-	FCOORD result;
+	const int listIndex = index*POSELEMS;
+	if (listIndex >= vposarray.size()) return false;
+
 	obtainMutex(posmutex, 0, 6000);
-	result.x = vposarray.at(index * POSELEMS);
-	result.y = vposarray.at(index * POSELEMS + 1);
-	result.z = vposarray.at(index * POSELEMS + 2);
+	result->x = vposarray.at(listIndex);
+	result->y = vposarray.at(listIndex + 1);
+	result->z = vposarray.at(listIndex + 2);
 	dropMutex(posmutex, 0);
-	return result;
+	return true;
 }
 
-float *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
 {
 	bool result = obtainMutex(posmutex, 0, 50);
 	if (!result) return 0;
-	return &vposarray[0];
+	return &vposarray;
 }
 
-float *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
 {
 
 	bool result = obtainMutex(colmutex, location, 150);
 	if (!result) {
 		printf("failed to obtain colmutex %x\n", (unsigned int)colmutex); return 0;
 	}
-	return &vcolarray[0];
+	return &vcolarray;
 }
 
 void GRAPH_DISPLAY_DATA::release_pos()
@@ -61,22 +61,8 @@ void GRAPH_DISPLAY_DATA::release_col()
 //mutexes are bit dodgy, expect them to be held by caller
 void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 { 
-	
+	assert(num >= numVerts);
 	numVerts = num;
-	unsigned int currentMaxSize = col_buf_capacity_floats();
-	unsigned int targetDataSize = numVerts * COLELEMS * sizeof(GLfloat);
-	if (targetDataSize > currentMaxSize)
-	{
-		acquire_pos();
-		acquire_col(); 
-		printf("Resizing to %d\n", targetDataSize + 64000);
-		//this is the biggest bottleneck... must be a better way
-		vposarray.resize(targetDataSize + 64000, 0);
-		vcolarray.resize(targetDataSize + 64000, 0);
-		release_col();
-		release_pos();
-	}
-
 }
 
 void GRAPH_DISPLAY_DATA::clear()

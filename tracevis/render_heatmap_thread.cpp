@@ -19,8 +19,8 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	//build set of all heat values
 	std::set<long> heatValues;
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeit;
-	map<std::pair<unsigned int, unsigned int>, edge_data>::iterator edgeEnd;
+	EDGEMAP::iterator edgeit;
+	EDGEMAP::iterator edgeEnd;
 	
 	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
 	for (; edgeit != edgeEnd; edgeit++)
@@ -61,7 +61,8 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	graph->heatmaplines->set_numVerts(numLineVerts);
 	graph->heatmaplines->clear();
 
-	GLfloat *ecol = graph->heatmaplines->acquire_col("3b");
+	vector <float> *ecol = graph->heatmaplines->acquire_col("3b");
+	ecol->clear();
 	unsigned int vertsWritten = 0;
 	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
 	int lastAP = 0;
@@ -75,16 +76,11 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 		for (; vertIdx < edge->vertSize; vertIdx++)
 		{
-			unsigned int arraypos = (edge->arraypos) + vertIdx * 4;
-			ecol[arraypos] = edgecol->r;
-			ecol[arraypos + 1] = edgecol->g;
-			ecol[arraypos + 2] = edgecol->b;
-			ecol[arraypos + 3] = 1.0;
-			lastAP = arraypos + 4;
-			vertsWritten += 1;
+			ecol->push_back(edgecol->r);
+			ecol->push_back(edgecol->g);
+			ecol->push_back(edgecol->b);
+			ecol->push_back(1);
 		}
-		if (vertsWritten >= numLineVerts)
-			break;
 	}
 	graph->stop_edgeD_iteration();
 

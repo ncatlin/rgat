@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "rendering.h"
 
+
 //draw an outline sphere of size diam
 //we could just memset the colours array but leaving it here for the sake of adapatbility
 void plot_wireframe(VISSTATE *clientstate)
@@ -18,8 +19,8 @@ void plot_wireframe(VISSTATE *clientstate)
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
 
-	GLfloat *vpos = wireframe_data->acquire_pos("1c");
-	GLfloat *vcol = wireframe_data->acquire_col("1c");
+	vector <float> *vpos = wireframe_data->acquire_pos("1c");
+	vector <float> *vcol = wireframe_data->acquire_col("1c");
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -28,67 +29,72 @@ void plot_wireframe(VISSTATE *clientstate)
 			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
 
 			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
-			vpos[index + XOFF] = ringSize * cos(angle);
-			vpos[index + YOFF] = diam * cos((ii*M_PI) / 180);
-			vpos[index + ZOFF] = ringSize * sin(angle);
+			vpos->push_back(ringSize * cos(angle)); //x
+			vpos->push_back(diam * cos((ii*M_PI) / 180)); //y
+			vpos->push_back(ringSize * sin(angle)); //z
 
 			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol[index + ROFF] = r;
-			vcol[index + GOFF] = g;
-			vcol[index + BOFF] = b;
-			vcol[index + AOFF] = a;
+			vcol->push_back(r);
+			vcol->push_back(g);
+			vcol->push_back(b);
+			vcol->push_back(a);
 		}
 		numSphereCurves += 1;
 	}
 
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
-		float degs2 = (ii*M_PI) / 180;  
+		float degs2 = (ii*M_PI) / 180;
 		for (pp = 0; pp < points; ++pp) {
 
 			float angle = (2 * M_PI * pp) / points;
 			float cosangle = cos(angle);
-			
+
 			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
-			vpos[index + XOFF] = diam * cosangle * cos(degs2);
-			vpos[index + YOFF] = diam * sin(angle);
-			vpos[index + ZOFF] = diam * cosangle * sin(degs2);
+			vpos->push_back(diam * cosangle * cos(degs2));
+			vpos->push_back(diam * sin(angle));
+			vpos->push_back(diam * cosangle * sin(degs2));
 
 			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol[index + ROFF] = r;
-			vcol[index + GOFF] = g;
-			vcol[index + BOFF] = b;
-			vcol[index + AOFF] = a;
+			vcol->push_back(r);
+			vcol->push_back(g);
+			vcol->push_back(b);
+			vcol->push_back(a);
 		}
 		numSphereCurves += 1;
 	}
 
 	glGenBuffers(2, clientstate->wireframeVBOs);
-	load_VBO(VBO_SPHERE_POS, clientstate->wireframeVBOs, WFPOSBUFSIZE, vpos);
-	load_VBO(VBO_SPHERE_COL, clientstate->wireframeVBOs, WFCOLBUFSIZE, vcol);
+	load_VBO(VBO_SPHERE_POS, clientstate->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
+	load_VBO(VBO_SPHERE_COL, clientstate->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
 	wireframe_data->release_pos();
 	wireframe_data->release_col();
 }
 
+//draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
 
-	GLfloat* vertpos = vertdata->acquire_pos("1b");
-	GLfloat* vertcol = vertdata->acquire_col("1b");
+	vector <float> *vpos = vertdata->acquire_pos("1c");
+	vector <float> *vcol = vertdata->acquire_col("1c");
 
 	int numverts = vertdata->get_numVerts();
-	int posi = numverts * POSELEMS;
-	int coli = numverts * COLELEMS;
-	*arraypos = coli;
-	//printf("small curve at arraypos %d size:%d -> %d\n", *arraypos, 8, * arraypos+ 8);
 
-	memcpy(vertpos + posi, startC, POSELEMS * sizeof(float));
-	posi += POSELEMS;
-	memcpy(vertpos + posi, endC, POSELEMS * sizeof(float));
+	vpos->push_back(startC->x);
+	vpos->push_back(startC->y);
+	vpos->push_back(startC->z);
+	vcol->push_back(colour->r);
+	vcol->push_back(colour->g);
+	vcol->push_back(colour->b);
+	vcol->push_back(colour->a);
 
-	memcpy(vertcol + coli, colour, COLELEMS * sizeof(float));
-	coli += COLELEMS;
-	memcpy(vertcol + coli, colour, COLELEMS * sizeof(float));
+	vpos->push_back(endC->x);
+	vpos->push_back(endC->y);
+	vpos->push_back(endC->z);
+	vcol->push_back(colour->r);
+	vcol->push_back(colour->g);
+	vcol->push_back(colour->b);
+	vcol->push_back(colour->a);
 
 	vertdata->set_numVerts(numverts + 2);
 	vertdata->release_pos();
@@ -96,29 +102,30 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 
 }
 
-int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, 
-	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *arraypos) {
+int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
+	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos) {
 	float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
 		0.3, 0.3, 0.5, 0.7, 0.9, 1 };
-	
+
 	curvePoints += 2;
-	float *posdata = (float *)malloc((curvePoints + 2) * POSELEMS * sizeof(float));
-	float *coldata = (float *)malloc((curvePoints + 2) * COLELEMS * sizeof(float));
-	if (!posdata || !coldata) return 0;
+	vector<GLfloat> *vertpos = vertdata->acquire_pos("1b");
+	vector<GLfloat> *vertcol = vertdata->acquire_col("1b");
+	if (!vertpos || !vertcol) return 0;
+	*colarraypos = vertcol->size();
 	int ci = 0;
 	int pi = 0;
 
 	float r = colour->r;
 	float g = colour->g;
 	float b = colour->b;
-
-	posdata[pi++] = startC->x;
-	posdata[pi++] = startC->y;
-	posdata[pi++] = startC->z;
-	coldata[ci++] = r;
-	coldata[ci++] = g;
-	coldata[ci++] = b;
-	coldata[ci++] = 1;
+	
+	vertpos->push_back(startC->x);
+	vertpos->push_back(startC->y);
+	vertpos->push_back(startC->z);
+	vertcol->push_back(r);
+	vertcol->push_back(g);
+	vertcol->push_back(b);
+	vertcol->push_back(1);
 
 	// > for smoother lines, less performance
 	int dt;
@@ -132,13 +139,13 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		bezierPT(startC, bezierC, endC, dt, segments, &resultC);
 
 		//end last line
-		posdata[pi++] = resultC.x;
-		posdata[pi++] = resultC.y;
-		posdata[pi++] = resultC.z;
+		vertpos->push_back(resultC.x);
+		vertpos->push_back(resultC.y);
+		vertpos->push_back(resultC.z);
 		//start new line at same point todo: this is waste of memory
-		posdata[pi++] = resultC.x;
-		posdata[pi++] = resultC.y;
-		posdata[pi++] = resultC.z;
+		vertpos->push_back(resultC.x);
+		vertpos->push_back(resultC.y);
+		vertpos->push_back(resultC.z);
 
 		if ((edgeType == IOLD) || (edgeType == IRET)) {
 			fadeA = fadeArray[dt - 1];
@@ -147,38 +154,26 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		else
 			fadeA = 0.9;
 
-		coldata[ci++] = r;
-		coldata[ci++] = g;
-		coldata[ci++] = b;
-		coldata[ci++] = fadeA;
-		coldata[ci++] = r;
-		coldata[ci++] = g;
-		coldata[ci++] = b;
-		coldata[ci++] = fadeA;
+		vertcol->push_back(r);
+		vertcol->push_back(g);
+		vertcol->push_back(b);
+		vertcol->push_back(fadeA);
+		vertcol->push_back(r);
+		vertcol->push_back(g);
+		vertcol->push_back(b);
+		vertcol->push_back(fadeA);
 	}
 
-	posdata[pi++] = endC->x;
-	posdata[pi++] = endC->y;
-	posdata[pi++] = endC->z;
+	vertpos->push_back(endC->x);
+	vertpos->push_back(endC->y);
+	vertpos->push_back(endC->z);
 
-	coldata[ci++] = r;
-	coldata[ci++] = g;
-	coldata[ci++] = b;
-	coldata[ci++] = 1;
+	vertcol->push_back(r);
+	vertcol->push_back(g);
+	vertcol->push_back(b);
+	vertcol->push_back(1);
 
 	int numverts = vertdata->get_numVerts();
-	float *vpos = vertdata->acquire_pos("1d") + numverts * POSELEMS;
-	float *vcol = vertdata->acquire_col("1d") + numverts * COLELEMS;
-	*arraypos = numverts * COLELEMS;
-	//printf("Big curve at arraypos %d size:%d -> %d\n", *arraypos, 
-	//	COLELEMS * (curvePoints+2), *arraypos+ COLELEMS * (curvePoints + 2));
-
-	//printf("memcpy bigline from 0x%lx to 0x%lx\n", vcol, vcol + COLELEMS * curvePoints *sizeof(float));
-	memcpy(vpos, posdata, POSELEMS * curvePoints * sizeof(float));
-	memcpy(vcol, coldata, COLELEMS * curvePoints * sizeof(float));
-
-	free(posdata);
-	free(coldata);
 
 	vertdata->set_numVerts(numverts + curvePoints + 2);
 	vertdata->release_col();
@@ -281,11 +276,9 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	FCOORD screenc;
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 
-	int vertIdx = n->index;
-
-	GLfloat *vpos = vertdata->acquire_pos("334");
-	GLfloat *vcol = vertdata->acquire_col("33f");
-	GLfloat *vcol2 = animvertdata->acquire_col("1e");
+	vector<GLfloat> *vpos = vertdata->acquire_pos("334");
+	vector<GLfloat> *vcol = vertdata->acquire_col("33f");
+	vector<GLfloat> *vcol2 = animvertdata->acquire_col("1e");
 	if (!vpos || !vcol || !vcol2)
 	{
 		vertdata->release_pos();
@@ -294,9 +287,9 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		return 0;
 	}
 
-	vpos[(vertIdx * POSELEMS) + XOFF] = screenc.x;
-	vpos[(vertIdx * POSELEMS) + YOFF] = screenc.y;
-	vpos[(vertIdx * POSELEMS) + ZOFF] = screenc.z;
+	vpos->push_back(screenc.x);
+	vpos->push_back(screenc.y);
+	vpos->push_back(screenc.z);
 
 	if (n->external)
 		active_col = &al_col_green;
@@ -329,21 +322,20 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		}
 	}
 
-	
-	vcol[(vertIdx * COLELEMS) + ROFF] = active_col->r;
-	vcol[(vertIdx * COLELEMS) + GOFF] = active_col->g;
-	vcol[(vertIdx * COLELEMS) + BOFF] = active_col->b;
-	vcol[(vertIdx * COLELEMS) + AOFF] = 1;
+	vcol->push_back(active_col->r);
+	vcol->push_back(active_col->g);
+	vcol->push_back(active_col->b);
+	vcol->push_back(1);
 
 	vertdata->set_numVerts(vertdata->get_numVerts()+1);
 
 	vertdata->release_col();
 	vertdata->release_pos();
 
-	vcol2[(vertIdx * COLELEMS) + ROFF] = active_col->r;
-	vcol2[(vertIdx * COLELEMS) + GOFF] = active_col->g;
-	vcol2[(vertIdx * COLELEMS) + BOFF] = active_col->b;
-	vcol2[(vertIdx * COLELEMS) + AOFF] = 0;
+	vcol2->push_back(active_col->r);
+	vcol2->push_back(active_col->g);
+	vcol2->push_back(active_col->b);
+	vcol2->push_back(0.1);
 
 	animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
 
@@ -379,25 +371,24 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	return 1;
 }
 
-
 //resize all drawn verts to new diameter
 void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
-	int nodeIdx = 0;
-	int targetIdx = graph->get_num_nodes();
+	int targetIdx = vertsdata->get_numVerts();
 	printf("starting resize\n");
-	GLfloat *vpos = vertsdata->acquire_pos("1i");
-	for (nodeIdx = vertsdata->get_numVerts(); nodeIdx != targetIdx; ++nodeIdx)
+	GLfloat *vpos = &vertsdata->acquire_pos("334")->at(0);
+	for (int nodeIdx = 0; nodeIdx != targetIdx; ++nodeIdx)
 	{
 		node_data *n = graph->get_node(nodeIdx);
 		FCOORD c = n->sphereCoordB(scalefactors, 0);
 		assert(nodeIdx == n->index);
 		//todo get rid of equiv multiply
-		vpos[(nodeIdx * POSELEMS) + XOFF] = c.x;
-		vpos[(nodeIdx * POSELEMS) + YOFF] = c.y;
-		vpos[(nodeIdx * POSELEMS) + ZOFF] = c.z;
+		const int arrayIndex = nodeIdx * POSELEMS;
+		vpos[arrayIndex + XOFF] = c.x;
+		vpos[arrayIndex + YOFF] = c.y;
+		vpos[arrayIndex + ZOFF] = c.z;
 	}
 	
 	vertsdata->release_pos();
@@ -547,7 +538,8 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 		node_data *n = graph->get_node(*externCallIt);
 		assert(n->external);
 
-		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
+		DCOORD screenCoord;
+		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
 		if (is_on_screen(&screenCoord, clientstate))
 			draw_func_args(clientstate, clientstate->standardFont, screenCoord, n);
 	}
@@ -587,7 +579,8 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 
 		//todo: experiment with performance re:how much of this check to include
 			
-		DCOORD screenCoord = n->get_screen_pos(mainverts, pd);
+		DCOORD screenCoord;
+		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
 
 		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
@@ -631,9 +624,9 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		}
 		else itext = "?";
 
-		//todo: experiment with performance re:how much of this check to include
-		DCOORD screenCoord = n->get_screen_pos(vertsdata, pd);
-
+		//todo: experiment with performance re:how much of these checks to include
+		DCOORD screenCoord;
+		if (!n->get_screen_pos(vertsdata, pd, &screenCoord)) continue;
 		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
@@ -676,8 +669,9 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 			continue;
 		if (graph->get_edge(*edgeIt)->weight <= 1) continue;
 
-		DCOORD screenCoordA = n->get_screen_pos(vertsdata, pd);
-		DCOORD screenCoordB = graph->get_node(edgeIt->second)->get_screen_pos(vertsdata, pd);
+		DCOORD screenCoordA, screenCoordB;
+		if(!n->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
+		if(!graph->get_node(edgeIt->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 

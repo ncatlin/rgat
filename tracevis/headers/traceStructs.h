@@ -1,10 +1,51 @@
 #pragma once
 #include "stdafx.h"
+#include "edge_data.h"
 
 typedef std::pair<unsigned int, unsigned int> NODEPAIR;
 typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
+
+
+/*
+Pinched from Boost
+http://stackoverflow.com/questions/7222143/unordered-map-hash-function-c
+
+get_edge has shown erratic performance with map. experiment further.
+*/
+template <class T>
+inline void hash_combine(std::size_t & seed, const T & v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+namespace std
+{
+	template<typename S, typename T> struct hash<pair<S, T>>
+	{
+		inline size_t operator()(const pair<S, T> & v) const
+		{
+			size_t seed = 0;
+			::hash_combine(seed, v.first);
+			::hash_combine(seed, v.second);
+			return seed;
+		}
+	};
+}
+
+/*
+struct SimpleHash {
+	size_t operator()(const NODEPAIR& p) const {
+		return p.first ^ p.second;
+	}
+};
+typedef unordered_map<NODEPAIR, edge_data, SimpleHash> EDGEMAP;
+*/
+
+//typedef map<NODEPAIR, edge_data> EDGEMAP;
+typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
 
 
 //extern nodes this node calls. useful for 'call eax' situations
@@ -36,8 +77,6 @@ struct INS_DATA {
 
 	//this was added later, might be worth ditching other stuff in exchange
 	string opcodes;
-	//for savefile reconstruction
-	//string serialize_opstr;
 };
 
 typedef vector<INS_DATA *> INSLIST;

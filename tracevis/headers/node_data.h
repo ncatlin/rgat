@@ -11,7 +11,7 @@ public:
 	node_data();
 	~node_data();
 	bool serialise(ofstream *file);
-	DCOORD get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd);
+	bool get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	FCOORD sphereCoordB(MULTIPLIERS *dimensions, float diamModifier);
 
 	unsigned int index = 0;

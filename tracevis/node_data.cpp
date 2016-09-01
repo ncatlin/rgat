@@ -22,14 +22,16 @@ FCOORD node_data::sphereCoordB(MULTIPLIERS *dimensions, float diamModifier)
 	return result;
 }
 
-DCOORD node_data::get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd)
+//this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
+bool node_data::get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
 {
-	DCOORD result;
-	FCOORD fcoord = vdata->get_coord(index);
-	gluProject(fcoord.x, fcoord.y, fcoord.z,
+	FCOORD graphPos;
+	if (!vdata->get_coord(index, &graphPos)) return false;
+
+	gluProject(graphPos.x, graphPos.y, graphPos.z,
 		pd->model_view, pd->projection, pd->viewport,
-		&result.x, &result.y, &result.z);
-	return result;
+		&screenPos->x, &screenPos->y, &screenPos->z);
+	return true;
 }
 
 bool node_data::serialise(ofstream *outfile)

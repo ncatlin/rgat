@@ -126,6 +126,7 @@ bool obtainMutex(HANDLE mutex, char *errorLocation, int waitTime)
 {
 	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
 	if (waitresult == WAIT_TIMEOUT) {
+		//assert(waitresult != WAIT_TIMEOUT);
 		if (errorLocation)
 			printf("WARNING! Mutex %x wait expired at %s ERROR!\n", (unsigned int)mutex, errorLocation);
 		return false;

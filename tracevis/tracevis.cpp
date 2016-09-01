@@ -30,14 +30,14 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
 void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
-	preview_renderer *render_thread = new preview_renderer;
-	render_thread->clientState = clientState;
-	render_thread->PID = PID;
-	render_thread->piddata = piddata;
+	preview_renderer *previews_thread = new preview_renderer;
+	previews_thread->clientState = clientState;
+	previews_thread->PID = PID;
+	previews_thread->piddata = piddata;
 
 	HANDLE hOutThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)render_thread->ThreadEntry,
-		(LPVOID)render_thread, 0, &threadID);
+		NULL, 0, (LPTHREAD_START_ROUTINE)previews_thread->ThreadEntry,
+		(LPVOID)previews_thread, 0, &threadID);
 
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
 	heatmap_thread->clientState = clientState;
@@ -94,9 +94,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	render_preview_thread->PID = PID;
 	render_preview_thread->piddata = piddata;
 
-	HANDLE hPreviewThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
-		(LPVOID)render_preview_thread, 0, &threadID);
+	//HANDLE hPreviewThread = CreateThread(
+	//	NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
+	//	(LPVOID)render_preview_thread, 0, &threadID);
 	
 	//renders heatmaps
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
@@ -104,9 +104,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	heatmap_thread->piddata = piddata;
 	heatmap_thread->setUpdateDelay(clientState->config->heatmap.delay);
 
-	HANDLE hHeatThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
-		(LPVOID)heatmap_thread, 0, &threadID);
+	//HANDLE hHeatThread = CreateThread(
+	//	NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
+	//	(LPVOID)heatmap_thread, 0, &threadID);
 	
 	//renders conditionals
 	conditional_renderer *conditional_thread = new conditional_renderer;
@@ -115,9 +115,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	conditional_thread->setUpdateDelay(clientState->config->conditional.delay);
 
 	Sleep(200);
-	HANDLE hConditionThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
-		(LPVOID)conditional_thread, 0, &threadID);
+	//HANDLE hConditionThread = CreateThread(
+	//	NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
+	//	(LPVOID)conditional_thread, 0, &threadID);
 
 }
 
@@ -391,12 +391,13 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		}
 	}
 
+	DCOORD pos;
 	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
 	for (; drawIt != drawMap.end(); ++drawIt)
 	{
 		EXTTEXT* ex = drawIt->first;
 		node_data *n = graph->get_node(ex->nodeIdx);
-		DCOORD pos = n->get_screen_pos(graph->get_mainnodes(), pd);
+		if(!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
 			pos.x, clientState->size.height - pos.y - ex->yOffset, 0, displayString.c_str());
