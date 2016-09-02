@@ -123,10 +123,10 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 
 
 
-int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
-	ALLEGRO_DISPLAY *newDisplay = displaySetup();
-	clientState->maindisplay = newDisplay;
-	if (!clientState->maindisplay) {
+int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
+	
+	*newDisplay = displaySetup();
+	if (!*newDisplay) {
 		printf("Display creation failed: returned %x\n", (int)newDisplay);
 		return 0;
 	}
@@ -139,8 +139,8 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, VISSTATE *clientState) {
 	*evq = al_create_event_queue();
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_mouse_event_source());
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_keyboard_event_source());
-	al_register_event_source(*evq, create_menu(clientState->maindisplay));
-	al_register_event_source(*evq, al_get_display_event_source(clientState->maindisplay));
+	al_register_event_source(*evq, create_menu(*newDisplay));
+	al_register_event_source(*evq, al_get_display_event_source(*newDisplay));
 	return 1;
 }
 
@@ -453,7 +453,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 	{
 		updateMainRender(clientState);
 	}
-
+	
 	if (!graph->active && clientState->animationUpdate)
 	{
 		int result = graph->updateAnimation(clientState->animationUpdate,
@@ -518,26 +518,33 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 
 int main(int argc, char **argv)
 {
-	//first deal with any command line arguments
-	VISSTATE clientstate;
-
-	string moduleDir = getModulePath();
-	string configPath = moduleDir + "\\rgat.cfg";
-	
 	if (!al_init()) {
 		fprintf(stderr, "Failed to initialise allegro!\n");
 		return NULL;
 	}
+
+	ALLEGRO_DISPLAY *newDisplay = 0;
+	ALLEGRO_EVENT_QUEUE *newQueue = 0;
+	if (!GUI_init(&newQueue, &newDisplay)) {
+		printf("GUI init failed - todo - nongraphical mode\n");
+		return 0;
+	}
+
+	//first deal with any command line arguments
+	VISSTATE clientstate;
+	clientstate.event_queue = newQueue;
+	clientstate.maindisplay = newDisplay;
+	string moduleDir = getModulePath();
+	string configPath = moduleDir + "\\rgat.cfg";
+	
+
 
 	clientstate.config = new clientConfig(configPath);
 	clientConfig *config = clientstate.config;
 
 	printf("Starting visualiser\n");
 
-	if (!GUI_init(&clientstate.event_queue, &clientstate)) {
-		printf("GUI init failed - todo - nongraphical mode\n");
-		return 0;
-	}
+
 
 	clientstate.size.height = al_get_display_height(clientstate.maindisplay);
 	clientstate.size.width = al_get_display_width(clientstate.maindisplay);
@@ -659,6 +666,8 @@ int main(int argc, char **argv)
 				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
 				if (!graph->get_num_edges()) continue;
 
+				if (!graph->VBOsGenned)
+					gen_graph_VBOs(graph);
 				clientstate.activeGraph = graph;
 				clientstate.modes.animation = true;
 				clientstate.animationUpdate = 1;

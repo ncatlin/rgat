@@ -33,7 +33,6 @@ void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *grap
 
 void uploadPreviewGraph(thread_graph_data *previewgraph) {
 	GLuint *VBOs = previewgraph->previewVBOs;
-	glGenBuffers(4, VBOs);
 	load_VBO(VBO_NODE_POS, VBOs, previewgraph->previewnodes->pos_size(), previewgraph->previewnodes->readonly_pos());
 	load_VBO(VBO_NODE_COL, VBOs, previewgraph->previewnodes->col_size(), previewgraph->previewnodes->readonly_col());
 
@@ -187,6 +186,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 		int TID = threadit->first;
 		if (previewGraph && previewGraph->previewnodes->get_numVerts())
 		{
+			if (!previewGraph->VBOsGenned) gen_graph_VBOs(previewGraph);
 			if (spinPerFrame || previewGraph->needVBOReload_preview)
 				drawGraphBitmap(previewGraph, clientState);
 

@@ -36,6 +36,16 @@ void frame_gl_setup(VISSTATE* clientstate)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+void gen_graph_VBOs(thread_graph_data *graph)
+{
+	glGenBuffers(4, graph->graphVBOs);
+	glGenBuffers(4, graph->previewVBOs);
+	glGenBuffers(1, graph->heatmapEdgeVBO);
+	glGenBuffers(2, graph->conditionalVBOs);
+	glGenBuffers(4, graph->activeVBOs);
+	graph->VBOsGenned = true;
+}
+
 void frame_gl_teardown()
 {
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -61,7 +71,6 @@ void load_edge_VBOS(GLuint *VBOs, GRAPH_DISPLAY_DATA *lines)
 
 void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines)
 {
-	glGenBuffers(4, VBOs);
 	load_VBO(VBO_NODE_POS, VBOs, verts->pos_size(), verts->readonly_pos());
 	load_VBO(VBO_NODE_COL, VBOs, verts->col_size(), verts->readonly_col());
 	load_edge_VBOS(VBOs, lines);
@@ -171,7 +180,6 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 		}
 	}
 
-	glGenBuffers(2, clientstate->colSphereVBOs);
 	load_VBO(VBO_SPHERE_POS, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
 	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
 	spheredata->release_col();

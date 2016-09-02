@@ -9,7 +9,7 @@
 #define MAX_DIFF_PATH_LENGTH 50
 #define ANIMATION_ENDED -1
 #define ANIMATION_WIDTH 8
-#define MINIMUM_FADE_ALPHA 0.2
+#define MINIMUM_FADE_ALPHA 0.05
 
 
 struct EXTERNCALLDATA {
@@ -22,7 +22,7 @@ struct EXTERNCALLDATA {
 
 class thread_graph_data
 {
-private:
+	
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 
@@ -166,7 +166,7 @@ public:
 	bool needVBOReload_main = false;
 	GLuint graphVBOs[4] = { 0,0,0,0 };
 	
-
+	bool VBOsGenned = false;
 	//node+edge col+pos
 	bool needVBOReload_preview = false;
 	GLuint previewVBOs[4] = { 0,0,0,0 };

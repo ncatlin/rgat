@@ -10,6 +10,7 @@ void frame_gl_teardown();
 void load_VBO(int index, GLuint *VBOs, int bufsize, float *data);
 void load_edge_VBOS(GLuint *VBOs, GRAPH_DISPLAY_DATA *lines);
 void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines);
+void gen_graph_VBOs(thread_graph_data *graph);
 
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 

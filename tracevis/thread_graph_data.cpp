@@ -13,15 +13,12 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 
 	if (needVBOReload_active)
 	{
-		//todo - main ones probably already loaded?
-		//void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines)
-		//{
-		//GLuint *VBOs = graph->activeVBOs;
-		glGenBuffers(4, activeVBOs);
+		
 
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
-
+	
+		//TODO: these together cause massive memory heamorrage. FIX!
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
 		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, mainlinedata->readonly_pos());
 
@@ -78,42 +75,12 @@ void thread_graph_data::extend_faded_edges()
 	unsigned int end = drawnVerts*COLELEMS;
 	for (; index2 < end; index2 += 4)
 	{
-		animecol->at(index2 + AOFF) = 0.1;
+		animecol->at(index2 + AOFF) = 0.01;
 	}
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col();
 }
 
-/*
-//create faded edge version of graph for use in animations
-void thread_graph_data::extend_faded_edges()
-{
-	vector<GLfloat> *animecol = animlinedata->acquire_col("2c");
-	vector<GLfloat> *mainecol = mainlinedata->acquire_col("2c");
-	unsigned int drawnVerts = mainlinedata->get_numVerts();
-	unsigned int animatedVerts = animlinedata->get_numVerts();
-
-	assert(drawnVerts >= animatedVerts);
-	int pendingVerts = drawnVerts - animatedVerts;
-	if (!pendingVerts) return;
-
-	//copy the colours over
-	unsigned int fadedIndex = animlinedata->get_numVerts() *COLELEMS;
-	unsigned int copysize = pendingVerts*COLELEMS * sizeof(GLfloat);
-	void *targaddr = animecol + fadedIndex;
-	void *srcaddr = mainecol + fadedIndex;
-	memcpy(targaddr, srcaddr, copysize);
-	mainlinedata->release_col();
-
-	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
-	unsigned int end = drawnVerts*COLELEMS;
-	for (; index2 < end; index2 += 4)
-		animecol[index2 + 3] = 0.1;
-
-	animlinedata->set_numVerts(drawnVerts);
-	animlinedata->release_col();
-}
-*/
 //draw edges
 void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr)
 {
@@ -210,11 +177,13 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_node(idx);
+	if (!piddata->modsyms.count(n->nodeMod)) 
+		return ("NOSYM2");
 	map<long, string> *modSyms = &piddata->modsyms.at(n->nodeMod);
-	if (modSyms->count(n->address))
-		return piddata->modsyms.at(n->nodeMod).at(n->address);
-	else 
+	if (!modSyms->count(n->address))
 		return("NOSYM");
+	else 
+		return piddata->modsyms.at(n->nodeMod).at(n->address);
 }
 
 void thread_graph_data::emptyArgQueue()
@@ -359,7 +328,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 			const int colBufIndex = edgeStart + i*COLELEMS + AOFF;
 			if (colBufIndex >= animlinedata->col_buf_capacity_floats())
 			{
-				printf("skup darkening\n");
+				printf("skip darkening\n");
 				break;
 			}
 			edgeAlpha = ecol[colBufIndex];
@@ -565,6 +534,7 @@ void thread_graph_data::animate_latest(float fadeRate)
 	brighten_BBs();	
 }
 
+//replay
 void thread_graph_data::update_animation_render(float fadeRate)
 {
 	darken_animation(fadeRate);

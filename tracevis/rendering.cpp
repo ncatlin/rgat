@@ -64,7 +64,6 @@ void plot_wireframe(VISSTATE *clientstate)
 		numSphereCurves += 1;
 	}
 
-	glGenBuffers(2, clientstate->wireframeVBOs);
 	load_VBO(VBO_SPHERE_POS, clientstate->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
 	load_VBO(VBO_SPHERE_COL, clientstate->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
 	wireframe_data->release_pos();
@@ -690,6 +689,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
+	
 	if (clientstate->modes.animation)
 		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
 	else
@@ -757,7 +757,6 @@ void display_big_heatmap(VISSTATE *clientstate)
 
 	if (graph->needVBOReload_heatmap)
 	{
-		glGenBuffers(1, graph->heatmapEdgeVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, graph->heatmapEdgeVBO[0]);
 		glBufferData(GL_ARRAY_BUFFER, graph->heatmaplines->col_size(), graph->heatmaplines->readonly_col(), GL_STATIC_DRAW);
 		graph->needVBOReload_heatmap = false;
@@ -804,7 +803,6 @@ void display_big_conditional(VISSTATE *clientstate)
 
 	if (graph->needVBOReload_conditional)
 	{
-		glGenBuffers(2, graph->conditionalVBOs);
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
 
 		glBufferData(GL_ARRAY_BUFFER, graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col(), GL_STATIC_DRAW);

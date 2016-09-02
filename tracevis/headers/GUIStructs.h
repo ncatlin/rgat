@@ -6,7 +6,6 @@
 #include "thread_graph_data.h"
 #include "timeline.h"
 #include "clientConfig.h"
-
 #define XOFF 0
 #define YOFF 1
 #define ZOFF 2
@@ -57,8 +56,14 @@ struct HIGHLIGHT_DATA {
 	vector<node_data *> highlightNodes;
 };
 
-struct VISSTATE {
-	
+class VISSTATE {
+public:
+	VISSTATE() {
+		printf("genning state vbos\n");
+		glGenBuffers(2, colSphereVBOs);
+		glGenBuffers(2, wireframeVBOs);
+	};
+	~VISSTATE() {};
 	ALLEGRO_DISPLAY *maindisplay = 0;
 	ALLEGRO_BITMAP *mainGraphBMP = 0;
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
@@ -97,9 +102,10 @@ struct VISSTATE {
 
 	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
 	GLuint colSphereVBOs[2];
+	
 	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
 	GLuint wireframeVBOs[2];
-
+	
 	std::map<int, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 

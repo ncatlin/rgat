@@ -20,6 +20,7 @@ public:
 	void clear();
 	unsigned int col_size() { return get_numVerts()*COLELEMS * sizeof(float); }
 	unsigned int pos_size() { return get_numVerts()*POSELEMS * sizeof(float); }
+	//this is actually quite slow??
 	unsigned int col_buf_capacity_floats() { return vcolarray.size(); }
 	unsigned int get_numVerts() { return numVerts; }
 	void set_numVerts(unsigned int num);
