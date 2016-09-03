@@ -107,8 +107,6 @@ void AnimControls::update(thread_graph_data *graph)
 		stepInfo << graph->loopCounter << " loops";
 	}
 
-
-	//todo: can crash here
 	stepsLabel->setText(stepInfo.str());
 }
 

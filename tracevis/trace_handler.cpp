@@ -415,7 +415,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	lastnode->childexterns += 1;
 	targVertID = thisgraph->get_num_nodes();
-
+	//todo: check thread safety. crashes
 	if (!thisbb->thread_callers.count(TID))
 	{
 		EDGELIST callervec;

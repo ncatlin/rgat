@@ -82,7 +82,6 @@ void thread_graph_data::extend_faded_edges()
 //draw edges
 void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr)
 {
-
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
 	obtainMutex(edMutex); //not sure if i should make a list-specific mutex
@@ -309,7 +308,6 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 	return 0;
 }
 
-//77% of cpu usage!!
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
@@ -318,7 +316,6 @@ void thread_graph_data::darken_animation(float alphaDelta)
 
 	while (activeEdgeIt != activeEdgeMap.end())
 	{
-
 		edge_data *e = activeEdgeIt->second;
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
@@ -575,8 +572,8 @@ node_data *thread_graph_data::derive_anim_node()
 
 }
 
-void thread_graph_data::reset_mainlines() {
-
+void thread_graph_data::reset_mainlines() 
+{
 	mainlinedata->clear();
 	animlinedata->clear();
 }
@@ -721,7 +718,7 @@ void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
 	obtainMutex(edMutex);
 	edgeDict.insert(make_pair(edgePair, e));
-	edgeList.insert(edgeList.end(), edgePair);
+	edgeList.push_back(edgePair);
 	dropMutex(edMutex);
 }
 

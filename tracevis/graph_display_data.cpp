@@ -71,11 +71,27 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 
 void GRAPH_DISPLAY_DATA::clear()
 {
+	printf("CLEAR CALLED\n");
 	acquire_pos();
 	acquire_col();
 	//needed? try without
 	fill(vposarray.begin(), vposarray.end(), 0);
 	fill(vcolarray.begin(), vcolarray.end(), 0);
+	//vposarray.clear();
+	//vcolarray.clear();
+	edgesRendered = 0;
+	release_col();
+	release_pos();
+}
+
+void GRAPH_DISPLAY_DATA::reset()
+{
+	acquire_pos();
+	acquire_col();
+	//needed? try without
+	vposarray.clear();
+	vcolarray.clear();
+	numVerts = 0;
 	edgesRendered = 0;
 	release_col();
 	release_pos();

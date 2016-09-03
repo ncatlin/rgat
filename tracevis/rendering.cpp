@@ -152,10 +152,6 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		vertpos->push_back(resultC.y);
 		vertpos->push_back(resultC.z);
 		vertcol->insert(vertcol->end(), cols, end(cols));
-
-
-		
-		
 		
 	}
 
@@ -750,7 +746,8 @@ void display_big_heatmap(VISSTATE *clientstate)
 	if (graph->needVBOReload_heatmap)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->heatmapEdgeVBO[0]);
-		glBufferData(GL_ARRAY_BUFFER, graph->heatmaplines->col_size(), graph->heatmaplines->readonly_col(), GL_STATIC_DRAW);
+		int linebufsize = graph->heatmaplines->get_numVerts() * COLELEMS * sizeof(GLfloat);
+		glBufferData(GL_ARRAY_BUFFER, linebufsize, graph->heatmaplines->readonly_col(), GL_STATIC_DRAW);
 		graph->needVBOReload_heatmap = false;
 	}
 
@@ -787,18 +784,21 @@ void display_big_heatmap(VISSTATE *clientstate)
 		draw_edge_heat_text(clientstate, zmul, &pd);
 }
 
+#define VBO_COND_NODE_COLOUR 0
+#define VBO_COND_LINE_COLOUR 1
 void display_big_conditional(VISSTATE *clientstate)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
 	if (!graph->conditionallines || !graph->conditionalnodes) return;
 
-	if (graph->needVBOReload_conditional)
+	if (true || graph->needVBOReload_conditional)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
-		glBufferData(GL_ARRAY_BUFFER, graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col(), GL_STATIC_DRAW);
+		if (!graph->conditionalnodes->get_numVerts()) return;
 
-		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);
-		glBufferData(GL_ARRAY_BUFFER, graph->conditionallines->col_size(), graph->conditionallines->readonly_col(), GL_STATIC_DRAW);
+		load_VBO(VBO_COND_NODE_COLOUR, graph->conditionalVBOs, 
+			graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col());
+		load_VBO(VBO_COND_LINE_COLOUR, graph->conditionalVBOs, 
+			graph->conditionallines->col_size(), graph->conditionallines->readonly_col());
 
 		graph->needVBOReload_conditional = false;
 	}
@@ -814,7 +814,7 @@ void display_big_conditional(VISSTATE *clientstate)
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_NODE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
+		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[VBO_COND_NODE_COLOUR]);
 		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 		glDrawArrays(GL_POINTS, 0, graph->conditionalnodes->get_numVerts());
 	}
@@ -824,9 +824,10 @@ void display_big_conditional(VISSTATE *clientstate)
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_LINE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);
+		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[VBO_COND_LINE_COLOUR]);
 		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 		glDrawArrays(GL_LINES, 0, graph->conditionallines->get_numVerts());
+
 	}
 
 	float zoomDiffMult = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;

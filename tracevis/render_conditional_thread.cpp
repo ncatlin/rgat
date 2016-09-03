@@ -13,30 +13,30 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 	GRAPH_DISPLAY_DATA *conditionalNodes = graph->conditionalnodes;
-
+	int newDrawn = 0;
 	int nodeIdx = 0;
-	int nodeEnd = graph->get_num_nodes();
-	if (nodeIdx == nodeEnd) return 0;
-	if (conditionalNodes->get_numVerts() != vertsdata->get_numVerts())
+	int nodeEnd = graph->get_mainnodes()->get_numVerts();
+	conditionalNodes->reset();
+	if (nodeEnd)
 	{
-		nodeIdx += conditionalNodes->get_numVerts();
-		if (nodeIdx == nodeEnd) return 0;
-
 		const ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
 		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
 		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
+		float invisibleNode[4] = { 0,0,0,0 };
+		float failOnlyNode[4] = { failOnly.r,failOnly.g,failOnly.b,failOnly.a };
+		float succeedOnlyNode[4] = { succeedOnly.r,succeedOnly.g,succeedOnly.b,succeedOnly.a };
+		float bothPathsNode[4] = { bothPaths.r,bothPaths.g,bothPaths.b,bothPaths.a };
 
 		vector<float> *nodeCol = conditionalNodes->acquire_col("1f");
-		for (; nodeIdx != nodeEnd; ++nodeIdx)
+		while (nodeIdx < nodeEnd)
 		{
-			node_data *n = graph->get_node(nodeIdx);
-			int arraypos = n->index * COLELEMS;
+			newDrawn++;
+			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
+
+			node_data *n = graph->get_node(nodeIdx++);
 			if (!n->ins || n->ins->conditional == false)
 			{
-				nodeCol->push_back(0);
-				nodeCol->push_back(0);
-				nodeCol->push_back(0);
-				nodeCol->push_back(0);
+				nodeCol->insert(nodeCol->end(), invisibleNode, end(invisibleNode));
 				continue;
 			}
 
@@ -44,174 +44,42 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			bool jumpMissed = n->conditional & CONDNOTTAKEN;
 			//jump only seen to succeed
 			if (jumpTaken && !jumpMissed)
-			{
-				nodeCol->push_back(succeedOnly.r);
-				nodeCol->push_back(succeedOnly.g);
-				nodeCol->push_back(succeedOnly.b);
-				nodeCol->push_back(succeedOnly.a);
-				continue;
-			}
+				nodeCol->insert(nodeCol->end(), succeedOnlyNode, end(succeedOnlyNode));
 
 			//jump seen to both fail and succeed
-			if (jumpTaken && jumpMissed)
-			{
-				nodeCol->push_back(bothPaths.r);
-				nodeCol->push_back(bothPaths.g);
-				nodeCol->push_back(bothPaths.b);
-				nodeCol->push_back(bothPaths.a);
-				continue;
-			}
+			else if (jumpTaken && jumpMissed)
+				nodeCol->insert(nodeCol->end(), bothPathsNode, end(bothPathsNode));
 
 			//no notifications, assume failed
-			nodeCol->push_back(failOnly.r);
-			nodeCol->push_back(failOnly.g);
-			nodeCol->push_back(failOnly.b);
-			nodeCol->push_back(failOnly.a);
+			else 
+				nodeCol->insert(nodeCol->end(), failOnlyNode, end(failOnlyNode));
+
 			continue;
-		}
-
-		conditionalNodes->set_numVerts(vertsdata->get_numVerts());
-	}
-	conditionalNodes->release_col();
-
-	int newDrawn = 0;
-
-	EDGEMAP::iterator edgeit;
-	EDGEMAP::iterator edgeEnd;
-
-	int targetNumVerts = graph->get_mainlines()->get_numVerts();
-	graph->conditionallines->set_numVerts(targetNumVerts);
-
-	//tempted to make rgba all the same and just call resize
-	const ALLEGRO_COLOR edgeColour = clientState->config->conditional.edgeColor;
-	vector<float> *edgecol = graph->conditionallines->acquire_col("1f");
-	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
-	advance(edgeit, graph->conditionallines->get_renderedEdges());
-
-	for (; edgeit != edgeEnd; edgeit++)
-	{
-		edge_data *e = &edgeit->second;
-		unsigned int vidx = 0;
-		for (; vidx < e->vertSize; vidx++)
-		{
-			edgecol->push_back(edgeColour.r);
-			edgecol->push_back(edgeColour.g);
-			edgecol->push_back(edgeColour.b);
-			edgecol->push_back(edgeColour.a);
-		}
-		graph->conditionallines->inc_edgesRendered();
-
-	}
-	graph->stop_edgeD_iteration();
-	graph->conditionallines->release_col();
-
-
-	if (newDrawn) graph->needVBOReload_conditional = true;
-	return 1;
-}
-/*
-bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
-{
-	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
-	if (!linedata || !linedata->get_numVerts()) return false;
-
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
-	GRAPH_DISPLAY_DATA *conditionalNodes = graph->conditionalnodes;
-
-	int nodeIdx = 0;
-	int nodeEnd = graph->get_num_nodes();
-	if (nodeIdx == nodeEnd) return 0;
-	if (conditionalNodes->get_numVerts() != vertsdata->get_numVerts())
-	{
-		nodeIdx += conditionalNodes->get_numVerts();
-		if (nodeIdx == nodeEnd) return 0;
-
-		const ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
-		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
-		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
-
-		GLfloat *nodeCol = conditionalNodes->acquire_col("1f");
-		for (; nodeIdx != nodeEnd; ++nodeIdx)
-		{
-			node_data *n = graph->get_node(nodeIdx);
-			int arraypos = n->index * COLELEMS;
-			if (!n->ins || n->ins->conditional == false)
-			{
-				nodeCol[arraypos + AOFF] = 0;
-				continue;
-			}
-
-			bool jumpTaken = n->conditional & CONDTAKEN;
-			bool jumpMissed = n->conditional & CONDNOTTAKEN;
-			//jump only seen to succeed
-			if (jumpTaken && !jumpMissed)
-			{
-				nodeCol[arraypos + ROFF] = succeedOnly.r;
-				nodeCol[arraypos + GOFF] = succeedOnly.g;
-				nodeCol[arraypos + BOFF] = succeedOnly.b;
-				nodeCol[arraypos + AOFF] = succeedOnly.a;
-				continue;
-			}
-
-			//jump seen to both fail and succeed
-			if (jumpTaken && jumpMissed)
-			{
-				nodeCol[arraypos + ROFF] = bothPaths.r;
-				nodeCol[arraypos + GOFF] = bothPaths.g;
-				nodeCol[arraypos + BOFF] = bothPaths.b;
-				nodeCol[arraypos + AOFF] = bothPaths.a;
-				continue;
-			}
-
-			//no notifications, assume failed
-			nodeCol[arraypos + ROFF] = failOnly.r;
-			nodeCol[arraypos + GOFF] = failOnly.g;
-			nodeCol[arraypos + BOFF] = failOnly.b;
-			nodeCol[arraypos + AOFF] = failOnly.a;
-			continue;
-		}
-
-		conditionalNodes->set_numVerts(vertsdata->get_numVerts());
-	}
-	conditionalNodes->release_col();
-
-	int newDrawn = 0;
-	
-	EDGEMAP::iterator edgeit;
-	EDGEMAP::iterator edgeEnd;
-
-	int targetNumVerts = graph->get_mainlines()->get_numVerts();
-	graph->conditionallines->set_numVerts(targetNumVerts);
-
-	const ALLEGRO_COLOR edgeColour = clientState->config->conditional.edgeColor;
-	GLfloat *edgecol = graph->conditionallines->acquire_col("3a");
-	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
-	unsigned int bufsize = graph->conditionallines->col_size() - 1000;
-	for (; edgeit != edgeEnd; edgeit++)
-	{
-		edge_data *e = &edgeit->second;
-		unsigned int vidx = 0;
-		for (; vidx < e->vertSize; vidx++)
-		{
-			int arraypos = e->arraypos;
-			edgecol[arraypos + (vidx * COLELEMS) + ROFF] = edgeColour.r;
-			edgecol[arraypos + (vidx * COLELEMS) + GOFF] = edgeColour.g;
-			edgecol[arraypos + (vidx * COLELEMS) + BOFF] = edgeColour.b;
-			edgecol[arraypos + (vidx * COLELEMS) + AOFF] = edgeColour.a;
-			newDrawn += 4;
 			
-			if(newDrawn >= targetNumVerts) break;
-			assert(newDrawn < graph->conditionallines->col_size());
 		}
-		
 	}
-	graph->stop_edgeD_iteration();
-	graph->conditionallines->release_col();
+	conditionalNodes->release_col();
 
+	int condLineverts = graph->conditionallines->get_numVerts();
+	int mainLineverts = graph->get_mainlines()->get_numVerts();
+	if (mainLineverts > condLineverts)
+	{
+		//tempted to make rgba all the same and just call resize
+		const ALLEGRO_COLOR *edgeColour = &clientState->config->conditional.edgeColor;
+		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a };
+
+		vector<float> *edgecol = graph->conditionallines->acquire_col("1f");
+		
+		while (condLineverts++ < mainLineverts)
+			edgecol->insert(edgecol->end(), edgeColArr, end(edgeColArr));
+
+		graph->conditionallines->set_numVerts(condLineverts);
+		graph->conditionallines->release_col();
+
+	}
 	if (newDrawn) graph->needVBOReload_conditional = true;
 	return 1;
 }
-*/
 
 //thread handler to build graph for each thread
 //allows display in thumbnail style format

@@ -5,8 +5,8 @@
 #define HEAT_EDGE_TEXT_COL al_col_orange
 
 #define CONDITIONAL_DELAY_MS 1000
-#define CONDITIONAL_edgeColor al_map_rgba(25, 25, 25, 150)
-#define CONDITIONAL_background al_map_rgba(180, 180, 180, 150)
+#define CONDITIONAL_edgeColor al_map_rgba(60, 60, 60, 255)
+#define CONDITIONAL_background al_map_rgba(180, 180, 180, 255)
 #define CONDITIONAL_cond_fail al_map_rgba(255, 0, 0, 255)
 #define CONDITIONAL_cond_succeed al_map_rgba(0, 255, 0, 255)
 #define CONDITIONAL_cond_both al_map_rgba(0, 0, 0, 0)

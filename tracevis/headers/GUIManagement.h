@@ -17,6 +17,7 @@
 #include "Agui\Widgets\ToolTip\ToolTip.hpp"
 #include "Agui\Widgets\ScrollBar\VScrollBar.hpp"
 
+#define WIDGET_UPDATE_GAP 10
 class TraceVisGUI {
 
 public:
@@ -54,6 +55,7 @@ private:
 	agui::Label *pidDropLabel;
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
+	int widgetsUpdateCooldown = 1;
 };
 
 class PIDDropdownListener : public agui::ActionListener

@@ -32,8 +32,13 @@ void TraceVisGUI::showHideDiffFrame() {
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
+
 void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
-	if(graph) controlWindow->update(graph);
+	if (graph && !widgetsUpdateCooldown--)
+	{
+		controlWindow->update(graph);
+		widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
+	}
 	widgets->render();
 }
 

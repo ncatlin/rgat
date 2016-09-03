@@ -115,9 +115,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	conditional_thread->setUpdateDelay(clientState->config->conditional.delay);
 
 	Sleep(200);
-	//HANDLE hConditionThread = CreateThread(
-	//	NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
-	//	(LPVOID)conditional_thread, 0, &threadID);
+	HANDLE hConditionThread = CreateThread(
+		NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
+		(LPVOID)conditional_thread, 0, &threadID);
 
 }
 

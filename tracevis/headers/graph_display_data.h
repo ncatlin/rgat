@@ -18,9 +18,10 @@ public:
 	void release_pos();
 	void release_col();
 	void clear();
+	void reset();
 	unsigned int col_size() { return colSize; }
 	unsigned int pos_size() { return posSize; }
-
+	unsigned int col_sizec() { return vcolarray.size(); }
 	//this is actually quite slow? or at least is a significant % of reported cpu time
 	unsigned int col_buf_capacity_floats() { return vcolarraySize; }
 	unsigned int get_numVerts() { return numVerts; }
