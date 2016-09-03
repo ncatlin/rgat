@@ -34,7 +34,7 @@ class thread_graph_data
 	vector<node_data> nodeList; //node id to node data
 	map <unsigned long, INSLIST> *disassembly;
 
-	map <NODEPAIR, unsigned int> activeEdgeMap;
+	map <NODEPAIR, edge_data *> activeEdgeMap;
 	map <unsigned int, unsigned int> activeNodeMap;
 	EDGEMAP edgeDict; //node id pairs to edge data
 	EDGELIST edgeList; //order of edge execution
@@ -84,10 +84,8 @@ public:
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
 
-	//TODO:these 2 calls are 40% of cpu usage...
-	//TODO:not sure how to improve this one, vector for each start node?
+	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);
-
 	inline node_data *get_node(unsigned int index)
 	{
 		obtainMutex(nodeLMutex,0, 500);
@@ -123,7 +121,10 @@ public:
 	void reset_animation();
 	void darken_animation(float alphaDelta);
 
-	void brighten_BBs();
+	//during live animation the sequence list is ahead of the rendering
+	//returns the last rendered sequenceIndex we managed to animate
+	int brighten_BBs();
+
 	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	void emptyArgQueue();

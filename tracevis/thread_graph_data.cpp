@@ -13,8 +13,6 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 
 	if (needVBOReload_active)
 	{
-		
-
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 	
@@ -75,7 +73,7 @@ void thread_graph_data::extend_faded_edges()
 	unsigned int end = drawnVerts*COLELEMS;
 	for (; index2 < end; index2 += 4)
 	{
-		animecol->at(index2 + AOFF) = 0.01;
+		animecol->at(index2 + AOFF) = 0; //0.01
 	}
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col();
@@ -311,15 +309,17 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 	return 0;
 }
 
+//77% of cpu usage!!
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
 
-	map<NODEPAIR, unsigned int>::iterator activeEdgeIt = activeEdgeMap.begin();
+	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
 
 	while (activeEdgeIt != activeEdgeMap.end())
 	{
-		edge_data *e = get_edge(activeEdgeIt->first);
+
+		edge_data *e = activeEdgeIt->second;
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
 		assert(e->vertSize);
@@ -344,18 +344,20 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	animlinedata->release_col();
 
 	GLfloat *ncol = &animnodesdata->acquire_col("2b")->at(0);
-	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
+	int colBufSize = animnodesdata->col_buf_capacity_floats();
 
+	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
 	while (activeNodeIt != activeNodeMap.end())
 	{
 		node_data *n = get_node(activeNodeIt->first);
 		unsigned int nodeIndex = n->index;
+
 		int colBufIndex = (nodeIndex * COLELEMS) + AOFF;
-		if (colBufIndex >= animnodesdata->col_buf_capacity_floats()) break;
+		if (colBufIndex >= colBufSize) break;
 		float currentAlpha = ncol[colBufIndex];
-		currentAlpha = fmax(0.01, currentAlpha - alphaDelta);
+		currentAlpha = fmax(0.00, currentAlpha - alphaDelta);
 		ncol[colBufIndex] = currentAlpha;
-		if (currentAlpha == 0.01)
+		if (currentAlpha == 0.00)
 			activeNodeIt = activeNodeMap.erase(activeNodeIt);
 		else
 			++activeNodeIt;
@@ -388,16 +390,16 @@ void thread_graph_data::reset_animation()
 	callCounter.clear();
 }
 
-void thread_graph_data::brighten_BBs()
+int thread_graph_data::brighten_BBs()
 {
 	unsigned int lastNodeIdx = 0;
 	unsigned int animEnd = sequenceIndex;
 
 	unsigned int animPosition = firstAnimatedBB; 
-	if (animPosition == animEnd) return;
+	if (animPosition == animEnd) return animEnd;
 
-	if((animEnd - animPosition) > 100)
-		animPosition = animEnd - 100;
+	if((animEnd - animPosition) > MAX_LIVE_ANIMATION_NODES_PER_FRAME)
+		animPosition = animEnd - MAX_LIVE_ANIMATION_NODES_PER_FRAME;
 
 	bool dropout = false;
 	map <unsigned long, bool> recentHighlights;
@@ -445,7 +447,7 @@ void thread_graph_data::brighten_BBs()
 		//link lastbb to this
 		if (lastNodeIdx)
 		{
-			//if going between two different blocks, draw edges between
+			//if going between two different blocks, draw long edge between them
 			if (animPosition && (bbsequence.at(animPosition) != bbsequence.at(animPosition - 1)))
 			{
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
@@ -471,16 +473,18 @@ void thread_graph_data::brighten_BBs()
 				}
 
 				if (!activeEdgeMap.count(edgePair))
-					activeEdgeMap[edgePair] = true;
+					activeEdgeMap[edgePair] = linkingEdge;
 			}
 		}
 
 
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
+
 			const int colArrIndex = (nodeIdx * COLELEMS) + AOFF;
 			if (colArrIndex >= animnodesdata->col_buf_capacity_floats())
 			{
+				//trying to brighten nodes we havent rendered yet
 				dropout = true;
 				break;
 			}
@@ -494,16 +498,16 @@ void thread_graph_data::brighten_BBs()
 			//brighten short edge between internal nodes
 			unsigned long nextAddress = ins->address + ins->numbytes;
 			INS_DATA* nextIns = getDisassembly(nextAddress, mutation, disassemblyMutex, disassembly, false);
-
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
 
-			unsigned long edgeColPos = get_edge(edgePair)->arraypos;
+			edge_data *e = get_edge(edgePair);
+			unsigned long edgeColPos = e->arraypos;
 			ecol[edgeColPos + AOFF] = 1.0;
 			ecol[edgeColPos + COLELEMS + AOFF] = 1.0;
 			assert(edgeColPos + COLELEMS + AOFF < animlinedata->col_buf_capacity_floats());
 			if (!activeEdgeMap.count(edgePair))
-				activeEdgeMap[edgePair] = true;
+				activeEdgeMap[edgePair] = e;
 
 			nodeIdx = nextInsIndex;
 			ins = nextIns;
@@ -515,6 +519,7 @@ void thread_graph_data::brighten_BBs()
 	}
 
 	needVBOReload_active = true;
+	return animPosition;
 }
 
 /*
@@ -531,7 +536,7 @@ void thread_graph_data::animate_latest(float fadeRate)
 	firstAnimatedBB = lastAnimatedBB;
 	lastAnimatedBB = sequenceIndex;
 
-	brighten_BBs();	
+	lastAnimatedBB = brighten_BBs();
 }
 
 //replay
@@ -566,8 +571,7 @@ node_data *thread_graph_data::derive_anim_node()
 		remainingInstructions--;
 	}
 
-	node_data *n = get_node(target_ins->threadvertIdx.at(tid));
-	return n;
+	return get_node(target_ins->threadvertIdx.at(tid));
 
 }
 
@@ -696,9 +700,7 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO
 {
 	int nodeListSize = nodePtrList->size();
 	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
-	{
 		drawHighlight(nodePtrList->at(nodeIdx), m_scalefactors, colour, lengthModifier);
-	}
 }
 
 void thread_graph_data::insert_node(int targVertID, node_data node)

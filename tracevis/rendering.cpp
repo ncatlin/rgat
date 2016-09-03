@@ -14,7 +14,7 @@ void plot_wireframe(VISSTATE *clientstate)
 
 	int ii, pp, index;
 	long diam = clientstate->activeGraph->m_scalefactors->radius;
-	int points = WF_POINTSPERLINE;
+	const int points = WF_POINTSPERLINE;
 	int numSphereCurves = 0;
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
@@ -114,17 +114,13 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int ci = 0;
 	int pi = 0;
 
-	float r = colour->r;
-	float g = colour->g;
-	float b = colour->b;
-	
+	float cols[4] = { colour->r , colour->g, colour->b, 1 };
+
 	vertpos->push_back(startC->x);
 	vertpos->push_back(startC->y);
 	vertpos->push_back(startC->z);
-	vertcol->push_back(r);
-	vertcol->push_back(g);
-	vertcol->push_back(b);
-	vertcol->push_back(1);
+	
+	vertcol->insert(vertcol->end(), cols, end(cols));
 
 	// > for smoother lines, less performance
 	int dt;
@@ -135,42 +131,40 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	for (dt = 1; dt < segments + 1; ++dt)
 	{
 
-		bezierPT(startC, bezierC, endC, dt, segments, &resultC);
-
-		//end last line
-		vertpos->push_back(resultC.x);
-		vertpos->push_back(resultC.y);
-		vertpos->push_back(resultC.z);
-		//start new line at same point todo: this is waste of memory
-		vertpos->push_back(resultC.x);
-		vertpos->push_back(resultC.y);
-		vertpos->push_back(resultC.z);
-
 		if ((edgeType == IOLD) || (edgeType == IRET)) {
 			fadeA = fadeArray[dt - 1];
 			if (fadeA > 1) fadeA = 1;
 		}
 		else
 			fadeA = 0.9;
+		cols[3] = fadeA;
 
-		vertcol->push_back(r);
-		vertcol->push_back(g);
-		vertcol->push_back(b);
-		vertcol->push_back(fadeA);
-		vertcol->push_back(r);
-		vertcol->push_back(g);
-		vertcol->push_back(b);
-		vertcol->push_back(fadeA);
+		bezierPT(startC, bezierC, endC, dt, segments, &resultC);
+
+		//end last line
+		vertpos->push_back(resultC.x);
+		vertpos->push_back(resultC.y);
+		vertpos->push_back(resultC.z);
+		vertcol->insert(vertcol->end(), cols, end(cols));
+
+		//start new line at same point todo: this is waste of memory
+		vertpos->push_back(resultC.x);
+		vertpos->push_back(resultC.y);
+		vertpos->push_back(resultC.z);
+		vertcol->insert(vertcol->end(), cols, end(cols));
+
+
+		
+		
+		
 	}
 
 	vertpos->push_back(endC->x);
 	vertpos->push_back(endC->y);
 	vertpos->push_back(endC->z);
 
-	vertcol->push_back(r);
-	vertcol->push_back(g);
-	vertcol->push_back(b);
-	vertcol->push_back(1);
+	cols[3] = 1;
+	vertcol->insert(vertcol->end(), cols, end(cols));
 
 	int numverts = vertdata->get_numVerts();
 
@@ -275,10 +269,10 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	FCOORD screenc;
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 
-	vector<GLfloat> *vpos = vertdata->acquire_pos("334");
-	vector<GLfloat> *vcol = vertdata->acquire_col("33f");
-	vector<GLfloat> *vcol2 = animvertdata->acquire_col("1e");
-	if (!vpos || !vcol || !vcol2)
+	vector<GLfloat> *mainNpos = vertdata->acquire_pos("334");
+	vector<GLfloat> *mainNcol = vertdata->acquire_col("33f");
+	vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
+	if (!mainNpos || !mainNcol || !animNcol)
 	{
 		vertdata->release_pos();
 		vertdata->release_col();
@@ -286,9 +280,9 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		return 0;
 	}
 
-	vpos->push_back(screenc.x);
-	vpos->push_back(screenc.y);
-	vpos->push_back(screenc.z);
+	mainNpos->push_back(screenc.x);
+	mainNpos->push_back(screenc.y);
+	mainNpos->push_back(screenc.z);
 
 	if (n->external)
 		active_col = &al_col_green;
@@ -321,23 +315,22 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		}
 	}
 
-	vcol->push_back(active_col->r);
-	vcol->push_back(active_col->g);
-	vcol->push_back(active_col->b);
-	vcol->push_back(1);
+	mainNcol->push_back(active_col->r);
+	mainNcol->push_back(active_col->g);
+	mainNcol->push_back(active_col->b);
+	mainNcol->push_back(1);
 
 	vertdata->set_numVerts(vertdata->get_numVerts()+1);
 
 	vertdata->release_col();
 	vertdata->release_pos();
 
-	vcol2->push_back(active_col->r);
-	vcol2->push_back(active_col->g);
-	vcol2->push_back(active_col->b);
-	vcol2->push_back(0.1);
+	animNcol->push_back(active_col->r);
+	animNcol->push_back(active_col->g);
+	animNcol->push_back(active_col->b);
+	animNcol->push_back(0);
 
-	animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
-
+	animvertdata->set_numVerts(vertdata->get_numVerts()+1);
 	animvertdata->release_col();
 
 	return 1;
@@ -408,7 +401,7 @@ int render_main_graph(VISSTATE *clientState)
 
 	//doesn't take bmod into account
 	//keeps graph away from the south pole
-	unsigned int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+	int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 	if (lowestPoint > clientState->config->lowB)
 	{
 		while (lowestPoint > clientState->config->lowB)
@@ -566,23 +559,22 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 
+		//todo: experiment with performance re:how much of these checks to include
+			
+		DCOORD screenCoord;
+		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue; //in graph but not rendered
+		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+
 		string itext("?");
 		if (!show_all_always) {
-			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
+			//float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
 			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
 		}
-
-		//todo: experiment with performance re:how much of this check to include
-			
-		DCOORD screenCoord;
-		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
-
-		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
 
 		stringstream ss;
 		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address <<":" << itext;
@@ -612,6 +604,19 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
 			graph->m_scalefactors->HEDGESEP)) continue;
 
+		//todo: experiment with performance re:how much of these checks to include
+		DCOORD screenCoord;
+		if (!n->get_screen_pos(vertsdata, pd, &screenCoord)) continue;
+		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+
+		const int vectNodePos = n->index*COLELEMS;
+		ALLEGRO_COLOR textcol;
+		textcol.r = vcol[vectNodePos + ROFF];
+		textcol.g = vcol[vectNodePos + GOFF];
+		textcol.b = vcol[vectNodePos + BOFF];
+		textcol.a = 1;
+
 		string itext;
 		if (!show_all_always) {
 			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
@@ -622,18 +627,6 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 				itext = n->ins->mnemonic;
 		}
 		else itext = "?";
-
-		//todo: experiment with performance re:how much of these checks to include
-		DCOORD screenCoord;
-		if (!n->get_screen_pos(vertsdata, pd, &screenCoord)) continue;
-		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
-
-		ALLEGRO_COLOR textcol;
-		textcol.r = vcol[n->index*COLELEMS + ROFF];
-		textcol.g = vcol[n->index*COLELEMS + GOFF];
-		textcol.b = vcol[n->index*COLELEMS + BOFF];
-		textcol.a = 1;
 
 		stringstream ss;
 		ss << "0x" << std::hex << n->ins->address << ": " << itext;
@@ -695,9 +688,8 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	else
 		graph->display_static(clientstate->modes.nodes, clientstate->modes.edges);
 
-	long graphSize = graph->m_scalefactors->radius;
-	float zdiff = clientstate->zoomlevel - graphSize;
-	float zmul = (clientstate->zoomlevel - graphSize) / 1000 - 1;
+	long sphereSize = graph->m_scalefactors->radius;
+	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
 	
 	if (zmul < 25)
 		show_extern_labels(clientstate, pd, graph);
@@ -717,6 +709,7 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 		loadVBOs(graph1->graphVBOs, vertsdata, linedata);
 		graph1->needVBOReload_main = false;
 	}
+
 	if (diffgraph->needVBOReload_main)
 	{
 		load_edge_VBOS(diffgraph->graphVBOs, diffgraph->get_mainlines());
@@ -729,9 +722,8 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	if (clientstate->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 
-	long graphSize = graph1->m_scalefactors->radius;
-	float zdiff = clientstate->zoomlevel - graphSize;
-	float zmul = (clientstate->zoomlevel - graphSize) / 1000 - 1;
+	long sphereSize = graph1->m_scalefactors->radius;
+	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
@@ -784,7 +776,6 @@ void display_big_heatmap(VISSTATE *clientstate)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zdiff = clientstate->zoomlevel - graph->zoomLevel;
 	float zmul = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	PROJECTDATA pd;
@@ -804,7 +795,6 @@ void display_big_conditional(VISSTATE *clientstate)
 	if (graph->needVBOReload_conditional)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[0]);
-
 		glBufferData(GL_ARRAY_BUFFER, graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, graph->conditionalVBOs[1]);

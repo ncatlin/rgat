@@ -63,12 +63,17 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 { 
 	assert(num >= numVerts);
 	numVerts = num;
+
+	posSize = numVerts * POSELEMS * sizeof(float);
+	colSize = numVerts * COLELEMS * sizeof(float);
+	vcolarraySize = vcolarray.size();
 }
 
 void GRAPH_DISPLAY_DATA::clear()
 {
 	acquire_pos();
 	acquire_col();
+	//needed? try without
 	fill(vposarray.begin(), vposarray.end(), 0);
 	fill(vcolarray.begin(), vcolarray.end(), 0);
 	edgesRendered = 0;

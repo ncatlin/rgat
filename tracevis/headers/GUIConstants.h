@@ -108,3 +108,5 @@
 //offset the instruction text on the drawn node
 #define INS_X_OFF 5
 #define INS_Y_OFF 3
+
+#define MAX_LIVE_ANIMATION_NODES_PER_FRAME 100

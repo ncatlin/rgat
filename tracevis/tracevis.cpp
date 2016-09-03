@@ -536,8 +536,6 @@ int main(int argc, char **argv)
 	clientstate.maindisplay = newDisplay;
 	string moduleDir = getModulePath();
 	string configPath = moduleDir + "\\rgat.cfg";
-	
-
 
 	clientstate.config = new clientConfig(configPath);
 	clientConfig *config = clientstate.config;
@@ -648,7 +646,7 @@ int main(int argc, char **argv)
 		frame_start_time = al_get_time();
 
 		//no active graph but a process exists
-		//this is in the main loop so the GUI works at the start
+		//this is in the main loop so the GUI gets rendered at the start
 		//todo set to own function when we OOP this
 		if (!clientstate.activeGraph && clientstate.glob_piddata_map.size() > 0)
 		{

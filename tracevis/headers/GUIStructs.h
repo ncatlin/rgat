@@ -46,8 +46,6 @@ struct HEIGHTWIDTH {
 	int width;
 };
 
-
-
 struct HIGHLIGHT_DATA {
 	int highlightState = 0;
 	string highlight_s;
@@ -59,7 +57,6 @@ struct HIGHLIGHT_DATA {
 class VISSTATE {
 public:
 	VISSTATE() {
-		printf("genning state vbos\n");
 		glGenBuffers(2, colSphereVBOs);
 		glGenBuffers(2, wireframeVBOs);
 	};
@@ -91,8 +88,6 @@ public:
 
 	float previewYAngle = -30;
 	bool previewSpin = true;
-
-	HANDLE displayMutex = CreateMutex(NULL, FALSE, NULL);
 
 	DISPLAYMODES modes;
 	thread_graph_data *activeGraph = NULL;

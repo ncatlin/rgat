@@ -54,6 +54,7 @@ void frame_gl_teardown()
 	glPopMatrix();
 }
 
+//8% of cpu activity, reduce by updating active parts rather than all
 void load_VBO(int index, GLuint *VBOs, int bufsize, float *data)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[index]);

@@ -18,7 +18,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 			printf("BADOPCODE! %s\n", opcodes.c_str());
 			continue;
 		}
-		pairs++;
+		++pairs;
 		if (pairs >= MAX_OPCODES)
 		{
 			printf("Error, instruction too long!");
@@ -142,7 +142,6 @@ void basicblock_handler::PID_BB_thread()
 				printf("bbaddr STOL ERROR: %s\n", start_s);
 				continue;
 			}
-			bool clash = false;
 
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
 			int modnum;
@@ -153,7 +152,7 @@ void basicblock_handler::PID_BB_thread()
 			char *tid_s = strtok_s(next_token, "@", &next_token);
 			int tid;
 			if (!caught_stoi(string(tid_s), &tid, 10)) {
-				printf("bb modnum STOL ERROR: %s\n", modnum_s);
+				printf("bb tid STOL ERROR: %s\n", tid_s);
 				continue;
 			}
 
@@ -219,7 +218,7 @@ void basicblock_handler::PID_BB_thread()
 				count = disassemble_ins(hCapstone, opcodes, insdata, targetaddr);
 				if (!count) {
 					printf("BAD DISASSEMBLE for bb [%s]\n",savedbuf.c_str());
-					return;
+					assert(0);
 				}
 
 				piddata->disassembly[targetaddr].push_back(insdata);
@@ -227,7 +226,7 @@ void basicblock_handler::PID_BB_thread()
 
 				targetaddr += insdata->numbytes;
 				if (next_token >= buf + bread) break;
-				i++;
+				++i;
 			}
 			continue;
 		}
