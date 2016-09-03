@@ -104,6 +104,8 @@ public:
 	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
+	EDGELIST *edgeLptr() { return &edgeList; }
+
 	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest(float fadeRate);
 

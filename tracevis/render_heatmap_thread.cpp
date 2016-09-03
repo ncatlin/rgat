@@ -19,12 +19,11 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	//build set of all heat values
 	std::set<long> heatValues;
-	EDGEMAP::iterator edgeit;
-	EDGEMAP::iterator edgeEnd;
+	EDGEMAP::iterator edgeDit, edgeDEnd;
 	
-	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
-	for (; edgeit != edgeEnd; edgeit++)
-		heatValues.insert(edgeit->second.weight);
+	graph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
+	for (; edgeDit != edgeDEnd; edgeDit++)
+		heatValues.insert(edgeDit->second.weight);
 	graph->stop_edgeD_iteration();
 
 	int heatrange = heatValues.size();
@@ -58,34 +57,32 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	if (heatColours.size() > 1)
 		heatColours[lastColour] = *colourRange.rbegin();
 
-	graph->heatmaplines->set_numVerts(numLineVerts);
-	graph->heatmaplines->clear();
+	
+	graph->heatmaplines->reset();
 
-	vector <float> *ecol = graph->heatmaplines->acquire_col("3b");
-	ecol->clear();
-	unsigned int vertsWritten = 0;
-	graph->start_edgeD_iteration(&edgeit, &edgeEnd);
-	int lastAP = 0;
-	for (; edgeit != edgeEnd; edgeit++)
+	vector <float> *lineVector = graph->heatmaplines->acquire_col("3b");
+	unsigned int edgeindex = 0;
+	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
+	EDGELIST* edgelist = graph->edgeLptr();
+
+	for (; edgeindex != edgeEnd; ++edgeindex)
 	{
-		edge_data *edge = &edgeit->second;
+		edge_data *edge = graph->get_edge(edgelist->at(edgeindex));
 		COLSTRUCT *edgecol = &heatColours[edge->weight];
-		unsigned int vertIdx = 0;
-		//printf("Drawing heat arraypos %d (edge %d->%d vert %d of %d)\n",edge->arraypos,
-		//	edgeit->first.first, edgeit->first.second, vertsWritten, numLineVerts);
+		float edgeColArr[4] = { edgecol->r, edgecol->g, edgecol->b, 1};
 
+		unsigned int vertIdx = 0;
+		assert(edge->vertSize);
 		for (; vertIdx < edge->vertSize; vertIdx++)
-		{
-			ecol->push_back(edgecol->r);
-			ecol->push_back(edgecol->g);
-			ecol->push_back(edgecol->b);
-			ecol->push_back(1);
-		}
+			lineVector->insert(lineVector->end(), edgeColArr, end(edgeColArr));
+
+		graph->heatmaplines->inc_edgesRendered();
+		graph->heatmaplines->set_numVerts(graph->heatmaplines->get_numVerts() + vertIdx);
+		assert(graph->heatmaplines->get_numVerts() <= graph->get_mainlines()->get_numVerts());
 	}
-	graph->stop_edgeD_iteration();
 
 	graph->heatmaplines->release_col();
-	if (vertsWritten) graph->needVBOReload_heatmap = true;
+	graph->needVBOReload_heatmap = true;
 	
 	return true;
 }

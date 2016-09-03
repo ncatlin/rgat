@@ -4,7 +4,7 @@
 
 class GRAPH_DISPLAY_DATA {
 public:
-	GRAPH_DISPLAY_DATA(int initialValue);
+	GRAPH_DISPLAY_DATA(bool preview = false);
 	~GRAPH_DISPLAY_DATA();
 
 	//float *acquire_pos(char *location);
@@ -32,7 +32,6 @@ public:
 	bool get_coord(unsigned int index, FCOORD* result);
 
 	bool isPreview() { return preview; }
-	void setPreview() { preview = true; }
 
 private:
 	HANDLE posmutex;

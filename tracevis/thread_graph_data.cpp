@@ -47,6 +47,7 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 
 	if (showEdges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numVerts());
+	//printf("drawn %d arrayl verts\n", mainlinedata->get_numVerts());
 }
 
 //create faded edge version of graph for use in animations
@@ -574,8 +575,8 @@ node_data *thread_graph_data::derive_anim_node()
 
 void thread_graph_data::reset_mainlines() 
 {
-	mainlinedata->clear();
-	animlinedata->clear();
+	mainlinedata->reset();
+	animlinedata->reset();
 }
 
 bool thread_graph_data::edge_exists(NODEPAIR edge)
@@ -627,6 +628,7 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 
 	if (!preview)
 	{
+		//printf("drawing main edge %d->%d (size %d)\n", ePair.first, ePair.second, vertsDrawn);
 		e->vertSize = vertsDrawn;
 		e->arraypos = arraypos;
 	}
@@ -647,20 +649,18 @@ thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HAN
 	disassembly = disasPtr;
 	disassemblyMutex = mutex;
 
-	mainnodesdata = new GRAPH_DISPLAY_DATA(40000);
-	mainlinedata = new GRAPH_DISPLAY_DATA(40000);
+	mainnodesdata = new GRAPH_DISPLAY_DATA();
+	mainlinedata = new GRAPH_DISPLAY_DATA();
 
-	animlinedata = new GRAPH_DISPLAY_DATA(40000);
-	animnodesdata = new GRAPH_DISPLAY_DATA(40000);
+	animlinedata = new GRAPH_DISPLAY_DATA();
+	animnodesdata = new GRAPH_DISPLAY_DATA();
 
-	previewlines = new GRAPH_DISPLAY_DATA(40000);
-	previewlines->setPreview();
-	previewnodes = new GRAPH_DISPLAY_DATA(40000);
-	previewnodes->setPreview();
+	previewlines = new GRAPH_DISPLAY_DATA(true);
+	previewnodes = new GRAPH_DISPLAY_DATA(true);
 
-	conditionallines = new GRAPH_DISPLAY_DATA(40000);
-	conditionalnodes = new GRAPH_DISPLAY_DATA(40000);
-	heatmaplines = new GRAPH_DISPLAY_DATA(40000);
+	conditionallines = new GRAPH_DISPLAY_DATA();
+	conditionalnodes = new GRAPH_DISPLAY_DATA();
+	heatmaplines = new GRAPH_DISPLAY_DATA();
 	needVBOReload_conditional = true;
 	needVBOReload_heatmap = true;
 	needVBOReload_main = true;

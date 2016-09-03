@@ -106,6 +106,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
 		0.3, 0.3, 0.5, 0.7, 0.9, 1 };
 
+	int vsadded = 0;
 	curvePoints += 2;
 	vector<GLfloat> *vertpos = vertdata->acquire_pos("1b");
 	vector<GLfloat> *vertcol = vertdata->acquire_col("1b");
@@ -121,7 +122,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	vertpos->push_back(startC->z);
 	
 	vertcol->insert(vertcol->end(), cols, end(cols));
-
+	vsadded++;
 	// > for smoother lines, less performance
 	int dt;
 	float fadeA = 0.9;
@@ -146,19 +147,19 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		vertpos->push_back(resultC.y);
 		vertpos->push_back(resultC.z);
 		vertcol->insert(vertcol->end(), cols, end(cols));
-
+		vsadded++;
 		//start new line at same point todo: this is waste of memory
 		vertpos->push_back(resultC.x);
 		vertpos->push_back(resultC.y);
 		vertpos->push_back(resultC.z);
 		vertcol->insert(vertcol->end(), cols, end(cols));
-		
+		vsadded++;
 	}
 
 	vertpos->push_back(endC->x);
 	vertpos->push_back(endC->y);
 	vertpos->push_back(endC->z);
-
+	vsadded++;
 	cols[3] = 1;
 	vertcol->insert(vertcol->end(), cols, end(cols));
 
@@ -167,6 +168,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	vertdata->set_numVerts(numverts + curvePoints + 2);
 	vertdata->release_col();
 	vertdata->release_pos();
+
 	return curvePoints + 2;
 }
 
@@ -638,41 +640,44 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 
 	//iterate through nodes looking for ones that map to screen coords
-	EDGELIST::iterator edgeIt;
-	EDGELIST::iterator edgeEnd;
-	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
+	int edgelistIdx = 0;
+	int edgelistEnd = graph->heatmaplines->get_renderedEdges();
 
-	for (; edgeIt != edgeEnd; ++edgeIt)
+	EDGELIST *edgelist = graph->edgeLptr();
+	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
 	{
-		node_data *n = graph->get_node(edgeIt->first);
+		NODEPAIR *ePair = &edgelist->at(edgelistIdx);
+		node_data *firstNode = graph->get_node(ePair->first);
 
 		//should these checks should be done on the midpoint rather than the first node?
-		if (n->external) continue; //don't care about instruction in library call
-		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+		if (firstNode->external) continue; //don't care about instruction in library call
+		if (!a_coord_on_screen(firstNode->vcoord.a, clientState->leftcolumn,
 			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
-		if (graph->get_edge(*edgeIt)->weight <= 1) continue;
+
+		edge_data *e = graph->get_edge(*ePair);
+		int edgeWeight = e->weight;
+		if (edgeWeight <= 1) continue;
 
 		DCOORD screenCoordA, screenCoordB;
-		if(!n->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
-		if(!graph->get_node(edgeIt->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
+		if(!firstNode->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
+		if(!graph->get_node(ePair->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
+
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 
 		if (screenCoordMid.x > clientState->size.width || screenCoordMid.x < -100) continue;
 		if (screenCoordMid.y > clientState->size.height || screenCoordMid.y < -100) continue;
 
-		stringstream ss;
-		ss << graph->get_edge(*edgeIt)->weight;
+		string weightString = to_string(edgeWeight);
 		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
 			clientState->size.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			ss.str().c_str());
+			weightString.c_str());
 	}
-	graph->stop_edgeL_iteration();
 }
 
 
@@ -745,9 +750,9 @@ void display_big_heatmap(VISSTATE *clientstate)
 
 	if (graph->needVBOReload_heatmap)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, graph->heatmapEdgeVBO[0]);
-		int linebufsize = graph->heatmaplines->get_numVerts() * COLELEMS * sizeof(GLfloat);
-		glBufferData(GL_ARRAY_BUFFER, linebufsize, graph->heatmaplines->readonly_col(), GL_STATIC_DRAW);
+		if (!graph->heatmaplines->get_numVerts()) return;
+		load_VBO(0, graph->heatmapEdgeVBO,
+			graph->heatmaplines->col_size(), graph->heatmaplines->readonly_col());
 		graph->needVBOReload_heatmap = false;
 	}
 
@@ -791,15 +796,15 @@ void display_big_conditional(VISSTATE *clientstate)
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
 	if (!graph->conditionallines || !graph->conditionalnodes) return;
 
-	if (true || graph->needVBOReload_conditional)
+	if (graph->needVBOReload_conditional)
 	{
-		if (!graph->conditionalnodes->get_numVerts()) return;
+		if (!graph->conditionalnodes->get_numVerts() || !graph->conditionallines->get_numVerts()) return;
 
 		load_VBO(VBO_COND_NODE_COLOUR, graph->conditionalVBOs, 
 			graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col());
 		load_VBO(VBO_COND_LINE_COLOUR, graph->conditionalVBOs, 
 			graph->conditionallines->col_size(), graph->conditionallines->readonly_col());
-
+		printf("Loading %d bytes from condcol to vbo\n", graph->conditionallines->col_size());
 		graph->needVBOReload_conditional = false;
 	}
 

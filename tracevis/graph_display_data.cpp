@@ -2,8 +2,9 @@
 #include <traceMisc.h>
 
 //time to split line/node data sperate
-GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(int initialValue)
+GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 {
+	if (prev) preview = true;
 	posmutex = CreateMutex(NULL, FALSE, NULL);
 	colmutex = CreateMutex(NULL, FALSE, NULL);
 	numVerts = 0;
@@ -69,14 +70,14 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 	vcolarraySize = vcolarray.size();
 }
 
+//delete me if unused
 void GRAPH_DISPLAY_DATA::clear()
 {
-	printf("CLEAR CALLED\n");
 	acquire_pos();
 	acquire_col();
 	//needed? try without
-	fill(vposarray.begin(), vposarray.end(), 0);
-	fill(vcolarray.begin(), vcolarray.end(), 0);
+	//fill(vposarray.begin(), vposarray.end(), 0);
+	//fill(vcolarray.begin(), vcolarray.end(), 0);
 	//vposarray.clear();
 	//vcolarray.clear();
 	edgesRendered = 0;

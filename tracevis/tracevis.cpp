@@ -104,9 +104,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	heatmap_thread->piddata = piddata;
 	heatmap_thread->setUpdateDelay(clientState->config->heatmap.delay);
 
-	//HANDLE hHeatThread = CreateThread(
-	//	NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
-	//	(LPVOID)heatmap_thread, 0, &threadID);
+	HANDLE hHeatThread = CreateThread(
+		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
+		(LPVOID)heatmap_thread, 0, &threadID);
 	
 	//renders conditionals
 	conditional_renderer *conditional_thread = new conditional_renderer;
