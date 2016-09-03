@@ -311,6 +311,7 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 
 void thread_graph_data::darken_animation(float alphaDelta)
 {
+	if (!animlinedata->get_numVerts()) return;
 	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
 
 	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
@@ -376,8 +377,10 @@ void thread_graph_data::reset_animation()
 	sequenceIndex = 0;
 	blockInstruction = 0;
 	if (!nodeList.empty())
+	{
 		latest_active_node = &nodeList.at(0);
-	darken_animation(1.0);
+		darken_animation(1.0);
+	}
 	firstAnimatedBB = 0;
 	lastAnimatedBB = 0;
 	activeEdgeMap.clear();

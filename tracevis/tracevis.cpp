@@ -94,9 +94,9 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	render_preview_thread->PID = PID;
 	render_preview_thread->piddata = piddata;
 
-	//HANDLE hPreviewThread = CreateThread(
-	//	NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
-	//	(LPVOID)render_preview_thread, 0, &threadID);
+	HANDLE hPreviewThread = CreateThread(
+		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
+		(LPVOID)render_preview_thread, 0, &threadID);
 	
 	//renders heatmaps
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;

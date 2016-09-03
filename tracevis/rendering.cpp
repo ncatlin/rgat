@@ -269,12 +269,11 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos("334");
 	vector<GLfloat> *mainNcol = vertdata->acquire_col("33f");
-	vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
-	if (!mainNpos || !mainNcol || !animNcol)
+
+	if (!mainNpos || !mainNcol)
 	{
 		vertdata->release_pos();
 		vertdata->release_col();
-		animvertdata->release_col();
 		return 0;
 	}
 
@@ -323,14 +322,18 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vertdata->release_col();
 	vertdata->release_pos();
 
-	animNcol->push_back(active_col->r);
-	animNcol->push_back(active_col->g);
-	animNcol->push_back(active_col->b);
-	animNcol->push_back(0);
+	if (!vertdata->isPreview())
+	{
+		vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
 
-	animvertdata->set_numVerts(vertdata->get_numVerts()+1);
-	animvertdata->release_col();
+		animNcol->push_back(active_col->r);
+		animNcol->push_back(active_col->g);
+		animNcol->push_back(active_col->b);
+		animNcol->push_back(0);
 
+		animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
+		animvertdata->release_col();
+	}
 	return 1;
 }
 
@@ -367,6 +370,7 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
 	int targetIdx = vertsdata->get_numVerts();
+	if (!targetIdx) return;
 	printf("starting resize\n");
 	GLfloat *vpos = &vertsdata->acquire_pos("334")->at(0);
 	for (int nodeIdx = 0; nodeIdx != targetIdx; ++nodeIdx)
@@ -470,7 +474,7 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTATE *clientState)
 {
 	bool doResize = false;
-		previewGraph->needVBOReload_preview = true;
+	previewGraph->needVBOReload_preview = true;
 
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewnodes);
 	if (vresult == -1)

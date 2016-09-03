@@ -38,6 +38,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph) {
 
 	int posbufsize = previewgraph->previewlines->get_numVerts() * POSELEMS * sizeof(GLfloat);
 	int linebufsize = previewgraph->previewlines->get_numVerts() * COLELEMS * sizeof(GLfloat);
+	if (!posbufsize || !linebufsize) return;
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, previewgraph->previewlines->readonly_pos());
 	load_VBO(VBO_LINE_COL, VBOs, linebufsize, previewgraph->previewlines->readonly_col());
 
