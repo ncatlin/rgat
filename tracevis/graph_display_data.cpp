@@ -19,7 +19,7 @@ GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 {
-	const int listIndex = index*POSELEMS;
+	const unsigned int listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
 	obtainMutex(posmutex, 0, 6000);

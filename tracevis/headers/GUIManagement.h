@@ -36,10 +36,8 @@ public:
 	void addPID(int PID);
 	void showHideDiffFrame();
 	void showHideHighlightFrame();
-	void processEvent(ALLEGRO_EVENT *ev) 
-		{ widgetInputHandler->processEvent(*ev); 
-			widgets->logic();
-		}
+	void processEvent(ALLEGRO_EVENT *ev)
+		{ widgetInputHandler->processEvent(*ev); widgets->logic();	}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
 	void showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y);
 
@@ -48,6 +46,14 @@ public:
 	AnimControls *controlWindow = NULL;
 	exeWindow *exeSelector = NULL;
 	void fitToResize();
+
+	//redrawing every widget is awfully slow
+	//activating this makes it happen every frame
+	void toggleSmoothDrawing(bool activated) { 
+		if (activated && dropdownDropped()) return;
+		smoothDrawing = activated; 
+	}
+	bool isSmoothDrawing() { return smoothDrawing; }
 
 private:
 	agui::ToolTip *tippy;
@@ -58,6 +64,8 @@ private:
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
 	int widgetsUpdateCooldown = 1;
+	bool smoothDrawing = false;
+	vector<string> pidEntryQueue;
 };
 
 class PIDDropdownListener : public agui::ActionListener
@@ -66,6 +74,7 @@ public:
 	PIDDropdownListener(VISSTATE *state) { clientState = state; }
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		printf("DDAction perf!\n");
 		int PID = std::stoi(evt.getSource()->getText());
 		if (PID != clientState->activePid->PID)
 			clientState->newPID = PID;

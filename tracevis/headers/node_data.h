@@ -8,8 +8,8 @@
 class node_data
 {
 public:
-	node_data();
-	~node_data();
+	node_data() {};
+	~node_data() {};
 	bool serialise(ofstream *file);
 	bool get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	FCOORD sphereCoordB(MULTIPLIERS *dimensions, float diamModifier);

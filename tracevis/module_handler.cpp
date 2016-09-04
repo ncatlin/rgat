@@ -89,10 +89,6 @@ void module_handler::PID_thread()
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
 				char *symname = strtok_s(next_token, "@", &next_token);
-				//if (string(symname) == "ZwAllocateVirtualMemory")
-				//{
-					//printf("symbol %s-",symname);
-				//}
 				char *address_s = strtok_s(next_token, "@", &next_token);
 				long address = 0;
 				sscanf_s(address_s, "%x", &address);

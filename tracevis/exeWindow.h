@@ -30,16 +30,24 @@ private:
 
 public:
 	exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
-	void show() { 
-		int frameX = clientState->displaySize.width/2 - exeFrame->getSize().getWidth() / 2;
-		int frameY = clientState->displaySize.height/2 - exeFrame->getSize().getHeight() / 2;
-		exeFrame->setLocation(frameX, frameY);
-		exeFrame->setVisibility(true); 
+	void show() 
+	{ 
+		if (exeFrame->isVisible())
+			exeFrame->setVisibility(false);
+		else
+		{
+			int frameX = clientState->displaySize.width / 2 - exeFrame->getSize().getWidth() / 2;
+			int frameY = clientState->displaySize.height / 2 - exeFrame->getSize().getHeight() / 2;
+			exeFrame->setLocation(frameX, frameY);
+			exeFrame->setVisibility(true);
+		}
 	}
-	void hide() {		exeFrame->setVisibility(false);	}
+	void hide() { exeFrame->setVisibility(false);	}
 	~exeWindow();
 	void setPath(string path) { target = path; filePathTxt->setText(path); }
 	string getPath() { return target; }
+
+
 };
 
 class fileButtonListener : public agui::ActionListener

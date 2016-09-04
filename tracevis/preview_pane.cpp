@@ -3,7 +3,7 @@
 #include "opengl_operations.h"
 #include "traceMisc.h"
 #include "GUIManagement.h"
-
+#include "preview_pane.h"
 
 void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const char *label)
 {
@@ -50,7 +50,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) 
 {
 
-	if (previewgraph->previewBMP == 0)
+	if (!previewgraph->previewBMP)
 	{
 		al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP);
 		previewgraph->previewBMP = al_create_bitmap(PREVIEW_GRAPH_WIDTH, PREVIEW_GRAPH_HEIGHT);
@@ -86,7 +86,6 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 
 	write_tid_text(clientState, previewgraph->tid, previewgraph, 0, 0);
 
-
 	glPushMatrix();
 
 	glMatrixMode(GL_PROJECTION);
@@ -118,35 +117,28 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 
 bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *PID, int* TID)
 {
-	int graphsX = clientState->mainFrameSize.width;
-	if (mousex >= graphsX && mousex <= clientState->displaySize.width)
+	if (mousex >= clientState->mainFrameSize.width && mousex <= clientState->displaySize.width)
 	{
 		map <int, NODEPAIR>::iterator graphPosIt = clientState->graphPositions.begin();
-		while (graphPosIt != clientState->graphPositions.end())
+		for (; graphPosIt != clientState->graphPositions.end(); graphPosIt++)
 		{
-			if (mousey >= graphPosIt->first && mousey <= (graphPosIt->first + 200))
+			const int graphTop = graphPosIt->first;
+			if (mousey >= graphTop && mousey <= (graphTop + PREVIEW_GRAPH_HEIGHT))
 			{
 				*PID = graphPosIt->second.first;
 				*TID = graphPosIt->second.second;
 				return true;
 			}
-			graphPosIt++;
 		}
-
 	}
+
 	*PID = -1;
 	*TID = -1;
 	return false;
 }
 
-void display_preview_mouseover()
+void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions) 
 {
-	printf("x");
-	return;
-}
-
-
-void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions) {
 
 	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph) {
 		printf("pid map empty, exiting ...\n");
@@ -157,20 +149,15 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 	glPointSize(5);
 
-	ALLEGRO_COLOR preview_bgcol = al_col_orange;// clientState->config->preview.background;
+	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
 	int first = 0;
 
 	if (!obtainMutex(clientState->pidMapMutex, "Preview Pane")) return;
 
-	std::map<int, void *>::iterator threadit;
 	thread_graph_data *previewGraph = 0;
 
-	int windowWidth = 400;
-	int bitmapWidth = PREVIEW_PANE_WIDTH;//(windowWidth - PREV_THREAD_X_PAD) - PREV_SCROLLBAR_WIDTH;
-
-#define Y_MULTIPLIER (PREVIEW_GRAPH_HEIGHT + PREVIEW_GRAPH_Y_OFFSET)
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	int graphy = 50 - Y_MULTIPLIER*widgets->getScroll();
+	int graphy = -1*PREV_Y_MULTIPLIER*widgets->getScroll();
 	int numGraphs = 0;
 	int graphsHeight = 0; 
 	const float spinPerFrame = clientState->config->preview.spinPerFrame;
@@ -181,28 +168,28 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	glLoadIdentity();
 	glPushMatrix();
 
-	
-	threadit = clientState->activePid->graphs.begin();
-	while (threadit != clientState->activePid->graphs.end())
+	map<int, void *>::iterator threadit = clientState->activePid->graphs.begin();
+	for (;threadit != clientState->activePid->graphs.end(); threadit++)
 	{
 		previewGraph = (thread_graph_data *)threadit->second;
-		int TID = threadit->first;
-		if (previewGraph && previewGraph->previewnodes->get_numVerts())
-		{
-			if (!previewGraph->VBOsGenned) gen_graph_VBOs(previewGraph);
-			if (spinPerFrame || previewGraph->needVBOReload_preview)
-				drawGraphBitmap(previewGraph, clientState);
-
-			al_set_target_bitmap(clientState->previewPaneBMP);
-			al_draw_bitmap(previewGraph->previewBMP, PREV_GRAPH_PADDING, graphy, 0);
-
-			clientState->graphPositions[graphy] = make_pair(clientState->activePid->PID, TID);
-			graphy += Y_MULTIPLIER;
-			graphsHeight += Y_MULTIPLIER;
-			numGraphs++;
-		}
 		
-		threadit++;
+		if (!previewGraph || !previewGraph->previewnodes->get_numVerts()) continue;
+
+		if (!previewGraph->VBOsGenned) 
+			gen_graph_VBOs(previewGraph);
+
+		if (spinPerFrame || previewGraph->needVBOReload_preview)
+			drawGraphBitmap(previewGraph, clientState);
+
+		al_set_target_bitmap(clientState->previewPaneBMP);
+		al_draw_bitmap(previewGraph->previewBMP, PREV_GRAPH_PADDING, graphy, 0);
+
+		int TID = threadit->first;
+		clientState->graphPositions[50+graphy] = make_pair(clientState->activePid->PID, TID);
+		graphy += PREV_Y_MULTIPLIER;
+		graphsHeight += PREV_Y_MULTIPLIER;
+		numGraphs++;
+
 	}
 
 	glPopMatrix();
@@ -210,9 +197,10 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	al_set_target_bitmap(previousBmp);
 
 	int scrollDiff = graphsHeight - clientState->displaySize.height;
-	if (scrollDiff < 0) widgets->setScrollbarMax(0);
+	if (scrollDiff < 0) 
+		widgets->setScrollbarMax(0);
 	else
-		widgets->setScrollbarMax(numGraphs - clientState->displaySize.height/ Y_MULTIPLIER);
+		widgets->setScrollbarMax(numGraphs - clientState->displaySize.height / PREV_Y_MULTIPLIER);
 
 	if (spinPerFrame)
 	{

@@ -4,15 +4,6 @@
 #include "graphicsMaths.h"
 #include "GUIConstants.h"
 
-node_data::node_data()
-{
-}
-
-
-node_data::~node_data()
-{
-}
-
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
 FCOORD node_data::sphereCoordB(MULTIPLIERS *dimensions, float diamModifier) 
 {

@@ -9,50 +9,55 @@ RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1,
 	clientState = state; 
 }
 
-void TraceVisGUI::showHideHighlightFrame() {
+void TraceVisGUI::showHideHighlightFrame() 
+{
 	highlightWindow->highlightFrame->setVisibility(!highlightWindow->highlightFrame->isVisible());
 	if (highlightWindow->highlightFrame->isVisible())
-	{
 		highlightWindow->refreshDropdowns();
-	}
 }
 
-void TraceVisGUI::addPID(int PID) {
+void TraceVisGUI::addPID(int PID) 
+{
 	string pidstring = " "+std::to_string(PID);
-	//todo: crash here?
-	dropDownWidget->addItem(pidstring);
+	//crash here if we add it while the mouse is
+	//in the dropdown. queue it to do at the end of the frame
+	pidEntryQueue.push_back(pidstring);
 }
-void TraceVisGUI::setActivePID(int PID) {
+
+void TraceVisGUI::setActivePID(int PID) 
+{
 	string pidstring = " "+std::to_string(PID);
 	dropDownWidget->setText(pidstring);
 }
-
 
 void TraceVisGUI::showHideDiffFrame() 
 {
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
-
 void TraceVisGUI::updateWidgets(thread_graph_data *graph) 
 {
 	
-	if (!widgetsUpdateCooldown--)
+	if (!clientState->activeGraph || !widgetsUpdateCooldown--)
 	{
 		al_set_target_backbuffer(al_get_current_display());
 		al_clear_to_color(al_col_black);
-		if (graph) controlWindow->update(graph);
+		if (graph)
+			controlWindow->update(graph);
  	}
 }
 
 void TraceVisGUI::paintWidgets()
 {
+	if (widgetsUpdateCooldown < 0 && !smoothDrawing) return;
 
-	if (widgetsUpdateCooldown < 0)
+	while (!pidEntryQueue.empty())
 	{
-		widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
-		widgets->render();
+		dropDownWidget->addItem(pidEntryQueue.back());
+		pidEntryQueue.pop_back();
 	}
+	widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
+	widgets->render();
 }
 
 void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {

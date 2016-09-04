@@ -57,7 +57,7 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 		(LPVOID)conditional_thread, 0, &threadID);
 
 }
-//todo: make this a thread/mainloop check that listens for new processes
+
 void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
@@ -68,7 +68,7 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 
 	DWORD threadID;
 
-	//handles new threads for process
+	//handles new threads+dlls for process
 	module_handler *tPIDThread = new module_handler;
 	tPIDThread->clientState = clientState;
 	tPIDThread->PID = PID;
@@ -88,7 +88,6 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 		NULL, 0, (LPTHREAD_START_ROUTINE)tBBThread->ThreadEntry,
 		(LPVOID)tBBThread, 0, &threadID);
 
-	//renders threads for preview pane
 	preview_renderer *render_preview_thread = new preview_renderer;
 	render_preview_thread->clientState = clientState;
 	render_preview_thread->PID = PID;
@@ -98,7 +97,6 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
 		(LPVOID)render_preview_thread, 0, &threadID);
 	
-	//renders heatmaps
 	heatmap_renderer *heatmap_thread = new heatmap_renderer;
 	heatmap_thread->clientState = clientState;
 	heatmap_thread->piddata = piddata;
@@ -108,7 +106,6 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
 		(LPVOID)heatmap_thread, 0, &threadID);
 	
-	//renders conditionals
 	conditional_renderer *conditional_thread = new conditional_renderer;
 	conditional_thread->clientState = clientState;
 	conditional_thread->piddata = piddata;
@@ -333,9 +330,12 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		{
 			if (!resu.callerAddr)
 			{
+				obtainMutex(piddata->disassemblyMutex);
 				node_data* parentn = graph->get_node(resu.edgeIdx.first);
 				node_data* externn = graph->get_node(resu.edgeIdx.second);
 				resu.callerAddr = parentn->ins->address;
+				dropMutex(piddata->disassemblyMutex);
+
 				resu.externPath = piddata->modpaths[externn->nodeMod];
 				if (extt.displayString == "()")
 				{
@@ -441,7 +441,6 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 {
 	TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
 	thread_graph_data *graph = clientState->activeGraph;
-
 	if (
 		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
@@ -449,7 +448,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 	{
 		updateMainRender(clientState);
 	}
-	
+
 	if (!graph->active && clientState->animationUpdate)
 	{
 		int result = graph->updateAnimation(clientState->animationUpdate,
@@ -471,7 +470,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 		else
 			clientState->animationUpdate = 0;
 	}
-	
+
 	drawHighlight(graph->get_active_node(), graph->m_scalefactors,&clientState->config->activityLineColour, 0);
 	if (clientState->highlightData.highlightState)
 		graph->highlightNodes(&clientState->highlightData.highlightNodes, 
@@ -603,6 +602,7 @@ int main(int argc, char **argv)
 	TraceVisGUI* widgets = new TraceVisGUI(&clientstate);
 	clientstate.widgets = (void *)widgets;
 	widgets->widgetSetup(fontPath);
+	widgets->toggleSmoothDrawing(true);
 
 	//preload glyphs in cache
 	al_get_text_width(clientstate.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
@@ -611,7 +611,7 @@ int main(int argc, char **argv)
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	clientstate.zoomlevel = 100000;
+	clientstate.zoomlevel = INITIALZOOM;
 	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.displaySize.height - 50);
 	initial_gl_setup(&clientstate);
 
@@ -671,6 +671,8 @@ int main(int argc, char **argv)
 					vector<EXTTEXT> newVec;
 					externFloatingText[graph->tid] = newVec;
 				}
+
+				widgets->toggleSmoothDrawing(false);
 				break;
 			}
 			dropMutex(clientstate.pidMapMutex, "Main Loop");
@@ -706,11 +708,8 @@ int main(int argc, char **argv)
 			if (clientstate.textlog) closeTextLog(&clientstate);
 			
 		}
-
-		//todo: this is bad (~20% cpu). 
-		//don't clear it every frame, have to move it off of graph
 		widgets->updateWidgets(clientstate.activeGraph);
-
+	
 		if (clientstate.activeGraph)
 		{
 			al_set_target_bitmap(clientstate.mainGraphBMP);
@@ -755,7 +754,7 @@ int main(int argc, char **argv)
 
 		widgets->paintWidgets();
 		al_flip_display();
-
+		
 		//ui events
 		while (al_get_next_event(clientstate.event_queue, &ev))
 		{
@@ -763,10 +762,6 @@ int main(int argc, char **argv)
 			if (!eventResult) continue;
 			switch (eventResult)
 			{
-			case EV_KEYBOARD:
-				widgets->processEvent(&ev);
-				break;
-
 			case EV_MOUSE:
 				widgets->processEvent(&ev);
 				if (clientstate.newPID > -1)
@@ -792,12 +787,6 @@ int main(int argc, char **argv)
 				}
 				break;
 
-			case EV_BTN_RUN:
-				{
-					widgets->exeSelector->show();
-					//todo: start timeline
-					break;
-				}
 			case EV_BTN_QUIT:
 				running = false;
 				break;
@@ -859,10 +848,9 @@ bool loadTrace(VISSTATE *clientState, string filename) {
 	printf("Loading completed successfully\n");
 	loadfile.close();
 
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-
 	if (!obtainMutex(clientState->pidMapMutex, "load graph")) return 0;
 	clientState->glob_piddata_map[PID] = newpiddata;
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->addPID(PID);
 	dropMutex(clientState->pidMapMutex, "load graph");
 
@@ -897,10 +885,14 @@ void handle_resize(VISSTATE *clientState)
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->fitToResize();
 	clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
+	clientState->previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 50);
 }
 
-int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
+int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) 
+{
 	ALLEGRO_DISPLAY *display = clientstate->maindisplay;
+	TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
+
 	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
 	{
 		//TODO! REMAKE BITMAP
@@ -919,9 +911,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
-		if (!clientstate->activeGraph) return 0;
+		if (!clientstate->activeGraph) return EV_MOUSE;
 
-		TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		float diam = mainscale->radius;
 		long maxZoomIn = diam + 5; //prevent zoom into globe
@@ -933,9 +924,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		if (ev->mouse.dz) 
 		{
 			if (mouse_in_previewpane(clientstate, ev->mouse.x))
-			{
 				widgets->doScroll(ev->mouse.dz);
-			}
 			else
 			{
 				//adjust speed of zoom depending on how close we are
@@ -998,8 +987,10 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			}
 			else 
 			{
-				if (mouse_in_previewpane(clientstate, ev->mouse.x) && !widgets->dropdownDropped())
+
+				if (mouse_in_previewpane(clientstate, ev->mouse.x))
 				{
+					widgets->toggleSmoothDrawing(true);
 					int PID, TID;
 					if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 					{
@@ -1007,6 +998,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 						widgets->showGraphToolTip(graph, clientstate->glob_piddata_map[PID], ev->mouse.x, ev->mouse.y);
 					}
 				}
+				else
+					widgets->toggleSmoothDrawing(false);
 			}
 			updateTitle_Mouse(display, clientstate->title, ev->mouse.x, ev->mouse.y);
 		}
@@ -1022,7 +1015,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			clientstate->mouse_dragging = true;
 		else
 		{
-			TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
 			if (widgets->dropdownDropped()) return EV_MOUSE;
 			printf("Setting graph from mouseover\n");
 			int PID, TID;
@@ -1046,7 +1038,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		{
 		case ALLEGRO_KEY_ESCAPE: 
 		{
-			TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
 			if (widgets->diffWindow->diffFrame->isVisible())
 			{
 				widgets->diffWindow->diffFrame->setVisibility(false);
@@ -1143,17 +1134,21 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 		case ALLEGRO_KEY_PAD_3:
 			clientstate->zoomlevel -= 1;
 			break;
-		default:
-			return EV_KEYBOARD;
 		}
-		return EV_KEYBOARD;
+
+		widgets->processEvent(ev);
+		return EV_NONE;
 	}
 
 	case ALLEGRO_EVENT_MENU_CLICK:
 	{
 		switch (ev->user.data1)
 		{
-		case EV_BTN_RUN:  return EV_BTN_RUN;
+		case EV_BTN_RUN:  
+			widgets->exeSelector->show();
+			//todo: start timeline
+			break;
+
 		case EV_BTN_QUIT: return EV_BTN_QUIT;
 
 		case EV_BTN_WIREFRAME:
@@ -1166,11 +1161,11 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 			break;
 
 		case EV_BTN_HIGHLIGHT:
-			((TraceVisGUI *)clientstate->widgets)->showHideHighlightFrame();
+			widgets->showHideHighlightFrame();
 			break;
 
 		case EV_BTN_DIFF:
-			((TraceVisGUI *)clientstate->widgets)->showHideDiffFrame();
+			widgets->showHideDiffFrame();
 			break;
 		case EV_BTN_EXTERNLOG:
 			if (clientstate->textlog)

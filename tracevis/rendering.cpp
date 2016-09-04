@@ -1,21 +1,16 @@
 #include "stdafx.h"
 #include "rendering.h"
 
-
-//draw an outline sphere of size diam
-//we could just memset the colours array but leaving it here for the sake of adapatbility
 void plot_wireframe(VISSTATE *clientstate)
 {
 	ALLEGRO_COLOR *wireframe_col = &clientstate->config->wireframe.edgeColor;
-	const int r = wireframe_col->r;
-	const int g = wireframe_col->g;
-	const int b = wireframe_col->b;
-	const int a = wireframe_col->a;
+	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
+
 
 	int ii, pp, index;
 	long diam = clientstate->activeGraph->m_scalefactors->radius;
 	const int points = WF_POINTSPERLINE;
-	int numSphereCurves = 0;
+
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
 
@@ -27,19 +22,12 @@ void plot_wireframe(VISSTATE *clientstate)
 		for (pp = 0; pp < WF_POINTSPERLINE; ++pp) {
 
 			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
-
-			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
 			vpos->push_back(ringSize * cos(angle)); //x
 			vpos->push_back(diam * cos((ii*M_PI) / 180)); //y
 			vpos->push_back(ringSize * sin(angle)); //z
 
-			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol->push_back(r);
-			vcol->push_back(g);
-			vcol->push_back(b);
-			vcol->push_back(a);
+			vcol->insert(vcol->end(), cols, end(cols));
 		}
-		numSphereCurves += 1;
 	}
 
 	for (ii = 0; ii < 180; ii += lineDivisions) {
@@ -49,19 +37,12 @@ void plot_wireframe(VISSTATE *clientstate)
 
 			float angle = (2 * M_PI * pp) / points;
 			float cosangle = cos(angle);
-
-			index = numSphereCurves * WF_POINTSPERLINE * POSELEMS + pp * POSELEMS;
 			vpos->push_back(diam * cosangle * cos(degs2));
 			vpos->push_back(diam * sin(angle));
 			vpos->push_back(diam * cosangle * sin(degs2));
 
-			index = numSphereCurves * WF_POINTSPERLINE * COLELEMS + pp * COLELEMS;
-			vcol->push_back(r);
-			vcol->push_back(g);
-			vcol->push_back(b);
-			vcol->push_back(a);
+			vcol->insert(vcol->end(), cols, end(cols));
 		}
-		numSphereCurves += 1;
 	}
 
 	load_VBO(VBO_SPHERE_POS, clientstate->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
@@ -73,7 +54,6 @@ void plot_wireframe(VISSTATE *clientstate)
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
-
 	vector <float> *vpos = vertdata->acquire_pos("1c");
 	vector <float> *vcol = vertdata->acquire_col("1c");
 
@@ -194,7 +174,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	{
 		case INEW:
 		{
-			//todo: this number depends on the scale!
+			//todo: make this number depend on the scale! 
 			curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
 			bezierC = middleC;
 			break;
@@ -322,6 +302,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vertdata->release_col();
 	vertdata->release_pos();
 
+	//place node on the animated version of the graph (preview doesn't have one)
 	if (!vertdata->isPreview())
 	{
 		vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
@@ -364,7 +345,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	return 1;
 }
 
-//resize all drawn verts to new diameter
+//resize all drawn verts to sphere of new diameter
 void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
@@ -458,8 +439,7 @@ int render_main_graph(VISSTATE *clientState)
 int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 {
 	//draw edges
-	EDGELIST::iterator edgeIt;
-	EDGELIST::iterator edgeEnd;
+	EDGELIST::iterator edgeIt, edgeEnd;
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
@@ -577,8 +557,6 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 
 		string itext("?");
 		if (!show_all_always) {
-			//float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
-
 			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
@@ -672,12 +650,12 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 
 		edge_data *e = graph->get_edge(*ePair);
 		int edgeWeight = e->weight;
-		if (edgeWeight <= 1) continue;
+		if (edgeWeight < 2) continue;
 
-		DCOORD screenCoordA, screenCoordB;
+		DCOORD screenCoordA;
 		if(!firstNode->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
+		DCOORD screenCoordB;
 		if(!graph->get_node(ePair->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
-
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 
@@ -846,10 +824,10 @@ void display_big_conditional(VISSTATE *clientstate)
 
 	}
 
-	float zoomDiffMult = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
-
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
+	float zoomDiffMult = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
+
 	if (clientstate->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
 		draw_condition_ins_text(clientstate, zoomDiffMult, &pd, graph->get_mainnodes());
 

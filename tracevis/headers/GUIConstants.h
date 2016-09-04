@@ -90,7 +90,7 @@
 #define BMODMAG  0.55
 #define BAdj 35
 
-#define INITIALZOOM 200000
+#define INITIALZOOM 80000
 
 //initial
 #define VERTBUFFERSIZE 1100

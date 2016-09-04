@@ -68,7 +68,7 @@ public:
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	TITLE *title;
-	long zoomlevel = INITIALZOOM;
+	long zoomlevel = 0; //INITIALZOOM;
 	float xturn = 135;
 	float yturn = -25;
 	HEIGHTWIDTH displaySize;
