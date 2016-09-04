@@ -192,19 +192,15 @@ int process_coordinator_thread(VISSTATE *clientState) {
 void updateMainRender(VISSTATE *clientState)
 {
 	render_main_graph(clientState);
+	if (clientState->rescale)
+	{
+		printf("DRAWING WIREFRAME+COLSPHERE!\n");
 
-	//todo: change to on size change?
-	if (clientState->wireframe_sphere)
-		delete clientState->wireframe_sphere;
+		clientState->rescale = false;
+	}
 
-	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-	plot_wireframe(clientState);
-
-	plot_colourpick_sphere(clientState);
 	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainnodes()->get_numVerts(),
 		clientState->activeGraph->get_mainlines()->get_renderedEdges());
-	clientState->rescale = false;
-
 }
 
 
@@ -622,10 +618,6 @@ int main(int argc, char **argv)
 	//for rendering graph diff
 	diff_plotter *diffRenderer;
 
-	GRAPH_DISPLAY_DATA *vertsdata = NULL;
-	GRAPH_DISPLAY_DATA *linedata = NULL;
-	map<int, node_data>::iterator vertit;
-
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
 	map <int, NODEPAIR> graphPositions;
@@ -762,6 +754,8 @@ int main(int argc, char **argv)
 		else
 			al_clear_to_color(mainBackground);
 
+		//todo: this is bad (~20% cpu). 
+		//don't clear it every frame, have to move it off of graph
 		widgets->updateRenderWidgets(clientstate.activeGraph);
 		al_flip_display();
 

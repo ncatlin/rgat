@@ -40,6 +40,7 @@ void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
 		widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
 	}
 	widgets->render();
+	
 }
 
 void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {

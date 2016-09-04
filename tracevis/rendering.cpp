@@ -433,6 +433,13 @@ int render_main_graph(VISSTATE *clientState)
 		resize_verts(graph, graph->get_mainnodes());
 		graph->zoomLevel = graph->m_scalefactors->radius;
 		graph->needVBOReload_main = true;
+
+		if (clientState->wireframe_sphere)
+			delete clientState->wireframe_sphere;
+
+		clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+		plot_wireframe(clientState);
+		plot_colourpick_sphere(clientState);
 	}
 
 	int drawCount = draw_new_verts(graph, graph->get_mainnodes());

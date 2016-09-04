@@ -22,17 +22,19 @@ void preview_renderer::rendering_thread()
 
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
-
+	vector<thread_graph_data *> graphlist;
+	map <int, void *>::iterator graphIt;
 	while (true)
 	{
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 
 		if (!obtainMutex(piddata->graphsListMutex, "Render Preview Thread")) return;
-		vector<thread_graph_data *> graphlist;
-		map <int, void *>::iterator graphit = piddata->graphs.begin();
-		for (; graphit != piddata->graphs.end(); graphit++)
-			graphlist.push_back((thread_graph_data *)graphit->second);
+		
+		graphIt = piddata->graphs.begin();
+		for (; graphIt != piddata->graphs.end(); graphIt++)
+			graphlist.push_back((thread_graph_data *)graphIt->second);
+
 		dropMutex(piddata->graphsListMutex, "Render Preview Thread glm");
 
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
@@ -45,7 +47,7 @@ void preview_renderer::rendering_thread()
 			Sleep(innerDelay);
 			graphlistIt++;
 		}
-		
+		graphlist.clear();
 		Sleep(outerDelay);
 	}
 }
