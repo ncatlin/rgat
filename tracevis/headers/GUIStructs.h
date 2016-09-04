@@ -71,7 +71,8 @@ public:
 	long zoomlevel = INITIALZOOM;
 	float xturn = 135;
 	float yturn = -25;
-	HEIGHTWIDTH size;
+	HEIGHTWIDTH displaySize;
+	HEIGHTWIDTH mainFrameSize;
 	bool rescale = false;
 	int show_ins_text = INSTEXT_AUTO;
 	int leftcolumn = 0;

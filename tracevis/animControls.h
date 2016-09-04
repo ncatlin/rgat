@@ -38,7 +38,11 @@ public:
 		printf("scroll val:%d / max %d\n", getScroll(), scrollbar->getMaxValue());
 	}
 
+	//call when client windows gets resized
+	void fitToResize();
+
 private:
+	agui::Layout *mouseLayout = NULL;
 	agui::FlowLayout *controlsLayout = NULL;
 	agui::FlowLayout *labelsLayout = NULL;
 	agui::Button *connectBtn = NULL;

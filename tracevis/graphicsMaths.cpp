@@ -122,9 +122,9 @@ bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 
 bool is_on_screen(DCOORD * screenCoord, void *clientstate)
 {
-	VISSTATE *castclientstate = (VISSTATE *) clientstate;
-	if (screenCoord->x < castclientstate->size.width &&
-		screenCoord->y < castclientstate->size.height &&
+	VISSTATE *castclientstate = (VISSTATE *) clientstate; //wtf
+	if (screenCoord->x < castclientstate->mainFrameSize.width &&
+		screenCoord->y < castclientstate->mainFrameSize.height &&
 		screenCoord->x > 0 &&
 		screenCoord->y > 0 
 		)

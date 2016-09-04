@@ -241,12 +241,12 @@ void change_mode(VISSTATE *clientState, int mode)
 			if (clientState->modes.preview)
 			{
 				widgets->setScrollbarVisible(true);
-				clientState->mainGraphBMP = al_create_bitmap(clientState->size.width - PREVIEW_PANE_WIDTH, clientState->size.height);
+				clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
 			}
 			else
 			{
 				widgets->setScrollbarVisible(false);
-				clientState->mainGraphBMP = al_create_bitmap(clientState->size.width, clientState->size.height);
+				clientState->mainGraphBMP = al_create_bitmap(clientState->displaySize.width, clientState->mainFrameSize.height);
 			}
 
 			return;
@@ -396,7 +396,7 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 		if(!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
-			pos.x, clientState->size.height - pos.y - ex->yOffset, 0, displayString.c_str());
+			pos.x, clientState->mainFrameSize.height - pos.y - ex->yOffset, 0, displayString.c_str());
 	}
 }
 
@@ -538,11 +538,11 @@ int main(int argc, char **argv)
 
 	printf("Starting visualiser\n");
 
-
-
-	clientstate.size.height = al_get_display_height(clientstate.maindisplay);
-	clientstate.size.width = al_get_display_width(clientstate.maindisplay);
-	clientstate.mainGraphBMP = al_create_bitmap(clientstate.size.width - PREVIEW_PANE_WIDTH, clientstate.size.height);
+	clientstate.displaySize.height = al_get_display_height(clientstate.maindisplay);
+	clientstate.displaySize.width = al_get_display_width(clientstate.maindisplay);
+	clientstate.mainFrameSize.height = clientstate.displaySize.height - BASE_CONTROLS_HEIGHT;
+	clientstate.mainFrameSize.width = clientstate.displaySize.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
+	clientstate.mainGraphBMP = al_create_bitmap(clientstate.mainFrameSize.width, clientstate.mainFrameSize.height);
 
 	clientstate.modes.wireframe = true;
 	clientstate.activeGraph = 0;
@@ -612,7 +612,7 @@ int main(int argc, char **argv)
 	glEnableClientState(GL_COLOR_ARRAY);
 
 	clientstate.zoomlevel = 100000;
-	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.size.height);
+	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.displaySize.height - 50);
 	initial_gl_setup(&clientstate);
 
 	//for rendering graph diff
@@ -707,9 +707,12 @@ int main(int argc, char **argv)
 			
 		}
 
+		//todo: this is bad (~20% cpu). 
+		//don't clear it every frame, have to move it off of graph
+		widgets->updateWidgets(clientstate.activeGraph);
+
 		if (clientstate.activeGraph)
 		{
-
 			al_set_target_bitmap(clientstate.mainGraphBMP);
 			frame_gl_setup(&clientstate);
 
@@ -742,21 +745,15 @@ int main(int argc, char **argv)
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}
-				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.size.width - PREVIEW_PANE_WIDTH, 0, 0);
+				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.mainFrameSize.width, 50, 0);
 			}
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
-			al_draw_filled_rectangle(0, clientstate.size.height - CONTROLS_Y, 	
-				clientstate.size.width - PREVIEW_PANE_WIDTH,clientstate.size.height, al_map_rgba(0, 0, 0, 150));
 
 			if (clientstate.activeGraph)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 		}
-		else
-			al_clear_to_color(mainBackground);
 
-		//todo: this is bad (~20% cpu). 
-		//don't clear it every frame, have to move it off of graph
-		widgets->updateRenderWidgets(clientstate.activeGraph);
+		widgets->paintWidgets();
 		al_flip_display();
 
 		//ui events
@@ -891,7 +888,15 @@ void set_active_graph(VISSTATE *clientState, int PID, int TID)
 bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 {
 	return (clientState->modes.preview &&
-		mousex > (clientState->size.width - PREVIEW_PANE_WIDTH));
+		mousex > clientState->mainFrameSize.width);
+}
+
+void handle_resize(VISSTATE *clientState) 
+{
+	glViewport(0, 0, clientState->mainFrameSize.width, clientState->mainFrameSize.height);
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->fitToResize();
+	clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
 }
 
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
@@ -899,10 +904,15 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) {
 	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
 	{
 		//TODO! REMAKE BITMAP
-		clientstate->size.height = ev->display.height;
-		clientstate->size.width = ev->display.width;
-		handle_resize(clientstate);
+		
+		clientstate->displaySize.height = ev->display.height;
+		clientstate->mainFrameSize.height = ev->display.height - BASE_CONTROLS_HEIGHT;
+		clientstate->mainFrameSize.width = ev->display.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
+		clientstate->displaySize.width = ev->display.width;
 		al_acknowledge_resize(display);
+		handle_resize(clientstate);
+		
+
 		printf("display resize handled\n");
 		return EV_RESIZE;
 	}

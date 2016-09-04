@@ -110,6 +110,17 @@ void AnimControls::update(thread_graph_data *graph)
 	stepsLabel->setText(stepInfo.str());
 }
 
+void AnimControls::fitToResize()
+{
+	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
+	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
+	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
+	controlsLayout->setLocation(15, clientState->displaySize.height - 40);
+	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
+
+	printf("vscrolb at %d\n", clientState->displaySize.width - PREV_SCROLLBAR_WIDTH);
+}
+
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *font) {
 	guiwidgets = widgets;
 	clientState = cstate;
@@ -119,9 +130,9 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 
 	//agui seems to need a widget under the mouse to display a tooltip
 	//so we put an invisible pane over the previews
-	agui::Layout *mouseLayout = new agui::FlowLayout;
-	mouseLayout->setSize(PREVIEW_PANE_WIDTH, clientState->size.height - 30);
-	mouseLayout->setLocation(clientState->size.width - PREVIEW_PANE_WIDTH, 30);
+	mouseLayout = new agui::FlowLayout;
+	mouseLayout->setSize(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 30);
+	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	widgets->add(mouseLayout);
 
 	stepsLabel = new agui::Label();
@@ -135,17 +146,13 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	labelsLayout->add(stepsLabel);
 
 	labelsLayout->resizeToContents();
-	labelsLayout->setLocation(15, clientState->size.height - (CONTROLS_Y + 15));
+	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
 	labelsLayout->setHorizontalSpacing(10);
 	labelsLayout->setBackColor(agui::Color(0, 0, 210));
 	labelsLayout->setOpacity(1);
 	widgets->add(labelsLayout);
 
-
-
 	controlsLayout = new agui::FlowLayout;
-
-
 
 	backStepBtn = new agui::Button();
 	backStepBtn->setFont(btnFont);
@@ -227,7 +234,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	controlsLayout->add(skipBtn);
 
 	controlsLayout->resizeToContents();
-	controlsLayout->setLocation(15, clientState->size.height - playBtn->getHeight()*3);
+	controlsLayout->setLocation(15, clientState->displaySize.height - playBtn->getHeight()*3);
 	controlsLayout->setHorizontalSpacing(10);
 	widgets->add(controlsLayout);
 
@@ -244,7 +251,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	skipBtn->addActionListener(btnListen);
 
 	scrollbar = new agui::VScrollBar;
-	scrollbar->setSize(SCROLLBAR_WIDTH, clientState->size.height - 20);
-	scrollbar->setLocation(clientState->size.width - SCROLLBAR_WIDTH, 0);
+	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
+	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
 	widgets->add(scrollbar);
 }

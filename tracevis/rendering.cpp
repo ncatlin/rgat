@@ -519,7 +519,7 @@ void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoor
 		argstring << "()";
 	
 	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
-		clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 		argstring.str().c_str());
 
 }
@@ -572,8 +572,8 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 			
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue; //in graph but not rendered
-		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
 
 		string itext("?");
 		if (!show_all_always) {
@@ -588,7 +588,7 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		stringstream ss;
 		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address <<":" << itext;
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
-			clientstate->size.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 		drawn++;
 
@@ -616,8 +616,8 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		//todo: experiment with performance re:how much of these checks to include
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(vertsdata, pd, &screenCoord)) continue;
-		if (screenCoord.x > clientstate->size.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->size.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
 
 		const int vectNodePos = n->index*COLELEMS;
 		ALLEGRO_COLOR textcol;
@@ -640,7 +640,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		stringstream ss;
 		ss << "0x" << std::hex << n->ins->address << ": " << itext;
 		al_draw_text(clientstate->standardFont, textcol, screenCoord.x + INS_X_OFF,
-			clientstate->size.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
+			clientstate->mainFrameSize.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 		drawn++;
 	}
@@ -681,12 +681,12 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 
-		if (screenCoordMid.x > clientState->size.width || screenCoordMid.x < -100) continue;
-		if (screenCoordMid.y > clientState->size.height || screenCoordMid.y < -100) continue;
+		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
+		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
 
 		string weightString = to_string(edgeWeight);
 		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
-			clientState->size.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			weightString.c_str());
 	}
 }

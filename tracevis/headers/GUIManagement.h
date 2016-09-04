@@ -25,7 +25,8 @@ public:
 	void widgetSetup(string fontpath);
 	agui::Allegro5Input *inputHandler() { return widgetInputHandler; }
 	agui::DropDown *dropdown() { return dropDownWidget; }
-	void updateRenderWidgets(thread_graph_data *graph);
+	void updateWidgets(thread_graph_data *graph);
+	void paintWidgets();
 	void setScrollbarVisible(bool enabled) { controlWindow->setScrollbarVisible(enabled); }
 	void doScroll(int z) { controlWindow->doScroll(z); }
 	int getScroll() { return controlWindow->getScroll(); }
@@ -46,6 +47,7 @@ public:
 	HighlightSelectionFrame *highlightWindow = NULL;
 	AnimControls *controlWindow = NULL;
 	exeWindow *exeSelector = NULL;
+	void fitToResize();
 
 private:
 	agui::ToolTip *tippy;

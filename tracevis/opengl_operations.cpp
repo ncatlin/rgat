@@ -2,16 +2,15 @@
 #include "GUIStructs.h"
 #include "rendering.h"
 
-void gather_projection_data(PROJECTDATA *pd) {
+void gather_projection_data(PROJECTDATA *pd) 
+{
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glGetDoublev(GL_MODELVIEW_MATRIX, pd->model_view);
 	glGetDoublev(GL_PROJECTION_MATRIX, pd->projection);
 	glGetIntegerv(GL_VIEWPORT, pd->viewport);
 }
 
-void handle_resize(VISSTATE *clientstate) {
-	glViewport(0, 0, clientstate->size.width, clientstate->size.height);
-}
+
 
 void frame_gl_setup(VISSTATE* clientstate)
 {
@@ -19,7 +18,7 @@ void frame_gl_setup(VISSTATE* clientstate)
 	glPushMatrix();
 
 	glLoadIdentity();
-	gluPerspective(45, clientstate->size.width / clientstate->size.height, 500, 
+	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.height, 500, 
 		clientstate->zoomlevel + clientstate->activeGraph->m_scalefactors->radius);
 
 	glMatrixMode(GL_MODELVIEW);
@@ -106,7 +105,7 @@ void initial_gl_setup(VISSTATE *clientstate)
 	glMatrixMode(GL_MODELVIEW);
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
-	gluPerspective(45, clientstate->size.width / clientstate->size.height, 50, clientstate->zoomlevel + 60000);
+	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.height, 50, clientstate->zoomlevel + 60000);
 }
 
 //draw a segmented sphere with row gradiented red, cols green
@@ -209,7 +208,7 @@ void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doC
 	if (!clientstate->col_pick_sphere)
 		plot_colourpick_sphere(clientstate);
 	glPushMatrix();
-	gluPerspective(45, clientstate->size.width / clientstate->size.height, 500, clientstate->zoomlevel);
+	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.width, 500, clientstate->zoomlevel);
 	glLoadIdentity();
 
 	rotate_to_user_view(clientstate);
@@ -224,7 +223,7 @@ void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doC
 	GLfloat pixelRGB[3];
 	
 	//no idea why this ajustment needed, found by trial and error
-	int height = clientstate->size.height - 20;
+	int height = clientstate->mainFrameSize.height - 20;
 	int width = al_get_bitmap_width(clientstate->mainGraphBMP);
 	int halfheight = height / 2;
 	int halfwidth = width / 2;

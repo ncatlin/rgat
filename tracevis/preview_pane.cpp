@@ -31,7 +31,8 @@ void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *grap
 }
 
 
-void uploadPreviewGraph(thread_graph_data *previewgraph) {
+void uploadPreviewGraph(thread_graph_data *previewgraph) 
+{
 	GLuint *VBOs = previewgraph->previewVBOs;
 	load_VBO(VBO_NODE_POS, VBOs, previewgraph->previewnodes->pos_size(), previewgraph->previewnodes->readonly_pos());
 	load_VBO(VBO_NODE_COL, VBOs, previewgraph->previewnodes->col_size(), previewgraph->previewnodes->readonly_col());
@@ -46,18 +47,19 @@ void uploadPreviewGraph(thread_graph_data *previewgraph) {
 }
 
 
-void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) {
+void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) 
+{
+
 	if (previewgraph->previewBMP == 0)
 	{
 		al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP);
 		previewgraph->previewBMP = al_create_bitmap(PREVIEW_GRAPH_WIDTH, PREVIEW_GRAPH_HEIGHT);
 	}
 
-
 	if (previewgraph->needVBOReload_preview)
 		uploadPreviewGraph(previewgraph);
 
-	ALLEGRO_BITMAP *prevBmp = al_get_target_bitmap();
+	ALLEGRO_BITMAP *previousBmp = al_get_target_bitmap();
 
 	al_set_target_bitmap(previewgraph->previewBMP);
 	ALLEGRO_COLOR preview_gcol;
@@ -110,14 +112,14 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) {
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
-	al_set_target_bitmap(prevBmp);
+	al_set_target_bitmap(previousBmp);
 }
 
 
 bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *PID, int* TID)
 {
-	int graphsX = (clientState->size.width - PREVIEW_PANE_WIDTH) + PREV_THREAD_X_PAD;
-	if (mousex >= graphsX && mousex <= clientState->size.width)
+	int graphsX = clientState->mainFrameSize.width;
+	if (mousex >= graphsX && mousex <= clientState->displaySize.width)
 	{
 		map <int, NODEPAIR>::iterator graphPosIt = clientState->graphPositions.begin();
 		while (graphPosIt != clientState->graphPositions.end())
@@ -150,12 +152,12 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 		printf("pid map empty, exiting ...\n");
 		return;
 	}
-	ALLEGRO_BITMAP *prevBmp = al_get_target_bitmap();
+	ALLEGRO_BITMAP *previousBmp = al_get_target_bitmap();
 	bool spinGraphs = true;
 
 	glPointSize(5);
 
-	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
+	ALLEGRO_COLOR preview_bgcol = al_col_orange;// clientState->config->preview.background;
 	int first = 0;
 
 	if (!obtainMutex(clientState->pidMapMutex, "Preview Pane")) return;
@@ -163,9 +165,8 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	std::map<int, void *>::iterator threadit;
 	thread_graph_data *previewGraph = 0;
 
-	int windowHeight = al_get_display_height(clientState->maindisplay);
 	int windowWidth = 400;
-	int bitmapWidth = (windowWidth - PREV_THREAD_X_PAD) - PREV_SCROLLBAR_WIDTH;
+	int bitmapWidth = PREVIEW_PANE_WIDTH;//(windowWidth - PREV_THREAD_X_PAD) - PREV_SCROLLBAR_WIDTH;
 
 #define Y_MULTIPLIER (PREVIEW_GRAPH_HEIGHT + PREVIEW_GRAPH_Y_OFFSET)
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
@@ -180,6 +181,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	glLoadIdentity();
 	glPushMatrix();
 
+	
 	threadit = clientState->activePid->graphs.begin();
 	while (threadit != clientState->activePid->graphs.end())
 	{
@@ -192,7 +194,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 				drawGraphBitmap(previewGraph, clientState);
 
 			al_set_target_bitmap(clientState->previewPaneBMP);
-			al_draw_bitmap(previewGraph->previewBMP, PREV_THREAD_X_PAD, graphy, 0);
+			al_draw_bitmap(previewGraph->previewBMP, PREV_GRAPH_PADDING, graphy, 0);
 
 			clientState->graphPositions[graphy] = make_pair(clientState->activePid->PID, TID);
 			graphy += Y_MULTIPLIER;
@@ -205,12 +207,12 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 	glPopMatrix();
 	dropMutex(clientState->pidMapMutex, "Preview Pane");
-	al_set_target_bitmap(prevBmp);
+	al_set_target_bitmap(previousBmp);
 
-	int scrollDiff = graphsHeight - clientState->size.height;
+	int scrollDiff = graphsHeight - clientState->displaySize.height;
 	if (scrollDiff < 0) widgets->setScrollbarMax(0);
 	else
-		widgets->setScrollbarMax(numGraphs - clientState->size.height/ Y_MULTIPLIER);
+		widgets->setScrollbarMax(numGraphs - clientState->displaySize.height/ Y_MULTIPLIER);
 
 	if (spinPerFrame)
 	{

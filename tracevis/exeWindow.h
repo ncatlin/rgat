@@ -31,8 +31,8 @@ private:
 public:
 	exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
 	void show() { 
-		int frameX = clientState->size.width/2 - exeFrame->getSize().getWidth() / 2;
-		int frameY = clientState->size.height/2 - exeFrame->getSize().getHeight() / 2;
+		int frameX = clientState->displaySize.width/2 - exeFrame->getSize().getWidth() / 2;
+		int frameY = clientState->displaySize.height/2 - exeFrame->getSize().getHeight() / 2;
 		exeFrame->setLocation(frameX, frameY);
 		exeFrame->setVisibility(true); 
 	}

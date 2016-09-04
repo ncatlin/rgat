@@ -28,19 +28,31 @@ void TraceVisGUI::setActivePID(int PID) {
 }
 
 
-void TraceVisGUI::showHideDiffFrame() {
+void TraceVisGUI::showHideDiffFrame() 
+{
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
 
-void TraceVisGUI::updateRenderWidgets(thread_graph_data *graph) {
-	if (graph && !widgetsUpdateCooldown--)
-	{
-		controlWindow->update(graph);
-		widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
-	}
-	widgets->render();
+void TraceVisGUI::updateWidgets(thread_graph_data *graph) 
+{
 	
+	if (!widgetsUpdateCooldown--)
+	{
+		al_set_target_backbuffer(al_get_current_display());
+		al_clear_to_color(al_col_black);
+		if (graph) controlWindow->update(graph);
+ 	}
+}
+
+void TraceVisGUI::paintWidgets()
+{
+
+	if (widgetsUpdateCooldown < 0)
+	{
+		widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
+		widgets->render();
+	}
 }
 
 void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {
@@ -63,6 +75,14 @@ void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *pidda
 	tippy->showToolTip(tipText.str(),200,x,y,widget);
 }
 
+void TraceVisGUI::fitToResize()
+{
+	int framex = clientState->mainFrameSize.width;
+	pidDropLabel->setLocation(framex, 12);
+	dropDownWidget->setLocation(framex + pidDropLabel->getSize().getWidth(), 12 - 4);
+	controlWindow->fitToResize();	
+	widgets->resizeToDisplay();
+}
 void TraceVisGUI::widgetSetup(string fontpath) {
 
 	//agui::Image::setImageLoader(new agui::Allegro5ImageLoader);
@@ -85,7 +105,7 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	widgets->setToolTip(tippy);
 	widgets->setHoverInterval(0.1);
 
-	int framex = clientState->size.width - PREVIEW_PANE_WIDTH + PREV_THREAD_X_PAD;
+	int framex = clientState->mainFrameSize.width + 15;
 	int framey = 12;
 
 	pidDropLabel = new agui::Label;
@@ -206,7 +226,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	infotxt << piddata->modpaths[activeModule];
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
-	al_draw_filled_rectangle(0, 0, clientState->size.width, 32, al_map_rgba(0, 0, 0, 255));
+	al_draw_filled_rectangle(0, 0, clientState->mainFrameSize.width, 32, al_map_rgba(0, 0, 0, 235));
 	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 

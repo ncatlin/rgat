@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-void handle_resize(VISSTATE *clientstate);
+//void handle_resize(VISSTATE *clientstate);
 
 void initial_gl_setup(VISSTATE *clientstate);
 void frame_gl_setup(VISSTATE* clientstate);
