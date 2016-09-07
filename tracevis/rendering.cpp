@@ -267,10 +267,10 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		switch (n->ins->itype) 
 		{
 			case OPUNDEF:
-				if (n->conditional == NOTCONDITIONAL)
-					active_col = &al_col_yellow;
-				else 
+				if (n->conditional)
 					active_col = &al_col_red;
+				else 
+					active_col = &al_col_yellow;
 				break;
 			case OPJMP:
 				active_col = &al_col_red;

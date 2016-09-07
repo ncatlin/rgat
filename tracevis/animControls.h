@@ -33,9 +33,7 @@ public:
 	agui::TextField *stepText = NULL;
 	void doScroll(int z) {
 		if (z > 0) scrollbar->scrollUp();
-		else
-			scrollbar->scrollDown();
-		printf("scroll val:%d / max %d\n", getScroll(), scrollbar->getMaxValue());
+		else scrollbar->scrollDown();
 	}
 
 	//call when client windows gets resized

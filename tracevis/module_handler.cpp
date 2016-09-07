@@ -89,9 +89,10 @@ void module_handler::PID_thread()
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
 				char *symname = strtok_s(next_token, "@", &next_token);
-				char *address_s = strtok_s(next_token, "@", &next_token);
-				long address = 0;
-				sscanf_s(address_s, "%x", &address);
+				char *offset_s = strtok_s(next_token, "@", &next_token);
+				unsigned long address;
+				sscanf_s(offset_s, "%x", &address);
+				address += piddata->modBounds.at(modnum).first;
 				if (!address | !symname | (next_token - buf != bread)) continue;
 				if (modnum > piddata->modpaths.size()) {
 					printf("Bad mod number in s!\n");

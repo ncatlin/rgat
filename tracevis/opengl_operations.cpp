@@ -67,7 +67,6 @@ void load_edge_VBOS(GLuint *VBOs, GRAPH_DISPLAY_DATA *lines)
 
 	int linebufsize = lines->get_numVerts() * COLELEMS * sizeof(GLfloat);
 	load_VBO(VBO_LINE_COL, VBOs, linebufsize, lines->readonly_col());
-	printf("Loading22 %d bytes from graphcol to vbo\n", linebufsize);
 }
 
 void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines)
@@ -75,7 +74,6 @@ void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines
 	load_VBO(VBO_NODE_POS, VBOs, verts->pos_size(), verts->readonly_pos());
 	load_VBO(VBO_NODE_COL, VBOs, verts->col_size(), verts->readonly_col());
 	load_edge_VBOS(VBOs, lines);
-	printf("Loading %d bytes from graphcol to vbo\n", verts->col_size());
 }
 
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity)

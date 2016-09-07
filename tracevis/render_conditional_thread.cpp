@@ -22,10 +22,10 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
 		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
 		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
-		float invisibleNode[4] = { 0,0,0,0 };
-		float failOnlyNode[4] = { failOnly.r,failOnly.g,failOnly.b,failOnly.a };
-		float succeedOnlyNode[4] = { succeedOnly.r,succeedOnly.g,succeedOnly.b,succeedOnly.a };
-		float bothPathsNode[4] = { bothPaths.r,bothPaths.g,bothPaths.b,bothPaths.a };
+		float invisibleCol[4] = { 0,0,0,0 };
+		float failOnlyCol[4] = { failOnly.r,failOnly.g,failOnly.b,failOnly.a };
+		float succeedOnlyCol[4] = { succeedOnly.r,succeedOnly.g,succeedOnly.b,succeedOnly.a };
+		float bothPathsCol[4] = { bothPaths.r,bothPaths.g,bothPaths.b,bothPaths.a };
 
 		vector<float> *nodeCol = conditionalNodes->acquire_col("1f");
 		while (nodeIdx < nodeEnd)
@@ -34,26 +34,26 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
 			node_data *n = graph->get_node(nodeIdx++);
-			if (!n->ins || n->ins->conditional == false)
+			int condStatus = n->conditional;
+			if (!condStatus)
 			{
-				nodeCol->insert(nodeCol->end(), invisibleNode, end(invisibleNode));
+				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
 				continue;
 			}
 
-			bool jumpTaken = n->conditional & CONDTAKEN;
-			bool jumpMissed = n->conditional & CONDNOTTAKEN;
 			//jump only seen to succeed
-			if (jumpTaken && !jumpMissed)
-				nodeCol->insert(nodeCol->end(), succeedOnlyNode, end(succeedOnlyNode));
+			if (condStatus & CONDTAKEN)
+				nodeCol->insert(nodeCol->end(), succeedOnlyCol, end(succeedOnlyCol));
 
-			//jump seen to both fail and succeed
-			else if (jumpTaken && jumpMissed)
-				nodeCol->insert(nodeCol->end(), bothPathsNode, end(bothPathsNode));
+			//jump only seen to fail
+			else if (condStatus & CONDFELLTHROUGH)
+				nodeCol->insert(nodeCol->end(), failOnlyCol, end(failOnlyCol));
 
-			//no notifications, assume failed
-			else 
-				nodeCol->insert(nodeCol->end(), failOnlyNode, end(failOnlyNode));
+			//jump seen to both fail and succeed. added for completeness sake.
+			else if (condStatus == CONDCOMPLETE)
+				nodeCol->insert(nodeCol->end(), bothPathsCol, end(bothPathsCol));
 
+			//ignore CONDPENDING for this iteration, not worth dealing with
 			continue;
 			
 		}

@@ -46,11 +46,34 @@ bool thread_trace_handler::is_new_instruction(INS_DATA *instruction)
 }
 
 
-void thread_trace_handler::set_conditional_state(unsigned long address, int state)
+void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 {
-	INS_DATA *instruction = getLastDisassembly(address, piddata->disassemblyMutex, &piddata->disassembly, 0);
-	node_data *n = thisgraph->get_node(instruction->threadvertIdx[TID]);
-	n->conditional |= state;
+	if (lastVertID)
+	{
+		node_data *lastNode = thisgraph->get_node(lastVertID);
+		int lastNodeCondStatus = lastNode->conditional;
+		if (lastNodeCondStatus & CONDPENDING)
+		{
+			bool alreadyTaken = lastNodeCondStatus & CONDTAKEN;
+			bool alreadyFailed = lastNodeCondStatus & CONDFELLTHROUGH;
+
+			if (!alreadyFailed && (nextAddress == lastNode->ins->condDropAddress))
+			{
+				lastNodeCondStatus |= CONDFELLTHROUGH;
+				alreadyFailed = true;
+			}
+
+			if (!alreadyTaken && (nextAddress == lastNode->ins->condTakenAddress))
+			{
+				lastNodeCondStatus |= CONDTAKEN;
+				alreadyTaken = true;
+			}
+
+			if (alreadyTaken && alreadyFailed)
+				lastNodeCondStatus = CONDCOMPLETE;
+			lastNode->conditional = lastNodeCondStatus;
+		}
+	}
 
 }
 
@@ -58,7 +81,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 {
 	node_data thisnode;
 	thisnode.ins = instruction;
-	if (instruction->conditional) thisnode.conditional = CONDUNUSED;
+	if (instruction->conditional) thisnode.conditional = CONDPENDING;
 
 	targVertID = thisgraph->get_num_nodes();
 	int a = 0, b = 0;
@@ -398,7 +421,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//start by examining our caller
 	
 	int callerModule = lastnode->nodeMod;
-	//if caller is external, not interested in this
+	//if caller is external, not interested in this //todo: no longer happens
 	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
 	BB_DATA *thisbb = 0;
 	do {
@@ -555,6 +578,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.targaddr]->modnum][thistag.targaddr].c_str());
 	else printf("\n");*/
 	
+	update_conditional_state(thistag.blockaddr);
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{

@@ -66,14 +66,15 @@ struct INS_DATA {
 	string ins_text; 
 	char itype;
 	bool conditional = false;
+	bool dataEx = false;
 	unsigned long address;
 	unsigned int numbytes;
+	unsigned long condTakenAddress;
+	unsigned long condDropAddress;
 	//thread id, vert idx
 	map<int, int> threadvertIdx;
 	unsigned int modnum;
-	//this instruction marks the joining of two BB's
-	bool link_instruction = false;
-	bool dataEx = false;
+	
 
 	//this was added later, might be worth ditching other stuff in exchange
 	string opcodes;

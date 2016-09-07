@@ -31,10 +31,10 @@
 #define MOD_UNINSTRUMENTED 2 //client didn't instrument further - usually windows dlls
 
 //can leave a conditional 2 ways, keep record of what has happened
-#define CONDUNUSED 0
-#define CONDNOTTAKEN 1
-#define CONDTAKEN 2
-#define NOTCONDITIONAL 4
+#define CONDPENDING 1
+#define CONDFELLTHROUGH 2
+#define CONDTAKEN 4
+#define CONDCOMPLETE 8
 
 #define BMULT 2
 

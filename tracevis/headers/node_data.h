@@ -16,7 +16,7 @@ public:
 
 	unsigned int index = 0;
 	VCOORD vcoord;
-	int conditional = NOTCONDITIONAL;
+	int conditional = 0;
 	INS_DATA* ins = NULL;
 	bool external = false;
 	int nodeMod;

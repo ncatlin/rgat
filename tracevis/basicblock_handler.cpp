@@ -37,6 +37,10 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 
 	string mnemonic = string(insn->mnemonic);
 	insdata->mnemonic = mnemonic;
+	insdata->op_str = string(insn->op_str);
+	insdata->ins_text = string(insdata->mnemonic + " " + insdata->op_str);
+	insdata->numbytes = (int)floor(opcodes.length() / 2);
+	insdata->address = insaddr;
 
 	if (mnemonic == "call")
 		insdata->itype = OPCALL;
@@ -48,17 +52,16 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	{
 		insdata->itype = OPUNDEF;
 
-		if (mnemonic[0] == 'j') //should probably check for non-conditionaljump 'j' instructions
+		if (mnemonic[0] == 'j')
+		{
 			insdata->conditional = true;
+			insdata->condTakenAddress = std::stol(insdata->op_str, 0, 16);
+			insdata->condDropAddress = insaddr + insdata->numbytes;
+		}
+
 	}
 
-	//if we do want to make save files more concise, save the opcodes and reconstruct
-	//instead of dumping everything else to disk
-	//insdata->serialize_opstr = string(opcodes);
-	insdata->op_str = string(insn->op_str);
-	insdata->ins_text = string(insdata->mnemonic + " " + insdata->op_str);
-	insdata->numbytes = (int)floor(opcodes.length() / 2);
-	insdata->address = insaddr;
+
 	cs_free(insn, count);
 
 	//printf("Dissasembled 0x%lx to %s\n", insaddr, insdata->op_str.c_str());

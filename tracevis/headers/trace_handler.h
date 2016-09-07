@@ -58,7 +58,7 @@ private:
 	bool find_internal_at_address(long address);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG thistag, unsigned long repeats);
-	void set_conditional_state(unsigned long address, int state);
+	void update_conditional_state(unsigned long nextAddress);
 	int find_containing_module(unsigned long address);
 
 	unsigned long pendingFunc = 0;
