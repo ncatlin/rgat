@@ -60,9 +60,6 @@
     <ClInclude Include="headers\traceMisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\trace_handler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\b64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -137,6 +134,9 @@
     </ClInclude>
     <ClInclude Include="configDefaults.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\trace_handler.h">
+      <Filter>Header Files\threads</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

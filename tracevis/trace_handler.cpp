@@ -4,17 +4,30 @@
 #include "GUIConstants.h"
 #include "traceStructs.h"
 
-void thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
+bool thread_trace_handler::find_internal_at_address(long address) {
+	int attempts = 2;
+	while (!piddata->disassembly.count(address))
+	{
+		Sleep(5);
+		if (!attempts--) return false;
+		printf("Sleeping until EXTERN %lx...", address);
+	}
+	return true;
+}
 
+bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
+	int attempts = 2;
 	while (!piddata->externdict.count(address))
 	{
-		Sleep(100);
-		printf("Sleeping until bbdict contains %lx\n", address);
+		Sleep(5);
+		if (!attempts--) return false;
+		printf("Sleeping until bbdict contains EXTERN %lx\n", address);
 	}
 
 	obtainMutex(piddata->externDictMutex, 0, 1000);
 	*BB = piddata->externdict.at(address);
 	dropMutex(piddata->externDictMutex, 0);
+	return true;
 }
 
 void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
@@ -338,10 +351,12 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 
 	BB_DATA* targbbptr;
 	get_extern_at_address(funcpc, &targbbptr);
-	printf("Handling arg %s of function %s module %s\n",
+	printf("Handling arg %s of function %s [addr %lx] module %s retting to %lx\n",
 		contents.c_str(),
 		piddata->modsyms[targbbptr->modnum][funcpc].c_str(),
-		piddata->modpaths[targbbptr->modnum].c_str());
+		funcpc,
+		piddata->modpaths[targbbptr->modnum].c_str(),
+		returnpc);
 
 	pendingArgs.push_back(make_pair(argpos, contents));
 	if (!callDone) return;
@@ -386,7 +401,9 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//if caller is external, not interested in this
 	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
 	BB_DATA *thisbb = 0;
-	get_extern_at_address(targaddr, &thisbb);
+	do {
+		get_extern_at_address(targaddr, &thisbb);
+	} while (!thisbb);
 
 	//see if caller already called this
 	//if so, get the destination so we can just increase edge weight
@@ -532,8 +549,8 @@ void thread_trace_handler::process_new_args()
 
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 {
-	/*
-	printf("handling tag %lx, jmpmod:%d", thistag.targaddr, thistag.jumpModifier);
+	
+	/*printf("handling tag %lx, jmpmod:%d", thistag.targaddr, thistag.jumpModifier);
 	if (thistag.jumpModifier == 2)
 		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.targaddr]->modnum][thistag.targaddr].c_str());
 	else printf("\n");*/
@@ -542,14 +559,14 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
 		int mutation = -1;
-		INS_DATA* firstins = getLastDisassembly(thistag.targaddr, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
+		INS_DATA* firstins = getLastDisassembly(thistag.blockaddr, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
 
 		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
 		{
-			runBB(thistag.targaddr, 0, thistag.insCount, repeats);
+			runBB(thistag.blockaddr, 0, thistag.insCount, repeats);
 		
 			obtainMutex(thisgraph->animationListsMutex);
-			thisgraph->bbsequence.push_back(make_pair(thistag.targaddr, thistag.insCount));
+			thisgraph->bbsequence.push_back(make_pair(thistag.blockaddr, thistag.insCount));
 
 			//could probably break this by mutating code in a running loop
 			thisgraph->mutationSequence.push_back(mutation); 
@@ -576,7 +593,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		//caller,external vertids
 		NODEPAIR resultPair;
 		//add node to graph if new
-		int result = run_external(thistag.targaddr, repeats, &resultPair);
+		int result = run_external(thistag.blockaddr, repeats, &resultPair);
 		
 		if (result)
 		{
@@ -595,6 +612,21 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	}
 }
 
+int thread_trace_handler::find_containing_module(unsigned long address)
+{
+	const int numModules = piddata->modBounds.size();
+	for (int modNo = 0; modNo < numModules; modNo++)
+	{
+		if (address >= piddata->modBounds.at(modNo).first &&
+			address <= piddata->modBounds.at(modNo).second)
+		{
+			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) return MOD_ACTIVE;
+			else return MOD_UNINSTRUMENTED;
+		}
+	}
+	return 0;
+
+}
 //thread handler to build graph for a thread
 void thread_trace_handler::TID_thread()
 {
@@ -633,7 +665,7 @@ void thread_trace_handler::TID_thread()
 		}
 		buf[bytesRead] = 0;
 		buf[TAGCACHESIZE-1] = 0;
-
+		//printf("\n\nread buf: [%s]\n\n", buf);
 		if (!bytesRead)
 		{
 			int err = GetLastError();
@@ -661,15 +693,16 @@ void thread_trace_handler::TID_thread()
 			if (entry[0] == 'j')
 			{
 				TAG thistag;
-				string jtarg = string(strtok_s(entry + 1, ",", &entry));
-				if (!caught_stol(jtarg, &thistag.targaddr, 16)) {
-					printf("1 STOL ERROR: %s\n", jtarg.c_str());
+				string jstart = string(strtok_s(entry + 1, ",", &entry));
+				if (!caught_stol(jstart, &thistag.blockaddr, 16)) {
+					printf("1 STOL ERROR: %s\n", jstart.c_str());
 					continue;
 				}
 
-				string jmod_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoi(jmod_s, &thistag.jumpModifier, 10)) {
-					printf("1 STOL ERROR: %s\n", jmod_s.c_str());
+				string jtarg = string(strtok_s(entry, ",", &entry));
+				unsigned long nextBlock;
+				if (!caught_stol(jtarg, &nextBlock, 16)) {
+					printf("1 STOL ERROR: %s\n", jtarg.c_str());
 					continue;
 				}
 		
@@ -679,15 +712,64 @@ void thread_trace_handler::TID_thread()
 					continue;
 				}
 
-				if (loopState == LOOP_START) {
+				thistag.jumpModifier = INTERNAL_CODE;
+				if (loopState == LOOP_START)
+				{
+					//printf("pb tag %lx\n", thistag.blockaddr);
 					loopCache.push_back(thistag);
-					continue;
+				}
+				else
+				{
+					//printf("hand tag %lx\n", thistag.blockaddr);
+					handle_tag(thistag);
 				}
 
-				handle_tag(thistag);
+				//todo: conditional handling
+				//instructions we know are internal, like failed conditionals
+				if (nextBlock == 0) continue;
+
+				int modType = find_containing_module(nextBlock);
+				if (modType == MOD_ACTIVE) continue;
+
+				bool external;
+				if (modType == MOD_UNINSTRUMENTED)
+					external = true;
+				else
+					external = false;
+
+				//see if next block is external
+				//this is our alternative to instrumenting *everything*
+				while (true)
+				{
+					
+					if (get_extern_at_address(nextBlock, &thistag.foundExtern))
+					{
+						external = true;
+						break;
+					}
+					if (find_internal_at_address(nextBlock)) break;
+				} 
+
+				if (!external) continue;
+
+				thistag.blockaddr = nextBlock;
+				thistag.jumpModifier = EXTERNAL_CODE;
+				thistag.insCount = 0;
+
+				obtainMutex(piddata->externDictMutex);
+				int modu = piddata->externdict.at(nextBlock)->modnum;
+				dropMutex(piddata->externDictMutex);
+
+				if (loopState == LOOP_START)
+					loopCache.push_back(thistag);
+				else
+					handle_tag(thistag);
+
+
 				continue;
 			}
 
+			/*
 			//mark a conditional jump as taken
 			if (entry[0] == 't' && entry[1] == 'j')
 			{
@@ -708,10 +790,11 @@ void thread_trace_handler::TID_thread()
 				if (!caught_stol(jtarg, &conditionalAddr, 16)) {
 					printf("tj STOL ERROR: %s\n", jtarg.c_str());
 				}
+				printf("setting conditional at %lx to %d\n", conditionalAddr);
 				set_conditional_state(conditionalAddr, CONDNOTTAKEN);
 				continue;
 			}
-
+			*/
 			//repeats/loop
 			if (entry[0] == 'R')
 			{	//loop start

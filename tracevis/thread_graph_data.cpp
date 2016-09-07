@@ -309,6 +309,7 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 	return 0;
 }
 
+//25% of the cpu activity of the visualiser here
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	if (!animlinedata->get_numVerts()) return;
@@ -527,6 +528,10 @@ int thread_graph_data::brighten_BBs()
 take the latestnode-ANIMATION_WIDTH->latestnode steps from the main graph
 take the rest from the faded graph
 combine, season to taste
+
+this is where optimisation is most important
+darken_animation is ~25% of cpu activity
+brighten_BBs is ~5%
 */
 void thread_graph_data::animate_latest(float fadeRate)
 {
@@ -640,11 +645,11 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 
 }
 
-node_data* thread_graph_data::get_active_node()
+VCOORD *thread_graph_data::get_active_node_coord()
 {
 	if (!latest_active_node && !nodeList.empty())
 		latest_active_node = get_node(0);
-	return latest_active_node;
+	return &latest_active_node->vcoord;
 }
 
 thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HANDLE mutex)
@@ -700,7 +705,7 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO
 {
 	int nodeListSize = nodePtrList->size();
 	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
-		drawHighlight(nodePtrList->at(nodeIdx), m_scalefactors, colour, lengthModifier);
+		drawHighlight(&nodePtrList->at(nodeIdx)->vcoord, m_scalefactors, colour, lengthModifier);
 }
 
 void thread_graph_data::insert_node(int targVertID, node_data node)

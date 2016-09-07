@@ -149,12 +149,6 @@ void basicblock_handler::PID_BB_thread()
 				printf("bb modnum STOL ERROR: %s\n", modnum_s);
 				continue;
 			}
-			char *tid_s = strtok_s(next_token, "@", &next_token);
-			int tid;
-			if (!caught_stoi(string(tid_s), &tid, 10)) {
-				printf("bb tid STOL ERROR: %s\n", tid_s);
-				continue;
-			}
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);
 			bool instrumented, dataExecution = false;

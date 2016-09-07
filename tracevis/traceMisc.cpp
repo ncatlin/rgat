@@ -46,10 +46,12 @@ INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned l
 
 	if (!disas->count(address))
 	{
+		
 		dropMutex(mutex, 0);
 		int waitTime = 150;
 		while (true)
 		{
+			printf("waiting %d ms for disassembly of addr 0x%lx\n", waitTime, address);
 			Sleep(waitTime);
 			obtainMutex(mutex, 0, 4000);
 			if (disas->count(address))

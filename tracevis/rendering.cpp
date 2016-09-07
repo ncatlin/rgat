@@ -833,18 +833,15 @@ void display_big_conditional(VISSTATE *clientstate)
 
 }
 
-void drawHighlight(node_data *node, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+void drawHighlight(VCOORD *nodepos, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
-	if (!node) return;
-
 	FCOORD center;
 	center.x = 0;
 	center.y = 0;
 	center.z = 0;
 
 	FCOORD nodeCoord;
-	VCOORD *npos = &node->vcoord;
-	float adjB = npos->b + float(npos->bMod * BMODMAG);
-	sphereCoord(npos->a, adjB, &nodeCoord, scale, lengthModifier);
+	float adjB = nodepos->b + float(nodepos->bMod * BMODMAG);
+	sphereCoord(nodepos->a, adjB, &nodeCoord, scale, lengthModifier);
 	drawHighlightLine(center, nodeCoord, colour);
 }

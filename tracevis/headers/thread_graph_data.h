@@ -117,7 +117,7 @@ public:
 	node_data *derive_anim_node();
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
-	node_data * get_active_node();
+	VCOORD * get_active_node_coord();
 	void set_active_node(int idx) {	latest_active_node = &nodeList.at(idx);}
 	void update_animation_render(float fadeRate);
 	void reset_animation();

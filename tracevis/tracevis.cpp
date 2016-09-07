@@ -471,7 +471,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 			clientState->animationUpdate = 0;
 	}
 
-	drawHighlight(graph->get_active_node(), graph->m_scalefactors,&clientState->config->activityLineColour, 0);
+	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors,&clientState->config->activityLineColour, 0);
 	if (clientState->highlightData.highlightState)
 		graph->highlightNodes(&clientState->highlightData.highlightNodes, 
 			&clientState->config->highlightColour, clientState->config->highlightProtrusion);

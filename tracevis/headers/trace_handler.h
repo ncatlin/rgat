@@ -7,9 +7,11 @@
 #include "timeline.h"
 
 struct TAG {
-	unsigned long targaddr;
+	unsigned long blockaddr;
 	int insCount;
 	int jumpModifier;
+	BB_DATA* foundExtern;
+
 };
 struct FAILEDARGS {
 	int caller;
@@ -52,10 +54,12 @@ private:
 	bool is_new_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index, node_data *lastNode);
 	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);
-	void get_extern_at_address(long address, BB_DATA ** BB);
+	bool get_extern_at_address(long address, BB_DATA ** BB);
+	bool find_internal_at_address(long address);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG thistag, unsigned long repeats);
 	void set_conditional_state(unsigned long address, int state);
+	int find_containing_module(unsigned long address);
 
 	unsigned long pendingFunc = 0;
 	unsigned long pendingRet = 0;

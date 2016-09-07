@@ -104,6 +104,7 @@ struct FUNCARG {
 struct PROCESS_DATA {
 	bool active = true;
 	map <int, string>modpaths;
+	map <int, pair<unsigned long, unsigned long>> modBounds;
 	int PID = -1;
 	map <int, std::map<long, string>>modsyms;
 	

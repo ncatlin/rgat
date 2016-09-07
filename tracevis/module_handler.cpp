@@ -124,13 +124,14 @@ void module_handler::PID_thread()
 					continue;
 				}
 
+				//todo: safe stol? if this is safe whytf have i implented safe stol
 				char *startaddr_s = strtok_s(next_token, "@", &next_token);
-				long startaddr = 0;
-				sscanf_s(startaddr_s, "%x", &startaddr);
+				unsigned long startaddr = 0;
+				sscanf_s(startaddr_s, "%lx", &startaddr);
 
 				char *endaddr_s = strtok_s(next_token, "@", &next_token);
-				long endaddr = 0;
-				sscanf_s(endaddr_s, "%x", &endaddr);
+				unsigned long endaddr = 0;
+				sscanf_s(endaddr_s, "%lx", &endaddr);
 
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
 				if (*skipped_s == '1')
@@ -144,6 +145,7 @@ void module_handler::PID_thread()
 				}
 
 				piddata->modpaths[modnum] = string(path);
+				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
 				continue;
 			}
 			printf("<PID %d mod> (%d b): %s", PID, bread, buf);
