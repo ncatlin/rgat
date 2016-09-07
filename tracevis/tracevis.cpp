@@ -615,6 +615,7 @@ int main(int argc, char **argv)
 	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.displaySize.height - 50);
 	initial_gl_setup(&clientstate);
 
+
 	//for rendering graph diff
 	diff_plotter *diffRenderer;
 
@@ -671,6 +672,10 @@ int main(int argc, char **argv)
 					vector<EXTTEXT> newVec;
 					externFloatingText[graph->tid] = newVec;
 				}
+
+				clientstate.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+				plot_wireframe(&clientstate);
+				plot_colourpick_sphere(&clientstate);
 
 				widgets->toggleSmoothDrawing(false);
 				break;

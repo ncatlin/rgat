@@ -6,7 +6,6 @@ void plot_wireframe(VISSTATE *clientstate)
 	ALLEGRO_COLOR *wireframe_col = &clientstate->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
-
 	int ii, pp, index;
 	long diam = clientstate->activeGraph->m_scalefactors->radius;
 	const int points = WF_POINTSPERLINE;

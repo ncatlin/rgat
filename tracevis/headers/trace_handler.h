@@ -34,6 +34,8 @@ private:
 	//important state variables!
 	unsigned int lastVertID = 0; //the vert that led to this instruction
 	unsigned int targVertID = 0; //new vert we are creating
+	node_data *lastNode;
+
 	char lastRIPType = FIRST_IN_THREAD;
 	bool afterReturn = false;
 	vector<pair<long, int>> callStack;
@@ -52,8 +54,8 @@ private:
 	void updateStats(int a, int b, int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
 	bool is_new_instruction(INS_DATA *instruction);
-	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index, node_data *lastNode);
-	void handle_existing_instruction(INS_DATA *instruction, node_data *lastNode);
+	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index);
+	void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(long address, BB_DATA ** BB);
 	bool find_internal_at_address(long address);
 	void increaseWeight(edge_data *edge, long executions);

@@ -50,7 +50,6 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 {
 	if (lastVertID)
 	{
-		node_data *lastNode = thisgraph->get_node(lastVertID);
 		int lastNodeCondStatus = lastNode->conditional;
 		if (lastNodeCondStatus & CONDPENDING)
 		{
@@ -77,7 +76,7 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 
 }
 
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mutation, int bb_inslist_index, node_data *lastNode)
+void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mutation, int bb_inslist_index)
 {
 	node_data thisnode;
 	thisnode.ins = instruction;
@@ -137,7 +136,7 @@ void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
 		thisgraph->maxWeight = edge->weight;
 }
 
-void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction, node_data *lastNode)
+void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 {
 	obtainMutex(piddata->disassemblyMutex, 0, 100);
 	targVertID = instruction->threadvertIdx.at(TID);
@@ -148,7 +147,6 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 {
 	unsigned int bb_inslist_index = 0;
 	bool newVert;
-	node_data *lastNode = 0;
 	unsigned long targetAddress = startAddress;
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
@@ -166,14 +164,13 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 				printf("\t\tFatal error last vert not found\n");
 				return;
 			}
-			lastNode = thisgraph->get_node(lastVertID);
 		}
 
 		newVert = is_new_instruction(instruction);
 		if (newVert)
-			handle_new_instruction(instruction, mutation, bb_inslist_index, lastNode);
+			handle_new_instruction(instruction, mutation, bb_inslist_index);
 		else //target vert already on this threads graph
-			handle_existing_instruction(instruction, lastNode);
+			handle_existing_instruction(instruction);
 
 		if (bb_inslist_index == startIndex && loopState == LOOP_START)
 		{
@@ -230,6 +227,7 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 				break;
 		}
 		lastVertID = targVertID;
+		lastNode = thisgraph->get_node(lastVertID);
 		targetAddress = nextAddress;
 	}
 }
@@ -257,8 +255,13 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 		break;
 
 	case NONFLOW:
-		bMod += 1 * BMULT;
-		break;
+		//is it a conditional jump being taken? -> fall through to jump
+		//TODO: this tends to be a source of messy edge overlap
+		if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
+		{
+			bMod += 1 * BMULT;
+			break;
+		}
 
 	case JUMP:
 		{
@@ -415,12 +418,11 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 
-	node_data *lastnode = thisgraph->get_node(lastVertID);
-	assert(lastnode->ins->numbytes);
+	assert(lastNode->ins->numbytes);
 
 	//start by examining our caller
 	
-	int callerModule = lastnode->nodeMod;
+	int callerModule = lastNode->nodeMod;
 	//if caller is external, not interested in this //todo: no longer happens
 	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
 	BB_DATA *thisbb = 0;
@@ -453,7 +455,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	}
 	//else: thread hasnt called this function before
 
-	lastnode->childexterns += 1;
+	lastNode->childexterns += 1;
 	targVertID = thisgraph->get_num_nodes();
 	//todo: check thread safety. crashes
 	if (!thisbb->thread_callers.count(TID))
@@ -484,7 +486,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 	BB_DATA *thisnode_bbdata = 0;
 	get_extern_at_address(targaddr, &thisnode_bbdata);
-	unsigned long returnAddress = lastnode->ins->address + lastnode->ins->numbytes;
+	unsigned long returnAddress = lastNode->ins->address + lastNode->ins->numbytes;
 
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 
@@ -614,9 +616,8 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	{
 		if (!lastVertID) return;
 
-		//caller,external vertids
+		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
-		//add node to graph if new
 		int result = run_external(thistag.blockaddr, repeats, &resultPair);
 		
 		if (result)
@@ -625,7 +626,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
 			dropMutex(thisgraph->animationListsMutex, "Extern run");
 		}
-		
+
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
 	}
@@ -674,21 +675,21 @@ void thread_trace_handler::TID_thread()
 	}
 
 	ConnectNamedPipe(hPipe, NULL);
-	char buf[TAGCACHESIZE] = { 0 };
+	char *tagReadBuf = (char*)malloc(TAGCACHESIZE);
 	int PIDcount = 0;
 
 	bool threadRunning = true;
 	while (threadRunning)
 	{
 		DWORD bytesRead = 0;
-		ReadFile(hPipe, buf, TAGCACHESIZE, &bytesRead, NULL);
+		ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL);
 		if (bytesRead == TAGCACHESIZE) {
-			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n",buf);
+			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n", tagReadBuf);
 			threadRunning = false;
 			break;
 		}
-		buf[bytesRead] = 0;
-		buf[TAGCACHESIZE-1] = 0;
+		tagReadBuf[bytesRead] = 0;
+		tagReadBuf[TAGCACHESIZE-1] = 0;
 		//printf("\n\nread buf: [%s]\n\n", buf);
 		if (!bytesRead)
 		{
@@ -703,11 +704,11 @@ void thread_trace_handler::TID_thread()
 			return;
 		}
 
-		char *next_token = buf;
+		char *next_token = tagReadBuf;
 		while (true)
 		{
 			//todo: check if buf is sensible - suspicious repeats?
-			if (next_token >= buf + bytesRead) break;
+			if (next_token >= tagReadBuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) {
 				printf("No trace data?");
@@ -793,44 +794,19 @@ void thread_trace_handler::TID_thread()
 				continue;
 			}
 
-			/*
-			//mark a conditional jump as taken
-			if (entry[0] == 't' && entry[1] == 'j')
-			{
-				unsigned long conditionalAddr;
-				string jtarg(entry+3);
-				if (!caught_stol(jtarg, &conditionalAddr, 16)) {
-					printf("tj STOL ERROR: %s\n", jtarg.c_str());
-				}
-				set_conditional_state(conditionalAddr, CONDTAKEN);
-				continue;
-			}
-
-			//mark a conditional jump as not taken
-			if (entry[0] == 'n' && entry[1] == 'j')
-			{
-				unsigned long conditionalAddr;
-				string jtarg(entry + 3);
-				if (!caught_stol(jtarg, &conditionalAddr, 16)) {
-					printf("tj STOL ERROR: %s\n", jtarg.c_str());
-				}
-				printf("setting conditional at %lx to %d\n", conditionalAddr);
-				set_conditional_state(conditionalAddr, CONDNOTTAKEN);
-				continue;
-			}
-			*/
 			//repeats/loop
 			if (entry[0] == 'R')
 			{	//loop start
 				if (entry[1] == 'S')
 				{
+					
 					loopState = LOOP_START;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
-					if (!caught_stol(repeats_s, &loopCount, 10)) {
+					if (!caught_stol(repeats_s, &loopCount, 10))
 						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
-					}
 					continue;
 				}
+
 				//loop end
 				else if (entry[1] == 'E') 
 				{
@@ -903,9 +879,10 @@ void thread_trace_handler::TID_thread()
 				continue;
 			}
 
-			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, buf);
-			if (next_token >= buf + bytesRead) break;
+			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, tagReadBuf);
+			if (next_token >= tagReadBuf + bytesRead) break;
 		}
 	}
+	free(tagReadBuf);
 }
 
