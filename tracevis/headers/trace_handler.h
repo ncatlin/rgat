@@ -34,7 +34,6 @@ private:
 	//important state variables!
 	unsigned int lastVertID = 0; //the vert that led to this instruction
 	unsigned int targVertID = 0; //new vert we are creating
-	node_data *lastNode;
 
 	char lastRIPType = FIRST_IN_THREAD;
 	bool afterReturn = false;

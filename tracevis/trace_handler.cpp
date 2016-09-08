@@ -50,6 +50,7 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 {
 	if (lastVertID)
 	{
+		node_data *lastNode = thisgraph->get_node(lastVertID);
 		int lastNodeCondStatus = lastNode->conditional;
 		if (lastNodeCondStatus & CONDPENDING)
 		{
@@ -78,6 +79,7 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 
 void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mutation, int bb_inslist_index)
 {
+
 	node_data thisnode;
 	thisnode.ins = instruction;
 	if (instruction->conditional) thisnode.conditional = CONDPENDING;
@@ -95,6 +97,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 
 	if (lastRIPType != FIRST_IN_THREAD)
 	{
+		node_data *lastNode = thisgraph->get_node(lastVertID);
 		VCOORD lastnodec = lastNode->vcoord;
 		a = lastnodec.a;
 		b = lastnodec.b;
@@ -227,7 +230,6 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 				break;
 		}
 		lastVertID = targVertID;
-		lastNode = thisgraph->get_node(lastVertID);
 		targetAddress = nextAddress;
 	}
 }
@@ -255,14 +257,16 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 		break;
 
 	case NONFLOW:
-		//is it a conditional jump being taken? -> fall through to jump
-		//TODO: this tends to be a source of messy edge overlap
-		if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
 		{
-			bMod += 1 * BMULT;
-			break;
+			//is it a conditional jump being taken? -> fall through to jump
+			//TODO: this tends to be a source of messy edge overlap
+			node_data *lastNode = thisgraph->get_node(lastVertID);
+			if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
+			{
+				bMod += 1 * BMULT;
+				break;
+			}
 		}
-
 	case JUMP:
 		{
 			a += JUMPA;
@@ -417,7 +421,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
-
+	node_data *lastNode = thisgraph->get_node(lastVertID);
 	assert(lastNode->ins->numbytes);
 
 	//start by examining our caller
@@ -489,6 +493,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	unsigned long returnAddress = lastNode->ins->address + lastNode->ins->numbytes;
 
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
+	lastNode = &newTargNode;
 
 	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
 	thisgraph->externList.push_back(targVertID);
