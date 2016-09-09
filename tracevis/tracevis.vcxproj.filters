@@ -459,7 +459,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="thread_trace_reader.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\threads</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

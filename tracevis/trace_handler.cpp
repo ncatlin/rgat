@@ -37,14 +37,20 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 		thisgraph->maxWeight = e.weight;
 }
 
-bool thread_trace_handler::is_new_instruction(INS_DATA *instruction)
+//checks if current thread has executed this instruction
+bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx)
 {
 	obtainMutex(piddata->disassemblyMutex, 0, 100);
-	bool result = instruction->threadvertIdx.count(TID) == 0;
+	map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	dropMutex(piddata->disassemblyMutex, 0);
-	return result;
+	if (vertIdIt != instruction->threadvertIdx.end())
+	{
+		*vertIdx = vertIdIt->second;
+		return true;
+	}
+	else 
+		return false;
 }
-
 
 void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 {
@@ -146,34 +152,37 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 	dropMutex(piddata->disassemblyMutex, 0);
 }
 
-void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int numInstructions, int repeats = 1)
+int thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int numInstructions, int repeats = 1)
 {
 	unsigned int bb_inslist_index = 0;
 	bool newVert;
+	int firstMutation = -1;
+	int mutation = -1;
 	unsigned long targetAddress = startAddress;
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
 		//conspicuous lack of mutation handling here
 		//we could check this by looking at the mutation state of all members of the block
-		int mutation;
 		INS_DATA *instruction = getLastDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
+		if (firstMutation == -1) firstMutation = mutation;
 
-		long nextAddress = instruction->address + instruction->numbytes;
-
+		//todo: ditch this?
 		if (lastRIPType != FIRST_IN_THREAD)
 		{
 			if (!thisgraph->node_exists(lastVertID))
 			{
 				printf("\t\tFatal error last vert not found\n");
-				return;
+				assert(0);
 			}
 		}
 
-		newVert = is_new_instruction(instruction);
-		if (newVert)
+		unsigned int existingVertID;
+		//target vert already on this threads graph?
+		bool alreadyExecuted = is_old_instruction(instruction, &existingVertID);
+		if (alreadyExecuted)
+			targVertID = existingVertID; 
+		else 
 			handle_new_instruction(instruction, mutation, bb_inslist_index);
-		else //target vert already on this threads graph
-			handle_existing_instruction(instruction);
 
 		if (bb_inslist_index == startIndex && loopState == LOOP_START)
 		{
@@ -181,9 +190,12 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 			loopState = LOOP_PROGRESS;
 		}
 
+		long nextAddress = instruction->address + instruction->numbytes;
+		//again, 2 lookups here
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
-		if (thisgraph->edge_exists(edgeIDPair))
-			increaseWeight(thisgraph->get_edge(edgeIDPair), repeats);
+		edge_data *edged;
+		if (thisgraph->edge_exists(edgeIDPair, &edged))
+			increaseWeight(edged, repeats);
 
 		else if (lastRIPType != FIRST_IN_THREAD)
 		{
@@ -192,7 +204,7 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 			
 			if (lastRIPType == RETURN)
 				newEdge.edgeClass = IRET;
-			else if (newVert) 
+			else if (!alreadyExecuted)
 			{
 				if (lastRIPType == CALL)
 					newEdge.edgeClass = ICALL;
@@ -232,6 +244,8 @@ void thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int 
 		lastVertID = targVertID;
 		targetAddress = nextAddress;
 	}
+
+	return firstMutation;
 }
 
 void thread_trace_handler::updateStats(int a, int b, int bMod) {
@@ -589,30 +603,25 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 	if (thistag.jumpModifier == INTERNAL_CODE)
 	{
-		int mutation = -1;
-		INS_DATA* firstins = getLastDisassembly(thistag.blockaddr, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
 
-		if (piddata->activeMods.at(firstins->modnum) == MOD_ACTIVE)
+		int mutation = runBB(thistag.blockaddr, 0, thistag.insCount, repeats);
+
+		obtainMutex(thisgraph->animationListsMutex);
+		thisgraph->bbsequence.push_back(make_pair(thistag.blockaddr, thistag.insCount));
+
+		//could probably break this by mutating code in a running loop
+		thisgraph->mutationSequence.push_back(mutation);
+		dropMutex(thisgraph->animationListsMutex);
+
+		if (repeats == 1)
 		{
-			runBB(thistag.blockaddr, 0, thistag.insCount, repeats);
-		
-			obtainMutex(thisgraph->animationListsMutex);
-			thisgraph->bbsequence.push_back(make_pair(thistag.blockaddr, thistag.insCount));
-
-			//could probably break this by mutating code in a running loop
-			thisgraph->mutationSequence.push_back(mutation); 
-			dropMutex(thisgraph->animationListsMutex);
-
-			if (repeats == 1)
-			{
-				thisgraph->totalInstructions += thistag.insCount;
-				thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
-			}
-			else
-			{
-				thisgraph->totalInstructions += thistag.insCount*loopCount;
-				thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
-			}
+			thisgraph->totalInstructions += thistag.insCount;
+			thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
+		}
+		else
+		{
+			thisgraph->totalInstructions += thistag.insCount*loopCount;
+			thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -667,11 +676,11 @@ void thread_trace_handler::TID_thread()
 
 	char* msgbuf;
 	int result;
-	DWORD bytesRead;
+	unsigned long bytesRead;
 	bool threadRunning = true;
 	while (threadRunning)
 	{
-		bytesRead = reader->get_message(&msgbuf);
+		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
 		if (bytesRead == 0) {
 			Sleep(1);
 			continue;
@@ -700,6 +709,7 @@ void thread_trace_handler::TID_thread()
 			if (entry[0] == 'j')
 			{
 				TAG thistag;
+				//each of these string conversions is 1% of trace handler time
 				string jstart = string(strtok_s(entry + 1, ",", &entry));
 				if (!caught_stol(jstart, &thistag.blockaddr, 16)) {
 					printf("1 STOL ERROR: %s\n", jstart.c_str());

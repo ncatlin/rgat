@@ -50,11 +50,11 @@ private:
 	int run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
-	void runBB(unsigned long startAddress, int startIndex, int insCount, int repeats);
+	int runBB(unsigned long startAddress, int startIndex, int insCount, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
-	bool is_new_instruction(INS_DATA *instruction);
+	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index);
 	void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(long address, BB_DATA ** BB);

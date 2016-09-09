@@ -78,49 +78,55 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	pair<char*, int> bufPair = make_pair(buffer, size);
 
 	WaitForSingleObject(flagMutex, INFINITE);
-	//todo: check pending data size
+	//todo: check pending data size for limit
 	if (readingFirstQueue)
-		secondQueue.push(bufPair); //this is really slow
+		secondQueue.push_back(bufPair);
 	else
-		firstQueue.push(bufPair);
+		firstQueue.push_back(bufPair);
 	pendingData += size;
-	//printf("%d bytes of data pending...",pendingData);
 	ReleaseMutex(flagMutex);
 }
 
-int thread_trace_reader::get_message(char **buffer)
+int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 {
 	
-	if (readingQueue->empty())
+	if (readingQueue->empty() || readingQueue->size()-1 <= readIndex)
 	{
-		WaitForSingleObject(flagMutex, INFINITE);
+		readingQueue->clear();
+		readIndex = 0;
 
+		WaitForSingleObject(flagMutex, INFINITE);
 		if (readingFirstQueue)
 		{
+			printf("First queue emptied! ");
 			readingQueue = &secondQueue;
 			readingFirstQueue = false;
 		}
 		else
 		{
+			printf("secondQueue emptied! ");
 			readingQueue = &firstQueue;
 			readingFirstQueue = true;
 		}
 
 		pendingData -= processedData;
+		printf("Processed %d bytes of data in queue, %d remaining (queue size %d)\n", processedData, pendingData, readingQueue->size());
 		processedData = 0;
 		ReleaseMutex(flagMutex);
+		
 	}
 
 	if (readingQueue->empty())
 	{
-		if (pipeClosed) return -1;
-		else return 0;
+		if (pipeClosed) *bufSize = -1;
+		else *bufSize = 0;
+		return pendingData;
 	}
 
-	pair<char *, int> buf_size = readingQueue->front();
-	readingQueue->pop();
+	pair<char *, int> buf_size = readingQueue->at(readIndex++);
+	if (!(readIndex % 500)) printf("processing index %d of %d\n", readIndex, readingQueue->size());
 	*buffer = buf_size.first;
-	int size = buf_size.second;
-	processedData += size;
-	return size;
+	*bufSize = buf_size.second;
+	processedData += buf_size.second;
+	return pendingData;
 }

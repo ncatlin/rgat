@@ -70,7 +70,7 @@ public:
 	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
 	
-	bool edge_exists(NODEPAIR edge);
+	bool edge_exists(NODEPAIR edge, edge_data **edged);
 	void add_edge(edge_data e, NODEPAIR edge);
 	void insert_node(int targVertID, node_data node); 
 	void extend_faded_edges();
@@ -214,5 +214,7 @@ public:
 	GRAPH_DISPLAY_DATA *animlinedata = 0;
 
 	void highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
+
+	unsigned long traceBufferSize = 0;
 };
 

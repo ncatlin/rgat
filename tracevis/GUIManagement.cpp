@@ -165,8 +165,7 @@ void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	newTitle << "TraceVis. Mouse:(" << title->MPos
 		<< ") Zoom:(" << title->zoom << ") "
 		<< title->Primitives
-		<< "FPS: " << title->FPS;
-	//snprintf(title->title, 255, "TraceVis. Mouse:(%s) Zoom:(%s) %s FPS: %s [%s]", title->MPos, title->zoom, title->Primitives, title->FPS, title->dbg);
+		<< " FPS: " << title->FPS;
 	al_set_window_title(display, newTitle.str().c_str());
 }
 
@@ -195,7 +194,8 @@ void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg) {
 void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientstate, int verts, int edges){
 	if (!clientstate->title->zoom) return;
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
-	snprintf(clientstate->title->Primitives, 35, "[TID:%d V:%d/E:%d]", graph->tid, verts,edges);
+	int mbRemaining = (int) graph->traceBufferSize / 1024;
+	snprintf(clientstate->title->Primitives, 55, "[TID:%d V:%d/E:%d] Pending:%d MB", graph->tid, verts,edges, mbRemaining);
 	updateTitle(display, clientstate->title);
 
 }

@@ -453,13 +453,12 @@ int thread_graph_data::brighten_BBs()
 			if (animPosition && (bbsequence.at(animPosition) != bbsequence.at(animPosition - 1)))
 			{
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
-				if (!edge_exists(edgePair)) {
+				edge_data *linkingEdge;
+				if (!edge_exists(edgePair, &linkingEdge)) {
 					printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
 						lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
 					continue;
 				}
-
-				edge_data *linkingEdge = get_edge(edgePair);
 
 				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; ++i) 
@@ -587,13 +586,19 @@ void thread_graph_data::reset_mainlines()
 	animlinedata->reset();
 }
 
-bool thread_graph_data::edge_exists(NODEPAIR edge)
+bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	bool result = false;
+	EDGEMAP::iterator edgeit;
 	obtainMutex(edMutex);
-	if (edgeDict.count(edge)) result = true;
+	edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
-	return result;
+
+	if (edgeit != edgeDict.end())
+	{
+		*edged = &edgeit->second;
+		return true;
+	}
+	return false;
 }
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)

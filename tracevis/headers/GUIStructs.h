@@ -26,7 +26,7 @@ struct TITLE {
 	char MPos[25] = { 0 };
 	char title[255] = { 0 };
 	char FPS[25] = { 0 };
-	char Primitives[35] = { 0 };
+	char Primitives[55] = { 0 };
 	char dbg[200] = { 0 };
 };
 

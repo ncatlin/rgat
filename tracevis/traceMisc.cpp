@@ -40,11 +40,11 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 	return result;
 }
 
-INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutation)
+INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutationIndex)
 {
 	obtainMutex(mutex, 0, 4000);
-
-	if (!disas->count(address))
+	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
+	if (disasIt == disas->end())
 	{
 		
 		dropMutex(mutex, 0);
@@ -54,15 +54,16 @@ INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned l
 			printf("waiting %d ms for disassembly of addr 0x%lx\n", waitTime, address);
 			Sleep(waitTime);
 			obtainMutex(mutex, 0, 4000);
-			if (disas->count(address))
+			disasIt = disas->find(address);
+			if (disasIt != disas->end())
 				break;
 			dropMutex(mutex, 0);
 			waitTime += 5;
 		}
 	}
-	INS_DATA *result = disas->at(address).back();
-	if(mutation)
-		*mutation = disas->at(address).size()-1;
+	INS_DATA *result = disasIt->second.back();
+	if(mutationIndex)
+		*mutationIndex = disasIt->second.size()-1;
 	dropMutex(mutex, 0);
 	return result;
 }
