@@ -176,7 +176,7 @@ public:
 	GRAPH_DISPLAY_DATA *previewnodes = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;
 
-	bool finalHeatmap = false;
+	bool dirtyHeatmap = false;
 	bool needVBOReload_heatmap = false;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;

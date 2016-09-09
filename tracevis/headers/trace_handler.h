@@ -3,6 +3,7 @@
 #include "node_data.h"
 #include "edge_data.h"
 #include "thread_graph_data.h"
+#include "thread_trace_reader.h"
 #include "GUIStructs.h"
 #include "timeline.h"
 
@@ -29,6 +30,7 @@ public:
 	thread_graph_data *watchedGraph;
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
+	thread_trace_reader *reader;
 	
 private:
 	//important state variables!

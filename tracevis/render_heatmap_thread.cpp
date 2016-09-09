@@ -131,8 +131,11 @@ void heatmap_renderer::heatmap_thread()
 			thread_graph_data *graph = *graphlistIt;
 			graphlistIt++;
 
-			if (graph->active)
+			if (graph->active || graph->dirtyHeatmap)
+			{
 				render_graph_heatmap(graph);
+				graph->dirtyHeatmap = false;
+			}
 			else 
 				if (!finishedGraphs[graph])
 				{

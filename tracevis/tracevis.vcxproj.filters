@@ -138,6 +138,9 @@
     <ClInclude Include="headers\trace_handler.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
+    <ClInclude Include="thread_trace_reader.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -453,6 +456,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="clientConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="thread_trace_reader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

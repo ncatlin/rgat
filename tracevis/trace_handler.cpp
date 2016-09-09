@@ -657,6 +657,7 @@ int thread_trace_handler::find_containing_module(unsigned long address)
 	return 0;
 
 }
+
 //thread handler to build graph for a thread
 void thread_trace_handler::TID_thread()
 {
@@ -664,44 +665,20 @@ void thread_trace_handler::TID_thread()
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
 
-	wstring pipename(L"\\\\.\\pipe\\rioThread");
-	pipename.append(std::to_wstring(TID));
-	wcout << "Opening tidpipe '" << pipename << "'" << endl;
-	const wchar_t* szName = pipename.c_str();
-	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-		255, 64, 56 * 1024, 300, NULL);
-
-	if ((int)hPipe == -1)
-	{
-		thisgraph->active = false;
-		printf("Error: TIDTHREAD Handle:%d - error:%d\n", (int)hPipe, GetLastError());
-		return;
-	}
-
-	ConnectNamedPipe(hPipe, NULL);
-	char *tagReadBuf = (char*)malloc(TAGCACHESIZE);
-	int PIDcount = 0;
-
+	char* msgbuf;
+	int result;
+	DWORD bytesRead;
 	bool threadRunning = true;
 	while (threadRunning)
 	{
-		DWORD bytesRead = 0;
-		ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL);
-		if (bytesRead == TAGCACHESIZE) {
-			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n", tagReadBuf);
-			threadRunning = false;
-			break;
+		bytesRead = reader->get_message(&msgbuf);
+		if (bytesRead == 0) {
+			Sleep(1);
+			continue;
 		}
-		tagReadBuf[bytesRead] = 0;
-		tagReadBuf[TAGCACHESIZE-1] = 0;
-		//printf("\n\nread buf: [%s]\n\n", buf);
-		if (!bytesRead)
+		if (bytesRead == -1)
 		{
-			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE)
-				printf("thread %d pipe read ERROR: %d. [Closing handler]\n", TID, err);
-
+			printf("Thread handler got thread end message, terminating!\n");
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
@@ -709,11 +686,11 @@ void thread_trace_handler::TID_thread()
 			return;
 		}
 
-		char *next_token = tagReadBuf;
+		char *next_token = msgbuf;
 		while (true)
 		{
 			//todo: check if buf is sensible - suspicious repeats?
-			if (next_token >= tagReadBuf + bytesRead) break;
+			if (next_token >= msgbuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) {
 				printf("No trace data?");
@@ -754,8 +731,7 @@ void thread_trace_handler::TID_thread()
 					handle_tag(thistag);
 				}
 
-				//todo: conditional handling
-				//instructions we know are internal, like failed conditionals
+				//failed conditional
 				if (nextBlock == 0) continue;
 
 				int modType = find_containing_module(nextBlock);
@@ -827,6 +803,7 @@ void thread_trace_handler::TID_thread()
 
 					thisgraph->loopCounter++;
 					//put the verts/edges on the graph
+					printf("Processing %d iterations of %d block loop\n", loopCount, loopCache.size());
 					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 						handle_tag(*tagIt, loopCount);
 
@@ -884,10 +861,12 @@ void thread_trace_handler::TID_thread()
 				continue;
 			}
 
-			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, tagReadBuf);
-			if (next_token >= tagReadBuf + bytesRead) break;
+			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, msgbuf);
+			if (next_token >= msgbuf + bytesRead) break;
 		}
+
+		free(msgbuf);
 	}
-	free(tagReadBuf);
+	
 }
 

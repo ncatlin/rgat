@@ -2,11 +2,13 @@
 #include "module_handler.h"
 #include "traceMisc.h"
 #include "trace_handler.h"
+#include "thread_trace_reader.h"
 #include "thread_graph_data.h"
 #include "GUIManagement.h"
 
 void __stdcall module_handler::ThreadEntry(void* pUserData) {
-	return ((module_handler*)pUserData)->PID_thread();
+	module_handler *newThread = (module_handler*)pUserData;
+	return newThread->PID_thread();
 }
 
 //listen to mod data for given PID
@@ -61,10 +63,18 @@ void module_handler::PID_thread()
 				}
 				DWORD threadID = 0;
 
+				thread_trace_reader *TID_reader = new thread_trace_reader;
+				TID_reader->PID = PID;
+				TID_reader->TID = TID;
+				HANDLE hOutThread = CreateThread(
+					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
+					(LPVOID)TID_reader, 0, &threadID);
+
 				thread_trace_handler *TID_thread = new thread_trace_handler;
 				TID_thread->PID = PID;
 				TID_thread->TID = TID;
 				TID_thread->piddata = piddata;
+				TID_thread->reader = TID_reader;
 				TID_thread->timelinebuilder = clientState->timelineBuilder;
 
 				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
@@ -77,7 +87,7 @@ void module_handler::PID_thread()
 				dropMutex(piddata->graphsListMutex, "Module Handler");
 
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
-				HANDLE hOutThread = CreateThread(
+				hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_thread->ThreadEntry,
 					(LPVOID)TID_thread, 0, &threadID);
 

@@ -366,6 +366,7 @@ void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	}
 	
 	vertsdata->release_pos();
+	graph->dirtyHeatmap = true;
 }
 
 int render_main_graph(VISSTATE *clientState)
