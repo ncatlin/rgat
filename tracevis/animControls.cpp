@@ -24,6 +24,7 @@ void AnimControls::setAnimState(int newAnimState)
 	if (newAnimState == ANIM_LIVE)
 	{
 		connectBtn->setVisibility(true);
+		printf("\t\tpause visible!\n");
 		pauseBtn->setVisibility(true);
 		backJumpBtn->setVisibility(false);
 		backStepBtn->setVisibility(false);
@@ -48,6 +49,8 @@ void AnimControls::setAnimState(int newAnimState)
 		clientState->animationUpdate = 0;
 		clientState->modes.animation = false;
 		connectBtn->setVisibility(false);
+
+		printf("\t\tpause invisible!\n");
 		pauseBtn->setVisibility(false);
 		playBtn->setVisibility(true);
 	}
@@ -71,6 +74,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 
 		pauseBtn->setVisibility(true);
+		printf("\t\tpause visible!\n");
 		pauseBtn->setText("Pause");
 		pauseBtn->setSize(90, forwardStepBtn->getHeight());
 	}
@@ -134,7 +138,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	mouseLayout->setSize(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 30);
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	widgets->add(mouseLayout);
-
+	printf("setting x\n");
 	stepsLabel = new agui::Label();
 	stepsLabel->setFont(btnFont);
 	stepsLabel->setFontColor(agui::Color(210, 210, 210));
@@ -219,6 +223,8 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	pauseBtn->setMargins(0, 8, 0, 8);
 	pauseBtn->setBackColor(agui::Color(210, 210, 210));
 	pauseBtn->setVisibility(true);
+
+	printf("\t\tpause visible!\n");
 	pauseBtn->setSize(90, btnHeight);
 	controlsLayout->add(pauseBtn);
 

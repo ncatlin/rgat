@@ -64,6 +64,7 @@ public:
 	ALLEGRO_DISPLAY *maindisplay = 0;
 	ALLEGRO_BITMAP *mainGraphBMP = 0;
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
+	ALLEGRO_BITMAP *GUIBMP = 0;
 	ALLEGRO_FONT *standardFont;
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 

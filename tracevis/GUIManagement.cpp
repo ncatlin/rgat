@@ -37,27 +37,27 @@ void TraceVisGUI::showHideDiffFrame()
 
 void TraceVisGUI::updateWidgets(thread_graph_data *graph) 
 {
-	
-	if (!clientState->activeGraph || !widgetsUpdateCooldown--)
-	{
-		al_set_target_backbuffer(al_get_current_display());
-		al_clear_to_color(al_col_black);
-		if (graph)
-			controlWindow->update(graph);
- 	}
+	const int ticksRemaining = --widgetsUpdateCooldown;
+	if (!graph) return;
+	if (ticksRemaining == 0)
+		controlWindow->update(graph);
 }
 
 void TraceVisGUI::paintWidgets()
 {
-	if (widgetsUpdateCooldown < 0 && !smoothDrawing) return;
-
+	if (widgetsUpdateCooldown > 0 && !smoothDrawing) return;
+	
 	while (!pidEntryQueue.empty())
 	{
 		dropDownWidget->addItem(pidEntryQueue.back());
 		pidEntryQueue.pop_back();
 	}
 	widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
+
+	al_set_target_bitmap(clientState->GUIBMP);
+	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	widgets->render();
+
 }
 
 void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {
@@ -90,7 +90,6 @@ void TraceVisGUI::fitToResize()
 }
 void TraceVisGUI::widgetSetup(string fontpath) {
 
-	//agui::Image::setImageLoader(new agui::Allegro5ImageLoader);
 	agui::Font::setFontLoader(new agui::Allegro5FontLoader);
 	//Instance the input handler
 	widgetInputHandler = new agui::Allegro5Input();

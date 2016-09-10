@@ -10,7 +10,7 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 {
 	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
 	GRAPH_DISPLAY_DATA *linedata = get_activelines();
-
+	
 	if (needVBOReload_active)
 	{
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
@@ -41,7 +41,7 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 		loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
 	}
-
+	
 	if (showNodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainnodesdata->get_numVerts());
 

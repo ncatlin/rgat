@@ -705,10 +705,10 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 		load_edge_VBOS(diffgraph->graphVBOs, diffgraph->get_mainlines());
 		diffgraph->needVBOReload_main = false;
 	}
-
+	printf("gx1-");
 	if (clientstate->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
-
+	printf("x142-");
 	if (clientstate->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 

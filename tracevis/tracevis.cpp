@@ -542,6 +542,7 @@ int main(int argc, char **argv)
 	clientstate.mainFrameSize.height = clientstate.displaySize.height - BASE_CONTROLS_HEIGHT;
 	clientstate.mainFrameSize.width = clientstate.displaySize.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
 	clientstate.mainGraphBMP = al_create_bitmap(clientstate.mainFrameSize.width, clientstate.mainFrameSize.height);
+	clientstate.GUIBMP = al_create_bitmap(clientstate.displaySize.width, clientstate.displaySize.height);
 
 	clientstate.modes.wireframe = true;
 	clientstate.activeGraph = 0;
@@ -638,6 +639,9 @@ int main(int argc, char **argv)
 	{
 		frame_start_time = al_get_time();
 
+		al_set_target_backbuffer(al_get_current_display());
+		al_clear_to_color(al_col_black);
+
 		//no active graph but a process exists
 		//this is in the main loop so the GUI gets rendered at the start
 		//todo set to own function when we OOP this
@@ -688,6 +692,8 @@ int main(int argc, char **argv)
 		{
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
 			clientstate.activeGraph->needVBOReload_active = true;
+			if (!clientstate.activeGraph->VBOsGenned)
+				gen_graph_VBOs(clientstate.activeGraph);
 			if (clientstate.activeGraph->active)
 			{
 				widgets->controlWindow->setAnimState(ANIM_LIVE);
@@ -714,7 +720,7 @@ int main(int argc, char **argv)
 			
 		}
 		widgets->updateWidgets(clientstate.activeGraph);
-	
+		
 		if (clientstate.activeGraph)
 		{
 			al_set_target_bitmap(clientstate.mainGraphBMP);
@@ -758,8 +764,11 @@ int main(int argc, char **argv)
 		}
 
 		widgets->paintWidgets();
+		al_set_target_backbuffer(clientstate.maindisplay);
+		al_draw_bitmap(clientstate.GUIBMP, 0, 0, 0);
 		al_flip_display();
-		
+
+
 		//ui events
 		while (al_get_next_event(clientstate.event_queue, &ev))
 		{
@@ -887,8 +896,14 @@ bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 void handle_resize(VISSTATE *clientState) 
 {
 	glViewport(0, 0, clientState->mainFrameSize.width, clientState->mainFrameSize.height);
+
+	al_destroy_bitmap(clientState->GUIBMP);
+	clientState->GUIBMP = al_create_bitmap(clientState->displaySize.width, clientState->displaySize.height);
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->fitToResize();
+
+	al_destroy_bitmap(clientState->mainGraphBMP);
+	al_destroy_bitmap(clientState->previewPaneBMP);
 	clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
 	clientState->previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 50);
 }
