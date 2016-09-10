@@ -32,7 +32,7 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
 {
-	bool result = obtainMutex(posmutex, 0, 50);
+	bool result = obtainMutex(posmutex, 0, INFINITE);
 	if (!result) return 0;
 	return &vposarray;
 }
@@ -40,7 +40,7 @@ vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
 {
 
-	bool result = obtainMutex(colmutex, location, 150);
+	bool result = obtainMutex(colmutex, location, INFINITE);
 	if (!result) {
 		printf("failed to obtain colmutex %x\n", (unsigned int)colmutex); return 0;
 	}

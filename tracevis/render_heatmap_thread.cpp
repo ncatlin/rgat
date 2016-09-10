@@ -78,7 +78,10 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 		graph->heatmaplines->inc_edgesRendered();
 		graph->heatmaplines->set_numVerts(graph->heatmaplines->get_numVerts() + vertIdx);
-		assert(graph->heatmaplines->get_numVerts() <= graph->get_mainlines()->get_numVerts());
+		unsigned int htv = graph->heatmaplines->get_numVerts();
+		unsigned int mv = graph->get_mainlines()->get_numVerts();
+		//assert(htv <= mv);
+		if (htv > mv) printf("WARNING heatmapverts:%d, mainverts:%d\n", htv, mv);
 	}
 
 	graph->heatmaplines->release_col();

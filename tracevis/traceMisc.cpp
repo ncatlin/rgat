@@ -2,40 +2,43 @@
 #include "traceMisc.h"
 
 //gets [mutation]'th disassembly of [address]. if absent and [fuzzy] then returns the most recent 
-INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool fuzzy = false)
+INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool mostRecent = false)
 {
 	obtainMutex(mutex, 0, 4000);
+	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
 
-	if (disas->at(address).size() - 1 < mutation)
+
+	if (disasIt == disas->end() || (!mostRecent && disasIt->second.size()-1 < mutation))
 	{
-		if (disas->count(address) && fuzzy)
-			mutation = disas->at(address).size() - 1;
-		else
+		int waitTime = 150;
+		while (true)
 		{
-			int waitTime = 150;
-			while (true)
-			{
-				if (fuzzy)
-				{
-					if (disas->at(address).size() - 1 >= mutation)
-						break;
-				}
-				else if(disas->count(address))
-				{
-					mutation = disas->at(address).size() - 1;
-					break;
-				}
+			dropMutex(mutex, 0);
+			Sleep(waitTime);
 
-				dropMutex(mutex, 0);
-				Sleep(waitTime);
-				obtainMutex(mutex, 0, 4000);
+			obtainMutex(mutex, 0, 4000);
+			disasIt = disas->find(address);
+			
+			if (disasIt == disas->end())
+			{
 				waitTime += 100;
 				if (waitTime > 800)
 					printf("Long wait for disassembly of %lx, mutation %d.\n", address, mutation);
+				continue;
 			}
+
+			if (mostRecent)
+			{
+				mutation = disasIt->second.size() - 1;
+				break;
+			}
+			else
+				if (disasIt->second.size() - 1 >= mutation)
+					break;
 		}
 	}
-	INS_DATA *result = disas->at(address).at(mutation);
+
+	INS_DATA *result = disasIt->second.at(mutation);
 	dropMutex(mutex, 0);
 	return result;
 }

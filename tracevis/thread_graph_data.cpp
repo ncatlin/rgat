@@ -139,13 +139,14 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	int nodeIdx = ins->threadvertIdx[tid];
 
 	obtainMutex(animationListsMutex, 0, 1000);
-	if (!externCallSequence.count(nodeIdx)) 
+	map <unsigned int, EDGELIST>::iterator externit = externCallSequence.find(nodeIdx);
+	if (externit == externCallSequence.end())
 	{
 		dropMutex(animationListsMutex, "highlight externs");
 		return; 
 	}
 
-	EDGELIST callList = externCallSequence.at(nodeIdx);
+	EDGELIST callList = externit->second;
 
 	unsigned int callsSoFar = callCounter[nodeIdx];
 	callCounter[nodeIdx] = callsSoFar + 1;
@@ -175,13 +176,17 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_node(idx);
-	if (!piddata->modsyms.count(n->nodeMod)) 
+	map <int, std::map<long, string>>::iterator symMapIt;
+	symMapIt = piddata->modsyms.find(n->nodeMod);
+	if (symMapIt == piddata->modsyms.end())
 		return ("NOSYM2");
-	map<long, string> *modSyms = &piddata->modsyms.at(n->nodeMod);
-	if (!modSyms->count(n->address))
+
+	map<long, string> *modSyms = &symMapIt->second;
+	map<long, string>::iterator symIt = modSyms->find(n->address);
+	if (symIt == modSyms->end())
 		return("NOSYM");
-	else 
-		return piddata->modsyms.at(n->nodeMod).at(n->address);
+
+	return symIt->second;
 }
 
 void thread_graph_data::emptyArgQueue()
@@ -288,7 +293,7 @@ void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 			decrease_sequence();
 	}
 
-	latest_active_node = derive_anim_node();
+	set_active_node(derive_anim_node());
 }
 
 
@@ -369,7 +374,6 @@ void thread_graph_data::darken_animation(float alphaDelta)
 
 void thread_graph_data::reset_animation()
 {
-
 	last_anim_start = 0;
 	last_anim_stop = 0;
 	animInstructionIndex = 0;
@@ -379,7 +383,7 @@ void thread_graph_data::reset_animation()
 	blockInstruction = 0;
 	if (!nodeList.empty())
 	{
-		latest_active_node = &nodeList.at(0);
+		set_active_node(0);
 		darken_animation(1.0);
 	}
 	firstAnimatedBB = 0;
@@ -409,9 +413,9 @@ int thread_graph_data::brighten_BBs()
 	{
 		highlight_externs(animPosition);
 		//dont re-brighten on same animation frame
+
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
-		
 		
 		GLfloat *ncol = &animnodesdata->acquire_col("1m")->at(0);
 		GLfloat *ecol = &animlinedata->acquire_col("1m")->at(0);
@@ -434,7 +438,8 @@ int thread_graph_data::brighten_BBs()
 		int numInstructions = targBlock_Size.second;
 		
 		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
-		if (!ins->threadvertIdx.count(tid))
+		map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
+		if (vertIt == ins->threadvertIdx.end())
 		{
 			printf("WARNING: BrightenBBs going too far? Breaking!\n");
 			animnodesdata->release_col();
@@ -442,8 +447,8 @@ int thread_graph_data::brighten_BBs()
 			break;
 		}
 	
-		obtainMutex(disassemblyMutex, 0, 50);
-		unsigned int nodeIdx = ins->threadvertIdx.at(tid);
+		obtainMutex(disassemblyMutex, 0, 50); //do we need this?
+		unsigned int nodeIdx = vertIt->second;
 		dropMutex(disassemblyMutex, 0);
 
 		//link lastbb to this
@@ -553,7 +558,7 @@ void thread_graph_data::update_animation_render(float fadeRate)
 	brighten_BBs();
 }
 
-node_data *thread_graph_data::derive_anim_node()
+unsigned int thread_graph_data::derive_anim_node()
 {
 
 	//TODO this code appears 3 times, genericise it
@@ -576,7 +581,7 @@ node_data *thread_graph_data::derive_anim_node()
 		remainingInstructions--;
 	}
 
-	return get_node(target_ins->threadvertIdx.at(tid));
+	return target_ins->threadvertIdx.at(tid);
 
 }
 
@@ -588,17 +593,15 @@ void thread_graph_data::reset_mainlines()
 
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	EDGEMAP::iterator edgeit;
+	
 	obtainMutex(edMutex);
-	edgeit = edgeDict.find(edge);
+	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
 
-	if (edgeit != edgeDict.end())
-	{
-		*edged = &edgeit->second;
-		return true;
-	}
-	return false;
+	if (edgeit == edgeDict.end()) return false;
+
+	*edged = &edgeit->second;
+	return true;
 }
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
@@ -652,9 +655,13 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 
 VCOORD *thread_graph_data::get_active_node_coord()
 {
-	if (!latest_active_node && !nodeList.empty())
-		latest_active_node = get_node(0);
-	return &latest_active_node->vcoord;
+	if (nodeList.empty()) return NULL;
+
+	obtainMutex(animationListsMutex, 0, 1000);
+	VCOORD *result = &latest_active_node_coord;
+	dropMutex(animationListsMutex);
+
+	return result;
 }
 
 thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HANDLE mutex)

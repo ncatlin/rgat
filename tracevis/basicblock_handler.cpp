@@ -104,6 +104,7 @@ void basicblock_handler::PID_BB_thread()
 	char buf[BBBUFSIZE] = { 0 };
 	int PIDcount = 0;
 	printf("[vis bb thread] pipe connected, waiting for input...\n");
+	string lastSavedbuf, savedbuf;
 	while (true)
 	{
 		DWORD bread = 0;
@@ -114,7 +115,8 @@ void basicblock_handler::PID_BB_thread()
 			printf("\tERROR: Failed basic block pipe read for PID %d, error:%x!\n",PID,err);
 			return;
 		}
-		string savedbuf = string(buf);
+		lastSavedbuf = savedbuf;
+		savedbuf = string(buf);
 		//printf("read buffer [%s]\n", buf);
 
 		if (bread >= BBBUFSIZE)
@@ -186,10 +188,11 @@ void basicblock_handler::PID_BB_thread()
 				string opcodes(strtok_s(next_token, "@", &next_token));
 
 				obtainMutex(piddata->disassemblyMutex, "DisassemblyStart", 4000);
-				if (piddata->disassembly.count(targetaddr))
+				map<unsigned long,INSLIST>::iterator addressDissasembly = piddata->disassembly.find(targetaddr);
+				if (addressDissasembly != piddata->disassembly.end())
 				{
 					//ignore if address has been seen and opcodes are most recent
-					INS_DATA *insd = piddata->disassembly[targetaddr].back();
+					INS_DATA *insd = addressDissasembly->second.back();
 					if (insd->opcodes == opcodes)
 					{
 						dropMutex(piddata->disassemblyMutex, "Inserted Dis");

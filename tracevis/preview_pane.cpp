@@ -40,8 +40,15 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 	int posbufsize = previewgraph->previewlines->get_numVerts() * POSELEMS * sizeof(GLfloat);
 	int linebufsize = previewgraph->previewlines->get_numVerts() * COLELEMS * sizeof(GLfloat);
 	if (!posbufsize || !linebufsize) return;
-	load_VBO(VBO_LINE_POS, VBOs, posbufsize, previewgraph->previewlines->readonly_pos());
-	load_VBO(VBO_LINE_COL, VBOs, linebufsize, previewgraph->previewlines->readonly_col());
+
+	vector<float> *lineVector = 0;
+	lineVector = previewgraph->previewlines->acquire_pos("upg");
+	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
+	previewgraph->previewlines->release_pos();
+
+	lineVector = previewgraph->previewlines->acquire_col("upg");
+	load_VBO(VBO_LINE_COL, VBOs, linebufsize, &lineVector->at(0));
+	previewgraph->previewlines->release_col();
 
 	previewgraph->needVBOReload_preview = false;
 }

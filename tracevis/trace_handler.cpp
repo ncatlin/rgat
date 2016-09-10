@@ -422,7 +422,8 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
 		thisCallArgs.push_back(*pendcaIt);
 
-	thisgraph->pendingcallargs.at(funcpc).at(returnpc).push_back(thisCallArgs);
+	//thisgraph->pendingcallargs.at(funcpc).at(returnpc).push_back(thisCallArgs);
+	thisgraph->pendingcallargs.at(pendingFunc).at(pendingRet).push_back(thisCallArgs);
 
 	pendingArgs.clear();
 	pendingFunc = 0;
@@ -656,8 +657,8 @@ int thread_trace_handler::find_containing_module(unsigned long address)
 	const int numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; modNo++)
 	{
-		if (address >= piddata->modBounds.at(modNo).first &&
-			address <= piddata->modBounds.at(modNo).second)
+		pair<unsigned long, unsigned long> *bounds = &piddata->modBounds.at(modNo);
+		if (address >= bounds->first &&	address <= bounds->second)
 		{
 			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) return MOD_ACTIVE;
 			else return MOD_UNINSTRUMENTED;
@@ -701,47 +702,24 @@ void thread_trace_handler::TID_thread()
 			//todo: check if buf is sensible - suspicious repeats?
 			if (next_token >= msgbuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
-			if (!entry) {
-				printf("No trace data?");
-				continue;
-			}
+			if (!entry) break;
 
 			if (entry[0] == 'j')
 			{
 				TAG thistag;
 				//each of these string conversions is 1% of trace handler time
-				string jstart = string(strtok_s(entry + 1, ",", &entry));
-				if (!caught_stol(jstart, &thistag.blockaddr, 16)) {
-					printf("1 STOL ERROR: %s\n", jstart.c_str());
-					continue;
-				}
 
-				string jtarg = string(strtok_s(entry, ",", &entry));
-				unsigned long nextBlock;
-				if (!caught_stol(jtarg, &nextBlock, 16)) {
-					printf("1 STOL ERROR: %s\n", jtarg.c_str());
-					continue;
-				}
-		
-				string jcount_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoi(jcount_s, &thistag.insCount, 10)) {
-					printf("1 STOL ERROR: %s\n", jcount_s.c_str());
-					continue;
-				}
+				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
+				unsigned long nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
+				thistag.insCount = stol(strtok_s(entry, ",", &entry));
 
 				thistag.jumpModifier = INTERNAL_CODE;
 				if (loopState == LOOP_START)
-				{
-					//printf("pb tag %lx\n", thistag.blockaddr);
 					loopCache.push_back(thistag);
-				}
 				else
-				{
-					//printf("hand tag %lx\n", thistag.blockaddr);
 					handle_tag(thistag);
-				}
 
-				//failed conditional
+				//fallen through conditional
 				if (nextBlock == 0) continue;
 
 				int modType = find_containing_module(nextBlock);
@@ -755,9 +733,9 @@ void thread_trace_handler::TID_thread()
 
 				//see if next block is external
 				//this is our alternative to instrumenting *everything*
+				//rarely called
 				while (true)
 				{
-					
 					if (get_extern_at_address(nextBlock, &thistag.foundExtern))
 					{
 						external = true;
@@ -772,15 +750,12 @@ void thread_trace_handler::TID_thread()
 				thistag.jumpModifier = EXTERNAL_CODE;
 				thistag.insCount = 0;
 
-				obtainMutex(piddata->externDictMutex);
-				int modu = piddata->externdict.at(nextBlock)->modnum;
-				dropMutex(piddata->externDictMutex);
+				int modu = thistag.foundExtern->modnum;
 
 				if (loopState == LOOP_START)
 					loopCache.push_back(thistag);
 				else
 					handle_tag(thistag);
-
 
 				continue;
 			}
@@ -821,6 +796,8 @@ void thread_trace_handler::TID_thread()
 					loopState = NO_LOOP;
 					continue;
 				}
+				printf("Fell through bad loop tag? [%s]\n",entry);
+				assert(0);
 			}
 
 			string enter_s = string(entry);
@@ -836,14 +813,14 @@ void thread_trace_handler::TID_thread()
 				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
 				if (!caught_stol(e_ip_s, &e_ip, 16)) {
 					printf("handle_arg 4 STOL ERROR: %s\n", e_ip_s.c_str());
-					return;
+					assert(0);
 				}
 
 				unsigned long e_code;
 				string e_code_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stol(e_code_s, &e_code, 16)) {
 					printf("handle_arg 4 STOL ERROR: %s\n", e_code_s.c_str());
-					return;
+					assert(0);
 				}
 
 				printf("Target exception [code %lx] at address %lx\n", e_code, e_ip);
@@ -856,14 +833,14 @@ void thread_trace_handler::TID_thread()
 				string funcpc_s = string(strtok_s(entry+4, ",", &entry));
 				if (!caught_stol(funcpc_s, &funcpc, 16)) {
 					printf("handle_arg 4 STOL ERROR: %s\n", funcpc_s.c_str());
-					return;
+					assert(0);
 				}
 
 				unsigned long retpc;
 				string retpc_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stol(retpc_s, &retpc, 16)) {
 					printf("handle_arg 4 STOL ERROR: %s\n", retpc_s.c_str());
-					return;
+					assert(0);
 				}
 
 				//TODO? BB_DATA* extfunc = piddata->externdict.at(funcpc);
@@ -874,8 +851,6 @@ void thread_trace_handler::TID_thread()
 			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, msgbuf);
 			if (next_token >= msgbuf + bytesRead) break;
 		}
-
-		free(msgbuf);
 	}
 	
 }

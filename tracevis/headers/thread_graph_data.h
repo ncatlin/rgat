@@ -114,11 +114,15 @@ public:
 	void highlight_externs(unsigned long targetSequence);
 
 	void reset_mainlines();
-	node_data *derive_anim_node();
+	unsigned int derive_anim_node();
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
-	VCOORD * get_active_node_coord();
-	void set_active_node(int idx) {	latest_active_node = &nodeList.at(idx);}
+	VCOORD *get_active_node_coord();
+	void set_active_node(unsigned int idx) {	
+		obtainMutex(animationListsMutex, 0, 1000);
+		latest_active_node_coord = get_node(idx)->vcoord;
+		dropMutex(animationListsMutex);
+	}
 	void update_animation_render(float fadeRate);
 	void reset_animation();
 	void darken_animation(float alphaDelta);
@@ -132,7 +136,7 @@ public:
 	void emptyArgQueue();
 	vector <string> loggedCalls;
 
-	node_data * latest_active_node = 0;
+	VCOORD latest_active_node_coord;
 
 	unsigned int tid = 0;
 	unsigned int pid = 0;
@@ -166,22 +170,22 @@ public:
 	MULTIPLIERS *p_scalefactors = NULL;
 
 	//node+edge col+pos
-	bool needVBOReload_main = false;
+	bool needVBOReload_main = true;
 	GLuint graphVBOs[4] = { 0,0,0,0 };
 	
 	bool VBOsGenned = false;
 	//node+edge col+pos
-	bool needVBOReload_preview = false;
+	bool needVBOReload_preview = true;
 	GLuint previewVBOs[4] = { 0,0,0,0 };
 	GRAPH_DISPLAY_DATA *previewnodes = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;
 
 	bool dirtyHeatmap = false;
-	bool needVBOReload_heatmap = false;
+	bool needVBOReload_heatmap = true;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
 
-	bool needVBOReload_conditional = false;
+	bool needVBOReload_conditional = true;
 	GLuint conditionalVBOs[2] = { 0 };
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
@@ -206,7 +210,7 @@ public:
 	unsigned long loopIteration = 0;
 	unsigned long targetIterations = 0;
 
-	bool needVBOReload_active = false;
+	bool needVBOReload_active = true;
 	GLuint activeVBOs[4] = { 0,0,0,0 };
 
 	//active areas + inactive areas

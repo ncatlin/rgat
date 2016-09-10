@@ -687,7 +687,7 @@ int main(int argc, char **argv)
 		if (clientstate.newActiveGraph)
 		{
 			clientstate.activeGraph = (thread_graph_data *)clientstate.newActiveGraph;
-			
+			clientstate.activeGraph->needVBOReload_active = true;
 			if (clientstate.activeGraph->active)
 			{
 				widgets->controlWindow->setAnimState(ANIM_LIVE);

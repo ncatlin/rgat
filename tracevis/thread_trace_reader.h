@@ -24,6 +24,7 @@ private:
 	bool readingFirstQueue = true;
 	HANDLE flagMutex = CreateMutex(NULL, FALSE, NULL);
 	void add_message(char *buffer, int size);
+	vector<pair<char *, int>> * get_read_queue();
 	bool pipeClosed = false;
 	unsigned int processedData = 0;
 };
