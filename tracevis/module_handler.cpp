@@ -14,7 +14,7 @@ void __stdcall module_handler::ThreadEntry(void* pUserData) {
 //listen to mod data for given PID
 void module_handler::PID_thread()
 {
-	wstring pipename(L"\\\\.\\pipe\\rioThreadMod");
+	pipename = wstring(L"\\\\.\\pipe\\rioThreadMod");
 	pipename.append(std::to_wstring(PID));
 
 	const wchar_t* szName = pipename.c_str();
@@ -32,8 +32,19 @@ void module_handler::PID_thread()
 	char buf[400] = { 0 };
 	int PIDcount = 0;
 
+	vector < pair <thread_trace_reader*, thread_trace_handler *>> threadList;
+
 	while (true)
 	{
+		if (die) { 
+			vector < pair <thread_trace_reader*, thread_trace_handler *>>::iterator threadIt;
+			for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
+			{
+				threadIt->first->die = true;
+				threadIt->second->die = true;
+			}
+			break; 
+		}
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
 			printf("Failed to read metadata pipe for PID:%d\n", PID);
@@ -76,6 +87,8 @@ void module_handler::PID_thread()
 				TID_thread->piddata = piddata;
 				TID_thread->reader = TID_reader;
 				TID_thread->timelinebuilder = clientState->timelineBuilder;
+
+				threadList.push_back(make_pair(TID_reader, TID_thread));
 
 				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
 
@@ -159,6 +172,9 @@ void module_handler::PID_thread()
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
 				continue;
 			}
+
+
+
 			printf("<PID %d mod> (%d b): %s", PID, bread, buf);
 		}
 	}

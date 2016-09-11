@@ -11,6 +11,7 @@ public:
 	int PID;
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
+	bool die = false;
 
 private:
 	void rendering_thread();

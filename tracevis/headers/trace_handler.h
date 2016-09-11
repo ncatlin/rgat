@@ -31,6 +31,7 @@ public:
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
 	thread_trace_reader *reader;
+	bool die = false;
 	
 private:
 	//important state variables!

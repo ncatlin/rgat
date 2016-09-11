@@ -9,6 +9,7 @@ public:
 	static void __stdcall ThreadEntry(void* pUserData);
 	int PID;
 	int TID;
+	bool die = false;
 	int get_message(char **buffer, unsigned long *bufSize);
 	void reader_thread();
 	thread_trace_reader();

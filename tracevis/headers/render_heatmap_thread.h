@@ -17,7 +17,7 @@ public:
 	static void __stdcall ThreadEntry(void* pUserData);
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
-
+	bool die = false;
 	void setUpdateDelay(int delay) { updateDelayMS = delay; }
 
 private:

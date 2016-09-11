@@ -76,6 +76,7 @@ void maingraph_render_thread::rendering_thread()
 	thread_graph_data *activeGraph;
 	while (true)
 	{
+		if (die) break;
 		activeGraph = clientState->activeGraph;
 		if (!activeGraph) {
 			Sleep(5); continue;

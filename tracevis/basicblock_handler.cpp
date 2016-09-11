@@ -75,7 +75,7 @@ void __stdcall basicblock_handler::ThreadEntry(void* pUserData) {
 //listen to BB data for given PID
 void basicblock_handler::PID_BB_thread()
 {
-	wstring pipename(L"\\\\.\\pipe\\rioThreadBB");
+	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(std::to_wstring(PID));
 
 	const wchar_t* szName = pipename.c_str();
@@ -107,6 +107,7 @@ void basicblock_handler::PID_BB_thread()
 	string lastSavedbuf, savedbuf;
 	while (true)
 	{
+		if (die) break;
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, BBBUFSIZE, &bread, NULL)) {
 			int err = GetLastError();

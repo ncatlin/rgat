@@ -910,6 +910,8 @@ bool thread_graph_data::unserialise(ifstream *file, map <unsigned long, INSLIST>
 	if (!loadStats(file)) { printf("Stats load failed\n");  return false; }
 	if (!loadAnimationData(file)) { printf("Animation load failed\n");  return false; }
 	if (!loadCallSequence(file)) { printf("Call sequence load failed\n"); return false; }
+
+	dirtyHeatmap = true;
 	return true;
 }
 

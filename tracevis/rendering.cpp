@@ -315,6 +315,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
 		animvertdata->release_col();
 	}
+
 	return 1;
 }
 

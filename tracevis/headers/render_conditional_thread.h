@@ -11,6 +11,7 @@ public:
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 	void setUpdateDelay(int delay) { updateDelayMS = delay; }
+	bool die = false;
 
 private:
 	int updateDelayMS = 200;

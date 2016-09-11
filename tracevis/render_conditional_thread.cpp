@@ -78,7 +78,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 	}
 	if (newDrawn) graph->needVBOReload_conditional = true;
-	return 1;
+	return true;
 }
 
 //thread handler to build graph for each thread
@@ -104,15 +104,15 @@ void conditional_renderer::conditional_thread()
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())
 		{
+			if (die) break;
 			thread_graph_data *graph = *graphlistIt;
 			graphlistIt++;
 
-			if (graph->active)
+			if (graph->active || graph->get_num_edges() > graph->conditionallines->get_renderedEdges())
 				render_graph_conditional(graph);
 			else if (!finishedGraphs[graph])
 			{
-				finishedGraphs[graph] = true;
-				render_graph_conditional(graph);
+				finishedGraphs[graph] = render_graph_conditional(graph);
 			}
 			Sleep(80);
 		}

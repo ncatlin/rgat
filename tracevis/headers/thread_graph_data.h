@@ -188,6 +188,7 @@ public:
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
 
+	bool dirtyConditional = false;
 	bool needVBOReload_conditional = true;
 	GLuint conditionalVBOs[2] = { 0 };
 	GRAPH_DISPLAY_DATA *conditionallines = 0;

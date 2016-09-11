@@ -131,10 +131,12 @@ void heatmap_renderer::heatmap_thread()
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())
 		{
+			if (die) break;
 			thread_graph_data *graph = *graphlistIt;
 			graphlistIt++;
-
-			if (graph->active || graph->dirtyHeatmap)
+			int i1 = graph->get_num_edges();
+			int i2 = graph->heatmaplines->get_renderedEdges();
+			if (graph->active || graph->get_num_edges() > graph->heatmaplines->get_renderedEdges())
 			{
 				render_graph_heatmap(graph);
 				graph->dirtyHeatmap = false;

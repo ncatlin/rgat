@@ -12,6 +12,8 @@ public:
 	int PID;
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
+	bool die = false;
+	wstring pipename;
 
 private:
 	void PID_BB_thread();

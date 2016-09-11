@@ -58,12 +58,21 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 		(LPVOID)conditional_thread, 0, &threadID);
 
 }
+ 
+struct THREAD_POINTERS {
+	module_handler *modThread;
+	basicblock_handler *BBthread;
+	preview_renderer *previewThread;
+	heatmap_renderer *heatmapThread;
+	conditional_renderer *conditionalThread;
+};
 
-void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
+THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
+	THREAD_POINTERS *threads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
 
-	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return;
+	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return 0;
 	glob_piddata_map->insert_or_assign(PID, piddata);
 	dropMutex(pidmutex, "Launch PID threads");
 
@@ -78,6 +87,7 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	HANDLE hPIDmodThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry,
 		(LPVOID)tPIDThread, 0, &threadID);
+	threads->modThread = tPIDThread;
 
 	//handles new disassembly data
 	basicblock_handler *tBBThread = new basicblock_handler;
@@ -88,35 +98,40 @@ void launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_pid
 	HANDLE hPIDBBThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)tBBThread->ThreadEntry,
 		(LPVOID)tBBThread, 0, &threadID);
+	threads->BBthread = tBBThread;
 
-	preview_renderer *render_preview_thread = new preview_renderer;
-	render_preview_thread->clientState = clientState;
-	render_preview_thread->PID = PID;
-	render_preview_thread->piddata = piddata;
+	preview_renderer *tPrevThread = new preview_renderer;
+	tPrevThread->clientState = clientState;
+	tPrevThread->PID = PID;
+	tPrevThread->piddata = piddata;
 
 	HANDLE hPreviewThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)render_preview_thread->ThreadEntry,
-		(LPVOID)render_preview_thread, 0, &threadID);
-	
-	heatmap_renderer *heatmap_thread = new heatmap_renderer;
-	heatmap_thread->clientState = clientState;
-	heatmap_thread->piddata = piddata;
-	heatmap_thread->setUpdateDelay(clientState->config->heatmap.delay);
+		NULL, 0, (LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry,
+		(LPVOID)tPrevThread, 0, &threadID);
+	threads->previewThread = tPrevThread;
+
+	heatmap_renderer *tHeatThread = new heatmap_renderer;
+	tHeatThread->clientState = clientState;
+	tHeatThread->piddata = piddata;
+	tHeatThread->setUpdateDelay(clientState->config->heatmap.delay);
 
 	HANDLE hHeatThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
-		(LPVOID)heatmap_thread, 0, &threadID);
-	
-	conditional_renderer *conditional_thread = new conditional_renderer;
-	conditional_thread->clientState = clientState;
-	conditional_thread->piddata = piddata;
-	conditional_thread->setUpdateDelay(clientState->config->conditional.delay);
+		NULL, 0, (LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry,
+		(LPVOID)tHeatThread, 0, &threadID);
+	threads->heatmapThread = tHeatThread;
+
+	conditional_renderer *tCondThread = new conditional_renderer;
+	tCondThread->clientState = clientState;
+	tCondThread->piddata = piddata;
+	tCondThread->setUpdateDelay(clientState->config->conditional.delay);
 
 	Sleep(200);
 	HANDLE hConditionThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
-		(LPVOID)conditional_thread, 0, &threadID);
+		NULL, 0, (LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry,
+		(LPVOID)tCondThread, 0, &threadID);
+	threads->conditionalThread = tCondThread;
 
+	return threads;
 }
 
 
@@ -157,7 +172,8 @@ int process_coordinator_thread(VISSTATE *clientState) {
 		return -1;
 	}
 
-	
+	vector<THREAD_POINTERS*> threadsList;
+
 	printf("In process coordinator thread, listening on pipe...\n");
 	DWORD bread = 0;
 	char buf[40];
@@ -177,13 +193,37 @@ int process_coordinator_thread(VISSTATE *clientState) {
 		int PID = 0;
 		if (!extract_integer(buf, string("PID"), &PID))
 		{
-			//todo: fail here soemtimes
-			printf("ERROR: Something bad happen in extract_integer, string is: %s\n", buf);
+			if (string(buf).substr(0,3) == "DIE")
+			{
+				vector<THREAD_POINTERS *>::iterator threadIt;
+				for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
+				{
+					THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
+					t->BBthread->die = true;
+					ofstream BBPipe;
+					BBPipe.open(t->BBthread->pipename);
+					BBPipe << "DIE" << endl;
+					BBPipe.close();
+
+					((THREAD_POINTERS *)*threadIt)->modThread->die = true;
+					ofstream modPipe;
+					modPipe.open(t->modThread->pipename);
+					modPipe << "DIE" << endl;
+					modPipe.close();
+
+					t->heatmapThread->die = true;
+					t->conditionalThread->die = true;
+					t->previewThread->die = true;
+				}
+			}
+			else
+				printf("ERROR: Something bad happen in extract_integer, string is: %s\n", buf);
 			return -1;
 		}
 
 		clientState->timelineBuilder->notify_new_pid(PID);
-		launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
+		THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
+		threadsList.push_back(threads);
 	}
 }
 
@@ -774,9 +814,16 @@ int main(int argc, char **argv)
 				break;
 
 			case EV_BTN_QUIT:
+			{
+				ofstream processListener;
+				processListener.open("\\\\.\\pipe\\BootstrapPipe");
+				processListener << "DIE" << endl;
+				processListener.close();
+				mainRenderThread->die = true;
+				Sleep(500);
 				running = false;
 				break;
-
+			}
 			default:
 				printf("WARNING! Unhandled event %d\n", eventResult);
 			}

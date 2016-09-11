@@ -42,10 +42,10 @@ void thread_trace_reader::reader_thread()
 	int PIDcount = 0;
 	char *messageBuffer;
 
-	bool threadRunning = true;
-	while (threadRunning)
+	DWORD bytesRead = 0;
+	while (true)
 	{
-		DWORD bytesRead = 0;
+		if (die) break;
 		ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL);
 		if (bytesRead == TAGCACHESIZE) {
 			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n", tagReadBuf);

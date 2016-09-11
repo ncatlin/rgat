@@ -699,6 +699,7 @@ void thread_trace_handler::TID_thread()
 		char *next_token = msgbuf;
 		while (true)
 		{
+			if (die) break;
 			//todo: check if buf is sensible - suspicious repeats?
 			if (next_token >= msgbuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
