@@ -16,12 +16,15 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 	
-		//TODO: these together cause massive memory heamorrage. FIX!
+		GLfloat *buf = mainlinedata->readonly_pos();
+		if (!buf) return;
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
-		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, mainlinedata->readonly_pos());
+		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, buf);
 
+		buf = animlinedata->readonly_col();
+		if (!buf) return;
 		int linebufsize = animlinedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
-		load_VBO(VBO_LINE_COL, activeVBOs, linebufsize, animlinedata->readonly_col());
+		load_VBO(VBO_LINE_COL, activeVBOs, linebufsize, buf);
 
 		needVBOReload_active = false;
 	}

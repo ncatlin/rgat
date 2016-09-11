@@ -1,17 +1,19 @@
 #include "stdafx.h"
 #include "rendering.h"
 
-void plot_wireframe(VISSTATE *clientstate)
+//must be called by main opengl context thread
+void plot_wireframe(VISSTATE *clientState)
 {
-	ALLEGRO_COLOR *wireframe_col = &clientstate->config->wireframe.edgeColor;
+	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
 	int ii, pp, index;
-	long diam = clientstate->activeGraph->m_scalefactors->radius;
+	long diam = clientState->activeGraph->m_scalefactors->radius;
 	const int points = WF_POINTSPERLINE;
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
-	GRAPH_DISPLAY_DATA *wireframe_data = clientstate->wireframe_sphere;
+	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
 	vector <float> *vpos = wireframe_data->acquire_pos("1c");
 	vector <float> *vcol = wireframe_data->acquire_col("1c");
@@ -44,8 +46,8 @@ void plot_wireframe(VISSTATE *clientstate)
 		}
 	}
 
-	load_VBO(VBO_SPHERE_POS, clientstate->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
-	load_VBO(VBO_SPHERE_COL, clientstate->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
+	load_VBO(VBO_SPHERE_POS, clientState->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
+	load_VBO(VBO_SPHERE_COL, clientState->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
 	wireframe_data->release_pos();
 	wireframe_data->release_col();
 }
@@ -248,18 +250,18 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos("334");
 	vector<GLfloat> *mainNcol = vertdata->acquire_col("33f");
-
+	/* //made wait infinite now, won't return 0
 	if (!mainNpos || !mainNcol)
 	{
 		vertdata->release_pos();
 		vertdata->release_col();
 		return 0;
-	}
+	}*/
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
 	mainNpos->push_back(screenc.z);
-
+	//todo read colours from config
 	if (n->external)
 		active_col = &al_col_green;
 	else {
@@ -280,7 +282,6 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 			case OPCALL:
 				active_col = &al_col_purple;
 				break;
-
 			case ISYS: //todo: never used - intended for syscalls
 				active_col = &al_col_grey;
 				break;
@@ -301,7 +302,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	vertdata->release_col();
 	vertdata->release_pos();
 
-	//place node on the animated version of the graph (preview doesn't have one)
+	//place node on the animated version of the graph
 	if (!vertdata->isPreview())
 	{
 		vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
@@ -446,18 +447,13 @@ int render_main_graph(VISSTATE *clientState)
 
 	if (doResize || graph->vertResizeIndex > 0)
 	{
-		printf("in resize, rescale\n");
 		rescale_nodes(graph, false);
 		
 		graph->zoomLevel = graph->m_scalefactors->radius;
 		graph->needVBOReload_main = true;
 
 		if (clientState->wireframe_sphere)
-			delete clientState->wireframe_sphere;
-
-		clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-		plot_wireframe(clientState);
-		plot_colourpick_sphere(clientState);
+			clientState->remakeWireframe = true;
 	}
 
 	int drawCount = draw_new_verts(graph, graph->get_mainnodes());
@@ -482,10 +478,7 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
 	if (edgeIt != edgeEnd)
-	{
-		printf("rendering preview edges from %d,%d\n", edgeIt->first, edgeIt->second);
 		graph->needVBOReload_preview = true;
-	}
 
 	int remainingEdges = clientState->config->preview.edgesPerRender;
 	map<int, ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
@@ -509,7 +502,6 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 	{
 		rescale_nodes(previewGraph, true);
 		previewGraph->previewlines->reset();
-		printf("resset preview %d\n", previewGraph->tid);
 		previewGraph->previewNeedsResize = false;
 
 	}
@@ -754,10 +746,10 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 		load_edge_VBOS(diffgraph->graphVBOs, diffgraph->get_mainlines());
 		diffgraph->needVBOReload_main = false;
 	}
-	printf("gx1-");
+
 	if (clientstate->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
-	printf("x142-");
+
 	if (clientstate->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 
@@ -842,7 +834,7 @@ void display_big_conditional(VISSTATE *clientstate)
 			graph->conditionalnodes->col_size(), graph->conditionalnodes->readonly_col());
 		load_VBO(VBO_COND_LINE_COLOUR, graph->conditionalVBOs, 
 			graph->conditionallines->col_size(), graph->conditionallines->readonly_col());
-		printf("Loading %d bytes from condcol to vbo\n", graph->conditionallines->col_size());
+
 		graph->needVBOReload_conditional = false;
 	}
 
@@ -884,13 +876,8 @@ void display_big_conditional(VISSTATE *clientstate)
 
 void drawHighlight(VCOORD *nodepos, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
-	FCOORD center;
-	center.x = 0;
-	center.y = 0;
-	center.z = 0;
-
 	FCOORD nodeCoord;
 	float adjB = nodepos->b + float(nodepos->bMod * BMODMAG);
 	sphereCoord(nodepos->a, adjB, &nodeCoord, scale, lengthModifier);
-	drawHighlightLine(center, nodeCoord, colour);
+	drawHighlightLine(nodeCoord, colour);
 }

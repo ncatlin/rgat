@@ -22,5 +22,5 @@ void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes);
 int plot_colourpick_sphere(VISSTATE *clientstate);
 
-void drawHighlightLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour);
+void drawHighlightLine(FCOORD endPt, ALLEGRO_COLOR *colour);
 void gather_projection_data(PROJECTDATA *pd);

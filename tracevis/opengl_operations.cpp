@@ -269,10 +269,10 @@ void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes)
 	glMultiDrawArrays(GL_LINE_LOOP, starts, sizes, WIREFRAMELOOPS);
 }
 
-void drawHighlightLine(FCOORD p1, FCOORD p2, ALLEGRO_COLOR *colour) {
+void drawHighlightLine(FCOORD lineEndPt, ALLEGRO_COLOR *colour) {
 	glColor4f(colour->r, colour->g, colour->b, colour->a);
 	glBegin(GL_LINES);
-	glVertex3f(p1.x, p1.y, p1.z);
-	glVertex3f(p2.x, p2.y, p2.z);
+	glVertex3f(0, 0, 0);
+	glVertex3f(lineEndPt.x, lineEndPt.y, lineEndPt.z);
 	glEnd();
 }

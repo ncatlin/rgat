@@ -102,6 +102,7 @@ public:
 	
 	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
 	GLuint wireframeVBOs[2];
+	bool remakeWireframe = false;
 	
 	std::map<int, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);

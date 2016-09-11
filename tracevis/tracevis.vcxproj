@@ -164,6 +164,7 @@
     <ClInclude Include="exeWindow.h" />
     <ClInclude Include="headers\diff_plotter.h" />
     <ClInclude Include="highlightWindow.h" />
+    <ClInclude Include="maingraph_render_thread.h" />
     <ClInclude Include="mathStructs.h" />
     <ClInclude Include="headers\edge_data.h" />
     <ClInclude Include="headers\graph_display_data.h" />
@@ -281,6 +282,7 @@
     <ClCompile Include="exeWindow.cpp" />
     <ClCompile Include="graph_display_data.cpp" />
     <ClCompile Include="highlightWindow.cpp" />
+    <ClCompile Include="maingraph_render_thread.cpp" />
     <ClCompile Include="node_data.cpp" />
     <ClCompile Include="osSpecific.cpp" />
     <ClCompile Include="preview_pane.cpp" />

@@ -7,6 +7,7 @@
 #include "module_handler.h"
 #include "render_heatmap_thread.h"
 #include "render_conditional_thread.h"
+#include "maingraph_render_thread.h"
 #include "GUIManagement.h"
 #include "rendering.h"
 #include "b64.h"
@@ -186,19 +187,6 @@ int process_coordinator_thread(VISSTATE *clientState) {
 	}
 }
 
-void updateMainRender(VISSTATE *clientState)
-{
-	render_main_graph(clientState);
-	if (clientState->rescale)
-	{
-		printf("DRAWING WIREFRAME+COLSPHERE!\n");
-
-		clientState->rescale = false;
-	}
-
-	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainnodes()->get_numVerts(),
-		clientState->activeGraph->get_mainlines()->get_renderedEdges());
-}
 
 
 void change_mode(VISSTATE *clientState, int mode)
@@ -437,86 +425,58 @@ void performIrregularActions(VISSTATE *clientState)
 	}
 }
 
-void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
+void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
 {
 	TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
 	thread_graph_data *graph = clientState->activeGraph;
-	if (
-		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
-		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
-		clientState->rescale || clientState->activeGraph->vertResizeIndex)
-	{
-		updateMainRender(clientState);
-	}
 
-	if (!graph->active && clientState->animationUpdate)
-	{
-		int result = graph->updateAnimation(clientState->animationUpdate,
-			clientState->modes.animation, clientState->skipLoop);
-		if (clientState->skipLoop) clientState->skipLoop = false;
-
-		if (clientState->modes.animation)
-		{
-			if (result == ANIMATION_ENDED)
-			{
-				graph->reset_animation();
-				clientState->animationUpdate = 0;
-				clientState->modes.animation = false;
-				widgets->controlWindow->notifyAnimFinished();
-			}
-			else
-				graph->update_animation_render(clientState->config->animationFadeRate);
-		}
-		else
-			clientState->animationUpdate = 0;
-	}
-
-	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors,&clientState->config->activityLineColour, 0);
-	if (clientState->highlightData.highlightState)
-		graph->highlightNodes(&clientState->highlightData.highlightNodes, 
-			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
-	
-
-	if (clientState->modes.heatmap) 
-	{ 
-		display_big_heatmap(clientState); 
-		return; 
-	}
-	
-	if (clientState->modes.conditional) 
-	{
-		display_big_conditional(clientState); 
-		return;
-	}
-
-	if (graph->active)
-	{
-		if (clientState->modes.animation)
-			graph->animate_latest(clientState->config->animationFadeRate);
-	}
-	else
-		if (graph->terminated)
-		{
-			graph->reset_animation();
-			clientState->modes.animation = false;
-			graph->terminated = false;
-			if (clientState->highlightData.highlightState)
-				widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-					clientState->activeGraph,
-					clientState->activePid);
-		}
-			
 	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
 		clientState->logSize = fill_extern_log(clientState->textlog,
 			clientState->activeGraph, clientState->logSize);
-		
+
+	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+	if (clientState->highlightData.highlightState)
+		graph->highlightNodes(&clientState->highlightData.highlightNodes,
+			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
+
+	if (clientState->modes.heatmap)
+	{
+		display_big_heatmap(clientState);
+		return;
+	}
+
+	if (clientState->modes.conditional)
+	{
+		display_big_conditional(clientState);
+		return;
+	}
+
+
+
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	display_graph(clientState, graph, &pd);
 
-	//transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
-	//drawExternTexts(graph, externFloatingText, clientState, &pd);
+	transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
+	drawExternTexts(graph, externFloatingText, clientState, &pd);
+}
 
+void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
+{
+	if (clientState->remakeWireframe);
+	{
+		delete clientState->wireframe_sphere;
+		clientState->wireframe_sphere = 0;
+		clientState->remakeWireframe = false;
+	}
+
+	if (!clientState->wireframe_sphere)
+	{
+		plot_wireframe(clientState);
+		plot_colourpick_sphere(clientState);
+	}
+
+	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
 }
 
 int main(int argc, char **argv)
@@ -631,6 +591,14 @@ int main(int argc, char **argv)
 		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 		(LPVOID)&clientstate, 0, 0);
 
+
+	maingraph_render_thread *mainRenderThread = new maingraph_render_thread;
+	mainRenderThread->clientState = &clientstate;
+
+	HANDLE hPIDmodThread = CreateThread(
+		NULL, 0, (LPTHREAD_START_ROUTINE)mainRenderThread->ThreadEntry,
+		(LPVOID)mainRenderThread, 0, 0);
+
 	clientstate.timelineBuilder = new timeline;
 	
 	ALLEGRO_COLOR mainBackground = clientstate.config->mainBackground;
@@ -740,13 +708,13 @@ int main(int argc, char **argv)
 			}
 
 			if (clientstate.modes.wireframe)
-				draw_wireframe(&clientstate, wireframeStarts, wireframeSizes);
-
+				maintain_draw_wireframe(&clientstate, wireframeStarts, wireframeSizes);
+				
 			if (clientstate.modes.diff)
 				processDiff(&clientstate, PIDFont, &diffRenderer);
-			else
-				performMainGraphRendering(&clientstate, &externFloatingText);
-				
+
+			performMainGraphDrawing(&clientstate, &externFloatingText);
+
 			frame_gl_teardown();
 
 			al_set_target_backbuffer(clientstate.maindisplay);
@@ -754,7 +722,6 @@ int main(int argc, char **argv)
 			{
 				if (previewRenderFrame++ % (60 / clientstate.config->preview.FPS))
 				{
-					printf("previewrender!\n");
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}
@@ -766,9 +733,11 @@ int main(int argc, char **argv)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 		}
 
+		//draw the controls, labels, etc onto the screen
 		widgets->paintWidgets();
 		al_set_target_backbuffer(clientstate.maindisplay);
 		al_draw_bitmap(clientstate.GUIBMP, 0, 0, 0);
+
 		al_flip_display();
 
 
@@ -1099,7 +1068,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			break;
 
 		case ALLEGRO_KEY_LEFT:
-
 			mainscale->userHEDGESEP -= 0.05;
 			clientstate->rescale = true;
 			break;

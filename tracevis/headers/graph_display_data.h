@@ -12,8 +12,8 @@ public:
 	vector <float>* acquire_pos(char *location);
 	vector <float>* acquire_col(char *location);
 
-	float *readonly_col() { return &vcolarray.at(0); }
-	float *readonly_pos() { return &vposarray.at(0); }
+	float *readonly_col() { if (!vcolarray.empty()) return &vcolarray.at(0); return 0; }
+	float *readonly_pos() { if (!vposarray.empty()) return &vposarray.at(0); return 0; }
 
 	void release_pos();
 	void release_col();

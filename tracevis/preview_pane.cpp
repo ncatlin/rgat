@@ -75,7 +75,6 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 	else
 		preview_gcol = clientState->config->preview.inactiveHighlight;
 	al_clear_to_color(preview_gcol);
-	printf("clearing previewgraph %d\n", previewgraph->tid);
 
 	//draw white box around the preview we are looking at
 	if (clientState->activeGraph == previewgraph)
@@ -91,9 +90,6 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 		glEnd();
 
 	}
-	if (previewgraph->tid == clientState->activeGraph->tid) 
-		printf("\n---write text---%d\n", previewgraph->tid);
-	//write_tid_text(clientState->standardFont, previewgraph, 0, 0);
 
 	glPushMatrix();
 
@@ -113,7 +109,6 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
-	printf("render preview graph onto its bmp at angle %f\n", clientState->previewYAngle);
 	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewnodes->get_numVerts());
 	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph->previewVBOs, previewgraph->previewlines->get_numVerts());
 	glPopMatrix();
