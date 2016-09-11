@@ -10,12 +10,12 @@ void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const c
 	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, label);
 }
 
-void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *graph, int x, int y)
+void write_tid_text(ALLEGRO_FONT* font, thread_graph_data *graph, int x, int y)
 {
 	stringstream infotxt;
 	ALLEGRO_COLOR textcol;
 
-	infotxt << "THREAD: " << threadid;
+	infotxt << "THREAD: " << graph->tid;
 
 	if (graph->active)
 	{
@@ -27,7 +27,7 @@ void write_tid_text(VISSTATE* clientState, int threadid, thread_graph_data *grap
 		textcol = al_col_white;
 		infotxt << " (Finished)";
 	}
-	write_text(clientState->standardFont, textcol, x+3, y+2, infotxt.str().c_str());
+	write_text(font, textcol, x+3, y+2, infotxt.str().c_str());
 }
 
 
@@ -75,8 +75,9 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 	else
 		preview_gcol = clientState->config->preview.inactiveHighlight;
 	al_clear_to_color(preview_gcol);
+	printf("clearing previewgraph %d\n", previewgraph->tid);
 
-	//draw white box around it
+	//draw white box around the preview we are looking at
 	if (clientState->activeGraph == previewgraph)
 	{
 		glColor3f(1, 1, 1);
@@ -90,8 +91,9 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 		glEnd();
 
 	}
-
-	write_tid_text(clientState, previewgraph->tid, previewgraph, 0, 0);
+	if (previewgraph->tid == clientState->activeGraph->tid) 
+		printf("\n---write text---%d\n", previewgraph->tid);
+	//write_tid_text(clientState->standardFont, previewgraph, 0, 0);
 
 	glPushMatrix();
 
@@ -105,12 +107,13 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 	glTranslatef(0, 0, -550);
 
 	glRotatef(30, 1, 0, 0);
+
 	glRotatef(clientState->previewYAngle, 0, 1, 0);
 	glRotatef(90 / 1.0, 0, 1, 0);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
-
+	printf("render preview graph onto its bmp at angle %f\n", clientState->previewYAngle);
 	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewnodes->get_numVerts());
 	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph->previewVBOs, previewgraph->previewlines->get_numVerts());
 	glPopMatrix();
@@ -171,6 +174,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 	al_set_target_bitmap(clientState->previewPaneBMP);
 	al_clear_to_color(preview_bgcol);
+	printf("\nclearing previewpane\n");
 
 	glLoadIdentity();
 	glPushMatrix();
@@ -179,7 +183,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	for (;threadit != clientState->activePid->graphs.end(); threadit++)
 	{
 		previewGraph = (thread_graph_data *)threadit->second;
-		
+	
 		if (!previewGraph || !previewGraph->previewnodes->get_numVerts()) continue;
 
 		if (!previewGraph->VBOsGenned) 
@@ -190,6 +194,8 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 		al_set_target_bitmap(clientState->previewPaneBMP);
 		al_draw_bitmap(previewGraph->previewBMP, PREV_GRAPH_PADDING, graphy, 0);
+		//i wanted this in drawGraphBitmap, but it flickered
+		write_tid_text(clientState->standardFont, previewGraph, PREV_GRAPH_PADDING, graphy);
 
 		int TID = threadit->first;
 		clientState->graphPositions[50+graphy] = make_pair(clientState->activePid->PID, TID);

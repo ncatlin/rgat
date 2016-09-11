@@ -77,6 +77,7 @@ public:
 	void assign_modpath(PROCESS_DATA *);
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
 	GRAPH_DISPLAY_DATA *get_mainnodes() { return mainnodesdata; }
+	GRAPH_DISPLAY_DATA *get_previewnodes() { return previewnodes; }
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
 	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
@@ -165,6 +166,7 @@ public:
 	long zoomLevel = 0;
 
 	unsigned long maxWeight = 0;
+	unsigned long vertResizeIndex = 0;
 
 	MULTIPLIERS *m_scalefactors = NULL;
 	MULTIPLIERS *p_scalefactors = NULL;
@@ -176,6 +178,7 @@ public:
 	bool VBOsGenned = false;
 	//node+edge col+pos
 	bool needVBOReload_preview = true;
+	bool previewNeedsResize = false;
 	GLuint previewVBOs[4] = { 0,0,0,0 };
 	GRAPH_DISPLAY_DATA *previewnodes = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;

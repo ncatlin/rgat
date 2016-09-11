@@ -444,7 +444,7 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 	if (
 		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
-		clientState->rescale)
+		clientState->rescale || clientState->activeGraph->vertResizeIndex)
 	{
 		updateMainRender(clientState);
 	}
@@ -477,44 +477,53 @@ void performMainGraphRendering(VISSTATE *clientState, map <int, vector<EXTTEXT>>
 			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
 	
 
-	if (clientState->modes.heatmap) display_big_heatmap(clientState);
-	else if (clientState->modes.conditional) display_big_conditional(clientState);
-	else
-	{
-		if (graph->active)
-		{
-			if (clientState->modes.animation)
-				graph->animate_latest(clientState->config->animationFadeRate);
-		}
-		else
-			if (graph->terminated)
-			{
-				graph->reset_animation();
-				clientState->modes.animation = false;
-				graph->terminated = false;
-				if (clientState->highlightData.highlightState)
-					widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-						clientState->activeGraph,
-						clientState->activePid);
-			}
-			
-		if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
-			clientState->logSize = fill_extern_log(clientState->textlog,
-				clientState->activeGraph, clientState->logSize);
-		
-		PROJECTDATA pd;
-		gather_projection_data(&pd);
-		display_graph(clientState, graph, &pd);
-
-		transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
-		drawExternTexts(graph, externFloatingText, clientState, &pd);
+	if (clientState->modes.heatmap) 
+	{ 
+		display_big_heatmap(clientState); 
+		return; 
 	}
+	
+	if (clientState->modes.conditional) 
+	{
+		display_big_conditional(clientState); 
+		return;
+	}
+
+	if (graph->active)
+	{
+		if (clientState->modes.animation)
+			graph->animate_latest(clientState->config->animationFadeRate);
+	}
+	else
+		if (graph->terminated)
+		{
+			graph->reset_animation();
+			clientState->modes.animation = false;
+			graph->terminated = false;
+			if (clientState->highlightData.highlightState)
+				widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
+					clientState->activeGraph,
+					clientState->activePid);
+		}
+			
+	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
+		clientState->logSize = fill_extern_log(clientState->textlog,
+			clientState->activeGraph, clientState->logSize);
+		
+	PROJECTDATA pd;
+	gather_projection_data(&pd);
+	display_graph(clientState, graph, &pd);
+
+	//transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
+	//drawExternTexts(graph, externFloatingText, clientState, &pd);
+
 }
 
 int main(int argc, char **argv)
 {
-	if (!al_init()) {
-		fprintf(stderr, "Failed to initialise allegro!\n");
+	if (!al_init()) 
+	{
+		fprintf(stderr, "Failed to initialise Allegro!\n");
 		return NULL;
 	}
 
@@ -566,8 +575,6 @@ int main(int argc, char **argv)
 		wireframeSizes[i] = WF_POINTSPERLINE;
 	}
 
-	int bufsize = 0;
-
 	//setup frame limiter/fps clock
 	double fps, fps_unlocked, frame_start_time;
 
@@ -588,7 +595,6 @@ int main(int argc, char **argv)
 	al_init_font_addon();
 	al_init_ttf_addon();
 	
-
 	//todo: handle failure here
 	stringstream fontPath_ss;
 	fontPath_ss << moduleDir << "\\" << "VeraSe.ttf";
@@ -609,13 +615,9 @@ int main(int argc, char **argv)
 	al_get_text_width(clientstate.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
 	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-
 	clientstate.zoomlevel = INITIALZOOM;
 	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.displaySize.height - 50);
 	initial_gl_setup(&clientstate);
-
 
 	//for rendering graph diff
 	diff_plotter *diffRenderer;
@@ -752,6 +754,7 @@ int main(int argc, char **argv)
 			{
 				if (previewRenderFrame++ % (60 / clientstate.config->preview.FPS))
 				{
+					printf("previewrender!\n");
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}

@@ -41,7 +41,7 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx)
 {
 	obtainMutex(piddata->disassemblyMutex, 0, 100);
-	map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
+	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	dropMutex(piddata->disassemblyMutex, 0);
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{

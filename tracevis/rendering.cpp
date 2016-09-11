@@ -330,54 +330,79 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	int maxVerts = 50;
 	for (; nodeIdx != nodeEnd; ++nodeIdx)
 	{
-		int retries = 0;
-	 while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors))
+	int retries = 0;
+	while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors))
 		{
-			Sleep(50);
-			if (retries++ > 25)
-				printf("MUTEX BLOCKAGE?\n");
+				Sleep(50);
+				if (retries++ > 25)
+					printf("MUTEX BLOCKAGE?\n");
 		}
-	 if (retries > 25)
-		 printf("BLOCKAGE CLEARED\n");
-	 if (!maxVerts--)break;
+		if (retries > 25)
+			printf("BLOCKAGE CLEARED\n");
+		if (!maxVerts--)break;
 	}
 	return 1;
 }
 
-//resize all drawn verts to sphere of new diameter
-void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
+//rescale all drawn verts to sphere of new diameter
+void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
-	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
+	MULTIPLIERS *scalefactors = isPreview ? graph->p_scalefactors : graph->m_scalefactors;
 
-	int targetIdx = vertsdata->get_numVerts();
-	if (!targetIdx) return;
-	printf("starting resize\n");
-	GLfloat *vpos = &vertsdata->acquire_pos("334")->at(0);
-	for (int nodeIdx = 0; nodeIdx != targetIdx; ++nodeIdx)
+	GRAPH_DISPLAY_DATA *vertsdata;
+	unsigned long targetIdx, nodeIdx;
+
+	if (isPreview)
 	{
-		node_data *n = graph->get_node(nodeIdx);
-		FCOORD c = n->sphereCoordB(scalefactors, 0);
-		assert(nodeIdx == n->index);
-		//todo get rid of equiv multiply
-		const int arrayIndex = nodeIdx * POSELEMS;
-		vpos[arrayIndex + XOFF] = c.x;
-		vpos[arrayIndex + YOFF] = c.y;
-		vpos[arrayIndex + ZOFF] = c.z;
+		nodeIdx = 0;
+		vertsdata = graph->get_previewnodes();
+		targetIdx = vertsdata->get_numVerts();
+		printf("starting preview resize from node %d to node %d\n", nodeIdx, targetIdx);
+	}
+	else
+	{
+		nodeIdx = graph->vertResizeIndex;
+		graph->vertResizeIndex += 250;
+		vertsdata = graph->get_mainnodes();
+		targetIdx = min(graph->vertResizeIndex, vertsdata->get_numVerts());
+		if (targetIdx == vertsdata->get_numVerts()) graph->vertResizeIndex = 0;
+		printf("starting resize from node %d to node %d\n", nodeIdx, targetIdx);
+		
 	}
 	
+
+	if (!targetIdx) return;
+
+	GLfloat *vpos = &vertsdata->acquire_pos("334")->at(0);
+	for (; nodeIdx != targetIdx; ++nodeIdx)
+	{
+		node_data *n = graph->get_node(nodeIdx);
+		FCOORD newCoord = n->sphereCoordB(scalefactors, 0);
+		assert(nodeIdx == n->index);
+
+		const int arrayIndex = nodeIdx * POSELEMS;
+		vpos[arrayIndex + XOFF] = newCoord.x;
+		vpos[arrayIndex + YOFF] = newCoord.y;
+		vpos[arrayIndex + ZOFF] = newCoord.z;
+	}
+
 	vertsdata->release_pos();
-	graph->dirtyHeatmap = true;
+	
+	if (!isPreview)
+		graph->dirtyHeatmap = true;
 }
 
 int render_main_graph(VISSTATE *clientState)
 {
 	bool doResize = false;
 
+
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 
 	if (clientState->rescale)
 	{
 		recalculate_scale(graph->m_scalefactors);
+		recalculate_scale(graph->p_scalefactors);
 		clientState->rescale = false;
 		doResize = true;
 	}
@@ -389,11 +414,15 @@ int render_main_graph(VISSTATE *clientState)
 	{
 		while (lowestPoint > clientState->config->lowB)
 		{
-			graph->m_scalefactors->userVEDGESEP *= 0.99;
+			graph->m_scalefactors->userVEDGESEP *= 0.98;
+			graph->p_scalefactors->userVEDGESEP *= 0.98;
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
+
+		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
+		graph->vertResizeIndex = 0;
 	}
 
 	//more straightforward, stops graph from wrapping around the globe
@@ -403,15 +432,23 @@ int render_main_graph(VISSTATE *clientState)
 		while (widestPoint > clientState->config->farA)
 		{
 			graph->m_scalefactors->userHEDGESEP *= 0.99;
+			graph->p_scalefactors->userHEDGESEP *= 0.99;
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
+
+		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
+		graph->vertResizeIndex = 0;
 	}
 
-	if (doResize)
+	if (doResize) graph->previewNeedsResize = true;
+
+	if (doResize || graph->vertResizeIndex > 0)
 	{
-		resize_verts(graph, graph->get_mainnodes());
+		printf("in resize, rescale\n");
+		rescale_nodes(graph, false);
+		
 		graph->zoomLevel = graph->m_scalefactors->radius;
 		graph->needVBOReload_main = true;
 
@@ -440,14 +477,19 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 {
 	//draw edges
 	EDGELIST::iterator edgeIt, edgeEnd;
+	//todo, this should be done without the mutex using indexing instead of iteration
 	graph->start_edgeL_iteration(&edgeIt, &edgeEnd);
 
 	std::advance(edgeIt, graph->previewlines->get_renderedEdges());
 	if (edgeIt != edgeEnd)
+	{
+		printf("rendering preview edges from %d,%d\n", edgeIt->first, edgeIt->second);
 		graph->needVBOReload_preview = true;
+	}
 
 	int remainingEdges = clientState->config->preview.edgesPerRender;
 	map<int, ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
+	
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		graph->render_edge(*edgeIt, graph->previewlines, lineColours, 0, true);
@@ -458,10 +500,19 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 	return 1;
 }
 
-int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTATE *clientState)
+int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 {
 	bool doResize = false;
 	previewGraph->needVBOReload_preview = true;
+
+	if (previewGraph->previewNeedsResize)
+	{
+		rescale_nodes(previewGraph, true);
+		previewGraph->previewlines->reset();
+		printf("resset preview %d\n", previewGraph->tid);
+		previewGraph->previewNeedsResize = false;
+
+	}
 
 	int vresult = draw_new_verts(previewGraph, previewGraph->previewnodes);
 	if (vresult == -1)
@@ -469,12 +520,10 @@ int render_preview_graph(thread_graph_data *previewGraph, bool *rescale, VISSTAT
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
 		return 0;
 	}
-	Sleep(10);
 
-	vresult = draw_new_preview_edges(clientState, previewGraph);
-	if (!vresult)
+	if (!draw_new_preview_edges(clientState, previewGraph))
 	{
-		printf("\n\nFATAL 6: Failed drawing new edges! returned:%d\n\n", vresult);
+		printf("\n\nFATAL 6: Failed drawing new edges!\n\n");
 		return 0;
 	}
 	return 1;

@@ -16,10 +16,10 @@ void plot_wireframe(VISSTATE *clientstate);
 
 int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions);
 int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
-void resize_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
+void rescale_nodes(thread_graph_data *graph, bool isPreview);
 
 int render_main_graph(VISSTATE *clientstate);
-int render_preview_graph(thread_graph_data *activeGraph, bool *rescale, VISSTATE *clientState);
+int render_preview_graph(thread_graph_data *activeGraph, VISSTATE *clientState);
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd);
 void display_big_heatmap(VISSTATE *clientstate);
 void display_big_conditional(VISSTATE *clientstate);

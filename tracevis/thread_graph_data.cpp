@@ -438,7 +438,7 @@ int thread_graph_data::brighten_BBs()
 		int numInstructions = targBlock_Size.second;
 		
 		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
-		map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
+		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
 		if (vertIt == ins->threadvertIdx.end())
 		{
 			printf("WARNING: BrightenBBs going too far? Breaking!\n");
@@ -690,6 +690,7 @@ thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HAN
 	p_scalefactors->HEDGESEP = 0.15;
 	p_scalefactors->VEDGESEP = 0.11;
 	p_scalefactors->radius = 200;
+	p_scalefactors->baseRadius = 200;
 }
 
 

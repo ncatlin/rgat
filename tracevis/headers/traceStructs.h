@@ -72,7 +72,7 @@ struct INS_DATA {
 	unsigned long condTakenAddress;
 	unsigned long condDropAddress;
 	//thread id, vert idx
-	map<int, int> threadvertIdx;
+	unordered_map<int, int> threadvertIdx;
 	unsigned int modnum;
 	
 

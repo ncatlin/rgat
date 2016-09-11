@@ -87,7 +87,7 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 		{
 			INS_DATA *ins = *mutationIt;
 			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
-			map<int, int>::iterator threadVertIt = ins->threadvertIdx.begin();
+			unordered_map<int, int>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
 				*file << threadVertIt->first << "," << threadVertIt->second << ",";

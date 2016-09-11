@@ -43,7 +43,8 @@ void preview_renderer::rendering_thread()
 			thread_graph_data *graph = *graphlistIt;
 			if ((graph->previewnodes->get_numVerts() < graph->get_num_nodes()) ||
 				(graph->previewlines->get_renderedEdges() < graph->get_num_edges()))
-				render_preview_graph(graph, false, clientState);
+				render_preview_graph(graph, clientState);
+
 			Sleep(innerDelay);
 			graphlistIt++;
 		}

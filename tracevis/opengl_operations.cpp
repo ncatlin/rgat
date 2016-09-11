@@ -95,6 +95,9 @@ void initial_gl_setup(VISSTATE *clientstate)
 	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH);
 	glEnable(GL_DEPTH_TEST);
