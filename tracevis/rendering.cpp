@@ -534,10 +534,24 @@ void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoor
 		argstring << n->calls << "x " << symString;
 	
 	//if trace recorded some arguments
-	if (n->funcargs.size()) 
-		argstring << "(...)";
+	if (n->funcargs.empty()) 
+		argstring << " ()";
 	else
-		argstring << "()";
+		{
+			argstring << " (";
+			vector<ARGIDXDATA> *args = &n->funcargs.at(0);
+			vector<ARGIDXDATA>::iterator argIt = args->begin();
+			while (argIt != args->end())
+			{
+				argstring << argIt->first << ": " << argIt->second;
+				++argIt;
+			}
+			int remainingCalls = n->funcargs.size() - 1;
+			if (remainingCalls)
+				argstring << ") +" << remainingCalls << "saved";
+			else
+				argstring << ")";
+		}
 	
 	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
 		clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
