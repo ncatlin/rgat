@@ -273,7 +273,8 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "&Heatmap [k]", EV_BTN_HEATMAP, 0, NULL },
 		{ "&Conditionals [j]", EV_BTN_CONDITION, 0, NULL },
 		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
-		{ "&Diff", EV_BTN_DIFF, 0, NULL },
+		//{ "&Mutation", EV_BTN_MUTATION, 0, NULL },
+		{ "&Divergence", EV_BTN_DIFF, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },

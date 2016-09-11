@@ -169,7 +169,6 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 	al_set_target_bitmap(clientState->previewPaneBMP);
 	al_clear_to_color(preview_bgcol);
-	printf("\nclearing previewpane\n");
 
 	glLoadIdentity();
 	glPushMatrix();

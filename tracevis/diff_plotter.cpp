@@ -9,6 +9,7 @@ diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTAT
 	graph2 = g2;
 	diffgraph = new thread_graph_data(0,0);
 	diffgraph->needVBOReload_main = true;
+	glGenBuffers(4, diffgraph->graphVBOs);
 	clientState = state;
 }
 
@@ -40,7 +41,7 @@ unsigned long diff_plotter::first_divering_edge()
 
 	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG2;
 	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG2;
-	graph2->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
+	graph2->start_edgeL_iteration(&edgeSeqItG2, &edgeSeqEndG2);
 
 	unsigned long seqIndex = 0;
 	for (; edgeSeqItG1 != edgeSeqEndG1; )
@@ -53,8 +54,16 @@ unsigned long diff_plotter::first_divering_edge()
 		node_data *n1targ = graph1->get_node(target1);
 		node_data *n2targ = graph2->get_node(target2);
 
-		if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) break;
-		if (n1targ->ins->op_str != n2targ->ins->op_str) break;
+		if (n1targ->external || n2targ->external)
+		{
+			if (!n1targ->external || !n2targ->external) break;
+			if (n1targ->address != n2targ->address) break;
+		}
+		else
+		{
+			if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) break;
+			if (n1targ->ins->op_str != n2targ->ins->op_str) break;
+		}
 
 		seqIndex++;
 		edgeSeqItG1++;
@@ -65,10 +74,12 @@ unsigned long diff_plotter::first_divering_edge()
 
 	if (edgeSeqItG1 != edgeSeqEndG1)
 		return seqIndex;
-	return graph1->get_num_edges()-1;
+	else
+		return graph1->get_num_edges()-1;
 }
 
-void diff_plotter::render() {
+void diff_plotter::render() 
+{
 	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1;
 	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG1;
 	

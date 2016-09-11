@@ -270,7 +270,7 @@ void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffR
 		((diff_plotter*)*diffRenderer)->render();
 	}
 
-	((diff_plotter*)*diffRenderer)->display_diff_summary(20, 10, font, clientState);
+	((diff_plotter*)*diffRenderer)->display_diff_summary(20, 20, font, clientState);
 }
 
 struct EXTTEXT{
@@ -450,8 +450,6 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 		display_big_conditional(clientState);
 		return;
 	}
-
-
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
@@ -709,11 +707,13 @@ int main(int argc, char **argv)
 
 			if (clientstate.modes.wireframe)
 				maintain_draw_wireframe(&clientstate, wireframeStarts, wireframeSizes);
-				
-			if (clientstate.modes.diff)
-				processDiff(&clientstate, PIDFont, &diffRenderer);
 
-			performMainGraphDrawing(&clientstate, &externFloatingText);
+			if (clientstate.modes.diff)
+			{
+				processDiff(&clientstate, PIDFont, &diffRenderer);
+			}
+			else
+				performMainGraphDrawing(&clientstate, &externFloatingText);
 
 			frame_gl_teardown();
 
@@ -1008,7 +1008,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		else
 		{
 			if (widgets->dropdownDropped()) return EV_MOUSE;
-			printf("Setting graph from mouseover\n");
 			int PID, TID;
 			if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
 				set_active_graph(clientstate, PID, TID);		
@@ -1050,7 +1049,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 			if (clientstate->modes.diff)
 			{
-				printf("cancel diff");
+				clientstate->modes.diff = 0;
 				break;
 			}
 			return EV_BTN_QUIT;

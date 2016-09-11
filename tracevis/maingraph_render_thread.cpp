@@ -82,8 +82,6 @@ void maingraph_render_thread::rendering_thread()
 		}
 
 		performMainGraphRendering(activeGraph);
-
-
 	}
 
 

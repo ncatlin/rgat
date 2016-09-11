@@ -83,7 +83,7 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 
 	stringstream threadSummary;
 	threadSummary << "Edges:" << graph->get_num_edges()
-		<< "Verts:" << graph->get_num_nodes();
+		<< " Verts:" << graph->get_num_nodes();
 
 	if (graphIdx == 0)
 	{

@@ -708,7 +708,9 @@ namespace agui
 
 			while(!q.empty())
 			{
+				//[ncatlin]TODO: there is probably a race condition here causing regular crashes
 				currentNode = q.top();
+
 				q.pop();
 
 				if((currentNode->intersectionWithPoint(Point(
@@ -1230,8 +1232,10 @@ namespace agui
 
 	void Gui::_widgetLocationChanged()
 	{
-		if(wantWidgetLocationChanged)
-		handleMouseAxes(emptyMouse,true);
+		if (wantWidgetLocationChanged)
+		{
+			handleMouseAxes(emptyMouse, true);
+		}
 	}
 
 	void Gui::_removeWidget( Widget *widget )
