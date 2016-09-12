@@ -74,7 +74,6 @@ public:
 	PIDDropdownListener(VISSTATE *state) { clientState = state; }
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
-		printf("DDAction perf!\n");
 		int PID = std::stoi(evt.getSource()->getText());
 		if (PID != clientState->activePid->PID)
 			clientState->newPID = PID;

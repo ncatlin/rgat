@@ -693,6 +693,7 @@ void thread_trace_handler::TID_thread()
 			thisgraph->active = false;
 			thisgraph->terminated = true;
 			thisgraph->emptyArgQueue();
+			thisgraph->needVBOReload_preview = true;
 			return;
 		}
 

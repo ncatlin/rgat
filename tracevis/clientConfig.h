@@ -60,12 +60,13 @@ private:
 	void cleanup();
 
 	//convert col to a user friendly comma seperated list for saving
-	const char* col_to_charstring(ALLEGRO_COLOR col);
+	const char* col_to_charstr(ALLEGRO_COLOR col);
+	void charstr_to_col(const char *charstring, ALLEGRO_COLOR *destination);
 
 	string configFilePath;
 
 	//read config file at configFilePath into memory
-	void loadFromFile();
+	bool loadFromFile();
 
 
 	//save config from memory into file
@@ -79,6 +80,10 @@ private:
 
 	//place default settings in memory
 	void loadDefaults();
+	void loadPreview();
+	void loadConditionals();
+	void loadHeatmap();
+	void loadColours();
 
 	//load individual default config sections into memory
 	void loadPreviewDefaults();

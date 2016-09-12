@@ -482,12 +482,14 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	if (clientState->modes.heatmap)
 	{
 		display_big_heatmap(clientState);
+		//TODO: display heatmap key
 		return;
 	}
 
 	if (clientState->modes.conditional)
 	{
 		display_big_conditional(clientState);
+		//TODO: display conditional key
 		return;
 	}
 
@@ -610,8 +612,8 @@ int main(int argc, char **argv)
 	widgets->toggleSmoothDrawing(true);
 
 	//preload glyphs in cache
-	al_get_text_width(clientstate.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
-	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
+	al_get_text_width(clientstate.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
+	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 
 	clientstate.zoomlevel = INITIALZOOM;
 	clientstate.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientstate.displaySize.height - 50);
