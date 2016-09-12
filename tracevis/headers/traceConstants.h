@@ -48,3 +48,7 @@
 #define EXTERNB 3
 #define RETURNA_OFFSET -4
 #define RETURNB_OFFSET 1
+
+#define ARG_INT '0'
+#define ARG_LONG '1'
+#define ARG_B64 '2'

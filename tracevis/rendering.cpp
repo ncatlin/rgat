@@ -240,7 +240,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	return curvePoints;
 }
 
-int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions)
+int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
 {
 	ALLEGRO_COLOR *active_col;
 
@@ -250,37 +250,30 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos("334");
 	vector<GLfloat> *mainNcol = vertdata->acquire_col("33f");
-	/* //made wait infinite now, won't return 0
-	if (!mainNpos || !mainNcol)
-	{
-		vertdata->release_pos();
-		vertdata->release_col();
-		return 0;
-	}*/
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
 	mainNpos->push_back(screenc.z);
-	//todo read colours from config
+
 	if (n->external)
-		active_col = &al_col_green;
+		active_col = &nodeColours->at(EXTERNAL);
 	else {
 		switch (n->ins->itype) 
 		{
 			case OPUNDEF:
 				if (n->conditional)
-					active_col = &al_col_red;
+					active_col = &nodeColours->at(JUMP);
 				else 
-					active_col = &al_col_yellow;
+					active_col = &nodeColours->at(NONFLOW);
 				break;
 			case OPJMP:
-				active_col = &al_col_red;
+				active_col = &nodeColours->at(JUMP);
 				break;
 			case OPRET:
-				active_col = &al_col_orange;
+				active_col = &nodeColours->at(RETURN);
 				break;
 			case OPCALL:
-				active_col = &al_col_purple;
+				active_col = &nodeColours->at(CALL);
 				break;
 			case ISYS: //todo: never used - intended for syscalls
 				active_col = &al_col_grey;
@@ -319,7 +312,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	return 1;
 }
 
-int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
+int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours) {
 	
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
 
@@ -333,7 +326,7 @@ int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata) {
 	for (; nodeIdx != nodeEnd; ++nodeIdx)
 	{
 	int retries = 0;
-	while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors))
+	while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors, nodeColours))
 		{
 				Sleep(50);
 				if (retries++ > 25)
@@ -359,7 +352,6 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 		nodeIdx = 0;
 		vertsdata = graph->get_previewnodes();
 		targetIdx = vertsdata->get_numVerts();
-		printf("starting preview resize from node %d to node %d\n", nodeIdx, targetIdx);
 	}
 	else
 	{
@@ -367,9 +359,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 		graph->vertResizeIndex += 250;
 		vertsdata = graph->get_mainnodes();
 		targetIdx = min(graph->vertResizeIndex, vertsdata->get_numVerts());
-		if (targetIdx == vertsdata->get_numVerts()) graph->vertResizeIndex = 0;
-		printf("starting resize from node %d to node %d\n", nodeIdx, targetIdx);
-		
+		if (targetIdx == vertsdata->get_numVerts()) graph->vertResizeIndex = 0;		
 	}
 	
 
@@ -457,7 +447,7 @@ int render_main_graph(VISSTATE *clientState)
 			clientState->remakeWireframe = true;
 	}
 
-	int drawCount = draw_new_verts(graph, graph->get_mainnodes());
+	int drawCount = draw_new_nodes(graph, graph->get_mainnodes(), &clientState->config->graphColours.nodeColours);
 	if (drawCount < 0)
 	{
 		printf("\n\nFATAL 5: Failed drawing verts!\n\n");
@@ -507,7 +497,7 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 
 	}
 
-	int vresult = draw_new_verts(previewGraph, previewGraph->previewnodes);
+	int vresult = draw_new_nodes(previewGraph, previewGraph->previewnodes, &clientState->config->graphColours.nodeColours);
 	if (vresult == -1)
 	{
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);

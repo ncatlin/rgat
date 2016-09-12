@@ -14,8 +14,8 @@ int drawCurve(GRAPH_DISPLAY_DATA *vertdata, FCOORD *startC, FCOORD *endC, ALLEGR
 
 void plot_wireframe(VISSTATE *clientstate);
 
-int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions);
-int draw_new_verts(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata);
+int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours);
+int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours);
 void rescale_nodes(thread_graph_data *graph, bool isPreview);
 
 int render_main_graph(VISSTATE *clientstate);

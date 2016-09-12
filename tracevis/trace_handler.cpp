@@ -3,6 +3,7 @@
 #include "traceMisc.h"
 #include "GUIConstants.h"
 #include "traceStructs.h"
+#include "b64.h"
 
 bool thread_trace_handler::find_internal_at_address(long address) {
 	int attempts = 2;
@@ -386,10 +387,16 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
 	bool callDone = moreargs_s.at(0) == 'E' ? true : false;
 
+	char b64Marker = strtok_s(entry, ",", &entry)[0];
+
 	//todo: b64 decode
 	string contents;
-	if (entry < entry+entrySize)
+	if (entry < entry + entrySize)
+	{
 		contents = string(entry).substr(0, entrySize - (size_t)entry);
+		if (b64Marker == '1')
+			contents = base64_decode(contents);
+	}
 	else
 		contents = string("NULL");
 
