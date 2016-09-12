@@ -42,6 +42,7 @@ public:
 		map<int, ALLEGRO_COLOR> nodeColours;
 	} graphColours;
 
+	ALLEGRO_CONFIG *alConfig;
 	ALLEGRO_COLOR mainBackground;
 	ALLEGRO_COLOR highlightColour;
 	int highlightProtrusion;
@@ -52,10 +53,37 @@ public:
 	float animationFadeRate;
 
 private:
+	vector<string *> cleanupList;
+
+	//when we save the file we create a bunch of colours on the heap
+	//this deletes them
+	void cleanup();
+
+	//convert col to a user friendly comma seperated list for saving
+	const char* col_to_charstring(ALLEGRO_COLOR col);
+
 	string configFilePath;
+
+	//read config file at configFilePath into memory
 	void loadFromFile();
-	void loadDefaults();
+
+
+	//save config from memory into file
 	void saveToFile();
 
+	//save individual sections of memory config to file
+	void savePreview();
+	void saveConditionals();
+	void saveHeatmap();
+	void saveColours();
+
+	//place default settings in memory
+	void loadDefaults();
+
+	//load individual default config sections into memory
+	void loadPreviewDefaults();
+	void loadConditionalDefaults();
+	void loadHeatmapDefaults();
+	void loadDefaultColours();
 };
 
