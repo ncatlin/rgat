@@ -3,4 +3,4 @@
 
 string getModulePath();
 string get_dr_path();
-void execute_tracer(string executable);
+void execute_tracer(string executable, VISSTATE *clientState);

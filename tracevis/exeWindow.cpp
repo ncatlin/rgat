@@ -49,12 +49,15 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	CBSize.setHeight(20);
 	CBSize.setWidth(20);
 
+	CBlisten *boxlistener = new CBlisten(state, this);
+
 	nonGraphicalCB = new agui::CheckBox;
 	nonGraphicalCB->setText("Disable Rendering");
 	nonGraphicalCB->setCheckBoxSize(CBSize);
 	nonGraphicalCB->resizeToContents();
 	nonGraphicalCB->setLocation(40, 90);
 	nonGraphicalCB->setToolTipText("Disable graph drawing - useful for low-spec VMs.\nSave the graph to render it elsewhere.");
+	nonGraphicalCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(nonGraphicalCB);
 
 	hideVMCB = new agui::CheckBox;
@@ -63,6 +66,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	hideVMCB->resizeToContents();
 	hideVMCB->setLocation(40, 130);
 	hideVMCB->setToolTipText("[Experimental] Change results of VM detection instructions to hide virtualisation");
+	hideVMCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideVMCB);
 
 	hideSleepCB = new agui::CheckBox;
@@ -71,6 +75,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	hideSleepCB->resizeToContents();
 	hideSleepCB->setLocation(40, 160);
 	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls and timer results to reduce pauses and hide slowdown");
+	hideSleepCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideSleepCB);
 
 	launchBtn = new agui::Button;

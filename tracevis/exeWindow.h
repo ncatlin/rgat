@@ -7,7 +7,7 @@
 #include "Agui/Widgets\TextField\TextField.hpp"
 #include "Agui/Widgets/Button/Button.hpp"
 #include "Agui\Widgets\CheckBox\CheckBox.hpp"
-
+#include "Agui\Widgets\CheckBox\CheckBoxListener.hpp"
 #include "OSspecific.h"
 
 class exeWindow
@@ -51,6 +51,32 @@ public:
 
 };
 
+class CBlisten : public agui::CheckBoxListener
+{
+public:
+	CBlisten(VISSTATE *state, exeWindow *exeWind) {
+		clientState = state; exe_wind = exeWind;
+	}
+
+	virtual void checkedStateChanged(agui::CheckBox* source,
+		agui::CheckBox::CheckBoxCheckedEnum state)
+	{
+		
+		string thisNeedsAnIDField = source->getText().c_str();
+		if (thisNeedsAnIDField == "Anti-Redpill")
+			clientState->launchopts.antidote = state;
+		else if (thisNeedsAnIDField == "Anti-Sleep")
+			clientState->launchopts.caffine = state;
+		else if (thisNeedsAnIDField == "Disable Rendering")
+			clientState->launchopts.nographics = state;
+		else
+			printf("Checkbox text %s does not match an expected value! Ignoring\n", source->getText().c_str());
+	}
+private:
+	VISSTATE *clientState;
+	exeWindow *exe_wind;
+};
+
 class fileButtonListener : public agui::ActionListener
 {
 public:
@@ -90,7 +116,7 @@ public:
 	{
 		string path =exe_wind->getPath();
 		if (!al_filename_exists(path.c_str())) return;
-		execute_tracer(path);
+		execute_tracer(path, clientState);
 		exe_wind->hide();
 	}
 

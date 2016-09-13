@@ -54,6 +54,12 @@ struct HIGHLIGHT_DATA {
 	vector<node_data *> highlightNodes;
 };
 
+struct LAUNCHOPTIONS {
+	bool caffine = false;
+	bool antidote = false;
+	bool nographics = false;
+};
+
 class VISSTATE {
 public:
 	VISSTATE() {
@@ -67,6 +73,8 @@ public:
 	ALLEGRO_BITMAP *GUIBMP = 0;
 	ALLEGRO_FONT *standardFont;
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
+
+	LAUNCHOPTIONS launchopts;
 
 	TITLE *title;
 	long zoomlevel = 0; //INITIALZOOM;

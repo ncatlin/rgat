@@ -1,5 +1,6 @@
 #pragma once 
 #include <stdafx.h>
+#include <GUIStructs.h>
 
 
 #ifdef WIN32
@@ -38,14 +39,26 @@ string get_dr_path()
 	}
 
 	string drrunArgs = " -c ";
-	string retstring = DRPath + drrunArgs + DRGATpath + " -- ";
+	string retstring = DRPath + drrunArgs + DRGATpath;
 	return retstring;
 }
 
-void execute_tracer(string executable) {
+string get_options(VISSTATE *clientState)
+{
+	stringstream optstring;
+	if (clientState->launchopts.antidote)
+		optstring << " -antidote";
+	if (clientState->launchopts.caffine)
+		optstring << " -caffine";
+	return optstring.str();
+}
+
+void execute_tracer(string executable, VISSTATE *clientState) {
+	if (executable.empty()) return;
 
 	string runpath = get_dr_path();
-	runpath = runpath + "\"" + executable + "\"";
+	runpath.append(get_options(clientState));
+	runpath = runpath + " --\"" + executable + "\"";
 
 	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
