@@ -841,6 +841,7 @@ bool thread_graph_data::serialise(ofstream *file)
 	EDGELIST::iterator callListIt;
 	for (externCallIt = externCallSequence.begin(); externCallIt != externCallSequence.end(); ++externCallIt)
 	{
+		//TODO: base64 encode args + decode on load
 		EDGELIST *callList = &externCallIt->second;
 		*file << externCallIt->first << "," << callList->size() << ",";
 

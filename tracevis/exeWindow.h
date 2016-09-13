@@ -21,7 +21,8 @@ private:
 	
 	agui::Label *nonGraphicalLabel;
 	agui::CheckBox *nonGraphicalCB;
-
+	agui::CheckBox *hideVMCB;
+	agui::CheckBox *hideSleepCB;
 	agui::Button *launchBtn;
 
 	string target;

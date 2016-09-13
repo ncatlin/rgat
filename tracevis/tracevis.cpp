@@ -503,7 +503,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 
 void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
 {
-	if (clientState->remakeWireframe);
+	if (clientState->remakeWireframe)
 	{
 		delete clientState->wireframe_sphere;
 		clientState->wireframe_sphere = 0;
