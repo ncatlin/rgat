@@ -89,12 +89,16 @@ public:
 
 	void *widgets;
 	int animationUpdate = 0;
+	bool animFinished = false;
 	bool skipLoop = false;
 
 	bool saveInProgress = false;
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;
 	map <int, NODEPAIR> graphPositions;
+
+	//for future random pipe names
+	//char pipeprefix[20];
 
 	float previewYAngle = -30;
 	bool previewSpin = true;

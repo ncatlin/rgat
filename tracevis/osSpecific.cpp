@@ -58,7 +58,7 @@ void execute_tracer(string executable, VISSTATE *clientState) {
 
 	string runpath = get_dr_path();
 	runpath.append(get_options(clientState));
-	runpath = runpath + " --\"" + executable + "\"";
+	runpath = runpath + " -- \"" + executable + "\"";
 
 	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;

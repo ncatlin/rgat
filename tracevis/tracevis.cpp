@@ -180,7 +180,7 @@ int process_coordinator_thread(VISSTATE *clientState) {
 	while (true)
 	{
 		int conresult = ConnectNamedPipe(hPipe, NULL);
-		printf("boostrap conresult : %d\n", conresult);
+		printf("boostrap conresult : %d reading from pipe \\\\.\\pipe\\BootstrapPipe\n", conresult);
 		ReadFile(hPipe, buf, 30, &bread, NULL);
 		DisconnectNamedPipe(hPipe);
 		if (!bread) {
@@ -757,6 +757,12 @@ int main(int argc, char **argv)
 			else
 				performMainGraphDrawing(&clientstate, &externFloatingText);
 
+			if (clientstate.animFinished)
+			{
+				clientstate.animFinished = false;
+				TraceVisGUI* widgets = (TraceVisGUI*)clientstate.widgets;
+				widgets->controlWindow->notifyAnimFinished();
+			}
 			frame_gl_teardown();
 
 			al_set_target_backbuffer(clientstate.maindisplay);
@@ -944,10 +950,8 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		clientstate->displaySize.width = ev->display.width;
 		al_acknowledge_resize(display);
 		handle_resize(clientstate);
-		
 
-		printf("display resize handled\n");
-		return EV_RESIZE;
+		return EV_NONE;
 	}
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)

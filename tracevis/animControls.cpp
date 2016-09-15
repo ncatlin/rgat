@@ -121,8 +121,6 @@ void AnimControls::fitToResize()
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	controlsLayout->setLocation(15, clientState->displaySize.height - 40);
 	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
-
-	printf("vscrolb at %d\n", clientState->displaySize.width - PREV_SCROLLBAR_WIDTH);
 }
 
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *font) {

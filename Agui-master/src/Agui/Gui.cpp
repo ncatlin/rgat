@@ -701,17 +701,17 @@ namespace agui
 		children and set the current node
 		to the child who passes the hit test */
 
-
 		Widget* wMouse = root;
 		Widget* currentNode = root;
-		q.push(root);
+		//crash if called from multiple places
+		unsafeq.push(root);
 
-			while(!q.empty())
+			while(!unsafeq.empty())
 			{
 				//[ncatlin]TODO: there is probably a race condition here causing regular crashes
-				currentNode = q.top();
+				currentNode = unsafeq.top();
 
-				q.pop();
+				unsafeq.pop();
 
 				if((currentNode->intersectionWithPoint(Point(
 					mouse.getPosition().getX() - currentNode->getAbsolutePosition().getX(),
@@ -732,7 +732,7 @@ namespace agui
 						currentNode->getChildRBegin();
 						rit != currentNode->getChildREnd(); ++rit) 
 					{ 
-						q.push(*rit);
+						unsafeq.push(*rit);
 
 					} 
 
@@ -740,12 +740,13 @@ namespace agui
 						currentNode->getPrivateChildRBegin();
 						rit != currentNode->getPrivateChildREnd(); ++rit) 
 					{ 
-						q.push(*rit);
+						unsafeq.push(*rit);
 					} 
 				}
 
 				
 			}
+
 			return wMouse;
 		
 

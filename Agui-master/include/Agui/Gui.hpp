@@ -100,7 +100,7 @@ namespace agui
 		ToolTip* toolTip;
 		int maxToolTipWidth;
 		bool hasHiddenToolTip;
-		std::stack<Widget*> q;
+		std::stack<Widget*> unsafeq;
 		std::queue<MouseInput> queuedMouseDown;
 		MouseInput emptyMouse;
 		MouseEvent relArgs;

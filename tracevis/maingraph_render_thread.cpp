@@ -40,8 +40,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 				graph->reset_animation();
 				clientState->animationUpdate = 0;
 				clientState->modes.animation = false;
-				TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
-				widgets->controlWindow->notifyAnimFinished();
+				clientState->animFinished = true;
 			}
 			else
 				graph->update_animation_render(clientState->config->animationFadeRate);
