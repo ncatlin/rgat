@@ -54,14 +54,11 @@ void thread_trace_reader::reader_thread()
 		}
 
 		tagReadBuf[bytesRead] = 0;
-		tagReadBuf[TAGCACHESIZE - 1] = 0;
-		//printf("\n\nread buf: [%s]\n\n", buf);
 		if (!bytesRead)
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
 				printf("thread %d pipe read ERROR: %d. [Closing handler]\n", TID, err);
-
 			pipeClosed = true;
 			return;
 		}
@@ -112,7 +109,7 @@ void thread_trace_reader::add_message(char *buffer, int size)
 int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 {
 	
-	if (readingQueue->empty() || readingQueue->size()-1 <= readIndex)
+	if (readingQueue->empty() || readingQueue->size() <= readIndex)
 	{
 		WaitForSingleObject(flagMutex, INFINITE);
 		if (!readingQueue->empty())

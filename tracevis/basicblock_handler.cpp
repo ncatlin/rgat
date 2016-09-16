@@ -186,6 +186,8 @@ void basicblock_handler::PID_BB_thread()
 			while (true)
 			{
 				bool mutation = false;
+				if (next_token[0] == NULL) 
+					break;
 				string opcodes(strtok_s(next_token, "@", &next_token));
 
 				obtainMutex(piddata->disassemblyMutex, "DisassemblyStart", 4000);

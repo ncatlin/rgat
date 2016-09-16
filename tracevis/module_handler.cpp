@@ -132,7 +132,7 @@ void module_handler::PID_thread()
 				char *path = NULL;
 				if (buf[2] == '@' && buf[3] == '@')
 				{
-					path = (char*)malloc(5);
+					path = (char*)malloc(5); //mem leak
 					snprintf(path, 5, "NULL");
 					next_token = buf + 4;
 				}

@@ -602,9 +602,9 @@ void thread_trace_handler::process_new_args()
 void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 {
 	
-	/*printf("handling tag %lx, jmpmod:%d", thistag.targaddr, thistag.jumpModifier);
+	/*printf("handling tag %lx, jmpmod:%d", thistag.blockaddr, thistag.jumpModifier);
 	if (thistag.jumpModifier == 2)
-		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.targaddr]->modnum][thistag.targaddr].c_str());
+		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.blockaddr]->modnum][thistag.blockaddr].c_str());
 	else printf("\n");*/
 	
 	update_conditional_state(thistag.blockaddr);
@@ -675,6 +675,29 @@ int thread_trace_handler::find_containing_module(unsigned long address)
 
 }
 
+void thread_trace_handler::dump_loop()
+{
+	vector<TAG>::iterator tagIt;
+
+	loopState = LOOP_START;
+
+	if (loopCache.empty())
+	{
+		loopState = NO_LOOP;
+		return;
+	}
+
+	thisgraph->loopCounter++;
+	//put the verts/edges on the graph
+	printf("visualiser processing %d iterations of %d block loop\n", loopCount, loopCache.size());
+	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
+		handle_tag(*tagIt, loopCount);
+
+	loopCache.clear();
+	loopCount = 0;
+	loopState = NO_LOOP;
+}
+
 //thread handler to build graph for a thread
 void thread_trace_handler::TID_thread()
 {
@@ -693,9 +716,11 @@ void thread_trace_handler::TID_thread()
 			Sleep(1);
 			continue;
 		}
+
 		if (bytesRead == -1)
 		{
 			printf("Thread handler got thread end message, terminating!\n");
+			dump_loop();
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
@@ -708,7 +733,7 @@ void thread_trace_handler::TID_thread()
 		while (true)
 		{
 			if (die) break;
-			//todo: check if buf is sensible - suspicious repeats?
+
 			if (next_token >= msgbuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) break;
@@ -754,7 +779,7 @@ void thread_trace_handler::TID_thread()
 				} 
 
 				if (!external) continue;
-
+				
 				thistag.blockaddr = nextBlock;
 				thistag.jumpModifier = EXTERNAL_CODE;
 				thistag.insCount = 0;
@@ -774,7 +799,6 @@ void thread_trace_handler::TID_thread()
 			{	//loop start
 				if (entry[1] == 'S')
 				{
-					
 					loopState = LOOP_START;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stol(repeats_s, &loopCount, 10))
@@ -785,24 +809,7 @@ void thread_trace_handler::TID_thread()
 				//loop end
 				else if (entry[1] == 'E') 
 				{
-					vector<TAG>::iterator tagIt;
-					
-					loopState = LOOP_START;
-
-					if (loopCache.empty())
-					{
-						loopState = NO_LOOP;
-						continue;
-					}
-
-					thisgraph->loopCounter++;
-					//put the verts/edges on the graph
-					printf("Processing %d iterations of %d block loop\n", loopCount, loopCache.size());
-					for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
-						handle_tag(*tagIt, loopCount);
-
-					loopCache.clear();
-					loopState = NO_LOOP;
+					dump_loop();
 					continue;
 				}
 				printf("Fell through bad loop tag? [%s]\n",entry);

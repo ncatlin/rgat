@@ -64,6 +64,7 @@ private:
 	void handle_tag(TAG thistag, unsigned long repeats);
 	void update_conditional_state(unsigned long nextAddress);
 	int find_containing_module(unsigned long address);
+	void dump_loop();
 
 	unsigned long pendingFunc = 0;
 	unsigned long pendingRet = 0;
