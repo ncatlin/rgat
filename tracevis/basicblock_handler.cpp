@@ -146,14 +146,16 @@ void basicblock_handler::PID_BB_thread()
 			unsigned long targetaddr;
 			if (!caught_stol(string(start_s), &targetaddr, 16)) {
 				printf("bbaddr STOL ERROR: %s\n", start_s);
-				continue;
+				assert(0);
 			}
+
+
 
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
 			int modnum;
 			if (!caught_stoi(string(modnum_s), &modnum, 10)) {
 				printf("bb modnum STOL ERROR: %s\n", modnum_s);
-				continue;
+				assert(0);
 			}
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);
@@ -166,6 +168,17 @@ void basicblock_handler::PID_BB_thread()
 					dataExecution = true;
 			}
 				
+			char *blockID_s = strtok_s(next_token, "@", &next_token);
+			unsigned int blockID;
+			if (!caught_stoi(string(blockID_s), &blockID, 16)) {
+				printf("bb blockID STOI ERROR: %s\n", modnum_s);
+				assert(0);
+			};
+
+			if (targetaddr > 0x550000 && (targetaddr & 0xfff == 0xfef))
+				printf("here i %d\n",instrumented);
+
+
 			//todo: externs still need this for callargs
 			if (!instrumented)
 			{
@@ -198,6 +211,8 @@ void basicblock_handler::PID_BB_thread()
 					INS_DATA *insd = addressDissasembly->second.back();
 					if (insd->opcodes == opcodes)
 					{
+						if (std::find(insd->blockIDs.begin(), insd->blockIDs.end(), blockID) == insd->blockIDs.end())
+							insd->blockIDs.push_back(blockID);
 						dropMutex(piddata->disassemblyMutex, "Inserted Dis");
 						targetaddr += insd->numbytes;
 						if (next_token >= buf + bread) break;
@@ -212,11 +227,12 @@ void basicblock_handler::PID_BB_thread()
 					INSLIST disVec;
 					piddata->disassembly[targetaddr] = disVec;
 				}
-				
+
 				INS_DATA *insdata = new INS_DATA;
 				insdata->opcodes = opcodes;
 				insdata->modnum = modnum;
 				insdata->dataEx = dataExecution;
+				insdata->blockIDs.push_back(blockID);
 
 				count = disassemble_ins(hCapstone, opcodes, insdata, targetaddr);
 				if (!count) {

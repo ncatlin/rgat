@@ -153,18 +153,21 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 	dropMutex(piddata->disassemblyMutex, 0);
 }
 
-int thread_trace_handler::runBB(unsigned long startAddress, int startIndex,int numInstructions, int repeats = 1)
+int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
 	unsigned int bb_inslist_index = 0;
 	bool newVert;
 	int firstMutation = -1;
 	int mutation = -1;
+	int numInstructions = tag->insCount;
+	unsigned long startAddress = tag->blockaddr;
 	unsigned long targetAddress = startAddress;
+
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
 		//conspicuous lack of mutation handling here
 		//we could check this by looking at the mutation state of all members of the block
-		INS_DATA *instruction = getLastDisassembly(targetAddress, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
+		INS_DATA *instruction = getLastDisassembly(targetAddress,tag->blockID, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
 		if (firstMutation == -1) firstMutation = mutation;
 
 		//todo: ditch this?
@@ -291,7 +294,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 			{
 				a += JUMPA_CLASH;
 				if (clash++ > 15)
-					printf("\tWARNING: JUMP MAXED\n");
+					printf("\tWARNING: DENSE GRAPH CLASHES (JUMP)\n");
 			}
 			break;
 		}
@@ -305,7 +308,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 				b += CALLB_CLASH * BMULT;
 
 				if (clash++ > 15)
-					printf("\tWARNING: CALL MAXED\n");
+					printf("\tWARNING: DENSE GRAPH CLASH (CALL)\n");
 			}
 
 			if (clash) a += CALLA_CLASH;
@@ -599,7 +602,7 @@ void thread_trace_handler::process_new_args()
 	}
 }
 
-void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
+void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
 	
 	/*printf("handling tag %lx, jmpmod:%d", thistag.blockaddr, thistag.jumpModifier);
@@ -607,15 +610,15 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.blockaddr]->modnum][thistag.blockaddr].c_str());
 	else printf("\n");*/
 	
-	update_conditional_state(thistag.blockaddr);
+	update_conditional_state(thistag->blockaddr);
 
-	if (thistag.jumpModifier == INTERNAL_CODE)
+	if (thistag->jumpModifier == INTERNAL_CODE)
 	{
 
-		int mutation = runBB(thistag.blockaddr, 0, thistag.insCount, repeats);
+		int mutation = runBB(thistag, 0, repeats);
 
 		obtainMutex(thisgraph->animationListsMutex);
-		thisgraph->bbsequence.push_back(make_pair(thistag.blockaddr, thistag.insCount));
+		thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 
 		//could probably break this by mutating code in a running loop
 		thisgraph->mutationSequence.push_back(mutation);
@@ -623,24 +626,24 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 
 		if (repeats == 1)
 		{
-			thisgraph->totalInstructions += thistag.insCount;
+			thisgraph->totalInstructions += thistag->insCount;
 			thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
 		}
 		else
 		{
-			thisgraph->totalInstructions += thistag.insCount*loopCount;
+			thisgraph->totalInstructions += thistag->insCount*loopCount;
 			thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
 		thisgraph->set_active_node(lastVertID);
 	}
 
-	else if (thistag.jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
+	else if (thistag->jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
 	{
 		if (!lastVertID) return;
 
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
-		int result = run_external(thistag.blockaddr, repeats, &resultPair);
+		int result = run_external(thistag->blockaddr, repeats, &resultPair);
 		
 		if (result)
 		{
@@ -654,7 +657,7 @@ void thread_trace_handler::handle_tag(TAG thistag, unsigned long repeats = 1)
 	}
 	else
 	{
-		printf("ERROR: BAD JUMP MODIFIER 0x%x: CORRUPT TRACE?\n", thistag.jumpModifier);
+		printf("ERROR: BAD JUMP MODIFIER 0x%x: CORRUPT TRACE?\n", thistag->jumpModifier);
 		assert(0);
 	}
 }
@@ -691,7 +694,7 @@ void thread_trace_handler::dump_loop()
 	//put the verts/edges on the graph
 	printf("visualiser processing %d iterations of %d block loop\n", loopCount, loopCache.size());
 	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
-		handle_tag(*tagIt, loopCount);
+		handle_tag(&*tagIt, loopCount);
 
 	loopCache.clear();
 	loopCount = 0;
@@ -745,13 +748,15 @@ void thread_trace_handler::TID_thread()
 
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
 				unsigned long nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
-				thistag.insCount = stol(strtok_s(entry, ",", &entry));
+				unsigned long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
+				thistag.insCount = id_count & 0xffff;
+				thistag.blockID = id_count >> 16;
 
 				thistag.jumpModifier = INTERNAL_CODE;
 				if (loopState == LOOP_START)
 					loopCache.push_back(thistag);
 				else
-					handle_tag(thistag);
+					handle_tag(&thistag);
 
 				//fallen through conditional
 				if (nextBlock == 0) continue;
@@ -789,7 +794,7 @@ void thread_trace_handler::TID_thread()
 				if (loopState == LOOP_START)
 					loopCache.push_back(thistag);
 				else
-					handle_tag(thistag);
+					handle_tag(&thistag);
 
 				continue;
 			}

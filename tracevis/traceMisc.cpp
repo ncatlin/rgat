@@ -43,7 +43,9 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 	return result;
 }
 
-INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutationIndex)
+//lot of stuff pushed on stack here for a common call. consider reworking
+INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE mutex, 
+	map<unsigned long, INSLIST> *disas, int *mutationIndex)
 {
 	obtainMutex(mutex, 0, 4000);
 	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
@@ -64,9 +66,40 @@ INS_DATA* getLastDisassembly(unsigned long address, HANDLE mutex, map<unsigned l
 			waitTime += 5;
 		}
 	}
+
 	INS_DATA *result = disasIt->second.back();
-	if(mutationIndex)
-		*mutationIndex = disasIt->second.size()-1;
+	//make sure we are not looking at instruction from different block mutation
+	if (std::find(result->blockIDs.begin(), result->blockIDs.end(), blockID) != result->blockIDs.end())
+	{
+		if (mutationIndex)
+			*mutationIndex = disasIt->second.size() - 1;
+	}
+	else
+	{
+		while (true)
+		{
+			vector<INS_DATA *>::iterator insIt = disasIt->second.begin();
+			int mut = 0;
+			for (; insIt != disasIt->second.end(); ++insIt)
+			{
+				INS_DATA* ins = *insIt;
+				if (std::find(ins->blockIDs.begin(), ins->blockIDs.end(), blockID) != ins->blockIDs.end())
+				{
+					if (mutationIndex)
+						*mutationIndex = mut;
+					result = ins;
+					break;
+				}
+				++mut;
+			}
+			if (insIt != disasIt->second.end()) break;
+			dropMutex(mutex, 0);
+			Sleep(10);
+			obtainMutex(mutex, 0, 4000);
+			printf("Waiting for mutation (address %lx)\n", address);
+		}
+	}
+	
 	dropMutex(mutex, 0);
 	return result;
 }

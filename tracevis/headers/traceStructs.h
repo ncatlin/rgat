@@ -58,7 +58,7 @@ struct INS_DATA {
 	void *bb_ptr;
 	string mnemonic;
 	string op_str;
-
+	vector<unsigned int> blockIDs;
 	/* memory/speed tradeoff 
 	1.construct every frame and save memory 
 	2.construct at disassemble time and improve render speed

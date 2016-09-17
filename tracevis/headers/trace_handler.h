@@ -9,8 +9,9 @@
 
 struct TAG {
 	unsigned long blockaddr;
-	int insCount;
+	unsigned int insCount;
 	int jumpModifier;
+	unsigned int blockID;
 	BB_DATA* foundExtern;
 
 };
@@ -51,7 +52,7 @@ private:
 	int run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
-	int runBB(unsigned long startAddress, int startIndex, int insCount, int repeats);
+	int runBB(TAG *tag, int startIndex, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
@@ -61,7 +62,7 @@ private:
 	bool get_extern_at_address(long address, BB_DATA ** BB);
 	bool find_internal_at_address(long address);
 	void increaseWeight(edge_data *edge, long executions);
-	void handle_tag(TAG thistag, unsigned long repeats);
+	void handle_tag(TAG *thistag, unsigned long repeats);
 	void update_conditional_state(unsigned long nextAddress);
 	int find_containing_module(unsigned long address);
 	void dump_loop();

@@ -43,6 +43,11 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 
 	vector<float> *lineVector = 0;
 	lineVector = previewgraph->previewlines->acquire_pos("upg");
+	if (previewgraph->previewlines->get_numVerts() == 0)
+	{
+		previewgraph->previewlines->release_pos();
+		return;
+	}
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_pos();

@@ -404,6 +404,8 @@ int render_main_graph(VISSTATE *clientState)
 	int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 	if (lowestPoint > clientState->config->lowB)
 	{
+		float startB = lowestPoint;
+		
 		while (lowestPoint > clientState->config->lowB)
 		{
 			graph->m_scalefactors->userVEDGESEP *= 0.98;
@@ -411,6 +413,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
+		printf("Max B coord too high, shrinking graph from %f to %d\n", startB, lowestPoint);
 
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
@@ -421,6 +424,7 @@ int render_main_graph(VISSTATE *clientState)
 	unsigned int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
 	if (widestPoint > clientState->config->farA)
 	{
+		float startA = lowestPoint;
 		while (widestPoint > clientState->config->farA)
 		{
 			graph->m_scalefactors->userHEDGESEP *= 0.99;
@@ -428,7 +432,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
-
+		printf("Max A coord too wide, shrinking graph from %f to %d\n", startA, lowestPoint);
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
 		graph->vertResizeIndex = 0;

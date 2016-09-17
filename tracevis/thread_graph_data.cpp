@@ -208,7 +208,7 @@ bool thread_graph_data::advance_sequence(bool skipLoop = false)
 {
 	if (sequenceIndex + 1 >= bbsequence.size()) return false;
 
-	animInstructionIndex += bbsequence[sequenceIndex].second;
+	animInstructionIndex += bbsequence.at(sequenceIndex).second;
 	//if not looping
 	if (!loopStateList.at(sequenceIndex).first)
 	{
@@ -542,6 +542,7 @@ brighten_BBs is ~5%
 */
 void thread_graph_data::animate_latest(float fadeRate)
 {
+	if (bbsequence.empty()) return;
 	darken_animation(fadeRate);
 
 	sequenceIndex = bbsequence.size() - 1;
