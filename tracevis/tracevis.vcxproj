@@ -157,15 +157,15 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="animControls.h" />
+    <ClInclude Include="headers\animControls.h" />
     <ClInclude Include="clientConfig.h" />
-    <ClInclude Include="configDefaults.h" />
-    <ClInclude Include="diffWindow.h" />
-    <ClInclude Include="exeWindow.h" />
+    <ClInclude Include="headers\configDefaults.h" />
+    <ClInclude Include="headers\diffWindow.h" />
+    <ClInclude Include="headers\exeWindow.h" />
     <ClInclude Include="headers\diff_plotter.h" />
-    <ClInclude Include="highlightWindow.h" />
-    <ClInclude Include="maingraph_render_thread.h" />
-    <ClInclude Include="mathStructs.h" />
+    <ClInclude Include="headers\highlightWindow.h" />
+    <ClInclude Include="headers\maingraph_render_thread.h" />
+    <ClInclude Include="headers\mathStructs.h" />
     <ClInclude Include="headers\edge_data.h" />
     <ClInclude Include="headers\graph_display_data.h" />
     <ClInclude Include="headers\node_data.h" />
@@ -189,10 +189,9 @@
     <ClInclude Include="headers\trace_handler.h" />
     <ClInclude Include="headers\opengl_operations.h" />
     <ClInclude Include="headers\thread_graph_data.h" />
-    <ClInclude Include="OSspecific.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="serialise.h" />
-    <ClInclude Include="thread_trace_reader.h" />
+    <ClInclude Include="headers\serialise.h" />
+    <ClInclude Include="headers\thread_trace_reader.h" />
     <ClInclude Include="timeline.h" />
   </ItemGroup>
   <ItemGroup>

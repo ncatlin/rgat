@@ -156,7 +156,6 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
 	unsigned int bb_inslist_index = 0;
-	bool newVert;
 	int firstMutation = -1;
 	int mutation = -1;
 	int numInstructions = tag->insCount;
@@ -709,7 +708,6 @@ void thread_trace_handler::TID_thread()
 	thisgraph->pid = PID;
 
 	char* msgbuf;
-	int result;
 	unsigned long bytesRead;
 	bool threadRunning = true;
 	while (threadRunning)

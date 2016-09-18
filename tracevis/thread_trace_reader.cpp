@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "thread_trace_reader.h"
-
+#include "thread_graph_data.h"
 
 thread_trace_reader::thread_trace_reader()
 {
@@ -162,4 +162,18 @@ int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 	*bufSize = buf_size.second;
 	processedData += buf_size.second;
 	return pendingData;
+}
+
+bool thread_trace_reader::getBufsState(pair <unsigned long, unsigned long> *bufSizes)
+{
+	unsigned long q1Size = firstQueue.size();
+	unsigned long q2Size = secondQueue.size();
+
+	if (readingFirstQueue)
+		q1Size -= readIndex;
+	else
+		q2Size -= readIndex;
+
+	*bufSizes = make_pair(q1Size, q2Size);
+	return readingFirstQueue; 
 }

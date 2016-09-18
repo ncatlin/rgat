@@ -59,6 +59,7 @@ class thread_graph_data
 	bool newanim = true;
 	unsigned int last_anim_start = 0;
 	unsigned int last_anim_stop = 0;
+	void *trace_reader;
 
 public:
 	thread_graph_data(map <unsigned long, INSLIST> *disassembly, HANDLE disasMutex);
@@ -224,5 +225,7 @@ public:
 	void highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 
 	unsigned long traceBufferSize = 0;
+	void *getReader() { return trace_reader; };
+	void setReader(void *newReader) { trace_reader = newReader;  };
 };
 

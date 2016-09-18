@@ -63,9 +63,6 @@
     <ClInclude Include="headers\b64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mathStructs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\edge_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -73,9 +70,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\node_data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="serialise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -93,26 +87,11 @@
     <ClInclude Include="headers\diff_plotter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="animControls.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="diffWindow.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="highlightWindow.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
     <ClInclude Include="headers\GUIManagement.h">
       <Filter>Header Files\interface</Filter>
     </ClInclude>
     <ClInclude Include="headers\preview_pane.h">
       <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="exeWindow.h">
-      <Filter>Header Files\interface</Filter>
-    </ClInclude>
-    <ClInclude Include="OSspecific.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\basicblock_handler.h">
       <Filter>Header Files\threads</Filter>
@@ -132,17 +111,35 @@
     <ClInclude Include="clientConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="configDefaults.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\trace_handler.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
-    <ClInclude Include="thread_trace_reader.h">
+    <ClInclude Include="headers\thread_trace_reader.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
-    <ClInclude Include="maingraph_render_thread.h">
+    <ClInclude Include="headers\maingraph_render_thread.h">
       <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\highlightWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\exeWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\animControls.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\diffWindow.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\configDefaults.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\mathStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\serialise.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -461,10 +458,10 @@
     <ClCompile Include="clientConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="thread_trace_reader.cpp">
+    <ClCompile Include="maingraph_render_thread.cpp">
       <Filter>Source Files\threads</Filter>
     </ClCompile>
-    <ClCompile Include="maingraph_render_thread.cpp">
+    <ClCompile Include="thread_trace_reader.cpp">
       <Filter>Source Files\threads</Filter>
     </ClCompile>
   </ItemGroup>

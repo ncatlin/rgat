@@ -1,4 +1,5 @@
 #include "animControls.h"
+#include "thread_trace_reader.h"
 
 void AnimControls::notifyAnimFinished()
 {
@@ -112,6 +113,35 @@ void AnimControls::update(thread_graph_data *graph)
 	}
 
 	stepsLabel->setText(stepInfo.str());
+	thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
+	pair <unsigned long, unsigned long> sizePair;
+	bool activeBuf1 = reader->getBufsState(&sizePair);
+	string r1, r2;
+	if (activeBuf1)
+	{
+		r1.append("R:");
+		r2.append("W:");
+	}
+	else
+	{
+		r1.append("W:");
+		r2.append("R:");
+	}
+
+	if (sizePair.first < 10000)
+		remaining1->setFontColor(agui::Color(255, 255, 255));
+	else
+		remaining1->setFontColor(agui::Color(255, 0, 0));
+
+	if (sizePair.second < 10000)
+		remaining2->setFontColor(agui::Color(255, 255, 255));
+	else
+		remaining2->setFontColor(agui::Color(255, 0, 0));
+
+	r1.append(to_string(sizePair.first));
+	r2.append(to_string(sizePair.second));
+	remaining1->setText(r1);
+	remaining2->setText(r2);
 }
 
 void AnimControls::fitToResize()
@@ -121,6 +151,10 @@ void AnimControls::fitToResize()
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	controlsLayout->setLocation(15, clientState->displaySize.height - 40);
 	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
+	
+	bufLayout->setLocation(clientState->mainFrameSize.width - backlogLabel->getWidth() - 10,
+		clientState->mainFrameSize.height - 60);
+
 }
 
 AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *font) {
@@ -256,4 +290,37 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
 	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
 	widgets->add(scrollbar);
+
+	bufLayout = new agui::FlowLayout();
+	bufLayout->setTopToBottom(true);
+	bufLayout->setSingleRow(false);
+	bufLayout->setMaxOnRow(1);
+
+	backlogLabel = new agui::Label();
+	backlogLabel->setFont(btnFont);
+	backlogLabel->setText("Trace Backlog");
+	backlogLabel->setFontColor(agui::Color(255, 255, 255));
+	backlogLabel->resizeToContents();
+	bufLayout->add(backlogLabel);
+
+	remaining1 = new agui::Label();
+	remaining1->setFont(btnFont);
+	remaining1->setSize(100, 30);
+	remaining1->setBackColor(agui::Color(0, 0, 0));
+	remaining1->setFontColor(agui::Color(255, 255, 255));
+	bufLayout->add(remaining1);
+
+	remaining2 = new agui::Label();
+	remaining2->setFont(btnFont);
+	remaining2->setSize(100, 30);
+	remaining2->setFontColor(agui::Color(255, 255, 255));
+	bufLayout->add(remaining2);
+
+
+	bufLayout->setLocation(clientState->mainFrameSize.width - backlogLabel->getWidth()-10, 
+		clientState->mainFrameSize.height - bufLayout->getHeight() - 10);
+
+	bufLayout->resizeToContents();
+	widgets->add(bufLayout);
+
 }

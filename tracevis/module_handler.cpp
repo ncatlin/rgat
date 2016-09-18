@@ -91,6 +91,7 @@ void module_handler::PID_thread()
 				threadList.push_back(make_pair(TID_reader, TID_thread));
 
 				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
+				tgraph->setReader(TID_reader);
 
 				tgraph->tid = TID; //todo: dont need this
 				if (!obtainMutex(piddata->graphsListMutex, "Module Handler")) return;

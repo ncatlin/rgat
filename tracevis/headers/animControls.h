@@ -40,7 +40,7 @@ public:
 	void fitToResize();
 
 private:
-	agui::Layout *mouseLayout = NULL;
+	agui::FlowLayout *mouseLayout = NULL;
 	agui::FlowLayout *controlsLayout = NULL;
 	agui::FlowLayout *labelsLayout = NULL;
 	agui::Button *connectBtn = NULL;
@@ -52,6 +52,12 @@ private:
 	agui::Button *pauseBtn = NULL;
 	agui::Button *skipBtn = NULL;
 	agui::VScrollBar *scrollbar = NULL;
+
+	agui::FlowLayout *bufLayout = NULL;
+	agui::Label *remaining1 = NULL;
+	agui::Label *remaining2 = NULL;
+	agui::Label *backlogLabel = NULL;
+
 
 	agui::Font *btnFont;
 	agui::Label *stepsLabel;

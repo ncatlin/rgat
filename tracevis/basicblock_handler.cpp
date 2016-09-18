@@ -175,7 +175,7 @@ void basicblock_handler::PID_BB_thread()
 				assert(0);
 			};
 
-			if (targetaddr > 0x550000 && (targetaddr & 0xfff == 0xfef))
+			if ((targetaddr > 0x550000) && (targetaddr & 0xfff == 0xfef))
 				printf("here i %d\n",instrumented);
 
 
