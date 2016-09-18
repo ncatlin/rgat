@@ -19,6 +19,7 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		GLfloat *buf = mainlinedata->readonly_pos();
 		if (!buf) return;
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
+		//crash here 
 		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, buf);
 
 		buf = animlinedata->readonly_col();
@@ -440,6 +441,7 @@ int thread_graph_data::brighten_BBs()
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
+		//not happy about this locking the disassembly db. Move the vertexlist elsewhere
 		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
 		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
 		if (vertIt == ins->threadvertIdx.end())

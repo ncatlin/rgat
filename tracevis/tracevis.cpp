@@ -956,7 +956,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
-		if (!clientstate->activeGraph) return EV_MOUSE;
+		if (!clientstate->activeGraph || widgets->highlightWindow->highlightFrame->isVisible()) return EV_MOUSE;
 
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		float diam = mainscale->radius;

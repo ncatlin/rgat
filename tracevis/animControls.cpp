@@ -116,6 +116,13 @@ void AnimControls::update(thread_graph_data *graph)
 	thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
 	pair <unsigned long, unsigned long> sizePair;
 	bool activeBuf1 = reader->getBufsState(&sizePair);
+	if (sizePair.first || sizePair.second)
+		bufLayout->setVisibility(true);
+	else
+	{
+		bufLayout->setVisibility(false); return;
+	}
+
 	string r1, r2;
 	if (activeBuf1)
 	{
@@ -128,12 +135,12 @@ void AnimControls::update(thread_graph_data *graph)
 		r2.append("R:");
 	}
 
-	if (sizePair.first < 10000)
+	if (sizePair.first < 20000)
 		remaining1->setFontColor(agui::Color(255, 255, 255));
 	else
 		remaining1->setFontColor(agui::Color(255, 0, 0));
 
-	if (sizePair.second < 10000)
+	if (sizePair.second < 20000)
 		remaining2->setFontColor(agui::Color(255, 255, 255));
 	else
 		remaining2->setFontColor(agui::Color(255, 0, 0));
@@ -321,6 +328,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 		clientState->mainFrameSize.height - bufLayout->getHeight() - 10);
 
 	bufLayout->resizeToContents();
+	bufLayout->setVisibility(false);
 	widgets->add(bufLayout);
 
 }

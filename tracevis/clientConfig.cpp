@@ -129,7 +129,7 @@ bool clientConfig::loadFromFile()
 	charstr_to_col(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_RGBA"), &highlightColour);
 	highlightProtrusion = atoi(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION"));
 	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour);
-	animationFadeRate = atoi(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
+	animationFadeRate = atof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
 
 	loadColours();
 

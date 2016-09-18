@@ -12,7 +12,7 @@ string getModulePath()
 	return string(buffer).substr(0, pos);
 }
 
-string get_dr_path()
+bool get_dr_path(string *path)
 {
 	//first try reading from config file
 
@@ -26,7 +26,7 @@ string get_dr_path()
 		DRPath.append("bin32\\drrun.exe");
 		if (!al_filename_exists(DRPath.c_str()))
 		{
-			printf("Unable to find drrun.exe! at %s!\n", DRPath.c_str());
+			printf("ERROR: Unable to find drrun.exe at %s\n", DRPath.c_str());
 			return 0;
 		}
 	}
@@ -34,13 +34,14 @@ string get_dr_path()
 	string DRGATpath = moduleDir + "\\drgat\\drgat.dll";
 	if (!al_filename_exists(DRGATpath.c_str()))
 	{
-		printf("Unable to find drgat.dll! at %s!\n", DRGATpath.c_str());
+		printf("Unable to find drgat.dll at %s\n", DRGATpath.c_str());
 		return 0;
 	}
 
 	string drrunArgs = " -c ";
 	string retstring = DRPath + drrunArgs + DRGATpath;
-	return retstring;
+	*path = retstring;
+	return true;
 }
 
 string get_options(VISSTATE *clientState)
@@ -56,7 +57,8 @@ string get_options(VISSTATE *clientState)
 void execute_tracer(string executable, VISSTATE *clientState) {
 	if (executable.empty()) return;
 
-	string runpath = get_dr_path();
+	string runpath;
+	if (!get_dr_path(&runpath)) return;
 	runpath.append(get_options(clientState));
 	runpath = runpath + " -- \"" + executable + "\"";
 
