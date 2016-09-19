@@ -108,9 +108,6 @@
     <ClInclude Include="headers\render_conditional_thread.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
-    <ClInclude Include="clientConfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\trace_handler.h">
       <Filter>Header Files\threads</Filter>
     </ClInclude>
@@ -139,6 +136,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\serialise.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\clientConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

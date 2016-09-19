@@ -518,11 +518,15 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 
 //uninstrumented library calls
 //draw text for quantity + symbol + argument indicator
-void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
+void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
 	stringstream argstring;
+
+	if (clientState->config->showExternText)
+		argstring << clientState->activePid->modpaths.at(n->nodeMod) << ":";
+
 	int numCalls = n->calls;
-	string symString = clientstate->activePid->modsyms[n->nodeMod][n->address];
+	string symString = clientState->activePid->modsyms[n->nodeMod][n->address];
 	if (numCalls == 1)
 		argstring << symString;
 	else
@@ -549,7 +553,7 @@ void draw_func_args(VISSTATE *clientstate, ALLEGRO_FONT *font, DCOORD screenCoor
 		}
 	
 	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
-		clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 		argstring.str().c_str());
 
 }

@@ -54,6 +54,7 @@ public:
 		smoothDrawing = activated; 
 	}
 	bool isSmoothDrawing() { return smoothDrawing; }
+	bool isHighlightVisible() { return highlightWindow->highlightFrame->isVisible(); }
 
 private:
 	agui::ToolTip *tippy;

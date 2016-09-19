@@ -956,7 +956,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
-		if (!clientstate->activeGraph || widgets->highlightWindow->highlightFrame->isVisible()) return EV_MOUSE;
+		if (!clientstate->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
 
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		float diam = mainscale->radius;
@@ -1088,7 +1088,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 				break; 
 			}
 
-			if (widgets->highlightWindow->highlightFrame->isVisible())
+			if (widgets->isHighlightVisible())
 			{
 				widgets->highlightWindow->highlightFrame->setVisibility(false);
 				break;
@@ -1223,6 +1223,10 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 				al_register_event_source(clientstate->event_queue, logevents);
 				clientstate->logSize = fill_extern_log(clientstate->textlog, clientstate->activeGraph, clientstate->logSize);
 			}	
+			break;
+
+		case EV_BTN_EXT_MOD_TEXT:
+			clientstate->config->showExternText = !clientstate->config->showExternText;
 			break;
 
 		case EV_BTN_SAVE:

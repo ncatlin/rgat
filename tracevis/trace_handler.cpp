@@ -420,6 +420,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		map <unsigned long, vector<ARGLIST>> *newmap = new map <unsigned long, vector<ARGLIST>>;
 		thisgraph->pendingcallargs.emplace(pendingFunc, *newmap);
 	}
+
 	if (thisgraph->pendingcallargs.at(pendingFunc).count(pendingRet) == 0)
 	{
 		vector<ARGLIST> *newvec = new vector<ARGLIST>;
@@ -431,7 +432,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
 		thisCallArgs.push_back(*pendcaIt);
 
-	//thisgraph->pendingcallargs.at(funcpc).at(returnpc).push_back(thisCallArgs);
 	thisgraph->pendingcallargs.at(pendingFunc).at(pendingRet).push_back(thisCallArgs);
 
 	pendingArgs.clear();

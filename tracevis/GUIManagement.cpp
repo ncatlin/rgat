@@ -285,6 +285,10 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 		{ "Show Edges", EV_BTN_EDGES, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
+		ALLEGRO_START_OF_MENU("Text", 3),
+		{ "Show Extern Modules", EV_BTN_EXT_MOD_TEXT, 0, NULL },
+		ALLEGRO_END_OF_MENU,
+
 		ALLEGRO_START_OF_MENU("&Help", 7),
 		{ "&About", 8, 0, NULL },
 		ALLEGRO_END_OF_MENU,

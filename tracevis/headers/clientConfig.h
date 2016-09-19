@@ -51,6 +51,7 @@ public:
 	int farA;
 
 	float animationFadeRate;
+	bool showExternText = false;
 
 private:
 	vector<string *> cleanupList;

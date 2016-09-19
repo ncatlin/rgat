@@ -25,6 +25,8 @@ clientConfig::clientConfig(string filepath)
 		loadDefaults();
 		saveToFile();
 	}
+
+
 }
 
 
