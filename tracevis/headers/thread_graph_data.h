@@ -9,7 +9,7 @@
 #define MAX_DIFF_PATH_LENGTH 50
 #define ANIMATION_ENDED -1
 #define ANIMATION_WIDTH 8
-#define MINIMUM_FADE_ALPHA 0.05
+#define MINIMUM_FADE_ALPHA 0.06
 
 
 struct EXTERNCALLDATA {
@@ -22,7 +22,6 @@ struct EXTERNCALLDATA {
 
 class thread_graph_data
 {
-	
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 
@@ -60,6 +59,9 @@ class thread_graph_data
 	unsigned int last_anim_start = 0;
 	unsigned int last_anim_stop = 0;
 	void *trace_reader;
+
+
+
 
 public:
 	thread_graph_data(map <unsigned long, INSLIST> *disassembly, HANDLE disasMutex);
@@ -172,10 +174,21 @@ public:
 	MULTIPLIERS *m_scalefactors = NULL;
 	MULTIPLIERS *p_scalefactors = NULL;
 
-	//node+edge col+pos
+
 	bool needVBOReload_main = true;
 	GLuint graphVBOs[4] = { 0,0,0,0 };
+
+	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
 	
+	bool isGraphBusy() { 
+		bool busy = (WaitForSingleObject(graphwritingMutex, 0) == WAIT_TIMEOUT); 
+		if (!busy)
+			ReleaseMutex(graphwritingMutex); 
+		return busy;
+	}
+
+	void setGraphBusy(bool set) { if (set) WaitForSingleObject(graphwritingMutex, INFINITE); else ReleaseMutex(graphwritingMutex); }
+
 	bool VBOsGenned = false;
 	//node+edge col+pos
 	bool needVBOReload_preview = true;
@@ -216,6 +229,9 @@ public:
 	unsigned long targetIterations = 0;
 
 	bool needVBOReload_active = true;
+	//two sets of VBOs for graph so we can display one
+	//while the other is being written
+	int lastVBO = 2;
 	GLuint activeVBOs[4] = { 0,0,0,0 };
 
 	//active areas + inactive areas

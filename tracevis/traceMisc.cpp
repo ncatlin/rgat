@@ -2,15 +2,15 @@
 #include "traceMisc.h"
 
 //gets [mutation]'th disassembly of [address]. if absent and [fuzzy] then returns the most recent 
-INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool mostRecent = false)
+INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool getLatest = false)
 {
 	obtainMutex(mutex, 0, 4000);
 	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
 
 
-	if (disasIt == disas->end() || (!mostRecent && disasIt->second.size()-1 < mutation))
+	if (disasIt == disas->end() || (!getLatest && disasIt->second.size()-1 < mutation))
 	{
-		int waitTime = 150;
+		int waitTime = 1;
 		while (true)
 		{
 			dropMutex(mutex, 0);
@@ -21,13 +21,13 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 			
 			if (disasIt == disas->end())
 			{
-				waitTime += 100;
-				if (waitTime > 800)
+				waitTime += 5;
+				if (waitTime > 600)
 					printf("Long wait for disassembly of %lx, mutation %d.\n", address, mutation);
 				continue;
 			}
 
-			if (mostRecent)
+			if (getLatest)
 			{
 				mutation = disasIt->second.size() - 1;
 				break;
@@ -35,6 +35,20 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 			else
 				if (disasIt->second.size() - 1 >= mutation)
 					break;
+				else
+				{
+					//Not found mutation? Give up and use the latest one
+					//If display of mutating code is going bad, this might be where it happens.
+					//Could also be a source of significant slowdown so wait time is reduced
+					mutation = disasIt->second.size() - 1;
+					/*
+					waitTime += 40;
+					if (waitTime > 120) {
+						mutation = disasIt->second.size() - 1;
+					}
+					Sleep(waitTime);
+					*/
+				}
 		}
 	}
 

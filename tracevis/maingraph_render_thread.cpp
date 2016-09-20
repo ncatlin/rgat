@@ -18,7 +18,8 @@ void maingraph_render_thread::updateMainRender()
 
 void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph)
 {
-
+	graph->setGraphBusy(true);
+	
 	if (
 		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
@@ -26,11 +27,13 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 	{
 		updateMainRender();
 	}
-
+	
 	if (!graph->active && clientState->animationUpdate)
 	{
+
 		int result = graph->updateAnimation(clientState->animationUpdate,
 			clientState->modes.animation, clientState->skipLoop);
+
 		if (clientState->skipLoop) clientState->skipLoop = false;
 
 		if (clientState->modes.animation)
@@ -68,6 +71,8 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 					clientState->activePid);
 			}
 		}
+
+	graph->setGraphBusy(false);
 }
 
 void maingraph_render_thread::rendering_thread()
@@ -80,8 +85,8 @@ void maingraph_render_thread::rendering_thread()
 		if (!activeGraph) {
 			Sleep(5); continue;
 		}
-
 		performMainGraphRendering(activeGraph);
+		Sleep(20);
 	}
 
 

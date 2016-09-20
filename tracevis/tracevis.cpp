@@ -474,7 +474,10 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 		clientState->logSize = fill_extern_log(clientState->textlog,
 			clientState->activeGraph, clientState->logSize);
 
+	//red line indicating last instruction
 	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+
+	//green highlight lines
 	if (clientState->highlightData.highlightState)
 		graph->highlightNodes(&clientState->highlightData.highlightNodes,
 			&clientState->config->highlightColour, clientState->config->highlightProtrusion);

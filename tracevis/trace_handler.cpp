@@ -5,8 +5,7 @@
 #include "traceStructs.h"
 #include "b64.h"
 
-bool thread_trace_handler::find_internal_at_address(long address) {
-	int attempts = 2;
+bool thread_trace_handler::find_internal_at_address(long address, int attempts) {
 	while (!piddata->disassembly.count(address))
 	{
 		Sleep(5);
@@ -16,17 +15,19 @@ bool thread_trace_handler::find_internal_at_address(long address) {
 	return true;
 }
 
-bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB) {
-	int attempts = 2;
-	while (!piddata->externdict.count(address))
+bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB, int attempts = 1) {
+	obtainMutex(piddata->externDictMutex, 0, 1000);
+	map<unsigned long, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
+	while (externIt == piddata->externdict.end())
 	{
-		Sleep(5);
 		if (!attempts--) return false;
-		printf("Sleeping until bbdict contains EXTERN %lx\n", address);
+		dropMutex(piddata->externDictMutex, 0);
+		Sleep(1);
+		obtainMutex(piddata->externDictMutex, 0, 1000);
+		externIt = piddata->externdict.find(address);
 	}
 
-	obtainMutex(piddata->externDictMutex, 0, 1000);
-	*BB = piddata->externdict.at(address);
+	*BB = externIt->second;
 	dropMutex(piddata->externDictMutex, 0);
 	return true;
 }
@@ -691,7 +692,6 @@ void thread_trace_handler::dump_loop()
 
 	thisgraph->loopCounter++;
 	//put the verts/edges on the graph
-	printf("visualiser processing %d iterations of %d block loop\n", loopCount, loopCache.size());
 	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
 		handle_tag(&*tagIt, loopCount);
 
@@ -771,14 +771,16 @@ void thread_trace_handler::TID_thread()
 				//see if next block is external
 				//this is our alternative to instrumenting *everything*
 				//rarely called
+				int attempts = 1;
 				while (true)
 				{
-					if (get_extern_at_address(nextBlock, &thistag.foundExtern))
+					if (get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
 					{
 						external = true;
 						break;
 					}
-					if (find_internal_at_address(nextBlock)) break;
+					if (find_internal_at_address(nextBlock, attempts)) break;
+					++attempts;
 				} 
 
 				if (!external) continue;

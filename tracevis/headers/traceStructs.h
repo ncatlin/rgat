@@ -119,5 +119,5 @@ struct PROCESS_DATA {
 	map <unsigned long, INSLIST> disassembly;
 
 	vector <int> activeMods;
-	map <long, BB_DATA *> externdict;
+	map <unsigned long, BB_DATA *> externdict;
 };

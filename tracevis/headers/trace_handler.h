@@ -59,8 +59,8 @@ private:
 	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index);
 	void handle_existing_instruction(INS_DATA *instruction);
-	bool get_extern_at_address(long address, BB_DATA ** BB);
-	bool find_internal_at_address(long address);
+	bool get_extern_at_address(long address, BB_DATA ** BB, int attempts);
+	bool find_internal_at_address(long address, int attempts);
 	void increaseWeight(edge_data *edge, long executions);
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void update_conditional_state(unsigned long nextAddress);

@@ -4,22 +4,22 @@
 #include "GUIStructs.h"
 #include "serialise.h"
 
-
 //display live or animated graph with active areas on faded areas
 void thread_graph_data::display_active(bool showNodes, bool showEdges)
 {
 	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
 	GRAPH_DISPLAY_DATA *linedata = get_activelines();
-	
-	if (needVBOReload_active)
+
+	if (needVBOReload_active)// && !isGraphBusy())
 	{
+		setGraphBusy(true);
+		printf("uploading graph\n");
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
-	
+
 		GLfloat *buf = mainlinedata->readonly_pos();
 		if (!buf) return;
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
-		//crash here 
 		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, buf);
 
 		buf = animlinedata->readonly_col();
@@ -28,8 +28,15 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		load_VBO(VBO_LINE_COL, activeVBOs, linebufsize, buf);
 
 		needVBOReload_active = false;
+		setGraphBusy(false);
+		printf("uploaded graph\n");
+	}
+	else
+	{
+		if (needVBOReload_active) printf("didn't update!\n");
 	}
 
+	printf("drawing graph\n");
 	if (showNodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, nodesdata->get_numVerts());
 
@@ -129,7 +136,7 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	while (numInstructions > 1)
 	{
 		insAddr += ins->numbytes;
-		//bad feeling about blindly using same mutation here
+		//possible source of inaccuracy here, see comments within
 		ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, false);
 		numInstructions--;
 	}
@@ -325,12 +332,16 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
 
 	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
+	bool update = false;
 
+	if (activeEdgeIt != activeEdgeMap.end()) 
+		update = true;
 	while (activeEdgeIt != activeEdgeMap.end())
 	{
 		edge_data *e = activeEdgeIt->second;
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
+		float newEdgeAlpha;
 		assert(e->vertSize);
 		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
@@ -341,11 +352,15 @@ void thread_graph_data::darken_animation(float alphaDelta)
 				break;
 			}
 			edgeAlpha = ecol[colBufIndex];
-			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
-			ecol[colBufIndex] = edgeAlpha;
+			//TODO: problems here!
+			//streaks left on graph
+			//0.05 stored as 0.05000000002
+			//0.06 stored as 0.59999999999997
+			newEdgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
+			ecol[colBufIndex] = newEdgeAlpha;
 		}	
 
-		if (edgeAlpha == MINIMUM_FADE_ALPHA)
+		if (newEdgeAlpha <= MINIMUM_FADE_ALPHA)
 			activeEdgeIt = activeEdgeMap.erase(activeEdgeIt);
 		else
 			++activeEdgeIt;
@@ -356,6 +371,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	int colBufSize = animnodesdata->col_buf_capacity_floats();
 
 	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
+	if (activeNodeIt != activeNodeMap.end()) update = true;
 	while (activeNodeIt != activeNodeMap.end())
 	{
 		node_data *n = get_node(activeNodeIt->first);
@@ -373,7 +389,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	}
 
 	animnodesdata->release_col();
-	needVBOReload_active = true;
+	if (update) needVBOReload_active = true;
 }
 
 void thread_graph_data::reset_animation()
@@ -413,6 +429,7 @@ int thread_graph_data::brighten_BBs()
 
 	bool dropout = false;
 	map <unsigned long, bool> recentHighlights;
+
 	for (; animPosition < animEnd; ++animPosition)
 	{
 		highlight_externs(animPosition);
@@ -420,10 +437,10 @@ int thread_graph_data::brighten_BBs()
 
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
-		
 		GLfloat *ncol = &animnodesdata->acquire_col("1m")->at(0);
 		GLfloat *ecol = &animlinedata->acquire_col("1m")->at(0);
-		while (!ncol || !ecol) // this will probably fail now
+
+		while (!ncol || !ecol) 
 		{
 			animnodesdata->release_col();
 			animlinedata->release_col();
@@ -433,10 +450,12 @@ int thread_graph_data::brighten_BBs()
 			ecol = &animlinedata->acquire_col("1m2")->at(0);
 		}
 
+
 		obtainMutex(animationListsMutex);
 		pair<unsigned long, int> targBlock_Size = bbsequence.at(animPosition);
 		int mutation = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
+		
 
 		unsigned long insAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
@@ -451,7 +470,7 @@ int thread_graph_data::brighten_BBs()
 			animlinedata->release_col();
 			break;
 		}
-	
+		
 		obtainMutex(disassemblyMutex, 0, 50); //do we need this?
 		unsigned int nodeIdx = vertIt->second;
 		dropMutex(disassemblyMutex, 0);
@@ -488,7 +507,7 @@ int thread_graph_data::brighten_BBs()
 			}
 		}
 
-
+		
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
 
@@ -523,11 +542,14 @@ int thread_graph_data::brighten_BBs()
 			nodeIdx = nextInsIndex;
 			ins = nextIns;
 		}
+		
 		lastNodeIdx = nodeIdx;
 		animnodesdata->release_col();
 		animlinedata->release_col();
+		
 		if (dropout) break;
 	}
+
 
 	needVBOReload_active = true;
 	return animPosition;
@@ -553,6 +575,7 @@ void thread_graph_data::animate_latest(float fadeRate)
 	lastAnimatedBB = sequenceIndex;
 
 	lastAnimatedBB = brighten_BBs();
+
 }
 
 //replay
