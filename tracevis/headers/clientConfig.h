@@ -51,10 +51,16 @@ public:
 	int lowB;
 	int farA;
 
+	string saveDir;
+	string DRDir;
+	string clientPath;
+	string lastPath;
+
 	float animationFadeRate;
 
 	//these are not saved in the config file but toggled at runtime
 	bool showExternText = false;
+	void updateLastPath(string path);
 
 private:
 	vector<string *> cleanupList;
@@ -72,7 +78,6 @@ private:
 	//read config file at configFilePath into memory
 	bool loadFromFile();
 
-
 	//save config from memory into file
 	void saveToFile();
 
@@ -88,11 +93,13 @@ private:
 	void loadConditionals();
 	void loadHeatmap();
 	void loadColours();
+	void loadPaths();
 
 	//load individual default config sections into memory
 	void loadPreviewDefaults();
 	void loadConditionalDefaults();
 	void loadHeatmapDefaults();
 	void loadDefaultColours();
+	void loadDefaultPaths();
 };
 

@@ -4,6 +4,7 @@
 #include "GUIStructs.h"
 #include "traceMisc.h"
 #include "basicblock_handler.h"
+#include "OSspecific.h"
 
 #define tag_START '{'
 #define tag_END '}'
@@ -115,11 +116,32 @@ void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 	writetag(file, tag_END, tag_PROCESSDATA);
 }
 
+//if dir doesn't exist in config defined path, create
+bool ensureDirExists(string dirname, VISSTATE *clientState)
+{
+	return true;
+
+}
+
 void saveTrace(VISSTATE * clientState)
 {
+	
 	clientState->saveInProgress = true;
 	ofstream savefile;
-	savefile.open("C:\\tracing\\testsave.txt", std::ofstream::binary);
+	string path;
+	if (!getSavePath(clientState, &path))
+	{
+		printf("Failed to get save path\n");
+		return;
+	}
+	printf("Saving to %s\n", path.c_str());
+	savefile.open(path.c_str(), std::ofstream::binary);
+	if (!savefile.is_open())
+	{
+		printf("Failed to open %s for save\n", path.c_str());
+		return;
+	}
+
 
 	savefile << "PID " << clientState->activeGraph->pid << " ";
 	saveProcessData(clientState->activePid, &savefile);
@@ -331,7 +353,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 		printf("Corrupt save (process data end)\n");
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -357,6 +379,8 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 			piddata->graphs.emplace(TID, graph);
 		else 
 			return false;
+
+		graph->assign_modpath(piddata);
 
 		printf("Loaded thread graph %d\n", TID);
 		if (file->peek() != 'T') break;

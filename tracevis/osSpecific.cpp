@@ -4,38 +4,71 @@
 
 
 #ifdef WIN32
+bool fileExists(string path)
+{
+	wstring wstrpath(path.begin(), path.end());
+	return PathFileExists(wstrpath.c_str());
+}
+
+//gets path rgat executable is located in
 string getModulePath()
 {
-	char buffer[MAX_PATH];
+	CHAR buffer[MAX_PATH];
 	GetModuleFileNameA(NULL, buffer, MAX_PATH);
 	string::size_type pos = string(buffer).find_last_of("\\/");
 	return string(buffer).substr(0, pos);
 }
 
-bool get_dr_path(string *path)
+//returns path for saving files, tries to create if it doesn't exist
+bool getSavePath(VISSTATE * clientState, string *result)
 {
-	//first try reading from config file
+	stringstream savedir;
+	savedir << clientState->config->saveDir;
 
-	//in the event of it not working, try going with an 'it just works' philosophy and check exe dir
-	string moduleDir = getModulePath();
-	string DRPath = moduleDir + "\\DynamoRIO\\";
-	if (al_filename_exists(DRPath.c_str()))
+	//if directory doesn't exist, create
+	if (!fileExists(savedir.str().c_str()))
+		if (!CreateDirectoryA(savedir.str().c_str(),NULL))
+			return false;
+
+	thread_graph_data * graph = clientState->activeGraph;
+	string filename = clientState->glob_piddata_map[graph->pid]->modpaths[0];
+
+	//http://stackoverflow.com/a/8520815
+	const size_t last_slash_idx = filename.find_last_of("\\/");
+	if (std::string::npos != last_slash_idx)
 	{
-		//if 64 bit
-		//if 32 bit
-		DRPath.append("bin32\\drrun.exe");
-		if (!al_filename_exists(DRPath.c_str()))
-		{
-			printf("ERROR: Unable to find drrun.exe at %s\n", DRPath.c_str());
-			return 0;
-		}
+		filename.erase(0, last_slash_idx + 1);
 	}
 
-	string DRGATpath = moduleDir + "\\drgat\\drgat.dll";
-	if (!al_filename_exists(DRGATpath.c_str()))
+	stringstream timestring;
+	timestring << 222;
+
+	stringstream savepath;
+	savepath << savedir.str() << "\\" << filename << timestring.str() << ".rgat";
+	*result = savepath.str();
+	return true;
+}
+
+//get execution string of dr executable + client dll
+bool get_dr_path(VISSTATE *clientState, string *path)
+{
+	string DRPath = clientState->config->DRDir;
+#ifdef X86_32
+	DRPath.append("bin32\\drrun.exe");
+#elif X86_64
+	DRPath.append("bin64\\drrun.exe");
+#endif
+	if (!fileExists(DRPath.c_str()))
+	{
+		printf("ERROR: Unable to find Dynamorio executable at %s\n", DRPath.c_str());
+		return false;
+	}
+
+	string DRGATpath = clientState->config->clientPath + "drgat.dll";
+	if (!fileExists(DRGATpath.c_str()))
 	{
 		printf("Unable to find drgat.dll at %s\n", DRGATpath.c_str());
-		return 0;
+		return false;
 	}
 
 	string drrunArgs = " -c ";
@@ -50,7 +83,7 @@ string get_options(VISSTATE *clientState)
 	if (clientState->launchopts.antidote)
 		optstring << " -antidote";
 	if (clientState->launchopts.caffine)
-		optstring << " -caffine";
+		optstring <<L" -caffine";
 	return optstring.str();
 }
 
@@ -58,7 +91,7 @@ void execute_tracer(string executable, VISSTATE *clientState) {
 	if (executable.empty()) return;
 
 	string runpath;
-	if (!get_dr_path(&runpath)) return;
+	if (!get_dr_path(clientState, &runpath)) return;
 	runpath.append(get_options(clientState));
 	runpath = runpath + " -- \"" + executable + "\"";
 

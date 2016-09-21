@@ -61,6 +61,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		if (graph->terminated)
 		{
 			graph->reset_animation();
+			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
 			graph->terminated = false;
 			if (clientState->highlightData.highlightState)

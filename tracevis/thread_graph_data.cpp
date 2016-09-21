@@ -841,6 +841,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< maxB << ","
 		<< maxWeight << ","
 		<< loopCounter << ","
+		<< baseMod << ","
 		<< totalInstructions
 		<< "}S,";
 
@@ -1069,6 +1070,8 @@ bool thread_graph_data::loadStats(ifstream *file)
 	if (!caught_stol(value_s, (unsigned long*)&maxWeight, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&loopCounter, 10)) return false;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&baseMod, 10)) return false;
 	getline(*file, value_s, '}');
 	if (!caught_stol(value_s, (unsigned long*)&totalInstructions, 10)) return false;
 

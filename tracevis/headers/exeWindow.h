@@ -45,7 +45,10 @@ public:
 	}
 	void hide() { exeFrame->setVisibility(false);	}
 	~exeWindow();
-	void setPath(string path) { target = path; filePathTxt->setText(path); }
+	void setPath(string path) { 
+		target = path; 
+		filePathTxt->setText(path.c_str()); 
+	}
 	string getPath() { return target; }
 
 
@@ -82,26 +85,30 @@ class fileButtonListener : public agui::ActionListener
 public:
 	fileButtonListener(VISSTATE *state, exeWindow *exeWind) {
 		clientState = state; exe_wind = exeWind;
-		lastPath = getModulePath();
 	}
 
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
 		ALLEGRO_FILECHOOSER *fileDialog;
-		fileDialog = al_create_native_file_dialog(lastPath.c_str(), "Choose target to execute", "*.exe;*.*;",
+		string startPath = clientState->config->lastPath;
+		fileDialog = al_create_native_file_dialog(startPath.c_str(), "Choose target to execute", "*.exe;*.*;",
 			ALLEGRO_FILECHOOSER_FILE_MUST_EXIST | ALLEGRO_FILECHOOSER_SHOW_HIDDEN);
 		al_show_native_file_dialog(clientState->maindisplay, fileDialog);
 
-		const char* result = al_get_native_file_dialog_path(fileDialog, 0);
+		const char* result =  al_get_native_file_dialog_path(fileDialog, 0);
+		if (!result) return;
+
+		string path(result);
 		al_destroy_native_file_dialog(fileDialog);
-		if (!al_filename_exists(result)) return;
-		exe_wind->setPath(string(result));
+		if (!fileExists(path)) return;
+
+		clientState->config->updateLastPath(path);
+		exe_wind->setPath(path);
 	}
 
 private:
 	VISSTATE *clientState;
 	exeWindow *exe_wind;
-	string lastPath = getModulePath();
 };
 
 class launchButtonListener : public agui::ActionListener
@@ -109,13 +116,12 @@ class launchButtonListener : public agui::ActionListener
 public:
 	launchButtonListener(VISSTATE *state, exeWindow *exeWind) {
 		clientState = state; exe_wind = exeWind;
-		lastPath = getModulePath();
 	}
 
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
-		string path =exe_wind->getPath();
-		if (!al_filename_exists(path.c_str())) return;
+		string path = exe_wind->getPath();
+		if (!fileExists(path)) return;
 		execute_tracer(path, clientState);
 		exe_wind->hide();
 	}
@@ -124,5 +130,4 @@ private:
 	
 	VISSTATE *clientState;
 	exeWindow *exe_wind;
-	string lastPath;
 };

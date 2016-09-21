@@ -3,12 +3,13 @@
 #include "configdefaults.h"
 #include "GUIConstants.h"
 #include "traceConstants.h"
+#include "OSspecific.h"
 
 clientConfig::clientConfig(string filepath)
 {
 	configFilePath = filepath;
 	
-	if (al_filename_exists(filepath.c_str()))
+	if (fileExists(filepath))
 	{
 		printf("Attempting to load config file %s\n", filepath.c_str());
 		if (loadFromFile())
@@ -80,6 +81,14 @@ void clientConfig::loadPreview()
 	charstr_to_col(al_get_config_value(alConfig, "Preview", "BACKGROUND_RGBA"), &preview.background);
 }
 
+void clientConfig::loadPaths()
+{
+	saveDir = string(al_get_config_value(alConfig, "Paths", "SAVE_PATH"));
+	DRDir = string(al_get_config_value(alConfig, "Paths", "DYNAMORIO_PATH"));
+	clientPath = string(al_get_config_value(alConfig, "Paths", "CLIENT_PATH"));
+	lastPath = string(al_get_config_value(alConfig, "Paths", "LAST_PATH"));
+}
+
 void clientConfig::loadConditionals()
 {
 	conditional.delay = atoi(al_get_config_value(alConfig, "Conditionals", "MS_BETWEEN_UPDATES"));
@@ -126,7 +135,8 @@ void clientConfig::loadColours()
 
 bool clientConfig::loadFromFile()
 {
-	alConfig = al_load_config_file(configFilePath.c_str());
+	string cstrpath(configFilePath.begin(), configFilePath.end());
+	alConfig = al_load_config_file(cstrpath.c_str());
 	if (!alConfig) return false;
 
 	charstr_to_col(al_get_config_value(alConfig, "Wireframe", "COL_RGBA"), &wireframe.edgeColor);
@@ -145,6 +155,7 @@ bool clientConfig::loadFromFile()
 	animationFadeRate = atof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
 
 	loadColours();
+	loadPaths();
 
 	al_destroy_config(alConfig);
 }
@@ -153,9 +164,8 @@ void clientConfig::cleanup()
 {
 	vector<string *>::iterator cleanIt = cleanupList.begin();
 	for (; cleanIt != cleanupList.end(); ++cleanIt)
-	{
 		delete *cleanIt;
-	}
+	cleanupList.clear();
 }
 
 void clientConfig::savePreview()
@@ -288,6 +298,11 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA", col_to_charstr(activityLineColour));
 	al_set_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE", to_string(animationFadeRate).c_str());
 
+	al_set_config_value(alConfig, "Paths", "SAVE_PATH", saveDir.c_str());
+	al_set_config_value(alConfig, "Paths", "DYNAMORIO_PATH", DRDir.c_str());
+	al_set_config_value(alConfig, "Paths", "CLIENT_PATH", clientPath.c_str());
+	al_set_config_value(alConfig, "Paths", "LAST_PATH", lastPath.c_str());
+
 	saveColours();
 	cleanup();
 
@@ -295,6 +310,36 @@ void clientConfig::saveToFile()
 		printf("Created config file %s\n", configFilePath.c_str());
 	else
 		printf("Failed to create config file %s: Error %d\n", configFilePath.c_str(), al_get_errno());
+}
+
+void clientConfig::updateLastPath(string path)
+{
+	lastPath = path;
+
+	string cstrpath(configFilePath.begin(), configFilePath.end());
+	alConfig = al_load_config_file(cstrpath.c_str());
+	if (!alConfig) return;
+	
+	saveToFile();
+
+	al_destroy_config(alConfig);
+}
+
+void clientConfig::loadDefaultPaths()
+{
+	saveDir = getModulePath();
+	DRDir = getModulePath();
+	clientPath = getModulePath();
+
+#ifdef WINDOWS
+	saveDir.append("\\saves\\");
+	DRDir.append("\\DynamoRIO\\");
+	clientPath.append("\\drgat\\");
+#elif LINUX
+	assert(0);
+#endif
+
+
 }
 
 void clientConfig::loadDefaults()
@@ -317,4 +362,7 @@ void clientConfig::loadDefaults()
 	animationFadeRate = ANIMATION_FADE_RATE;
 
 	loadDefaultColours();
+
+	loadDefaultPaths();
+
 }

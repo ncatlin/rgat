@@ -4,11 +4,19 @@
 //
 
 #pragma once
+#define WINDOWS
+#define X86_32
+
+//#define LINUX
+//#define X86_64
 
 #include "targetver.h"
 
 #include <stdio.h>
 #include <tchar.h>
+#ifdef WINDOWS
+#include <shlwapi.h>
+#endif
 
 using namespace std;
 #include <cstdlib>

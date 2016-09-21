@@ -635,6 +635,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 			thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
 		thisgraph->set_active_node(lastVertID);
+		printf("set active node to %d->%d,%d\n", lastVertID, thisgraph->latest_active_node_coord.a, thisgraph->latest_active_node_coord.b);
 	}
 
 	else if (thistag->jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
@@ -654,6 +655,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
+		printf("set active node to %d->%d,%d\n", resultPair.second, thisgraph->latest_active_node_coord.a, thisgraph->latest_active_node_coord.b);
 	}
 	else
 	{

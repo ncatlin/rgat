@@ -339,9 +339,9 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST ar
 
 void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
+	obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 	while (!graph->funcQueue.empty())
 	{
-		obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
 		EXTERNCALLDATA resu = graph->funcQueue.front();
 		graph->funcQueue.pop();
 
@@ -381,9 +381,9 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 
 		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activenodes(), 1.0);
-		dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 		externFloatingText->at(graph->tid).push_back(extt);
 	}
+	dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 }
 
 void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
@@ -475,6 +475,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 			clientState->activeGraph, clientState->logSize);
 
 	//red line indicating last instruction
+	printf("main redline\n");
 	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
@@ -485,14 +486,12 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	if (clientState->modes.heatmap)
 	{
 		display_big_heatmap(clientState);
-		//TODO: display heatmap key
 		return;
 	}
 
 	if (clientState->modes.conditional)
 	{
 		display_big_conditional(clientState);
-		//TODO: display conditional key
 		return;
 	}
 
@@ -599,6 +598,7 @@ int main(int argc, char **argv)
 	al_init_ttf_addon();
 	
 	//todo: handle failure here
+	
 	stringstream fontPath_ss;
 	fontPath_ss << moduleDir << "\\" << "VeraSe.ttf";
 	string fontPath = fontPath_ss.str();
@@ -707,6 +707,7 @@ int main(int argc, char **argv)
 			clientstate.activeGraph->needVBOReload_active = true;
 			if (!clientstate.activeGraph->VBOsGenned)
 				gen_graph_VBOs(clientstate.activeGraph);
+
 			if (clientstate.activeGraph->active)
 			{
 				widgets->controlWindow->setAnimState(ANIM_LIVE);
@@ -754,9 +755,7 @@ int main(int argc, char **argv)
 				maintain_draw_wireframe(&clientstate, wireframeStarts, wireframeSizes);
 
 			if (clientstate.modes.diff)
-			{
 				processDiff(&clientstate, PIDFont, &diffRenderer);
-			}
 			else
 				performMainGraphDrawing(&clientstate, &externFloatingText);
 
@@ -1084,7 +1083,11 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 	case ALLEGRO_EVENT_KEY_CHAR:
 	{
-		if (!clientstate->activeGraph) return 0;
+		widgets->exeSelector->hide();
+
+		if (!clientstate->activeGraph) 
+			return 0;
+
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		switch (ev->keyboard.keycode)
 		{
@@ -1244,11 +1247,28 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 				saveTrace(clientstate);
 			}
 			break;
+
 		case EV_BTN_LOAD:
+		{
+			widgets->exeSelector->hide();
 			printf("Opening file dialogue\n");
-			loadTrace(clientstate, string("C:\\tracing\\testsave.txt"));
+			ALLEGRO_FILECHOOSER *fileDialog;
+			fileDialog = al_create_native_file_dialog(clientstate->config->saveDir.c_str(),
+				"Choose saved trace to open", "*.rgat;*.*;",
+				ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+			al_show_native_file_dialog(clientstate->maindisplay, fileDialog);
+
+			const char* result = al_get_native_file_dialog_path(fileDialog, 0);
+			al_destroy_native_file_dialog(fileDialog);
+
+			if (!result) return EV_NONE;
+			string path(result);
+			if (!fileExists(path)) return EV_NONE;
+
+			loadTrace(clientstate, path);
 			clientstate->modes.animation = false;
 			break;
+		}
 		default:
 			printf("UNHANDLED MENU EVENT? %d\n", ev->user.data1);
 			break;

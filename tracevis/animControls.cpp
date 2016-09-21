@@ -148,6 +148,8 @@ void AnimControls::update(thread_graph_data *graph)
 		remaining1->setText(r1);
 		remaining2->setText(r2);
 	}
+	else
+		bufLayout->setVisibility(false);
 }
 
 void AnimControls::fitToResize()
