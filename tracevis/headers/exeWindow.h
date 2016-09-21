@@ -18,14 +18,20 @@ private:
 	agui::Label *filePathLabel;
 	agui::TextField *filePathTxt;
 	agui::Button *filePathBtn;
-	
-	agui::Label *nonGraphicalLabel;
-	agui::CheckBox *nonGraphicalCB;
-	agui::CheckBox *hideVMCB;
-	agui::CheckBox *hideSleepCB;
 	agui::Button *launchBtn;
 
+	agui::Label *attachIDLabel;
+	agui::TextField *attachIDTxt;
+	agui::Button *attachIDBtn;
+
+	agui::CheckBox *pauseCB;
+	agui::CheckBox *basicCB;
+	agui::CheckBox *hideVMCB;
+	agui::CheckBox *hideSleepCB;
+
+
 	string target;
+	int PID = -1;
 	VISSTATE *clientState;
 	agui::Gui *guiWidgets;
 
@@ -51,7 +57,6 @@ public:
 	}
 	string getPath() { return target; }
 
-
 };
 
 class CBlisten : public agui::CheckBoxListener
@@ -70,8 +75,10 @@ public:
 			clientState->launchopts.antidote = state;
 		else if (thisNeedsAnIDField == "Anti-Sleep")
 			clientState->launchopts.caffine = state;
-		else if (thisNeedsAnIDField == "Disable Rendering")
-			clientState->launchopts.nographics = state;
+		else if (thisNeedsAnIDField == "Pause on start")
+			clientState->launchopts.pause = state;
+		else if (thisNeedsAnIDField == "Basic mode")
+			clientState->launchopts.basic = state;
 		else
 			printf("Checkbox text %s does not match an expected value! Ignoring\n", source->getText().c_str());
 	}

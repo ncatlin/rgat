@@ -475,7 +475,6 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 			clientState->activeGraph, clientState->logSize);
 
 	//red line indicating last instruction
-	printf("main redline\n");
 	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
@@ -1083,10 +1082,14 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 	case ALLEGRO_EVENT_KEY_CHAR:
 	{
-		widgets->exeSelector->hide();
+		if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+			widgets->exeSelector->hide();
 
-		if (!clientstate->activeGraph) 
-			return 0;
+		if (!clientstate->activeGraph)
+		{
+			widgets->processEvent(ev);
+			return EV_KEYBOARD;
+		}
 
 		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
 		switch (ev->keyboard.keycode)

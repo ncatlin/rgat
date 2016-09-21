@@ -635,7 +635,6 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 			thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
 		}
 		thisgraph->set_active_node(lastVertID);
-		printf("set active node to %d->%d,%d\n", lastVertID, thisgraph->latest_active_node_coord.a, thisgraph->latest_active_node_coord.b);
 	}
 
 	else if (thistag->jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
@@ -664,6 +663,9 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	}
 }
 
+//returns the module starting before and ending after the provided address
+//if that's none of them, assume its a new code area in calling module
+//TODO: this assumption is bad; any self modifying dll may cause problems
 int thread_trace_handler::find_containing_module(unsigned long address)
 {
 	const int numModules = piddata->modBounds.size();
@@ -680,6 +682,7 @@ int thread_trace_handler::find_containing_module(unsigned long address)
 
 }
 
+//updates graph entry for each tag in the trace loop cache
 void thread_trace_handler::dump_loop()
 {
 	vector<TAG>::iterator tagIt;
@@ -702,7 +705,7 @@ void thread_trace_handler::dump_loop()
 	loopState = NO_LOOP;
 }
 
-//thread handler to build graph for a thread
+//build graph for a thread as the trace data arrives from the reader thread
 void thread_trace_handler::TID_thread()
 {
 	thisgraph = (thread_graph_data *)piddata->graphs[TID];
@@ -744,7 +747,6 @@ void thread_trace_handler::TID_thread()
 			if (entry[0] == 'j')
 			{
 				TAG thistag;
-				//each of these string conversions is 1% of trace handler time
 
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
 				unsigned long nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
@@ -758,7 +760,7 @@ void thread_trace_handler::TID_thread()
 				else
 					handle_tag(&thistag);
 
-				//fallen through conditional
+				//fallen through conditional jump
 				if (nextBlock == 0) continue;
 
 				int modType = find_containing_module(nextBlock);
@@ -847,27 +849,6 @@ void thread_trace_handler::TID_thread()
 				}
 
 				printf("Target exception [code %lx] at address %lx\n", e_code, e_ip);
-				continue;
-			}
-
-			if (enter_s.substr(0, 3) == "BLK")
-			{
-				unsigned long funcpc;
-				string funcpc_s = string(strtok_s(entry+4, ",", &entry));
-				if (!caught_stol(funcpc_s, &funcpc, 16)) {
-					printf("handle_arg 4 STOL ERROR: %s\n", funcpc_s.c_str());
-					assert(0);
-				}
-
-				unsigned long retpc;
-				string retpc_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stol(retpc_s, &retpc, 16)) {
-					printf("handle_arg 4 STOL ERROR: %s\n", retpc_s.c_str());
-					assert(0);
-				}
-
-				//TODO? BB_DATA* extfunc = piddata->externdict.at(funcpc);
-				//thisgraph->set_active_node(extfunc->thread_callers[TID])
 				continue;
 			}
 

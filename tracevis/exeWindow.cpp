@@ -9,6 +9,9 @@
 #define EXEFRAME_H 300
 #define EXETEXT_W 350
 #define EXETEXT_X 60
+#define EXETEXT_Y 50
+#define OPTS_X 40
+#define FEATURES_X 220
 exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 {
 	clientState = state;
@@ -17,17 +20,23 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	exeFrame = new agui::Frame;
 	exeFrame->setSize(EXEFRAME_W, EXEFRAME_H);
 	exeFrame->setLocation(100, 100);
-
 	widgets->add(exeFrame);
+
+	agui::Label *title = new agui::Label;
+	title->setText("Trace target selection");
+	title->resizeToContents();
+	title->setLocation(10, 10);
+	exeFrame->add(title);
+
 	filePathLabel = new agui::Label;
-	filePathLabel->setText("Target of execution:");
+	filePathLabel->setText("File");
 	filePathLabel->resizeToContents();
-	filePathLabel->setLocation(10, 40);
+	filePathLabel->setLocation(10, EXETEXT_Y+4);
 	exeFrame->add(filePathLabel);
 
 	filePathTxt = new agui::TextField;
 	filePathTxt->setSize(EXETEXT_W, 25);
-	filePathTxt->setLocation(EXETEXT_X, 40);
+	filePathTxt->setLocation(EXETEXT_X, EXETEXT_Y);
 	filePathTxt->setWantHotkeys(true);
 	filePathTxt->setSelectable(true);
 	filePathTxt->setReadOnly(false);
@@ -36,14 +45,20 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	exeFrame->add(filePathTxt);
 
 	filePathBtn = new agui::Button;
-	filePathBtn->setText("Open"); //TODO: file icon
+	filePathBtn->setText("Open"); //TODO(polish): file icon
 	filePathBtn->setSize(50, 25);
-	filePathBtn->setLocation(EXETEXT_X + EXETEXT_W +10, 40);
+	filePathBtn->setLocation(EXETEXT_X + EXETEXT_W +10, EXETEXT_Y);
 	exeFrame->add(filePathBtn);
 
 	fileButtonListener *btnListener1 = new fileButtonListener(state, this);
 	filePathBtn->addActionListener(btnListener1);
 	exeFrame->setVisibility(false);
+
+	agui::Label *opts = new agui::Label;
+	opts->setText("Options");
+	opts->resizeToContents();
+	opts->setLocation(OPTS_X, 120);
+	exeFrame->add(opts);
 
 	agui::Dimension CBSize;
 	CBSize.setHeight(20);
@@ -51,20 +66,35 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 
 	CBlisten *boxlistener = new CBlisten(state, this);
 
-	nonGraphicalCB = new agui::CheckBox;
-	nonGraphicalCB->setText("Disable Rendering");
-	nonGraphicalCB->setCheckBoxSize(CBSize);
-	nonGraphicalCB->resizeToContents();
-	nonGraphicalCB->setLocation(40, 90);
-	nonGraphicalCB->setToolTipText("Disable graph drawing - useful for low-spec VMs.\nSave the graph to render it elsewhere.");
-	nonGraphicalCB->addCheckBoxListener(boxlistener);
-	exeFrame->add(nonGraphicalCB);
+	pauseCB = new agui::CheckBox;
+	pauseCB->setText("Pause on start");
+	pauseCB->setCheckBoxSize(CBSize);
+	pauseCB->resizeToContents();
+	pauseCB->setLocation(OPTS_X +15, 140);
+	pauseCB->setToolTipText("Pauses execution at program start with a message box to allow debugger attaching");
+	pauseCB->addCheckBoxListener(boxlistener);
+	exeFrame->add(pauseCB);
+
+	basicCB = new agui::CheckBox;
+	basicCB->setText("Basic mode");
+	basicCB->setCheckBoxSize(CBSize);
+	basicCB->resizeToContents();
+	basicCB->setLocation(OPTS_X+15, 165);
+	basicCB->setToolTipText("Improve performance by not animating or saving trace history");
+	basicCB->addCheckBoxListener(boxlistener);
+	exeFrame->add(basicCB);
+
+	agui::Label *features = new agui::Label;
+	features->setText("Feature creep");
+	features->resizeToContents();
+	features->setLocation(FEATURES_X, 120);
+	exeFrame->add(features);
 
 	hideVMCB = new agui::CheckBox;
 	hideVMCB->setText("Anti-Redpill");
 	hideVMCB->setCheckBoxSize(CBSize);
 	hideVMCB->resizeToContents();
-	hideVMCB->setLocation(40, 130);
+	hideVMCB->setLocation(FEATURES_X+15, 140);
 	hideVMCB->setToolTipText("[Experimental] Change results of VM detection instructions to hide virtualisation");
 	hideVMCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideVMCB);
@@ -73,15 +103,15 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	hideSleepCB->setText("Anti-Sleep");
 	hideSleepCB->setCheckBoxSize(CBSize);
 	hideSleepCB->resizeToContents();
-	hideSleepCB->setLocation(40, 160);
-	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls and timer results to reduce pauses and hide slowdown");
+	hideSleepCB->setLocation(FEATURES_X + 15, 165);
+	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls to reduce pauses and timer results to hide slowdown");
 	hideSleepCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideSleepCB);
 
 	launchBtn = new agui::Button;
 	launchBtn->setText("Launch");
-	launchBtn->resizeToContents();
-	launchBtn->setLocation(exeFrame->getWidth()/2 - launchBtn->getWidth()/2, 220);
+	launchBtn->setSize(60, 25);
+	launchBtn->setLocation(exeFrame->getWidth() / 2 - launchBtn->getWidth() / 2, exeFrame->getHeight()-70);
 	launchButtonListener *btnListener2 = new launchButtonListener(state, this);
 	launchBtn->addActionListener(btnListener2);
 	exeFrame->add(launchBtn);

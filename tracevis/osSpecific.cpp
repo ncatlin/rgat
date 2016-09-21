@@ -72,7 +72,12 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 	}
 
 	string drrunArgs = " -c ";
-	string retstring = DRPath + drrunArgs + DRGATpath;
+	string retstring = DRPath;
+	if (clientState->launchopts.pause)
+		retstring.append(" -msgbox_mask 15 ");
+
+	retstring.append(drrunArgs);
+	retstring.append(DRGATpath);
 	*path = retstring;
 	return true;
 }
@@ -82,12 +87,18 @@ string get_options(VISSTATE *clientState)
 	stringstream optstring;
 	if (clientState->launchopts.antidote)
 		optstring << " -antidote";
+
 	if (clientState->launchopts.caffine)
-		optstring <<L" -caffine";
+		optstring << " -caffine";
+
+	if (clientState->launchopts.pause)
+		optstring << " -sleep";
+
 	return optstring.str();
 }
 
-void execute_tracer(string executable, VISSTATE *clientState) {
+void execute_tracer(string executable, VISSTATE *clientState) 
+{
 	if (executable.empty()) return;
 
 	string runpath;
