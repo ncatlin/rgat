@@ -52,6 +52,8 @@ public:
 	int farA;
 
 	float animationFadeRate;
+
+	//these are not saved in the config file but toggled at runtime
 	bool showExternText = false;
 
 private:

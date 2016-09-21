@@ -25,7 +25,6 @@ void AnimControls::setAnimState(int newAnimState)
 	if (newAnimState == ANIM_LIVE)
 	{
 		connectBtn->setVisibility(true);
-		printf("\t\tpause visible!\n");
 		pauseBtn->setVisibility(true);
 		backJumpBtn->setVisibility(false);
 		backStepBtn->setVisibility(false);
@@ -51,7 +50,6 @@ void AnimControls::setAnimState(int newAnimState)
 		clientState->modes.animation = false;
 		connectBtn->setVisibility(false);
 
-		printf("\t\tpause invisible!\n");
 		pauseBtn->setVisibility(false);
 		playBtn->setVisibility(true);
 	}
@@ -66,16 +64,13 @@ void AnimControls::setAnimState(int newAnimState)
 		playBtn->setVisibility(true);
 		playBtn->setText("Stop");
 
-
 		stepText->setVisibility(true);
 		connectBtn->setVisibility(false);
 
 		clientState->animationUpdate = std::stoi(this->stepText->getText());
 		clientState->modes.animation = true;
 
-
 		pauseBtn->setVisibility(true);
-		printf("\t\tpause visible!\n");
 		pauseBtn->setText("Pause");
 		pauseBtn->setSize(90, forwardStepBtn->getHeight());
 	}
@@ -108,47 +103,51 @@ void AnimControls::update(thread_graph_data *graph)
 		else
 			skipBtn->setVisibility(false);
 
-		if (!graph->active)stepInfo << graph->loopsPlayed << "/";
+		if (!graph->active)
+			stepInfo << graph->loopsPlayed << "/";
 		stepInfo << graph->loopCounter << " loops";
 	}
 
 	stepsLabel->setText(stepInfo.str());
-	thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
-	pair <unsigned long, unsigned long> sizePair;
-	bool activeBuf1 = reader->getBufsState(&sizePair);
-	if (sizePair.first || sizePair.second)
-		bufLayout->setVisibility(true);
-	else
+
+	//display trace backlog
+	if (graph->active)
 	{
-		bufLayout->setVisibility(false); return;
+		thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
+		pair <unsigned long, unsigned long> sizePair;
+		bool activeBuf1 = reader->getBufsState(&sizePair);
+		if (sizePair.first || sizePair.second)
+			bufLayout->setVisibility(true);
+		else
+			bufLayout->setVisibility(false); return;
+
+		string r1, r2;
+		if (activeBuf1)
+		{
+			r1.append("R:");
+			r2.append("W:");
+		}
+		else
+		{
+			r1.append("W:");
+			r2.append("R:");
+		}
+
+		if (sizePair.first < 20000)
+			remaining1->setFontColor(agui::Color(255, 255, 255));
+		else
+			remaining1->setFontColor(agui::Color(255, 0, 0));
+
+		if (sizePair.second < 20000)
+			remaining2->setFontColor(agui::Color(255, 255, 255));
+		else
+			remaining2->setFontColor(agui::Color(255, 0, 0));
+
+		r1.append(to_string(sizePair.first));
+		r2.append(to_string(sizePair.second));
+		remaining1->setText(r1);
+		remaining2->setText(r2);
 	}
-
-	string r1, r2;
-	if (activeBuf1)
-	{
-		r1.append("R:");
-		r2.append("W:");
-	}
-	else
-	{
-		r1.append("W:");
-		r2.append("R:");
-	}
-
-	if (sizePair.first < 20000)
-		remaining1->setFontColor(agui::Color(255, 255, 255));
-	else
-		remaining1->setFontColor(agui::Color(255, 0, 0));
-
-	if (sizePair.second < 20000)
-		remaining2->setFontColor(agui::Color(255, 255, 255));
-	else
-		remaining2->setFontColor(agui::Color(255, 0, 0));
-
-	r1.append(to_string(sizePair.first));
-	r2.append(to_string(sizePair.second));
-	remaining1->setText(r1);
-	remaining2->setText(r2);
 }
 
 void AnimControls::fitToResize()

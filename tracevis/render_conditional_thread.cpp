@@ -83,26 +83,28 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 //allows display in thumbnail style format
 void conditional_renderer::conditional_thread()
 {
-	ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
-	ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
-	ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
-	//something more elegant would be nice
 	invisibleCol[0] = 0;
 	invisibleCol[1] = 0;
 	invisibleCol[2] = 0;
 	invisibleCol[3] = 0;
-	failOnlyCol[0] = failOnly.r;
-	failOnlyCol[1] = failOnly.g;
-	failOnlyCol[2] = failOnly.b;
-	failOnlyCol[3] = failOnly.a;
-	succeedOnlyCol[0] = succeedOnly.r;
-	succeedOnlyCol[1] = succeedOnly.g;
-	succeedOnlyCol[2] = succeedOnly.b;
-	succeedOnlyCol[3] = succeedOnly.a;
-	bothPathsCol[0] = bothPaths.r;
-	bothPathsCol[1] = bothPaths.g;
-	bothPathsCol[2] = bothPaths.b;
-	bothPathsCol[3] = bothPaths.a;
+
+	ALLEGRO_COLOR *failOnly = &clientState->config->conditional.cond_fail;
+	failOnlyCol[0] = failOnly->r;
+	failOnlyCol[1] = failOnly->g;
+	failOnlyCol[2] = failOnly->b;
+	failOnlyCol[3] = failOnly->a;
+
+	ALLEGRO_COLOR *succeedOnly = &clientState->config->conditional.cond_succeed;
+	succeedOnlyCol[0] = succeedOnly->r;
+	succeedOnlyCol[1] = succeedOnly->g;
+	succeedOnlyCol[2] = succeedOnly->b;
+	succeedOnlyCol[3] = succeedOnly->a;
+
+	ALLEGRO_COLOR *bothPaths = &clientState->config->conditional.cond_both;
+	bothPathsCol[0] = bothPaths->r;
+	bothPathsCol[1] = bothPaths->g;
+	bothPathsCol[2] = bothPaths->b;
+	bothPathsCol[3] = bothPaths->a;
 
 	while (!piddata || piddata->graphs.empty())
 	{

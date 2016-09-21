@@ -835,9 +835,9 @@ void draw_conditional_key(VISSTATE *clientState)
 
 	int drawX = clientState->mainFrameSize.width - (max(width1, width2) + 8);
 	int drawY = MAIN_FRAME_Y;
-	al_draw_text(font, clientState->config->conditional.cond_fail, drawX, drawY, 0, keytextA.str().c_str());
+	al_draw_text(font, clientState->config->conditional.cond_succeed, drawX, drawY, 0, keytextA.str().c_str());
 	drawY += al_get_font_line_height(font);
-	al_draw_text(font, clientState->config->conditional.cond_succeed, drawX, drawY, 0, keytextN.str().c_str());
+	al_draw_text(font, clientState->config->conditional.cond_fail, drawX, drawY, 0, keytextN.str().c_str());
 	
 }
 

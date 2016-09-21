@@ -80,16 +80,19 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 	map <unsigned long, INSLIST>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); disasIt++)
 	{
-		*file << disasIt->second.size() << ",";
-		*file  << disasIt->first << ",";
+		*file << disasIt->second.size() << ","; //number of mutations at this address
+		*file << disasIt->first << ",";  //address
+
 		INSLIST::iterator mutationIt = disasIt->second.begin();
 		for (; mutationIt != disasIt->second.end(); mutationIt++)
 		{
 			INS_DATA *ins = *mutationIt;
+			//for each mutation write opcodes, number of threads executing it
 			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
 			unordered_map<int, int>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
+				//write thread ID, vert index of node in thread
 				*file << threadVertIt->first << "," << threadVertIt->second << ",";
 			}
 		}
@@ -284,14 +287,17 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 		if (!caught_stoi(mutations_s, &mutations, 10)) {
 			printf("stoi failed with [%s]\n", address_s.c_str()); return false;
 		}
+
+		getline(*file, address_s, ',');
+		if (!caught_stol(address_s, &address, 10)) {
+			printf("stol failed with [%s]\n", address_s.c_str()); return false;
+		}
+
 		INSLIST mutationVector;
 		for (int midx = 0; midx < mutations; midx++)
 		{
 			INS_DATA *ins = new INS_DATA;
-			getline(*file, address_s, ',');
-			if (!caught_stol(address_s, &address, 10)) {
-				printf("stol failed with [%s]\n", address_s.c_str()); return false;
-			}
+			
 			getline(*file, opcodes, ',');
 			disassemble_ins(hCapstone, opcodes, ins, address);
 			mutationVector.push_back(ins);
