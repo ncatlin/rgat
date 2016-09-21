@@ -20,7 +20,6 @@
 #define RETURN 3
 #define EXTERNAL 4
 #define NOSYM 8
-#define AFTERRETURN 9
 #define FIRST_IN_THREAD 10
 
 #define INTERNAL_CODE 1 

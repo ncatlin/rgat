@@ -41,7 +41,6 @@ private:
 	unsigned int targVertID = 0; //new vert we are creating
 
 	char lastRIPType = FIRST_IN_THREAD;
-	bool afterReturn = false;
 	vector<pair<long, int>> callStack;
 
 	thread_graph_data *thisgraph;

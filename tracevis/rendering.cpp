@@ -630,6 +630,7 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
+		//printf("drawing %d->%s to %.03f,%.03f \n", n->index, itext.c_str(), screenCoord.x, screenCoord.y);
 	}
 }
 

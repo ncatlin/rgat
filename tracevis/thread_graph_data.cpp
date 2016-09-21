@@ -755,6 +755,9 @@ void thread_graph_data::insert_node(int targVertID, node_data node)
 	nodeList.push_back(node);
 	dropMutex(nodeLMutex, "Insert Vert");
 
+	//obtainMutex(disassemblyMutex);
+	//printf("Adding node %d, ins: %s\n", targVertID, node.ins->ins_text.c_str());
+	//dropMutex(disassemblyMutex);
 }
 
 void thread_graph_data::stop_edgeD_iteration()

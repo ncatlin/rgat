@@ -111,19 +111,14 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 		b = lastnodec.b;
 		bMod = lastnodec.bMod;
 
-		if (afterReturn)
-		{
-			lastRIPType = AFTERRETURN;
-			afterReturn = false;
-		}
-
 		//place vert on sphere based on how we got here
 		positionVert(&a, &b, &bMod, thisnode.ins->address);
 
 	}
+
 	thisnode.vcoord.a = a;
 	thisnode.vcoord.b = b;
-	thisnode.vcoord.bMod = bMod;
+	thisnode.vcoord.bMod = bMod + (mutation*3);//helps spread out clashing mutations
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
 	thisnode.address = instruction->address;
@@ -269,10 +264,6 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 
 	switch (lastRIPType)
 	{
-	case AFTERRETURN:
-		a = min(a - 20, -(thisgraph->maxA + 2));
-		b += 7 * BMULT;
-		break;
 
 	case NONFLOW:
 		{
@@ -314,8 +305,12 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 			if (clash) a += CALLA_CLASH;
 			break;
 		}
+
 	case RETURN:
-		afterReturn = true;
+		a = min(a - 20, -(thisgraph->maxA + 2));
+		b += 7 * BMULT;
+		break; 
+
 	case EXTERNAL:
 		{
 			int result = -1;

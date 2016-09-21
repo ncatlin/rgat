@@ -523,6 +523,7 @@ void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLin
 
 int main(int argc, char **argv)
 {
+	srand(time(NULL));
 	if (!al_init()) 
 	{
 		fprintf(stderr, "Failed to initialise Allegro!\n");
