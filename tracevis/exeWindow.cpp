@@ -1,10 +1,6 @@
 #include "stdafx.h"
 #include "exeWindow.h"
 
-
-
-
-
 #define EXEFRAME_W 500
 #define EXEFRAME_H 300
 #define EXETEXT_W 350
@@ -90,20 +86,22 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	features->setLocation(FEATURES_X, 120);
 	exeFrame->add(features);
 
+	/*
 	hideVMCB = new agui::CheckBox;
-	hideVMCB->setText("Anti-Redpill");
+	hideVMCB->setText("VM Cloaking");
 	hideVMCB->setCheckBoxSize(CBSize);
 	hideVMCB->resizeToContents();
 	hideVMCB->setLocation(FEATURES_X+15, 140);
 	hideVMCB->setToolTipText("[Experimental] Change results of VM detection instructions to hide virtualisation");
 	hideVMCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideVMCB);
+	*/
 
 	hideSleepCB = new agui::CheckBox;
 	hideSleepCB->setText("Anti-Sleep");
 	hideSleepCB->setCheckBoxSize(CBSize);
 	hideSleepCB->resizeToContents();
-	hideSleepCB->setLocation(FEATURES_X + 15, 165);
+	hideSleepCB->setLocation(FEATURES_X + 15, 140);
 	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls to reduce pauses and timer results to hide slowdown");
 	hideSleepCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideSleepCB);

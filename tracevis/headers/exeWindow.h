@@ -71,9 +71,7 @@ public:
 	{
 		
 		string thisNeedsAnIDField = source->getText().c_str();
-		if (thisNeedsAnIDField == "Anti-Redpill")
-			clientState->launchopts.antidote = state;
-		else if (thisNeedsAnIDField == "Anti-Sleep")
+		if (thisNeedsAnIDField == "Anti-Sleep")
 			clientState->launchopts.caffine = state;
 		else if (thisNeedsAnIDField == "Pause on start")
 			clientState->launchopts.pause = state;

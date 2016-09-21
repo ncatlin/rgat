@@ -56,7 +56,6 @@ struct HIGHLIGHT_DATA {
 
 struct LAUNCHOPTIONS {
 	bool caffine = false;
-	bool antidote = false;
 	bool pause = false;
 	bool basic = false;
 };

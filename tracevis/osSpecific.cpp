@@ -85,9 +85,6 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 string get_options(VISSTATE *clientState)
 {
 	stringstream optstring;
-	if (clientState->launchopts.antidote)
-		optstring << " -antidote";
-
 	if (clientState->launchopts.caffine)
 		optstring << " -caffine";
 
