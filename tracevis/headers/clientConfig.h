@@ -24,6 +24,7 @@ public:
 	struct {
 		int delay;
 		ALLEGRO_COLOR lineTextCol;
+		ALLEGRO_COLOR edgeFrequencyCol[10];
 	} heatmap;
 
 	struct {

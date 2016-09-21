@@ -27,3 +27,5 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer);
 
 void drawHighlight(VCOORD *coord, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph);
+void draw_heatmap_key(VISSTATE *clientState);
+void draw_conditional_key(VISSTATE *clientState);

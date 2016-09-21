@@ -47,7 +47,7 @@ const char* clientConfig::col_to_charstr(ALLEGRO_COLOR col)
 void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destination)
 {
 	if (!charstr) {
-		printf("Bad save file\n");
+		printf("Bad save file - outdated? Delete it and relaunch rgat\n");
 		assert(0);
 	}
 	stringstream colstream(charstr);
@@ -94,6 +94,17 @@ void clientConfig::loadHeatmap()
 {
 	heatmap.delay = atoi(al_get_config_value(alConfig, "Heatmap", "DELAY_MS"));
 	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_TEXT_RGBA"), &heatmap.lineTextCol);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ0_COL"), &heatmap.edgeFrequencyCol[0]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ1_COL"), &heatmap.edgeFrequencyCol[1]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ2_COL"), &heatmap.edgeFrequencyCol[2]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ3_COL"), &heatmap.edgeFrequencyCol[3]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ4_COL"), &heatmap.edgeFrequencyCol[4]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ5_COL"), &heatmap.edgeFrequencyCol[5]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ6_COL"), &heatmap.edgeFrequencyCol[6]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ7_COL"), &heatmap.edgeFrequencyCol[7]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ8_COL"), &heatmap.edgeFrequencyCol[8]);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ9_COL"), &heatmap.edgeFrequencyCol[9]);
+
 }
 
 void clientConfig::loadColours()
@@ -198,6 +209,16 @@ void clientConfig::saveHeatmap()
 	al_add_config_section(alConfig, "Heatmap");
 	al_set_config_value(alConfig, "Heatmap", "DELAY_MS", to_string(heatmap.delay).c_str());
 	al_set_config_value(alConfig, "Heatmap", "EDGE_TEXT_RGBA", col_to_charstr(heatmap.lineTextCol));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ0_COL", col_to_charstr(heatmap.edgeFrequencyCol[0]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ1_COL", col_to_charstr(heatmap.edgeFrequencyCol[1]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ2_COL", col_to_charstr(heatmap.edgeFrequencyCol[2]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ3_COL", col_to_charstr(heatmap.edgeFrequencyCol[3]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ4_COL", col_to_charstr(heatmap.edgeFrequencyCol[4]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ5_COL", col_to_charstr(heatmap.edgeFrequencyCol[5]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ6_COL", col_to_charstr(heatmap.edgeFrequencyCol[6]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ7_COL", col_to_charstr(heatmap.edgeFrequencyCol[7]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ8_COL", col_to_charstr(heatmap.edgeFrequencyCol[8]));
+	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ9_COL", col_to_charstr(heatmap.edgeFrequencyCol[9]));
 }
 
 void clientConfig::loadHeatmapDefaults()
@@ -206,7 +227,16 @@ void clientConfig::loadHeatmapDefaults()
 	heatmap.delay = HEATMAP_DELAY_MS;
 	heatmap.lineTextCol = HEAT_EDGE_TEXT_COL;
 
-	//todo: gradients
+	heatmap.edgeFrequencyCol[0] = HEAT_EDGE_COL_FREQ0;
+	heatmap.edgeFrequencyCol[1] = HEAT_EDGE_COL_FREQ1;
+	heatmap.edgeFrequencyCol[2] = HEAT_EDGE_COL_FREQ2;
+	heatmap.edgeFrequencyCol[3] = HEAT_EDGE_COL_FREQ3;
+	heatmap.edgeFrequencyCol[4] = HEAT_EDGE_COL_FREQ4;
+	heatmap.edgeFrequencyCol[5] = HEAT_EDGE_COL_FREQ5;
+	heatmap.edgeFrequencyCol[6] = HEAT_EDGE_COL_FREQ6;
+	heatmap.edgeFrequencyCol[7] = HEAT_EDGE_COL_FREQ7;
+	heatmap.edgeFrequencyCol[8] = HEAT_EDGE_COL_FREQ8;
+	heatmap.edgeFrequencyCol[9] = HEAT_EDGE_COL_FREQ9;
 }
 
 void clientConfig::saveColours()

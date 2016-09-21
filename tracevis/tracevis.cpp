@@ -776,7 +776,7 @@ int main(int argc, char **argv)
 					drawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}
-				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.mainFrameSize.width, 50, 0);
+				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.mainFrameSize.width, MAIN_FRAME_Y, 0);
 			}
 			al_draw_bitmap(clientstate.mainGraphBMP, 0, 0, 0);
 
@@ -784,10 +784,15 @@ int main(int argc, char **argv)
 				display_activeGraph_summary(20, 10, PIDFont, &clientstate);
 		}
 
-		//draw the controls, labels, etc onto the screen
+		//draw the GUI controls, labels, etc onto the screen
 		widgets->paintWidgets();
 		al_set_target_backbuffer(clientstate.maindisplay);
 		al_draw_bitmap(clientstate.GUIBMP, 0, 0, 0);
+
+		if (clientstate.modes.heatmap)
+			draw_heatmap_key(&clientstate);
+		else if (clientstate.modes.conditional)
+			draw_conditional_key(&clientstate);
 
 		al_flip_display();
 

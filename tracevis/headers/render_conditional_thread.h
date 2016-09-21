@@ -16,5 +16,10 @@ public:
 private:
 	int updateDelayMS = 200;
 	void conditional_thread();
-	bool render_graph_conditional (thread_graph_data *graph);
+	bool render_graph_conditional(thread_graph_data *graph);
+
+	float invisibleCol[4];
+	float failOnlyCol[4];
+	float succeedOnlyCol[4];
+	float bothPathsCol[4];
 };

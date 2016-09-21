@@ -3,6 +3,18 @@
 
 #define HEATMAP_DELAY_MS 1000
 #define HEAT_EDGE_TEXT_COL al_col_orange
+//rarest edges(FREQ9) to most often executed edges(FREQ0)
+#define HEAT_EDGE_COL_FREQ9 al_map_rgba(0, 0, 255, 255)
+#define HEAT_EDGE_COL_FREQ8 al_map_rgba(105, 0, 255, 255)
+#define HEAT_EDGE_COL_FREQ7 al_map_rgba(182, 0, 255, 255)
+#define HEAT_EDGE_COL_FREQ6 al_map_rgba(255, 0, 255, 255)
+#define HEAT_EDGE_COL_FREQ5 al_map_rgba(255, 58, 0, 255)
+#define HEAT_EDGE_COL_FREQ4 al_map_rgba(255, 93, 0, 255)
+#define HEAT_EDGE_COL_FREQ3 al_map_rgba(255, 124, 0, 255)
+#define HEAT_EDGE_COL_FREQ2 al_map_rgba(255, 163, 0, 255)
+#define HEAT_EDGE_COL_FREQ1 al_map_rgba(255, 182, 0, 255)
+#define HEAT_EDGE_COL_FREQ0 al_map_rgba(255, 228, 167, 255)
+
 
 #define CONDITIONAL_DELAY_MS 1000
 #define CONDITIONAL_edgeColor al_map_rgba(60, 60, 60, 255)

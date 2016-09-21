@@ -13,28 +13,20 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 	GRAPH_DISPLAY_DATA *conditionalNodes = graph->conditionalnodes;
-	int newDrawn = 0;
+	bool newDrawn = false;
 	int nodeIdx = 0;
 	int nodeEnd = graph->get_mainnodes()->get_numVerts();
 	conditionalNodes->reset();
 	if (nodeEnd)
 	{
-		const ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
-		const ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
-		const ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
-		float invisibleCol[4] = { 0,0,0,0 };
-		float failOnlyCol[4] = { failOnly.r,failOnly.g,failOnly.b,failOnly.a };
-		float succeedOnlyCol[4] = { succeedOnly.r,succeedOnly.g,succeedOnly.b,succeedOnly.a };
-		float bothPathsCol[4] = { bothPaths.r,bothPaths.g,bothPaths.b,bothPaths.a };
-
 		vector<float> *nodeCol = conditionalNodes->acquire_col("1f");
+		if (nodeIdx < nodeEnd) newDrawn = true;
+		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
 		{
-			newDrawn++;
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
-			node_data *n = graph->get_node(nodeIdx++);
-			int condStatus = n->conditional;
+			int condStatus = graph->get_node(nodeIdx++)->conditional;
 			if (!condStatus)
 			{
 				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
@@ -43,11 +35,17 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 			//jump only seen to succeed
 			if (condStatus & CONDTAKEN)
+			{
 				nodeCol->insert(nodeCol->end(), succeedOnlyCol, end(succeedOnlyCol));
+				++graph->condCounts.first;
+			}
 
 			//jump only seen to fail
 			else if (condStatus & CONDFELLTHROUGH)
+			{
 				nodeCol->insert(nodeCol->end(), failOnlyCol, end(failOnlyCol));
+				++graph->condCounts.second;
+			}
 
 			//jump seen to both fail and succeed. added for completeness sake.
 			else if (condStatus == CONDCOMPLETE)
@@ -85,6 +83,27 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 //allows display in thumbnail style format
 void conditional_renderer::conditional_thread()
 {
+	ALLEGRO_COLOR succeedOnly = clientState->config->conditional.cond_succeed;
+	ALLEGRO_COLOR failOnly = clientState->config->conditional.cond_fail;
+	ALLEGRO_COLOR bothPaths = clientState->config->conditional.cond_both;
+	//something more elegant would be nice
+	invisibleCol[0] = 0;
+	invisibleCol[1] = 0;
+	invisibleCol[2] = 0;
+	invisibleCol[3] = 0;
+	failOnlyCol[0] = failOnly.r;
+	failOnlyCol[1] = failOnly.g;
+	failOnlyCol[2] = failOnly.b;
+	failOnlyCol[3] = failOnly.a;
+	succeedOnlyCol[0] = succeedOnly.r;
+	succeedOnlyCol[1] = succeedOnly.g;
+	succeedOnlyCol[2] = succeedOnly.b;
+	succeedOnlyCol[3] = succeedOnly.a;
+	bothPathsCol[0] = bothPaths.r;
+	bothPathsCol[1] = bothPaths.g;
+	bothPathsCol[2] = bothPaths.b;
+	bothPathsCol[3] = bothPaths.a;
+
 	while (!piddata || piddata->graphs.empty())
 	{
 		Sleep(200);

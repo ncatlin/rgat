@@ -10,10 +10,9 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
 	GRAPH_DISPLAY_DATA *linedata = get_activelines();
 
-	if (needVBOReload_active)// && !isGraphBusy())
+	if (needVBOReload_active && !isGraphBusy())
 	{
 		setGraphBusy(true);
-		printf("uploading graph\n");
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 
@@ -29,14 +28,9 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 
 		needVBOReload_active = false;
 		setGraphBusy(false);
-		printf("uploaded graph\n");
-	}
-	else
-	{
-		if (needVBOReload_active) printf("didn't update!\n");
 	}
 
-	printf("drawing graph\n");
+
 	if (showNodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, nodesdata->get_numVerts());
 
@@ -341,7 +335,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		edge_data *e = activeEdgeIt->second;
 		unsigned long edgeStart = e->arraypos;
 		float edgeAlpha;
-		float newEdgeAlpha;
+		float lowestAlpha = 0;
 		assert(e->vertSize);
 		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
@@ -349,18 +343,20 @@ void thread_graph_data::darken_animation(float alphaDelta)
 			if (colBufIndex >= animlinedata->col_buf_capacity_floats())
 			{
 				printf("skip darkening\n");
-				break;
+				assert(0);
 			}
 			edgeAlpha = ecol[colBufIndex];
+
 			//TODO: problems here!
-			//streaks left on graph
 			//0.05 stored as 0.05000000002
-			//0.06 stored as 0.59999999999997
-			newEdgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
-			ecol[colBufIndex] = newEdgeAlpha;
+			//0.06 stored as 0.59999999999997 [not the real number of 0's]
+			edgeAlpha = fmax(MINIMUM_FADE_ALPHA, edgeAlpha - alphaDelta);
+			ecol[colBufIndex] = edgeAlpha;
+			lowestAlpha = fmax(lowestAlpha, edgeAlpha);
 		}	
 
-		if (newEdgeAlpha <= MINIMUM_FADE_ALPHA)
+		//workaround to problem, fails with 0.05, works with 0.06
+		if (lowestAlpha <= MINIMUM_FADE_ALPHA)
 			activeEdgeIt = activeEdgeMap.erase(activeEdgeIt);
 		else
 			++activeEdgeIt;

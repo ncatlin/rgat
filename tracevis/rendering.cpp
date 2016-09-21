@@ -82,6 +82,7 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 
 }
 
+//draws a long curve with multiple vertices
 int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
 	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos) {
 	float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
@@ -103,7 +104,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	vertpos->push_back(startC->z);
 	
 	vertcol->insert(vertcol->end(), cols, end(cols));
-	vsadded++;
+	++vsadded;
 	// > for smoother lines, less performance
 	int dt;
 	float fadeA = 0.9;
@@ -128,13 +129,15 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		vertpos->push_back(resultC.y);
 		vertpos->push_back(resultC.z);
 		vertcol->insert(vertcol->end(), cols, end(cols));
-		vsadded++;
-		//start new line at same point todo: this is waste of memory
+		++vsadded;
+
+		//start new line at same point 
+		//todo: this is waste of memory but far too much effort to fix for minimal gain
 		vertpos->push_back(resultC.x);
 		vertpos->push_back(resultC.y);
 		vertpos->push_back(resultC.z);
 		vertcol->insert(vertcol->end(), cols, end(cols));
-		vsadded++;
+		++vsadded;
 	}
 
 	vertpos->push_back(endC->x);
@@ -163,7 +166,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	g = colour->g;
 	a = 1;
 
-	// describe the normal
+	//describe the normal
 	FCOORD middleC;
 	midpoint(startC, endC, &middleC);
 	float eLen = linedist(startC, endC);
@@ -175,7 +178,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	{
 		case INEW:
 		{
-			//todo: make this number depend on the scale! 
+			//todo: make this number much smaller for previews
 			curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
 			bezierC = middleC;
 			break;
@@ -240,7 +243,9 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	return curvePoints;
 }
 
-int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
+//converts a single node into node vertex data
+int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, 
+	MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
 {
 	ALLEGRO_COLOR *active_col;
 
@@ -312,6 +317,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	return 1;
 }
 
+//takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
 int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours) {
 	
 	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
@@ -339,7 +345,7 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 	return 1;
 }
 
-//rescale all drawn verts to sphere of new diameter
+//rescale all drawn verts to sphere of new diameter by altering the vertex data
 void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 	MULTIPLIERS *scalefactors = isPreview ? graph->p_scalefactors : graph->m_scalefactors;
@@ -384,11 +390,11 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 		graph->dirtyHeatmap = true;
 }
 
+//reads the list of nodes/edges, creates opengl vertex/colour data
+//resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 int render_main_graph(VISSTATE *clientState)
 {
 	bool doResize = false;
-
-
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 
 	if (clientState->rescale)
@@ -464,6 +470,7 @@ int render_main_graph(VISSTATE *clientState)
 	return 1;
 }
 
+//renders edgePerRender edges of graph onto the preview data
 int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 {
 	//draw edges
@@ -488,6 +495,7 @@ int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)
 	return 1;
 }
 
+//should be same as rendering for main graph but - the animation + more pauses instead of all at once
 int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 {
 	bool doResize = false;
@@ -505,13 +513,13 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 	if (vresult == -1)
 	{
 		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
-		return 0;
+		assert(0);
 	}
 
 	if (!draw_new_preview_edges(clientState, previewGraph))
 	{
 		printf("\n\nFATAL 6: Failed drawing new edges!\n\n");
-		return 0;
+		assert(0);
 	}
 	return 1;
 }
@@ -558,6 +566,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 
 }
 
+//show functions/args for externs in active graph
 void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
@@ -586,13 +595,12 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 {
 
 	//iterate through nodes looking for ones that map to screen coords
-	unsigned int i, drawn = 0;
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
-	for (i = 0; i < numVerts; ++i)
+	for (unsigned int i = 0; i < numVerts; ++i)
 	{
 
 		node_data *n = graph->get_node(i);
@@ -622,8 +630,6 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
-		drawn++;
-
 	}
 }
 
@@ -632,12 +638,11 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
 	//iterate through nodes looking for ones that map to screen coords
-	unsigned int i, drawn = 0;
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
-	for (i = 0; i < numVerts; ++i)
+	for (unsigned int i = 0; i < numVerts; ++i)
 	{
 		node_data *n = graph->get_node(i);
 		if (n->external || !n->ins->conditional) continue;
@@ -674,11 +679,10 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		al_draw_text(clientstate->standardFont, textcol, screenCoord.x + INS_X_OFF,
 			clientstate->mainFrameSize.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
-		drawn++;
 	}
 }
 
-//draw number of times an edge has been executed
+//draw number of times each edge has been executed in middle of edge
 void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
@@ -723,10 +727,9 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 	}
 }
 
-
+//standard animated or static display of the active graph
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
-	
 	if (clientstate->modes.animation)
 		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
 	else
@@ -735,13 +738,15 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	long sphereSize = graph->m_scalefactors->radius;
 	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
 	
-	if (zmul < 25)
-		show_extern_labels(clientstate, pd, graph);
+	
 
 	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientstate, zmul, pd, graph);
+	else if (zmul < 25)
+		show_extern_labels(clientstate, pd, graph);
 }
 
+//displays the divergence of two selected graphs, defined in differenderer
 void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	thread_graph_data *graph1 = diffRenderer->get_graph(1);
 	thread_graph_data *diffgraph = diffRenderer->get_diff_graph();
@@ -786,9 +791,60 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	}
 }
 
-void display_big_heatmap(VISSTATE *clientstate)
+void draw_heatmap_key_blocks(VISSTATE *clientState, int x, int y)
 {
-	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
+	for (int i = 0; i < 10; i++)
+	{
+		int qx = x + i*HEATMAP_KEY_SQUARESIZE;
+		ALLEGRO_COLOR *c = &clientState->config->heatmap.edgeFrequencyCol[i];
+		glBegin(GL_QUADS);
+		glColor4f(c->r, c->g, c->b, c->a);
+		glVertex3f(qx, y, 0);
+		glVertex3f(qx + HEATMAP_KEY_SQUARESIZE, y, 0);
+		glVertex3f(qx + HEATMAP_KEY_SQUARESIZE, y + HEATMAP_KEY_SQUARESIZE, 0);
+		glVertex3f(qx, y + HEATMAP_KEY_SQUARESIZE, 0);
+		glVertex3f(qx, y, 0);
+		glEnd();
+	}
+}
+
+void draw_heatmap_key(VISSTATE *clientState)
+{
+	int keyx = clientState->mainFrameSize.width / 2 + 150;
+
+	stringstream keytext;
+	keytext << "Frequency:  " << clientState->activeGraph->heatExtremes.second;
+	const std::string& ks = keytext.str();
+	int ksWidth = al_get_text_width(clientState->standardFont, ks.c_str()) + 8;
+	al_draw_text(clientState->standardFont, al_col_white, keyx - ksWidth, 8, 0, ks.c_str());
+
+	draw_heatmap_key_blocks(clientState, keyx, 0);
+
+	string keyend = to_string(clientState->activeGraph->heatExtremes.first);
+	al_draw_text(clientState->standardFont, al_col_white, keyx + 10 * HEATMAP_KEY_SQUARESIZE + 8, 8, 0, keyend.c_str());
+}
+
+void draw_conditional_key(VISSTATE *clientState)
+{
+	ALLEGRO_FONT *font = clientState->standardFont;
+	stringstream keytextA, keytextN;
+	keytextA << "Always Taken (" << clientState->activeGraph->condCounts.first << ")";
+	keytextN << "Never Taken (" << clientState->activeGraph->condCounts.second << ")";
+	int width1 = al_get_text_width(font, keytextA.str().c_str());
+	int width2 = al_get_text_width(font, keytextN.str().c_str());
+
+	int drawX = clientState->mainFrameSize.width - (max(width1, width2) + 8);
+	int drawY = MAIN_FRAME_Y;
+	al_draw_text(font, clientState->config->conditional.cond_fail, drawX, drawY, 0, keytextA.str().c_str());
+	drawY += al_get_font_line_height(font);
+	al_draw_text(font, clientState->config->conditional.cond_succeed, drawX, drawY, 0, keytextN.str().c_str());
+	
+}
+
+//displays heatmap of the active graph
+void display_big_heatmap(VISSTATE *clientState)
+{
+	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph->heatmaplines) return;
 
 	if (graph->needVBOReload_heatmap)
@@ -807,10 +863,10 @@ void display_big_heatmap(VISSTATE *clientstate)
 		graph->needVBOReload_main = false;
 	}
 
-	if (clientstate->modes.nodes)
+	if (clientState->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph->graphVBOs, vertsdata->get_numVerts());
 
-	if (clientstate->modes.edges)
+	if (clientState->modes.edges)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_LINE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
@@ -821,19 +877,23 @@ void display_big_heatmap(VISSTATE *clientstate)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zmul = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zmul = (clientState->zoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
-	if (zmul < 25)
-		show_extern_labels(clientstate, &pd, graph);
 
-	if (clientstate->show_ins_text && zmul < 10 && graph->get_num_nodes() > 2)
-		draw_edge_heat_text(clientstate, zmul, &pd);
+	if (zmul < 25)
+		show_extern_labels(clientState, &pd, graph);
+
+	if (clientState->show_ins_text && zmul < 10 && graph->get_num_nodes() > 2)
+		draw_edge_heat_text(clientState, zmul, &pd);
+
+
 }
 
 #define VBO_COND_NODE_COLOUR 0
 #define VBO_COND_LINE_COLOUR 1
+//displays the conditionals of the active graph
 void display_big_conditional(VISSTATE *clientstate)
 {
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
@@ -887,6 +947,7 @@ void display_big_conditional(VISSTATE *clientstate)
 
 }
 
+//draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
 void drawHighlight(VCOORD *nodepos, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	FCOORD nodeCoord;

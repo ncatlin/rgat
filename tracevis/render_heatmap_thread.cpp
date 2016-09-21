@@ -6,6 +6,7 @@ void __stdcall heatmap_renderer::ThreadEntry(void* pUserData) {
 	return ((heatmap_renderer*)pUserData)->heatmap_thread();
 }
 
+
 bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
@@ -18,7 +19,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	else return false; 
 
 	//build set of all heat values
-	std::set<long> heatValues;
+	std::set<unsigned long> heatValues;
 	EDGEMAP::iterator edgeDit, edgeDEnd;
 	
 	graph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
@@ -28,19 +29,20 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	int heatrange = heatValues.size();
 
-	//create map of distances of each value in set, creating blue->red range
-	map<long, int> heatDistances;
-	set<long>::iterator setit;
+	//create map of distances of each value in set
+	map<unsigned long, int> heatDistances;
+	set<unsigned long>::iterator setit;
 	int distance = 0;
-	for (setit = heatValues.begin(); setit != heatValues.end(); setit++)
-	{
+	for (setit = heatValues.begin(); setit != heatValues.end(); ++setit)
 		heatDistances[*setit] = distance++;
-	}
+	graph->heatExtremes = make_pair(*heatValues.begin(),*heatValues.rbegin());
+
 
 	int maxDist = heatDistances.size();
-	map<long, int>::iterator distit = heatDistances.begin();
-	map<long, COLSTRUCT> heatColours;
+	map<unsigned long, int>::iterator distit = heatDistances.begin();
+	map<unsigned long, COLSTRUCT> heatColours;
 	
+	//create blue->red value for each numerical 'heat'
 	int numColours = colourRange.size();
 	heatColours[heatDistances.begin()->first] = *colourRange.begin();
 	if (maxDist > 2)
@@ -53,13 +55,14 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 		}
 	}
 
-	long lastColour = heatDistances.rbegin()->first;
+	unsigned long lastColour = heatDistances.rbegin()->first;
 	if (heatColours.size() > 1)
 		heatColours[lastColour] = *colourRange.rbegin();
 
 	
 	graph->heatmaplines->reset();
 
+	//finally build a colours buffer using the heat/colour map entry for each edge weight
 	vector <float> *lineVector = graph->heatmaplines->acquire_col("3b");
 	unsigned int edgeindex = 0;
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
@@ -80,7 +83,6 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 		graph->heatmaplines->set_numVerts(graph->heatmaplines->get_numVerts() + vertIdx);
 		unsigned int htv = graph->heatmaplines->get_numVerts();
 		unsigned int mv = graph->get_mainlines()->get_numVerts();
-		//assert(htv <= mv);
 		if (htv > mv) printf("WARNING heatmapverts:%d, mainverts:%d\n", htv, mv);
 	}
 
@@ -96,22 +98,25 @@ inline float fcol(int value)
 	return (float)value / 255.0;
 }
 
+//allegro_color kept breaking here and driving me insane - hence own stupidly redundant implementation
+COLSTRUCT *col_to_colstruct(ALLEGRO_COLOR *c)
+{
+	COLSTRUCT *cs = new COLSTRUCT;
+	cs->r = c->r;
+	cs->g = c->g;
+	cs->b = c->b;
+	cs->a = c->a;
+	return cs;
+}
+
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
 void heatmap_renderer::heatmap_thread()
 {
-	//allegro_color kept breaking here and driving me insane
-	//hence own implementation
-	colourRange.insert(colourRange.begin(), COLSTRUCT{ 0, 0, fcol(255) });
-	colourRange.insert(colourRange.begin() + 1, COLSTRUCT{ fcol(105), 0,  fcol(255) });
-	colourRange.insert(colourRange.begin() + 2, COLSTRUCT{ fcol(182), 0,  fcol(255) });
-	colourRange.insert(colourRange.begin() + 3, COLSTRUCT{ fcol(255), 0, 0 });
-	colourRange.insert(colourRange.begin() + 4, COLSTRUCT{ fcol(255), fcol(58), 0 });
-	colourRange.insert(colourRange.begin() + 5, COLSTRUCT{ fcol(255), fcol(93), 0 });
-	colourRange.insert(colourRange.begin() + 6, COLSTRUCT{ fcol(255), fcol(124), 0 });
-	colourRange.insert(colourRange.begin() + 7, COLSTRUCT{ fcol(255), fcol(163), 0 });
-	colourRange.insert(colourRange.begin() + 8, COLSTRUCT{ fcol(255), fcol(182), 0 });
-	colourRange.insert(colourRange.begin() + 9, COLSTRUCT{ fcol(255), fcol(228 ), fcol(167)});
+	
+	//add our heatmap colours to a vector for lookup in render thread
+	for (int i = 0; i < 10; i++)
+		colourRange.insert(colourRange.begin(), *col_to_colstruct(&clientState->config->heatmap.edgeFrequencyCol[i]));
 
 	while (!piddata || piddata->graphs.empty())
 		Sleep(200);

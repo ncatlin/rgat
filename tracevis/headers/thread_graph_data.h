@@ -98,6 +98,9 @@ public:
 		return n;
 	}
 
+	//   funcaddress	      caller		
+	map<unsigned long, map <unsigned long, vector<ARGLIST>>> pendingcallargs;
+
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
 	unsigned int get_num_nodes() { return nodeList.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}
@@ -108,9 +111,8 @@ public:
 	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
-	EDGELIST *edgeLptr() { return &edgeList; }
+	EDGELIST *edgeLptr() { return &edgeList; } //i feel like this misses the point...
 
-	unsigned long get_sequenceLen() { return bbsequence.size(); }
 	void animate_latest(float fadeRate);
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
@@ -159,9 +161,6 @@ public:
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
 	map <unsigned int, unsigned int> callCounter;
 
-	//   funcaddress	      caller		
-	map<unsigned long, map <unsigned long, vector<ARGLIST>>> pendingcallargs;
-
 	//keep track of graph dimensions
 	int maxA = 0;
 	int maxB = 0;
@@ -199,19 +198,23 @@ public:
 
 	bool dirtyHeatmap = false;
 	bool needVBOReload_heatmap = true;
+	pair<unsigned long,unsigned long> heatExtremes;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
 
 	bool dirtyConditional = false;
 	bool needVBOReload_conditional = true;
+	pair<unsigned long, unsigned long> condCounts;
 	GLuint conditionalVBOs[2] = { 0 };
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
 
+	//todo: make private, add inserter
 	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
 	vector <int> mutationSequence;
 
 	//<which loop this is, how many iterations>
+	//todo: make private, add inserter
 	vector <pair<unsigned int, unsigned long>> loopStateList;
 
 	vector<unsigned int> animLoopProgress;

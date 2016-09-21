@@ -9,6 +9,7 @@ struct COLSTRUCT {
 	float r;
 	float g;
 	float b;
+	float a;
 };
 class heatmap_renderer
 {
