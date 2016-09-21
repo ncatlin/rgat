@@ -617,12 +617,15 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		int mutation = runBB(thistag, 0, repeats);
 
-		obtainMutex(thisgraph->animationListsMutex);
-		thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
+		if (!basicMode)
+		{
+			obtainMutex(thisgraph->animationListsMutex);
+			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 
-		//could probably break this by mutating code in a running loop
-		thisgraph->mutationSequence.push_back(mutation);
-		dropMutex(thisgraph->animationListsMutex);
+			//could probably break this by mutating code in a running loop
+			thisgraph->mutationSequence.push_back(mutation);
+			dropMutex(thisgraph->animationListsMutex);
+		}
 
 		if (repeats == 1)
 		{
@@ -654,8 +657,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
-		printf("set active node to %d->%d,%d\n", resultPair.second, thisgraph->latest_active_node_coord.a, thisgraph->latest_active_node_coord.b);
-	}
+		}
 	else
 	{
 		printf("ERROR: BAD JUMP MODIFIER 0x%x: CORRUPT TRACE?\n", thistag->jumpModifier);

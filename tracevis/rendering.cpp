@@ -730,7 +730,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 //standard animated or static display of the active graph
 void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
 {
-	if (clientstate->modes.animation)
+	if (clientstate->modes.animation && !graph->basic)
 		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
 	else
 		graph->display_static(clientstate->modes.nodes, clientstate->modes.edges);
@@ -738,8 +738,6 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	long sphereSize = graph->m_scalefactors->radius;
 	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
 	
-	
-
 	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientstate, zmul, pd, graph);
 	else if (zmul < 25)

@@ -475,7 +475,8 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 			clientState->activeGraph, clientState->logSize);
 
 	//red line indicating last instruction
-	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+	if(!clientState->activeGraph->basic)
+		drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
 	if (clientState->highlightData.highlightState)

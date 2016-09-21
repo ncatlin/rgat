@@ -38,7 +38,8 @@ void AnimControls::setAnimState(int newAnimState)
 	if (newAnimState == ANIM_INACTIVE)
 	{
 		backJumpBtn->setVisibility(true);
-		backStepBtn->setVisibility(true);
+		backJumpBtn->setToolTipText("Unimplemented");
+		//backStepBtn->setVisibility(true); //disabled while unimplemented
 		forwardStepBtn->setVisibility(true);
 		forwardStepBtn->setToolTipText("Step animation forward by one");
 		forwardJumpBtn->setVisibility(true);
@@ -58,9 +59,11 @@ void AnimControls::setAnimState(int newAnimState)
 	{
 		backStepBtn->setVisibility(false);
 		backJumpBtn->setVisibility(true);
+		backJumpBtn->setToolTipText("Decrease animation speed");
 		forwardStepBtn->setVisibility(true);
 		forwardStepBtn->setToolTipText("Skip loop");
 		forwardJumpBtn->setVisibility(true);
+		forwardJumpBtn->setToolTipText("Increase animation speed");
 		playBtn->setVisibility(true);
 		playBtn->setText("Stop");
 
@@ -79,6 +82,16 @@ void AnimControls::setAnimState(int newAnimState)
 
 void AnimControls::update(thread_graph_data *graph)
 {
+	if (graph->basic) 
+	{ 
+		controlsLayout->setVisibility(false);
+		stepsLabel->setText("Displaying basic graph");
+		return; 
+	}
+	else
+		controlsLayout->setVisibility(true);
+
+
 	if (!graph->active && animationState == ANIM_LIVE)
 		setAnimState(ANIM_INACTIVE);
 
@@ -119,7 +132,7 @@ void AnimControls::update(thread_graph_data *graph)
 		if (sizePair.first || sizePair.second)
 			bufLayout->setVisibility(true);
 		else
-			bufLayout->setVisibility(false); return;
+			bufLayout->setVisibility(false); 
 
 		string r1, r2;
 		if (activeBuf1)

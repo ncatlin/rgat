@@ -141,7 +141,10 @@ public:
 
 		if (btntext == "Disconnect")
 		{
-			printf("Disconnect");
+			ofstream processListener;
+			processListener.open("\\\\.\\pipe\\BootstrapPipe");
+			processListener << "DIE" << endl;
+			processListener.close();
 			return;
 		}
 

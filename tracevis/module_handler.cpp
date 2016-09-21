@@ -87,10 +87,14 @@ void module_handler::PID_thread()
 				TID_thread->piddata = piddata;
 				TID_thread->reader = TID_reader;
 				TID_thread->timelinebuilder = clientState->timelineBuilder;
+				if (clientState->launchopts.basic)
+					TID_thread->basicMode = true;
 
 				threadList.push_back(make_pair(TID_reader, TID_thread));
 
 				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
+				if (clientState->launchopts.basic)
+					tgraph->basic = true;
 				tgraph->setReader(TID_reader);
 
 				tgraph->tid = TID; //todo: dont need this

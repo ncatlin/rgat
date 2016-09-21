@@ -87,7 +87,8 @@ public:
 
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
-	string get_mod_name(map <int, string> *modpaths);
+	//string get_mod_name(map <int, string> *modpaths);
+	bool basic = false;
 
 	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);
@@ -127,9 +128,6 @@ public:
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx) {	
 		obtainMutex(animationListsMutex, 0, 1000);
-		printf("Setting active node to %d\n",idx);
-		if (idx == 6 && !active)
-			printf("ga: %d\n",active);
 		latest_active_node_coord = get_node(idx)->vcoord;
 		dropMutex(animationListsMutex);
 	}

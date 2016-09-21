@@ -33,6 +33,7 @@ public:
 	timeline *timelinebuilder;
 	thread_trace_reader *reader;
 	bool die = false;
+	bool basicMode = false;
 	
 private:
 	//important state variables!

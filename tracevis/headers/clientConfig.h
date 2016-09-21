@@ -50,6 +50,7 @@ public:
 	ALLEGRO_COLOR activityLineColour;
 	int lowB;
 	int farA;
+	int renderFrequency;
 
 	string saveDir;
 	string DRDir;

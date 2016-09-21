@@ -118,7 +118,6 @@ void clientConfig::loadHeatmap()
 
 void clientConfig::loadColours()
 {
-
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA"), &graphColours.lineColours[ICALL]);
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA"), &graphColours.lineColours[IOLD]);
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.lineColours[IRET]);
@@ -153,6 +152,7 @@ bool clientConfig::loadFromFile()
 	highlightProtrusion = atoi(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION"));
 	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour);
 	animationFadeRate = atof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
+	renderFrequency = atoi(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"));
 
 	loadColours();
 	loadPaths();
@@ -297,6 +297,8 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION", to_string(highlightProtrusion).c_str());
 	al_set_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA", col_to_charstr(activityLineColour));
 	al_set_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE", to_string(animationFadeRate).c_str());
+	al_set_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS", to_string(renderFrequency).c_str());
+	
 
 	al_set_config_value(alConfig, "Paths", "SAVE_PATH", saveDir.c_str());
 	al_set_config_value(alConfig, "Paths", "DYNAMORIO_PATH", DRDir.c_str());
@@ -360,6 +362,7 @@ void clientConfig::loadDefaults()
 	highlightProtrusion = HIGHLIGHT_LINE_PROTRUSION;
 	activityLineColour = ACTIVITY_LINE_COLOUR;
 	animationFadeRate = ANIMATION_FADE_RATE;
+	renderFrequency = MAINGRAPH_DEFAULT_RENDER_FREQUENCY;
 
 	loadDefaultColours();
 

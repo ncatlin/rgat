@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "traceMisc.h"
 
-//gets [mutation]'th disassembly of [address]. if absent and [fuzzy] then returns the most recent 
+//gets [mutation]'th disassembly of [address]. if absent or [getLatest] then returns the most recent 
 INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool getLatest = false)
 {
 	obtainMutex(mutex, 0, 4000);
@@ -58,6 +58,7 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 }
 
 //lot of stuff pushed on stack here for a common call. consider reworking
+//this function is the biggest bottleneck (due to map lookups, not sleeping)
 INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE mutex, 
 	map<unsigned long, INSLIST> *disas, int *mutationIndex)
 {
@@ -65,7 +66,6 @@ INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE 
 	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
 	if (disasIt == disas->end())
 	{
-		
 		dropMutex(mutex, 0);
 		int waitTime = 5;
 		while (true)
@@ -108,7 +108,7 @@ INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE 
 			}
 			if (insIt != disasIt->second.end()) break;
 			dropMutex(mutex, 0);
-			Sleep(10);
+			Sleep(2);
 			obtainMutex(mutex, 0, 4000);
 			printf("Waiting for mutation (address %lx)\n", address);
 		}

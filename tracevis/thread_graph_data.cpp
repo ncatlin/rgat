@@ -41,10 +41,12 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 //display graph with everything bright and viewable
 void thread_graph_data::display_static(bool showNodes, bool showEdges)
 {
-	if (needVBOReload_main)
+	if (needVBOReload_main && !isGraphBusy())
 	{
+		setGraphBusy(true);
 		loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
+		setGraphBusy(false);
 	}
 	
 	if (showNodes)
@@ -203,7 +205,7 @@ void thread_graph_data::emptyArgQueue()
 
 bool thread_graph_data::decrease_sequence()
 {
-	return true; //unimplemented
+	return true; //unimplemented, better things to do at the moment
 }
 
 bool thread_graph_data::advance_sequence(bool skipLoop = false)
@@ -1094,7 +1096,13 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 	while (true)
 	{
 		getline(*file, sequence_s, ',');
-		if (sequence_s == "}A") return true;
+		if (sequence_s == "}A") 
+		{ 
+			//no trace data, assume graph was created in basic mode
+			if (bbsequence.empty())
+				basic = true;
+			return true; 
+		}
 		if (!caught_stol(sequence_s, &seq_size.first, 10)) break;
 		getline(*file, size_s, ',');
 		if (!caught_stoi(size_s, &seq_size.second, 10)) break;

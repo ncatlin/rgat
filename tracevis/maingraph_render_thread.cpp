@@ -28,6 +28,23 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		updateMainRender();
 	}
 	
+	if (graph->basic)
+	{
+		graph->setGraphBusy(false);
+		if (graph->terminated)
+		{
+			graph->terminated = false;
+			if (clientState->highlightData.highlightState)
+			{
+				TraceVisGUI* gui = (TraceVisGUI*)clientState->widgets;
+				gui->highlightWindow->updateHighlightNodes(&clientState->highlightData,
+					clientState->activeGraph,
+					clientState->activePid);
+			}
+		}
+		return;
+	}
+
 	if (!graph->active && clientState->animationUpdate)
 	{
 
@@ -79,6 +96,8 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 void maingraph_render_thread::rendering_thread()
 {
 	thread_graph_data *activeGraph;
+	int renderFrequency = clientState->config->renderFrequency;
+
 	while (true)
 	{
 		if (die) break;
@@ -87,7 +106,7 @@ void maingraph_render_thread::rendering_thread()
 			Sleep(5); continue;
 		}
 		performMainGraphRendering(activeGraph);
-		Sleep(20);
+		Sleep(renderFrequency);
 	}
 
 
