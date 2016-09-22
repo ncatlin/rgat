@@ -1,5 +1,6 @@
 #include "highlightWindow.h"
 
+//highlights all addresses/syms/etc that match filter
 void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData, 
 	thread_graph_data *graph, PROCESS_DATA* activePid)
 {
@@ -8,49 +9,51 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 
 	switch (highlightData->highlightState)
 	{
-	case HL_HIGHLIGHT_ADDRESS:
-	{
-		INSLIST insList = activePid->disassembly.at(highlightData->highlightAddr);
-		INSLIST::iterator insListIt = insList.begin();
-		int currentTid = graph->tid;
-		for (; insListIt != insList.end(); ++insListIt)
+		case HL_HIGHLIGHT_ADDRESS:
 		{
-			INS_DATA *target = *insListIt;
-			node_data *n = graph->get_node(target->threadvertIdx.at(currentTid));
-			highlightData->highlightNodes.push_back(n);
+			INSLIST insList = activePid->disassembly.at(highlightData->highlightAddr);
+			INSLIST::iterator insListIt = insList.begin();
+			int currentTid = graph->tid;
+			for (; insListIt != insList.end(); ++insListIt)
+			{
+				INS_DATA *target = *insListIt;
+				node_data *n = graph->get_node(target->threadvertIdx.at(currentTid));
+				highlightData->highlightNodes.push_back(n);
+			}
+			break;
 		}
-		break;
-	}
 
-	case HL_HIGHLIGHT_SYM:
-	{
-		vector<int>::iterator externIt = graph->externList.begin();
-		for (; externIt != graph->externList.end(); ++externIt)
+		case HL_HIGHLIGHT_SYM:
 		{
-			if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
-				highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+			vector<int>::iterator externIt = graph->externList.begin();
+			for (; externIt != graph->externList.end(); ++externIt)
+			{
+				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
+					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+			}
+			break;
 		}
-		break;
-	}
 
-	case HL_HIGHLIGHT_MODULE:
-	{
-		vector<int>::iterator externIt = graph->externList.begin();
-		for (; externIt != graph->externList.end(); ++externIt)
+		case HL_HIGHLIGHT_MODULE:
 		{
-			if (highlightData->highlightModule == graph->get_node(*externIt)->nodeMod)
-				highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+			vector<int>::iterator externIt = graph->externList.begin();
+			for (; externIt != graph->externList.end(); ++externIt)
+			{
+				if (highlightData->highlightModule == graph->get_node(*externIt)->nodeMod)
+					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+			}
+			break;
 		}
-		break;
-	}
 	}
 }
 
+//adds new relevant items to dropdown menu
 void HighlightSelectionFrame::refreshDropdowns()
 {
 	thread_graph_data *graph = clientState->activeGraph;
 	if (!clientState->activePid || !graph) return;
 
+	//place address of first not in address selector
 	if (graph->get_num_nodes())
 	{
 		unsigned long firstAddress = graph->get_node(0)->address;
@@ -61,6 +64,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 
 	if (lastSymCount == graph->externList.size()) return;
 
+	//add all the used symbols to symbol list
 	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
 	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex, "Display externlist");
@@ -86,6 +90,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 	for (symIt = addedSyms.begin(); symIt != addedSyms.end(); ++symIt)
 		symbolDropdown->addItem(*symIt);
 
+	//add all the modules to the module dropdown, including indicator of num symbols called
 	moduleDropdown->clearItems();
 	map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
 	for (; pathIt != clientState->activePid->modpaths.end(); ++pathIt)
@@ -131,12 +136,14 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	addressLabel->setText("Address:");
 	addressLabel->resizeToContents();
 	highlightFrame->add(addressLabel);
+
 	addressText = new agui::TextField;
 	addressText->setLocation(HLT_TEXT_X, HLT_ADDRESS_Y);
 	addressText->setText("Address");
 	addressText->resizeToContents();
 	addressText->setSize(HLT_TEXT_LEN, 20);
 	highlightFrame->add(addressText);
+
 	addressBtn = new agui::Button;
 	addressBtn->setLocation(HLT_BTN_X, HLT_ADDRESS_Y);
 	addressBtn->setText("Highlight");
@@ -150,15 +157,18 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	symbolLabel->setText("Symbol:");
 	symbolLabel->resizeToContents();
 	highlightFrame->add(symbolLabel);
+
 	symbolDropdown = new agui::DropDown;
 	symbolDropdown->setLocation(HLT_TEXT_X, HLT_SYMBOL_Y);
 	symbolDropdown->setText("Loaded Symbols");
 	symbolDropdown->setSize(HLT_TEXT_LEN, 20);
 	highlightFrame->add(symbolDropdown);
+
 	symbolBtn = new agui::Button;
 	symbolBtn->setLocation(HLT_BTN_X, HLT_SYMBOL_Y);
 	symbolBtn->setText("Highlight");
 	symbolBtn->resizeToContents();
+
 	highlightBtnListen = new highlightButtonListener(clientState, HL_HIGHLIGHT_SYM, this);
 	symbolBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(symbolBtn);
@@ -168,11 +178,13 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	moduleLabel->setText("Module:");
 	moduleLabel->resizeToContents();
 	highlightFrame->add(moduleLabel);
+
 	moduleDropdown = new agui::DropDown;
 	moduleDropdown->setLocation(HLT_TEXT_X, HLT_MODULE_Y);
 	moduleDropdown->setText("Loaded Modules");
 	moduleDropdown->setSize(HLT_TEXT_LEN, 20);
 	highlightFrame->add(moduleDropdown);
+
 	moduleBtn = new agui::Button;
 	moduleBtn->setLocation(HLT_BTN_X, HLT_MODULE_Y);
 	moduleBtn->setText("Highlight");

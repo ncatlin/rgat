@@ -88,7 +88,7 @@ void thread_trace_reader::add_message(char *buffer, int size)
 
 	if (targetQueue->size() > 400000)
 	{
-		printf("Queue exceeds 400000 items! Waiting for renderer to catch up\n");
+		printf("[Trace queue exceeds 400000 items! Waiting for renderer to catch up]\n");
 		ReleaseMutex(flagMutex);
 		do {
 			Sleep(500);
@@ -97,9 +97,11 @@ void thread_trace_reader::add_message(char *buffer, int size)
 
 			targetQueue = get_read_queue();
 			if (targetQueue->size() < 200000) break;
-
+			if (targetQueue->size() < 20000)
+				printf("[Trace queue now %d items]\n", targetQueue->size());
 			ReleaseMutex(flagMutex);
 		} while (true);
+		printf("[Trace queue now %d items, resuming]\n", targetQueue->size());
 	}
 	targetQueue->push_back(bufPair);
 	pendingData += size;
@@ -156,9 +158,7 @@ int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 	}
 
 	pair<char *, int> buf_size = readingQueue->at(readIndex++);
-	if (!(readIndex % 500)) printf("processing index %d of %d\n", readIndex, readingQueue->size());
 	*buffer = buf_size.first;
-	//printf(" using %lx -- ", buffer);
 	*bufSize = buf_size.second;
 	processedData += buf_size.second;
 	return pendingData;

@@ -62,11 +62,15 @@ struct LAUNCHOPTIONS {
 
 class VISSTATE {
 public:
-	VISSTATE() {
+	VISSTATE() {};
+	~VISSTATE() {};
+
+	void gen_wireframe_buffers()
+	{
 		glGenBuffers(2, colSphereVBOs);
 		glGenBuffers(2, wireframeVBOs);
-	};
-	~VISSTATE() {};
+	}
+
 	ALLEGRO_DISPLAY *maindisplay = 0;
 	ALLEGRO_BITMAP *mainGraphBMP = 0;
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
@@ -87,7 +91,7 @@ public:
 	int leftcolumn = 0;
 	int rightcolumn = 0;
 
-	void *widgets;
+	void *widgets = 0;
 	int animationUpdate = 0;
 	bool animFinished = false;
 	bool skipLoop = false;
@@ -97,6 +101,7 @@ public:
 	thread_graph_data *mouse_drag_graph = NULL;
 	map <int, NODEPAIR> graphPositions;
 
+	string commandlineLaunchPath;
 	//for future random pipe names
 	//char pipeprefix[20];
 

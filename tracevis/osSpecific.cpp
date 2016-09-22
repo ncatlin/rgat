@@ -20,7 +20,7 @@ string getModulePath()
 }
 
 //returns path for saving files, tries to create if it doesn't exist
-bool getSavePath(VISSTATE * clientState, string *result)
+bool getSavePath(VISSTATE * clientState, string *result, int PID)
 {
 	stringstream savedir;
 	savedir << clientState->config->saveDir;
@@ -30,8 +30,7 @@ bool getSavePath(VISSTATE * clientState, string *result)
 		if (!CreateDirectoryA(savedir.str().c_str(),NULL))
 			return false;
 
-	thread_graph_data * graph = clientState->activeGraph;
-	string filename = clientState->glob_piddata_map[graph->pid]->modpaths[0];
+	string filename = clientState->glob_piddata_map[PID]->modpaths[0];
 
 	//http://stackoverflow.com/a/8520815
 	const size_t last_slash_idx = filename.find_last_of("\\/");

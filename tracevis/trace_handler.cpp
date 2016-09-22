@@ -400,13 +400,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 
 	BB_DATA* targbbptr;
 	get_extern_at_address(funcpc, &targbbptr);
-	printf("Handling arg %s of function %s [addr %lx] module %s retting to %lx\n",
-		contents.c_str(),
-		piddata->modsyms[targbbptr->modnum][funcpc].c_str(),
-		funcpc,
-		piddata->modpaths[targbbptr->modnum].c_str(),
-		returnpc);
-
 	pendingArgs.push_back(make_pair(argpos, contents));
 	if (!callDone) return;
 
@@ -722,7 +715,6 @@ void thread_trace_handler::TID_thread()
 
 		if (bytesRead == -1)
 		{
-			printf("Thread handler got thread end message, terminating!\n");
 			dump_loop();
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;

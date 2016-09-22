@@ -100,6 +100,9 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 		(LPVOID)tBBThread, 0, &threadID);
 	threads->BBthread = tBBThread;
 
+	if (!clientState->commandlineLaunchPath.empty()) return threads;
+	//graphics rendering threads for each process here	
+
 	preview_renderer *tPrevThread = new preview_renderer;
 	tPrevThread->clientState = clientState;
 	tPrevThread->PID = PID;
@@ -158,9 +161,9 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
 }
 
 
-
-int process_coordinator_thread(VISSTATE *clientState) {
-	
+//listens for new and dying processes, spawns and kills threads to handle them
+int process_coordinator_thread(VISSTATE *clientState) 
+{
 	//todo: posibly worry about pre-existing if pidthreads dont work
 	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
@@ -173,22 +176,26 @@ int process_coordinator_thread(VISSTATE *clientState) {
 	}
 
 	vector<THREAD_POINTERS*> threadsList;
-
-	printf("In process coordinator thread, listening on pipe...\n");
 	DWORD bread = 0;
 	char buf[40];
 	while (true)
 	{
 		int conresult = ConnectNamedPipe(hPipe, NULL);
-		printf("boostrap conresult : %d reading from pipe \\\\.\\pipe\\BootstrapPipe\n", conresult);
+		if (!conresult) {
+			printf("\tERROR: Failed to connect bootstrap pipe\n");
+			Sleep(1000);
+			continue;
+		}
+
 		ReadFile(hPipe, buf, 30, &bread, NULL);
 		DisconnectNamedPipe(hPipe);
 		if (!bread) {
-			printf("Read 0 when waiting for PID. Try again\n");
+			printf("\tERROR: Read 0 when waiting for PID. Try again\n");
+			Sleep(1000);
 			continue;
 		}
+
 		buf[bread] = 0;
-		printf("process_coordinator thread read: [%s]\n", buf);
 
 		int PID = 0;
 		if (!extract_integer(buf, string("PID"), &PID))
@@ -211,9 +218,12 @@ int process_coordinator_thread(VISSTATE *clientState) {
 					modPipe << "DIE" << endl;
 					modPipe.close();
 
-					t->heatmapThread->die = true;
-					t->conditionalThread->die = true;
-					t->previewThread->die = true;
+					if (clientState->commandlineLaunchPath.empty())
+					{
+						t->heatmapThread->die = true;
+						t->conditionalThread->die = true;
+						t->previewThread->die = true;
+					}
 				}
 			}
 			else
@@ -226,8 +236,6 @@ int process_coordinator_thread(VISSTATE *clientState) {
 		threadsList.push_back(threads);
 	}
 }
-
-
 
 void change_mode(VISSTATE *clientState, int mode)
 {
@@ -321,6 +329,7 @@ struct EXTTEXT{
 	string displayString;
 } ;
 
+//takes symbol+arguments and cats them together for display
 string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST args, PROCESS_DATA* piddata)
 {
 	stringstream funcArgStr;
@@ -337,6 +346,8 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST ar
 	return funcArgStr.str();
 }
 
+//take externs called from the trace and make them float on graph
+//also adds them to the call log
 void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
 	obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
@@ -386,6 +397,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 	dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
 }
 
+//draw floating extern texts. delete from list if time expired
 void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
 {
 	if (externFloatingText->at(graph->tid).empty()) return;
@@ -428,6 +440,7 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	}
 }
 
+//add new extern calls to log
 unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, thread_graph_data *graph, unsigned int logSize)
 {
 	vector <string>::iterator logIt = graph->loggedCalls.begin();
@@ -448,15 +461,17 @@ void closeTextLog(VISSTATE *clientState)
 	clientState->logSize = 0;
 }
 
+/*performs actions that need to be done quite often, but not every frame
+this includes checking the locations of the screen edge on the sphere and
+drawing new highlights for things that match the active filter*/
 void performIrregularActions(VISSTATE *clientState)
 {
 	SCREEN_EDGE_PIX TBRG;
-	//update where camera is pointing on sphere
+	//update where camera is pointing on sphere, used to choose which node text to draw
 	edge_picking_colours(clientState, &TBRG, true);
 	clientState->leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 	clientState->rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 
-	//update highlight nodes
 	if (clientState->highlightData.highlightState && clientState->activeGraph->active)
 	{
 		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
@@ -470,6 +485,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
 	thread_graph_data *graph = clientState->activeGraph;
 
+	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
 		clientState->logSize = fill_extern_log(clientState->textlog,
 			clientState->activeGraph, clientState->logSize);
@@ -497,12 +513,14 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
-	display_graph(clientState, graph, &pd);
 
+	display_graph(clientState, graph, &pd);
 	transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
 	drawExternTexts(graph, externFloatingText, clientState, &pd);
 }
 
+//plot wireframe/colpick sphere in memory if they dont exist
+//draw wireframe
 void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
 {
 	if (clientState->remakeWireframe)
@@ -521,13 +539,109 @@ void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLin
 	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
 }
 
+bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
+{
+
+	for (int idx = 1; idx < argc; idx++)
+	{
+		string arg(argv[idx]);
+		if (arg == "-b")
+		{
+			clientstate->launchopts.basic = true;
+			continue;
+		}
+
+		if (arg == "-s")
+		{
+			clientstate->launchopts.caffine = true;
+			continue;
+		}
+
+		if (arg == "-p")
+		{
+			clientstate->launchopts.pause = true;
+			continue;
+		}
+
+		if (arg == "-e" && idx+1 < argc)
+		{
+			clientstate->commandlineLaunchPath = string(argv[++idx]);
+			continue;
+		}
+
+		if (arg == "-h" )
+		{
+			printf("Help...\n");
+			return false;
+		}
+	}
+
+	if (!fileExists(clientstate->commandlineLaunchPath))
+	{
+		printf("ERROR: File %s does not exist, exiting...\n", clientstate->commandlineLaunchPath.c_str());
+		return false;
+	}
+	return true;
+}
+
 int main(int argc, char **argv)
 {
-	srand(time(NULL));
-	if (!al_init()) 
+	VISSTATE clientstate;
+
+	if (!al_init())
 	{
 		fprintf(stderr, "Failed to initialise Allegro!\n");
 		return NULL;
+	}
+
+	string moduleDir = getModulePath();
+	string configPath = moduleDir + "\\rgat.cfg";
+	clientstate.config = new clientConfig(configPath);
+	clientConfig *config = clientstate.config;
+
+	clientstate.timelineBuilder = new timeline;
+
+	//first deal with any command line arguments
+	//if they exist, we go into non-graphical mode
+	if (argc > 1)
+	{
+		if(!process_rgat_args(argc, argv, &clientstate)) return 0;
+
+		HANDLE hProcessCoordinator = CreateThread(
+			NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
+			(LPVOID)&clientstate, 0, 0);
+
+		execute_tracer(clientstate.commandlineLaunchPath, &clientstate);
+
+		int newTIDs,activeTIDs = 0;
+		int newPIDs,activePIDs = 0;
+		while (true)
+		{
+			bool foundActive = true;
+			Sleep(2000);
+			newTIDs = clientstate.timelineBuilder->numLiveThreads();
+			newPIDs = clientstate.timelineBuilder->numLiveProcesses();
+			if (activeTIDs != newTIDs || activePIDs != newPIDs)
+			{
+				activeTIDs = newTIDs;
+				activePIDs = newPIDs;
+				printf("Tracking %d threads in %d processes\n", activeTIDs, activePIDs);
+				if (!activeTIDs || !activePIDs)
+				{
+					printf("All processes terminated. Saving...\n");
+					map<int, PROCESS_DATA *>::iterator pidIt = clientstate.glob_piddata_map.begin();
+					for (; pidIt != clientstate.glob_piddata_map.end(); pidIt++)
+					{
+						clientstate.activePid = pidIt->second;
+						saveTrace(&clientstate);
+					}
+					printf("Saving complete. Exiting.");
+					return 1;
+				}
+			}
+
+		}
+		return 1;
 	}
 
 	ALLEGRO_DISPLAY *newDisplay = 0;
@@ -536,28 +650,16 @@ int main(int argc, char **argv)
 		printf("GUI init failed - todo - nongraphical mode\n");
 		return 0;
 	}
-
-	//first deal with any command line arguments
-	VISSTATE clientstate;
+	
+	clientstate.gen_wireframe_buffers();
 	clientstate.event_queue = newQueue;
 	clientstate.maindisplay = newDisplay;
-	string moduleDir = getModulePath();
-	string configPath = moduleDir + "\\rgat.cfg";
-
-	clientstate.config = new clientConfig(configPath);
-	clientConfig *config = clientstate.config;
-
-	printf("Starting visualiser\n");
-
 	clientstate.displaySize.height = al_get_display_height(clientstate.maindisplay);
 	clientstate.displaySize.width = al_get_display_width(clientstate.maindisplay);
 	clientstate.mainFrameSize.height = clientstate.displaySize.height - BASE_CONTROLS_HEIGHT;
 	clientstate.mainFrameSize.width = clientstate.displaySize.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
 	clientstate.mainGraphBMP = al_create_bitmap(clientstate.mainFrameSize.width, clientstate.mainFrameSize.height);
 	clientstate.GUIBMP = al_create_bitmap(clientstate.displaySize.width, clientstate.displaySize.height);
-
-	clientstate.modes.wireframe = true;
-	clientstate.activeGraph = 0;
 
 	al_set_target_backbuffer(clientstate.maindisplay);
 
@@ -635,15 +737,12 @@ int main(int argc, char **argv)
 		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 		(LPVOID)&clientstate, 0, 0);
 
-
 	maingraph_render_thread *mainRenderThread = new maingraph_render_thread;
 	mainRenderThread->clientState = &clientstate;
 
 	HANDLE hPIDmodThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)mainRenderThread->ThreadEntry,
 		(LPVOID)mainRenderThread, 0, 0);
-
-	clientstate.timelineBuilder = new timeline;
 	
 	ALLEGRO_COLOR mainBackground = clientstate.config->mainBackground;
 	ALLEGRO_COLOR conditionalBackground = clientstate.config->conditional.background;
@@ -748,7 +847,7 @@ int main(int argc, char **argv)
 
 			if (!al_is_event_queue_empty(low_frequency_timer_queue))
 			{
-				al_flush_event_queue(low_frequency_timer_queue);
+				//al_flush_event_queue(low_frequency_timer_queue);
 				performIrregularActions(&clientstate);
 			}
 
@@ -1135,6 +1234,10 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			change_mode(clientstate, EV_BTN_CONDITION);
 			break;
 
+		case ALLEGRO_KEY_E:
+			change_mode(clientstate, EV_BTN_EDGES);
+			break;
+
 		case ALLEGRO_KEY_LEFT:
 			mainscale->userHEDGESEP -= 0.05;
 			clientstate->rescale = true;
@@ -1143,6 +1246,16 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			mainscale->userHEDGESEP += 0.05;
 			clientstate->rescale = true;
 			break;
+
+		case ALLEGRO_KEY_PAD_4:
+			mainscale->userHEDGESEP -= 0.005;
+			clientstate->rescale = true;
+			break;
+		case ALLEGRO_KEY_PAD_6:
+			mainscale->userHEDGESEP += 0.005;
+			clientstate->rescale = true;
+			break;
+
 		case ALLEGRO_KEY_DOWN:
 			mainscale->userVEDGESEP += 0.01;
 			clientstate->rescale = true;
@@ -1180,18 +1293,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			break;
 		case ALLEGRO_KEY_PAD_1:
 			clientstate->zoomlevel -= 100;
-			break;
-		case ALLEGRO_KEY_PAD_8:
-			clientstate->zoomlevel += 10;
-			break;
-		case ALLEGRO_KEY_PAD_2:
-			clientstate->zoomlevel -= 10;
-			break;
-		case ALLEGRO_KEY_PAD_9:
-			clientstate->zoomlevel += 1;
-			break;
-		case ALLEGRO_KEY_PAD_3:
-			clientstate->zoomlevel -= 1;
 			break;
 		}
 

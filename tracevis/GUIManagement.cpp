@@ -246,12 +246,13 @@ int controlSetup() {
 	return 1;
 }
 
-void cleanup_for_exit(ALLEGRO_DISPLAY *display) {
+void cleanup_for_exit(ALLEGRO_DISPLAY *display) 
+{
 	al_destroy_display(display);
-	printf("Done cleanup!\n");
 }
 
-ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
+ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) 
+{
 	ALLEGRO_MENU_INFO menu_info[] = {
 
 		ALLEGRO_START_OF_MENU("&File", 1),
@@ -282,7 +283,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) {
 
 		ALLEGRO_START_OF_MENU("Settings", 3),
 		{ "Show Nodes", EV_BTN_NODES, 0, NULL },
-		{ "Show Edges", EV_BTN_EDGES, 0, NULL },
+		{ "Show Edges [e]", EV_BTN_EDGES, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("Text", 3),

@@ -4,9 +4,15 @@
 #define ADIVISIONS 32
 #define BDIVISIONS 16
 
-//don't know, please figure out how to derive properly. 
-//change it by whatever factor you change ADIVISIONS
-#define COLOUR_PICKING_MYSTERY_CONSTANTA 11.115
+/*
+don't know, please figure out how to derive properly.
+I derived this by making the colpick sphere permenant and 
+looking at the column of example verts at given h_edge_seps
+eg: 
+coord -8a is between col 0 and 1 at h_edge_sep ~1.39. 1.39*8 = 11.12
+coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
+*/
+#define COLOUR_PICKING_MYSTERY_CONSTANTA 11.16
 
 #define al_col_red al_map_rgb(255, 0, 0)
 #define al_col_green al_map_rgb(0, 255, 0)

@@ -129,12 +129,12 @@ void saveTrace(VISSTATE * clientState)
 	clientState->saveInProgress = true;
 	ofstream savefile;
 	string path;
-	if (!getSavePath(clientState, &path))
+	if (!getSavePath(clientState, &path, clientState->activePid->PID))
 	{
 		printf("Failed to get save path\n");
 		return;
 	}
-	printf("Saving to %s\n", path.c_str());
+	printf("Saving to process %d to %s\n", clientState->activePid->PID, path.c_str());
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
@@ -143,7 +143,7 @@ void saveTrace(VISSTATE * clientState)
 	}
 
 
-	savefile << "PID " << clientState->activeGraph->pid << " ";
+	savefile << "PID " << clientState->activePid->PID << " ";
 	saveProcessData(clientState->activePid, &savefile);
 
 	obtainMutex(clientState->activePid->graphsListMutex, "Save Trace");
@@ -152,7 +152,7 @@ void saveTrace(VISSTATE * clientState)
 	{
 		thread_graph_data *graph = (thread_graph_data *)graphit->second;
 		if (!graph->get_num_nodes()){
-			printf("Ignoring empty graph %d\n", graph->tid);
+			printf("Ignoring empty graph TID %d\n", graph->tid);
 			continue;
 		}
 		printf("Serialising graph: %d\n", graphit->first);

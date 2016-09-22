@@ -27,8 +27,13 @@ void module_handler::PID_thread()
 
 	int conresult = ConnectNamedPipe(hPipe, NULL);
 	printf("[vis mod handler]connect result: %d, GLE:%d. Waiting for input...\n", conresult,GetLastError());
-	TraceVisGUI* widgets = (TraceVisGUI *) clientState->widgets;
-	widgets->addPID(PID);
+	
+	if (clientState->commandlineLaunchPath.empty())
+	{
+		TraceVisGUI* widgets = (TraceVisGUI *)clientState->widgets;
+		widgets->addPID(PID);
+	}
+
 	char buf[400] = { 0 };
 	int PIDcount = 0;
 
@@ -36,19 +41,11 @@ void module_handler::PID_thread()
 
 	while (true)
 	{
-		if (die) { 
-			vector < pair <thread_trace_reader*, thread_trace_handler *>>::iterator threadIt;
-			for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
-			{
-				threadIt->first->die = true;
-				threadIt->second->die = true;
-			}
-			break; 
-		}
+		if (die)break; 
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
 			printf("Failed to read metadata pipe for PID:%d\n", PID);
-			return;
+			break;
 		}
 		buf[bread] = 0;
 
@@ -177,10 +174,14 @@ void module_handler::PID_thread()
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
 				continue;
 			}
-
-
-
-			printf("<PID %d mod> (%d b): %s", PID, bread, buf);
 		}
 	}
+
+	vector < pair <thread_trace_reader*, thread_trace_handler *>>::iterator threadIt;
+	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
+	{
+		threadIt->first->die = true;
+		threadIt->second->die = true;
+	}
+	clientState->timelineBuilder->notify_pid_end(PID);
 }

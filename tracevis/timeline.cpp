@@ -22,21 +22,22 @@ void timeline::notify_pid_end(unsigned int pid)
 	ev.eventType = PID_DIE;
 	ev.eventTime = al_get_time();
 	creationLog.push_back(ev);
+	--liveProcesses;
 }
 
 void timeline::notify_new_pid(unsigned int pid) 
 {
 	if (pidlist.count(pid))
 	{
-		printf("ERROR: DUPLICATE PID. TODO UNIQUE IDENTIFIERS!\n");
+		printf("ERROR: DUPLICATE PID. TODO: UNIQUE IDENTIFIERS!\n");
 		assert(false);
-		return;
 	}
 	processEvent ev;
 	ev.eventType = PID_CREATE;
 	ev.eventTime = al_get_time();
 	creationLog.push_back(ev);
 	pidlist[pid];
+	++liveProcesses;
 }
 
 void timeline::notify_new_tid(unsigned int pid, unsigned int tid) 
@@ -50,6 +51,7 @@ void timeline::notify_new_tid(unsigned int pid, unsigned int tid)
 	creationLog.push_back(ev);
 	pidlist[pid].push_back(&ev);
 	dropMutex(accessMutex, "TL TID START");
+	++liveThreads;
 }
 
 void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
@@ -62,4 +64,5 @@ void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
 	ev.TID = tid;
 	creationLog.push_back(ev);
 	dropMutex(accessMutex, "TL TID END");
+	--liveThreads;
 }

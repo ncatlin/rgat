@@ -600,24 +600,26 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
+	stringstream ss;
+	DCOORD screenCoord;
+	string itext("?");
 	for (unsigned int i = 0; i < numVerts; ++i)
 	{
 
 		node_data *n = graph->get_node(i);
 		if (n->external) continue;
-		
+
+		//this check removes the bulk of the instructions at a low performance cost
+		//implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
 		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
 			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 
-		//todo: experiment with performance re:how much of these checks to include
-			
-		DCOORD screenCoord;
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue; //in graph but not rendered
 		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
 
-		string itext("?");
+		
 		if (!show_all_always) {
 			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
@@ -625,12 +627,12 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 				itext = n->ins->mnemonic;
 		}
 
-		stringstream ss;
-		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address <<":" << itext;
+		
+		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address << ":" << itext;
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
-		//printf("drawing %d->%s to %.03f,%.03f \n", n->index, itext.c_str(), screenCoord.x, screenCoord.y);
+		ss.str("");
 	}
 }
 

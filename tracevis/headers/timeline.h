@@ -21,8 +21,12 @@ public:
 	void notify_new_tid(unsigned int pid, unsigned int tid);
 	void notify_pid_end(unsigned int pid);
 	void notify_tid_end(unsigned int pid, unsigned int tid);
+	unsigned int numLiveThreads() {return liveThreads;}
+	unsigned int numLiveProcesses() { return liveProcesses; }
 
 private:
+	unsigned int liveProcesses = 0;
+	unsigned int liveThreads = 0;
 	map <int, vector<processEvent *>> pidlist;
 	vector<processEvent> creationLog;
 	HANDLE accessMutex = CreateMutex(NULL, false, NULL);

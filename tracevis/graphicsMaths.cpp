@@ -105,6 +105,10 @@ void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int t
 //only as accurate as the mystery constant
 bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 {
+	/* the idea here is to calculate the column of the given coordinate
+	   dunno how though!
+	*/
+									//bad bad bad bad bad bad bad... but close
 	int coordcolumn = floor(-a / (COLOUR_PICKING_MYSTERY_CONSTANTA / hedgesep));
 	coordcolumn = coordcolumn % ADIVISIONS;
 
@@ -116,7 +120,9 @@ bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 		coordcolumn += shifter;
 	}
 
-	if (coordcolumn >= leftcol && coordcolumn <= rightcol) return true;
+	//this code is horrendous and doesn't fix it
+	int stupidHack = 1;
+	if (coordcolumn >= leftcol && coordcolumn <= rightcol+ stupidHack) return true;
 	else return false;
 }
 
