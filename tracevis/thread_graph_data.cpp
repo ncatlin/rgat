@@ -851,6 +851,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< "}S,";
 
 	*file << "A{";
+	obtainMutex(animationListsMutex, 0, INFINITE);
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
 		pair<unsigned long, int> seq_size = bbsequence.at(i);
@@ -862,6 +863,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		if (loopStateList[i].first )
 			*file << loopStateList[i].second << ",";
 	}
+	dropMutex(animationListsMutex, 0);
 	*file << "}A,";
 
 	*file << "C{";

@@ -27,6 +27,7 @@
 
 int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
 
+bool kbdInterrupt = false;
 
 void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
@@ -584,6 +585,32 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
 	return true;
 }
 
+BOOL WINAPI consoleHandler(DWORD signal) {
+
+	if (signal == CTRL_C_EVENT)
+		kbdInterrupt = true;
+
+	return TRUE;
+}
+
+void handleKBDExit()
+{
+	if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
+		printf("\nERROR: Could not set control handler");
+		return;
+	}
+}
+
+void saveAll(VISSTATE *clientState)
+{
+	map<int, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.begin();
+	for (; pidIt != clientState->glob_piddata_map.end(); pidIt++)
+	{
+		clientState->activePid = pidIt->second;
+		saveTrace(clientState);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	VISSTATE clientstate;
@@ -612,13 +639,13 @@ int main(int argc, char **argv)
 			(LPVOID)&clientstate, 0, 0);
 
 		execute_tracer(clientstate.commandlineLaunchPath, &clientstate);
-
+		handleKBDExit();
+		
 		int newTIDs,activeTIDs = 0;
 		int newPIDs,activePIDs = 0;
+
 		while (true)
 		{
-			bool foundActive = true;
-			Sleep(2000);
 			newTIDs = clientstate.timelineBuilder->numLiveThreads();
 			newPIDs = clientstate.timelineBuilder->numLiveProcesses();
 			if (activeTIDs != newTIDs || activePIDs != newPIDs)
@@ -626,22 +653,25 @@ int main(int argc, char **argv)
 				activeTIDs = newTIDs;
 				activePIDs = newPIDs;
 				printf("Tracking %d threads in %d processes\n", activeTIDs, activePIDs);
-				if (!activeTIDs || !activePIDs)
+				if (!activeTIDs && !activePIDs)
 				{
 					printf("All processes terminated. Saving...\n");
-					map<int, PROCESS_DATA *>::iterator pidIt = clientstate.glob_piddata_map.begin();
-					for (; pidIt != clientstate.glob_piddata_map.end(); pidIt++)
-					{
-						clientstate.activePid = pidIt->second;
-						saveTrace(&clientstate);
-					}
+					saveAll(&clientstate);
 					printf("Saving complete. Exiting.");
 					return 1;
 				}
 			}
 
+			if (kbdInterrupt)
+			{
+				printf("Keyboard interrupt detected, saving...\n");
+				//TODO: terminate all
+				saveAll(&clientstate);
+				printf("Saving complete. Exiting.");
+				return 1;
+			}
+
 		}
-		return 1;
 	}
 
 	ALLEGRO_DISPLAY *newDisplay = 0;

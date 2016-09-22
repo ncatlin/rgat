@@ -131,9 +131,10 @@ void saveTrace(VISSTATE * clientState)
 	string path;
 	if (!getSavePath(clientState, &path, clientState->activePid->PID))
 	{
-		printf("Failed to get save path\n");
+		printf("ERROR: Failed to get save path\n");
 		return;
 	}
+
 	printf("Saving to process %d to %s\n", clientState->activePid->PID, path.c_str());
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
