@@ -113,7 +113,8 @@ public:
 	void start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd);
 	void stop_edgeL_iteration();
 
-	EDGELIST *edgeLptr() { return &edgeList; } //i feel like this misses the point...
+	//i feel like this misses the point, idea is to iterate safely
+	EDGELIST *edgeLptr() { return &edgeList; } 
 
 	void animate_latest(float fadeRate);
 

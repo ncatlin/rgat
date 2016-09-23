@@ -20,12 +20,13 @@
 #define RETURN 3
 #define EXTERNAL 4
 #define NOSYM 8
+#define AFTERRETURN 9
 #define FIRST_IN_THREAD 10
 
 #define INTERNAL_CODE 1 
 #define EXTERNAL_CODE 2
 
-#define MOD_INACTIVE 0  //don't plot this
+#define MOD_UNKNOWN 0 
 #define MOD_ACTIVE 1	//plot this
 #define MOD_UNINSTRUMENTED 2 //client didn't instrument further - usually windows dlls
 
@@ -45,9 +46,10 @@
 #define CALLB_CLASH -30
 #define EXTERNA -3
 #define EXTERNB 3
-#define RETURNA_OFFSET -4
-#define RETURNB_OFFSET 1
 
-#define ARG_INT '0'
-#define ARG_LONG '1'
-#define ARG_B64 '2'
+//controls placement of the node after a return
+#define RETURNA_OFFSET -4
+#define RETURNB_OFFSET 3
+
+#define ARG_NOTB64 '0'
+#define ARG_BASE64 '1'

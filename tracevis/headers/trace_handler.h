@@ -76,7 +76,7 @@ private:
 #define LOOP_CACHE_BUILD 1
 #define LOOP_START 2
 #define LOOP_PROGRESS 3
-
+	bool afterReturn = false;
 	unsigned long loopCount = 0;
 	unsigned int firstLoopVert = 0;
 	int loopState = NO_LOOP;

@@ -45,7 +45,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	//create blue->red value for each numerical 'heat'
 	int numColours = colourRange.size();
 	heatColours[heatDistances.begin()->first] = *colourRange.begin();
-	if (maxDist > 2)
+	if (maxDist > 1)
 	{
 		for (std::advance(distit, 1); distit != heatDistances.end(); distit++)
 		{

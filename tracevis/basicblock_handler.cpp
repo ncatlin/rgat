@@ -125,17 +125,17 @@ void basicblock_handler::PID_BB_thread()
 			printf("\tERROR: BB Buf Exceeded!\n");
 			return;
 		}
-		buf[bread] = 0;
-
+		
 		if (!bread)
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
 				printf("BBPIPE ERROR: %d\n", err);
-			printf("%s", "\t!----------BBPIPE BROKEN  - no more data------------\n");
+			printf("%s", "\t!----------BBPIPE BROKEN err:%d - no more data------------\n");
 			return;
 		}
 
+		buf[bread] = 0;
 		if (buf[0] == 'B')
 		{
 			size_t count;

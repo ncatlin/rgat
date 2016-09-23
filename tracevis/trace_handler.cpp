@@ -111,6 +111,11 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 		b = lastnodec.b;
 		bMod = lastnodec.bMod;
 
+		if (afterReturn)
+		{
+			lastRIPType = AFTERRETURN;
+			afterReturn = false;
+		}
 		//place vert on sphere based on how we got here
 		positionVert(&a, &b, &bMod, thisnode.ins->address);
 
@@ -264,6 +269,10 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 
 	switch (lastRIPType)
 	{
+	case AFTERRETURN:
+		a = min(a - 20, -(thisgraph->maxA + 2));
+		b += 7 * BMULT;
+		break;
 
 	case NONFLOW:
 		{
@@ -281,10 +290,10 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 			a += JUMPA;
 			b += JUMPB * BMULT;
 
-			while (usedCoords[a][b] == true)
+			while (usedCoords[a][b])
 			{
 				a += JUMPA_CLASH;
-				if (clash++ > 15)
+				if (clash++ > 30)
 					printf("\tWARNING: DENSE GRAPH CLASHES (JUMP)\n");
 			}
 			break;
@@ -307,10 +316,10 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 		}
 
 	case RETURN:
-		a = min(a - 20, -(thisgraph->maxA + 2));
-		b += 7 * BMULT;
-		break; 
+		//still mulling over how to handle returns
+		afterReturn = true;
 
+		//previous externs handled same as previous returns
 	case EXTERNAL:
 		{
 			int result = -1;
@@ -339,6 +348,13 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 				b += EXTERNB * BMULT;
 			}
 		
+			while (usedCoords[a][b])
+			{
+				a += JUMPA_CLASH;
+				b += 1;
+				if (clash++ > 50)
+					printf("\tWARNING: Dense graph clashes (RET)\n");
+			}
 			break;
 		}
 	default:
@@ -392,7 +408,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	if (entry < entry + entrySize)
 	{
 		contents = string(entry).substr(0, entrySize - (size_t)entry);
-		if (b64Marker == '1')
+		if (b64Marker == ARG_BASE64)
 			contents = base64_decode(contents);
 	}
 	else
@@ -453,7 +469,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	if (x != thisbb->thread_callers.end())
 	{
 		EDGELIST::iterator vecit = x->second.begin();
-		for (; vecit != x->second.end(); vecit++)
+		for (; vecit != x->second.end(); ++vecit)
 		{
 			if (vecit->first != lastVertID) continue;
 
@@ -523,20 +539,21 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 
 void thread_trace_handler::process_new_args()
 {
-
 	map<unsigned long, map <unsigned long, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		unsigned long funcad = pcaIt->first;
 		obtainMutex(piddata->externDictMutex, 0, 1000);
-		if (!piddata->externdict.at(funcad)->thread_callers.count(TID)) { 
+		map<unsigned long, BB_DATA*>::iterator externIt;
+		externIt = piddata->externdict.find(funcad);
+		if (externIt == piddata->externdict.end() ||
+			!externIt->second->thread_callers.count(TID)) {
 			dropMutex(piddata->externDictMutex, 0);
-			//TODO: keep track of this. printf("Failed to find call for %lx in externdict\n", funcad);
-			pcaIt++; continue; 
+			++pcaIt; 
+			continue; 
 		}
 
-		
-		EDGELIST callvs = piddata->externdict.at(funcad)->thread_callers.at(TID);
+		EDGELIST callvs = externIt->second->thread_callers.at(TID);
 		dropMutex(piddata->externDictMutex, 0);
 
 		EDGELIST::iterator callvsIt = callvs.begin();
@@ -586,18 +603,19 @@ void thread_trace_handler::process_new_args()
 		if (pcaIt->second.empty())
 			pcaIt = thisgraph->pendingcallargs.erase(pcaIt);
 		else
-			pcaIt++;
+			++pcaIt;
 	}
 }
 
 void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
-	
-	/*printf("handling tag %lx, jmpmod:%d", thistag.blockaddr, thistag.jumpModifier);
-	if (thistag.jumpModifier == 2)
-		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag.blockaddr]->modnum][thistag.blockaddr].c_str());
-	else printf("\n");*/
-	
+#ifdef VERBOSE
+	printf("handling tag %lx, jmpmod:%d", thistag->blockaddr, thistag->jumpModifier);
+	if (thistag->jumpModifier == 2)
+		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr].c_str());
+	else printf("\n");
+#endif
+
 	update_conditional_state(thistag->blockaddr);
 
 	if (thistag->jumpModifier == INTERNAL_CODE)
@@ -635,7 +653,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
 		int result = run_external(thistag->blockaddr, repeats, &resultPair);
-		
+
 		if (result)
 		{
 			obtainMutex(thisgraph->animationListsMutex, "Extern run", 1000);
@@ -645,10 +663,10 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
-		}
+	}
 	else
 	{
-		printf("ERROR: BAD JUMP MODIFIER 0x%x: CORRUPT TRACE?\n", thistag->jumpModifier);
+		printf("handle_tag dead code assert");
 		assert(0);
 	}
 }
@@ -659,7 +677,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 int thread_trace_handler::find_containing_module(unsigned long address)
 {
 	const int numModules = piddata->modBounds.size();
-	for (int modNo = 0; modNo < numModules; modNo++)
+	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
 		pair<unsigned long, unsigned long> *bounds = &piddata->modBounds.at(modNo);
 		if (address >= bounds->first &&	address <= bounds->second)
@@ -668,8 +686,7 @@ int thread_trace_handler::find_containing_module(unsigned long address)
 			else return MOD_UNINSTRUMENTED;
 		}
 	}
-	return 0;
-
+	return MOD_UNKNOWN;
 }
 
 //updates graph entry for each tag in the trace loop cache
@@ -685,9 +702,9 @@ void thread_trace_handler::dump_loop()
 		return;
 	}
 
-	thisgraph->loopCounter++;
+	++thisgraph->loopCounter;
 	//put the verts/edges on the graph
-	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); tagIt++)
+	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); ++tagIt)
 		handle_tag(&*tagIt, loopCount);
 
 	loopCache.clear();
@@ -749,7 +766,7 @@ void thread_trace_handler::TID_thread()
 				else
 					handle_tag(&thistag);
 
-				//fallen through conditional jump
+				//fallen through/failed conditional jump
 				if (nextBlock == 0) continue;
 
 				int modType = find_containing_module(nextBlock);
@@ -763,7 +780,7 @@ void thread_trace_handler::TID_thread()
 
 				//see if next block is external
 				//this is our alternative to instrumenting *everything*
-				//rarely called
+				//rarely called (hopefully)
 				int attempts = 1;
 				while (true)
 				{
@@ -837,6 +854,7 @@ void thread_trace_handler::TID_thread()
 					assert(0);
 				}
 
+				//TODO: place on graph. i'm thinking a yellow highlight line.
 				printf("Target exception [code %lx] at address %lx\n", e_code, e_ip);
 				continue;
 			}

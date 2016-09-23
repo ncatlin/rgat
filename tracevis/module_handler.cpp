@@ -44,13 +44,18 @@ void module_handler::PID_thread()
 		if (die)break; 
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
-			printf("Failed to read metadata pipe for PID:%d\n", PID);
+			int err = GetLastError();
+			if (err != ERROR_BROKEN_PIPE)
+				printf("Failed to read metadata pipe for PID:%d, err:%d\n", PID, GetLastError());
+			else
+				printf("\t------PID mod pipe %d broken, presumed terminated----\n", PID);
 			break;
 		}
 		buf[bread] = 0;
 
 		if (!bread)
 		{
+			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
 				printf("threadpipe PIPE ERROR: %d\n", err);
@@ -169,7 +174,7 @@ void module_handler::PID_thread()
 					printf("ERROR! Processing mn line: %s\n", buf);
 					continue;
 				}
-
+				printf("loaded module %lx:%s start:%lx, end:%lx, skipped:%c\n ", modnum, path, startaddr, endaddr, *skipped_s);
 				piddata->modpaths[modnum] = string(path);
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
 				continue;

@@ -154,9 +154,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="headers\animControls.h" />
     <ClInclude Include="headers\clientConfig.h" />
     <ClInclude Include="headers\configDefaults.h" />
