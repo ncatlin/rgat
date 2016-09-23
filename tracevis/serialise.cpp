@@ -13,6 +13,8 @@
 #define tag_SYM 43
 #define tag_DISAS 44
 
+
+
 void writetag(ofstream *file, char tag, int id = 0) {
 	char tagbuf[2];
 	if (!id)
@@ -123,10 +125,9 @@ bool ensureDirExists(string dirname, VISSTATE *clientState)
 
 }
 
+//this saves the process data of activePid and all of its graphs
 void saveTrace(VISSTATE * clientState)
-{
-	
-	clientState->saveInProgress = true;
+{	
 	ofstream savefile;
 	string path;
 	if (!getSavePath(clientState, &path, clientState->activePid->PID))
@@ -135,14 +136,13 @@ void saveTrace(VISSTATE * clientState)
 		return;
 	}
 
-	printf("Saving to process %d to %s\n", clientState->activePid->PID, path.c_str());
+	printf("Saving process %d to %s\n", clientState->activePid->PID, path.c_str());
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
 		printf("Failed to open %s for save\n", path.c_str());
 		return;
 	}
-
 
 	savefile << "PID " << clientState->activePid->PID << " ";
 	saveProcessData(clientState->activePid, &savefile);
@@ -162,7 +162,6 @@ void saveTrace(VISSTATE * clientState)
 	dropMutex(clientState->activePid->graphsListMutex, "Save Trace");
 
 	savefile.close();
-	clientState->saveInProgress = false;
 	printf("Save complete\n");
 }
 

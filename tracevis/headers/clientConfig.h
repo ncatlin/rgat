@@ -52,6 +52,8 @@ public:
 	int farA;
 	int renderFrequency;
 
+	unsigned long traceBufMax;
+
 	string saveDir;
 	string DRDir;
 	string clientPath;
@@ -64,6 +66,7 @@ public:
 	void updateLastPath(string path);
 
 private:
+	bool initialised = false;
 	vector<string *> cleanupList;
 
 	//when we save the file we create a bunch of colours on the heap

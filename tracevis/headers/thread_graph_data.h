@@ -193,7 +193,7 @@ public:
 		if (set) { 
 			DWORD res = WaitForSingleObject(graphwritingMutex, 1000); 
 			if (res == WAIT_TIMEOUT)
-				printf("BUSU BEE TID %d\n", tid);
+				printf("Timeout waiting for release of graph %d\n", tid);
 			assert(res != WAIT_TIMEOUT);
 		}
 		else ReleaseMutex(graphwritingMutex); 

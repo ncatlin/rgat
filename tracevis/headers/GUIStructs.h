@@ -96,7 +96,6 @@ public:
 	bool animFinished = false;
 	bool skipLoop = false;
 
-	bool saveInProgress = false;
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;
 	map <int, NODEPAIR> graphPositions;

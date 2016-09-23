@@ -48,14 +48,14 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 	if (!graph->active && clientState->animationUpdate)
 	{
 
-		int result = graph->updateAnimation(clientState->animationUpdate,
+		int animationResult = graph->updateAnimation(clientState->animationUpdate,
 			clientState->modes.animation, clientState->skipLoop);
 
 		if (clientState->skipLoop) clientState->skipLoop = false;
 
 		if (clientState->modes.animation)
 		{
-			if (result == ANIMATION_ENDED)
+			if (animationResult == ANIMATION_ENDED)
 			{
 				graph->reset_animation();
 				clientState->animationUpdate = 0;

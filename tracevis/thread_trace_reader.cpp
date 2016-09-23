@@ -85,9 +85,9 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	WaitForSingleObject(flagMutex, INFINITE);
 	vector<pair<char *, int>> *targetQueue = get_read_queue();
 
-	if (targetQueue->size() > 400000)
+	if (targetQueue->size() > traceBufMax)
 	{
-		printf("[Trace queue exceeds 400000 items! Waiting for renderer to catch up]\n");
+		printf("[Trace queue exceeds %d items! Waiting for renderer to catch up]\n", traceBufMax);
 		ReleaseMutex(flagMutex);
 		do {
 			Sleep(500);
@@ -95,8 +95,8 @@ void thread_trace_reader::add_message(char *buffer, int size)
 			WaitForSingleObject(flagMutex, INFINITE);
 
 			targetQueue = get_read_queue();
-			if (targetQueue->size() < 200000) break;
-			if (targetQueue->size() < 20000)
+			if (targetQueue->size() < traceBufMax/2) break;
+			if (targetQueue->size() <  traceBufMax/10)
 				printf("[Trace queue now %d items]\n", targetQueue->size());
 			ReleaseMutex(flagMutex);
 		} while (true);

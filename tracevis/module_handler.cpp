@@ -18,15 +18,14 @@ void module_handler::PID_thread()
 	pipename.append(std::to_wstring(PID));
 
 	const wchar_t* szName = pipename.c_str();
-	std::wcout << "[vis mod handler] creating mod thread " << szName << endl;
-	wprintf(L"creating mod thread %s\n", szName);
+	std::wcout << "[rgat process handler] creating mod thread " << szName << endl;
 
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 300, NULL);
 
 	int conresult = ConnectNamedPipe(hPipe, NULL);
-	printf("[vis mod handler]connect result: %d, GLE:%d. Waiting for input...\n", conresult,GetLastError());
+	printf("[rgat process handler]connect result: %d, GLE:%d. Waiting for input...\n", conresult,GetLastError());
 	
 	if (clientState->commandlineLaunchPath.empty())
 	{
@@ -79,6 +78,7 @@ void module_handler::PID_thread()
 				thread_trace_reader *TID_reader = new thread_trace_reader;
 				TID_reader->PID = PID;
 				TID_reader->TID = TID;
+				TID_reader->traceBufMax = clientState->config->traceBufMax;
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
 					(LPVOID)TID_reader, 0, &threadID);

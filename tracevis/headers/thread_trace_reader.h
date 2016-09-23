@@ -8,6 +8,7 @@ public:
 	static void __stdcall ThreadEntry(void* pUserData);
 	int PID;
 	int TID;
+	unsigned long traceBufMax = 0;
 	bool die = false;
 	int get_message(char **buffer, unsigned long *bufSize);
 	void reader_thread();

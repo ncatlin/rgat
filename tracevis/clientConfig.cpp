@@ -153,11 +153,13 @@ bool clientConfig::loadFromFile()
 	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour);
 	animationFadeRate = atof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
 	renderFrequency = atoi(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"));
+	traceBufMax = atol(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"));
 
 	loadColours();
 	loadPaths();
 
 	al_destroy_config(alConfig);
+	initialised = true;
 }
 
 void clientConfig::cleanup()
@@ -283,6 +285,12 @@ void clientConfig::loadDefaultColours()
 
 void clientConfig::saveToFile()
 {
+	if (!initialised)
+	{
+		printf("Attempt to save uninitialised config\n");
+		assert(0);
+	}
+
 	al_set_config_value(alConfig, "Wireframe", "COL_RGBA", col_to_charstr(wireframe.edgeColor));
 
 	savePreview();
@@ -298,7 +306,7 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA", col_to_charstr(activityLineColour));
 	al_set_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE", to_string(animationFadeRate).c_str());
 	al_set_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS", to_string(renderFrequency).c_str());
-	
+	al_set_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX", to_string(traceBufMax).c_str());
 
 	al_set_config_value(alConfig, "Paths", "SAVE_PATH", saveDir.c_str());
 	al_set_config_value(alConfig, "Paths", "DYNAMORIO_PATH", DRDir.c_str());
@@ -363,9 +371,10 @@ void clientConfig::loadDefaults()
 	activityLineColour = ACTIVITY_LINE_COLOUR;
 	animationFadeRate = ANIMATION_FADE_RATE;
 	renderFrequency = MAINGRAPH_DEFAULT_RENDER_FREQUENCY;
+	traceBufMax = DEFAULT_MAX_TRACE_BUFSIZE;
 
 	loadDefaultColours();
 
 	loadDefaultPaths();
-
+	initialised = true;
 }

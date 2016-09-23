@@ -2,6 +2,15 @@
 #include <stdafx.h>
 #include <GUIStructs.h>
 
+string time_string()
+{
+	time_t t = time(0);
+	struct tm timenow;
+	localtime_s(&timenow, &t);
+	stringstream savetime;
+	savetime << timenow.tm_mon+1 << timenow.tm_mday << "-" << timenow.tm_hour << timenow.tm_min << timenow.tm_sec;
+	return savetime.str();
+}
 
 #ifdef WIN32
 bool fileExists(string path)
@@ -32,18 +41,14 @@ bool getSavePath(VISSTATE * clientState, string *result, int PID)
 
 	string filename = clientState->glob_piddata_map[PID]->modpaths[0];
 
+	//get filename from path
 	//http://stackoverflow.com/a/8520815
 	const size_t last_slash_idx = filename.find_last_of("\\/");
 	if (std::string::npos != last_slash_idx)
-	{
 		filename.erase(0, last_slash_idx + 1);
-	}
-
-	stringstream timestring;
-	timestring << 222;
 
 	stringstream savepath;
-	savepath << savedir.str() << "\\" << filename << timestring.str() << ".rgat";
+	savepath << savedir.str() << "\\" << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
 	*result = savepath.str();
 	return true;
 }
