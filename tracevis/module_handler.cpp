@@ -153,8 +153,8 @@ void module_handler::PID_thread()
 				sscanf_s(modnum_s, "%d", &modnum);
 
 				if (piddata->modpaths.count(modnum) > 0) {
-					printf("Bad modnum! in mn %s", buf);
-					continue;
+					printf("ERROR: Bad module number in mn %s", buf);
+					assert(0);
 				}
 
 				//todo: safe stol? if this is safe whytf have i implented safe stol
@@ -173,10 +173,11 @@ void module_handler::PID_thread()
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_ACTIVE);
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {
-					printf("ERROR! Processing mn line: %s\n", buf);
-					continue;
+					printf("ERROR! Processing module line: %s\n", buf);
+					assert(0);
 				}
-				printf("loaded module %lx:%s start:%lx, end:%lx, skipped:%c\n ", modnum, path, startaddr, endaddr, *skipped_s);
+
+				//printf("loaded module %lx:%s start:%lx, end:%lx, skipped:%c\n ", modnum, path, startaddr, endaddr, *skipped_s);
 				piddata->modpaths[modnum] = string(path);
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
 				continue;

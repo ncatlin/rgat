@@ -72,7 +72,8 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	THREAD_POINTERS *threads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
-	clientState->spawnedProcess = piddata;
+	if (clientState->switchProcess)
+		clientState->spawnedProcess = piddata;
 
 
 	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return 0;
@@ -518,8 +519,8 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	gather_projection_data(&pd);
 
 	display_graph(clientState, graph, &pd);
-	transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
-	drawExternTexts(graph, externFloatingText, clientState, &pd);
+	//transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
+	//drawExternTexts(graph, externFloatingText, clientState, &pd);
 }
 
 //plot wireframe/colpick sphere in memory if they dont exist
@@ -790,7 +791,7 @@ int main(int argc, char **argv)
 		//no active graph but a process exists
 		//this is in the main loop so the GUI gets rendered at the start
 		//todo set to own function when we OOP this
-		if (clientstate.spawnedProcess && !clientstate.spawnedProcess->graphs.empty())
+		if (clientstate.switchProcess && clientstate.spawnedProcess && !clientstate.spawnedProcess->graphs.empty())
 		{
 			PROCESS_DATA* activePid = clientstate.spawnedProcess;
 
@@ -827,11 +828,16 @@ int main(int argc, char **argv)
 				plot_colourpick_sphere(&clientstate);
 
 				widgets->toggleSmoothDrawing(false);
+				
 				break;
 			}
 
+			//successfully found an active graph in a new process
 			if (graphIt != activePid->graphs.end())
+			{
 				clientstate.spawnedProcess = NULL;
+				clientstate.switchProcess = false;
+			}
 
 			dropMutex(clientstate.pidMapMutex, "Main Loop");
 		}
@@ -883,7 +889,7 @@ int main(int argc, char **argv)
 
 			if (!al_is_event_queue_empty(low_frequency_timer_queue))
 			{
-				//al_flush_event_queue(low_frequency_timer_queue);
+				al_flush_event_queue(low_frequency_timer_queue);
 				performIrregularActions(&clientstate);
 			}
 
@@ -892,8 +898,11 @@ int main(int argc, char **argv)
 
 			if (clientstate.modes.diff)
 				processDiff(&clientstate, PIDFont, &diffRenderer);
-			else
+
+			if (!clientstate.modes.diff) //not an else for clarity
 				performMainGraphDrawing(&clientstate, &externFloatingText);
+
+			frame_gl_teardown();
 
 			if (clientstate.animFinished)
 			{
@@ -901,8 +910,7 @@ int main(int argc, char **argv)
 				TraceVisGUI* widgets = (TraceVisGUI*)clientstate.widgets;
 				widgets->controlWindow->notifyAnimFinished();
 			}
-			frame_gl_teardown();
-
+			
 			al_set_target_backbuffer(clientstate.maindisplay);
 			if (clientstate.modes.preview)
 			{
@@ -931,7 +939,6 @@ int main(int argc, char **argv)
 
 		al_flip_display();
 
-
 		//ui events
 		while (al_get_next_event(clientstate.event_queue, &ev))
 		{
@@ -941,9 +948,10 @@ int main(int argc, char **argv)
 			{
 			case EV_MOUSE:
 				widgets->processEvent(&ev);
-				if (clientstate.newPID > -1)
+				
+				if (clientstate.selectedPID > -1)
 				{
-					clientstate.activePid = clientstate.glob_piddata_map[clientstate.newPID];
+					clientstate.activePid = clientstate.glob_piddata_map[clientstate.selectedPID];
 					clientstate.graphPositions.clear();
 					map<int, void *> *pidGraphList = &clientstate.activePid->graphs;
 					map<int, void *>::iterator pidIt;
@@ -959,9 +967,9 @@ int main(int argc, char **argv)
 							break;
 						}
 					}			
-					if (!clientstate.newActiveGraph) printf("ERROR: No graph found!\n");
-					clientstate.newPID = -1;
+					clientstate.selectedPID = -1;
 				}
+	
 				break;
 
 			case EV_BTN_QUIT:
@@ -1047,6 +1055,12 @@ void set_active_graph(VISSTATE *clientState, int PID, int TID)
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
 	clientState->newActiveGraph = target_pid->graphs[TID];
 
+	if (target_pid != clientState->activePid)
+	{
+		clientState->spawnedProcess = target_pid;
+		clientState->switchProcess = true;
+	}
+
 	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
 	if (graph->modPath.empty())	graph->assign_modpath(target_pid);
 
@@ -1085,8 +1099,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
 	{
-		//TODO! REMAKE BITMAP
-		
 		clientstate->displaySize.height = ev->display.height;
 		clientstate->mainFrameSize.height = ev->display.height - BASE_CONTROLS_HEIGHT;
 		clientstate->mainFrameSize.width = ev->display.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
@@ -1139,7 +1151,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			al_get_mouse_state(&state);
 			if (clientstate->mouse_dragging)
 			{
-				//printf("Mouse DRAGGED dx:%d, dy:%d x:%d,y:%d\n", ev->mouse.dx, ev->mouse.dy, ev->mouse.x, ev->mouse.y);
 				float dx = ev->mouse.dx;
 				float dy = ev->mouse.dy;
 				dx = min(1, max(dx, -1));

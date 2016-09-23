@@ -17,12 +17,12 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 
 		GLfloat *buf = mainlinedata->readonly_pos();
-		if (!buf) return;
+		if (!buf) { setGraphBusy(false); return; }
 		int posbufsize = mainlinedata->get_numVerts() * POSELEMS * sizeof(GLfloat);
 		load_VBO(VBO_LINE_POS, activeVBOs, posbufsize, buf);
 
 		buf = animlinedata->readonly_col();
-		if (!buf) return;
+		if (!buf) { setGraphBusy(false); return; }
 		int linebufsize = animlinedata->get_numVerts() * COLELEMS * sizeof(GLfloat);
 		load_VBO(VBO_LINE_COL, activeVBOs, linebufsize, buf);
 
@@ -95,7 +95,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 	obtainMutex(edMutex); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
-		printf("resetting mainlines for resize\n");
+		printf("Graph resize triggered\n");
 		reset_mainlines();
 		lines = get_mainlines();
 		edgeIt = edgeList.begin();

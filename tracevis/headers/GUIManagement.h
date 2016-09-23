@@ -77,7 +77,7 @@ public:
 	{
 		int PID = std::stoi(evt.getSource()->getText());
 		if (PID != clientState->activePid->PID)
-			clientState->newPID = PID;
+			clientState->selectedPID = PID;
 	}
 private:
 	VISSTATE *clientState;

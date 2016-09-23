@@ -400,8 +400,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	if (!pendingFunc) {
 		pendingFunc = funcpc;
 		pendingRet = returnpc;
-		//node_data *targExtern = thisgraph->get_node(targVertID);
-		printf("x");
 	}
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
@@ -409,7 +407,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 
 	char b64Marker = strtok_s(entry, ",", &entry)[0];
 
-	//todo: b64 decode
 	string contents;
 	if (entry < entry + entrySize)
 	{
@@ -450,7 +447,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	process_new_args();
 }
 
-int thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair)
+bool thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
@@ -460,8 +457,10 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	//start by examining our caller
 	
 	int callerModule = lastNode->nodeMod;
-	//if caller is external, not interested in this //todo: no longer happens
-	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) return -1;
+	//if caller is external, not interested in this
+	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) 
+		return false;
+
 	BB_DATA *thisbb = 0;
 	do {
 		get_extern_at_address(targaddr, &thisbb);
@@ -480,16 +479,14 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->get_node(targVertID);
-			printf("runing extern, setting node:%d for address:%lx\n", targVertID, targNode->address);
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
 			increaseWeight(thisgraph->get_edge(*resultPair), repeats);
 			targNode->calls += repeats;
 
-			return 1;
+			return true;
 		}
 		//else: thread has already called it, but from a different place
-		
 	}
 	//else: thread hasnt called this function before
 
@@ -522,10 +519,6 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	newTargNode.index = targVertID;
 	newTargNode.parentIdx = lastVertID;
 
-	//BB_DATA *thisnode_bbdata = 0;
-	//get_extern_at_address(targaddr, &thisnode_bbdata);
-	//unsigned long returnAddress = lastNode->ins->address + lastNode->ins->numbytes;
-
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
 
@@ -539,7 +532,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	newEdge.edgeClass = ILIB;
 	insert_edge(newEdge, *resultPair);
 	lastRIPType = EXTERNAL;
-	return 1;
+	return true;
 }
 
 void thread_trace_handler::process_new_args()
@@ -664,9 +657,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
-		int result = run_external(thistag->blockaddr, repeats, &resultPair);
-
-		if (result)
+		if (run_external(thistag->blockaddr, repeats, &resultPair))
 		{
 			obtainMutex(thisgraph->animationListsMutex, "Extern run", 1000);
 			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
@@ -804,7 +795,7 @@ void thread_trace_handler::TID_thread()
 					if (find_internal_at_address(nextBlock, attempts)) break;
 					++attempts;
 				} 
-				continue;
+
 				if (!external) continue;
 				
 				thistag.blockaddr = nextBlock;

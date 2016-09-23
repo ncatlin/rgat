@@ -105,7 +105,6 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	targetQueue->push_back(bufPair);
 	pendingData += size;
 	ReleaseMutex(flagMutex);
-	printf("done add mes\n");
 }
 
 int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)

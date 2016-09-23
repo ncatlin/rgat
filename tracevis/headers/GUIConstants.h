@@ -23,7 +23,6 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define al_col_grey al_map_rgb(0.3 * 255, 0.3 * 255, 0.3 * 255)
 #define al_col_black al_map_rgb(0, 0, 0)
 
-
 #define ICALL 0
 #define IOLD 1
 #define IRET 2

@@ -189,7 +189,15 @@ public:
 		return busy;
 	}
 
-	void setGraphBusy(bool set) { if (set) WaitForSingleObject(graphwritingMutex, INFINITE); else ReleaseMutex(graphwritingMutex); }
+	void setGraphBusy(bool set) { 
+		if (set) { 
+			DWORD res = WaitForSingleObject(graphwritingMutex, 1000); 
+			if (res == WAIT_TIMEOUT)
+				printf("BUSU BEE TID %d\n", tid);
+			assert(res != WAIT_TIMEOUT);
+		}
+		else ReleaseMutex(graphwritingMutex); 
+	}
 
 	bool VBOsGenned = false;
 	//node+edge col+pos

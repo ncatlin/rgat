@@ -111,7 +111,8 @@ public:
 	DISPLAYMODES modes;
 	thread_graph_data *activeGraph = NULL;
 	void *newActiveGraph = NULL;
-	int newPID = -1;
+	bool switchProcess = true;
+	int selectedPID = -1;
 	PROCESS_DATA *activePid = NULL;
 	PROCESS_DATA* spawnedProcess = NULL;
 

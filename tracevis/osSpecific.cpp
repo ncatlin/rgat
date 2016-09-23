@@ -103,13 +103,14 @@ void execute_tracer(string executable, VISSTATE *clientState)
 	runpath = runpath + " -- \"" + executable + "\"";
 
 	STARTUPINFOA si;
-	PROCESS_INFORMATION pi;
-
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
 	ZeroMemory(&pi, sizeof(pi));
 
 	printf("Starting execution using command line [%s]\n", runpath.c_str());
 	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
+	clientState->switchProcess = true;
 }
 #endif // WIN32

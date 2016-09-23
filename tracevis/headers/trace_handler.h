@@ -49,7 +49,7 @@ private:
 
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();
-	int run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
+	bool run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
 	int runBB(TAG *tag, int startIndex, int repeats);
