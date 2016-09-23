@@ -23,17 +23,16 @@ void thread_trace_reader::reader_thread()
 	wcout << "Opening thread reader pipe '" << pipename << "'" << endl;
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
 		255, //max instances
 		64, //outbuffer
 		1024 * 1024, //inbuffer
-		300, //timeout
+		1, //timeout?
 		NULL);
 
 	if ((int)hPipe == -1)
 	{
-		//thisgraph->active = false;
-		printf("Error: Could not create pipe in thread handler. error:%d\n", GetLastError());
+		printf("Error: Could not create pipe in thread handler %d. error:%d\n",TID, GetLastError());
 		return;
 	}
 
@@ -47,6 +46,7 @@ void thread_trace_reader::reader_thread()
 	{
 		if (die) break;
 		ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL);
+
 		if (bytesRead == TAGCACHESIZE) {
 			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n", tagReadBuf);
 			pipeClosed = true;
@@ -82,7 +82,6 @@ vector<pair<char *, int>> * thread_trace_reader::get_read_queue()
 void thread_trace_reader::add_message(char *buffer, int size)
 {
 	pair<char*, int> bufPair = make_pair(buffer, size);
-
 	WaitForSingleObject(flagMutex, INFINITE);
 	vector<pair<char *, int>> *targetQueue = get_read_queue();
 
@@ -106,6 +105,7 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	targetQueue->push_back(bufPair);
 	pendingData += size;
 	ReleaseMutex(flagMutex);
+	printf("done add mes\n");
 }
 
 int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)

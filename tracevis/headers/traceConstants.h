@@ -3,6 +3,10 @@
 #define MAX_OPCODES 30
 
 #define TAGCACHESIZE 1024*1024
+#define TRACE_TAG_MARKER 'j'
+#define LOOP_MARKER 'R'
+#define LOOP_START_MARKER 'S'
+#define LOOP_END_MARKER 'E'
 
 #define MUTEXWAITPERIOD 6000
 

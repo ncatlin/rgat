@@ -20,7 +20,10 @@ bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB, int
 	map<unsigned long, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
 	while (externIt == piddata->externdict.end())
 	{
-		if (!attempts--) return false;
+		if (!attempts--) { 
+			dropMutex(piddata->externDictMutex, 0); 
+			return false; 
+		}
 		dropMutex(piddata->externDictMutex, 0);
 		Sleep(1);
 		obtainMutex(piddata->externDictMutex, 0, 1000);
@@ -418,7 +421,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		contents = string("NULL");
 
 	pendingArgs.push_back(make_pair(argpos, contents));
-	printf("Got arg %s for address %lx, ret:%lx",contents.c_str(), funcpc, returnpc, pendingArgs.size());
 	if (!callDone) return;
 
 	//func been called in thread already? if not, have to place args in holding buffer
@@ -616,7 +618,7 @@ void thread_trace_handler::process_new_args()
 	}
 }
 
-#define VERBOSE
+//#define VERBOSE
 void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
 #ifdef VERBOSE
@@ -760,7 +762,7 @@ void thread_trace_handler::TID_thread()
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) break;
 
-			if (entry[0] == 'j')
+			if (entry[0] == TRACE_TAG_MARKER)
 			{
 				TAG thistag;
 
@@ -802,7 +804,7 @@ void thread_trace_handler::TID_thread()
 					if (find_internal_at_address(nextBlock, attempts)) break;
 					++attempts;
 				} 
-
+				continue;
 				if (!external) continue;
 				
 				thistag.blockaddr = nextBlock;
@@ -819,10 +821,9 @@ void thread_trace_handler::TID_thread()
 				continue;
 			}
 
-			//repeats/loop
-			if (entry[0] == 'R')
-			{	//loop start
-				if (entry[1] == 'S')
+			if (entry[0] == LOOP_MARKER)
+			{	
+				if (entry[1] == LOOP_START_MARKER)
 				{
 					loopState = LOOP_START;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
@@ -831,13 +832,13 @@ void thread_trace_handler::TID_thread()
 					continue;
 				}
 
-				//loop end
-				else if (entry[1] == 'E') 
+				else if (entry[1] == LOOP_END_MARKER) 
 				{
 					dump_loop();
 					continue;
 				}
-				printf("Fell through bad loop tag? [%s]\n",entry);
+
+				printf("ERROR: Fell through bad loop tag? [%s]\n",entry);
 				assert(0);
 			}
 
