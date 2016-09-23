@@ -113,6 +113,7 @@ public:
 	void *newActiveGraph = NULL;
 	int newPID = -1;
 	PROCESS_DATA *activePid = NULL;
+	PROCESS_DATA* spawnedProcess = NULL;
 
 	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
 	GLuint colSphereVBOs[2];

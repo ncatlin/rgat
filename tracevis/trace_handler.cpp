@@ -8,9 +8,9 @@
 bool thread_trace_handler::find_internal_at_address(long address, int attempts) {
 	while (!piddata->disassembly.count(address))
 	{
-		Sleep(5);
+		Sleep(1);
 		if (!attempts--) return false;
-		printf("Sleeping until EXTERN %lx...", address);
+		printf("Sleeping until EXTERN %lx...\n", address);
 	}
 	return true;
 }
@@ -27,7 +27,8 @@ bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB, int
 		externIt = piddata->externdict.find(address);
 	}
 
-	*BB = externIt->second;
+	if(BB)
+		*BB = externIt->second;
 	dropMutex(piddata->externDictMutex, 0);
 	return true;
 }
@@ -396,6 +397,8 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	if (!pendingFunc) {
 		pendingFunc = funcpc;
 		pendingRet = returnpc;
+		//node_data *targExtern = thisgraph->get_node(targVertID);
+		printf("x");
 	}
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
@@ -414,9 +417,8 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	else
 		contents = string("NULL");
 
-	BB_DATA* targbbptr;
-	get_extern_at_address(funcpc, &targbbptr);
 	pendingArgs.push_back(make_pair(argpos, contents));
+	printf("Got arg %s for address %lx, ret:%lx",contents.c_str(), funcpc, returnpc, pendingArgs.size());
 	if (!callDone) return;
 
 	//func been called in thread already? if not, have to place args in holding buffer
@@ -476,6 +478,7 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->get_node(targVertID);
+			printf("runing extern, setting node:%d for address:%lx\n", targVertID, targNode->address);
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
 			increaseWeight(thisgraph->get_edge(*resultPair), repeats);
@@ -517,9 +520,9 @@ int thread_trace_handler::run_external(unsigned long targaddr, unsigned long rep
 	newTargNode.index = targVertID;
 	newTargNode.parentIdx = lastVertID;
 
-	BB_DATA *thisnode_bbdata = 0;
-	get_extern_at_address(targaddr, &thisnode_bbdata);
-	unsigned long returnAddress = lastNode->ins->address + lastNode->ins->numbytes;
+	//BB_DATA *thisnode_bbdata = 0;
+	//get_extern_at_address(targaddr, &thisnode_bbdata);
+	//unsigned long returnAddress = lastNode->ins->address + lastNode->ins->numbytes;
 
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
@@ -560,15 +563,21 @@ void thread_trace_handler::process_new_args()
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
 			node_data *parentn = thisgraph->get_node(callvsIt->first);
-			unsigned long returnAddress = parentn->ins->address + parentn->ins->numbytes;
+			//this breaks if call not used!
+			unsigned long callerAddress = parentn->ins->address;
+
+			if (get_extern_at_address(callerAddress, 0, 1))
+				printf("\nEXTERN CALLED BY EXTERN, DELETE!\n");
+
 			node_data *targn = thisgraph->get_node(callvsIt->second);
 
-			map <unsigned long, vector<ARGLIST>>::iterator retIt = pcaIt->second.begin();
-			while (retIt != pcaIt->second.end())//run through each caller to this function
+			map <unsigned long, vector<ARGLIST>>::iterator callersIt = pcaIt->second.begin();
+			while (callersIt != pcaIt->second.end())//run through each caller to this function
 			{
-				if (retIt->first != returnAddress) {retIt++; continue;}
+				if (callersIt->first != callerAddress) 
+				{ printf("extern ret %lx not arg ret %lx\n", callersIt->first , callerAddress); callersIt++; continue; }
 
-				vector<ARGLIST> callsvector = retIt->second;
+				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
 				obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
@@ -590,12 +599,12 @@ void thread_trace_handler::process_new_args()
 					callsIt = callsvector.erase(callsIt);
 				}
 				dropMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live");
-				retIt->second.clear();
+				callersIt->second.clear();
 
-				if (retIt->second.empty())
-					retIt = pcaIt->second.erase(retIt);
+				if (callersIt->second.empty())
+					callersIt = pcaIt->second.erase(callersIt);
 				else
-					retIt++;
+					callersIt++;
 			}
 
 			callvsIt++;
@@ -607,6 +616,7 @@ void thread_trace_handler::process_new_args()
 	}
 }
 
+#define VERBOSE
 void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
 #ifdef VERBOSE

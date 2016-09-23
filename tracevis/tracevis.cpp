@@ -72,6 +72,8 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	THREAD_POINTERS *threads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
+	clientState->spawnedProcess = piddata;
+
 
 	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return 0;
 	glob_piddata_map->insert_or_assign(PID, piddata);
@@ -788,11 +790,11 @@ int main(int argc, char **argv)
 		//no active graph but a process exists
 		//this is in the main loop so the GUI gets rendered at the start
 		//todo set to own function when we OOP this
-		if (!clientstate.activeGraph && clientstate.glob_piddata_map.size() > 0)
+		if (clientstate.spawnedProcess && !clientstate.spawnedProcess->graphs.empty())
 		{
-			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop",2000)) return 0;
+			PROCESS_DATA* activePid = clientstate.spawnedProcess;
 
-			PROCESS_DATA *activePid = clientstate.glob_piddata_map.begin()->second;
+			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop",2000)) return 0;
 			
 			widgets->setActivePID(activePid->PID);
 			clientstate.activePid = activePid;
@@ -827,6 +829,10 @@ int main(int argc, char **argv)
 				widgets->toggleSmoothDrawing(false);
 				break;
 			}
+
+			if (graphIt != activePid->graphs.end())
+				clientstate.spawnedProcess = NULL;
+
 			dropMutex(clientstate.pidMapMutex, "Main Loop");
 		}
 

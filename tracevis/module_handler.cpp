@@ -129,6 +129,8 @@ void module_handler::PID_thread()
 					continue;
 				}
 				piddata->modsyms[modnum][address] = symname;
+				if (string(symname) == "GetStdHandle")
+					printf("Sym GETSTDH processed\n");
 				continue;
 			}
 

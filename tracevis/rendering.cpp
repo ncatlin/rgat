@@ -743,7 +743,8 @@ void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA 
 	
 	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientstate, zmul, pd, graph);
-	else if (zmul < 25)
+	
+	if (zmul < 25)
 		show_extern_labels(clientstate, pd, graph);
 }
 

@@ -784,6 +784,7 @@ thread_graph_data::~thread_graph_data()
 
 void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
+	if (!edgesdata->get_numVerts()) return;
 	edge_data *e = get_edge(eIdx);
 	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
 	GLfloat *colarray = &edgesdata->acquire_col("2e")->at(0);
