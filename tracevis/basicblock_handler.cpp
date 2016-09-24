@@ -75,7 +75,7 @@ void basicblock_handler::PID_BB_thread()
 
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT | PIPE_READMODE_MESSAGE,
+		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
 		255, 64, 56 * 1024, 300, NULL);
 
 	if ((int)hPipe == -1)
@@ -93,12 +93,14 @@ void basicblock_handler::PID_BB_thread()
 
 	ConnectNamedPipe(hPipe, NULL);
 	char *buf= (char *)malloc(BBBUFSIZE);
-	int PIDcount = 0;
 
 	string savedbuf;
 	while (true)
 	{
 		if (die) break;
+		if (clientState->terminationPid == PID)
+			break;
+
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, BBBUFSIZE, &bread, NULL))
 		{

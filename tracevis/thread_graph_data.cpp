@@ -159,7 +159,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 	obtainMutex(edMutex, 10000); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
-		cout << "Graph resize triggered" << endl;
+		cout << "[rgat]Graph resize triggered" << endl;
 		reset_mainlines();
 		lines = get_mainlines();
 		edgeIt = edgeList.begin();
@@ -250,12 +250,16 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 	map <int, std::map<long, string>>::iterator symMapIt;
 	symMapIt = piddata->modsyms.find(n->nodeMod);
 	if (symMapIt == piddata->modsyms.end())
-		return ("NOSYM2");
+		return ("NOMOD");
 
 	map<long, string> *modSyms = &symMapIt->second;
 	map<long, string>::iterator symIt = modSyms->find(n->address);
 	if (symIt == modSyms->end())
-		return("NOSYM");
+	{
+		stringstream nosym;
+		nosym << "NOSYM:0x" << std::hex << n->address;
+		return nosym.str();
+	}
 
 	return symIt->second;
 }

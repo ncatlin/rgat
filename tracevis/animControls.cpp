@@ -24,7 +24,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 	if (newAnimState == ANIM_LIVE)
 	{
-		connectBtn->setVisibility(true);
+		//connectBtn->setVisibility(true);
 		pauseBtn->setVisibility(true);
 		backJumpBtn->setVisibility(false);
 		backStepBtn->setVisibility(false);
@@ -49,7 +49,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 		clientState->animationUpdate = 0;
 		clientState->modes.animation = false;
-		connectBtn->setVisibility(false);
+		//connectBtn->setVisibility(false);
 
 		pauseBtn->setVisibility(false);
 		playBtn->setVisibility(true);
@@ -68,7 +68,7 @@ void AnimControls::setAnimState(int newAnimState)
 		playBtn->setText("Stop");
 
 		stepText->setVisibility(true);
-		connectBtn->setVisibility(false);
+		//connectBtn->setVisibility(false);
 
 		clientState->animationUpdate = std::stoi(this->stepText->getText());
 		clientState->modes.animation = true;
@@ -160,9 +160,20 @@ void AnimControls::update(thread_graph_data *graph)
 		r2.append(to_string(sizePair.second));
 		remaining1->setText(r1);
 		remaining2->setText(r2);
+
+		if (clientState->modes.animation)
+			pauseBtn->setText("Structure");
+		else
+			pauseBtn->setText("Activity");
 	}
 	else
+	{
 		bufLayout->setVisibility(false);
+		if (clientState->modes.animation)
+			pauseBtn->setText("Pause");
+		else
+			pauseBtn->setText("Continue");
+	}
 }
 
 void AnimControls::fitToResize()
@@ -260,6 +271,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	playBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(playBtn);
 
+	/*//terminating the threads cleanly is a pain. TODO
 	connectBtn = new agui::Button();
 	connectBtn->setFont(btnFont);
 	connectBtn->setText("Disconnect");
@@ -268,10 +280,11 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	connectBtn->resizeToContents();
 	connectBtn->setSize(connectBtn->getWidth(), btnHeight);
 	controlsLayout->add(connectBtn);
+	*/
 
 	pauseBtn = new agui::Button();
 	pauseBtn->setFont(btnFont);
-	pauseBtn->setText("Pause");
+	pauseBtn->setText("Structure");
 	pauseBtn->setToolTipText("Pause replay");
 	pauseBtn->setMargins(0, 8, 0, 8);
 	pauseBtn->setBackColor(agui::Color(210, 210, 210));
@@ -298,7 +311,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	animationState = -1;
 
 	AnimButtonListener *btnListen = new AnimButtonListener(this, &animationState, clientState);
-	connectBtn->addActionListener(btnListen);
+	//connectBtn->addActionListener(btnListen);
 	backStepBtn->addActionListener(btnListen);
 	backJumpBtn->addActionListener(btnListen);
 	forwardStepBtn->addActionListener(btnListen);

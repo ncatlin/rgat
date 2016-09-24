@@ -129,6 +129,7 @@ public:
 	timeline *timelineBuilder;
 	ALLEGRO_TEXTLOG *textlog = 0;
 	unsigned int logSize = 0;
+	unsigned int terminationPid = 0;
 
 	HIGHLIGHT_DATA highlightData;
 	clientConfig *config;

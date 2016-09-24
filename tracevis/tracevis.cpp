@@ -1185,11 +1185,8 @@ int main(int argc, char **argv)
 
 			case EV_BTN_QUIT:
 			{
-				ofstream processListener;
-				processListener.open("\\\\.\\pipe\\BootstrapPipe");
-				processListener << "DIE" << endl;
-				processListener.close();
 				mainRenderThread->die = true;
+				clientstate.terminationPid = clientstate.activePid->PID; //only stops current process threads
 				Sleep(500);
 				running = false;
 				break;

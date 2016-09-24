@@ -7,7 +7,6 @@
 string generate_funcArg_string(string sym, ARGLIST args)
 {
 	stringstream funcArgStr;
-	cout << "drawsym (" << sym << ")"<<endl;
 	funcArgStr << sym << "(";
 
 	int numargs = args.size();

@@ -518,7 +518,7 @@ void render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
-		cout << "Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
+		cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
@@ -537,7 +537,7 @@ void render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
-		cout << "Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
+		cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
 		graph->vertResizeIndex = 0;

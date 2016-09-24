@@ -129,7 +129,24 @@ public:
 			return;
 		}
 
+		if (btntext == "Structure")
+		{
+			evt.getSource()->setText("Animation");
+			evt.getSource()->setSize(115, evt.getSource()->getHeight());
+			clientState->modes.animation = false;
+			return;
+		}
+
 		int quantity = std::stoi(controls->stepText->getText());
+		if (btntext == "Activity")
+		{
+			clientState->animationUpdate = quantity;
+			clientState->modes.animation = true;
+			evt.getSource()->setText("Structure");
+			evt.getSource()->setSize(90, evt.getSource()->getHeight());
+			return;
+		}
+
 		if (btntext == "Continue")
 		{
 			clientState->animationUpdate = quantity;
@@ -139,16 +156,12 @@ public:
 			return;
 		}
 
+		//griefy. TODO
 		if (btntext == "Disconnect")
 		{
-			ofstream processListener;
-			processListener.open("\\\\.\\pipe\\BootstrapPipe");
-			processListener << "DIE" << endl;
-			processListener.close();
+			clientState->terminationPid = clientState->activePid->PID;
 			return;
 		}
-
-
 
 		if (btntext == ">>")
 		{

@@ -42,7 +42,11 @@ void module_handler::PID_thread()
 
 	while (true)
 	{
-		if (die)break; 
+		if (die) break; 
+
+		if (clientState->terminationPid == PID)
+			break;
+
 		DWORD bread = 0;
 		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
 			int err = GetLastError();
