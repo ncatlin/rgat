@@ -241,6 +241,9 @@ ModelManifest.xml
 # Paket dependency manager
 .paket/paket.exe
 
+#rgat save
+saves/
+
 # FAKE - F# Make
 .fake/
 /issues
