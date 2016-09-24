@@ -824,7 +824,7 @@ void thread_trace_handler::TID_thread()
 					loopState = LOOP_START;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stol(repeats_s, &loopCount, 10))
-						printf("1 STOL ERROR: %s\n", repeats_s.c_str());
+						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s;
 					continue;
 				}
 

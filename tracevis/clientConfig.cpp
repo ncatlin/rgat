@@ -11,7 +11,7 @@ clientConfig::clientConfig(string filepath)
 	
 	if (fileExists(filepath))
 	{
-		cout << "[rgat]Attempting to load config file " << filepath << endl;
+		cout << "[rgat]Loading config file " << filepath << endl;
 		if (loadFromFile())
 			return;
 		else

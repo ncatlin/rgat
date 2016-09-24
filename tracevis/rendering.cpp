@@ -220,7 +220,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		}
 
 		default:
-			printf("\t\t!!!unknown colour\n");
+			cerr << "[rgat]Error: Drawcurve unknown edgeType " << edgeType << endl;
 			return 0;
 	}
 
@@ -237,7 +237,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			return 2;
 
 		default:
-			printf("ERROR: unknown curvepoints %d\n", curvePoints);
+			cerr << "[rgat]Error: Drawcurve unknown curvePoints " << curvePoints << endl;
 	}
 
 	return curvePoints;
@@ -285,7 +285,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 				break;
 
 			default:
-				printf("ERROR: Unhandled add_Vert color: %c\n", n->ins->itype);
+				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
 				return 0;
 		}
 	}
@@ -419,7 +419,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
-		printf("Max B coord too high, shrinking graph from %f to %d\n", startB, lowestPoint);
+		cout << "Max B coord too high, shrinking graph from "<< startB <<" to "<< lowestPoint;
 
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
@@ -438,7 +438,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
-		printf("Max A coord too wide, shrinking graph from %f to %d\n", startA, lowestPoint);
+		cout << "Max A coord too wide, shrinking graph from" << startA << " to " << widestPoint;
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
 		graph->vertResizeIndex = 0;
@@ -460,7 +460,7 @@ int render_main_graph(VISSTATE *clientState)
 	int drawCount = draw_new_nodes(graph, graph->get_mainnodes(), &clientState->config->graphColours.nodeColours);
 	if (drawCount < 0)
 	{
-		printf("\n\nFATAL 5: Failed drawing verts!\n\n");
+		cerr << "[rgat]Error: render_main_graph failed drawing nodes"<<endl;
 		return 0;
 	}
 	if (drawCount)

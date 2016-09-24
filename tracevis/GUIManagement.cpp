@@ -148,12 +148,12 @@ ALLEGRO_DISPLAY* displaySetup() {
 	if (!display) {
 		if (!display)
 		{
-			cerr << "[rgat]Failed to create display! Allegro error: "<< al_get_errno();
-			cerr << "Running this on VirtualBox?" << endl;
-			cerr << "\tVirtualBox Manual:" << endl;
+			cerr << "[rgat]Failed to create display! Allegro error: "<< al_get_errno() << endl;
+			cerr << "[rgat]Running this on VirtualBox?" << endl;
+			cerr << "[rgat]VirtualBox Manual:" << endl;
 			cerr << "\t\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"" << endl;
-			cerr << "\tIt is safer to record the trace in nongraphical mode [-e from the command line]" << endl;
-			cerr << "\tReplay the trace in an environment with 3D support." << endl;
+			cerr << "[rgat]It is safer to record the trace in nongraphical mode [-e from the command line]" << endl;
+			cerr << "[rgat]Replay the trace in an environment with 3D support." << endl;
 			return NULL;
 		}
 	}
