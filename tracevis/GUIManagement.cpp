@@ -234,6 +234,42 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	al_draw_text(font, textColour, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 
+bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
+
+	*newDisplay = displaySetup();
+	if (!*newDisplay) {
+		cerr << "[rgat]Display creation failed, returned: " << (int)newDisplay << endl;
+		return false;
+	}
+
+	if (!controlSetup()) {
+		cerr << "[rgat]Control setup failed" << endl;
+		return false;
+	}
+
+	*evq = al_create_event_queue();
+	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_mouse_event_source());
+	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_keyboard_event_source());
+	al_register_event_source(*evq, create_menu(*newDisplay));
+	al_register_event_source(*evq, al_get_display_event_source(*newDisplay));
+	return true;
+}
+
+void handle_resize(VISSTATE *clientState)
+{
+	glViewport(0, 0, clientState->mainFrameSize.width, clientState->mainFrameSize.height);
+
+	al_destroy_bitmap(clientState->GUIBMP);
+	clientState->GUIBMP = al_create_bitmap(clientState->displaySize.width, clientState->displaySize.height);
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->fitToResize();
+
+	al_destroy_bitmap(clientState->mainGraphBMP);
+	al_destroy_bitmap(clientState->previewPaneBMP);
+	clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
+	clientState->previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 50);
+}
+
 bool controlSetup() {
 	if (!al_install_mouse()) {
 		cerr << "[rgat]Error installing mouse." << endl;

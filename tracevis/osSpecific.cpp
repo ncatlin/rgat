@@ -3,6 +3,13 @@
 #include "GUIStructs.h"
 
 #ifdef WIN32
+void pipeExists(LPCTSTR pipeName)
+{
+	//BOOL WINAPI WaitNamedPipe(
+	//	_In_ LPCTSTR lpNamedPipeName,
+	//	_In_ DWORD   nTimeOut
+	//);
+}
 
 bool obtainMutex(HANDLE mutex, int waitTime)
 {

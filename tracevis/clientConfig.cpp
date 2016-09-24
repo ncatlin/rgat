@@ -317,9 +317,9 @@ void clientConfig::saveToFile()
 	cleanup();
 
 	if (al_save_config_file(configFilePath.c_str(), alConfig))
-		cout << "Created config file " << configFilePath;
+		cout << "Saved config file " << configFilePath <<endl;
 	else
-		cerr << "Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno();
+		cerr << "Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno() << endl;
 }
 
 void clientConfig::updateLastPath(string path)

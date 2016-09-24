@@ -61,9 +61,6 @@ class thread_graph_data
 	unsigned int last_anim_stop = 0;
 	void *trace_reader;
 
-
-
-
 public:
 	thread_graph_data(map <unsigned long, INSLIST> *disassembly, HANDLE disasMutex);
 	~thread_graph_data();
@@ -85,6 +82,8 @@ public:
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
 	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
+
+	unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize);
 
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
@@ -121,7 +120,9 @@ public:
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
+
 	void highlight_externs(unsigned long targetSequence);
+	void transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata);
 
 	void reset_mainlines();
 	unsigned int derive_anim_node();

@@ -2,6 +2,26 @@
 #include "rendering.h"
 #include "OSspecific.h"
 
+//plot wireframe/colpick sphere in memory if they dont exist
+//+draw wireframe
+void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
+{
+	if (clientState->remakeWireframe)
+	{
+		delete clientState->wireframe_sphere;
+		clientState->wireframe_sphere = 0;
+		clientState->remakeWireframe = false;
+	}
+
+	if (!clientState->wireframe_sphere)
+	{
+		plot_wireframe(clientState);
+		plot_colourpick_sphere(clientState);
+	}
+
+	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
+}
+
 //must be called by main opengl context thread
 void plot_wireframe(VISSTATE *clientState)
 {
@@ -317,6 +337,86 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	return 1;
 }
 
+//draw floating extern texts. delete from list if time expired
+void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
+{
+	if (externFloatingText->at(graph->tid).empty()) return;
+
+	vector <EXTTEXT>::iterator exttIt = externFloatingText->at(graph->tid).begin();
+	map <EXTTEXT*, int> drawMap;
+	map <int, EXTTEXT*> drawnNodes;
+	for (; exttIt != externFloatingText->at(graph->tid).end(); )
+	{
+		if (exttIt->timeRemaining <= 0)
+		{
+			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
+			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
+			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
+		}
+		else
+		{
+			if (!drawnNodes.count(exttIt->nodeIdx))
+			{
+				EXTTEXT *exaddr = &*exttIt;
+				drawMap[exaddr] = 1;
+				drawnNodes[exttIt->nodeIdx] = exaddr;
+			}
+			exttIt->timeRemaining -= 1;
+			exttIt->yOffset += 0.5;
+			exttIt++;
+		}
+	}
+
+	DCOORD pos;
+	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
+	for (; drawIt != drawMap.end(); ++drawIt)
+	{
+		EXTTEXT* ex = drawIt->first;
+		node_data *n = graph->get_node(ex->nodeIdx);
+		if (!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
+		string displayString = ex->displayString;
+		al_draw_text(clientState->standardFont, al_col_green,
+			pos.x, clientState->mainFrameSize.height - pos.y - ex->yOffset, 0, displayString.c_str());
+	}
+}
+
+
+void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
+{
+	thread_graph_data *graph = clientState->activeGraph;
+
+	//add any new logged calls to the call log window
+	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
+		clientState->logSize = clientState->activeGraph->fill_extern_log(clientState->textlog, clientState->logSize);
+
+	//red line indicating last instruction
+	if (!clientState->activeGraph->basic)
+		drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+
+	//green highlight lines
+	if (clientState->highlightData.highlightState)
+		graph->highlightNodes(&clientState->highlightData.highlightNodes,
+			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
+
+	if (clientState->modes.heatmap)
+	{
+		display_big_heatmap(clientState);
+		return;
+	}
+
+	if (clientState->modes.conditional)
+	{
+		display_big_conditional(clientState);
+		return;
+	}
+
+	PROJECTDATA pd;
+	gather_projection_data(&pd);
+	display_graph(clientState, graph, &pd);
+	graph->transferNewLiveCalls(externFloatingText, clientState->activePid);
+	drawExternTexts(graph, externFloatingText, clientState, &pd);
+}
+
 //takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
 int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours) {
 	
@@ -331,16 +431,17 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 	int maxVerts = 50;
 	for (; nodeIdx != nodeEnd; ++nodeIdx)
 	{
-	int retries = 0;
-	while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors, nodeColours))
-		{
-				Sleep(50);
-				if (retries++ > 25)
-					printf("MUTEX BLOCKAGE?\n");
-		}
-		if (retries > 25)
-			printf("BLOCKAGE CLEARED\n");
-		if (!maxVerts--)break;
+		int retries = 0;
+		while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors, nodeColours))
+			{
+					//think mutexes fixes have made this irrelevant
+					Sleep(50);
+					if (retries++ > 25)
+						printf("MUTEX BLOCKAGE?\n");
+			}
+			if (retries > 25)
+				printf("BLOCKAGE CLEARED\n");
+			if (!maxVerts--)break;
 	}
 	return 1;
 }
@@ -368,7 +469,6 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 		if (targetIdx == vertsdata->get_numVerts()) graph->vertResizeIndex = 0;		
 	}
 	
-
 	if (!targetIdx) return;
 
 	GLfloat *vpos = &vertsdata->acquire_pos()->at(0);
@@ -392,7 +492,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
-int render_main_graph(VISSTATE *clientState)
+void render_main_graph(VISSTATE *clientState)
 {
 	bool doResize = false;
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
@@ -411,7 +511,6 @@ int render_main_graph(VISSTATE *clientState)
 	if (lowestPoint > clientState->config->lowB)
 	{
 		float startB = lowestPoint;
-		
 		while (lowestPoint > clientState->config->lowB)
 		{
 			graph->m_scalefactors->userVEDGESEP *= 0.98;
@@ -419,7 +518,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
-		cout << "Max B coord too high, shrinking graph from "<< startB <<" to "<< lowestPoint;
+		cout << "Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
@@ -430,7 +529,7 @@ int render_main_graph(VISSTATE *clientState)
 	int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
 	if (widestPoint > clientState->config->farA)
 	{
-		float startA = lowestPoint;
+		float startA = widestPoint;
 		while (widestPoint > clientState->config->farA)
 		{
 			graph->m_scalefactors->userHEDGESEP *= 0.99;
@@ -438,7 +537,7 @@ int render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
-		cout << "Max A coord too wide, shrinking graph from" << startA << " to " << widestPoint;
+		cout << "Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
 		graph->vertResizeIndex = 0;
@@ -460,14 +559,13 @@ int render_main_graph(VISSTATE *clientState)
 	int drawCount = draw_new_nodes(graph, graph->get_mainnodes(), &clientState->config->graphColours.nodeColours);
 	if (drawCount < 0)
 	{
-		cerr << "[rgat]Error: render_main_graph failed drawing nodes"<<endl;
-		return 0;
+		cerr << "[rgat]Error: render_main_graph failed drawing nodes" << endl;
+		return;
 	}
 	if (drawCount)
 		graph->needVBOReload_main = true;
 
 	graph->render_new_edges(doResize, &clientState->config->graphColours.lineColours);
-	return 1;
 }
 
 //renders edgePerRender edges of graph onto the preview data
@@ -535,11 +633,15 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 
 	int numCalls = n->calls;
 	string symString = clientState->activePid->modsyms[n->nodeMod][n->address];
+	//todo: might be better to find the first symbol in the DLL that has a lower address
+	if (symString.empty())
+		argstring << "[NOSYM]:0x" << std::hex << n->address;
+
 	if (numCalls == 1)
 		argstring << symString;
 	else
 		argstring << n->calls << "x " << symString;
-	
+
 	if (n->funcargs.empty()) 
 		argstring << " ()";
 	else

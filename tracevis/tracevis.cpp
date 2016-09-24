@@ -18,14 +18,16 @@
 #include "OSspecific.h"
 #include "clientConfig.h"
 
-//possible name: rgat
-//ridiculous/runtime graph analysis tool
-//run rgat -f malware.exe
-
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
 
-int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate);
+struct THREAD_POINTERS {
+	module_handler *modThread;
+	basicblock_handler *BBthread;
+	preview_renderer *previewThread;
+	heatmap_renderer *heatmapThread;
+	conditional_renderer *conditionalThread;
+};
 
 bool kbdInterrupt = false;
 
@@ -60,13 +62,6 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 
 }
  
-struct THREAD_POINTERS {
-	module_handler *modThread;
-	basicblock_handler *BBthread;
-	preview_renderer *previewThread;
-	heatmap_renderer *heatmapThread;
-	conditional_renderer *conditionalThread;
-};
 
 THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
 	THREAD_POINTERS *threads = new THREAD_POINTERS;
@@ -140,30 +135,6 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 
 	return threads;
 }
-
-
-
-bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
-	
-	*newDisplay = displaySetup();
-	if (!*newDisplay) {
-		cerr << "[rgat]Display creation failed, returned: "<< (int)newDisplay<< endl;
-		return false;
-	}
-
-	if (!controlSetup()) {
-		cerr << "[rgat]Control setup failed" << endl;
-		return false;
-	}
-
-	*evq = al_create_event_queue();
-	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_mouse_event_source());
-	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_keyboard_event_source());
-	al_register_event_source(*evq, create_menu(*newDisplay));
-	al_register_event_source(*evq, al_get_display_event_source(*newDisplay));
-	return true;
-}
-
 
 //listens for new and dying processes, spawns and kills threads to handle them
 int process_coordinator_thread(VISSTATE *clientState) 
@@ -322,139 +293,6 @@ void processDiff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffR
 	((diff_plotter*)*diffRenderer)->display_diff_summary(20, 20, font, clientState);
 }
 
-struct EXTTEXT{
-	NODEPAIR edge;
-	int nodeIdx;
-	float timeRemaining;
-	float yOffset;
-	string displayString;
-} ;
-
-//takes symbol+arguments and cats them together for display
-string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST args, PROCESS_DATA* piddata)
-{
-	stringstream funcArgStr;
-	funcArgStr << graph->get_node_sym(nodeIdx, piddata) << "(";
-
-	int numargs = args.size();
-	for (int i = 0; i < numargs; ++i)
-	{
-		funcArgStr << args[i].first << ": " << args[i].second;
-		if (i < numargs - 1)
-			funcArgStr << ", ";
-	}
-	funcArgStr << ")";
-	return funcArgStr.str();
-}
-
-//take externs called from the trace and make them float on graph
-//also adds them to the call log
-void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
-{
-	obtainMutex(graph->funcQueueMutex, INFINITE);
-	while (!graph->funcQueue.empty())
-	{
-		EXTERNCALLDATA resu = graph->funcQueue.front();
-		graph->funcQueue.pop();
-
-		EXTTEXT extt;
-		extt.edge = resu.edgeIdx;
-		extt.nodeIdx = resu.nodeIdx;
-		extt.timeRemaining = 5;
-		extt.yOffset = 0;
-		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata, piddata);
-
-		if (resu.edgeIdx.first == resu.edgeIdx.second) { cout << "[rgat]WARNING: bad argument edge!" << endl; continue; }
-
-		if (graph->active )
-		{
-			if (!resu.callerAddr)
-			{
-				obtainMutex(piddata->disassemblyMutex, 4000);
-				node_data* parentn = graph->get_node(resu.edgeIdx.first);
-				node_data* externn = graph->get_node(resu.edgeIdx.second);
-				resu.callerAddr = parentn->ins->address;
-				dropMutex(piddata->disassemblyMutex);
-
-				resu.externPath = piddata->modpaths[externn->nodeMod];
-				if (extt.displayString == "()")
-				{
-					stringstream hexaddr;
-					hexaddr << "NOSYM:<0x" << std::hex << externn->address << ">";
-					extt.displayString = hexaddr.str();
-				}
-			}
-			stringstream callLog;
-			callLog << "0x" << std::hex << resu.callerAddr << ": ";
-			callLog << resu.externPath << " -> ";
-			callLog << extt.displayString << "\n";
-			graph->loggedCalls.push_back(callLog.str());	
-		}
-
-		graph->set_edge_alpha(resu.edgeIdx, graph->get_activelines(), 1.0);
-		graph->set_node_alpha(resu.nodeIdx, graph->get_activenodes(), 1.0);
-		externFloatingText->at(graph->tid).push_back(extt);
-	}
-	dropMutex(graph->funcQueueMutex);
-}
-
-//draw floating extern texts. delete from list if time expired
-void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
-{
-	if (externFloatingText->at(graph->tid).empty()) return;
-
-	vector <EXTTEXT>::iterator exttIt = externFloatingText->at(graph->tid).begin();
-	map <EXTTEXT*, int> drawMap;
-	map <int, EXTTEXT*> drawnNodes;
-	for (; exttIt != externFloatingText->at(graph->tid).end(); )
-	{
-		if (exttIt->timeRemaining <= 0) 
-		{
-			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
-			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
-			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
-		}
-		else
-		{
-			if (!drawnNodes.count(exttIt->nodeIdx))
-			{
-				EXTTEXT *exaddr = &*exttIt;
-				drawMap[exaddr] = 1;
-				drawnNodes[exttIt->nodeIdx] = exaddr;
-			}
-			exttIt->timeRemaining -= 1;
-			exttIt->yOffset += 0.5;
-			exttIt++;
-		}
-	}
-
-	DCOORD pos;
-	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
-	for (; drawIt != drawMap.end(); ++drawIt)
-	{
-		EXTTEXT* ex = drawIt->first;
-		node_data *n = graph->get_node(ex->nodeIdx);
-		if(!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
-		string displayString = ex->displayString;
-		al_draw_text(clientState->standardFont, al_col_green,
-			pos.x, clientState->mainFrameSize.height - pos.y - ex->yOffset, 0, displayString.c_str());
-	}
-}
-
-//add new extern calls to log
-unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, thread_graph_data *graph, unsigned int logSize)
-{
-	vector <string>::iterator logIt = graph->loggedCalls.begin();
-	advance(logIt, logSize);
-	while (logIt != graph->loggedCalls.end())
-	{
-		al_append_native_text_log(textlog, logIt->c_str());
-		logSize++;
-		logIt++;
-	}
-	return logSize;
-}
-
 void closeTextLog(VISSTATE *clientState)
 {
 	al_close_native_text_log(clientState->textlog);
@@ -481,68 +319,8 @@ void performIrregularActions(VISSTATE *clientState)
 	}
 }
 
-void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
-{
-	TraceVisGUI* widgets = (TraceVisGUI*)clientState->widgets;
-	thread_graph_data *graph = clientState->activeGraph;
-
-	//add any new logged calls to the call log window
-	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
-		clientState->logSize = fill_extern_log(clientState->textlog,
-			clientState->activeGraph, clientState->logSize);
-
-	//red line indicating last instruction
-	if(!clientState->activeGraph->basic)
-		drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
-
-	//green highlight lines
-	if (clientState->highlightData.highlightState)
-		graph->highlightNodes(&clientState->highlightData.highlightNodes,
-			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
-
-	if (clientState->modes.heatmap)
-	{
-		display_big_heatmap(clientState);
-		return;
-	}
-
-	if (clientState->modes.conditional)
-	{
-		display_big_conditional(clientState);
-		return;
-	}
-
-	PROJECTDATA pd;
-	gather_projection_data(&pd);
-
-	display_graph(clientState, graph, &pd);
-	transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
-	drawExternTexts(graph, externFloatingText, clientState, &pd);
-}
-
-//plot wireframe/colpick sphere in memory if they dont exist
-//draw wireframe
-void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
-{
-	if (clientState->remakeWireframe)
-	{
-		delete clientState->wireframe_sphere;
-		clientState->wireframe_sphere = 0;
-		clientState->remakeWireframe = false;
-	}
-
-	if (!clientState->wireframe_sphere)
-	{
-		plot_wireframe(clientState);
-		plot_colourpick_sphere(clientState);
-	}
-
-	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
-}
-
 bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
 {
-
 	for (int idx = 1; idx < argc; idx++)
 	{
 		string arg(argv[idx]);
@@ -602,18 +380,454 @@ void handleKBDExit()
 	}
 }
 
-void saveAll(VISSTATE *clientState)
+static void set_active_graph(VISSTATE *clientState, int PID, int TID)
 {
-	map<int, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.begin();
-	for (; pidIt != clientState->glob_piddata_map.end(); pidIt++)
+	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
+	clientState->newActiveGraph = target_pid->graphs[TID];
+
+	if (target_pid != clientState->activePid)
 	{
-		clientState->activePid = pidIt->second;
-		saveTrace(clientState);
+		clientState->spawnedProcess = target_pid;
+		clientState->switchProcess = true;
 	}
+
+	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
+	if (graph->modPath.empty())	graph->assign_modpath(target_pid);
+
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->diffWindow->setDiffGraph(graph);
+
+	if (clientState->modes.diff)
+		clientState->modes.diff = 0;
+}
+
+static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
+{
+	return (clientState->modes.preview &&
+		mousex > clientState->mainFrameSize.width);
+}
+
+bool loadTrace(VISSTATE *clientState, string filename) {
+
+	ifstream loadfile;
+	loadfile.open(filename, std::ifstream::binary);
+	//load process data
+	string s1;
+
+	loadfile >> s1;
+	if (s1 != "PID") {
+		cout << "[rgat]Corrupt save, start = " << s1 << endl;
+		return false;
+	}
+
+	int PID;
+	loadfile >> PID;
+	if (PID < 0 || PID > 100000) { cout << "[rgat]Corrupt save (pid= " << PID << ")" << endl; return false; }
+	else
+		cout << "[rgat]Loading saved PID: " << PID << endl;
+	loadfile.seekg(1, ios::cur);
+
+	PROCESS_DATA *newpiddata = new PROCESS_DATA;
+	newpiddata->PID = PID;
+	if (!loadProcessData(clientState, &loadfile, newpiddata))
+	{
+		cout << "Process data load failed" << endl;
+		return false;
+	}
+
+	cout << "Loaded process data. Loading graphs..." << endl;
+
+	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
+	{
+		cout << "Process Graph load failed" << endl;
+		return false;
+	}
+
+	cout << "Loading completed successfully" << endl;
+	loadfile.close();
+
+	if (!obtainMutex(clientState->pidMapMutex, 6000))
+	{
+		cerr << "Failed to obtain pidMapMutex in load" << endl;
+		return false;
+	}
+	clientState->glob_piddata_map[PID] = newpiddata;
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->addPID(PID);
+	dropMutex(clientState->pidMapMutex);
+
+	launch_saved_PID_threads(PID, newpiddata, clientState);
+	return true;
+}
+
+
+static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
+{
+	ALLEGRO_DISPLAY *display = clientstate->maindisplay;
+	TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
+
+	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
+	{
+		clientstate->displaySize.height = ev->display.height;
+		clientstate->mainFrameSize.height = ev->display.height - BASE_CONTROLS_HEIGHT;
+		clientstate->mainFrameSize.width = ev->display.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
+		clientstate->displaySize.width = ev->display.width;
+		al_acknowledge_resize(display);
+		handle_resize(clientstate);
+
+		return EV_NONE;
+	}
+
+	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
+	{
+		if (!clientstate->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
+
+		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
+		float diam = mainscale->radius;
+		long maxZoomIn = diam + 5; //prevent zoom into globe
+		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
+		long slowRotateThresholdHigh = diam + 54650;// move very slow beyond this much zoom out
+
+		float zoomdiff = abs(mainscale->radius - clientstate->zoomlevel);
+
+		if (ev->mouse.dz)
+		{
+			if (mouse_in_previewpane(clientstate, ev->mouse.x))
+				widgets->doScroll(ev->mouse.dz);
+			else
+			{
+				//adjust speed of zoom depending on how close we are
+				int zoomfactor;
+				if (clientstate->zoomlevel > 40000)
+					zoomfactor = -5000;
+				else
+					zoomfactor = -1000;
+
+				float newZoom = clientstate->zoomlevel + zoomfactor * ev->mouse.dz;
+				if (newZoom >= maxZoomIn)
+					clientstate->zoomlevel = newZoom;
+				if (clientstate->zoomlevel == 0)
+					clientstate->zoomlevel = 1; //delme testing only
+
+				if (clientstate->activeGraph)
+					updateTitle_Zoom(display, clientstate->title, (clientstate->zoomlevel - clientstate->activeGraph->zoomLevel));
+			}
+		}
+
+
+		if (ev->mouse.dx || ev->mouse.dy) {
+			ALLEGRO_MOUSE_STATE state;
+			al_get_mouse_state(&state);
+			if (clientstate->mouse_dragging)
+			{
+				float dx = ev->mouse.dx;
+				float dy = ev->mouse.dy;
+				dx = min(1, max(dx, -1));
+				dy = min(1, max(dy, -1));
+
+				float slowdownfactor = 0.035; //reduce movement this much for every 1000 pixels zoomed in
+				float slowdown = zoomdiff / 1000;
+				//printf("zoomdiff: %f slowdown: %f\n", zoomdiff, slowdown);
+
+				// here we control drag speed at various zoom levels
+				// todo when we have insturctions to look at
+				//todo: fix speed at furhter out zoom levels
+
+				//if (zoomdiff > slowRotateThresholdLow && zoomdiff < slowRotateThresholdHigh) {
+				//	printf("non slowed drag! low:%ld -> zd: %f -> high:%ld\n", slowRotateThresholdLow, zoomdiff, slowRotateThresholdHigh);
+				//	dx *= 0.1;
+				//	dy *= 0.1;
+				//}
+				//else
+				//{
+				if (slowdown > 0)
+				{
+					//printf("slowed drag! low:%ld -> zd: %f -> high:%ld slowdown:%f\n",slowRotateThresholdLow,zoomdiff,slowRotateThresholdHigh,slowdown);
+					if (dx != 0) dx *= (slowdown * slowdownfactor);
+					if (dy != 0) dy *= (slowdown * slowdownfactor);
+				}
+				//}
+				clientstate->xturn -= dx;
+				clientstate->yturn -= dy;
+				char tistring[200];
+				snprintf(tistring, 200, "xt:%f, yt:%f", fmod(clientstate->xturn, 360), fmod(clientstate->yturn, 360));
+				updateTitle_dbg(display, clientstate->title, tistring);
+			}
+			else
+			{
+
+				if (mouse_in_previewpane(clientstate, ev->mouse.x))
+				{
+					widgets->toggleSmoothDrawing(true);
+					int PID, TID;
+					if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
+					{
+						thread_graph_data *graph = (thread_graph_data *)clientstate->glob_piddata_map[PID]->graphs[TID];
+						widgets->showGraphToolTip(graph, clientstate->glob_piddata_map[PID], ev->mouse.x, ev->mouse.y);
+					}
+				}
+				else
+					widgets->toggleSmoothDrawing(false);
+			}
+			updateTitle_Mouse(display, clientstate->title, ev->mouse.x, ev->mouse.y);
+		}
+
+		return EV_MOUSE;
+	}
+
+	switch (ev->type)
+	{
+		case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+		{
+			if (!mouse_in_previewpane(clientstate, ev->mouse.x))
+				clientstate->mouse_dragging = true;
+			else
+			{
+				if (widgets->dropdownDropped()) return EV_MOUSE;
+				int PID, TID;
+				if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
+					set_active_graph(clientstate, PID, TID);
+			}
+			return EV_MOUSE;
+		}
+
+		case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
+		{
+			clientstate->mouse_dragging = false;
+			return EV_MOUSE;
+		}
+
+		case ALLEGRO_EVENT_KEY_CHAR:
+		{
+			if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+				widgets->exeSelector->hide();
+
+			if (!clientstate->activeGraph)
+			{
+				widgets->processEvent(ev);
+				return EV_KEYBOARD;
+			}
+
+			MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
+			switch (ev->keyboard.keycode)
+			{
+			case ALLEGRO_KEY_ESCAPE:
+			{
+				if (widgets->diffWindow->diffFrame->isVisible())
+				{
+					widgets->diffWindow->diffFrame->setVisibility(false);
+					break;
+				}
+
+				if (widgets->isHighlightVisible())
+				{
+					widgets->highlightWindow->highlightFrame->setVisibility(false);
+					break;
+				}
+
+				if (clientstate->highlightData.highlightState)
+				{
+					clientstate->highlightData.highlightState = 0;
+					break;
+				}
+
+				if (clientstate->modes.diff)
+				{
+					clientstate->modes.diff = 0;
+					break;
+				}
+				return EV_BTN_QUIT;
+			}
+			case ALLEGRO_KEY_Y:
+				change_mode(clientstate, EV_BTN_WIREFRAME);
+				break;
+
+			case ALLEGRO_KEY_K:
+				change_mode(clientstate, EV_BTN_HEATMAP);
+				break;
+
+			case ALLEGRO_KEY_J:
+				change_mode(clientstate, EV_BTN_CONDITION);
+				break;
+
+			case ALLEGRO_KEY_E:
+				change_mode(clientstate, EV_BTN_EDGES);
+				break;
+
+			case ALLEGRO_KEY_LEFT:
+				mainscale->userHEDGESEP -= 0.05;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_RIGHT:
+				mainscale->userHEDGESEP += 0.05;
+				clientstate->rescale = true;
+				break;
+
+			case ALLEGRO_KEY_PAD_4:
+				mainscale->userHEDGESEP -= 0.005;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_PAD_6:
+				mainscale->userHEDGESEP += 0.005;
+				clientstate->rescale = true;
+				break;
+
+			case ALLEGRO_KEY_DOWN:
+				mainscale->userVEDGESEP += 0.01;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_UP:
+				mainscale->userVEDGESEP -= 0.01;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_PAD_PLUS:
+				mainscale->userDiamModifier += 0.05;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_PAD_MINUS:
+				mainscale->userDiamModifier -= 0.05;
+				clientstate->rescale = true;
+				break;
+			case ALLEGRO_KEY_T:
+				clientstate->show_ins_text++;
+				if (clientstate->show_ins_text > INSTEXT_LAST)
+					clientstate->show_ins_text = INSTEXT_FIRST;
+				switch (clientstate->show_ins_text) {
+				case INSTEXT_NONE:
+					cout << "[rgat]Instruction text off" << endl;
+					break;
+				case INSTEXT_AUTO:
+					cout << "[rgat]Instruction text auto" << endl;
+					break;
+				case INSTEXT_ALL_ALWAYS:
+					cout << "[rgat]Instruction text always on" << endl;
+					break;
+				}
+				break;
+			case ALLEGRO_KEY_PAD_7:
+				clientstate->zoomlevel += 100;
+				break;
+			case ALLEGRO_KEY_PAD_1:
+				clientstate->zoomlevel -= 100;
+				break;
+			}
+
+			widgets->processEvent(ev);
+			return EV_NONE;
+		}
+
+		case ALLEGRO_EVENT_MENU_CLICK:
+		{
+			switch (ev->user.data1)
+			{
+			case EV_BTN_RUN:
+				widgets->exeSelector->show();
+				break;
+
+			case EV_BTN_QUIT: return EV_BTN_QUIT;
+
+			case EV_BTN_WIREFRAME:
+			case EV_BTN_PREVIEW:
+			case EV_BTN_CONDITION:
+			case EV_BTN_HEATMAP:
+			case EV_BTN_NODES:
+			case EV_BTN_EDGES:
+				change_mode(clientstate, ev->user.data1);
+				break;
+
+			case EV_BTN_HIGHLIGHT:
+				widgets->showHideHighlightFrame();
+				break;
+
+			case EV_BTN_DIFF:
+				widgets->showHideDiffFrame();
+				break;
+			case EV_BTN_EXTERNLOG:
+				if (clientstate->textlog)
+					closeTextLog(clientstate);
+				else
+				{
+					if (!clientstate->activeGraph) break;
+					stringstream windowName;
+					windowName << "Extern calls [TID: " << clientstate->activeGraph->tid << "]";
+					clientstate->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
+					ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientstate->textlog);
+					al_register_event_source(clientstate->event_queue, logevents);
+					clientstate->logSize = clientstate->activeGraph->fill_extern_log(clientstate->textlog, clientstate->logSize);
+				}
+				break;
+
+			case EV_BTN_EXT_MOD_TEXT:
+				clientstate->config->showExternText = !clientstate->config->showExternText;
+				break;
+
+			case EV_BTN_SAVE:
+				if (clientstate->activeGraph)
+				{
+					cout << "[rgat]Saving process " << clientstate->activeGraph->pid << " to file" << endl;
+					saveTrace(clientstate);
+				}
+				break;
+
+			case EV_BTN_LOAD:
+			{
+				widgets->exeSelector->hide();
+				ALLEGRO_FILECHOOSER *fileDialog;
+				fileDialog = al_create_native_file_dialog(clientstate->config->saveDir.c_str(),
+					"Choose saved trace to open", "*.rgat;*.*;",
+					ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+				al_show_native_file_dialog(clientstate->maindisplay, fileDialog);
+
+				const char* result = al_get_native_file_dialog_path(fileDialog, 0);
+				al_destroy_native_file_dialog(fileDialog);
+
+				if (!result) return EV_NONE;
+				string path(result);
+				if (!fileExists(path)) return EV_NONE;
+
+				loadTrace(clientstate, path);
+				clientstate->modes.animation = false;
+				break;
+			}
+			default:
+				cout << "[rgat]Error: Unhandled menu event " << ev->user.data1;
+				break;
+			}
+			return EV_NONE;
+		}
+
+		case ALLEGRO_EVENT_DISPLAY_CLOSE:
+			return EV_BTN_QUIT;
+
+		case ALLEGRO_EVENT_NATIVE_DIALOG_CLOSE:
+			closeTextLog(clientstate);
+			return EV_NONE;
+	}
+
+	switch (ev->type) {
+		case ALLEGRO_EVENT_DISPLAY_SWITCH_IN:
+		case ALLEGRO_EVENT_DISPLAY_SWITCH_OUT:
+		case ALLEGRO_EVENT_KEY_DOWN: //agui doesn't like this
+		case ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY:
+		case ALLEGRO_EVENT_KEY_UP:
+		case ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY:
+		case ALLEGRO_EVENT_KEY_CHAR:
+			return EV_NONE;
+	}
+	cout << "[rgat]Warning: Unhandled event " << ev->type << endl;
+
+	return EV_NONE; //usually lose_focus
 }
 
 int main(int argc, char **argv)
 {
+
+	if (fileExists("\\\\.\\pipe\\BootstrapPipe"))
+	{
+		printf("rgat already running [BootstrapPipe found]. Exiting...\n");
+		return -1;
+	}
+
 	VISSTATE clientstate;
 
 	if (!al_init())
@@ -622,8 +836,7 @@ int main(int argc, char **argv)
 		return NULL;
 	}
 
-	string moduleDir = getModulePath();
-	string configPath = moduleDir + "\\rgat.cfg";
+	string configPath = getModulePath() + "\\rgat.cfg";
 	clientstate.config = new clientConfig(configPath);
 	clientConfig *config = clientstate.config;
 
@@ -728,13 +941,13 @@ int main(int argc, char **argv)
 
 	if (!frametimer || !updatetimer) printf("Failed timer creation\n");
 
-	al_init_font_addon();
-	al_init_ttf_addon();
-	
-	//todo: handle failure here
+	if (!al_init_font_addon() || !al_init_ttf_addon())
+	{
+		cerr << "[rgat] Failed to init allegro font addon. Exiting..." << endl;
+	}
 	
 	stringstream fontPath_ss;
-	fontPath_ss << moduleDir << "\\" << "VeraSe.ttf";
+	fontPath_ss << getModulePath() << "\\" << "VeraSe.ttf";
 	string fontPath = fontPath_ss.str();
 	clientstate.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
 	ALLEGRO_FONT *PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
@@ -1001,458 +1214,3 @@ int main(int argc, char **argv)
 
 
 
-bool loadTrace(VISSTATE *clientState, string filename) {
-
-	ifstream loadfile;
-	loadfile.open(filename, std::ifstream::binary);
-	//load process data
-	string s1;
-
-	loadfile >> s1;
-	if (s1 != "PID") {
-		cout << "[rgat]Corrupt save, start = " << s1 << endl;
-		return false;
-	}
-
-	int PID;
-	loadfile >> PID;
-	if (PID < 0 || PID > 100000) { cout << "[rgat]Corrupt save (pid= " << PID << ")" << endl; return false; }
-	else
-		cout << "[rgat]Loading saved PID: " << PID << endl;
-	loadfile.seekg(1, ios::cur);
-
-	PROCESS_DATA *newpiddata = new PROCESS_DATA;
-	newpiddata->PID = PID;
-	if (!loadProcessData(clientState, &loadfile, newpiddata))
-	{
-		cout << "Process data load failed" << endl;
-		return false;
-	}
-
-	cout << "Loaded process data. Loading graphs..." << endl;
-
-	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
-	{
-		cout << "Process Graph load failed" << endl;
-		return false;
-	}
-
-	cout << "Loading completed successfully" << endl;
-	loadfile.close();
-
-	if (!obtainMutex(clientState->pidMapMutex, 6000))
-	{
-		cerr << "Failed to obtain pidMapMutex in load" << endl;
-		return 0;
-	}
-	clientState->glob_piddata_map[PID] = newpiddata;
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->addPID(PID);
-	dropMutex(clientState->pidMapMutex);
-
-	launch_saved_PID_threads(PID, newpiddata, clientState);
-	return true;
-}
-
-void set_active_graph(VISSTATE *clientState, int PID, int TID)
-{
-	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
-	clientState->newActiveGraph = target_pid->graphs[TID];
-
-	if (target_pid != clientState->activePid)
-	{
-		clientState->spawnedProcess = target_pid;
-		clientState->switchProcess = true;
-	}
-
-	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
-	if (graph->modPath.empty())	graph->assign_modpath(target_pid);
-
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->diffWindow->setDiffGraph(graph);
-
-	if (clientState->modes.diff)
-		clientState->modes.diff = 0;
-}
-
-bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
-{
-	return (clientState->modes.preview &&
-		mousex > clientState->mainFrameSize.width);
-}
-
-void handle_resize(VISSTATE *clientState) 
-{
-	glViewport(0, 0, clientState->mainFrameSize.width, clientState->mainFrameSize.height);
-
-	al_destroy_bitmap(clientState->GUIBMP);
-	clientState->GUIBMP = al_create_bitmap(clientState->displaySize.width, clientState->displaySize.height);
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->fitToResize();
-
-	al_destroy_bitmap(clientState->mainGraphBMP);
-	al_destroy_bitmap(clientState->previewPaneBMP);
-	clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
-	clientState->previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState->displaySize.height - 50);
-}
-
-int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate) 
-{
-	ALLEGRO_DISPLAY *display = clientstate->maindisplay;
-	TraceVisGUI *widgets = (TraceVisGUI *)clientstate->widgets;
-
-	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
-	{
-		clientstate->displaySize.height = ev->display.height;
-		clientstate->mainFrameSize.height = ev->display.height - BASE_CONTROLS_HEIGHT;
-		clientstate->mainFrameSize.width = ev->display.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
-		clientstate->displaySize.width = ev->display.width;
-		al_acknowledge_resize(display);
-		handle_resize(clientstate);
-
-		return EV_NONE;
-	}
-
-	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
-	{
-		if (!clientstate->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
-
-		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
-		float diam = mainscale->radius;
-		long maxZoomIn = diam + 5; //prevent zoom into globe
-		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
-		long slowRotateThresholdHigh = diam + 54650;// move very slow beyond this much zoom out
-
-		float zoomdiff = abs(mainscale->radius - clientstate->zoomlevel);
-
-		if (ev->mouse.dz) 
-		{
-			if (mouse_in_previewpane(clientstate, ev->mouse.x))
-				widgets->doScroll(ev->mouse.dz);
-			else
-			{
-				//adjust speed of zoom depending on how close we are
-				int zoomfactor;
-				if (clientstate->zoomlevel > 40000)
-					zoomfactor = -5000;
-				else
-					zoomfactor = -1000;
-
-				float newZoom = clientstate->zoomlevel + zoomfactor * ev->mouse.dz;
-				if (newZoom >= maxZoomIn)
-					clientstate->zoomlevel = newZoom;
-				if (clientstate->zoomlevel == 0)
-					clientstate->zoomlevel = 1; //delme testing only
-
-				if (clientstate->activeGraph)
-					updateTitle_Zoom(display, clientstate->title, (clientstate->zoomlevel - clientstate->activeGraph->zoomLevel));
-			}
-		}
-
-
-		if (ev->mouse.dx || ev->mouse.dy) {
-			ALLEGRO_MOUSE_STATE state;
-			al_get_mouse_state(&state);
-			if (clientstate->mouse_dragging)
-			{
-				float dx = ev->mouse.dx;
-				float dy = ev->mouse.dy;
-				dx = min(1, max(dx, -1));
-				dy = min(1, max(dy, -1));
-
-				float slowdownfactor = 0.035; //reduce movement this much for every 1000 pixels zoomed in
-				float slowdown = zoomdiff / 1000;
-				//printf("zoomdiff: %f slowdown: %f\n", zoomdiff, slowdown);
-
-				// here we control drag speed at various zoom levels
-				// todo when we have insturctions to look at
-				//todo: fix speed at furhter out zoom levels
-
-				//if (zoomdiff > slowRotateThresholdLow && zoomdiff < slowRotateThresholdHigh) {
-				//	printf("non slowed drag! low:%ld -> zd: %f -> high:%ld\n", slowRotateThresholdLow, zoomdiff, slowRotateThresholdHigh);
-				//	dx *= 0.1;
-				//	dy *= 0.1;
-				//}
-				//else
-				//{
-				if (slowdown > 0)
-				{
-					//printf("slowed drag! low:%ld -> zd: %f -> high:%ld slowdown:%f\n",slowRotateThresholdLow,zoomdiff,slowRotateThresholdHigh,slowdown);
-					if (dx != 0) dx *= (slowdown * slowdownfactor);
-					if (dy != 0) dy *= (slowdown * slowdownfactor);
-				}
-				//}
-				clientstate->xturn -= dx;
-				clientstate->yturn -= dy;
-				char tistring[200];
-				snprintf(tistring, 200, "xt:%f, yt:%f", fmod(clientstate->xturn, 360), fmod(clientstate->yturn, 360));
-				updateTitle_dbg(display, clientstate->title, tistring);
-			}
-			else 
-			{
-
-				if (mouse_in_previewpane(clientstate, ev->mouse.x))
-				{
-					widgets->toggleSmoothDrawing(true);
-					int PID, TID;
-					if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
-					{
-						thread_graph_data *graph = (thread_graph_data *)clientstate->glob_piddata_map[PID]->graphs[TID];
-						widgets->showGraphToolTip(graph, clientstate->glob_piddata_map[PID], ev->mouse.x, ev->mouse.y);
-					}
-				}
-				else
-					widgets->toggleSmoothDrawing(false);
-			}
-			updateTitle_Mouse(display, clientstate->title, ev->mouse.x, ev->mouse.y);
-		}
-
-		return EV_MOUSE;
-	}
-
-	switch (ev->type)
-	{
-	case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
-	{
-		if (!mouse_in_previewpane(clientstate, ev->mouse.x))
-			clientstate->mouse_dragging = true;
-		else
-		{
-			if (widgets->dropdownDropped()) return EV_MOUSE;
-			int PID, TID;
-			if (find_mouseover_thread(clientstate, ev->mouse.x, ev->mouse.y, &PID, &TID))
-				set_active_graph(clientstate, PID, TID);		
-		}
-		return EV_MOUSE;
-	}
-
-	case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-	{
-		clientstate->mouse_dragging = false;
-		return EV_MOUSE;
-	}
-
-	case ALLEGRO_EVENT_KEY_CHAR:
-	{
-		if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
-			widgets->exeSelector->hide();
-
-		if (!clientstate->activeGraph)
-		{
-			widgets->processEvent(ev);
-			return EV_KEYBOARD;
-		}
-
-		MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
-		switch (ev->keyboard.keycode)
-		{
-		case ALLEGRO_KEY_ESCAPE: 
-		{
-			if (widgets->diffWindow->diffFrame->isVisible())
-			{
-				widgets->diffWindow->diffFrame->setVisibility(false);
-				break; 
-			}
-
-			if (widgets->isHighlightVisible())
-			{
-				widgets->highlightWindow->highlightFrame->setVisibility(false);
-				break;
-			}
-
-			if (clientstate->highlightData.highlightState)
-			{
-				clientstate->highlightData.highlightState = 0;
-				break;
-			}
-
-			if (clientstate->modes.diff)
-			{
-				clientstate->modes.diff = 0;
-				break;
-			}
-			return EV_BTN_QUIT;
-		}
-		case ALLEGRO_KEY_Y:
-			change_mode(clientstate, EV_BTN_WIREFRAME);
-			break;
-
-		case ALLEGRO_KEY_K:
-			change_mode(clientstate, EV_BTN_HEATMAP);
-			break;
-
-		case ALLEGRO_KEY_J:
-			change_mode(clientstate, EV_BTN_CONDITION);
-			break;
-
-		case ALLEGRO_KEY_E:
-			change_mode(clientstate, EV_BTN_EDGES);
-			break;
-
-		case ALLEGRO_KEY_LEFT:
-			mainscale->userHEDGESEP -= 0.05;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_RIGHT:
-			mainscale->userHEDGESEP += 0.05;
-			clientstate->rescale = true;
-			break;
-
-		case ALLEGRO_KEY_PAD_4:
-			mainscale->userHEDGESEP -= 0.005;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_PAD_6:
-			mainscale->userHEDGESEP += 0.005;
-			clientstate->rescale = true;
-			break;
-
-		case ALLEGRO_KEY_DOWN:
-			mainscale->userVEDGESEP += 0.01;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_UP:
-			mainscale->userVEDGESEP -= 0.01;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_PAD_PLUS:
-			mainscale->userDiamModifier += 0.05;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_PAD_MINUS:
-			mainscale->userDiamModifier -= 0.05;
-			clientstate->rescale = true;
-			break;
-		case ALLEGRO_KEY_T:
-			clientstate->show_ins_text++;
-			if (clientstate->show_ins_text > INSTEXT_LAST)
-				clientstate->show_ins_text = INSTEXT_FIRST;
-			switch (clientstate->show_ins_text) {
-			case INSTEXT_NONE:
-				cout << "[rgat]Instruction text off" << endl;
-				break;
-			case INSTEXT_AUTO:
-				cout << "[rgat]Instruction text auto" << endl;
-				break;
-			case INSTEXT_ALL_ALWAYS:
-				cout << "[rgat]Instruction text always on" << endl;
-				break;
-			}
-			break;
-		case ALLEGRO_KEY_PAD_7:
-			clientstate->zoomlevel += 100;
-			break;
-		case ALLEGRO_KEY_PAD_1:
-			clientstate->zoomlevel -= 100;
-			break;
-		}
-
-		widgets->processEvent(ev);
-		return EV_NONE;
-	}
-
-	case ALLEGRO_EVENT_MENU_CLICK:
-	{
-		switch (ev->user.data1)
-		{
-		case EV_BTN_RUN:  
-			widgets->exeSelector->show();
-			break;
-
-		case EV_BTN_QUIT: return EV_BTN_QUIT;
-
-		case EV_BTN_WIREFRAME:
-		case EV_BTN_PREVIEW:
-		case EV_BTN_CONDITION:
-		case EV_BTN_HEATMAP:
-		case EV_BTN_NODES:
-		case EV_BTN_EDGES:
-			change_mode(clientstate, ev->user.data1);
-			break;
-
-		case EV_BTN_HIGHLIGHT:
-			widgets->showHideHighlightFrame();
-			break;
-
-		case EV_BTN_DIFF:
-			widgets->showHideDiffFrame();
-			break;
-		case EV_BTN_EXTERNLOG:
-			if (clientstate->textlog)
-				closeTextLog(clientstate);
-			else
-			{
-				if (!clientstate->activeGraph) break;
-				stringstream windowName;
-				windowName << "Extern calls [TID: " << clientstate->activeGraph->tid << "]";
-				clientstate->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
-				ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientstate->textlog);
-				al_register_event_source(clientstate->event_queue, logevents);
-				clientstate->logSize = fill_extern_log(clientstate->textlog, clientstate->activeGraph, clientstate->logSize);
-			}	
-			break;
-
-		case EV_BTN_EXT_MOD_TEXT:
-			clientstate->config->showExternText = !clientstate->config->showExternText;
-			break;
-
-		case EV_BTN_SAVE:
-			if (clientstate->activeGraph)
-			{
-				cout << "[rgat]Saving process " << clientstate->activeGraph->pid << " to file" << endl;
-				saveTrace(clientstate);
-			}
-			break;
-
-		case EV_BTN_LOAD:
-		{
-			widgets->exeSelector->hide();
-			ALLEGRO_FILECHOOSER *fileDialog;
-			fileDialog = al_create_native_file_dialog(clientstate->config->saveDir.c_str(),
-				"Choose saved trace to open", "*.rgat;*.*;",
-				ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-			al_show_native_file_dialog(clientstate->maindisplay, fileDialog);
-
-			const char* result = al_get_native_file_dialog_path(fileDialog, 0);
-			al_destroy_native_file_dialog(fileDialog);
-
-			if (!result) return EV_NONE;
-			string path(result);
-			if (!fileExists(path)) return EV_NONE;
-
-			loadTrace(clientstate, path);
-			clientstate->modes.animation = false;
-			break;
-		}
-		default:
-			cout << "[rgat]Error: Unhandled menu event "<< ev->user.data1;
-			break;
-		}
-		return EV_NONE;
-	}
-
-	case ALLEGRO_EVENT_DISPLAY_CLOSE:
-		return EV_BTN_QUIT;
-
-	case ALLEGRO_EVENT_NATIVE_DIALOG_CLOSE:
-		closeTextLog(clientstate);
-		return EV_NONE;
-	}
-
-
-
-
-	switch (ev->type) {
-	case ALLEGRO_EVENT_DISPLAY_SWITCH_IN:
-	case ALLEGRO_EVENT_DISPLAY_SWITCH_OUT:
-	case ALLEGRO_EVENT_KEY_DOWN: //agui doesn't like this
-	case ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY:
-	case ALLEGRO_EVENT_KEY_UP:
-	case ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY:
-	case ALLEGRO_EVENT_KEY_CHAR:
-		return EV_NONE;
-	}
-	cout << "[rgat]Unhandled event: " << ev->type << endl;
-
-	return EV_NONE; //usually lose_focus
-}

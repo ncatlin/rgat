@@ -1,8 +1,72 @@
 #include "stdafx.h"
 #include "thread_graph_data.h"
 #include "rendering.h"
-#include "GUIStructs.h"
 #include "serialise.h"
+
+//add new extern calls to log
+unsigned int thread_graph_data::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize)
+{
+	vector <string>::iterator logIt = loggedCalls.begin();
+	advance(logIt, logSize);
+	while (logIt != loggedCalls.end())
+	{
+		al_append_native_text_log(textlog, logIt->c_str());
+		logSize++;
+		logIt++;
+	}
+	return logSize;
+}
+
+//take externs called from the trace and make them float on graph
+//also adds them to the call log
+void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
+{
+	obtainMutex(funcQueueMutex, INFINITE);
+	while (!funcQueue.empty())
+	{
+		EXTERNCALLDATA resu = funcQueue.front();
+		funcQueue.pop();
+
+		EXTTEXT extt;
+		extt.edge = resu.edgeIdx;
+		extt.nodeIdx = resu.nodeIdx;
+		extt.timeRemaining = 5;
+		extt.yOffset = 0;
+		extt.displayString = generate_funcArg_string(get_node_sym(extt.nodeIdx, piddata), resu.fdata);
+
+		if (resu.edgeIdx.first == resu.edgeIdx.second) { cout << "[rgat]WARNING: bad argument edge!" << endl; continue; }
+
+		if (active)
+		{
+			if (!resu.callerAddr)
+			{
+				obtainMutex(piddata->disassemblyMutex, 4000);
+				node_data* parentn = get_node(resu.edgeIdx.first);
+				node_data* externn = get_node(resu.edgeIdx.second);
+				resu.callerAddr = parentn->ins->address;
+				dropMutex(piddata->disassemblyMutex);
+
+				resu.externPath = piddata->modpaths[externn->nodeMod];
+				if (extt.displayString == "()")
+				{
+					stringstream hexaddr;
+					hexaddr << "NOSYM:<0x" << std::hex << externn->address << ">";
+					extt.displayString = hexaddr.str();
+				}
+			}
+			stringstream callLog;
+			callLog << "0x" << std::hex << resu.callerAddr << ": ";
+			callLog << resu.externPath << " -> ";
+			callLog << extt.displayString << "\n";
+			loggedCalls.push_back(callLog.str());
+		}
+
+		set_edge_alpha(resu.edgeIdx, get_activelines(), 1.0);
+		set_node_alpha(resu.nodeIdx, get_activenodes(), 1.0);
+		externFloatingText->at(tid).push_back(extt);
+	}
+	dropMutex(funcQueueMutex);
+}
 
 //display live or animated graph with active areas on faded areas
 void thread_graph_data::display_active(bool showNodes, bool showEdges)
@@ -460,7 +524,7 @@ int thread_graph_data::brighten_BBs()
 		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
 		if (vertIt == ins->threadvertIdx.end())
 		{
-			printf("WARNING: BrightenBBs going too far? Breaking!\n");
+			cerr << "[rgat]WARNING: BrightenBBs going too far? Breaking!" << endl;
 			animnodesdata->release_col();
 			animlinedata->release_col();
 			break;
@@ -479,8 +543,8 @@ int thread_graph_data::brighten_BBs()
 				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
 				edge_data *linkingEdge;
 				if (!edge_exists(edgePair, &linkingEdge)) {
-					printf("WARNING: BrightenBBs: lastnode %d->node%d not in edgedict. seq:%d, seqsz:%d\n", 
-						lastNodeIdx, nodeIdx, animPosition, bbsequence.size()); 
+					cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
+						<< nodeIdx << " not in edgedict." << endl;
 					continue;
 				}
 
@@ -752,10 +816,6 @@ void thread_graph_data::insert_node(int targVertID, node_data node)
 	obtainMutex(nodeLMutex, INFINITE);
 	nodeList.push_back(node);
 	dropMutex(nodeLMutex);
-
-	//obtainMutex(disassemblyMutex);
-	//printf("Adding node %d, ins: %s\n", targVertID, node.ins->ins_text.c_str());
-	//dropMutex(disassemblyMutex);
 }
 
 void thread_graph_data::stop_edgeD_iteration()

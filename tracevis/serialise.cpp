@@ -390,4 +390,14 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 	return true;
 }
 
+void saveAll(VISSTATE *clientState)
+{
+	map<int, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.begin();
+	for (; pidIt != clientState->glob_piddata_map.end(); pidIt++)
+	{
+		clientState->activePid = pidIt->second;
+		saveTrace(clientState);
+	}
+}
+
 

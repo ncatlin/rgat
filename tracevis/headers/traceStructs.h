@@ -7,7 +7,6 @@ typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
 
-
 /*
 Pinched from Boost
 http://stackoverflow.com/questions/7222143/unordered-map-hash-function-c
@@ -35,18 +34,8 @@ namespace std
 	};
 }
 
-/*
-struct SimpleHash {
-	size_t operator()(const NODEPAIR& p) const {
-		return p.first ^ p.second;
-	}
-};
-typedef unordered_map<NODEPAIR, edge_data, SimpleHash> EDGEMAP;
-*/
-
 //typedef map<NODEPAIR, edge_data> EDGEMAP;
 typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
-
 
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN {
@@ -121,3 +110,12 @@ struct PROCESS_DATA {
 	vector <int> activeMods;
 	map <unsigned long, BB_DATA *> externdict;
 };
+
+struct EXTTEXT {
+	NODEPAIR edge;
+	int nodeIdx;
+	float timeRemaining;
+	float yOffset;
+	string displayString;
+};
+

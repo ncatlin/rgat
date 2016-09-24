@@ -1,6 +1,25 @@
 #include "stdafx.h"
 #include "traceMisc.h"
 #include "OSspecific.h"
+#include "GUIStructs.h"
+
+//takes symbol+arguments and cats them together for display
+string generate_funcArg_string(string sym, ARGLIST args)
+{
+	stringstream funcArgStr;
+	cout << "drawsym (" << sym << ")"<<endl;
+	funcArgStr << sym << "(";
+
+	int numargs = args.size();
+	for (int i = 0; i < numargs; ++i)
+	{
+		funcArgStr << args[i].first << ": " << args[i].second;
+		if (i < numargs - 1)
+			funcArgStr << ", ";
+	}
+	funcArgStr << ")";
+	return funcArgStr.str();
+}
 
 //gets [mutation]'th disassembly of [address]. if absent or [getLatest] then returns the most recent 
 INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool getLatest = false)

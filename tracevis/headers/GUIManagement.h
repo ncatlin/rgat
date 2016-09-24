@@ -76,7 +76,7 @@ public:
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
 		int PID = std::stoi(evt.getSource()->getText());
-		if (PID != clientState->activePid->PID)
+		if (!clientState->activePid || (PID != clientState->activePid->PID))
 			clientState->selectedPID = PID;
 	}
 private:
@@ -91,6 +91,8 @@ void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPS
 void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int verts, int edges);
 void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg);
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
+bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay);
+void handle_resize(VISSTATE *clientState);
 
 bool controlSetup();
 ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display);
