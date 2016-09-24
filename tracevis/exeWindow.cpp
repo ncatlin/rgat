@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "exeWindow.h"
+#include "OSspecific.h"
 
 #define EXEFRAME_W 500
 #define EXEFRAME_H 300

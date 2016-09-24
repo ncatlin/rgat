@@ -1,6 +1,22 @@
 #pragma once 
 #include <stdafx.h>
-#include <GUIStructs.h>
+#include "GUIStructs.h"
+
+#ifdef WIN32
+
+bool obtainMutex(HANDLE mutex, int waitTime)
+{
+	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
+	if (waitresult == WAIT_TIMEOUT) {
+		cout << "WARNING! Mutex 0x" << std::hex << mutex << " wait expired after " << waitTime << " ms" << endl;
+		return false;
+	}
+	return true;
+}
+
+void dropMutex(HANDLE mutex) {
+	ReleaseMutex(mutex);
+}
 
 string time_string()
 {
@@ -12,7 +28,6 @@ string time_string()
 	return savetime.str();
 }
 
-#ifdef WIN32
 bool fileExists(string path)
 {
 	wstring wstrpath(path.begin(), path.end());
@@ -29,17 +44,12 @@ string getModulePath()
 }
 
 //returns path for saving files, tries to create if it doesn't exist
-bool getSavePath(VISSTATE * clientState, string *result, int PID)
+bool getSavePath(string saveDir, string filename, string *result, int PID)
 {
-	stringstream savedir;
-	savedir << clientState->config->saveDir;
-
 	//if directory doesn't exist, create
-	if (!fileExists(savedir.str().c_str()))
-		if (!CreateDirectoryA(savedir.str().c_str(),NULL))
+	if (!fileExists(saveDir.c_str()))
+		if (!CreateDirectoryA(saveDir.c_str(),NULL))
 			return false;
-
-	string filename = clientState->glob_piddata_map[PID]->modpaths[0];
 
 	//get filename from path
 	//http://stackoverflow.com/a/8520815
@@ -48,7 +58,7 @@ bool getSavePath(VISSTATE * clientState, string *result, int PID)
 		filename.erase(0, last_slash_idx + 1);
 
 	stringstream savepath;
-	savepath << savedir.str() << "\\" << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
+	savepath << saveDir << "\\" << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
 	*result = savepath.str();
 	return true;
 }
@@ -64,14 +74,14 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 #endif
 	if (!fileExists(DRPath.c_str()))
 	{
-		printf("ERROR: Unable to find Dynamorio executable at %s\n", DRPath.c_str());
+		cerr << "ERROR: Unable to find Dynamorio executable at " << DRPath;
 		return false;
 	}
 
 	string DRGATpath = clientState->config->clientPath + "drgat.dll";
 	if (!fileExists(DRGATpath.c_str()))
 	{
-		printf("Unable to find drgat.dll at %s\n", DRGATpath.c_str());
+		cerr << "Unable to find drgat.dll at "<<DRGATpath;
 		return false;
 	}
 
@@ -98,10 +108,11 @@ string get_options(VISSTATE *clientState)
 	return optstring.str();
 }
 
-void execute_tracer(string executable, VISSTATE *clientState) 
+void execute_tracer(string executable, void *clientState_ptr) 
 {
 	if (executable.empty()) return;
 
+	VISSTATE *clientState = (VISSTATE *)clientState_ptr;
 	string runpath;
 	if (!get_dr_path(clientState, &runpath)) return;
 	runpath.append(get_options(clientState));
@@ -114,7 +125,7 @@ void execute_tracer(string executable, VISSTATE *clientState)
 	PROCESS_INFORMATION pi;
 	ZeroMemory(&pi, sizeof(pi));
 
-	printf("Starting execution using command line [%s]\n", runpath.c_str());
+	cout << "Starting execution using command line [" <<  runpath<< "]" << endl;
 	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
 	clientState->switchProcess = true;
 }

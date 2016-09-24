@@ -1,5 +1,6 @@
 #include <graph_display_data.h>
 #include <traceMisc.h>
+#include "OSspecific.h"
 
 //time to split line/node data sperate
 GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
@@ -13,8 +14,8 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
-	obtainMutex(colmutex, "Destruct", INFINITE);
-	obtainMutex(posmutex, "Destruct", INFINITE);
+	obtainMutex(colmutex, INFINITE);
+	obtainMutex(posmutex, INFINITE);
 }
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
@@ -22,27 +23,26 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 	const unsigned int listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
-	obtainMutex(posmutex, 0, 6000);
+	obtainMutex(posmutex, 6000);
 	result->x = vposarray.at(listIndex);
 	result->y = vposarray.at(listIndex + 1);
 	result->z = vposarray.at(listIndex + 2);
-	dropMutex(posmutex, 0);
+	dropMutex(posmutex);
 	return true;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(char *location = 0)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_pos()
 {
-	bool result = obtainMutex(posmutex, 0, INFINITE);
+	bool result = obtainMutex(posmutex, INFINITE);
 	if (!result) return 0;
 	return &vposarray;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_col(char *location = 0)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_col()
 {
-
-	bool result = obtainMutex(colmutex, location, INFINITE);
+	bool result = obtainMutex(colmutex, INFINITE);
 	if (!result) {
-		printf("failed to obtain colmutex %x\n", (unsigned int)colmutex); return 0;
+		cerr << "[rgat]Acquire_col: Failed to obtain colmutex" << endl; return 0;
 	}
 	return &vcolarray;
 }
@@ -75,11 +75,6 @@ void GRAPH_DISPLAY_DATA::clear()
 {
 	acquire_pos();
 	acquire_col();
-	//needed? try without
-	//fill(vposarray.begin(), vposarray.end(), 0);
-	//fill(vcolarray.begin(), vcolarray.end(), 0);
-	//vposarray.clear();
-	//vcolarray.clear();
 	edgesRendered = 0;
 	release_col();
 	release_pos();

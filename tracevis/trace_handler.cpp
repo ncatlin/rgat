@@ -4,35 +4,37 @@
 #include "GUIConstants.h"
 #include "traceStructs.h"
 #include "b64.h"
+#include "OSspecific.h"
 
-bool thread_trace_handler::find_internal_at_address(long address, int attempts) {
+bool thread_trace_handler::find_internal_at_address(long address, int attempts) 
+{
 	while (!piddata->disassembly.count(address))
 	{
 		Sleep(1);
 		if (!attempts--) return false;
-		printf("Sleeping until EXTERN %lx...\n", address);
+		cerr<< "[rgat]Sleeping until EXTERN "<< std::hex << address << " found" << endl;
 	}
 	return true;
 }
 
 bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB, int attempts = 1) {
-	obtainMutex(piddata->externDictMutex, 0, 1000);
+	obtainMutex(piddata->externDictMutex, 1000);
 	map<unsigned long, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
 	while (externIt == piddata->externdict.end())
 	{
 		if (!attempts--) { 
-			dropMutex(piddata->externDictMutex, 0); 
+			dropMutex(piddata->externDictMutex); 
 			return false; 
 		}
-		dropMutex(piddata->externDictMutex, 0);
+		dropMutex(piddata->externDictMutex);
 		Sleep(1);
-		obtainMutex(piddata->externDictMutex, 0, 1000);
+		obtainMutex(piddata->externDictMutex, 1000);
 		externIt = piddata->externdict.find(address);
 	}
 
 	if(BB)
 		*BB = externIt->second;
-	dropMutex(piddata->externDictMutex, 0);
+	dropMutex(piddata->externDictMutex);
 	return true;
 }
 
@@ -46,9 +48,9 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 //checks if current thread has executed this instruction
 bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx)
 {
-	obtainMutex(piddata->disassemblyMutex, 0, 100);
+	obtainMutex(piddata->disassemblyMutex, 100);
 	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
-	dropMutex(piddata->disassemblyMutex, 0);
+	dropMutex(piddata->disassemblyMutex);
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{
 		*vertIdx = vertIdIt->second;
@@ -138,9 +140,9 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 
 	thisgraph->insert_node(targVertID, thisnode);
 
-	obtainMutex(piddata->disassemblyMutex, 0, 100);
+	obtainMutex(piddata->disassemblyMutex, 100);
 	instruction->threadvertIdx[TID] = targVertID;
-	dropMutex(piddata->disassemblyMutex, 0);
+	dropMutex(piddata->disassemblyMutex);
 }
 
 
@@ -153,9 +155,9 @@ void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 {
-	obtainMutex(piddata->disassemblyMutex, 0, 100);
+	obtainMutex(piddata->disassemblyMutex, 100);
 	targVertID = instruction->threadvertIdx.at(TID);
-	dropMutex(piddata->disassemblyMutex, 0);
+	dropMutex(piddata->disassemblyMutex);
 }
 
 int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
@@ -256,7 +258,7 @@ int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 	return firstMutation;
 }
 
-void thread_trace_handler::updateStats(int a, int b, int bMod) {
+void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) {
 	if (abs(a) > thisgraph->maxA) thisgraph->maxA = abs(a);
 	if (abs(b) > thisgraph->maxB) thisgraph->maxB = abs(b);
 	if (bMod > thisgraph->bigBMod) thisgraph->bigBMod = bMod;
@@ -522,9 +524,9 @@ bool thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
 
-	obtainMutex(thisgraph->funcQueueMutex, "Push Externlist", 1200);
+	obtainMutex(thisgraph->funcQueueMutex, 1200);
 	thisgraph->externList.push_back(targVertID);
-	dropMutex(thisgraph->funcQueueMutex, "Push Externlist");
+	dropMutex(thisgraph->funcQueueMutex);
 	*resultPair = std::make_pair(lastVertID, targVertID);
 
 	edge_data newEdge;
@@ -541,18 +543,18 @@ void thread_trace_handler::process_new_args()
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		unsigned long funcad = pcaIt->first;
-		obtainMutex(piddata->externDictMutex, 0, 1000);
+		obtainMutex(piddata->externDictMutex, 1000);
 		map<unsigned long, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
 		if (externIt == piddata->externdict.end() ||
 			!externIt->second->thread_callers.count(TID)) {
-			dropMutex(piddata->externDictMutex, 0);
+			dropMutex(piddata->externDictMutex);
 			++pcaIt; 
 			continue; 
 		}
 
 		EDGELIST callvs = externIt->second->thread_callers.at(TID);
-		dropMutex(piddata->externDictMutex, 0);
+		dropMutex(piddata->externDictMutex);
 
 		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
@@ -570,12 +572,15 @@ void thread_trace_handler::process_new_args()
 			while (callersIt != pcaIt->second.end())//run through each caller to this function
 			{
 				if (callersIt->first != callerAddress) 
-				{ printf("extern ret %lx not arg ret %lx\n", callersIt->first , callerAddress); callersIt++; continue; }
+				{ 
+					callersIt++; 
+					continue;
+				}
 
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
-				obtainMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live", INFINITE);
+				obtainMutex(thisgraph->funcQueueMutex, INFINITE);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
 
@@ -593,7 +598,7 @@ void thread_trace_handler::process_new_args()
 						targn->funcargs.push_back(*callsIt);
 					callsIt = callsvector.erase(callsIt);
 				}
-				dropMutex(thisgraph->funcQueueMutex, "FuncQueue Push Live");
+				dropMutex(thisgraph->funcQueueMutex);
 				callersIt->second.clear();
 
 				if (callersIt->second.empty())
@@ -630,7 +635,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		if (!basicMode)
 		{
-			obtainMutex(thisgraph->animationListsMutex);
+			obtainMutex(thisgraph->animationListsMutex, 3000);
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 
 			//could probably break this by mutating code in a running loop
@@ -659,9 +664,9 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		NODEPAIR resultPair;
 		if (run_external(thistag->blockaddr, repeats, &resultPair))
 		{
-			obtainMutex(thisgraph->animationListsMutex, "Extern run", 1000);
+			obtainMutex(thisgraph->animationListsMutex, 1000);
 			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
-			dropMutex(thisgraph->animationListsMutex, "Extern run");
+			dropMutex(thisgraph->animationListsMutex);
 		}
 
 		process_new_args();
@@ -669,7 +674,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	}
 	else
 	{
-		printf("handle_tag dead code assert");
+		cerr << "[rgat]Handle_tag dead code assert" << endl;
 		assert(0);
 	}
 }
@@ -829,7 +834,7 @@ void thread_trace_handler::TID_thread()
 					continue;
 				}
 
-				printf("ERROR: Fell through bad loop tag? [%s]\n",entry);
+				cerr << "[rgat] ERROR: Fell through bad loop tag?" << entry << endl;
 				assert(0);
 			}
 
@@ -845,23 +850,25 @@ void thread_trace_handler::TID_thread()
 				unsigned long e_ip;
 				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
 				if (!caught_stol(e_ip_s, &e_ip, 16)) {
-					printf("handle_arg 4 STOL ERROR: %s\n", e_ip_s.c_str());
+					
 					assert(0);
 				}
 
 				unsigned long e_code;
 				string e_code_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stol(e_code_s, &e_code, 16)) {
-					printf("handle_arg 4 STOL ERROR: %s\n", e_code_s.c_str());
+					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
 					assert(0);
 				}
 
 				//TODO: place on graph. i'm thinking a yellow highlight line.
-				printf("Target exception [code %lx] at address %lx\n", e_code, e_ip);
+				cout << "[rgat]Exception detected in PID:" << PID << " TID " << TID
+					<< "[code " << std::hex << e_code << "] at address " << e_ip <<endl;
 				continue;
 			}
 
-			printf("<TID THREAD %d> UNHANDLED LINE (%d b): %s\n", TID, bytesRead, msgbuf);
+			cerr << "[rgat]ERROR: Trace handler TID " << TID << " unhandled line " << 
+				msgbuf << " ("<<bytesRead<<" bytes)"<<endl;
 			if (next_token >= msgbuf + bytesRead) break;
 		}
 	}

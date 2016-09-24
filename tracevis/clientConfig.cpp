@@ -11,25 +11,22 @@ clientConfig::clientConfig(string filepath)
 	
 	if (fileExists(filepath))
 	{
-		printf("Attempting to load config file %s\n", filepath.c_str());
+		cout << "[rgat]Attempting to load config file " << filepath << endl;
 		if (loadFromFile())
 			return;
 		else
 		{
-			printf("Config file %s failed to load, loading from defaults...\n", filepath.c_str());
+			cout << "[rgat]Config file "<< filepath << " failed to load, loading from defaults..." << endl;
 			loadDefaults();
 		}
 	}
 	else
 	{
-		printf("Config file %s not found, loading from defaults...\n", filepath.c_str());
+		cout << "[rgat]Config file " << filepath << " not found, loading from defaults...\n" << endl;
 		loadDefaults();
 		saveToFile();
 	}
-
-
 }
-
 
 clientConfig::~clientConfig()
 {
@@ -47,10 +44,12 @@ const char* clientConfig::col_to_charstr(ALLEGRO_COLOR col)
 
 void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destination)
 {
-	if (!charstr) {
-		printf("Bad save file - outdated? Delete it and relaunch rgat\n");
+	if (!charstr) 
+	{
+		cerr << "Bad save file - likely from an old version. Delete it and relaunch rgat" << endl;
 		assert(0);
 	}
+
 	stringstream colstream(charstr);
 	
 	colstream >> destination->r;
@@ -160,6 +159,7 @@ bool clientConfig::loadFromFile()
 
 	al_destroy_config(alConfig);
 	initialised = true;
+	return true;
 }
 
 void clientConfig::cleanup()
@@ -287,7 +287,7 @@ void clientConfig::saveToFile()
 {
 	if (!initialised)
 	{
-		printf("Attempt to save uninitialised config\n");
+		cerr << "Attempt to save uninitialised config" << endl;
 		assert(0);
 	}
 
@@ -317,9 +317,9 @@ void clientConfig::saveToFile()
 	cleanup();
 
 	if (al_save_config_file(configFilePath.c_str(), alConfig))
-		printf("Created config file %s\n", configFilePath.c_str());
+		cout << "Created config file " << configFilePath;
 	else
-		printf("Failed to create config file %s: Error %d\n", configFilePath.c_str(), al_get_errno());
+		cerr << "Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno();
 }
 
 void clientConfig::updateLastPath(string path)

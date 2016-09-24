@@ -130,7 +130,9 @@ void saveTrace(VISSTATE * clientState)
 {	
 	ofstream savefile;
 	string path;
-	if (!getSavePath(clientState, &path, clientState->activePid->PID))
+	if (!getSavePath(clientState->config->saveDir, 
+		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths[0],
+		&path, clientState->activePid->PID))
 	{
 		printf("ERROR: Failed to get save path\n");
 		return;
@@ -147,22 +149,22 @@ void saveTrace(VISSTATE * clientState)
 	savefile << "PID " << clientState->activePid->PID << " ";
 	saveProcessData(clientState->activePid, &savefile);
 
-	obtainMutex(clientState->activePid->graphsListMutex, "Save Trace");
+	obtainMutex(clientState->activePid->graphsListMutex, INFINITE);
 	map <int, void *>::iterator graphit = clientState->activePid->graphs.begin();
 	for (; graphit != clientState->activePid->graphs.end(); graphit++)
 	{
 		thread_graph_data *graph = (thread_graph_data *)graphit->second;
 		if (!graph->get_num_nodes()){
-			printf("Ignoring empty graph TID %d\n", graph->tid);
+			cout << "[rgat]Ignoring empty graph TID "<< graph->tid << endl;
 			continue;
 		}
-		printf("Serialising graph: %d\n", graphit->first);
+		cout << "Serialising graph: "<< graphit->first;
 		graph->serialise(&savefile);
 	}
-	dropMutex(clientState->activePid->graphsListMutex, "Save Trace");
+	dropMutex(clientState->activePid->graphsListMutex);
 
 	savefile.close();
-	printf("Save complete\n");
+	cout<<"Save complete"<<endl;
 }
 
 bool verifyTag(ifstream *file, char tag, int id = 0) {

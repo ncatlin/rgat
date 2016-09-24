@@ -3,6 +3,7 @@
 #include "traceConstants.h"
 #include "traceMisc.h"
 #include "traceStructs.h"
+#include "OSspecific.h"
 
 #pragma comment(lib, "legacy_stdio_definitions.lib") //capstone uses _sprintf
 #pragma comment(lib, "capstone.lib")
@@ -16,13 +17,13 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	{
 		if (!caught_stoi(opcodes.substr(pairs * 2, 2), (int *)(opcodes_u + pairs), 16))
 		{
-			printf("BADOPCODE! %s\n", opcodes.c_str());
-			continue;
+			cerr << "[rgat]ERROR: BADOPCODE! " << opcodes << endl;
+			return NULL;
 		}
 		++pairs;
 		if (pairs >= MAX_OPCODES)
 		{
-			printf("Error, instruction too long!");
+			cerr << "[rgat]ERROR: Error, instruction too long! ("<< pairs << " pairs)" << endl;
 			return NULL;
 		}
 	}
@@ -30,30 +31,27 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	size_t count;
 	count = cs_disasm(hCapstone, opcodes_u, pairs, insaddr, 0, &insn);
 	if (count != 1) {
-		printf("\tFATAL: Failed disassembly for opcodes: %s\n count: %d\n",  
-			opcodes.c_str(), count);
+		cerr << "[rgat]ERROR: BB thread failed disassembly for opcodes: "<< opcodes << " count: "<< count << endl;
 		return NULL;
 	}
-	int ida = insn->id;
 
-	string mnemonic = string(insn->mnemonic);
-	insdata->mnemonic = mnemonic;
-	insdata->op_str = string(insn->op_str);
+	insdata->mnemonic = string(insn->mnemonic);
+	insdata->op_str   = string(insn->op_str);
 	insdata->ins_text = string(insdata->mnemonic + " " + insdata->op_str);
 	insdata->numbytes = (int)floor(opcodes.length() / 2);
-	insdata->address = insaddr;
+	insdata->address  = insaddr;
 
-	if (mnemonic == "call")
+	if (insdata->mnemonic == "call")
 		insdata->itype = OPCALL;
-	else if (mnemonic == "ret") //todo: iret
+	else if (insdata->mnemonic == "ret") //todo: iret
 		insdata->itype = OPRET;
-	else if (mnemonic == "jmp")
+	else if (insdata->mnemonic == "jmp")
 		insdata->itype = OPJMP;
 	else
 	{
 		insdata->itype = OPUNDEF;
 
-		if (mnemonic[0] == 'j')
+		if (insdata->mnemonic[0] == 'j')
 		{
 			insdata->conditional = true;
 			insdata->condTakenAddress = std::stol(insdata->op_str, 0, 16);
@@ -76,30 +74,28 @@ void basicblock_handler::PID_BB_thread()
 	pipename.append(std::to_wstring(PID));
 
 	const wchar_t* szName = pipename.c_str();
-	wprintf(L"[vis bb thread] creating bb pipe %s\n", szName);
-
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT | PIPE_READMODE_MESSAGE,
 		255, 64, 56 * 1024, 300, NULL);
 
 	if ((int)hPipe == -1)
 	{
-		printf("Error: BBTHREAD Handle:%d - error:%d\n", (int)hPipe, GetLastError());
+		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError();
 		return;
 	}
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
 	{
-		printf("Couldn't open capstone instance\n");
+		cerr << "[rgat]ERROR: Couldn't open capstone instance" << endl;
 		return;
 	}
 
 	ConnectNamedPipe(hPipe, NULL);
-	char buf[BBBUFSIZE] = { 0 };
+	char *buf= (char *)malloc(BBBUFSIZE);
 	int PIDcount = 0;
-	printf("[vis bb thread] pipe connected, waiting for input...\n");
-	string lastSavedbuf, savedbuf;
+
+	string savedbuf;
 	while (true)
 	{
 		if (die) break;
@@ -108,51 +104,47 @@ void basicblock_handler::PID_BB_thread()
 		{
 			int err = GetLastError();
 			if (err == ERROR_BROKEN_PIPE)
-			{
-				printf("Basicblock pipe read for PID %d ended, presumed terminated\n",PID);
-				return;
-			}
-
-			if (err == ERROR_MORE_DATA) //could just read more if this is ever a problem
-				printf("Error! Basic block data exceeding BBBUFSIZE!\n");
+				break;
+			else if (err == ERROR_MORE_DATA) //could just read more if this is ever a problem
+				cerr << "[rgat]Error! Basic block data exceeding BBBUFSIZE!" << endl;
 			else
-				printf("Basic block pipe read for PID %d failed, error:%x!\n",PID,err);
-			return;
+				cerr << "[rgat]Basic block pipe read for PID "<<PID<<" failed, error:"<<err;
+
+			break;
 		}
 
 		if (bread >= BBBUFSIZE)
 		{
-			printf("\tERROR: BB Buf Exceeded!\n");
-			return;
+			cerr << "[rgat]ERROR: BB Buf Exceeded!" << endl;
+			break;
 		}
 		
 		if (!bread)
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				printf("BBPIPE ERROR: %d\n", err);
-			printf("%s", "\t!----------BBPIPE BROKEN err:%d - no more data------------\n");
-			return;
+				cerr << "[rgat]BBPIPE ERROR: "<< err << endl;
+			break;
 		}
 
+		savedbuf = buf;
 		buf[bread] = 0;
 		if (buf[0] == 'B')
 		{
-			size_t count;
 			char *next_token = buf + 1;
 			size_t i = 0;
 
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
 			unsigned long targetaddr;
 			if (!caught_stol(string(start_s), &targetaddr, 16)) {
-				printf("bbaddr STOL ERROR: %s\n", start_s);
+				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);
 			}
 
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
 			int modnum;
 			if (!caught_stoi(string(modnum_s), &modnum, 10)) {
-				printf("bb modnum STOL ERROR: %s\n", modnum_s);
+				cerr << "[rgat]bb modnum stoi error: " << modnum_s << endl;
 				assert(0);
 			}
 
@@ -169,7 +161,7 @@ void basicblock_handler::PID_BB_thread()
 			char *blockID_s = strtok_s(next_token, "@", &next_token);
 			unsigned int blockID;
 			if (!caught_stoi(string(blockID_s), &blockID, 16)) {
-				printf("bb blockID STOI ERROR: %s\n", modnum_s);
+				cerr << "[rgat]bb blockID stoi error: " << blockID_s << endl;
 				assert(0);
 			};
 
@@ -179,12 +171,12 @@ void basicblock_handler::PID_BB_thread()
 				bbdata->modnum = modnum;
 				bbdata->symbol.clear();
 
-				obtainMutex(piddata->externDictMutex, 0, 1000);
+				obtainMutex(piddata->externDictMutex, 1000);
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 			
 				if (piddata->externdict[targetaddr] == 0)
 					piddata->externdict[targetaddr] = bbdata;
-				dropMutex(piddata->externDictMutex, 0);
+				dropMutex(piddata->externDictMutex);
 
 				continue;
 			}
@@ -196,7 +188,7 @@ void basicblock_handler::PID_BB_thread()
 					break;
 				string opcodes(strtok_s(next_token, "@", &next_token));
 
-				obtainMutex(piddata->disassemblyMutex, "DisassemblyStart", 4000);
+				obtainMutex(piddata->disassemblyMutex, 4000);
 				map<unsigned long,INSLIST>::iterator addressDissasembly = piddata->disassembly.find(targetaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
@@ -206,7 +198,7 @@ void basicblock_handler::PID_BB_thread()
 					{
 						if (std::find(insd->blockIDs.begin(), insd->blockIDs.end(), blockID) == insd->blockIDs.end())
 							insd->blockIDs.push_back(blockID);
-						dropMutex(piddata->disassemblyMutex, "Inserted Dis");
+						dropMutex(piddata->disassemblyMutex);
 						targetaddr += insd->numbytes;
 						if (next_token >= buf + bread) break;
 						i++;
@@ -228,12 +220,13 @@ void basicblock_handler::PID_BB_thread()
 				insdata->blockIDs.push_back(blockID);
 
 				if (!disassemble_ins(hCapstone, opcodes, insdata, targetaddr)) {
-					printf("ERROR: BAD DISASSEMBLE for bb [%s], Corrupt trace?\n",savedbuf.c_str());
+					cerr << "[rgat]ERROR: Bad dissasembly for buf " << savedbuf 
+						<< "PID: " << PID <<". Corrupt trace?" << endl;
 					assert(0);
 				}
 
 				piddata->disassembly[targetaddr].push_back(insdata);
-				dropMutex(piddata->disassemblyMutex, "Inserted Dis");
+				dropMutex(piddata->disassemblyMutex);
 
 				targetaddr += insdata->numbytes;
 				if (next_token >= buf + bread) break;
@@ -242,9 +235,10 @@ void basicblock_handler::PID_BB_thread()
 			continue;
 		}
 
-		printf("UNKNOWN BB ENTRY: %s\n", buf);
+		cerr << "[rgat]UNKNOWN BB ENTRY " << buf << endl;
 
 	}
 
+	free(buf);
 	cs_close(&hCapstone);
 }

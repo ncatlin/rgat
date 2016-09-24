@@ -4,6 +4,7 @@
 #include "edge_data.h"
 #include "graph_display_data.h"
 #include "traceMisc.h"
+#include "OSspecific.h"
 
 //max length to display in diff summary
 #define MAX_DIFF_PATH_LENGTH 50
@@ -94,7 +95,7 @@ public:
 	inline edge_data *get_edge(NODEPAIR edge);
 	inline node_data *get_node(unsigned int index)
 	{
-		obtainMutex(nodeLMutex,0, 500);
+		obtainMutex(nodeLMutex, 500);
 		node_data *n = &nodeList.at(index); 
 		dropMutex(nodeLMutex); 
 		return n;
@@ -128,7 +129,7 @@ public:
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx) {	
-		obtainMutex(animationListsMutex, 0, 1000);
+		obtainMutex(animationListsMutex, 1000);
 		latest_active_node_coord = get_node(idx)->vcoord;
 		dropMutex(animationListsMutex);
 	}
@@ -167,7 +168,7 @@ public:
 	//keep track of graph dimensions
 	int maxA = 0;
 	int maxB = 0;
-	int bigBMod = 0;
+	unsigned int bigBMod = 0;
 	long zoomLevel = 0;
 
 	unsigned long maxWeight = 0;
@@ -193,7 +194,7 @@ public:
 		if (set) { 
 			DWORD res = WaitForSingleObject(graphwritingMutex, 1000); 
 			if (res == WAIT_TIMEOUT)
-				printf("Timeout waiting for release of graph %d\n", tid);
+				cerr << "[rgat]Timeout waiting for release of graph "<< tid <<endl;
 			assert(res != WAIT_TIMEOUT);
 		}
 		else ReleaseMutex(graphwritingMutex); 
@@ -255,7 +256,7 @@ public:
 	void highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 
 	unsigned long traceBufferSize = 0;
-	void *getReader() { return trace_reader; };
-	void setReader(void *newReader) { trace_reader = newReader;  };
+	void *getReader() { return trace_reader;}
+	void setReader(void *newReader) { trace_reader = newReader;}
 };
 

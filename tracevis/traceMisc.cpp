@@ -1,29 +1,30 @@
 #include "stdafx.h"
 #include "traceMisc.h"
+#include "OSspecific.h"
 
 //gets [mutation]'th disassembly of [address]. if absent or [getLatest] then returns the most recent 
 INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<unsigned long, INSLIST> *disas, bool getLatest = false)
 {
-	obtainMutex(mutex, 0, 4000);
+	obtainMutex(mutex, 4000);
 	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
 
 
-	if (disasIt == disas->end() || (!getLatest && disasIt->second.size()-1 < mutation))
+	if (disasIt == disas->end() || (!getLatest && disasIt->second.size()-1 < (size_t)mutation))
 	{
 		int waitTime = 1;
 		while (true)
 		{
-			dropMutex(mutex, 0);
+			dropMutex(mutex);
 			Sleep(waitTime);
 
-			obtainMutex(mutex, 0, 4000);
+			obtainMutex(mutex, 4000);
 			disasIt = disas->find(address);
 			
 			if (disasIt == disas->end())
 			{
 				waitTime += 5;
 				if (waitTime > 600)
-					printf("Long wait for disassembly of %lx, mutation %d.\n", address, mutation);
+					cout<<"[rgat]Long wait for disassembly of " << address << ", mutation " << mutation << endl;
 				continue;
 			}
 
@@ -33,7 +34,7 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 				break;
 			}
 			else
-				if (disasIt->second.size() - 1 >= mutation)
+				if (disasIt->second.size() - 1 >= (size_t)mutation)
 					break;
 				else
 				{
@@ -53,7 +54,7 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 	}
 
 	INS_DATA *result = disasIt->second.at(mutation);
-	dropMutex(mutex, 0);
+	dropMutex(mutex);
 	return result;
 }
 
@@ -62,21 +63,21 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE mutex, 
 	map<unsigned long, INSLIST> *disas, int *mutationIndex)
 {
-	obtainMutex(mutex, 0, 4000);
+	obtainMutex(mutex, 4000);
 	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
 	if (disasIt == disas->end())
 	{
-		dropMutex(mutex, 0);
+		dropMutex(mutex);
 		int waitTime = 5;
 		while (true)
 		{
-			printf("waiting %d ms for disassembly of addr 0x%lx\n", waitTime, address);
+			cout << "[rgat]Waiting "<< waitTime << " ms for disassembly of addr " << std::hex << address << endl;
 			Sleep(waitTime);
-			obtainMutex(mutex, 0, 4000);
+			obtainMutex(mutex, 4000);
 			disasIt = disas->find(address);
 			if (disasIt != disas->end())
 				break;
-			dropMutex(mutex, 0);
+			dropMutex(mutex);
 			waitTime += 5;
 		}
 	}
@@ -107,16 +108,17 @@ INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE 
 				++mut;
 			}
 			if (insIt != disasIt->second.end()) break;
-			dropMutex(mutex, 0);
+			dropMutex(mutex);
 			Sleep(2);
-			obtainMutex(mutex, 0, 4000);
-			printf("Waiting for mutation (address %lx)\n", address);
+			obtainMutex(mutex, 4000);
+			cout << "[rgat]Waiting for mutation (address " << std::hex << address << ")" << endl;
 		}
 	}
 	
-	dropMutex(mutex, 0);
+	dropMutex(mutex);
 	return result;
 }
+
 //takes MARKER1234 buf, marker and target int
 //if MARKER matches marker, converts 1234 to integer and places
 //in target
@@ -173,24 +175,4 @@ int caught_stol(string s, unsigned long *result, int base) {
 		return 0;
 	}
 	return 1;
-}
-
-bool obtainMutex(HANDLE mutex, char *errorLocation, int waitTime)
-{
-	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
-	if (waitresult == WAIT_TIMEOUT) {
-		//assert(waitresult != WAIT_TIMEOUT);
-		if (errorLocation)
-			printf("WARNING! Mutex %x wait expired at %s ERROR!\n", (unsigned int)mutex, errorLocation);
-		return false;
-	}
-	//if (errorLocation) 	
-	//printf("Successfully obtained mutex %x -> %s...\n", mutex, errorLocation);
-	return true;
-}
-
-void dropMutex(HANDLE mutex, char *location) {
-	//if (location) 
-	//printf("Dropping mutex %x -> %s\n", mutex, location);
-	ReleaseMutex(mutex);
 }

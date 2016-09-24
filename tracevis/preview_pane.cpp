@@ -42,7 +42,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 	if (!posbufsize || !linebufsize) return;
 
 	vector<float> *lineVector = 0;
-	lineVector = previewgraph->previewlines->acquire_pos("upg");
+	lineVector = previewgraph->previewlines->acquire_pos();
 	if (previewgraph->previewlines->get_numVerts() == 0)
 	{
 		previewgraph->previewlines->release_pos();
@@ -52,7 +52,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_pos();
 
-	lineVector = previewgraph->previewlines->acquire_col("upg");
+	lineVector = previewgraph->previewlines->acquire_col();
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_COL, VBOs, linebufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_col();
@@ -152,10 +152,9 @@ bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *P
 void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions) 
 {
 
-	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph) {
-		printf("pid map empty, exiting ...\n");
+	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph)
 		return;
-	}
+
 	ALLEGRO_BITMAP *previousBmp = al_get_target_bitmap();
 	bool spinGraphs = true;
 
@@ -164,7 +163,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
 	int first = 0;
 
-	if (!obtainMutex(clientState->pidMapMutex, "Preview Pane")) return;
+	if (!obtainMutex(clientState->pidMapMutex, 5000)) return;
 
 	thread_graph_data *previewGraph = 0;
 
@@ -207,7 +206,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	}
 
 	glPopMatrix();
-	dropMutex(clientState->pidMapMutex, "Preview Pane");
+	dropMutex(clientState->pidMapMutex);
 	al_set_target_bitmap(previousBmp);
 
 	int scrollDiff = graphsHeight - clientState->displaySize.height;

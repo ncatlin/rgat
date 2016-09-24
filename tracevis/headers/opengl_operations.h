@@ -20,7 +20,7 @@ void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doC
 void array_render_points(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes);
-int plot_colourpick_sphere(VISSTATE *clientstate);
+void plot_colourpick_sphere(VISSTATE *clientstate);
 
 void drawHighlightLine(FCOORD endPt, ALLEGRO_COLOR *colour);
 void gather_projection_data(PROJECTDATA *pd);

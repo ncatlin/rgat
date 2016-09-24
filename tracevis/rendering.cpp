@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "rendering.h"
+#include "OSspecific.h"
 
 //must be called by main opengl context thread
 void plot_wireframe(VISSTATE *clientState)
@@ -8,15 +9,15 @@ void plot_wireframe(VISSTATE *clientState)
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
-	int ii, pp, index;
+	int ii, pp;
 	long diam = clientState->activeGraph->m_scalefactors->radius;
 	const int points = WF_POINTSPERLINE;
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
-	vector <float> *vpos = wireframe_data->acquire_pos("1c");
-	vector <float> *vcol = wireframe_data->acquire_col("1c");
+	vector <float> *vpos = wireframe_data->acquire_pos();
+	vector <float> *vcol = wireframe_data->acquire_col();
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -55,8 +56,8 @@ void plot_wireframe(VISSTATE *clientState)
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
-	vector <float> *vpos = vertdata->acquire_pos("1c");
-	vector <float> *vcol = vertdata->acquire_col("1c");
+	vector <float> *vpos = vertdata->acquire_pos();
+	vector <float> *vcol = vertdata->acquire_col();
 
 	int numverts = vertdata->get_numVerts();
 
@@ -90,8 +91,8 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 
 	int vsadded = 0;
 	curvePoints += 2;
-	vector<GLfloat> *vertpos = vertdata->acquire_pos("1b");
-	vector<GLfloat> *vertcol = vertdata->acquire_col("1b");
+	vector<GLfloat> *vertpos = vertdata->acquire_pos();
+	vector<GLfloat> *vertcol = vertdata->acquire_col();
 	if (!vertpos || !vertcol) return 0;
 	*colarraypos = vertcol->size();
 	int ci = 0;
@@ -143,7 +144,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	vertpos->push_back(endC->x);
 	vertpos->push_back(endC->y);
 	vertpos->push_back(endC->z);
-	vsadded++;
+	++vsadded;
 	cols[3] = 1;
 	vertcol->insert(vertcol->end(), cols, end(cols));
 
@@ -204,8 +205,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 				sphereAB(&middleC, &oldMidA, &oldMidB, dimensions);
 				sphereCoord(oldMidA, oldMidB, &bezierC, dimensions, -(eLen / 2));
 
-				// i dont know why this maths problem happens or why this fixes it
-				// but at this point i'm too afraid to ask.
+				//i dont know why this problem happens or why this fixes it
 				if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
 					bezierC.x = -bezierC.x;
 			}
@@ -253,8 +253,8 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	FCOORD screenc;
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 
-	vector<GLfloat> *mainNpos = vertdata->acquire_pos("334");
-	vector<GLfloat> *mainNcol = vertdata->acquire_col("33f");
+	vector<GLfloat> *mainNpos = vertdata->acquire_pos();
+	vector<GLfloat> *mainNcol = vertdata->acquire_col();
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
@@ -303,7 +303,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	//place node on the animated version of the graph
 	if (!vertdata->isPreview())
 	{
-		vector<GLfloat> *animNcol = animvertdata->acquire_col("1e");
+		vector<GLfloat> *animNcol = animvertdata->acquire_col();
 
 		animNcol->push_back(active_col->r);
 		animNcol->push_back(active_col->g);
@@ -371,7 +371,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 	if (!targetIdx) return;
 
-	GLfloat *vpos = &vertsdata->acquire_pos("334")->at(0);
+	GLfloat *vpos = &vertsdata->acquire_pos()->at(0);
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
 		node_data *n = graph->get_node(nodeIdx);
@@ -427,7 +427,7 @@ int render_main_graph(VISSTATE *clientState)
 	}
 
 	//more straightforward, stops graph from wrapping around the globe
-	unsigned int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+	int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
 	if (widestPoint > clientState->config->farA)
 	{
 		float startA = lowestPoint;
@@ -512,13 +512,13 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 	int vresult = draw_new_nodes(previewGraph, previewGraph->previewnodes, &clientState->config->graphColours.nodeColours);
 	if (vresult == -1)
 	{
-		printf("\n\nFATAL 5: Failed drawing new verts! returned:%d\n\n", vresult);
+		cerr << "ERROR: Failed drawing new nodes in render_preview_graph! returned: "<< vresult << endl;
 		assert(0);
 	}
 
 	if (!draw_new_preview_edges(clientState, previewGraph))
 	{
-		printf("\n\nFATAL 6: Failed drawing new edges!\n\n");
+		cerr << "ERROR: Failed drawing new edges in render_preview_graph! returned: " << vresult << endl;
 		assert(0);
 	}
 	return 1;
@@ -540,7 +540,6 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	else
 		argstring << n->calls << "x " << symString;
 	
-	//if trace recorded some arguments
 	if (n->funcargs.empty()) 
 		argstring << " ()";
 	else
@@ -572,9 +571,9 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
 	//todo: maintain local copy, update on size change?
-	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
+	obtainMutex(graph->funcQueueMutex, 1200);
 	vector<int> externListCopy = graph->externList;
-	dropMutex(graph->funcQueueMutex, "Display externlist");
+	dropMutex(graph->funcQueueMutex);
 
 	vector<int>::iterator externCallIt = externListCopy.begin();
 	for (; externCallIt != externListCopy.end(); ++externCallIt)
@@ -605,7 +604,6 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 	string itext("?");
 	for (unsigned int i = 0; i < numVerts; ++i)
 	{
-
 		node_data *n = graph->get_node(i);
 		if (n->external) continue;
 
@@ -619,7 +617,6 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
 
-		
 		if (!show_all_always) {
 			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
@@ -627,7 +624,6 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 				itext = n->ins->mnemonic;
 		}
 
-		
 		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address << ":" << itext;
 		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,

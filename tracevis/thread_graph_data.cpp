@@ -60,8 +60,8 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 //create faded edge version of graph for use in animations
 void thread_graph_data::extend_faded_edges()
 {
-	vector<GLfloat> *animecol = animlinedata->acquire_col("2c");
-	vector<GLfloat> *mainecol = mainlinedata->acquire_col("2c");
+	vector<GLfloat> *animecol = animlinedata->acquire_col();
+	vector<GLfloat> *mainecol = mainlinedata->acquire_col();
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
@@ -92,10 +92,10 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 {
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
-	obtainMutex(edMutex); //not sure if i should make a list-specific mutex
+	obtainMutex(edMutex, 10000); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
-		printf("Graph resize triggered\n");
+		cout << "Graph resize triggered" << endl;
 		reset_mainlines();
 		lines = get_mainlines();
 		edgeIt = edgeList.begin();
@@ -120,7 +120,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
-	obtainMutex(animationListsMutex, "get last ins", 1000);
+	obtainMutex(animationListsMutex, 1000);
 	pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceId);
 	int mutation = mutationSequence.at(sequenceId);
 	dropMutex(animationListsMutex);
@@ -145,11 +145,11 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	INS_DATA* ins = get_last_instruction(targetSequence);
 	int nodeIdx = ins->threadvertIdx[tid];
 
-	obtainMutex(animationListsMutex, 0, 1000);
+	obtainMutex(animationListsMutex, 1000);
 	map <unsigned int, EDGELIST>::iterator externit = externCallSequence.find(nodeIdx);
 	if (externit == externCallSequence.end())
 	{
-		dropMutex(animationListsMutex, "highlight externs");
+		dropMutex(animationListsMutex);
 		return; 
 	}
 
@@ -164,7 +164,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	else //todo. this should prob not happen?
 		targetExternIdx = callList.at(0).second;
 
-	dropMutex(animationListsMutex, "highlight externs");
+	dropMutex(animationListsMutex);
 
 	node_data *n = get_node(targetExternIdx);
 	if (!n->funcargs.empty())
@@ -174,9 +174,9 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
 
-	obtainMutex(funcQueueMutex, "End Highlight Externs", INFINITE);
+	obtainMutex(funcQueueMutex, INFINITE);
 	funcQueue.push(ex);
-	dropMutex(funcQueueMutex, "End Highlight Externs");
+	dropMutex(funcQueueMutex);
 
 }
 
@@ -198,9 +198,9 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 
 void thread_graph_data::emptyArgQueue()
 {
-	obtainMutex(funcQueueMutex, "End thread purge args", 3000);
+	obtainMutex(funcQueueMutex, 3000);
 	while (!funcQueue.empty()) funcQueue.pop();
-	dropMutex(funcQueueMutex, "End thread purge args");
+	dropMutex(funcQueueMutex);
 }
 
 bool thread_graph_data::decrease_sequence()
@@ -303,8 +303,6 @@ void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
 	set_active_node(derive_anim_node());
 }
 
-
-//return true if animation has ended
 unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop = false)
 {
 	if (nodeList.empty()) return ANIMATION_ENDED;
@@ -317,7 +315,6 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 	if (sequenceIndex == bbsequence.size() - 1)
 		return ANIMATION_ENDED;
 
-
 	return 0;
 }
 
@@ -325,7 +322,7 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	if (!animlinedata->get_numVerts()) return;
-	GLfloat *ecol = &animlinedata->acquire_col("2a")->at(0);
+	GLfloat *ecol = &animlinedata->acquire_col()->at(0);
 
 	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
 	bool update = false;
@@ -341,10 +338,10 @@ void thread_graph_data::darken_animation(float alphaDelta)
 		assert(e->vertSize);
 		for (unsigned int i = 0; i < e->vertSize; ++i)
 		{
-			const int colBufIndex = edgeStart + i*COLELEMS + AOFF;
+			const unsigned int colBufIndex = edgeStart + i*COLELEMS + AOFF;
 			if (colBufIndex >= animlinedata->col_buf_capacity_floats())
 			{
-				printf("skip darkening\n");
+				cerr << "[rgat]ERROR in darkening. colbufIndex > capacity" << endl;
 				assert(0);
 			}
 			edgeAlpha = ecol[colBufIndex];
@@ -365,7 +362,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	}
 	animlinedata->release_col();
 
-	GLfloat *ncol = &animnodesdata->acquire_col("2b")->at(0);
+	GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
 	int colBufSize = animnodesdata->col_buf_capacity_floats();
 
 	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
@@ -435,21 +432,21 @@ int thread_graph_data::brighten_BBs()
 
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
-		GLfloat *ncol = &animnodesdata->acquire_col("1m")->at(0);
-		GLfloat *ecol = &animlinedata->acquire_col("1m")->at(0);
+		GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col()->at(0);
 
 		while (!ncol || !ecol) 
 		{
 			animnodesdata->release_col();
 			animlinedata->release_col();
-			printf("BBbright fail\n");
+			cerr << "[rgat]Warning: BB brighten fail" << endl;
 			Sleep(75);
-			ncol = &animnodesdata->acquire_col("1m2")->at(0);
-			ecol = &animlinedata->acquire_col("1m2")->at(0);
+			ncol = &animnodesdata->acquire_col()->at(0);
+			ecol = &animlinedata->acquire_col()->at(0);
 		}
 
 
-		obtainMutex(animationListsMutex);
+		obtainMutex(animationListsMutex, 2000);
 		pair<unsigned long, int> targBlock_Size = bbsequence.at(animPosition);
 		int mutation = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
@@ -469,9 +466,9 @@ int thread_graph_data::brighten_BBs()
 			break;
 		}
 		
-		obtainMutex(disassemblyMutex, 0, 50); //do we need this?
+		obtainMutex(disassemblyMutex, 50); //do we need this here?
 		unsigned int nodeIdx = vertIt->second;
-		dropMutex(disassemblyMutex, 0);
+		dropMutex(disassemblyMutex);
 
 		//link lastbb to this
 		if (lastNodeIdx)
@@ -490,10 +487,11 @@ int thread_graph_data::brighten_BBs()
 				int numEdgeVerts = linkingEdge->vertSize;
 				for (int i = 0; i < numEdgeVerts; ++i) 
 				{
-					const int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
+					const unsigned int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
 					if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 					{
-						printf("DROPOUT EDGE\n");
+						//used this in devel, not sure it still happens. dead code?
+						cerr<< "[rgat]Error: DROPOUT EDGE" << endl;
 						dropout = true;
 						break;
 					}
@@ -509,7 +507,7 @@ int thread_graph_data::brighten_BBs()
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
 
-			const int colArrIndex = (nodeIdx * COLELEMS) + AOFF;
+			const unsigned int colArrIndex = (nodeIdx * COLELEMS) + AOFF;
 			if (colArrIndex >= animnodesdata->col_buf_capacity_floats())
 			{
 				//trying to brighten nodes we havent rendered yet
@@ -589,7 +587,7 @@ unsigned int thread_graph_data::derive_anim_node()
 {
 
 	//TODO this code appears 3 times, genericise it
-	obtainMutex(animationListsMutex);
+	obtainMutex(animationListsMutex, INFINITE);
 	pair<unsigned long, int> seq_size = bbsequence.at(sequenceIndex);
 	int mutation = mutationSequence.at(sequenceIndex);
 	dropMutex(animationListsMutex);
@@ -621,7 +619,7 @@ void thread_graph_data::reset_mainlines()
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
 	
-	obtainMutex(edMutex);
+	obtainMutex(edMutex, INFINITE);
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
 
@@ -633,7 +631,7 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-	obtainMutex(edMutex);
+	obtainMutex(edMutex, INFINITE);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
 	dropMutex(edMutex);
 	return linkingEdge;
@@ -661,7 +659,7 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	if (forceColour) edgeColour = forceColour;
 	else
 	{
-		assert(e->edgeClass < lineColours->size());
+		assert((size_t)e->edgeClass < lineColours->size());
 		edgeColour = &lineColours->at(e->edgeClass);
 	}
 
@@ -684,7 +682,7 @@ VCOORD *thread_graph_data::get_active_node_coord()
 {
 	if (nodeList.empty()) return NULL;
 
-	obtainMutex(animationListsMutex, 0, 1000);
+	obtainMutex(animationListsMutex, 1000);
 	VCOORD *result = &latest_active_node_coord;
 	dropMutex(animationListsMutex);
 
@@ -723,7 +721,7 @@ thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HAN
 
 void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
-	obtainMutex(edMutex);
+	obtainMutex(edMutex, INFINITE);
 	*edgeIt = edgeList.begin();
 	*edgeEnd = edgeList.end();
 }
@@ -736,7 +734,7 @@ void thread_graph_data::stop_edgeL_iteration()
 void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
 	EDGEMAP::iterator *edgeEnd)
 {
-	obtainMutex(edMutex);
+	obtainMutex(edMutex, INFINITE);
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
 }
@@ -751,9 +749,9 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
-	obtainMutex(nodeLMutex, "Insert Vert");
+	obtainMutex(nodeLMutex, INFINITE);
 	nodeList.push_back(node);
-	dropMutex(nodeLMutex, "Insert Vert");
+	dropMutex(nodeLMutex);
 
 	//obtainMutex(disassemblyMutex);
 	//printf("Adding node %d, ins: %s\n", targVertID, node.ins->ins_text.c_str());
@@ -767,7 +765,7 @@ void thread_graph_data::stop_edgeD_iteration()
 
 void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
-	obtainMutex(edMutex);
+	obtainMutex(edMutex, INFINITE);
 	edgeDict.insert(make_pair(edgePair, e));
 	edgeList.push_back(edgePair);
 	dropMutex(edMutex);
@@ -775,9 +773,7 @@ void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 
 thread_graph_data::~thread_graph_data()
 {
-	printf("deleting animlinedata after threaed die");
 	delete animlinedata;
-	printf("deleting animvertsdata after threaed die");
 	delete animnodesdata;
 }
 
@@ -787,7 +783,7 @@ void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesd
 	if (!edgesdata->get_numVerts()) return;
 	edge_data *e = get_edge(eIdx);
 	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
-	GLfloat *colarray = &edgesdata->acquire_col("2e")->at(0);
+	GLfloat *colarray = &edgesdata->acquire_col()->at(0);
 	for (unsigned int i = 0; i < e->vertSize; ++i)
 	{
 		unsigned int bufIndex = e->arraypos + i*COLELEMS + AOFF;
@@ -801,7 +797,7 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 {
 	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
 	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
-	GLfloat *colarray = &nodesdata->acquire_col("2f")->at(0);
+	GLfloat *colarray = &nodesdata->acquire_col()->at(0);
 	colarray[bufIndex] = alpha;
 	nodesdata->release_col();
 }
@@ -852,7 +848,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< "}S,";
 
 	*file << "A{";
-	obtainMutex(animationListsMutex, 0, INFINITE);
+	obtainMutex(animationListsMutex, INFINITE);
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
 		pair<unsigned long, int> seq_size = bbsequence.at(i);
@@ -864,7 +860,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		if (loopStateList[i].first )
 			*file << loopStateList[i].second << ",";
 	}
-	dropMutex(animationListsMutex, 0);
+	dropMutex(animationListsMutex);
 	*file << "}A,";
 
 	*file << "C{";

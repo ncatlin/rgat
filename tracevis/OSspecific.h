@@ -1,9 +1,10 @@
 #pragma once
 #include <stdafx.h>
-#include <GUIStructs.h>
 
 string getModulePath();
 string get_dr_path();
 bool fileExists(string path);
-void execute_tracer(string executable, VISSTATE *clientState);
-bool getSavePath(VISSTATE *clientState, string *result, int PID);
+void execute_tracer(string executable, void *clientState);
+bool getSavePath(string saveDir, string filename, string *result, int PID);
+bool obtainMutex(HANDLE mutex, int waitTime);
+void dropMutex(HANDLE mutex);

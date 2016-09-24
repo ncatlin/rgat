@@ -6,6 +6,7 @@
 #include "thread_graph_data.h"
 #include "timeline.h"
 #include "clientConfig.h"
+
 #define XOFF 0
 #define YOFF 1
 #define ZOFF 2
@@ -122,7 +123,7 @@ public:
 	GLuint wireframeVBOs[2];
 	bool remakeWireframe = false;
 	
-	std::map<int, PROCESS_DATA *> glob_piddata_map;
+	map<int, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
 	timeline *timelineBuilder;

@@ -63,7 +63,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	graph->heatmaplines->reset();
 
 	//finally build a colours buffer using the heat/colour map entry for each edge weight
-	vector <float> *lineVector = graph->heatmaplines->acquire_col("3b");
+	vector <float> *lineVector = graph->heatmaplines->acquire_col();
 	unsigned int edgeindex = 0;
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
 	EDGELIST* edgelist = graph->edgeLptr();
@@ -125,13 +125,13 @@ void heatmap_renderer::heatmap_thread()
 
 	while (true)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, "Heatmap Thread glm")) return;
+		if (!obtainMutex(piddata->graphsListMutex, 5000)) return;
 
 		vector<thread_graph_data *> graphlist;
 		map <int, void *>::iterator graphit = piddata->graphs.begin();
 		for (; graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
-		dropMutex(piddata->graphsListMutex, "Heatmap Thread glm");
+		dropMutex(piddata->graphsListMutex);
 
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())

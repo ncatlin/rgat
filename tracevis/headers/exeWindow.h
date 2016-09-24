@@ -1,4 +1,5 @@
 #pragma once
+#include "OSspecific.h"
 #include "GUIStructs.h"
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
@@ -8,7 +9,7 @@
 #include "Agui/Widgets/Button/Button.hpp"
 #include "Agui\Widgets\CheckBox\CheckBox.hpp"
 #include "Agui\Widgets\CheckBox\CheckBoxListener.hpp"
-#include "OSspecific.h"
+
 
 class exeWindow
 {

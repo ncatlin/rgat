@@ -1,4 +1,5 @@
 #include "highlightWindow.h"
+#include "OSspecific.h"
 
 //highlights all addresses/syms/etc that match filter
 void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData, 
@@ -65,9 +66,9 @@ void HighlightSelectionFrame::refreshDropdowns()
 	if (lastSymCount == graph->externList.size()) return;
 
 	//add all the used symbols to symbol list
-	obtainMutex(graph->funcQueueMutex, "Display externlist", 1200);
+	obtainMutex(graph->funcQueueMutex, 1200);
 	vector<int> externListCopy = graph->externList;
-	dropMutex(graph->funcQueueMutex, "Display externlist");
+	dropMutex(graph->funcQueueMutex);
 	vector<int>::iterator externIt = externListCopy.begin();
 
 	vector<string> addedSyms;

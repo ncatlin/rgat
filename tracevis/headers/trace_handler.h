@@ -54,7 +54,7 @@ private:
 	void TID_thread();
 	int runBB(TAG *tag, int startIndex, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
-	void updateStats(int a, int b, int bMod);
+	void updateStats(int a, int b, unsigned int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
 	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
 	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index);

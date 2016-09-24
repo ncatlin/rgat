@@ -20,7 +20,6 @@ void thread_trace_reader::reader_thread()
 {
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
 	pipename.append(std::to_wstring(TID));
-	wcout << "Opening thread reader pipe '" << pipename << "'" << endl;
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
@@ -38,6 +37,11 @@ void thread_trace_reader::reader_thread()
 
 	ConnectNamedPipe(hPipe, NULL);
 	char *tagReadBuf = (char*)malloc(TAGCACHESIZE);
+	if (!tagReadBuf) {
+		cerr << "[rgat]Failed to allocate tag buffer for thread " << TID << endl;
+		return;
+	}
+
 	int PIDcount = 0;
 	char *messageBuffer;
 
@@ -45,26 +49,23 @@ void thread_trace_reader::reader_thread()
 	while (true)
 	{
 		if (die) break;
-		ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL);
-
-		if (bytesRead == TAGCACHESIZE) {
-			printf("\t\tERROR: THREAD READ CACHE EXCEEDED! [%s]\n", tagReadBuf);
-			pipeClosed = true;
-			return;
-		}
-
-		tagReadBuf[bytesRead] = 0;
-		if (!bytesRead)
+		if (!ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL))
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				printf("thread %d pipe read ERROR: %d. [Closing handler]\n", TID, err);
+				cerr << "[rgat]Error: thread " << TID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
 			pipeClosed = true;
 			return;
 		}
 
+		if (bytesRead == TAGCACHESIZE) {
+			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
+			pipeClosed = true;
+			return;
+		}
+		tagReadBuf[bytesRead] = 0;
+
 		messageBuffer = (char*)malloc(bytesRead+1);
-		//printf("allocated %lx -- ", messageBuffer);
 		memcpy(messageBuffer, tagReadBuf, bytesRead+1);
 		add_message(messageBuffer, bytesRead+1);
 
@@ -85,9 +86,9 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	WaitForSingleObject(flagMutex, INFINITE);
 	vector<pair<char *, int>> *targetQueue = get_read_queue();
 
-	if (targetQueue->size() > traceBufMax)
+	if (targetQueue->size() >= traceBufMax)
 	{
-		printf("[Trace queue exceeds %d items! Waiting for renderer to catch up]\n", traceBufMax);
+		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for renderer to catch up..." << endl;
 		ReleaseMutex(flagMutex);
 		do {
 			Sleep(500);
@@ -97,10 +98,10 @@ void thread_trace_reader::add_message(char *buffer, int size)
 			targetQueue = get_read_queue();
 			if (targetQueue->size() < traceBufMax/2) break;
 			if (targetQueue->size() <  traceBufMax/10)
-				printf("[Trace queue now %d items]\n", targetQueue->size());
+				cout << "[rgat]Trace queue now "<< targetQueue->size() << "items" << endl;
 			ReleaseMutex(flagMutex);
 		} while (true);
-		printf("[Trace queue now %d items, resuming]\n", targetQueue->size());
+		cout << "[rgat]Trace queue now "<< targetQueue->size() << "items, resuming." << endl;
 	}
 	targetQueue->push_back(bufPair);
 	pendingData += size;
@@ -117,24 +118,18 @@ int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 		{
 			vector<pair<char *, int>>::iterator queueIt = readingQueue->begin();
 			for (; queueIt != readingQueue->end(); ++queueIt)
-			{
-				//printf(" freeing %lx -- ", queueIt->first);
 				free(queueIt->first);
-			}
 			readingQueue->clear();
 		}
 		readIndex = 0;
 
-		
 		if (readingFirstQueue)
 		{
-			//printf("First queue emptied! ");
 			readingQueue = &secondQueue;
 			readingFirstQueue = false;
 		}
 		else
 		{
-			//printf("secondQueue emptied! ");
 			readingQueue = &firstQueue;
 			readingFirstQueue = true;
 		}
@@ -142,11 +137,9 @@ int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 		if (processedData)
 		{
 			pendingData -= processedData;
-			//printf("Processed %d bytes of data in queue, %d remaining (queue size %d)\n", processedData, pendingData, readingQueue->size());
 			processedData = 0;
 		}
 		ReleaseMutex(flagMutex);
-		
 	}
 
 	if (readingQueue->empty())

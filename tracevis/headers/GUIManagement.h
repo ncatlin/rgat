@@ -92,6 +92,6 @@ void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, 
 void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg);
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
 
-int controlSetup();
+bool controlSetup();
 ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display);
 void cleanup_for_exit(ALLEGRO_DISPLAY *display);

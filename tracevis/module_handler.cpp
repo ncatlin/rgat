@@ -18,15 +18,17 @@ void module_handler::PID_thread()
 	pipename.append(std::to_wstring(PID));
 
 	const wchar_t* szName = pipename.c_str();
-	std::wcout << "[rgat process handler] creating mod thread " << szName << endl;
-
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 300, NULL);
 
-	int conresult = ConnectNamedPipe(hPipe, NULL);
-	printf("[rgat process handler]connect result: %d, GLE:%d. Waiting for input...\n", conresult,GetLastError());
-	
+	if (!ConnectNamedPipe(hPipe, NULL))
+	{
+		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID "<<PID<< ". Error: " << GetLastError();
+		return;
+	}
+
+	//if not launch by command line - do GUI stuff
 	if (clientState->commandlineLaunchPath.empty())
 	{
 		TraceVisGUI* widgets = (TraceVisGUI *)clientState->widgets;
@@ -45,9 +47,7 @@ void module_handler::PID_thread()
 		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				printf("Failed to read metadata pipe for PID:%d, err:%d\n", PID, GetLastError());
-			else
-				printf("\t------PID mod pipe %d broken, presumed terminated----\n", PID);
+				cerr << "[rgat]Failed to read metadata pipe for PID:" << PID << " error: " << GetLastError() << endl;
 			break;
 		}
 		buf[bread] = 0;
@@ -57,8 +57,7 @@ void module_handler::PID_thread()
 			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				printf("threadpipe PIPE ERROR: %d\n", err);
-			printf("\t!----------pid mod pipe %d broken------------\n", PID);
+				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
 			piddata->active = false;
 			return;
 		}
@@ -66,11 +65,10 @@ void module_handler::PID_thread()
 		{	
 			if (buf[0] == 'T' && buf[1] == 'I')
 			{
-				printf("[MODTHREAD PID %d] got TI %s\n",PID, buf);
 				int TID = 0;
 				if (!extract_integer(buf, string("TI"), &TID))
 				{
-					printf("\tMODHANDLER TI: ERROR GOT TI BUT NO EX XTRACT!\n");
+					cerr << "[rgat] Fail to extract thread ID from TI tag:" << buf << endl;
 					continue;
 				}
 				DWORD threadID = 0;
@@ -100,11 +98,11 @@ void module_handler::PID_thread()
 				tgraph->setReader(TID_reader);
 
 				tgraph->tid = TID; //todo: dont need this
-				if (!obtainMutex(piddata->graphsListMutex, "Module Handler")) return;
+				if (!obtainMutex(piddata->graphsListMutex, 2000)) return;
 				if (piddata->graphs.count(TID) > 0)
-					printf("\n\n\t\tDUPICATE THREAD ID! TODO:MOVE TO INACTIVE\n\n");
+					cerr << "[rgat]ERROR: Duplicate thread ID! Tell the dev to stop being awful" << endl;
 				piddata->graphs.insert(make_pair(TID, (void*)tgraph));
-				dropMutex(piddata->graphsListMutex, "Module Handler");
+				dropMutex(piddata->graphsListMutex);
 
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
 				hOutThread = CreateThread(
@@ -125,12 +123,11 @@ void module_handler::PID_thread()
 				address += piddata->modBounds.at(modnum).first;
 				if (!address | !symname | (next_token - buf != bread)) continue;
 				if (modnum > piddata->modpaths.size()) {
-					printf("Bad mod number in s!\n");
+					cerr << "[rgat]Bad mod number "<<modnum<< "in sym processing. " <<
+						piddata->modpaths.size() << " exist." << endl;
 					continue;
 				}
 				piddata->modsyms[modnum][address] = symname;
-				if (string(symname) == "GetStdHandle")
-					printf("Sym GETSTDH processed\n");
 				continue;
 			}
 

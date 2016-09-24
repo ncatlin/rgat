@@ -2,6 +2,7 @@
 #include "GUIStructs.h"
 #include "rendering.h"
 
+//this call is a bit sensitive and will give odd results if called in the wrong place
 void gather_projection_data(PROJECTDATA *pd) 
 {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -9,8 +10,6 @@ void gather_projection_data(PROJECTDATA *pd)
 	glGetDoublev(GL_PROJECTION_MATRIX, pd->projection);
 	glGetIntegerv(GL_VIEWPORT, pd->viewport);
 }
-
-
 
 void frame_gl_setup(VISSTATE* clientstate)
 {
@@ -106,11 +105,12 @@ void initial_gl_setup(VISSTATE *clientstate)
 	glMatrixMode(GL_MODELVIEW);
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
+	//why 60000?
 	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.height, 50, clientstate->zoomlevel + 60000);
 }
 
 //draw a segmented sphere with row gradiented red, cols green
-int plot_colourpick_sphere(VISSTATE *clientstate)
+void plot_colourpick_sphere(VISSTATE *clientstate)
 {
 	GRAPH_DISPLAY_DATA *spheredata = clientstate->col_pick_sphere;
 	if (spheredata)
@@ -130,13 +130,14 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 	int quads = 0;
 	int bufpos = 0;
 
-	vector<GLfloat> *spherepos = spheredata->acquire_pos("1a");
-	vector<GLfloat> *spherecol = spheredata->acquire_col("1a");
-	for (rowi = 180; rowi >= 0; rowi -= rowAngle) {
+	vector<GLfloat> *spherepos = spheredata->acquire_pos();
+	vector<GLfloat> *spherecol = spheredata->acquire_col();
+	for (rowi = 180; rowi >= 0; rowi -= rowAngle) 
+	{
 		float colb = (float)rowi / 180;
 		float ringSizeTop, ringSizeBase, anglel, angler;
-		for (coli = 0; coli < ADIVISIONS; ++coli) {
-
+		for (coli = 0; coli < ADIVISIONS; ++coli) 
+		{
 			float cola = 1 - ((float)coli / ADIVISIONS);
 
 			float iitop = rowi;
@@ -167,15 +168,19 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 				spherecol->push_back(0);
 			}
 
+			//draw a segment of a sphere
 			spherepos->push_back(tlx);
 			spherepos->push_back(ytop);
 			spherepos->push_back(tlz);
+
 			spherepos->push_back(trx);
 			spherepos->push_back(ytop);
 			spherepos->push_back(trz);
+
 			spherepos->push_back(brx);
 			spherepos->push_back(ybase);
 			spherepos->push_back(brz);
+
 			spherepos->push_back(blx);
 			spherepos->push_back(ybase);
 			spherepos->push_back(blz);
@@ -187,7 +192,6 @@ int plot_colourpick_sphere(VISSTATE *clientstate)
 	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
 	spheredata->release_col();
 	spheredata->release_pos();
-	return 0;
 }
 
 void rotate_to_user_view(VISSTATE *clientstate)

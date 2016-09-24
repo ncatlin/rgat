@@ -148,9 +148,12 @@ ALLEGRO_DISPLAY* displaySetup() {
 	if (!display) {
 		if (!display)
 		{
-			fprintf(stderr, "Failed to create display! error: %d\n", al_get_errno());
-			printf("Running this on VirtualBox?\n");
-			printf("\tVB Manual:\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"");
+			cerr << "[rgat]Failed to create display! Allegro error: "<< al_get_errno();
+			cerr << "Running this on VirtualBox?" << endl;
+			cerr << "\tVirtualBox Manual:" << endl;
+			cerr << "\t\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"" << endl;
+			cerr << "\tIt is safer to record the trace in nongraphical mode [-e from the command line]" << endl;
+			cerr << "\tReplay the trace in an environment with 3D support." << endl;
 			return NULL;
 		}
 	}
@@ -175,28 +178,27 @@ void updateTitle_Mouse(ALLEGRO_DISPLAY *display, TITLE *title, int x, int y) {
 
 }
 
-void updateTitle_Zoom(ALLEGRO_DISPLAY *display, TITLE *title, float zoom) {
+void updateTitle_Zoom(ALLEGRO_DISPLAY *display, TITLE *title, float zoom) 
+{
 	if (!title->zoom) return;
 	snprintf(title->zoom, 25, "%0.1f", zoom);
 	updateTitle(display, title);
-
 }
 
-void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg) {
+void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg) 
+{
 	if (!title->zoom) return;
 	snprintf(title->dbg, 200, "%s", msg);
 	updateTitle(display, title);
-
 }
 
 
-void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientstate, int verts, int edges){
+void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientstate, int verts, int edges)
+{
 	if (!clientstate->title->zoom) return;
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
-	int mbRemaining = (int) graph->traceBufferSize / 1024;
-	snprintf(clientstate->title->Primitives, 55, "[TID:%d V:%d/E:%d] Pending:%d MB", graph->tid, verts,edges, mbRemaining);
+	snprintf(clientstate->title->Primitives, 55, "[TID:%d N:%d/E:%d]", graph->tid, verts,edges);
 	updateTitle(display, clientstate->title);
-
 }
 
 void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPSMax) {
@@ -208,42 +210,40 @@ void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPS
 
 	snprintf(title->FPS, 25, "%d (%.0f)\n", FPS, FPSMax);
 	updateTitle(display, title);
-
 }
 
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
 	if (!clientState->activeGraph->get_num_nodes())
-	{
-		printf("ERROR NO VERTS in summary activegraph\n"); return;
-	}
+		return;
+
 	stringstream infotxt;
-	ALLEGRO_COLOR textcol;
+	ALLEGRO_COLOR textColour;
 
 	PROCESS_DATA *piddata = clientState->activePid;
 	if (piddata->active)
-		textcol = al_col_white;
+		textColour = al_col_white;
 	else
-		textcol = al_col_red;
+		textColour = al_col_red;
 
 	int activeModule = clientState->activeGraph->get_node(0)->nodeMod;
 	infotxt << piddata->modpaths[activeModule];
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
 	al_draw_filled_rectangle(0, 0, clientState->mainFrameSize.width, 32, al_map_rgba(0, 0, 0, 235));
-	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
+	al_draw_text(font, textColour, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 
-int controlSetup() {
+bool controlSetup() {
 	if (!al_install_mouse()) {
-		printf("Error installing mouse.\n");
-		return 0;
+		cerr << "[rgat]Error installing mouse." << endl;
+		return false;
 	}
 	if (!al_install_keyboard()) {
-		printf("Error installing keyboard.\n");
-		return 0;
+		cerr << "[rgat]Error installing keyboard." << endl;
+		return false;
 	}
-	return 1;
+	return true;
 }
 
 void cleanup_for_exit(ALLEGRO_DISPLAY *display) 

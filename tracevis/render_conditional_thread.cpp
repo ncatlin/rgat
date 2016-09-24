@@ -19,7 +19,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	conditionalNodes->reset();
 	if (nodeEnd)
 	{
-		vector<float> *nodeCol = conditionalNodes->acquire_col("1f");
+		vector<float> *nodeCol = conditionalNodes->acquire_col();
 		if (nodeIdx < nodeEnd) newDrawn = true;
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
@@ -66,7 +66,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR *edgeColour = &clientState->config->conditional.edgeColor;
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a };
 
-		vector<float> *edgecol = graph->conditionallines->acquire_col("1f");
+		vector<float> *edgecol = graph->conditionallines->acquire_col();
 		
 		while (condLineverts++ < mainLineverts)
 			edgecol->insert(edgecol->end(), edgeColArr, end(edgeColArr));
@@ -117,10 +117,10 @@ void conditional_renderer::conditional_thread()
 	map <int, void *>::iterator graphit;
 	while (true)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, "conditional Thread glm")) return;
+		if (!obtainMutex(piddata->graphsListMutex, 4000)) return;
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
-		dropMutex(piddata->graphsListMutex, "conditional Thread glm");
+		dropMutex(piddata->graphsListMutex);
 		
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())

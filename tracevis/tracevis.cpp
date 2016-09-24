@@ -76,9 +76,9 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 		clientState->spawnedProcess = piddata;
 
 
-	if (!obtainMutex(pidmutex, "Launch PID threads", 1000)) return 0;
+	if (!obtainMutex(pidmutex, 1000)) return 0;
 	glob_piddata_map->insert_or_assign(PID, piddata);
-	dropMutex(pidmutex, "Launch PID threads");
+	dropMutex(pidmutex);
 
 	DWORD threadID;
 
@@ -143,17 +143,17 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 
 
 
-int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
+bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
 	
 	*newDisplay = displaySetup();
 	if (!*newDisplay) {
-		printf("Display creation failed: returned %x\n", (int)newDisplay);
-		return 0;
+		cerr << "[rgat]Display creation failed, returned: "<< (int)newDisplay<< endl;
+		return false;
 	}
 
 	if (!controlSetup()) {
-		printf("Control setup failed\n");
-		return 0;
+		cerr << "[rgat]Control setup failed" << endl;
+		return false;
 	}
 
 	*evq = al_create_event_queue();
@@ -161,7 +161,7 @@ int GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_keyboard_event_source());
 	al_register_event_source(*evq, create_menu(*newDisplay));
 	al_register_event_source(*evq, al_get_display_event_source(*newDisplay));
-	return 1;
+	return true;
 }
 
 
@@ -175,7 +175,7 @@ int process_coordinator_thread(VISSTATE *clientState)
 
 	if (hPipe == INVALID_HANDLE_VALUE)
 	{
-		_tprintf(TEXT("CreateNamedPipe failed, GLE=%d.\n"), GetLastError());
+		cout << "[rgat]CreateNamedPipe failed with error " << GetLastError();
 		return -1;
 	}
 
@@ -186,7 +186,7 @@ int process_coordinator_thread(VISSTATE *clientState)
 	{
 		int conresult = ConnectNamedPipe(hPipe, NULL);
 		if (!conresult) {
-			printf("\tERROR: Failed to connect bootstrap pipe\n");
+			cout << "[rgat]ERROR: Failed to connect bootstrap pipe"<<endl;
 			Sleep(1000);
 			continue;
 		}
@@ -194,7 +194,7 @@ int process_coordinator_thread(VISSTATE *clientState)
 		ReadFile(hPipe, buf, 30, &bread, NULL);
 		DisconnectNamedPipe(hPipe);
 		if (!bread) {
-			printf("\tERROR: Read 0 when waiting for PID. Try again\n");
+			cout << "[rgat]ERROR: Read 0 when waiting for PID. Try again" << endl;
 			Sleep(1000);
 			continue;
 		}
@@ -231,7 +231,7 @@ int process_coordinator_thread(VISSTATE *clientState)
 				}
 			}
 			else
-				printf("ERROR: Something bad happen in extract_integer, string is: %s\n", buf);
+				cout << "[rgat]ERROR: Something bad happened in extract_integer, string is: " << buf << endl;
 			return -1;
 		}
 
@@ -247,7 +247,6 @@ void change_mode(VISSTATE *clientState, int mode)
 	{
 	case EV_BTN_WIREFRAME:
 		clientState->modes.wireframe = !clientState->modes.wireframe;
-		//todo: change icon
 		return;
 
 	case EV_BTN_CONDITION:
@@ -258,7 +257,6 @@ void change_mode(VISSTATE *clientState, int mode)
 			clientState->modes.nodes = true;
 			clientState->modes.heatmap = false;
 		}
-		//todo: change icon
 		return;
 
 	case EV_BTN_HEATMAP:
@@ -266,7 +264,6 @@ void change_mode(VISSTATE *clientState, int mode)
 		clientState->modes.heatmap = !clientState->modes.heatmap;
 		clientState->modes.nodes = !clientState->modes.heatmap;
 		if (clientState->modes.heatmap) clientState->modes.conditional = false;
-		//todo: change icon
 		return;
 
 	case EV_BTN_PREVIEW:
@@ -354,7 +351,7 @@ string generate_funcArg_string(thread_graph_data *graph, int nodeIdx, ARGLIST ar
 //also adds them to the call log
 void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
-	obtainMutex(graph->funcQueueMutex, "FuncQueue Pop", INFINITE);
+	obtainMutex(graph->funcQueueMutex, INFINITE);
 	while (!graph->funcQueue.empty())
 	{
 		EXTERNCALLDATA resu = graph->funcQueue.front();
@@ -367,13 +364,13 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(graph, extt.nodeIdx, resu.fdata, piddata);
 
-		if (resu.edgeIdx.first == resu.edgeIdx.second) { printf("WARNING: bad argument edge!\n"); continue; }
+		if (resu.edgeIdx.first == resu.edgeIdx.second) { cout << "[rgat]WARNING: bad argument edge!" << endl; continue; }
 
 		if (graph->active )
 		{
 			if (!resu.callerAddr)
 			{
-				obtainMutex(piddata->disassemblyMutex);
+				obtainMutex(piddata->disassemblyMutex, 4000);
 				node_data* parentn = graph->get_node(resu.edgeIdx.first);
 				node_data* externn = graph->get_node(resu.edgeIdx.second);
 				resu.callerAddr = parentn->ins->address;
@@ -398,7 +395,7 @@ void transferNewLiveCalls(thread_graph_data *graph, map <int, vector<EXTTEXT>> *
 		graph->set_node_alpha(resu.nodeIdx, graph->get_activenodes(), 1.0);
 		externFloatingText->at(graph->tid).push_back(extt);
 	}
-	dropMutex(graph->funcQueueMutex, "FuncQueue Pop");
+	dropMutex(graph->funcQueueMutex);
 }
 
 //draw floating extern texts. delete from list if time expired
@@ -519,8 +516,8 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	gather_projection_data(&pd);
 
 	display_graph(clientState, graph, &pd);
-	//transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
-	//drawExternTexts(graph, externFloatingText, clientState, &pd);
+	transferNewLiveCalls(graph, externFloatingText, clientState->activePid);
+	drawExternTexts(graph, externFloatingText, clientState, &pd);
 }
 
 //plot wireframe/colpick sphere in memory if they dont exist
@@ -575,6 +572,7 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
 
 		if (arg == "-h" )
 		{
+			//TODO
 			printf("Help...\n");
 			return false;
 		}
@@ -582,7 +580,7 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
 
 	if (!fileExists(clientstate->commandlineLaunchPath))
 	{
-		printf("ERROR: File %s does not exist, exiting...\n", clientstate->commandlineLaunchPath.c_str());
+		cerr << "[rgat]ERROR: File " << clientstate->commandlineLaunchPath << " does not exist, exiting..." << endl;
 		return false;
 	}
 	return true;
@@ -599,7 +597,7 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 void handleKBDExit()
 {
 	if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
-		printf("\nERROR: Could not set control handler");
+		cerr << "[rgat]ERROR: Could not set control handler" << endl;
 		return;
 	}
 }
@@ -620,7 +618,7 @@ int main(int argc, char **argv)
 
 	if (!al_init())
 	{
-		fprintf(stderr, "Failed to initialise Allegro!\n");
+		cerr << "Failed to initialise Allegro! Use nongraphical mode -e from command line" << endl;
 		return NULL;
 	}
 
@@ -655,22 +653,22 @@ int main(int argc, char **argv)
 			{
 				activeTIDs = newTIDs;
 				activePIDs = newPIDs;
-				printf("Tracking %d threads in %d processes\n", activeTIDs, activePIDs);
+				cout << "[rgat]Tracking " << activeTIDs << " threads in " << activePIDs << " processes" << endl;
 				if (!activeTIDs && !activePIDs)
 				{
-					printf("All processes terminated. Saving...\n");
+					cout << "[rgat]All processes terminated. Saving...\n" << endl;
 					saveAll(&clientstate);
-					printf("Saving complete. Exiting.");
+					cout << "[rgat]Saving complete. Exiting." << endl;
 					return 1;
 				}
 			}
 
 			if (kbdInterrupt)
 			{
-				printf("Keyboard interrupt detected, saving...\n");
+				cout << "[rgat]Keyboard interrupt detected, saving..."<<endl;
 				//TODO: terminate all
 				saveAll(&clientstate);
-				printf("Saving complete. Exiting.");
+				cout << "[rgat]Saving complete. Exiting." << endl;
 				return 1;
 			}
 
@@ -680,7 +678,7 @@ int main(int argc, char **argv)
 	ALLEGRO_DISPLAY *newDisplay = 0;
 	ALLEGRO_EVENT_QUEUE *newQueue = 0;
 	if (!GUI_init(&newQueue, &newDisplay)) {
-		printf("GUI init failed - todo - nongraphical mode\n");
+		cout << "[rgat]GUI init failed - Use nongraphical mode -e from command line" << endl;
 		return 0;
 	}
 	
@@ -741,7 +739,7 @@ int main(int argc, char **argv)
 	clientstate.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
 	ALLEGRO_FONT *PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
 	if (!clientstate.standardFont) {
-		fprintf(stderr, "Could not load font file %s\n", fontPath.c_str());
+		cerr << "[rgat]Could not load font file "<< fontPath << endl;
 		return -1;
 	}
 
@@ -795,7 +793,7 @@ int main(int argc, char **argv)
 		{
 			PROCESS_DATA* activePid = clientstate.spawnedProcess;
 
-			if (!obtainMutex(clientstate.pidMapMutex, "Main Loop",2000)) return 0;
+			if (!obtainMutex(clientstate.pidMapMutex, 2000)) return 0;
 			
 			widgets->setActivePID(activePid->PID);
 			clientstate.activePid = activePid;
@@ -839,7 +837,7 @@ int main(int argc, char **argv)
 				clientstate.switchProcess = false;
 			}
 
-			dropMutex(clientstate.pidMapMutex, "Main Loop");
+			dropMutex(clientstate.pidMapMutex);
 		}
 
 		//active graph changed
@@ -984,7 +982,7 @@ int main(int argc, char **argv)
 				break;
 			}
 			default:
-				printf("WARNING! Unhandled event %d\n", eventResult);
+				cout << "[rgat]WARNING! Unhandled event "<< eventResult << endl;
 			}
 		}
 
@@ -1012,39 +1010,45 @@ bool loadTrace(VISSTATE *clientState, string filename) {
 
 	loadfile >> s1;
 	if (s1 != "PID") {
-		printf("Corrupt save, start = %s\n", s1.c_str());
+		cout << "[rgat]Corrupt save, start = " << s1 << endl;
 		return false;
 	}
 
 	int PID;
 	loadfile >> PID;
-	if (PID < 0 || PID > 100000) { printf("Corrupt save (pid=%d)\n", PID); return false; }
-	else printf("Loading saved PID: %d\n", PID);
+	if (PID < 0 || PID > 100000) { cout << "[rgat]Corrupt save (pid= " << PID << ")" << endl; return false; }
+	else
+		cout << "[rgat]Loading saved PID: " << PID << endl;
 	loadfile.seekg(1, ios::cur);
 
 	PROCESS_DATA *newpiddata = new PROCESS_DATA;
 	newpiddata->PID = PID;
 	if (!loadProcessData(clientState, &loadfile, newpiddata))
 	{
-		printf("Process data load failed\n");
+		cout << "Process data load failed" << endl;
 		return false;
 	}
-	printf("Loaded process data. Loading graphs...\n");
+
+	cout << "Loaded process data. Loading graphs..." << endl;
 
 	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
 	{
-		printf("Process Graph load failed\n");
+		cout << "Process Graph load failed" << endl;
 		return false;
 	}
 
-	printf("Loading completed successfully\n");
+	cout << "Loading completed successfully" << endl;
 	loadfile.close();
 
-	if (!obtainMutex(clientState->pidMapMutex, "load graph")) return 0;
+	if (!obtainMutex(clientState->pidMapMutex, 6000))
+	{
+		cerr << "Failed to obtain pidMapMutex in load" << endl;
+		return 0;
+	}
 	clientState->glob_piddata_map[PID] = newpiddata;
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->addPID(PID);
-	dropMutex(clientState->pidMapMutex, "load graph");
+	dropMutex(clientState->pidMapMutex);
 
 	launch_saved_PID_threads(PID, newpiddata, clientState);
 	return true;
@@ -1325,13 +1329,13 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 				clientstate->show_ins_text = INSTEXT_FIRST;
 			switch (clientstate->show_ins_text) {
 			case INSTEXT_NONE:
-				printf("Instruction text off");
+				cout << "[rgat]Instruction text off" << endl;
 				break;
 			case INSTEXT_AUTO:
-				printf("Instruction text auto");
+				cout << "[rgat]Instruction text auto" << endl;
 				break;
 			case INSTEXT_ALL_ALWAYS:
-				printf("Instruction text always on");
+				cout << "[rgat]Instruction text always on" << endl;
 				break;
 			}
 			break;
@@ -1353,7 +1357,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		{
 		case EV_BTN_RUN:  
 			widgets->exeSelector->show();
-			//todo: start timeline
 			break;
 
 		case EV_BTN_QUIT: return EV_BTN_QUIT;
@@ -1396,7 +1399,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		case EV_BTN_SAVE:
 			if (clientstate->activeGraph)
 			{
-				printf("Saving process %d to file\n", clientstate->activeGraph->pid);
+				cout << "[rgat]Saving process " << clientstate->activeGraph->pid << " to file" << endl;
 				saveTrace(clientstate);
 			}
 			break;
@@ -1404,7 +1407,6 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		case EV_BTN_LOAD:
 		{
 			widgets->exeSelector->hide();
-			printf("Opening file dialogue\n");
 			ALLEGRO_FILECHOOSER *fileDialog;
 			fileDialog = al_create_native_file_dialog(clientstate->config->saveDir.c_str(),
 				"Choose saved trace to open", "*.rgat;*.*;",
@@ -1423,7 +1425,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			break;
 		}
 		default:
-			printf("UNHANDLED MENU EVENT? %d\n", ev->user.data1);
+			cout << "[rgat]Error: Unhandled menu event "<< ev->user.data1;
 			break;
 		}
 		return EV_NONE;
@@ -1450,7 +1452,7 @@ int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 	case ALLEGRO_EVENT_KEY_CHAR:
 		return EV_NONE;
 	}
-	printf("unhandled event: %d\n", ev->type);
+	cout << "[rgat]Unhandled event: " << ev->type << endl;
 
 	return EV_NONE; //usually lose_focus
 }

@@ -50,7 +50,7 @@ public:
 	ALLEGRO_COLOR activityLineColour;
 	int lowB;
 	int farA;
-	int renderFrequency;
+	unsigned int renderFrequency;
 
 	unsigned long traceBufMax;
 
