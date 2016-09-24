@@ -242,7 +242,7 @@ ModelManifest.xml
 .paket/paket.exe
 
 #rgat save
-saves/
+tracevis/saves/
 
 # FAKE - F# Make
 .fake/
