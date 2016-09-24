@@ -1,3 +1,22 @@
+/*
+Copyright 2016 Nia Catlin
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/*
+Graph/Process Saving/Loading routines
+*/
 #include "stdafx.h"
 #include "traceStructs.h"
 #include "b64.h"
@@ -122,7 +141,6 @@ void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 bool ensureDirExists(string dirname, VISSTATE *clientState)
 {
 	return true;
-
 }
 
 //this saves the process data of activePid and all of its graphs
@@ -134,15 +152,15 @@ void saveTrace(VISSTATE * clientState)
 		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths[0],
 		&path, clientState->activePid->PID))
 	{
-		printf("ERROR: Failed to get save path\n");
+		cerr << "ERROR: Failed to get save path" << endl;
 		return;
 	}
 
-	printf("Saving process %d to %s\n", clientState->activePid->PID, path.c_str());
+	cout << "Saving process " << clientState->activePid->PID <<" to " << path << endl;
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
-		printf("Failed to open %s for save\n", path.c_str());
+		cerr << "Failed to open " << path << "for save" << endl;
 		return;
 	}
 
@@ -214,7 +232,7 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 		getline(*blob, symAddress_s, ',');
 		if (symAddress_s == "}") return 1;
 		if (!caught_stol(symAddress_s, &symAddress, 10))		{
-			printf("extractmodsyms: bad address: %s", symAddress_s.c_str());
+			cerr << "extractmodsyms: bad address: " << symAddress_s << endl;
 			return -1;
 		}
 
@@ -226,19 +244,18 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 
 bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
-	
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
-		printf("Corrupt save (process data start)\n");
+		cerr << "Corrupt save (process data start)" << endl;
 		return false;
 	}
 
 	//paths
 	if (!verifyTag(file, tag_START, tag_PATH)) {
-		printf("Corrupt save (process- path data start)\n");
+		cerr << "Corrupt save (process- path data start)" << endl;
 		return false;
 	}
 
-	printf("Loading Module paths\n");
+	cout << "Loading Module Paths" << endl;
 	string pathstring("");
 	string endTagStr;
 	endTagStr += tag_END;
@@ -262,7 +279,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	endTagStr.clear();
 
 	//syms
-	printf("Loading Module Symbols\n");
+	cout << "Loading Module Symbols" << endl;
 	if (!verifyTag(file, tag_START, tag_SYM)) {
 		printf("Corrupt save (process- sym data start)\n");
 		return false;
@@ -287,15 +304,15 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	file->seekg(1, ios::cur);
 
 	//disassembly
-	printf("Loading basic block disassembly\n");
+	cout << "Loading basic block disassembly" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
-		printf("Corrupt save (process- disas data start)\n");
+		cerr << "[rgat]Corrupt save (process- disassembly data start)" << endl;
 		return false;
 	}
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)	{
-		printf("Couldn't open capstone instance\n");
+		cerr << "[rgat]Couldn't open capstone instance" << endl;
 		return false;
 	}
 
@@ -309,12 +326,12 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 
 		getline(*file, mutations_s, ',');
 		if (!caught_stoi(mutations_s, &mutations, 10)) {
-			printf("stoi failed with [%s]\n", address_s.c_str()); return false;
+			cerr << "[rgat]mutations stoi failed with "<< mutations_s <<endl; return false;
 		}
 
 		getline(*file, address_s, ',');
 		if (!caught_stol(address_s, &address, 10)) {
-			printf("stol failed with [%s]\n", address_s.c_str()); return false;
+			cerr << "[rgat]address stol failed with " << address_s << endl; return false;
 		}
 
 		INSLIST mutationVector;
@@ -347,12 +364,12 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	cs_close(&hCapstone);
 
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		printf("Corrupt save (process- disas data start)\n");
+		cerr << "[rgat]Corrupt save (process- disas data start)" << endl;
 		return false;
 	}
 
 	if (!verifyTag(file, tag_END, tag_PROCESSDATA)) {
-		printf("Corrupt save (process data end)\n");
+		cerr << "[rgat]Corrupt save (process data end)" << endl;
 		return false;
 	}
 
@@ -363,7 +380,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
 	char tagbuf[3]; int TID; string tidstring;
-	printf("Loading thread graphs...\n");
+	cerr << "Loading thread graphs..." << endl;
 	while (true)
 	{
 		file->read(tagbuf, 3);
@@ -384,7 +401,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 
 		graph->assign_modpath(piddata);
 
-		printf("Loaded thread graph %d\n", TID);
+		cerr << "Loaded thread graph "<<TID <<endl;
 		if (file->peek() != 'T') break;
 	}
 	return true;

@@ -190,7 +190,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="headers\serialise.h" />
     <ClInclude Include="headers\thread_trace_reader.h" />
-    <ClInclude Include="timeline.h" />
+    <ClInclude Include="headers\timeline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Agui-master\src\Agui\ActionEvent.cpp" />

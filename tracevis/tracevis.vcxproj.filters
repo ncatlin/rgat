@@ -78,9 +78,6 @@
     <ClInclude Include="headers\graph_display_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="timeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\diff_plotter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -141,6 +138,9 @@
     <ClInclude Include="OSspecific.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\timeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -153,9 +153,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="rendering.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GUIManagement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="traceMisc.cpp">
@@ -463,6 +460,9 @@
     </ClCompile>
     <ClCompile Include="thread_trace_reader.cpp">
       <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="GUIManagement.cpp">
+      <Filter>Source Files\interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
