@@ -74,13 +74,13 @@ void thread_trace_reader::reader_thread()
 			if (err != ERROR_BROKEN_PIPE)
 				cerr << "[rgat]Error: thread " << TID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
 			pipeClosed = true;
-			return;
+			break;
 		}
 
 		if (bytesRead == TAGCACHESIZE) {
 			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
 			pipeClosed = true;
-			return;
+			break;
 		}
 		tagReadBuf[bytesRead] = 0;
 
@@ -89,6 +89,15 @@ void thread_trace_reader::reader_thread()
 		add_message(messageBuffer, bytesRead+1);
 
 	}
+	if (!die)
+		cout << "Trace reader lost connection to thread " << TID << " exiting after buffer processing"<<endl;
+	//keep the thread open until killed or buffers emptied
+	while (!firstQueue.empty() && !secondQueue.empty())
+	{
+		if (die) break;
+		Sleep(10);
+	}
+	cout << "Trace reader exiting" << endl;
 }
 
 vector<pair<char *, int>> * thread_trace_reader::get_read_queue()
@@ -130,7 +139,7 @@ void thread_trace_reader::add_message(char *buffer, int size)
 int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 {
 	
-	if (readingQueue->empty() || readingQueue->size() <= readIndex)
+	if (readingQueue->empty() || readIndex >= readingQueue->size())
 	{
 		WaitForSingleObject(flagMutex, INFINITE);
 		if (!readingQueue->empty())
@@ -163,7 +172,7 @@ int thread_trace_reader::get_message(char **buffer, unsigned long *bufSize)
 
 	if (readingQueue->empty())
 	{
-		if (pipeClosed) *bufSize = -1;
+		if (pipeClosed && firstQueue.empty() && secondQueue.empty()) *bufSize = -1;
 		else *bufSize = 0;
 		return pendingData;
 	}

@@ -729,9 +729,11 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		node_data *n = graph->get_node(i);
 		if (n->external) continue;
 
-		//this check removes the bulk of the instructions at a low performance cost
+		//this check removes the bulk of the instructions at a low performance cost, including those
+		//on screen but on the other side of the sphere
 		//implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
-		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
+		//bypass by turning instruction display always on
+		if (!show_all_always && !a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
 			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 
@@ -739,7 +741,8 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
 
-		if (!show_all_always) {
+		if (!show_all_always) 
+		{
 			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
@@ -913,7 +916,7 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 
 void draw_heatmap_key_blocks(VISSTATE *clientState, int x, int y)
 {
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 10; ++i)
 	{
 		int qx = x + i*HEATMAP_KEY_SQUARESIZE;
 		ALLEGRO_COLOR *c = &clientState->config->heatmap.edgeFrequencyCol[i];

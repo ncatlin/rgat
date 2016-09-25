@@ -41,5 +41,7 @@ int extractb64path(ifstream *file, unsigned long *id, string *modpath, string en
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata);
 bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);
 bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);
+
+//save every graph in activePid
 void saveAll(VISSTATE *clientState);
 

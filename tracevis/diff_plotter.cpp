@@ -54,12 +54,10 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 //first edge pair in graph 1 that is different in graphs 1 and 2
 unsigned long diff_plotter::first_divering_edge()
 {
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1;
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG1;
+	EDGELIST::iterator edgeSeqItG1, edgeSeqEndG1;
 	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
 
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG2;
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG2;
+	EDGELIST::iterator edgeSeqItG2, edgeSeqEndG2;
 	graph2->start_edgeL_iteration(&edgeSeqItG2, &edgeSeqEndG2);
 
 	unsigned long seqIndex = 0;
@@ -84,9 +82,9 @@ unsigned long diff_plotter::first_divering_edge()
 			if (n1targ->ins->op_str != n2targ->ins->op_str) break;
 		}
 
-		seqIndex++;
-		edgeSeqItG1++;
-		edgeSeqItG2++;
+		++seqIndex;
+		++edgeSeqItG1;
+		++edgeSeqItG2;
 	}
 	graph1->stop_edgeL_iteration();
 	graph2->stop_edgeL_iteration();
@@ -99,8 +97,8 @@ unsigned long diff_plotter::first_divering_edge()
 
 void diff_plotter::render() 
 {
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqItG1;
-	vector<pair<unsigned int, unsigned int>>::iterator edgeSeqEndG1;
+	EDGELIST::iterator edgeSeqItG1;
+	EDGELIST::iterator edgeSeqEndG1;
 	
 	divergenceIdx = first_divering_edge();
 	unsigned long renderIdx = 0;
@@ -109,7 +107,7 @@ void diff_plotter::render()
 	ALLEGRO_COLOR *edgeColour = &al_col_green;
 
 	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
-	for (; edgeSeqItG1 != edgeSeqEndG1; edgeSeqItG1++)
+	for (; edgeSeqItG1 != edgeSeqEndG1; ++edgeSeqItG1)
 	{
 		if (renderIdx++ == divergenceIdx) edgeColour = &al_col_red;
 		graph1->render_edge(*edgeSeqItG1, linedata, NULL, edgeColour);

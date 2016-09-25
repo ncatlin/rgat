@@ -54,6 +54,7 @@ struct THREAD_POINTERS {
 
 bool kbdInterrupt = false;
 
+//for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
 void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
@@ -85,7 +86,8 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 
 }
  
-
+//for each live process we have a thread rendering graph data for previews, heatmaps and conditonals
+//+ module data and disassembly
 THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
 	THREAD_POINTERS *threads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
@@ -192,46 +194,48 @@ int process_coordinator_thread(VISSTATE *clientState)
 			Sleep(1000);
 			continue;
 		}
-
 		buf[bread] = 0;
 
 		int PID = 0;
-		if (!extract_integer(buf, string("PID"), &PID))
+		if (extract_integer(buf, string("PID"), &PID))
 		{
-			if (string(buf).substr(0,3) == "DIE")
-			{
-				vector<THREAD_POINTERS *>::iterator threadIt;
-				for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
-				{
-					THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
-					t->BBthread->die = true;
-					ofstream BBPipe;
-					BBPipe.open(t->BBthread->pipename);
-					BBPipe << "DIE" << endl;
-					BBPipe.close();
-
-					((THREAD_POINTERS *)*threadIt)->modThread->die = true;
-					ofstream modPipe;
-					modPipe.open(t->modThread->pipename);
-					modPipe << "DIE" << endl;
-					modPipe.close();
-
-					if (clientState->commandlineLaunchPath.empty())
-					{
-						t->heatmapThread->die = true;
-						t->conditionalThread->die = true;
-						t->previewThread->die = true;
-					}
-				}
-			}
-			else
-				cout << "[rgat]ERROR: Something bad happened in extract_integer, string is: " << buf << endl;
-			return -1;
+			clientState->timelineBuilder->notify_new_pid(PID);
+			THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
+			threadsList.push_back(threads);
+			continue;
 		}
 
-		clientState->timelineBuilder->notify_new_pid(PID);
-		THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
-		threadsList.push_back(threads);
+		if (string(buf).substr(0,3) == "DIE")
+		{
+			vector<THREAD_POINTERS *>::iterator threadIt;
+			for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
+			{
+				THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
+				t->BBthread->die = true;
+				ofstream BBPipe;
+				BBPipe.open(t->BBthread->pipename);
+				BBPipe << "DIE" << endl;
+				BBPipe.close();
+
+				((THREAD_POINTERS *)*threadIt)->modThread->die = true;
+				ofstream modPipe;
+				modPipe.open(t->modThread->pipename);
+				modPipe << "DIE" << endl;
+				modPipe.close();
+
+				if (clientState->commandlineLaunchPath.empty())
+				{
+					t->heatmapThread->die = true;
+					t->conditionalThread->die = true;
+					t->previewThread->die = true;
+				}
+			}
+		}
+		else
+		{
+			cout << "[rgat]ERROR: Something bad happened in extract_integer, string is: " << buf << endl;
+		}
+		return -1;
 	}
 }
 
@@ -430,8 +434,8 @@ static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 		mousex > clientState->mainFrameSize.width);
 }
 
-bool loadTrace(VISSTATE *clientState, string filename) {
-
+bool loadTrace(VISSTATE *clientState, string filename)
+{
 	ifstream loadfile;
 	loadfile.open(filename, std::ifstream::binary);
 	//load process data
@@ -482,7 +486,6 @@ bool loadTrace(VISSTATE *clientState, string filename) {
 	launch_saved_PID_threads(PID, newpiddata, clientState);
 	return true;
 }
-
 
 static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 {
@@ -550,11 +553,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 
 				float slowdownfactor = 0.035; //reduce movement this much for every 1000 pixels zoomed in
 				float slowdown = zoomdiff / 1000;
-				//printf("zoomdiff: %f slowdown: %f\n", zoomdiff, slowdown);
 
 				// here we control drag speed at various zoom levels
 				// todo when we have insturctions to look at
-				//todo: fix speed at furhter out zoom levels
+				//todo: fix speed at further out zoom levels
 
 				//if (zoomdiff > slowRotateThresholdLow && zoomdiff < slowRotateThresholdHigh) {
 				//	printf("non slowed drag! low:%ld -> zd: %f -> high:%ld\n", slowRotateThresholdLow, zoomdiff, slowRotateThresholdHigh);
@@ -578,7 +580,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			}
 			else
 			{
-
 				if (mouse_in_previewpane(clientstate, ev->mouse.x))
 				{
 					widgets->toggleSmoothDrawing(true);
@@ -1209,7 +1210,8 @@ int main(int argc, char **argv)
 			case EV_BTN_QUIT:
 			{
 				mainRenderThread->die = true;
-				clientstate.terminationPid = clientstate.activePid->PID; //only stops current process threads
+				if (clientstate.activePid)
+					clientstate.terminationPid = clientstate.activePid->PID; //only stops current process threads
 				Sleep(500);
 				running = false;
 				break;

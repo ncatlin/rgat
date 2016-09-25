@@ -66,7 +66,7 @@ void preview_renderer::rendering_thread()
 				render_preview_graph(graph, clientState);
 
 			Sleep(innerDelay);
-			graphlistIt++;
+			++graphlistIt;
 		}
 		graphlist.clear();
 		Sleep(outerDelay);

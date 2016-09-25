@@ -61,7 +61,7 @@ INS_DATA* getDisassembly(unsigned long address,int mutation, HANDLE mutex, map<u
 			{
 				waitTime += 5;
 				if (waitTime > 600)
-					cout<<"[rgat]Long wait for disassembly of " << address << ", mutation " << mutation << endl;
+					cout << "[rgat]Long wait for disassembly of " << address << ", mutation " << mutation << endl;
 				continue;
 			}
 

@@ -54,7 +54,11 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 		extt.yOffset = 0;
 		extt.displayString = generate_funcArg_string(get_node_sym(extt.nodeIdx, piddata), resu.fdata);
 
-		if (resu.edgeIdx.first == resu.edgeIdx.second) { cout << "[rgat]WARNING: bad argument edge!" << endl; continue; }
+		if (resu.edgeIdx.first == resu.edgeIdx.second) 
+		{ 
+			cout << "[rgat]WARNING: bad argument edge!" << endl; 
+			continue; 
+		}
 
 		if (active)
 		{
@@ -94,6 +98,7 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
 	GRAPH_DISPLAY_DATA *linedata = get_activelines();
 
+	//reload buffers if needed and not being written
 	if (needVBOReload_active && !isGraphBusy())
 	{
 		setGraphBusy(true);
@@ -113,7 +118,6 @@ void thread_graph_data::display_active(bool showNodes, bool showEdges)
 		needVBOReload_active = false;
 		setGraphBusy(false);
 	}
-
 
 	if (showNodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, nodesdata->get_numVerts());
@@ -138,7 +142,6 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 
 	if (showEdges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numVerts());
-	//printf("drawn %d arrayl verts\n", mainlinedata->get_numVerts());
 }
 
 //create faded edge version of graph for use in animations
@@ -163,10 +166,9 @@ void thread_graph_data::extend_faded_edges()
 	//fade new colours alpha
 	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
 	unsigned int end = drawnVerts*COLELEMS;
-	for (; index2 < end; index2 += 4)
-	{
-		animecol->at(index2 + AOFF) = 0; //0.01
-	}
+	for (; index2 < end; index2 += COLELEMS)
+		animecol->at(index2 + AOFF) = 0.01; //TODO: config file entry for anim inactive
+
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col();
 }
@@ -202,6 +204,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 	dropMutex(edMutex);
 }
 
+//given a sequence id, get the last instruciton in the block it refers to
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
 	obtainMutex(animationListsMutex, 1000);
@@ -218,11 +221,12 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 		insAddr += ins->numbytes;
 		//possible source of inaccuracy here, see comments within
 		ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, false);
-		numInstructions--;
+		--numInstructions;
 	}
 	return ins;
 }
 
+//externs not included in sequence data, have to check if each block called one
 void thread_graph_data::highlight_externs(unsigned long targetSequence)
 {
 	//check if block called an extern
@@ -406,7 +410,6 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 	return 0;
 }
 
-//25% of the cpu activity of the visualiser here
 void thread_graph_data::darken_animation(float alphaDelta)
 {
 	if (!animlinedata->get_numVerts()) return;
@@ -454,7 +457,8 @@ void thread_graph_data::darken_animation(float alphaDelta)
 	int colBufSize = animnodesdata->col_buf_capacity_floats();
 
 	map<unsigned int, unsigned int>::iterator activeNodeIt = activeNodeMap.begin();
-	if (activeNodeIt != activeNodeMap.end()) update = true;
+	if (activeNodeIt != activeNodeMap.end()) 
+		update = true;
 	while (activeNodeIt != activeNodeMap.end())
 	{
 		node_data *n = get_node(activeNodeIt->first);
@@ -671,10 +675,10 @@ void thread_graph_data::update_animation_render(float fadeRate)
 	brighten_BBs();
 }
 
+//find the node corresponding to the lateset instruction in the animation sequence
 unsigned int thread_graph_data::derive_anim_node()
 {
 
-	//TODO this code appears 3 times, genericise it
 	obtainMutex(animationListsMutex, INFINITE);
 	pair<unsigned long, int> seq_size = bbsequence.at(sequenceIndex);
 	int mutation = mutationSequence.at(sequenceIndex);
@@ -691,7 +695,7 @@ unsigned int thread_graph_data::derive_anim_node()
 	{
 		bbseq += target_ins->numbytes;
 		target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, false);
-		remainingInstructions--;
+		--remainingInstructions;
 	}
 
 	return target_ins->threadvertIdx.at(tid);
@@ -704,9 +708,11 @@ void thread_graph_data::reset_mainlines()
 	animlinedata->reset();
 }
 
+//find the edge represented by pair of nodes 'edge'
+//false if not found
+//true if found + edge data placed in edged
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	
 	obtainMutex(edMutex, INFINITE);
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
@@ -728,7 +734,6 @@ inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
-
 	node_data *sourceNode = get_node(ePair.first);
 	node_data *targetNode = get_node(ePair.second);
 	edge_data *e = get_edge(ePair);
@@ -751,13 +756,11 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		edgeColour = &lineColours->at(e->edgeClass);
 	}
 
-	
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);
 
 	if (!preview)
 	{
-		//printf("drawing main edge %d->%d (size %d)\n", ePair.first, ePair.second, vertsDrawn);
 		e->vertSize = vertsDrawn;
 		e->arraypos = arraypos;
 	}
@@ -886,7 +889,6 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 	nodesdata->release_col();
 }
 
-
 void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo) 
 {
 	baseMod = get_node(0)->nodeMod;
@@ -1008,8 +1010,6 @@ bool thread_graph_data::loadExterns(ifstream *file)
 			if (index_s == string("}E")) return true;
 			return false;
 		}
-		//getline(*file, address_s, ',');
-		//if (!caught_stol(address_s, &address, 10)) return false;
 		externList.push_back(index);
 	}
 }

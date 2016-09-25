@@ -757,7 +757,7 @@ void thread_trace_handler::TID_thread()
 			continue;
 		}
 
-		if (bytesRead == -1)
+		if (bytesRead == -1) //buffers empty
 		{
 			dump_loop();
 			timelinebuilder->notify_tid_end(PID, TID);

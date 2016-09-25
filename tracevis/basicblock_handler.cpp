@@ -71,7 +71,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	else
 	{
 		insdata->itype = OPUNDEF;
-
+		//assume all j+ instructions asside from jmp are conditional
 		if (insdata->mnemonic[0] == 'j')
 		{
 			insdata->conditional = true;
@@ -101,21 +101,21 @@ void basicblock_handler::PID_BB_thread()
 
 	if ((int)hPipe == -1)
 	{
-		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError();
+		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
 		return;
 	}
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
 	{
-		cerr << "[rgat]ERROR: Couldn't open capstone instance" << endl;
+		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << PID << endl;
 		return;
 	}
 
 	ConnectNamedPipe(hPipe, NULL);
 	char *buf= (char *)malloc(BBBUFSIZE);
 
-	string savedbuf;
+	//string savedbuf;
 	while (true)
 	{
 		if (die) break;
@@ -150,7 +150,7 @@ void basicblock_handler::PID_BB_thread()
 			break;
 		}
 
-		savedbuf = buf;
+		//savedbuf = buf;
 		buf[bread] = 0;
 		if (buf[0] == 'B')
 		{
@@ -224,7 +224,7 @@ void basicblock_handler::PID_BB_thread()
 						dropMutex(piddata->disassemblyMutex);
 						targetaddr += insd->numbytes;
 						if (next_token >= buf + bread) break;
-						i++;
+						++i;
 						continue;
 					}
 					//if we get here it's a mutation of previously seen code
@@ -243,8 +243,7 @@ void basicblock_handler::PID_BB_thread()
 				insdata->blockIDs.push_back(blockID);
 
 				if (!disassemble_ins(hCapstone, opcodes, insdata, targetaddr)) {
-					cerr << "[rgat]ERROR: Bad dissasembly for buf " << savedbuf 
-						<< "PID: " << PID <<". Corrupt trace?" << endl;
+					cerr << "[rgat]ERROR: Bad dissasembly in PID: " << PID <<". Corrupt trace?" << endl;
 					assert(0);
 				}
 

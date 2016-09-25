@@ -150,6 +150,7 @@ public:
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx) {	
+		if (nodeList.size() <= idx) return;
 		obtainMutex(animationListsMutex, 1000);
 		latest_active_node_coord = get_node(idx)->vcoord;
 		dropMutex(animationListsMutex);
