@@ -50,7 +50,7 @@ void thread_trace_reader::reader_thread()
 
 	if ((int)hPipe == -1)
 	{
-		printf("Error: Could not create pipe in thread handler %d. error:%d\n",TID, GetLastError());
+		printf("[rgat]Error: Could not create pipe in thread handler %d. error:%d\n",TID, GetLastError());
 		return;
 	}
 
@@ -65,9 +65,8 @@ void thread_trace_reader::reader_thread()
 	char *messageBuffer;
 
 	DWORD bytesRead = 0;
-	while (true)
+	while (!die)
 	{
-		if (die) break;
 		if (!ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL))
 		{
 			int err = GetLastError();
@@ -97,7 +96,6 @@ void thread_trace_reader::reader_thread()
 		if (die) break;
 		Sleep(10);
 	}
-	cout << "Trace reader exiting" << endl;
 }
 
 vector<pair<char *, int>> * thread_trace_reader::get_read_queue()
@@ -124,12 +122,14 @@ void thread_trace_reader::add_message(char *buffer, int size)
 			WaitForSingleObject(flagMutex, INFINITE);
 
 			targetQueue = get_read_queue();
-			if (targetQueue->size() < traceBufMax/2) break;
+			if (targetQueue->size() < traceBufMax/2) 
+				break;
 			if (targetQueue->size() <  traceBufMax/10)
 				cout << "[rgat]Trace queue now "<< targetQueue->size() << "items" << endl;
 			ReleaseMutex(flagMutex);
-		} while (true);
-		cout << "[rgat]Trace queue now "<< targetQueue->size() << "items, resuming." << endl;
+
+		} while (!die);
+		cout << "[rgat]Trace queue now "<< targetQueue->size() << " items, resuming." << endl;
 	}
 	targetQueue->push_back(bufPair);
 	pendingData += size;

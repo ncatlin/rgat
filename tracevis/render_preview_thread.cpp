@@ -44,7 +44,7 @@ void preview_renderer::rendering_thread()
 	const int innerDelay = clientState->config->preview.threadDelay;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphIt;
-	while (true)
+	while (!clientState->die)
 	{
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly

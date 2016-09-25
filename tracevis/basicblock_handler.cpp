@@ -96,7 +96,7 @@ void basicblock_handler::PID_BB_thread()
 
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
 		255, 64, 56 * 1024, 300, NULL);
 
 	if ((int)hPipe == -1)
@@ -104,6 +104,8 @@ void basicblock_handler::PID_BB_thread()
 		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
 		return;
 	}
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
@@ -112,31 +114,58 @@ void basicblock_handler::PID_BB_thread()
 		return;
 	}
 
-	ConnectNamedPipe(hPipe, NULL);
+	if (ConnectNamedPipe(hPipe, &ov))
+	{
+		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << PID << ". Error: " << GetLastError();
+		return;
+	}
+	
+	while (true)
+	{
+		int result = WaitForSingleObject(ov.hEvent, 3000);
+		if (result != WAIT_TIMEOUT) break;
+		cerr << "[rgat]WARNING:Long wait for BB handler pipe" << endl;
+	}
 	char *buf= (char *)malloc(BBBUFSIZE);
+	OVERLAPPED ov2 = { 0 };
+	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	//string savedbuf;
 	while (true)
 	{
-		if (die) break;
+		if (die || clientState->die) break;
 		if (clientState->terminationPid == PID)
 			break;
 
+
 		DWORD bread = 0;
-		if (!ReadFile(hPipe, buf, BBBUFSIZE, &bread, NULL))
+		ReadFile(hPipe, buf, 399, &bread, &ov2);
+		while (true)
+		{
+			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
+			if (die || clientState->die) {
+				die = true;
+				break;
+			}
+		}
+		if (clientState->die || die) break;
+
+		if (GetLastError() != ERROR_IO_PENDING) continue;
+		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
+		buf[bread] = 0;
+
+		if (!bread)
 		{
 			int err = GetLastError();
 			if (err == ERROR_BROKEN_PIPE)
 				break;
-			else if (err == ERROR_MORE_DATA) //could just read more if this is ever a problem
-				cerr << "[rgat]Error! Basic block data exceeding BBBUFSIZE!" << endl;
 			else
 				cerr << "[rgat]Basic block pipe read for PID "<<PID<<" failed, error:"<<err;
 
 			break;
 		}
 
-		if (bread >= BBBUFSIZE)
+		if (bread >= BBBUFSIZE || GetLastError() == ERROR_MORE_DATA)
 		{
 			cerr << "[rgat]ERROR: BB Buf Exceeded!" << endl;
 			break;

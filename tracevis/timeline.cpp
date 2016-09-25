@@ -57,7 +57,9 @@ void timeline::notify_new_pid(unsigned int pid)
 	processEvent ev;
 	ev.eventType = PID_CREATE;
 	ev.eventTime = al_get_time();
+	obtainMutex(accessMutex, 1000);
 	creationLog.push_back(ev);
+	dropMutex(accessMutex);
 	pidlist[pid];
 	++liveProcesses;
 }

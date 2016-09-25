@@ -120,7 +120,7 @@ void maingraph_render_thread::rendering_thread()
 
 	while (true)
 	{
-		if (die) break;
+		if (clientState->die) break;
 		activeGraph = clientState->activeGraph;
 		if (!activeGraph) {
 			Sleep(5); continue;

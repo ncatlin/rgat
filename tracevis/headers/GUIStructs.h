@@ -153,6 +153,8 @@ public:
 
 	HIGHLIGHT_DATA highlightData;
 	clientConfig *config;
+
+	bool die = false;
 };
 
 //screen top bottom red green

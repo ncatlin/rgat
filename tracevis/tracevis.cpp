@@ -165,9 +165,13 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 int process_coordinator_thread(VISSTATE *clientState) 
 {
 	//todo: posibly worry about pre-existing if pidthreads dont work
+
 	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-		255, 65536, 65536, 300, NULL);
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+		255, 65536, 65536, 0, NULL);
+
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	if (hPipe == INVALID_HANDLE_VALUE)
 	{
@@ -176,19 +180,30 @@ int process_coordinator_thread(VISSTATE *clientState)
 	}
 
 	vector<THREAD_POINTERS*> threadsList;
-	DWORD bread = 0;
+	DWORD res = 0, bread = 0;
 	char buf[40];
-	while (true)
+	while (!clientState->die)
 	{
-		int conresult = ConnectNamedPipe(hPipe, NULL);
-		if (!conresult) {
-			cout << "[rgat]ERROR: Failed to connect bootstrap pipe"<<endl;
+		bool conFail = ConnectNamedPipe(hPipe, &ov);
+		if (conFail)
+		{
+			cerr << "[rgat]Warning! Bootstrap connection error" << endl;
 			Sleep(1000);
 			continue;
 		}
 
+		int err = GetLastError();
+		if (err == ERROR_IO_PENDING || err == ERROR_PIPE_LISTENING) {
+			res = WaitForSingleObject(ov.hEvent, 3000);
+			if (res == WAIT_TIMEOUT) {
+				Sleep(100);
+				continue;
+			}
+		}
+
 		ReadFile(hPipe, buf, 30, &bread, NULL);
 		DisconnectNamedPipe(hPipe);
+
 		if (!bread) {
 			cout << "[rgat]ERROR: Read 0 when waiting for PID. Try again" << endl;
 			Sleep(1000);
@@ -1209,11 +1224,9 @@ int main(int argc, char **argv)
 
 			case EV_BTN_QUIT:
 			{
-				mainRenderThread->die = true;
-				if (clientstate.activePid)
-					clientstate.terminationPid = clientstate.activePid->PID; //only stops current process threads
-				Sleep(500);
+				clientstate.die = true;
 				running = false;
+				Sleep(800);
 				break;
 			}
 			default:

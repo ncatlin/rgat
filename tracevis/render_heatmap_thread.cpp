@@ -142,7 +142,7 @@ void heatmap_renderer::heatmap_thread()
 
 	map<thread_graph_data *, bool> finishedGraphs;
 
-	while (true)
+	while (!clientState->die)
 	{
 		if (!obtainMutex(piddata->graphsListMutex, 5000)) return;
 
@@ -155,7 +155,7 @@ void heatmap_renderer::heatmap_thread()
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())
 		{
-			if (die) break;
+			if (die || clientState->die) break;
 			thread_graph_data *graph = *graphlistIt;
 			graphlistIt++;
 			int i1 = graph->get_num_edges();

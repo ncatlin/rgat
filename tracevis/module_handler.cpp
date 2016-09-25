@@ -41,13 +41,23 @@ void module_handler::PID_thread()
 
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-		255, 64, 56 * 1024, 300, NULL);
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+		255, 64, 56 * 1024, 0, NULL);
 
-	if (!ConnectNamedPipe(hPipe, NULL))
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+	if (ConnectNamedPipe(hPipe, &ov))
 	{
-		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID "<<PID<< ". Error: " << GetLastError();
+		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << pipename << " for PID "<<PID<< ". Error: " << GetLastError();
 		return;
+	}
+
+	while (true)
+	{
+		int result = WaitForSingleObject(ov.hEvent, 3000);
+		if (result != WAIT_TIMEOUT) break;
+		cerr << "[rgat]WARNING: Long wait for module handler pipe" << endl;
 	}
 
 	//if not launch by command line - do GUI stuff
@@ -60,24 +70,28 @@ void module_handler::PID_thread()
 	char buf[400] = { 0 };
 	int PIDcount = 0;
 
+	OVERLAPPED ov2 = { 0 };
+	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 	vector < pair <thread_trace_reader*, thread_trace_handler *>> threadList;
-
-	while (true)
+	DWORD res= 0;
+	while (!die)
 	{
-		if (die) break; 
-
-		if (clientState->terminationPid == PID)
-			break;
-
 		DWORD bread = 0;
-		if (!ReadFile(hPipe, buf, 399, &bread, NULL)) {
-			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE)
-				cerr << "[rgat]Failed to read metadata pipe for PID:" << PID << " error: " << GetLastError() << endl;
-			break;
+		ReadFile(hPipe, buf, 399, &bread, &ov2);
+		while (true)
+		{
+			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
+			if (die || clientState->die) {
+				die = true;
+				break;
+			}
 		}
-		buf[bread] = 0;
+		if (clientState->die || die) break;
 
+		if (GetLastError() != ERROR_IO_PENDING) continue;
+		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
+		buf[bread] = 0;
+	
 		if (!bread)
 		{
 			//not sure this ever gets called, read probably fails?
@@ -85,6 +99,7 @@ void module_handler::PID_thread()
 			if (err != ERROR_BROKEN_PIPE)
 				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
 			piddata->active = false;
+			cerr << "Mod pipe exit" << endl;
 			return;
 		}
 		else
@@ -103,6 +118,7 @@ void module_handler::PID_thread()
 				TID_reader->PID = PID;
 				TID_reader->TID = TID;
 				TID_reader->traceBufMax = clientState->config->traceBufMax;
+
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
 					(LPVOID)TID_reader, 0, &threadID);

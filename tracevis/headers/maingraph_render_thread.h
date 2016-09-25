@@ -29,7 +29,6 @@ public:
 	static void __stdcall ThreadEntry(void* pUserData);
 	maingraph_render_thread();
 	~maingraph_render_thread();
-	bool die = false;
 	void rendering_thread();
 	VISSTATE *clientState;
 

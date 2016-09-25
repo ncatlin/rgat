@@ -748,8 +748,7 @@ void thread_trace_handler::TID_thread()
 
 	char* msgbuf;
 	unsigned long bytesRead;
-	bool threadRunning = true;
-	while (threadRunning)
+	while (!die)
 	{
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
 		if (bytesRead == 0) {
