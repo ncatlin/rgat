@@ -243,6 +243,7 @@ ModelManifest.xml
 
 #rgat save
 tracevis/saves/
+tracelog*
 
 # FAKE - F# Make
 .fake/

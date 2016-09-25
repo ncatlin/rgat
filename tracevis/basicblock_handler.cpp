@@ -94,6 +94,9 @@ void basicblock_handler::PID_BB_thread()
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(std::to_wstring(PID));
 
+	ofstream logf;
+	logf.open("C:\\Users\\nia\\Documents\\tracevis\\tracevis\\Release\\logfile" + to_string(PID));
+
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
@@ -139,7 +142,7 @@ void basicblock_handler::PID_BB_thread()
 
 
 		DWORD bread = 0;
-		ReadFile(hPipe, buf, 399, &bread, &ov2);
+		ReadFile(hPipe, buf, BBBUFSIZE, &bread, &ov2);
 		while (true)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
@@ -192,6 +195,7 @@ void basicblock_handler::PID_BB_thread()
 				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);
 			}
+			
 
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
 			int modnum;
@@ -209,13 +213,15 @@ void basicblock_handler::PID_BB_thread()
 				if (instrumented_s[0] == '2')
 					dataExecution = true;
 			}
-				
+			
 			char *blockID_s = strtok_s(next_token, "@", &next_token);
 			unsigned int blockID;
 			if (!caught_stoi(string(blockID_s), &blockID, 16)) {
 				cerr << "[rgat]bb blockID stoi error: " << blockID_s << endl;
 				assert(0);
 			};
+
+			//logf << "blockaddr: " << start_s << " module : " <<modnum << " instrumented: "<<instrumented<<endl;
 
 			if (!instrumented)
 			{
@@ -233,56 +239,63 @@ void basicblock_handler::PID_BB_thread()
 				continue;
 			}
 
+			INSLIST *blockInstructions = new INSLIST;
+			unsigned long insaddr = targetaddr;
 			while (true)
 			{
-				bool mutation = false;
+				
 				if (next_token[0] == NULL) 
 					break;
-				string opcodes(strtok_s(next_token, "@", &next_token));
+				INS_DATA *instruction = NULL;
 
+				string opcodes(strtok_s(next_token, "@", &next_token));
 				obtainMutex(piddata->disassemblyMutex, 4000);
-				map<unsigned long,INSLIST>::iterator addressDissasembly = piddata->disassembly.find(targetaddr);
+				map<unsigned long,INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
-					//ignore if address has been seen and opcodes are most recent
-					INS_DATA *insd = addressDissasembly->second.back();
-					if (insd->opcodes == opcodes)
-					{
-						if (std::find(insd->blockIDs.begin(), insd->blockIDs.end(), blockID) == insd->blockIDs.end())
-							insd->blockIDs.push_back(blockID);
-						dropMutex(piddata->disassemblyMutex);
-						targetaddr += insd->numbytes;
-						if (next_token >= buf + bread) break;
-						++i;
-						continue;
-					}
-					//if we get here it's a mutation of previously seen code
+					instruction = addressDissasembly->second.back();
+					//if address has been seen but opcodes are not same as most recent, disassemble again
+					if (instruction->opcodes != opcodes) 
+						instruction = NULL;
 				}
 				else
 				{
-					//the address has not been seen before, disassemble it from new
-					INSLIST disVec;
-					piddata->disassembly[targetaddr] = disVec;
+					//the address has not been seen before, make a new disassembly list;
+					INSLIST insDisassemblyList;
+					piddata->disassembly[insaddr] = insDisassemblyList;
 				}
+ 
+				if (!instruction)
+				{
+					instruction = new INS_DATA;
+					instruction->opcodes = opcodes;
+					instruction->modnum = modnum;
+					instruction->dataEx = dataExecution;
+					instruction->blockIDs.push_back(blockID);
+					
+					
+					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) {
+						cerr << "[rgat]ERROR: Bad dissasembly in PID: " << PID << ". Corrupt trace?" << endl;
+						assert(0);
+					}
 
-				INS_DATA *insdata = new INS_DATA;
-				insdata->opcodes = opcodes;
-				insdata->modnum = modnum;
-				insdata->dataEx = dataExecution;
-				insdata->blockIDs.push_back(blockID);
-
-				if (!disassemble_ins(hCapstone, opcodes, insdata, targetaddr)) {
-					cerr << "[rgat]ERROR: Bad dissasembly in PID: " << PID <<". Corrupt trace?" << endl;
-					assert(0);
+					piddata->disassembly[insaddr].push_back(instruction);
+					instruction->mutationIndex = piddata->disassembly[insaddr].size()-1;
+					printf("setting mi : %d\n", instruction->mutationIndex);
 				}
-
-				piddata->disassembly[targetaddr].push_back(insdata);
+				blockInstructions->push_back(instruction);
 				dropMutex(piddata->disassemblyMutex);
 
-				targetaddr += insdata->numbytes;
+				logf << "\tINS: 0x" << std::hex << insaddr << " op: " << instruction->ins_text << "\n";
+
+				insaddr += instruction->numbytes;
 				if (next_token >= buf + bread) break;
 				++i;
 			}
+
+			obtainMutex(piddata->disassemblyMutex, 4000);
+			piddata->blocklist[targetaddr][blockID] = blockInstructions;
+			dropMutex(piddata->disassemblyMutex);
 			continue;
 		}
 

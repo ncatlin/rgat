@@ -87,7 +87,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 	if (lastSymCount == graph->externList.size()) return;
 
 	//add all the used symbols to symbol list
-	obtainMutex(graph->funcQueueMutex, 1200);
+	obtainMutex(graph->funcQueueMutex, 1210);
 	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex);
 	vector<int>::iterator externIt = externListCopy.begin();

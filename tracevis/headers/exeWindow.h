@@ -36,8 +36,8 @@ class exeWindow
 private:
 	agui::Frame *exeFrame;
 
-	agui::Label *filePathLabel;
 	agui::TextField *filePathTxt;
+	agui::TextField *fileArgsTxt;
 	agui::Button *filePathBtn;
 	agui::Button *launchBtn;
 
@@ -77,6 +77,7 @@ public:
 		filePathTxt->setText(path.c_str()); 
 	}
 	string getPath() { return target; }
+	string getArgs() {	return fileArgsTxt->getText(); }
 
 };
 
@@ -147,8 +148,12 @@ public:
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
 		string path = exe_wind->getPath();
-		if (!fileExists(path)) return;
-		execute_tracer(path, clientState);
+		if (!fileExists(path))
+		{	
+			cerr << "[rgat]Executable " << path << " not found. Try again." << endl;
+			return;
+		}
+		execute_tracer(path,exe_wind->getArgs(), clientState);
 		exe_wind->hide();
 	}
 

@@ -90,6 +90,9 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	for (; edgeindex != edgeEnd; ++edgeindex)
 	{
 		edge_data *edge = graph->get_edge(edgelist->at(edgeindex));
+		if (!edge) {
+			printf("Heatmap2 edge skip\n"); continue;
+		}
 		COLSTRUCT *edgecol = &heatColours[edge->weight];
 		float edgeColArr[4] = { edgecol->r, edgecol->g, edgecol->b, 1};
 

@@ -72,12 +72,12 @@ private:
 	bool run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
-	int runBB(TAG *tag, int startIndex, int repeats);
+	void runBB(TAG *tag, int startIndex, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, long address);
 	void updateStats(int a, int b, unsigned int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
 	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
-	void handle_new_instruction(INS_DATA *instruction,int mutation, int bb_inslist_index);
+	void handle_new_instruction(INS_DATA *instruction, unsigned long blockID, int bb_inslist_index);
 	void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(long address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(long address, int attempts);

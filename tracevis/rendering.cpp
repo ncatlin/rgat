@@ -693,7 +693,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
 	//todo: maintain local copy, update on size change?
-	obtainMutex(graph->funcQueueMutex, 1200);
+	obtainMutex(graph->funcQueueMutex, 1204);
 	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex);
 
@@ -831,6 +831,9 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 			continue;
 
 		edge_data *e = graph->get_edge(*ePair);
+		if (!e) {
+			printf("Heatmap edge skip\n"); continue;
+		}
 		int edgeWeight = e->weight;
 		if (edgeWeight < 2) continue;
 

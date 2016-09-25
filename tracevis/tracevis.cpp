@@ -84,6 +84,7 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 		NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
 		(LPVOID)conditional_thread, 0, &threadID);
 
+	clientState->spawnedProcess = clientState->glob_piddata_map[PID];
 }
  
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditonals
@@ -162,7 +163,7 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 }
 
 //listens for new and dying processes, spawns and kills threads to handle them
-int process_coordinator_thread(VISSTATE *clientState) 
+void process_coordinator_thread(VISSTATE *clientState) 
 {
 	//todo: posibly worry about pre-existing if pidthreads dont work
 
@@ -176,7 +177,7 @@ int process_coordinator_thread(VISSTATE *clientState)
 	if (hPipe == INVALID_HANDLE_VALUE)
 	{
 		cout << "[rgat]CreateNamedPipe failed with error " << GetLastError();
-		return -1;
+		return;
 	}
 
 	vector<THREAD_POINTERS*> threadsList;
@@ -248,9 +249,9 @@ int process_coordinator_thread(VISSTATE *clientState)
 		}
 		else
 		{
-			cout << "[rgat]ERROR: Something bad happened in extract_integer, string is: " << buf << endl;
+			cerr << "[rgat]ERROR: Something bad happened in process_coord_thread extract_integer, string is: " << buf << endl;
 		}
-		return -1;
+		return;
 	}
 }
 
@@ -384,16 +385,29 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientstate)
 			continue;
 		}
 
-		if (arg == "-e" && idx+1 < argc)
+		if (arg == "-l" && idx + 1 < argc)
 		{
 			clientstate->commandlineLaunchPath = string(argv[++idx]);
+			clientstate->commandlineLaunchArgs = "";
+			continue;
+		}
+
+		if (arg == "-e" && idx+2 < argc)
+		{
+			clientstate->commandlineLaunchPath = string(argv[++idx]);
+			clientstate->commandlineLaunchArgs = string(argv[++idx]);
 			continue;
 		}
 
 		if (arg == "-h" )
 		{
 			//TODO
-			printf("Help...\n");
+			cout << "rgat - Instruction trace visualiser" << endl;
+			cout << "-e target \"arguments\" Execute target with specified argument string"  << endl;
+			cout << "-l target Execute target without arguments" << endl;
+			cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
+			cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
+			cout << "-b Launch in basic mode which does not save animation data" << endl;
 			return false;
 		}
 	}
@@ -556,7 +570,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		}
 
 
-		if (ev->mouse.dx || ev->mouse.dy) {
+		if (ev->mouse.dx || ev->mouse.dy) 
+		{
 			ALLEGRO_MOUSE_STATE state;
 			al_get_mouse_state(&state);
 			if (clientstate->mouse_dragging)
@@ -644,7 +659,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			if (!clientstate->activeGraph)
 			{
 				widgets->processEvent(ev);
-				return EV_KEYBOARD;
+				return EV_NONE;
 			}
 
 			MULTIPLIERS *mainscale = clientstate->activeGraph->m_scalefactors;
@@ -829,7 +844,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 				break;
 			}
 			default:
-				cout << "[rgat]Error: Unhandled menu event " << ev->user.data1;
+				cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1;
 				break;
 			}
 			return EV_NONE;
@@ -853,7 +868,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 		case ALLEGRO_EVENT_KEY_CHAR:
 			return EV_NONE;
 	}
-	cout << "[rgat]Warning: Unhandled event " << ev->type << endl;
+	cout << "[rgat]Warning: Unhandled Allegro event " << ev->type << endl;
 
 	return EV_NONE; //usually lose_focus
 }
@@ -891,7 +906,7 @@ int main(int argc, char **argv)
 			NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 			(LPVOID)&clientstate, 0, 0);
 
-		execute_tracer(clientstate.commandlineLaunchPath, &clientstate);
+		execute_tracer(clientstate.commandlineLaunchPath, clientstate.commandlineLaunchArgs, &clientstate);
 		handleKBDExit();
 		
 		int newTIDs,activeTIDs = 0;

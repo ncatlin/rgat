@@ -88,8 +88,7 @@ void thread_trace_reader::reader_thread()
 		add_message(messageBuffer, bytesRead+1);
 
 	}
-	if (!die)
-		cout << "Trace reader lost connection to thread " << TID << " exiting after buffer processing"<<endl;
+
 	//keep the thread open until killed or buffers emptied
 	while (!firstQueue.empty() && !secondQueue.empty())
 	{

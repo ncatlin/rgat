@@ -30,12 +30,15 @@ clientConfig::clientConfig(string filepath)
 	
 	if (fileExists(filepath))
 	{
-		cout << "[rgat]Loading config file " << filepath << endl;
+		cout << "[rgat]Loading config file " << filepath << "...";
 		if (loadFromFile())
+		{
+			cout << "complete" << endl;
 			return;
+		}
 		else
 		{
-			cout << "[rgat]Config file "<< filepath << " failed to load, loading from defaults..." << endl;
+			cout << "failed to load, loading from defaults..." << endl;
 			loadDefaults();
 		}
 	}

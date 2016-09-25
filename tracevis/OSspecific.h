@@ -24,7 +24,7 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 string getModulePath();
 string get_dr_path();
 bool fileExists(string path);
-void execute_tracer( string executable, void *clientState);
+void execute_tracer(string executable, string args, void *clientState_ptr);
 bool getSavePath(string saveDir, string filename, string *result, int PID);
 bool obtainMutex(HANDLE mutex, int waitTime);
 void dropMutex(HANDLE mutex);

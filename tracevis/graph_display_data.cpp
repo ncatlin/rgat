@@ -33,8 +33,8 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
-	obtainMutex(colmutex, INFINITE);
-	obtainMutex(posmutex, INFINITE);
+	obtainMutex(colmutex, 2124);
+	obtainMutex(posmutex, 1412);
 }
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
@@ -52,14 +52,14 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos()
 {
-	bool result = obtainMutex(posmutex, INFINITE);
+	bool result = obtainMutex(posmutex, 2352);
 	if (!result) return 0;
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col()
 {
-	bool result = obtainMutex(colmutex, INFINITE);
+	bool result = obtainMutex(colmutex, 2040);
 	if (!result) {
 		cerr << "[rgat]Acquire_col: Failed to obtain colmutex" << endl; return 0;
 	}

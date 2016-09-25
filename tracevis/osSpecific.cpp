@@ -35,7 +35,7 @@ bool obtainMutex(HANDLE mutex, int waitTime)
 {
 	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
 	if (waitresult == WAIT_TIMEOUT) {
-		cout << "WARNING! Mutex 0x" << std::hex << mutex << " wait expired after " << waitTime << " ms" << endl;
+		cout << "WARNING! Mutex 0x" << std::hex << mutex << " wait expired after " << std::dec << waitTime << " ms" << endl;
 		return false;
 	}
 	return true;
@@ -101,15 +101,38 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 #endif
 	if (!fileExists(DRPath.c_str()))
 	{
-		cerr << "ERROR: Unable to find Dynamorio executable at " << DRPath;
-		return false;
+		cerr << "ERROR: Unable to find DynamoRIO executable at " << DRPath << " listed in config file" << endl;
+
+		string modPathDR = getModulePath();
+		modPathDR.append("\\DynamoRIO\\bin32\\drrun.exe");
+		if ((modPathDR != DRPath) && fileExists(modPathDR))
+		{
+			DRPath = modPathDR;
+			cerr << "[rgat] Found DynamoRIO executable at " << DRPath << ", continuing..." << endl;
+		}
+		else
+		{
+			cerr << "[rgat]Failed to find DynamoRIO executable at " << modPathDR << endl;
+			return false;
+		}
 	}
 
 	string DRGATpath = clientState->config->clientPath + "drgat.dll";
 	if (!fileExists(DRGATpath.c_str()))
 	{
-		cerr << "Unable to find drgat.dll at "<<DRGATpath;
-		return false;
+		cerr << "Unable to find drgat.dll at " << DRGATpath << " listed in config file" << endl;
+		string drgatPath2 = getModulePath();
+		drgatPath2.append("\\drgat.dll");
+		if ((drgatPath2 != DRGATpath) && fileExists(drgatPath2))
+		{
+			DRGATpath = drgatPath2;
+			cerr << "[rgat] Succeeded in finding drgat.dll at " << drgatPath2 << endl;
+		}
+		else
+		{
+			cerr << "[rgat] failed to find drgat.dll " << drgatPath2 << endl;
+			return false;
+		}
 	}
 
 	string drrunArgs = " -c ";
@@ -135,7 +158,7 @@ string get_options(VISSTATE *clientState)
 	return optstring.str();
 }
 
-void execute_tracer(string executable, void *clientState_ptr) 
+void execute_tracer(string executable, string args, void *clientState_ptr) 
 {
 	if (executable.empty()) return;
 
@@ -143,7 +166,7 @@ void execute_tracer(string executable, void *clientState_ptr)
 	string runpath;
 	if (!get_dr_path(clientState, &runpath)) return;
 	runpath.append(get_options(clientState));
-	runpath = runpath + " -- \"" + executable + "\"";
+	runpath = runpath + " -- \"" + executable + "\" "+args;
 
 	STARTUPINFOA si;
 	ZeroMemory(&si, sizeof(si));

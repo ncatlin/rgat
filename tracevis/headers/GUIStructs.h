@@ -122,6 +122,7 @@ public:
 	map <int, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;
+	string commandlineLaunchArgs;
 	//for future random pipe names
 	//char pipeprefix[20];
 

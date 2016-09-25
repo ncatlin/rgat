@@ -44,8 +44,8 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	title->setLocation(10, 10);
 	exeFrame->add(title);
 
-	filePathLabel = new agui::Label;
-	filePathLabel->setText("File");
+	agui::Label *filePathLabel = new agui::Label;
+	filePathLabel->setText("File:");
 	filePathLabel->resizeToContents();
 	filePathLabel->setLocation(10, EXETEXT_Y+4);
 	exeFrame->add(filePathLabel);
@@ -59,6 +59,22 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	filePathTxt->setBlinking(true);
 	filePathTxt->setEnabled(true);
 	exeFrame->add(filePathTxt);
+
+	agui::Label *fileArgLabel = new agui::Label;
+	fileArgLabel->setText("Args:");
+	fileArgLabel->resizeToContents();
+	fileArgLabel->setLocation(10, EXETEXT_Y + 4 +27);
+	exeFrame->add(fileArgLabel);
+
+	fileArgsTxt = new agui::TextField;
+	fileArgsTxt->setSize(EXETEXT_W, 25);
+	fileArgsTxt->setLocation(EXETEXT_X, EXETEXT_Y +27);
+	fileArgsTxt->setWantHotkeys(true);
+	fileArgsTxt->setSelectable(true);
+	fileArgsTxt->setReadOnly(false);
+	fileArgsTxt->setBlinking(true);
+	fileArgsTxt->setEnabled(true);
+	exeFrame->add(fileArgsTxt);
 
 	filePathBtn = new agui::Button;
 	filePathBtn->setText("Open"); //TODO(polish): file icon

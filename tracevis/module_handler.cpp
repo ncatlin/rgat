@@ -134,7 +134,7 @@ void module_handler::PID_thread()
 
 				threadList.push_back(make_pair(TID_reader, TID_thread));
 
-				thread_graph_data *tgraph =  new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
+				thread_graph_data *tgraph =  new thread_graph_data(piddata);
 				if (clientState->launchopts.basic)
 					tgraph->basic = true;
 				tgraph->setReader(TID_reader);

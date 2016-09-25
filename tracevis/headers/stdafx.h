@@ -44,7 +44,7 @@ using namespace std;
 
 #include <GL/glu.h>
 #include <GL/gl.h>
-#include "GL/freeglut.h"
+
 
 #define COLELEMS 4
 #define POSELEMS 3

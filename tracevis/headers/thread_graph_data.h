@@ -52,7 +52,8 @@ class thread_graph_data
 	HANDLE disassemblyMutex;
 
 	vector<node_data> nodeList; //node id to node data
-	map <unsigned long, INSLIST> *disassembly;
+	PROCESS_DATA* piddata;
+
 
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	map <unsigned int, unsigned int> activeNodeMap;
@@ -82,7 +83,7 @@ class thread_graph_data
 	void *trace_reader;
 
 public:
-	thread_graph_data(map <unsigned long, INSLIST> *disassembly, HANDLE disasMutex);
+	thread_graph_data(PROCESS_DATA* processdata);
 	~thread_graph_data();
 
 	void display_active(bool showNodes, bool showEdges);
@@ -245,7 +246,7 @@ public:
 
 	//todo: make private, add inserter
 	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
-	vector <int> mutationSequence;
+	vector <unsigned long> mutationSequence; //blockID
 
 	//<which loop this is, how many iterations>
 	//todo: make private, add inserter

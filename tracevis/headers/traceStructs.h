@@ -82,7 +82,7 @@ struct INS_DATA {
 	//thread id, vert idx
 	unordered_map<int, int> threadvertIdx;
 	unsigned int modnum;
-	
+	unsigned int mutationIndex;
 
 	//this was added later, might be worth ditching other stuff in exchange
 	string opcodes;
@@ -125,6 +125,10 @@ struct PROCESS_DATA {
 
 	//maps instruction addresses to all data about it
 	map <unsigned long, INSLIST> disassembly;
+
+	//list of basic blocks
+	//   address		    blockID			instructionlist
+	map <unsigned long, map<unsigned long, INSLIST *>> blocklist;
 
 	vector <int> activeMods;
 	map <unsigned long, BB_DATA *> externdict;

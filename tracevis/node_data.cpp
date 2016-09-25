@@ -55,7 +55,7 @@ bool node_data::serialise(ofstream *outfile)
 	*outfile << external << ",";
 
 	if (!external)
-		*outfile << mutation;
+		*outfile << ins->mutationIndex;
 	else
 	{
 		*outfile << funcargs.size() << "{"; //number of calls

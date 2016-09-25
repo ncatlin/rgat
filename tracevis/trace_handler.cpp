@@ -31,7 +31,6 @@ bool thread_trace_handler::find_internal_at_address(long address, int attempts)
 	{
 		Sleep(1);
 		if (!attempts--) return false;
-		cerr<< "[rgat]Sleeping until EXTERN "<< std::hex << address << " found" << endl;
 	}
 	return true;
 }
@@ -110,7 +109,7 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 
 }
 
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mutation, int bb_inslist_index)
+void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, unsigned long blockID, int bb_inslist_index)
 {
 
 	node_data thisnode;
@@ -148,15 +147,17 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, int mut
 
 	thisnode.vcoord.a = a;
 	thisnode.vcoord.b = b;
-	thisnode.vcoord.bMod = bMod + (mutation*3);//helps spread out clashing mutations
+	thisnode.vcoord.bMod = bMod;// +(mutation * 3);//helps spread out clashing mutations
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
 	thisnode.address = instruction->address;
-	thisnode.mutation = mutation;
+	thisnode.mutation = blockID;
 
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
 
+	if (thisgraph->node_exists(targVertID))
+		assert(0);
 	thisgraph->insert_node(targVertID, thisnode);
 
 	obtainMutex(piddata->disassemblyMutex, 100);
@@ -179,23 +180,18 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 	dropMutex(piddata->disassemblyMutex);
 }
 
-int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
+void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
 	unsigned int bb_inslist_index = 0;
-	int firstMutation = -1;
-	int mutation = -1;
 	int numInstructions = tag->insCount;
-	unsigned long startAddress = tag->blockaddr;
-	unsigned long targetAddress = startAddress;
+	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist);
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
 		//conspicuous lack of mutation handling here
 		//we could check this by looking at the mutation state of all members of the block
-		INS_DATA *instruction = getLastDisassembly(targetAddress,tag->blockID, piddata->disassemblyMutex, &piddata->disassembly, &mutation);
-		if (firstMutation == -1) firstMutation = mutation;
+		INS_DATA *instruction = block->at(instructionIndex);
 
-		//todo: ditch this?
 		if (lastRIPType != FIRST_IN_THREAD)
 		{
 			if (!thisgraph->node_exists(lastVertID))
@@ -204,14 +200,14 @@ int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 				assert(0);
 			}
 		}
-
+		
 		unsigned int existingVertID;
 		//target vert already on this threads graph?
 		bool alreadyExecuted = is_old_instruction(instruction, &existingVertID);
 		if (alreadyExecuted)
 			targVertID = existingVertID; 
 		else 
-			handle_new_instruction(instruction, mutation, bb_inslist_index);
+			handle_new_instruction(instruction, tag->blockID, bb_inslist_index);
 
 		if (bb_inslist_index == startIndex && loopState == LOOP_START)
 		{
@@ -226,25 +222,27 @@ int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 		if (thisgraph->edge_exists(edgeIDPair, &edged))
 			increaseWeight(edged, repeats);
 
-		else if (lastRIPType != FIRST_IN_THREAD)
-		{
-			edge_data newEdge;
-			newEdge.weight = repeats; //todo: skip on first+last edge?
-			
-			if (lastRIPType == RETURN)
-				newEdge.edgeClass = IRET;
-			else if (!alreadyExecuted)
+		else 
+			if (lastRIPType != FIRST_IN_THREAD)
 			{
-				if (lastRIPType == CALL)
-					newEdge.edgeClass = ICALL;
-				else
-					newEdge.edgeClass = INEW;
-			}
-			else
-				newEdge.edgeClass = IOLD;
+				edge_data newEdge;
+				newEdge.weight = repeats;
+			
+				if (lastRIPType == RETURN)
+					newEdge.edgeClass = IRET;
+				else 
+					if (alreadyExecuted)
+						newEdge.edgeClass = IOLD;
+					else
+					{
+						if (lastRIPType == CALL)
+							newEdge.edgeClass = ICALL;
+						else
+							newEdge.edgeClass = INEW;
+					}						
 
-			insert_edge(newEdge, edgeIDPair);
-		}
+				insert_edge(newEdge, edgeIDPair);
+			}
 
 		//setup conditions for next instruction
 		switch (instruction->itype)
@@ -271,10 +269,7 @@ int thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 				break;
 		}
 		lastVertID = targVertID;
-		targetAddress = nextAddress;
 	}
-
-	return firstMutation;
 }
 
 void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) {
@@ -543,7 +538,7 @@ bool thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
 
-	obtainMutex(thisgraph->funcQueueMutex, 1200);
+	obtainMutex(thisgraph->funcQueueMutex, 1220);
 	thisgraph->externList.push_back(targVertID);
 	dropMutex(thisgraph->funcQueueMutex);
 	*resultPair = std::make_pair(lastVertID, targVertID);
@@ -592,14 +587,14 @@ void thread_trace_handler::process_new_args()
 			{
 				if (callersIt->first != callerAddress) 
 				{ 
-					callersIt++; 
+					++callersIt; 
 					continue;
 				}
 
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
-				obtainMutex(thisgraph->funcQueueMutex, INFINITE);
+				obtainMutex(thisgraph->funcQueueMutex, 3512);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
 
@@ -645,12 +640,12 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	else printf("\n");
 #endif
 
-	update_conditional_state(thistag->blockaddr);
+	update_conditional_state(thistag->blockaddr);//todo update with bb
 
 	if (thistag->jumpModifier == INTERNAL_CODE)
 	{
 
-		int mutation = runBB(thistag, 0, repeats);
+		runBB(thistag, 0, repeats);
 
 		if (!basicMode)
 		{
@@ -658,7 +653,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 
 			//could probably break this by mutating code in a running loop
-			thisgraph->mutationSequence.push_back(mutation);
+			thisgraph->mutationSequence.push_back(thistag->blockID);
 			dropMutex(thisgraph->animationListsMutex);
 		}
 
@@ -815,8 +810,17 @@ void thread_trace_handler::TID_thread()
 						external = true;
 						break;
 					}
-					if (find_internal_at_address(nextBlock, attempts)) break;
-					++attempts;
+					if (find_internal_at_address(nextBlock, attempts)) 
+						break;
+					if (attempts <10)
+						++attempts;
+					if (attempts >= 10)
+					{
+						cout << "[rgat] tid"<<TID<<" pid "<<PID<<" Warning: Failing to find address " << 
+							std::hex << nextBlock <<" in instrumented or external code. Block tag(addr: " <<
+							thistag.blockaddr <<" inscount:" << thistag.insCount << " blockid: " <<
+							thistag.blockID << " modtype: " << modType << endl;
+					}
 				} 
 
 				if (!external) continue;

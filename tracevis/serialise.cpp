@@ -122,6 +122,33 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 	writetag(file, tag_END, tag_DISAS);
 }
 
+void saveBlockData(PROCESS_DATA *piddata, ofstream *file)
+{
+	writetag(file, tag_START, tag_DISAS);
+
+	map <unsigned long, map<unsigned long, INSLIST *>>::iterator blockIt = piddata->blocklist.begin();
+	for (; blockIt != piddata->blocklist.end(); ++blockIt)
+	{
+		*file << blockIt->second.size() << ","; //number of blocks at this address
+		*file << blockIt->first << ",";  //block address
+
+		map<unsigned long, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
+		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
+		{
+			INSLIST *blockInstructions = blockIDIt->second;
+			*file << blockIDIt->first << "," << blockInstructions->size() << ",";
+			INSLIST::iterator blockInsIt = blockInstructions->begin();
+			for (; blockInsIt != blockInstructions->end(); ++blockInsIt)
+			{
+				//write instruction address+mutation loader can look them up in disassembly
+				INS_DATA* ins = *blockInsIt;
+				*file << ins->address << "," << ins->mutationIndex << ",";
+			}
+		}
+	}
+	writetag(file, tag_END, tag_DISAS);
+}
+
 void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_PROCESSDATA);
@@ -133,6 +160,9 @@ void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 	*file << " ";
 
 	saveDisassembly(piddata, file);
+	*file << " ";
+
+	saveBlockData(piddata, file);
 
 	writetag(file, tag_END, tag_PROCESSDATA);
 }
@@ -152,22 +182,22 @@ void saveTrace(VISSTATE * clientState)
 		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths[0],
 		&path, clientState->activePid->PID))
 	{
-		cerr << "ERROR: Failed to get save path" << endl;
+		cerr << "[rgat]ERROR: Failed to get save path" << endl;
 		return;
 	}
 
-	cout << "Saving process " << clientState->activePid->PID <<" to " << path << endl;
+	cout << "[rgat]Saving process " << clientState->activePid->PID <<" to " << path << endl;
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
-		cerr << "Failed to open " << path << "for save" << endl;
+		cerr << "[rgat]Failed to open " << path << "for save" << endl;
 		return;
 	}
 
 	savefile << "PID " << clientState->activePid->PID << " ";
 	saveProcessData(clientState->activePid, &savefile);
 
-	obtainMutex(clientState->activePid->graphsListMutex, INFINITE);
+	obtainMutex(clientState->activePid->graphsListMutex, 5523);
 	map <int, void *>::iterator graphit = clientState->activePid->graphs.begin();
 	for (; graphit != clientState->activePid->graphs.end(); graphit++)
 	{
@@ -176,13 +206,13 @@ void saveTrace(VISSTATE * clientState)
 			cout << "[rgat]Ignoring empty graph TID "<< graph->tid << endl;
 			continue;
 		}
-		cout << "Serialising graph: "<< graphit->first;
+		cout << "[rgat]Serialising graph: "<< graphit->first << endl;
 		graph->serialise(&savefile);
 	}
 	dropMutex(clientState->activePid->graphsListMutex);
 
 	savefile.close();
-	cout<<"Save complete"<<endl;
+	cout<<"[rgat]Save complete"<<endl;
 }
 
 bool verifyTag(ifstream *file, char tag, int id = 0) {
@@ -232,7 +262,7 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 		getline(*blob, symAddress_s, ',');
 		if (symAddress_s == "}") return 1;
 		if (!caught_stol(symAddress_s, &symAddress, 10))		{
-			cerr << "extractmodsyms: bad address: " << symAddress_s << endl;
+			cerr << "[rgat]extractmodsyms: bad address: " << symAddress_s << endl;
 			return -1;
 		}
 
@@ -245,17 +275,17 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
-		cerr << "Corrupt save (process data start)" << endl;
+		cerr << "[rgat]Corrupt save (process data start)" << endl;
 		return false;
 	}
 
 	//paths
 	if (!verifyTag(file, tag_START, tag_PATH)) {
-		cerr << "Corrupt save (process- path data start)" << endl;
+		cerr << "[rgat]Corrupt save (process- path data start)" << endl;
 		return false;
 	}
 
-	cout << "Loading Module Paths" << endl;
+	cout << "[rgat]Loading Module Paths" << endl;
 	string pathstring("");
 	string endTagStr;
 	endTagStr += tag_END;
@@ -279,9 +309,9 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	endTagStr.clear();
 
 	//syms
-	cout << "Loading Module Symbols" << endl;
+	cout << "[rgat]Loading Module Symbols" << endl;
 	if (!verifyTag(file, tag_START, tag_SYM)) {
-		printf("Corrupt save (process- sym data start)\n");
+		cerr<< "[rgat]Corrupt save (process- sym data start)" << endl;
 		return false;
 	}
 
@@ -304,7 +334,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	file->seekg(1, ios::cur);
 
 	//disassembly
-	cout << "Loading basic block disassembly" << endl;
+	cout << "[rgat]Loading instruction disassembly" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
 		cerr << "[rgat]Corrupt save (process- disassembly data start)" << endl;
 		return false;
@@ -364,7 +394,83 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	cs_close(&hCapstone);
 
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		cerr << "[rgat]Corrupt save (process- disas data start)" << endl;
+		cerr << "[rgat]Corrupt save (process- disas data end)" << endl;
+		return false;
+	}
+	file->seekg(1, ios::cur);
+
+	//disassembly
+	cout << "[rgat]Loading basic block mapping" << endl;
+	if (!verifyTag(file, tag_START, tag_DISAS)) {
+		cerr << "[rgat]Corrupt save (process- basic block data start)" << endl;
+		return false;
+	}
+
+	while (true)
+	{
+		if (file->peek() == '}') break;
+		//number of blockIDs recorded for address
+		string numblocks_s;
+		unsigned int numblocks;
+		getline(*file, numblocks_s, ',');
+		if (!caught_stoi(numblocks_s, &numblocks, 10)) 
+			return false;
+
+		//address of block
+		string blockaddress_s;
+		unsigned long blockaddress;
+		getline(*file, blockaddress_s, ',');
+		if (!caught_stol(blockaddress_s, &blockaddress, 10)) 
+			return false;
+
+		map<unsigned long, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
+		if (disasLookupIt == piddata->disassembly.end())
+			return false;
+
+
+		for (unsigned int blocki = 0; blocki < numblocks; ++blocki)
+		{
+
+			string blockID_s;
+			unsigned long blockID;
+			getline(*file, blockID_s, ',');
+			if (!caught_stol(blockID_s, &blockID, 10)) 
+				return false;
+
+			string numinstructions_s;
+			unsigned int numinstructions;
+			getline(*file, numinstructions_s, ',');
+			if (!caught_stoi(numinstructions_s, &numinstructions, 10)) 
+				return false;
+
+			piddata->blocklist[blockaddress][blockID] = new INSLIST;
+
+			for (unsigned int insi = 0; insi < numinstructions; ++insi)
+			{
+				string insAddr_s;
+				unsigned long insAddr;
+				getline(*file, insAddr_s, ',');
+				if (!caught_stol(insAddr_s, &insAddr, 10)) 
+					return false;
+
+				string mutationIndex_s;
+				unsigned int mutationIndex;
+				getline(*file, mutationIndex_s, ',');
+				if (!caught_stoi(mutationIndex_s, &mutationIndex, 10)) 
+					return false;
+
+				INSLIST *allInsMutations = &disasLookupIt->second;
+				if (mutationIndex >= allInsMutations->size())
+					return false;
+
+				INS_DATA* disassembledIns = piddata->disassembly.at(insAddr).at(mutationIndex);
+				piddata->blocklist[blockaddress][blockID]->push_back(disassembledIns);
+			}
+		}
+	}
+
+	if (!verifyTag(file, tag_END, tag_DISAS)) {
+		cerr << "[rgat]Corrupt save (process- basic block data end)" << endl;
 		return false;
 	}
 
@@ -380,7 +486,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
 {
 	char tagbuf[3]; int TID; string tidstring;
-	cerr << "Loading thread graphs..." << endl;
+	cerr << "[rgat]Loading thread graphs..." << endl;
 	while (true)
 	{
 		file->read(tagbuf, 3);
@@ -388,7 +494,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoi(tidstring, &TID, 10)) return false;
-		thread_graph_data *graph = new thread_graph_data(&piddata->disassembly, piddata->disassemblyMutex);
+		thread_graph_data *graph = new thread_graph_data(piddata);
 		
 		graph->tid = TID;
 		graph->pid = piddata->PID;
@@ -401,7 +507,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 
 		graph->assign_modpath(piddata);
 
-		cerr << "Loaded thread graph "<<TID <<endl;
+		cerr << "[rgat]Loaded thread graph "<<TID <<endl;
 		if (file->peek() != 'T') break;
 	}
 	return true;

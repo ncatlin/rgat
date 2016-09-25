@@ -41,7 +41,7 @@ unsigned int thread_graph_data::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsign
 //also adds them to the call log
 void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
-	obtainMutex(funcQueueMutex, INFINITE);
+	obtainMutex(funcQueueMutex, 2132);
 	while (!funcQueue.empty())
 	{
 		EXTERNCALLDATA resu = funcQueue.front();
@@ -181,7 +181,6 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 	obtainMutex(edMutex, 10000); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
-		cout << "[rgat]Graph resize triggered" << endl;
 		reset_mainlines();
 		lines = get_mainlines();
 		edgeIt = edgeList.begin();
@@ -209,20 +208,13 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
 	obtainMutex(animationListsMutex, 1000);
 	pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceId);
-	int mutation = mutationSequence.at(sequenceId);
+	unsigned long blockID = mutationSequence.at(sequenceId);
 	dropMutex(animationListsMutex);
 
 	unsigned long insAddr = targBlock_Size.first;
 	int numInstructions = targBlock_Size.second;
 	
-	INS_DATA *ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, true);
-	while (numInstructions > 1)
-	{
-		insAddr += ins->numbytes;
-		//possible source of inaccuracy here, see comments within
-		ins = getDisassembly(insAddr, mutation, disassemblyMutex, disassembly, false);
-		--numInstructions;
-	}
+	INS_DATA *ins = getDisassemblyIndex(numInstructions-1, insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist);
 	return ins;
 }
 
@@ -262,7 +254,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
 
-	obtainMutex(funcQueueMutex, INFINITE);
+	obtainMutex(funcQueueMutex, 1453);
 	funcQueue.push(ex);
 	dropMutex(funcQueueMutex);
 
@@ -540,15 +532,18 @@ int thread_graph_data::brighten_BBs()
 
 		obtainMutex(animationListsMutex, 2000);
 		pair<unsigned long, int> targBlock_Size = bbsequence.at(animPosition);
-		int mutation = mutationSequence.at(animPosition);
+		unsigned long blockID = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
 		
 
-		unsigned long insAddr = targBlock_Size.first;
+		unsigned long blockAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
 		//not happy about this locking the disassembly db. Move the vertexlist elsewhere
-		INS_DATA *ins = getDisassembly(insAddr,mutation,disassemblyMutex,disassembly, true);
+		//TODO: make it get the instruction list instead of the ins
+		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist);
+		INS_DATA *ins = block->at(0);
+
 		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
 		if (vertIt == ins->threadvertIdx.end())
 		{
@@ -598,7 +593,6 @@ int thread_graph_data::brighten_BBs()
 		
 		for (int blockIdx = 0; blockIdx < numInstructions; ++blockIdx)
 		{
-
 			const unsigned int colArrIndex = (nodeIdx * COLELEMS) + AOFF;
 			if (colArrIndex >= animnodesdata->col_buf_capacity_floats())
 			{
@@ -614,8 +608,7 @@ int thread_graph_data::brighten_BBs()
 			if (blockIdx == numInstructions - 1) break;
 
 			//brighten short edge between internal nodes
-			unsigned long nextAddress = ins->address + ins->numbytes;
-			INS_DATA* nextIns = getDisassembly(nextAddress, mutation, disassemblyMutex, disassembly, false);
+			INS_DATA* nextIns = block->at(blockIdx + 1);
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
 			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
 
@@ -625,7 +618,7 @@ int thread_graph_data::brighten_BBs()
 			ecol[edgeColPos + COLELEMS + AOFF] = 1.0;
 			assert(edgeColPos + COLELEMS + AOFF < animlinedata->col_buf_capacity_floats());
 			if (!activeEdgeMap.count(edgePair))
-				activeEdgeMap[edgePair] = e;
+					activeEdgeMap[edgePair] = e;
 
 			nodeIdx = nextInsIndex;
 			ins = nextIns;
@@ -679,27 +672,16 @@ void thread_graph_data::update_animation_render(float fadeRate)
 unsigned int thread_graph_data::derive_anim_node()
 {
 
-	obtainMutex(animationListsMutex, INFINITE);
-	pair<unsigned long, int> seq_size = bbsequence.at(sequenceIndex);
-	int mutation = mutationSequence.at(sequenceIndex);
+	obtainMutex(animationListsMutex, 5223);
+	pair<unsigned long, int> addr_size = bbsequence.at(sequenceIndex);
+	unsigned long blockID = mutationSequence.at(sequenceIndex);
 	dropMutex(animationListsMutex);
 
-	unsigned long bbseq = seq_size.first;
+	unsigned long blockAddr = addr_size.first;
 	int remainingInstructions = blockInstruction;
 	
-	INS_DATA *target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, true);
-	
-	//would put the end sequence instead of doing this
-	//but that ruins us if something jumps in middle of an opcode
-	while (remainingInstructions)
-	{
-		bbseq += target_ins->numbytes;
-		target_ins = getDisassembly(bbseq, mutation, disassemblyMutex, disassembly, false);
-		--remainingInstructions;
-	}
-
+	INS_DATA *target_ins = getDisassemblyIndex(blockInstruction, blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist);
 	return target_ins->threadvertIdx.at(tid);
-
 }
 
 void thread_graph_data::reset_mainlines() 
@@ -713,7 +695,7 @@ void thread_graph_data::reset_mainlines()
 //true if found + edge data placed in edged
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	obtainMutex(edMutex, INFINITE);
+	obtainMutex(edMutex, 6231);
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
 
@@ -725,7 +707,7 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, INFINITE);
+	obtainMutex(edMutex, 5129);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
 	dropMutex(edMutex);
 	return linkingEdge;
@@ -737,6 +719,7 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	node_data *sourceNode = get_node(ePair.first);
 	node_data *targetNode = get_node(ePair.second);
 	edge_data *e = get_edge(ePair);
+	if (!e) return 0;
 
 	MULTIPLIERS *scaling;
 	if (preview)
@@ -780,10 +763,9 @@ VCOORD *thread_graph_data::get_active_node_coord()
 	return result;
 }
 
-thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HANDLE mutex)
+thread_graph_data::thread_graph_data(PROCESS_DATA *processdata)
 {
-	disassembly = disasPtr;
-	disassemblyMutex = mutex;
+	piddata = processdata;
 
 	mainnodesdata = new GRAPH_DISPLAY_DATA();
 	mainlinedata = new GRAPH_DISPLAY_DATA();
@@ -812,7 +794,7 @@ thread_graph_data::thread_graph_data(map <unsigned long, INSLIST> *disasPtr, HAN
 
 void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, INFINITE);
+	obtainMutex(edMutex, 5235);
 	*edgeIt = edgeList.begin();
 	*edgeEnd = edgeList.end();
 }
@@ -825,7 +807,7 @@ void thread_graph_data::stop_edgeL_iteration()
 void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
 	EDGEMAP::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, INFINITE);
+	obtainMutex(edMutex, 4526);
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
 }
@@ -840,7 +822,7 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
-	obtainMutex(nodeLMutex, INFINITE);
+	obtainMutex(nodeLMutex, 2699);
 	nodeList.push_back(node);
 	dropMutex(nodeLMutex);
 }
@@ -852,7 +834,7 @@ void thread_graph_data::stop_edgeD_iteration()
 
 void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, INFINITE);
+	obtainMutex(edMutex, 6234);
 	edgeDict.insert(make_pair(edgePair, e));
 	edgeList.push_back(edgePair);
 	dropMutex(edMutex);
@@ -869,6 +851,7 @@ void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesd
 {
 	if (!edgesdata->get_numVerts()) return;
 	edge_data *e = get_edge(eIdx);
+	if (!e) return;
 	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
 	GLfloat *colarray = &edgesdata->acquire_col()->at(0);
 	for (unsigned int i = 0; i < e->vertSize; ++i)
@@ -934,7 +917,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< "}S,";
 
 	*file << "A{";
-	obtainMutex(animationListsMutex, INFINITE);
+	obtainMutex(animationListsMutex, 6342);
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
 		pair<unsigned long, int> seq_size = bbsequence.at(i);
@@ -1177,7 +1160,7 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 	string sequence_s, size_s, mutation_s, loopstateIdx_s, loopstateIts_s;
 	pair<unsigned long, int> seq_size;
 	pair<unsigned int, unsigned long> loopstateIdx_Its;
-	int mutation;
+	unsigned long blockID;
 
 	while (true)
 	{
@@ -1195,8 +1178,8 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 		bbsequence.push_back(seq_size);
 
 		getline(*file, mutation_s, ',');
-		if (!caught_stoi(mutation_s, &mutation, 10)) break;
-		mutationSequence.push_back(mutation);
+		if (!caught_stol(mutation_s, &blockID, 10)) break;
+		mutationSequence.push_back(blockID);
 
 		getline(*file, loopstateIdx_s, ',');
 		if (!caught_stoi(loopstateIdx_s, (int *)&loopstateIdx_Its.first, 10)) break;

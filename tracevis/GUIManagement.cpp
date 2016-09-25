@@ -184,7 +184,7 @@ ALLEGRO_DISPLAY* displaySetup() {
 void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	if (!title) return;
 	stringstream newTitle;
-	newTitle << "TraceVis. Mouse:(" << title->MPos
+	newTitle << "rgat. Mouse:(" << title->MPos
 		<< ") Zoom:(" << title->zoom << ") "
 		<< title->Primitives
 		<< " FPS: " << title->FPS;
@@ -312,14 +312,14 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 	ALLEGRO_MENU_INFO menu_info[] = {
 
 		ALLEGRO_START_OF_MENU("&File", 1),
-		{ "&Run", EV_BTN_RUN, 0, NULL },
-		{ "&Save", EV_BTN_SAVE, 0, NULL },
-		{ "&Load", EV_BTN_LOAD, 0, NULL },
+		{ "&Run executable", EV_BTN_RUN, 0, NULL },
+		{ "&Save trace", EV_BTN_SAVE, 0, NULL },
+		{ "&Load saved trace", EV_BTN_LOAD, 0, NULL },
 
-		ALLEGRO_START_OF_MENU("Open &Recent...", 3),
-		{ "Recent 1", 4, 0, NULL },
-		{ "Recent 2", 5, 0, NULL },
-		ALLEGRO_END_OF_MENU,
+		//ALLEGRO_START_OF_MENU("Open &Recent...", 3),
+		//{ "Recent 1", 4, 0, NULL },
+		//{ "Recent 2", 5, 0, NULL },
+		//ALLEGRO_END_OF_MENU,
 		ALLEGRO_MENU_SEPARATOR,
 		{ "E&xit", EV_BTN_QUIT, 0, NULL },
 		ALLEGRO_END_OF_MENU,

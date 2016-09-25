@@ -19,7 +19,7 @@ Constants used to interpret and plot the trace data
 */
 
 #pragma once
-#define BBBUFSIZE 64*1024
+#define BBBUFSIZE 1024*1024
 #define MAX_OPCODES 30
 
 #define TAGCACHESIZE 1024*1024
