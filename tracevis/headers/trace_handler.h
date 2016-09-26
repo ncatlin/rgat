@@ -29,7 +29,7 @@ Header for the thread that builds a graph for each trace
 
 struct TAG {
 	MEM_ADDRESS blockaddr;
-	unsigned int insCount;
+	unsigned long insCount;
 	int jumpModifier;
 	BLOCK_IDENTIFIER blockID;
 	BB_DATA* foundExtern;

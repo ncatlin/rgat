@@ -69,6 +69,7 @@ bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned in
 	obtainMutex(piddata->disassemblyMutex, 100);
 	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	dropMutex(piddata->disassemblyMutex);
+
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{
 		*vertIdx = vertIdIt->second;
@@ -78,37 +79,37 @@ bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned in
 		return false;
 }
 
+//update conditional taken/failed status of lastNode now we know the address it is going to
 void thread_trace_handler::update_conditional_state(MEM_ADDRESS nextAddress)
 {
-	if (lastVertID)
+	if (!thisgraph->get_num_nodes()) return;
+
+	node_data *lastNode = thisgraph->get_node(lastVertID);
+	int lastNodeCondStatus = lastNode->conditional;
+	if (lastNodeCondStatus & CONDPENDING)
 	{
-		node_data *lastNode = thisgraph->get_node(lastVertID);
-		int lastNodeCondStatus = lastNode->conditional;
-		if (lastNodeCondStatus & CONDPENDING)
+		bool everTaken = lastNodeCondStatus & CONDTAKEN;
+		bool everFailed = lastNodeCondStatus & CONDFELLTHROUGH;
+
+		if (!everFailed && (nextAddress == lastNode->ins->condDropAddress))
 		{
-			bool alreadyTaken = lastNodeCondStatus & CONDTAKEN;
-			bool alreadyFailed = lastNodeCondStatus & CONDFELLTHROUGH;
-
-			if (!alreadyFailed && (nextAddress == lastNode->ins->condDropAddress))
-			{
-				lastNodeCondStatus |= CONDFELLTHROUGH;
-				alreadyFailed = true;
-			}
-
-			if (!alreadyTaken && (nextAddress == lastNode->ins->condTakenAddress))
-			{
-				lastNodeCondStatus |= CONDTAKEN;
-				alreadyTaken = true;
-			}
-
-			if (alreadyTaken && alreadyFailed)
-				lastNodeCondStatus = CONDCOMPLETE;
-			lastNode->conditional = lastNodeCondStatus;
+			lastNodeCondStatus |= CONDFELLTHROUGH;
+			everFailed = true;
 		}
-	}
 
+		if (!everTaken && (nextAddress == lastNode->ins->condTakenAddress))
+		{
+			lastNodeCondStatus |= CONDTAKEN;
+			everTaken = true;
+		}
+
+		if (everTaken && everFailed)
+			lastNodeCondStatus = CONDCOMPLETE;
+		lastNode->conditional = lastNodeCondStatus;
+	}
 }
 
+//creates a node for a newly excecuted instruction
 void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, int bb_inslist_index)
 {
 
@@ -120,14 +121,13 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	int a = 0, b = 0;
 	int bMod = 0;
 
-	//first instruction in bb,
-	if (bb_inslist_index == 0 && lastRIPType == FIRST_IN_THREAD)
-	{
-			a = 0;
-			b = 0;
+	
+	if (lastRIPType == FIRST_IN_THREAD)
+	{	
+		a = 0;
+		b = 0;
 	}
-
-	if (lastRIPType != FIRST_IN_THREAD)
+	else
 	{
 		node_data *lastNode = thisgraph->get_node(lastVertID);
 		VCOORD lastnodec = lastNode->vcoord;
@@ -196,7 +196,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 		{
 			if (!thisgraph->node_exists(lastVertID))
 			{
-				printf("\t\tFatal error last vert not found\n");
+				cerr << "\t\t[rgat]ERROR: Last vert "<<lastVertID<<" not found" << endl;
 				assert(0);
 			}
 		}
@@ -216,7 +216,6 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 		}
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
-		//again, 2 lookups here
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 		edge_data *edged;
 		if (thisgraph->edge_exists(edgeIDPair, &edged))
@@ -273,6 +272,8 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 }
 
 void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) {
+	//the extra work of 2xabs() happens so rarely that its worth avoiding
+	//the stack allocations of a variable every call
 	if (abs(a) > thisgraph->maxA) thisgraph->maxA = abs(a);
 	if (abs(b) > thisgraph->maxB) thisgraph->maxB = abs(b);
 	if (bMod > thisgraph->bigBMod) thisgraph->bigBMod = bMod;
@@ -289,15 +290,22 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 
 	switch (lastRIPType)
 	{
+	/*
+	The initial post-return node is placed near the caller on the stack.
+	Makes a mess if we place whole block there, so this moves it farther away
+	but it also means sequential instruction edges looking like jumps.
+	Something for consideration
+	*/
 	case AFTERRETURN:
 		a = min(a - 20, -(thisgraph->maxA + 2));
 		b += 7 * BMULT;
 		break;
 
+	//small vertical distance between instructions in a basic block
 	case NONFLOW:
 		{
-			//is it a conditional jump being taken? -> fall through to jump
-			//TODO: this tends to be a source of messy edge overlap
+			//conditional jumps are assume non-flow control until their target is seen
+			//if it's taken then fall through to jump
 			node_data *lastNode = thisgraph->get_node(lastVertID);
 			if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
 			{
@@ -305,6 +313,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				break;
 			}
 		}
+	//long diagonal separation to show distinct basic blocks
 	case JUMP:
 		{
 			a += JUMPA;
@@ -318,6 +327,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			}
 			break;
 		}
+	//long purple line to show possible distinct functional blocks of the program
 	case CALL:
 		{
 			b += CALLB * BMULT;
@@ -336,12 +346,11 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 		}
 
 	case RETURN:
-		//still mulling over how to handle returns
 		afterReturn = true;
-
 		//previous externs handled same as previous returns
 	case EXTERNAL:
 		{
+			//returning to address in call stack?
 			int result = -1;
 			vector<pair<MEM_ADDRESS, int>>::iterator stackIt;
 			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
@@ -351,6 +360,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 					break;
 				}
 
+			//if so, position next node near caller
 			if (result != -1)
 			{
 				VCOORD *caller = &thisgraph->get_node(result)->vcoord;
@@ -420,7 +430,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
 	bool callDone = moreargs_s.at(0) == 'E' ? true : false;
-
 	char b64Marker = strtok_s(entry, ",", &entry)[0];
 
 	string contents;
@@ -466,7 +475,6 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
-	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
 	node_data *lastNode = thisgraph->get_node(lastVertID);
 	assert(lastNode->ins->numbytes);
 
@@ -558,6 +566,7 @@ void thread_trace_handler::process_new_args()
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
 		MEM_ADDRESS funcad = pcaIt->first;
+
 		obtainMutex(piddata->externDictMutex, 1000);
 		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
@@ -577,9 +586,6 @@ void thread_trace_handler::process_new_args()
 			node_data *parentn = thisgraph->get_node(callvsIt->first);
 			//this breaks if call not used!
 			MEM_ADDRESS callerAddress = parentn->ins->address;
-
-			if (get_extern_at_address(callerAddress, 0, 1))
-				printf("\nEXTERN CALLED BY EXTERN, DELETE!\n");
 
 			node_data *targn = thisgraph->get_node(callvsIt->second);
 
@@ -702,11 +708,13 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 	const int numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = &piddata->modBounds.at(modNo);
-		if (address >= bounds->first &&	address <= bounds->second)
+		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = &piddata->modBounds.at(modNo);
+		if (address >= moduleBounds->first &&	address <= moduleBounds->second)
 		{
-			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) return MOD_ACTIVE;
-			else return MOD_UNINSTRUMENTED;
+			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) 
+				return MOD_ACTIVE;
+			else 
+				return MOD_UNINSTRUMENTED;
 		}
 	}
 	return MOD_UNKNOWN;
@@ -715,8 +723,6 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 //updates graph entry for each tag in the trace loop cache
 void thread_trace_handler::dump_loop()
 {
-	vector<TAG>::iterator tagIt;
-
 	loopState = LOOP_START;
 
 	if (loopCache.empty())
@@ -724,8 +730,9 @@ void thread_trace_handler::dump_loop()
 		loopState = NO_LOOP;
 		return;
 	}
-
 	++thisgraph->loopCounter;
+
+	vector<TAG>::iterator tagIt;
 	//put the verts/edges on the graph
 	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); ++tagIt)
 		handle_tag(&*tagIt, loopCount);
@@ -775,12 +782,11 @@ void thread_trace_handler::TID_thread()
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
 				TAG thistag;
-
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
 				MEM_ADDRESS nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
-				BLOCK_IDENTIFIER id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
-				thistag.insCount = id_count & 0xffff;
-				thistag.blockID = id_count >> 16;
+				UINT64 id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
+				thistag.insCount = id_count & 0xffffffff;
+				thistag.blockID = id_count >> 32;
 
 				thistag.jumpModifier = INTERNAL_CODE;
 				if (loopState == LOOP_START)

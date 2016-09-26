@@ -84,4 +84,14 @@ typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
 
 typedef unsigned long MEM_ADDRESS;
+
+//low 16 bits are number of instructions in a block
+//high 16 bits are random number generated when the block was first seen in cache
+
+/*
+suspect 16 bits not be enough for either: 
+a 65k instruction block or 1:65k clash at 
+same address seems possible in arbitrary code universe
+TODO: bump this to uint64
+*/
 typedef unsigned long BLOCK_IDENTIFIER;

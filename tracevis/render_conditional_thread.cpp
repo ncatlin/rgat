@@ -145,15 +145,13 @@ void conditional_renderer::conditional_thread()
 		while (graphlistIt != graphlist.end())
 		{
 			if (die || clientState->die) break;
-			thread_graph_data *graph = *graphlistIt;
-			graphlistIt++;
+			thread_graph_data *graph = *graphlistIt++;
 
 			if (graph->active || graph->get_num_edges() > graph->conditionallines->get_renderedEdges())
 				render_graph_conditional(graph);
 			else if (!finishedGraphs[graph])
-			{
 				finishedGraphs[graph] = render_graph_conditional(graph);
-			}
+
 			Sleep(80);
 		}
 		graphlist.clear();

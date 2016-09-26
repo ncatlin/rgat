@@ -39,7 +39,7 @@ public:
 	INS_DATA* ins = NULL;
 	bool external = false;
 	int nodeMod;
-	int mutation;
+	BLOCK_IDENTIFIER mutation;
 	//list of lists of arg number, contents
 	vector<ARGLIST> funcargs;
 	unsigned long calls = 1;

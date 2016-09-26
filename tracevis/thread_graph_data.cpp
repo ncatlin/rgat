@@ -1169,7 +1169,8 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 		bbsequence.push_back(seq_size);
 
 		getline(*file, mutation_s, ',');
-		if (!caught_stol(mutation_s, &blockID, 10)) break;
+		if (!caught_stol(mutation_s, &blockID, 16)) break;
+
 		mutationSequence.push_back(blockID);
 
 		getline(*file, loopstateIdx_s, ',');
