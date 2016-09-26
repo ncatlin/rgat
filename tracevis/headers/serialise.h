@@ -37,7 +37,9 @@ void writetag(ofstream *file, char tag, int id = 0);
 void saveProcessData(PROCESS_DATA *piddata, ofstream *file);
 void saveTrace(VISSTATE * clientState);
 bool verifyTag(ifstream *file, char tag, int id = 0);
-int extractb64path(ifstream *file, unsigned long *id, string *modpath, string endTag);
+
+int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag);
+
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata);
 bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);
 bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);

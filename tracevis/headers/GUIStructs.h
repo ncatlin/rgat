@@ -70,7 +70,7 @@ struct HEIGHTWIDTH {
 struct HIGHLIGHT_DATA {
 	int highlightState = 0;
 	string highlight_s;
-	unsigned long highlightAddr;
+	MEM_ADDRESS highlightAddr;
 	int highlightModule = 0;
 	vector<node_data *> highlightNodes;
 };

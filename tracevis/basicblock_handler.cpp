@@ -94,9 +94,6 @@ void basicblock_handler::PID_BB_thread()
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(std::to_wstring(PID));
 
-	ofstream logf;
-	logf.open("C:\\Users\\nia\\Documents\\tracevis\\tracevis\\Release\\logfile" + to_string(PID));
-
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
@@ -139,7 +136,6 @@ void basicblock_handler::PID_BB_thread()
 		if (die || clientState->die) break;
 		if (clientState->terminationPid == PID)
 			break;
-
 
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, BBBUFSIZE, &bread, &ov2);
@@ -190,13 +186,12 @@ void basicblock_handler::PID_BB_thread()
 			size_t i = 0;
 
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
-			unsigned long targetaddr;
+			MEM_ADDRESS targetaddr;
 			if (!caught_stol(string(start_s), &targetaddr, 16)) {
 				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);
 			}
 			
-
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
 			int modnum;
 			if (!caught_stoi(string(modnum_s), &modnum, 10)) {
@@ -240,7 +235,7 @@ void basicblock_handler::PID_BB_thread()
 			}
 
 			INSLIST *blockInstructions = new INSLIST;
-			unsigned long insaddr = targetaddr;
+			MEM_ADDRESS insaddr = targetaddr;
 			while (true)
 			{
 				
@@ -250,11 +245,12 @@ void basicblock_handler::PID_BB_thread()
 
 				string opcodes(strtok_s(next_token, "@", &next_token));
 				obtainMutex(piddata->disassemblyMutex, 4000);
-				map<unsigned long,INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
+				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
 					instruction = addressDissasembly->second.back();
 					//if address has been seen but opcodes are not same as most recent, disassemble again
+					//might be a better to check all mutations instead of most recent
 					if (instruction->opcodes != opcodes) 
 						instruction = NULL;
 				}
@@ -281,12 +277,9 @@ void basicblock_handler::PID_BB_thread()
 
 					piddata->disassembly[insaddr].push_back(instruction);
 					instruction->mutationIndex = piddata->disassembly[insaddr].size()-1;
-					printf("setting mi : %d\n", instruction->mutationIndex);
 				}
 				blockInstructions->push_back(instruction);
 				dropMutex(piddata->disassemblyMutex);
-
-				logf << "\tINS: 0x" << std::hex << insaddr << " op: " << instruction->ins_text << "\n";
 
 				insaddr += instruction->numbytes;
 				if (next_token >= buf + bread) break;

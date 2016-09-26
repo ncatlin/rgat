@@ -25,7 +25,7 @@ Header for the thread that builds a graph for each trace
 #include "b64.h"
 #include "OSspecific.h"
 
-bool thread_trace_handler::find_internal_at_address(long address, int attempts) 
+bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int attempts)
 {
 	while (!piddata->disassembly.count(address))
 	{
@@ -35,9 +35,9 @@ bool thread_trace_handler::find_internal_at_address(long address, int attempts)
 	return true;
 }
 
-bool thread_trace_handler::get_extern_at_address(long address, BB_DATA **BB, int attempts = 1) {
+bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1) {
 	obtainMutex(piddata->externDictMutex, 1000);
-	map<unsigned long, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
+	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
 	while (externIt == piddata->externdict.end())
 	{
 		if (!attempts--) { 
@@ -78,7 +78,7 @@ bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned in
 		return false;
 }
 
-void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
+void thread_trace_handler::update_conditional_state(MEM_ADDRESS nextAddress)
 {
 	if (lastVertID)
 	{
@@ -109,7 +109,7 @@ void thread_trace_handler::update_conditional_state(unsigned long nextAddress)
 
 }
 
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, unsigned long blockID, int bb_inslist_index)
+void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, int bb_inslist_index)
 {
 
 	node_data thisnode;
@@ -166,7 +166,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, unsigne
 }
 
 
-void thread_trace_handler::increaseWeight(edge_data *edge, long executions)
+void thread_trace_handler::increaseWeight(edge_data *edge, unsigned long executions)
 {
 	edge->weight += executions;
 	if (edge->weight > thisgraph->maxWeight)
@@ -215,7 +215,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 			loopState = LOOP_PROGRESS;
 		}
 
-		long nextAddress = instruction->address + instruction->numbytes;
+		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		//again, 2 lookups here
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 		edge_data *edged;
@@ -280,7 +280,7 @@ void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) {
 
 //takes position of a node as pointers
 //performs an action (call,jump,etc), places new position in pointers
-void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long address)
+void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address)
 {
 	int a = *pa;
 	int b = *pb;
@@ -343,11 +343,11 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 	case EXTERNAL:
 		{
 			int result = -1;
-			vector<pair<long, int>>::iterator it;
-			for (it = callStack.begin(); it != callStack.end(); ++it)
-				if (it->first == address)
+			vector<pair<MEM_ADDRESS, int>>::iterator stackIt;
+			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
+				if (stackIt->first == address)
 				{
-					result = it->second;
+					result = stackIt->second;
 					break;
 				}
 
@@ -360,7 +360,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, long addre
 				
 				//may not have returned to the last item in the callstack
 				//delete everything inbetween
-				callStack.resize(it-callStack.begin());
+				callStack.resize(stackIt-callStack.begin());
 			}
 			else
 			{
@@ -393,7 +393,7 @@ void __stdcall thread_trace_handler::ThreadEntry(void* pUserData) {
 }
 
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
-	unsigned long funcpc, returnpc;
+	MEM_ADDRESS funcpc, returnpc;
 	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
 	int argpos;
 	if (!caught_stoi(argidx_s, &argpos, 10)) {
@@ -439,7 +439,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	//func been called in thread already? if not, have to place args in holding buffer
 	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
 	{
-		map <unsigned long, vector<ARGLIST>> *newmap = new map <unsigned long, vector<ARGLIST>>;
+		map <MEM_ADDRESS, vector<ARGLIST>> *newmap = new map <MEM_ADDRESS, vector<ARGLIST>>;
 		thisgraph->pendingcallargs.emplace(pendingFunc, *newmap);
 	}
 
@@ -463,7 +463,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	process_new_args();
 }
 
-bool thread_trace_handler::run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair)
+bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//if parent calls multiple children, spread them out around caller
 	//todo: can crash here if lastvid not in vd - only happned while pause debugging tho
@@ -553,12 +553,13 @@ bool thread_trace_handler::run_external(unsigned long targaddr, unsigned long re
 
 void thread_trace_handler::process_new_args()
 {
-	map<unsigned long, map <unsigned long, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
+	//function				caller		args
+	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
 	while (pcaIt != thisgraph->pendingcallargs.end())
 	{
-		unsigned long funcad = pcaIt->first;
+		MEM_ADDRESS funcad = pcaIt->first;
 		obtainMutex(piddata->externDictMutex, 1000);
-		map<unsigned long, BB_DATA*>::iterator externIt;
+		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
 		if (externIt == piddata->externdict.end() ||
 			!externIt->second->thread_callers.count(TID)) {
@@ -575,14 +576,14 @@ void thread_trace_handler::process_new_args()
 		{
 			node_data *parentn = thisgraph->get_node(callvsIt->first);
 			//this breaks if call not used!
-			unsigned long callerAddress = parentn->ins->address;
+			MEM_ADDRESS callerAddress = parentn->ins->address;
 
 			if (get_extern_at_address(callerAddress, 0, 1))
 				printf("\nEXTERN CALLED BY EXTERN, DELETE!\n");
 
 			node_data *targn = thisgraph->get_node(callvsIt->second);
 
-			map <unsigned long, vector<ARGLIST>>::iterator callersIt = pcaIt->second.begin();
+			map <MEM_ADDRESS, vector<ARGLIST>>::iterator callersIt = pcaIt->second.begin();
 			while (callersIt != pcaIt->second.end())//run through each caller to this function
 			{
 				if (callersIt->first != callerAddress) 
@@ -696,12 +697,12 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //returns the module starting before and ending after the provided address
 //if that's none of them, assume its a new code area in calling module
 //TODO: this assumption is bad; any self modifying dll may cause problems
-int thread_trace_handler::find_containing_module(unsigned long address)
+int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 {
 	const int numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-		pair<unsigned long, unsigned long> *bounds = &piddata->modBounds.at(modNo);
+		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = &piddata->modBounds.at(modNo);
 		if (address >= bounds->first &&	address <= bounds->second)
 		{
 			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) return MOD_ACTIVE;
@@ -776,8 +777,8 @@ void thread_trace_handler::TID_thread()
 				TAG thistag;
 
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
-				unsigned long nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
-				unsigned long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
+				MEM_ADDRESS nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
+				BLOCK_IDENTIFIER id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
 				thistag.insCount = id_count & 0xffff;
 				thistag.blockID = id_count >> 16;
 
@@ -869,7 +870,7 @@ void thread_trace_handler::TID_thread()
 
 			if (enter_s.substr(0, 3) == "EXC")
 			{
-				unsigned long e_ip;
+				MEM_ADDRESS e_ip;
 				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
 				if (!caught_stol(e_ip_s, &e_ip, 16)) {
 					

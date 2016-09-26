@@ -70,7 +70,6 @@ public:
 	int lowB;
 	int farA;
 	unsigned int renderFrequency;
-
 	unsigned long traceBufMax;
 
 	string saveDir;

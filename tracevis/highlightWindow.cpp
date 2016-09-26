@@ -78,7 +78,7 @@ void HighlightSelectionFrame::refreshDropdowns()
 	//place address of first not in address selector
 	if (graph->get_num_nodes())
 	{
-		unsigned long firstAddress = graph->get_node(0)->address;
+		MEM_ADDRESS firstAddress = graph->get_node(0)->address;
 		stringstream hexaddress;
 		hexaddress << "0x" << hex << firstAddress;
 		addressText->setText(hexaddress.str());

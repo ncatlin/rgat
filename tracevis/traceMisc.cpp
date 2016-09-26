@@ -39,174 +39,40 @@ string generate_funcArg_string(string sym, ARGLIST args)
 	return funcArgStr.str();
 }
 
-INSLIST* getDisassemblyBlock(unsigned long blockaddr, unsigned long blockID,
-	HANDLE mutex, map <unsigned long, map<unsigned long, INSLIST *>> *blockList)
+INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
+	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList)
 {
 	INSLIST* result;
 	int iterations = 0;
-	int stage = 0;
+
+	map<MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt;
 	while (true)
 	{
-		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of " << std::hex << blockaddr << std::dec <<
-			" of block " << blockID << " stage " << stage << endl;
-
 		obtainMutex(mutex, 4000);
-		if (blockList->count(blockaddr) == 0) { dropMutex(mutex); Sleep(1); continue; }
-		stage = 1;
-		if (blockList->at(blockaddr).count(blockID) == 0) { dropMutex(mutex); Sleep(1); continue; }
-
-		result = blockList->at(blockaddr).at(blockID);
+		blockIt = blockList->find(blockaddr);
 		dropMutex(mutex);
-		break;
+		if (blockIt != blockList->end()) break;
+
+		if (iterations++ > 20)
+			cerr << "[rgat]Warning... long wait for disassembly of block" << std::hex << blockaddr << endl;
+		Sleep(1);
 	}
-	return result;
 
-}
-
-
-INS_DATA* getDisassemblyIndex(int instructionIndex, unsigned long blockaddr,unsigned long blockID,
-	HANDLE mutex, map <unsigned long, map<unsigned long, INSLIST *>> *blockList)
-{
-	INS_DATA* result;
-	int iterations = 0;
-	int stage = 0;
+	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
 	while (true)
 	{
-		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of "<<std::hex<<blockaddr <<std::dec<<"["<<instructionIndex<<"]"<<
-			" of block "<<blockID<<" stage "<< stage<<endl;
 		obtainMutex(mutex, 4000);
-		if (blockList->count(blockaddr) == 0) { dropMutex(mutex); Sleep(1); continue; }
-		stage = 1;
-		if (blockList->at(blockaddr).count(blockID) == 0) { dropMutex(mutex); Sleep(1); continue; }
-		stage = 2;
-		if (blockList->at(blockaddr).at(blockID)->size() <= instructionIndex) { dropMutex(mutex); Sleep(1); continue; }
-
-		result = blockList->at(blockaddr).at(blockID)->at(instructionIndex);
+		mutationIt = blockIt->second.find(blockID);
 		dropMutex(mutex);
-		break;
-	}
-	return result;
-}
 
-/*
-//gets the disassembly of [address] from [block] id [blockid]
-INS_DATA* getDisassemblyAddr(unsigned long address,unsigned long block,int mutation, HANDLE mutex,
-	map <unsigned long, map<unsigned long, INSLIST>> *blocklist)
-{
-	obtainMutex(mutex, 4000);
-	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
+		if (mutationIt != blockIt->second.end()) break;
 
-	if (disasIt == disas->end() || (!getLatest && disasIt->second.size()-1 < (size_t)mutation))
-	{
-		int waitTime = 1;
-		while (true)
-		{
-			dropMutex(mutex);
-			Sleep(waitTime);
-
-			obtainMutex(mutex, 4000);
-			disasIt = disas->find(address);
-			
-			if (disasIt == disas->end())
-			{
-				waitTime += 5;
-				if (waitTime > 600)
-					cout << "[rgat]Long wait for disassembly of " << address << ", mutation " << mutation << endl;
-				continue;
-			}
-
-			if (getLatest)
-			{
-				mutation = disasIt->second.size() - 1;
-				break;
-			}
-			else
-				if (disasIt->second.size() - 1 >= (size_t)mutation)
-					break;
-				else
-				{
-					//Not found mutation? Give up and use the latest one
-					//If display of mutating code is going bad, this might be where it happens.
-					//Could also be a source of significant slowdown so wait time is reduced
-					mutation = disasIt->second.size() - 1;
-					
-					//waitTime += 40;
-					//if (waitTime > 120) {
-					//	mutation = disasIt->second.size() - 1;
-					//}
-					//Sleep(waitTime);
-					
-				}
-		}
+		if (iterations++ > 20)
+			cerr << "[rgat]Warning... long wait for disassembly of block" << std::hex << blockaddr << endl;
+		Sleep(1);
 	}
 
-	INS_DATA *result = disasIt->second.at(mutation);
-	dropMutex(mutex);
-	return result;
-}
-*/
-
-//lot of stuff pushed on stack here for a common call. consider reworking
-//this function is the biggest bottleneck (due to map lookups, not sleeping)
-INS_DATA* getLastDisassembly(unsigned long address,unsigned int blockID, HANDLE mutex, 
-	map<unsigned long, INSLIST> *disas, int *mutationIndex)
-{
-	obtainMutex(mutex, 4000);
-	map<unsigned long, INSLIST>::iterator disasIt = disas->find(address);
-	if (disasIt == disas->end())
-	{
-		dropMutex(mutex);
-		int waitTime = 5;
-		while (true)
-		{
-			cout << "[rgat]Waiting "<< waitTime << " ms for disassembly of addr " << std::hex << address << endl;
-			Sleep(waitTime);
-			obtainMutex(mutex, 4000);
-			disasIt = disas->find(address);
-			if (disasIt != disas->end())
-				break;
-			dropMutex(mutex);
-			waitTime += 5;
-		}
-	}
-
-	INS_DATA *result = disasIt->second.back();
-	//make sure we are not looking at instruction from different block mutation
-	if (std::find(result->blockIDs.begin(), result->blockIDs.end(), blockID) != result->blockIDs.end())
-	{
-		if (mutationIndex)
-			*mutationIndex = disasIt->second.size() - 1;
-	}
-	else
-	{
-		while (true)
-		{
-			vector<INS_DATA *>::iterator insIt = disasIt->second.begin();
-			int mut = 0;
-			for (; insIt != disasIt->second.end(); ++insIt)
-			{
-				INS_DATA* ins = *insIt;
-				if (std::find(ins->blockIDs.begin(), ins->blockIDs.end(), blockID) != ins->blockIDs.end())
-				{
-					if (mutationIndex)
-						*mutationIndex = mut;
-					result = ins;
-					break;
-				}
-				++mut;
-			}
-			if (insIt != disasIt->second.end()) break;
-			dropMutex(mutex);
-			Sleep(2);
-			obtainMutex(mutex, 4000);
-			cout << "[rgat]Waiting for mutation (address " << std::hex << address << ")" << endl;
-		}
-	}
-	
-	dropMutex(mutex);
-	return result;
+	return mutationIt->second;
 }
 
 //takes MARKER1234 buf, marker and target int

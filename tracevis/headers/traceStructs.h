@@ -20,11 +20,7 @@ Structures used to represent the disassembly
 #pragma once
 #include "stdafx.h"
 #include "edge_data.h"
-
-typedef std::pair<unsigned int, unsigned int> NODEPAIR;
-typedef vector<NODEPAIR> EDGELIST;
-typedef pair<int, string> ARGIDXDATA;
-typedef vector<ARGIDXDATA> ARGLIST;
+#include "traceConstants.h"
 
 /*
 Pinched from Boost
@@ -53,7 +49,6 @@ namespace std
 	};
 }
 
-//typedef map<NODEPAIR, edge_data> EDGEMAP;
 typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
 
 //extern nodes this node calls. useful for 'call eax' situations
@@ -75,10 +70,10 @@ struct INS_DATA {
 	char itype;
 	bool conditional = false;
 	bool dataEx = false;
-	unsigned long address;
+	MEM_ADDRESS address;
 	unsigned int numbytes;
-	unsigned long condTakenAddress;
-	unsigned long condDropAddress;
+	MEM_ADDRESS condTakenAddress;
+	MEM_ADDRESS condDropAddress;
 	//thread id, vert idx
 	unordered_map<int, int> threadvertIdx;
 	unsigned int modnum;
@@ -100,7 +95,7 @@ struct BB_DATA {
 	map <int, EDGELIST> thread_callers;
 
 	//   tid	caller    
-	map <int, map<long, ARGLIST>> pendingcallargs;
+	map <int, map<MEM_ADDRESS, ARGLIST>> pendingcallargs;
 	string symbol;
 };
 
@@ -113,9 +108,9 @@ struct FUNCARG {
 struct PROCESS_DATA {
 	bool active = true;
 	map <int, string>modpaths;
-	map <int, pair<unsigned long, unsigned long>> modBounds;
+	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
 	int PID = -1;
-	map <int, std::map<long, string>>modsyms;
+	map <int, std::map<MEM_ADDRESS, string>>modsyms;
 	
 	//graph data for each thread in process
 	map <int, void *> graphs;
@@ -124,14 +119,14 @@ struct PROCESS_DATA {
 	HANDLE externDictMutex = CreateMutex(NULL, false, NULL);
 
 	//maps instruction addresses to all data about it
-	map <unsigned long, INSLIST> disassembly;
+	map <MEM_ADDRESS, INSLIST> disassembly;
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
-	map <unsigned long, map<unsigned long, INSLIST *>> blocklist;
+	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
 
 	vector <int> activeMods;
-	map <unsigned long, BB_DATA *> externdict;
+	map <MEM_ADDRESS, BB_DATA *> externdict;
 };
 
 struct EXTTEXT {

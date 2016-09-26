@@ -160,7 +160,7 @@ void module_handler::PID_thread()
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
 				char *symname = strtok_s(next_token, "@", &next_token);
 				char *offset_s = strtok_s(next_token, "@", &next_token);
-				unsigned long address;
+				MEM_ADDRESS address;
 				sscanf_s(offset_s, "%x", &address);
 				address += piddata->modBounds.at(modnum).first;
 				if (!address | !symname | (next_token - buf != bread)) continue;
@@ -198,11 +198,11 @@ void module_handler::PID_thread()
 
 				//todo: safe stol? if this is safe whytf have i implented safe stol
 				char *startaddr_s = strtok_s(next_token, "@", &next_token);
-				unsigned long startaddr = 0;
+				MEM_ADDRESS startaddr = 0;
 				sscanf_s(startaddr_s, "%lx", &startaddr);
 
 				char *endaddr_s = strtok_s(next_token, "@", &next_token);
-				unsigned long endaddr = 0;
+				MEM_ADDRESS endaddr = 0;
 				sscanf_s(endaddr_s, "%lx", &endaddr);
 
 				char *skipped_s = strtok_s(next_token, "@", &next_token);

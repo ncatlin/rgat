@@ -37,7 +37,7 @@ struct EXTERNCALLDATA {
 	NODEPAIR edgeIdx;
 	unsigned int nodeIdx;
 	ARGLIST fdata;
-	unsigned long callerAddr = 0;
+	MEM_ADDRESS callerAddr = 0;
 	string externPath;
 };
 
@@ -68,7 +68,7 @@ class thread_graph_data
 
 	bool loadEdgeDict(ifstream *file);
 	bool loadExterns(ifstream *file);
-	bool loadNodes(ifstream *file, map <unsigned long, INSLIST> *disassembly);
+	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 	bool loadStats(ifstream *file);
 	bool loadAnimationData(ifstream *file);
 	bool loadCallSequence(ifstream *file);
@@ -107,7 +107,7 @@ public:
 	unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize);
 
 	bool serialise(ofstream *file);
-	bool unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly);
+	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 	//string get_mod_name(map <int, string> *modpaths);
 	bool basic = false;
 
@@ -121,8 +121,8 @@ public:
 		return n;
 	}
 
-	//   funcaddress	      caller		
-	map<unsigned long, map <unsigned long, vector<ARGLIST>>> pendingcallargs;
+	//   function 	      caller		
+	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>> pendingcallargs;
 
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
 	unsigned int get_num_nodes() { return nodeList.size();}
@@ -233,19 +233,21 @@ public:
 
 	bool dirtyHeatmap = false;
 	bool needVBOReload_heatmap = true;
+	//lowest/highest numbers of edge iterations
 	pair<unsigned long,unsigned long> heatExtremes;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
 
 	bool dirtyConditional = false;
 	bool needVBOReload_conditional = true;
+	//number of taken, not taken conditionals
 	pair<unsigned long, unsigned long> condCounts;
 	GLuint conditionalVBOs[2] = { 0 };
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
 
 	//todo: make private, add inserter
-	vector <pair<unsigned long,int>> bbsequence; //block address, number of instructions
+	vector <pair<MEM_ADDRESS,unsigned int>> bbsequence; //block address, number of instructions
 	vector <unsigned long> mutationSequence; //blockID
 
 	//<which loop this is, how many iterations>

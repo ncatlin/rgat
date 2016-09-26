@@ -75,12 +75,12 @@ void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_SYM);
 	*file << " ";
-	map <int, std::map<long, string>>::iterator modSymIt = piddata->modsyms.begin();
+	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsyms.begin();
 	for (; modSymIt != piddata->modsyms.end(); modSymIt++)
 	{
 		*file << modSymIt->first;
 		writetag(file, tag_START);
-		map<long, string> ::iterator symIt = modSymIt->second.begin();
+		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
 		for (; symIt != modSymIt->second.end(); symIt++)
 		{
 			const unsigned char* cus_symstring = reinterpret_cast<const unsigned char*>(symIt->second.c_str());
@@ -95,11 +95,8 @@ void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_DISAS);
-	//dump disassembly - could try to be concise and reconstruct on load
-	//however we have more diskspace than we have time or RAM and the
-	//"small files for sharing" ship has probably sailed, so sod it; be verbose.
-	//todo: this is broken by irip change
-	map <unsigned long, INSLIST>::iterator disasIt = piddata->disassembly.begin();
+
+	map <MEM_ADDRESS, INSLIST>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); disasIt++)
 	{
 		*file << disasIt->second.size() << ","; //number of mutations at this address
@@ -126,13 +123,13 @@ void saveBlockData(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_DISAS);
 
-	map <unsigned long, map<unsigned long, INSLIST *>>::iterator blockIt = piddata->blocklist.begin();
+	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt = piddata->blocklist.begin();
 	for (; blockIt != piddata->blocklist.end(); ++blockIt)
 	{
 		*file << blockIt->second.size() << ","; //number of blocks at this address
 		*file << blockIt->first << ",";  //block address
 
-		map<unsigned long, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
+		map<BLOCK_IDENTIFIER, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
 		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
 		{
 			INSLIST *blockInstructions = blockIDIt->second;
@@ -232,7 +229,7 @@ bool verifyTag(ifstream *file, char tag, int id = 0) {
 	}
 }
 
-int extractb64path(ifstream *file, unsigned long *id, string *modpath, string endTag)
+int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag)
 {
 	string modblob;
 	*file >> modblob;
@@ -246,7 +243,7 @@ int extractb64path(ifstream *file, unsigned long *id, string *modpath, string en
 	string modnum_s, b64path;
 	getline(ss, modnum_s, ',');
 	getline(ss, b64path, ' ');
-	if (!caught_stol(modnum_s, id, 10)) return -1;
+	if (!caught_stol(modnum_s, modNum, 10)) return -1;
 	*modpath = base64_decode(b64path);
 	return 1;
 }
@@ -256,7 +253,7 @@ int extractb64path(ifstream *file, unsigned long *id, string *modpath, string en
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 {
 	string symAddress_s, b64Sym;
-	unsigned long symAddress;
+	MEM_ADDRESS symAddress;
 	while (true)
 	{
 		getline(*blob, symAddress_s, ',');
@@ -292,17 +289,17 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	endTagStr += tag_PATH;
 
 	int result, count = 0;
-	unsigned long id;
+	unsigned long modNum;
 	string content;
 	while (true)
 	{
-		result = extractb64path(file, &id, &content, endTagStr);
+		result = extractb64path(file, &modNum, &content, endTagStr);
 		if (result < 0) 
 			return false;
 		else 
 			if (result == 0) break;
 		else 
-			piddata->modpaths.emplace(id, content);
+			piddata->modpaths.emplace(modNum, content);
 		if (count++ > 255) 
 			return false;
 	}
@@ -351,7 +348,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 	while (true)
 	{
 		string opcodes, address_s;
-		unsigned long address;
+		MEM_ADDRESS address;
 		if (file->peek() == '}') break;
 
 		getline(*file, mutations_s, ',');
@@ -418,12 +415,12 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 
 		//address of block
 		string blockaddress_s;
-		unsigned long blockaddress;
+		MEM_ADDRESS blockaddress;
 		getline(*file, blockaddress_s, ',');
 		if (!caught_stol(blockaddress_s, &blockaddress, 10)) 
 			return false;
 
-		map<unsigned long, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
+		map<MEM_ADDRESS, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
 		if (disasLookupIt == piddata->disassembly.end())
 			return false;
 
@@ -432,7 +429,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 		{
 
 			string blockID_s;
-			unsigned long blockID;
+			BLOCK_IDENTIFIER blockID;
 			getline(*file, blockID_s, ',');
 			if (!caught_stol(blockID_s, &blockID, 10)) 
 				return false;
@@ -448,7 +445,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 			for (unsigned int insi = 0; insi < numinstructions; ++insi)
 			{
 				string insAddr_s;
-				unsigned long insAddr;
+				MEM_ADDRESS insAddr;
 				getline(*file, insAddr_s, ',');
 				if (!caught_stol(insAddr_s, &insAddr, 10)) 
 					return false;

@@ -28,17 +28,17 @@ Header for the thread that builds a graph for each trace
 #include "timeline.h"
 
 struct TAG {
-	unsigned long blockaddr;
+	MEM_ADDRESS blockaddr;
 	unsigned int insCount;
 	int jumpModifier;
-	unsigned int blockID;
+	BLOCK_IDENTIFIER blockID;
 	BB_DATA* foundExtern;
 
 };
 struct FAILEDARGS {
 	int caller;
 	int externid;
-	unsigned long targaddr;
+	MEM_ADDRESS targaddr;
 };
 
 class thread_trace_handler
@@ -61,7 +61,7 @@ private:
 	unsigned int targVertID = 0; //new vert we are creating
 
 	char lastRIPType = FIRST_IN_THREAD;
-	vector<pair<long, int>> callStack;
+	vector<pair<MEM_ADDRESS, int>> callStack;
 
 	thread_graph_data *thisgraph;
 	//keep track of which a,b coords are occupied
@@ -69,33 +69,32 @@ private:
 
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();
-	bool run_external(unsigned long targaddr, unsigned long repeats, NODEPAIR *resultPair);
+	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void TID_thread();
 	void runBB(TAG *tag, int startIndex, int repeats);
-	void positionVert(int *pa, int *pb, int *pbMod, long address);
+	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
 	void updateStats(int a, int b, unsigned int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
 	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
-	void handle_new_instruction(INS_DATA *instruction, unsigned long blockID, int bb_inslist_index);
+	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, int bb_inslist_index);
 	void handle_existing_instruction(INS_DATA *instruction);
-	bool get_extern_at_address(long address, BB_DATA ** BB, int attempts);
-	bool find_internal_at_address(long address, int attempts);
-	void increaseWeight(edge_data *edge, long executions);
+	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
+	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
+	void increaseWeight(edge_data *edge, unsigned long executions);
 	void handle_tag(TAG *thistag, unsigned long repeats);
-	void update_conditional_state(unsigned long nextAddress);
-	int find_containing_module(unsigned long address);
+	void update_conditional_state(MEM_ADDRESS nextAddress);
+	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();
 
-	unsigned long pendingFunc = 0;
-	unsigned long pendingRet = 0;
+	MEM_ADDRESS pendingFunc = 0;
+	MEM_ADDRESS pendingRet = 0;
 	ARGLIST pendingArgs;
 	vector<FAILEDARGS> repeatArgAttempts;
 
 #define NO_LOOP 0
-#define LOOP_CACHE_BUILD 1
-#define LOOP_START 2
-#define LOOP_PROGRESS 3
+#define LOOP_START 1
+#define LOOP_PROGRESS 2
 	bool afterReturn = false;
 	unsigned long loopCount = 0;
 	unsigned int firstLoopVert = 0;

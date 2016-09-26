@@ -77,3 +77,11 @@ Constants used to interpret and plot the trace data
 
 #define ARG_NOTB64 '0'
 #define ARG_BASE64 '1'
+
+typedef std::pair<unsigned int, unsigned int> NODEPAIR;
+typedef vector<NODEPAIR> EDGELIST;
+typedef pair<int, string> ARGIDXDATA;
+typedef vector<ARGIDXDATA> ARGLIST;
+
+typedef unsigned long MEM_ADDRESS;
+typedef unsigned long BLOCK_IDENTIFIER;

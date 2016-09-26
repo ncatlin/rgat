@@ -207,15 +207,14 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
 	obtainMutex(animationListsMutex, 1000);
-	pair<unsigned long, int> targBlock_Size = bbsequence.at(sequenceId);
-	unsigned long blockID = mutationSequence.at(sequenceId);
+	pair<MEM_ADDRESS, int> targBlock_Size = bbsequence.at(sequenceId);
+	BLOCK_IDENTIFIER blockID = mutationSequence.at(sequenceId);
 	dropMutex(animationListsMutex);
 
-	unsigned long insAddr = targBlock_Size.first;
-	int numInstructions = targBlock_Size.second;
+	MEM_ADDRESS insAddr = targBlock_Size.first;
+	int instructionIndex = targBlock_Size.second-1;
 	
-	INS_DATA *ins = getDisassemblyIndex(numInstructions-1, insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist);
-	return ins;
+	return getDisassemblyBlock(insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist)->at(instructionIndex);
 }
 
 //externs not included in sequence data, have to check if each block called one
@@ -263,13 +262,13 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_node(idx);
-	map <int, std::map<long, string>>::iterator symMapIt;
+	map <int, std::map<MEM_ADDRESS, string>>::iterator symMapIt;
 	symMapIt = piddata->modsyms.find(n->nodeMod);
 	if (symMapIt == piddata->modsyms.end())
 		return ("NOMOD");
 
-	map<long, string> *modSyms = &symMapIt->second;
-	map<long, string>::iterator symIt = modSyms->find(n->address);
+	map<MEM_ADDRESS, string> *modSyms = &symMapIt->second;
+	map<MEM_ADDRESS, string>::iterator symIt = modSyms->find(n->address);
 	if (symIt == modSyms->end())
 	{
 		stringstream nosym;
@@ -531,11 +530,11 @@ int thread_graph_data::brighten_BBs()
 
 
 		obtainMutex(animationListsMutex, 2000);
-		pair<unsigned long, int> targBlock_Size = bbsequence.at(animPosition);
-		unsigned long blockID = mutationSequence.at(animPosition);
+		pair<MEM_ADDRESS, int> targBlock_Size = bbsequence.at(animPosition);
+		BLOCK_IDENTIFIER blockID = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
 		
-		unsigned long blockAddr = targBlock_Size.first;
+		MEM_ADDRESS blockAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
 		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist);
@@ -556,7 +555,7 @@ int thread_graph_data::brighten_BBs()
 
 		if (lastNodeIdx)
 		{
-			pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
+			NODEPAIR edgePair = make_pair(lastNodeIdx, nodeIdx);
 			edge_data *linkingEdge;
 			if (!edge_exists(edgePair, &linkingEdge)) {
 				cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
@@ -602,7 +601,7 @@ int thread_graph_data::brighten_BBs()
 			//brighten short edge between internal nodes
 			INS_DATA* nextIns = block->at(blockIdx + 1);
 			unsigned int nextInsIndex = nextIns->threadvertIdx.at(tid);
-			pair<unsigned int, unsigned int> edgePair = make_pair(nodeIdx, nextInsIndex);
+			NODEPAIR edgePair = make_pair(nodeIdx, nextInsIndex);
 
 			edge_data *e = get_edge(edgePair);
 			unsigned long edgeColPos = e->arraypos;
@@ -665,14 +664,14 @@ unsigned int thread_graph_data::derive_anim_node()
 {
 
 	obtainMutex(animationListsMutex, 5223);
-	pair<unsigned long, int> addr_size = bbsequence.at(sequenceIndex);
-	unsigned long blockID = mutationSequence.at(sequenceIndex);
+	pair<MEM_ADDRESS, int> addr_size = bbsequence.at(sequenceIndex);
+	BLOCK_IDENTIFIER blockID = mutationSequence.at(sequenceIndex);
 	dropMutex(animationListsMutex);
 
-	unsigned long blockAddr = addr_size.first;
+	MEM_ADDRESS blockAddr = addr_size.first;
 	int remainingInstructions = blockInstruction;
 	
-	INS_DATA *target_ins = getDisassemblyIndex(blockInstruction, blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist);
+	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist)->at(blockInstruction);
 	return target_ins->threadvertIdx.at(tid);
 }
 
@@ -912,7 +911,7 @@ bool thread_graph_data::serialise(ofstream *file)
 	obtainMutex(animationListsMutex, 6342);
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
-		pair<unsigned long, int> seq_size = bbsequence.at(i);
+		pair<MEM_ADDRESS, int> seq_size = bbsequence.at(i);
 		int mutation = mutationSequence.at(i);
 
 		*file << seq_size.first << "," << seq_size.second << ","
@@ -989,7 +988,7 @@ bool thread_graph_data::loadExterns(ifstream *file)
 	}
 }
 
-bool thread_graph_data::unserialise(ifstream *file, map <unsigned long, INSLIST> *disassembly)
+bool thread_graph_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
 	if (!loadNodes(file, disassembly)) { printf("Node load failed\n");  return false; }
 	if (!loadEdgeDict(file)) { printf("EdgeD load failed\n");  return false; }
@@ -1033,7 +1032,7 @@ bool thread_graph_data::loadCallSequence(ifstream *file)
 	return false;
 }
 
-bool thread_graph_data::loadNodes(ifstream *file, map <unsigned long, INSLIST> *disassembly)
+bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
 
 	if (!verifyTag(file, tag_START, 'N')) {
@@ -1150,9 +1149,9 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 	if (endtag.c_str()[0] != 'A') return false;
 
 	string sequence_s, size_s, mutation_s, loopstateIdx_s, loopstateIts_s;
-	pair<unsigned long, int> seq_size;
+	pair<MEM_ADDRESS, int> seq_size;
 	pair<unsigned int, unsigned long> loopstateIdx_Its;
-	unsigned long blockID;
+	BLOCK_IDENTIFIER blockID;
 
 	while (true)
 	{

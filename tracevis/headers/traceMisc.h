@@ -23,16 +23,8 @@ Misc disassembly and conversion functions
 #include "traceStructs.h"
 #include "thread_graph_data.h"
 
-INSLIST* getDisassemblyBlock(unsigned long blockaddr, unsigned long blockID,
-	HANDLE mutex, map <unsigned long, map<unsigned long, INSLIST *>> *blockList);
-
-//get the instruction from index [instructionIndex] of basicblock [blockaddr] variant [blockID]
-INS_DATA* getDisassemblyIndex(int instructionIndex, unsigned long blockaddr, unsigned long blockID,
-	HANDLE mutex, map <unsigned long, map<unsigned long, INSLIST*>> *blocklist);
-
-//INS_DATA* getDisassembly(unsigned long address, unsigned long block, int mutation,
-//	HANDLE mutex, map <unsigned long, map<unsigned long, INSLIST>> *blocklist);
-//INS_DATA* getLastDisassembly(unsigned long address, unsigned int blockid, HANDLE mutex, map<unsigned long, INSLIST> *disas, int *mutation);
+INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
+	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList);
 
 int extract_integer(char *char_buf, string marker, int *target);
 
