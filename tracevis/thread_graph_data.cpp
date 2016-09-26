@@ -535,12 +535,9 @@ int thread_graph_data::brighten_BBs()
 		unsigned long blockID = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
 		
-
 		unsigned long blockAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
-		//not happy about this locking the disassembly db. Move the vertexlist elsewhere
-		//TODO: make it get the instruction list instead of the ins
 		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist);
 		INS_DATA *ins = block->at(0);
 
@@ -557,37 +554,32 @@ int thread_graph_data::brighten_BBs()
 		unsigned int nodeIdx = vertIt->second;
 		dropMutex(disassemblyMutex);
 
-		//link lastbb to this
 		if (lastNodeIdx)
 		{
-			//if going between two different blocks, draw long edge between them
-			if (animPosition && (bbsequence.at(animPosition) != bbsequence.at(animPosition - 1)))
-			{
-				pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
-				edge_data *linkingEdge;
-				if (!edge_exists(edgePair, &linkingEdge)) {
-					cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
-						<< nodeIdx << " not in edgedict." << endl;
-					continue;
-				}
-
-				int numEdgeVerts = linkingEdge->vertSize;
-				for (int i = 0; i < numEdgeVerts; ++i) 
-				{
-					const unsigned int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
-					if (colArrIndex >= animlinedata->col_buf_capacity_floats())
-					{
-						//used this in devel, not sure it still happens. dead code?
-						cerr<< "[rgat]Error: DROPOUT EDGE" << endl;
-						dropout = true;
-						break;
-					}
-					ecol[colArrIndex] = (float)1.0;
-				}
-
-				if (!activeEdgeMap.count(edgePair))
-					activeEdgeMap[edgePair] = linkingEdge;
+			pair<unsigned int, unsigned int> edgePair = make_pair(lastNodeIdx, nodeIdx);
+			edge_data *linkingEdge;
+			if (!edge_exists(edgePair, &linkingEdge)) {
+				cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
+					<< nodeIdx << " not in edgedict." << endl;
+				continue;
 			}
+
+			int numEdgeVerts = linkingEdge->vertSize;
+			for (int i = 0; i < numEdgeVerts; ++i)
+			{
+				const unsigned int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
+				if (colArrIndex >= animlinedata->col_buf_capacity_floats())
+				{
+					//used this in devel, not sure it still happens. dead code?
+					cerr << "[rgat]Error: DROPOUT EDGE" << endl;
+					dropout = true;
+					break;
+				}
+				ecol[colArrIndex] = (float)1.0;
+			}
+
+			if (!activeEdgeMap.count(edgePair))
+				activeEdgeMap[edgePair] = linkingEdge;
 		}
 
 		
