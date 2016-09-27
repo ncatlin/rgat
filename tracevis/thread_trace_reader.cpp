@@ -19,83 +19,6 @@ Header for the thread that reads trace information from drgat and buffers it
 */
 #include "stdafx.h"
 #include "thread_trace_reader.h"
-#include "thread_graph_data.h"
-
-thread_trace_reader::thread_trace_reader()
-{
-}
-
-
-thread_trace_reader::~thread_trace_reader()
-{
-}
-
-void __stdcall thread_trace_reader::ThreadEntry(void* pUserData) {
-	return ((thread_trace_reader*)pUserData)->reader_thread();
-}
-
-//thread handler to build graph for a thread
-void thread_trace_reader::reader_thread()
-{
-	wstring pipename(L"\\\\.\\pipe\\rioThread");
-	pipename.append(std::to_wstring(TID));
-	const wchar_t* szName = pipename.c_str();
-	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
-		255, //max instances
-		64, //outbuffer
-		1024 * 1024, //inbuffer
-		1, //timeout?
-		NULL);
-
-	if ((int)hPipe == -1)
-	{
-		printf("[rgat]Error: Could not create pipe in thread handler %d. error:%d\n",TID, GetLastError());
-		return;
-	}
-
-	ConnectNamedPipe(hPipe, NULL);
-	char *tagReadBuf = (char*)malloc(TAGCACHESIZE);
-	if (!tagReadBuf) {
-		cerr << "[rgat]Failed to allocate tag buffer for thread " << TID << endl;
-		return;
-	}
-
-	int PIDcount = 0;
-	char *messageBuffer;
-
-	DWORD bytesRead = 0;
-	while (!die)
-	{
-		if (!ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL))
-		{
-			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE)
-				cerr << "[rgat]Error: thread " << TID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
-			pipeClosed = true;
-			break;
-		}
-
-		if (bytesRead == TAGCACHESIZE) {
-			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
-			pipeClosed = true;
-			break;
-		}
-		tagReadBuf[bytesRead] = 0;
-
-		messageBuffer = (char*)malloc(bytesRead+1);
-		memcpy(messageBuffer, tagReadBuf, bytesRead+1);
-		add_message(messageBuffer, bytesRead+1);
-
-	}
-
-	//keep the thread open until killed or buffers emptied
-	while (!firstQueue.empty() && !secondQueue.empty())
-	{
-		if (die) break;
-		Sleep(10);
-	}
-}
 
 vector<pair<char *, int>> * thread_trace_reader::get_read_queue()
 {
@@ -115,7 +38,9 @@ void thread_trace_reader::add_message(char *buffer, int size)
 	{
 		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for renderer to catch up..." << endl;
 		ReleaseMutex(flagMutex);
+		thisgraph->setBacklogIn(0);
 		do {
+			
 			Sleep(500);
 
 			WaitForSingleObject(flagMutex, INFINITE);
@@ -195,4 +120,94 @@ bool thread_trace_reader::getBufsState(pair <unsigned long, unsigned long> *bufS
 
 	*bufSizes = make_pair(q1Size, q2Size);
 	return readingFirstQueue; 
+}
+
+//thread handler to build graph for a thread
+void thread_trace_reader::reader_thread()
+{
+	wstring pipename(L"\\\\.\\pipe\\rioThread");
+	pipename.append(std::to_wstring(TID));
+	const wchar_t* szName = pipename.c_str();
+	HANDLE hPipe = CreateNamedPipe(szName,
+		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
+		255, //max instances
+		64, //outbuffer
+		1024 * 1024, //inbuffer
+		1, //timeout?
+		NULL);
+
+	if ((int)hPipe == -1)
+	{
+		printf("[rgat]Error: Could not create pipe in thread handler %d. error:%d\n", TID, GetLastError());
+		return;
+	}
+
+	ConnectNamedPipe(hPipe, NULL);
+	char *tagReadBuf = (char*)malloc(TAGCACHESIZE);
+	if (!tagReadBuf) {
+		cerr << "[rgat]Failed to allocate tag buffer for thread " << TID << endl;
+		return;
+	}
+
+	ALLEGRO_EVENT ev;
+	ALLEGRO_TIMER *secondtimer = al_create_timer(1);
+	al_register_event_source(bench_timer_queue, al_get_timer_event_source(secondtimer));
+	al_start_timer(secondtimer);
+	unsigned long itemsRead = 0;
+
+	int PIDcount = 0;
+	char *messageBuffer;
+
+	DWORD bytesRead = 0;
+	while (!die)
+	{
+		if (!al_is_event_queue_empty(bench_timer_queue))
+		{
+			al_flush_event_queue(bench_timer_queue);
+			thisgraph->setBacklogIn(itemsRead);
+			itemsRead = 0;
+		}
+
+		DWORD available;
+		PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL); //ugh, need to do more overlapped todo
+		if(!available)
+		{
+			Sleep(5);
+			continue;
+		}
+
+		if (!ReadFile(hPipe, tagReadBuf, TAGCACHESIZE, &bytesRead, NULL))
+		{
+			int err = GetLastError();
+			if (err != ERROR_BROKEN_PIPE)
+				cerr << "[rgat]Error: thread " << TID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
+			pipeClosed = true;
+			break;
+		}
+
+		if (bytesRead == TAGCACHESIZE) {
+			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
+			pipeClosed = true;
+			break;
+		}
+
+		tagReadBuf[bytesRead] = 0;
+		messageBuffer = (char*)malloc(bytesRead + 1);
+		memcpy(messageBuffer, tagReadBuf, bytesRead + 1);
+
+		add_message(messageBuffer, bytesRead + 1);
+
+		++itemsRead;
+	}
+
+	//keep the thread open until killed or buffers emptied
+	while (!firstQueue.empty() && !secondQueue.empty())
+	{
+		if (die) break;
+		Sleep(10);
+	}
+}
+
+void __stdcall thread_trace_reader::ThreadEntry(void* pUserData) {
+	return ((thread_trace_reader*)pUserData)->reader_thread();
 }

@@ -20,6 +20,7 @@ Monsterous class that handles the bulk of graph management
 
 #include "stdafx.h"
 #include "thread_graph_data.h"
+#include "thread_trace_reader.h"
 #include "rendering.h"
 #include "serialise.h"
 
@@ -37,6 +38,15 @@ unsigned int thread_graph_data::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsign
 	return logSize;
 }
 
+unsigned long thread_graph_data::get_backlog_total()
+{
+	if (!this->trace_reader) return 0;
+	thread_trace_reader *reader = (thread_trace_reader *)trace_reader;
+	pair <unsigned long, unsigned long> sizePair;
+	reader->getBufsState(&sizePair);
+	return sizePair.first + sizePair.second;
+}
+
 //take externs called from the trace and make them float on graph
 //also adds them to the call log
 void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
@@ -51,7 +61,7 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 		extt.edge = resu.edgeIdx;
 		extt.nodeIdx = resu.nodeIdx;
 		extt.timeRemaining = 5;
-		extt.yOffset = 0;
+		extt.yOffset = 10;
 		extt.displayString = generate_funcArg_string(get_node_sym(extt.nodeIdx, piddata), resu.fdata);
 
 		if (resu.edgeIdx.first == resu.edgeIdx.second) 
@@ -70,7 +80,7 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 				resu.callerAddr = parentn->ins->address;
 				dropMutex(piddata->disassemblyMutex);
 
-				resu.externPath = piddata->modpaths[externn->nodeMod];
+				resu.externPath = piddata->modpaths.at(externn->nodeMod);
 				if (extt.displayString == "()")
 				{
 					stringstream hexaddr;
@@ -754,9 +764,10 @@ VCOORD *thread_graph_data::get_active_node_coord()
 	return result;
 }
 
-thread_graph_data::thread_graph_data(PROCESS_DATA *processdata)
+thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int threadID)
 {
 	piddata = processdata;
+	tid = threadID;
 
 	mainnodesdata = new GRAPH_DISPLAY_DATA();
 	mainlinedata = new GRAPH_DISPLAY_DATA();
@@ -867,7 +878,7 @@ void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo)
 {
 	baseMod = get_node(0)->nodeMod;
 	if (baseMod >= (int)pidinfo->modpaths.size()) return;
-	string longmodPath = pidinfo->modpaths[baseMod];
+	string longmodPath = pidinfo->modpaths.at(baseMod);
 
 	if (longmodPath.size() > MAX_DIFF_PATH_LENGTH)
 		modPath = ".."+longmodPath.substr(longmodPath.size() - MAX_DIFF_PATH_LENGTH, longmodPath.size());

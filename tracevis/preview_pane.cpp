@@ -34,12 +34,20 @@ void write_tid_text(ALLEGRO_FONT* font, thread_graph_data *graph, int x, int y)
 	stringstream infotxt;
 	ALLEGRO_COLOR textcol;
 
-	infotxt << "THREAD: " << graph->tid;
+	infotxt << "TID:" << graph->tid;
 
 	if (graph->active)
 	{
 		textcol = al_col_green;
-		infotxt << " (Running)";
+		infotxt << " (Active)";
+
+		unsigned long backlog = graph->get_backlog_total();
+		if (backlog)
+			infotxt << " Q:" << backlog;
+
+		unsigned long newIn = graph->getBacklogIn();
+		if (newIn)
+			infotxt << " in:" << newIn;
 	}
 	else
 	{

@@ -217,6 +217,8 @@ void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientstate, 
 {
 	if (!clientstate->title->zoom) return;
 	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
+	if (!graph) return;
+
 	snprintf(clientstate->title->Primitives, 55, "[TID:%d N:%d/E:%d]", graph->tid, verts,edges);
 	updateTitle(display, clientstate->title);
 }
@@ -247,7 +249,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 		textColour = al_col_red;
 
 	int activeModule = clientState->activeGraph->get_node(0)->nodeMod;
-	infotxt << piddata->modpaths[activeModule];
+	infotxt << piddata->modpaths.at(activeModule);
 	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
 	al_draw_filled_rectangle(0, 0, clientState->mainFrameSize.width, 32, al_map_rgba(0, 0, 0, 235));

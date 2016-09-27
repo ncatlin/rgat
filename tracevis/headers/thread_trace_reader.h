@@ -19,24 +19,27 @@ Header for the thread that reads trace information from drgat and buffers it
 */
 #pragma once
 #include "stdafx.h"
-
+#include "thread_graph_data.h"
 
 class thread_trace_reader
 {
 public:
+	thread_trace_reader(thread_graph_data *graph, unsigned int thisPID, unsigned int thisTID) 
+	{
+		thisgraph = graph; PID = thisPID; TID = thisTID;
+	}
 	static void __stdcall ThreadEntry(void* pUserData);
-	int PID;
-	int TID;
+
 	unsigned long traceBufMax = 0;
 	bool die = false;
 	int get_message(char **buffer, unsigned long *bufSize);
 	void reader_thread();
-	thread_trace_reader();
-	~thread_trace_reader();
 	unsigned long pendingData = 0;
 	bool getBufsState(pair <unsigned long, unsigned long> *bufSizes);
 
 private:
+	int PID;
+	int TID;
 	//stackoverflow.com/questions/4029448/thread-safety-for-stl-queue/4029534#4029534
 	unsigned long readIndex = 0;
 	vector<pair<char *, int>> firstQueue;
@@ -48,5 +51,8 @@ private:
 	vector<pair<char *, int>> * get_read_queue();
 	bool pipeClosed = false;
 	unsigned int processedData = 0;
+	thread_graph_data *thisgraph;
+
+	ALLEGRO_EVENT_QUEUE *bench_timer_queue = al_create_event_queue();
 };
 

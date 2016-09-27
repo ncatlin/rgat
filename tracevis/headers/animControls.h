@@ -34,6 +34,7 @@ limitations under the License.
 #define ANIM_REPLAY 2
 #define ANIM_ACTIVATED 3
 #define PREVIEW_GRAPH_Y_OFFSET 12
+#define BACKLOG_X_OFFSET 150
 
 class AnimControls {
 public:
@@ -45,6 +46,7 @@ public:
 	void setScrollbarVisible(bool enabled) { scrollbar->setVisibility(enabled); }
 	void setScrollbarMax(int val) { scrollbar->setMaxValue(val); }
 	agui::VScrollBar getScrollbar() { return scrollbar; }
+	
 	int getScroll() { return scrollbar->getValue(); }
 	agui::TextField *stepText = NULL;
 	void doScroll(int z) {
@@ -54,12 +56,14 @@ public:
 
 	//call when client windows gets resized
 	void fitToResize();
+	
+	
 
 private:
 	agui::FlowLayout *mouseLayout = NULL;
 	agui::FlowLayout *controlsLayout = NULL;
 	agui::FlowLayout *labelsLayout = NULL;
-	agui::Button *connectBtn = NULL;
+	agui::Button *killBtn = NULL;
 	agui::Button *backJumpBtn = NULL;
 	agui::Button *backStepBtn = NULL;
 	agui::Button *forwardStepBtn = NULL;
@@ -69,11 +73,10 @@ private:
 	agui::Button *skipBtn = NULL;
 	agui::VScrollBar *scrollbar = NULL;
 
-	agui::FlowLayout *bufLayout = NULL;
-	agui::Label *remaining1 = NULL;
-	agui::Label *remaining2 = NULL;
+	agui::FlowLayout *backlogLayout = NULL;
+	agui::Label *readLabel = NULL;
+	agui::Label *doneLabel = NULL;
 	agui::Label *backlogLabel = NULL;
-
 
 	agui::Font *btnFont;
 	agui::Label *stepsLabel;
@@ -81,6 +84,9 @@ private:
 	agui::Gui *guiwidgets;
 	VISSTATE *clientState;
 	int animationState = -1;
+
+	void CreateBufLayout();
+	void displayBacklog(thread_graph_data *graph);
 };
 
 class AnimButtonListener : public agui::ActionListener
@@ -172,8 +178,7 @@ public:
 			return;
 		}
 
-		//griefy. TODO
-		if (btntext == "Disconnect")
+		if (btntext == "Kill")
 		{
 			clientState->terminationPid = clientState->activePid->PID;
 			return;

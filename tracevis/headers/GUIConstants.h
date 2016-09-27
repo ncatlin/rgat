@@ -141,3 +141,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define HEATMAP_KEY_SQUARESIZE 25
 
 #define MAIN_FRAME_Y 50
+
+#define BACKLOG_TEXT_COLOUR_LOW agui::Color(255, 255, 255)
+#define BACKLOG_TEXT_COLOUR_HIGH agui::Color(255, 255, 0)
+#define BACKLOG_TEXT_COLOUR_FULL agui::Color(255, 0, 0)

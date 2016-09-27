@@ -26,7 +26,7 @@ diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTAT
 {
 	graph1 = g1;
 	graph2 = g2;
-	diffgraph = new thread_graph_data(0);
+	diffgraph = new thread_graph_data(0,0);
 	diffgraph->needVBOReload_main = true;
 	glGenBuffers(4, diffgraph->graphVBOs);
 	clientState = state;

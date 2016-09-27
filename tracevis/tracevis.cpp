@@ -1059,6 +1059,7 @@ int main(int argc, char **argv)
 		if (clientstate.switchProcess && clientstate.spawnedProcess && !clientstate.spawnedProcess->graphs.empty())
 		{
 			PROCESS_DATA* activePid = clientstate.spawnedProcess;
+			clientstate.activeGraph = 0;
 
 			if (!obtainMutex(clientstate.pidMapMutex, 2000)) return 0;
 			

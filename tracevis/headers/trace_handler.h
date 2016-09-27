@@ -45,10 +45,11 @@ class thread_trace_handler
 {
 public:
 	//thread_start_data startData;
+	thread_trace_handler(thread_graph_data *thisgraph, unsigned int thisPID, unsigned int thisTID) {
+		PID = thisPID; TID = thisTID; graph = thisgraph;
+	}
 	static void __stdcall ThreadEntry(void* pUserData);
-	int PID;
-	int TID;
-	thread_graph_data *watchedGraph;
+
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
 	thread_trace_reader *reader;
@@ -56,8 +57,12 @@ public:
 	bool basicMode = false;
 	
 private:
+	int PID;
+	int TID;
+	thread_graph_data *graph;
+
 	//important state variables!
-	unsigned int lastVertID = 0; //the vert that led to this instruction
+	unsigned int lastVertID = 0; //the vert that led to new instruction
 	unsigned int targVertID = 0; //new vert we are creating
 
 	char lastRIPType = FIRST_IN_THREAD;

@@ -27,12 +27,12 @@ void __stdcall maingraph_render_thread::ThreadEntry(void* pUserData) {
 	return ((maingraph_render_thread*)pUserData)->rendering_thread();
 }
 
-void maingraph_render_thread::updateMainRender()
+void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
 {
 	render_main_graph(clientState);
 
-	updateTitle_NumPrimitives(clientState->maindisplay, clientState, clientState->activeGraph->get_mainnodes()->get_numVerts(),
-		clientState->activeGraph->get_mainlines()->get_renderedEdges());
+	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
+		graph->get_mainlines()->get_renderedEdges());
 }
 
 
@@ -45,7 +45,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
 		clientState->rescale || clientState->activeGraph->vertResizeIndex)
 	{
-		updateMainRender();
+		updateMainRender(graph);
 	}
 	
 	if (graph->basic)
@@ -105,8 +105,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 			{
 				TraceVisGUI* gui = (TraceVisGUI*)clientState->widgets;
 				gui->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-					clientState->activeGraph,
-					clientState->activePid);
+					graph, clientState->activePid);
 			}
 		}
 

@@ -54,7 +54,6 @@ class thread_graph_data
 	vector<node_data> nodeList; //node id to node data
 	PROCESS_DATA* piddata;
 
-
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	map <unsigned int, unsigned int> activeNodeMap;
 	EDGEMAP edgeDict; //node id pairs to edge data
@@ -80,10 +79,15 @@ class thread_graph_data
 	bool newanim = true;
 	unsigned int last_anim_start = 0;
 	unsigned int last_anim_stop = 0;
+
 	void *trace_reader;
+	//updated with backlog input/processing each second for display
+	//dunno if ulong reads are atomic, not vital for this application
+	//adding accessor functions for future threadsafe acesss though
+	pair<unsigned long, unsigned long> backlogInOut = make_pair(0, 0);
 
 public:
-	thread_graph_data(PROCESS_DATA* processdata);
+	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
 	~thread_graph_data();
 
 	void display_active(bool showNodes, bool showEdges);
@@ -248,7 +252,7 @@ public:
 
 	//todo: make private, add inserter
 	vector <pair<MEM_ADDRESS,unsigned int>> bbsequence; //block address, number of instructions
-	vector <unsigned long> mutationSequence; //blockID
+	vector <BLOCK_IDENTIFIER> mutationSequence; //blockID
 
 	//<which loop this is, how many iterations>
 	//todo: make private, add inserter
@@ -283,5 +287,11 @@ public:
 	unsigned long traceBufferSize = 0;
 	void *getReader() { return trace_reader;}
 	void setReader(void *newReader) { trace_reader = newReader;}
+
+	void setBacklogIn(unsigned long in) { backlogInOut.first = in; }
+	void setBacklogOut(unsigned long out) { backlogInOut.second = out; }
+	unsigned long getBacklogIn() { return backlogInOut.first; }
+	unsigned long getBacklogOut() { return backlogInOut.second; }
+	unsigned long get_backlog_total();
 };
 

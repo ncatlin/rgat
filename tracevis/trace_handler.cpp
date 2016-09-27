@@ -609,7 +609,7 @@ void thread_trace_handler::process_new_args()
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
 					ex.callerAddr = parentn->ins->address;
-					ex.externPath = piddata->modpaths[piddata->externdict.at(funcad)->modnum];
+					ex.externPath = piddata->modpaths.at(piddata->externdict.at(funcad)->modnum);
 					ex.fdata = *callsIt;
 
 					assert(parentn->index != targn->index);
@@ -749,17 +749,33 @@ void thread_trace_handler::TID_thread()
 	thisgraph->tid = TID;
 	thisgraph->pid = PID;
 
+	ALLEGRO_EVENT ev;
+	ALLEGRO_TIMER *secondtimer = al_create_timer(1);
+	ALLEGRO_EVENT_QUEUE *bench_timer_queue = al_create_event_queue();
+	al_register_event_source(bench_timer_queue, al_get_timer_event_source(secondtimer));
+	al_start_timer(secondtimer);
+	unsigned long itemsDone = 0;
+
 	char* msgbuf;
 	unsigned long bytesRead;
 	while (!die)
 	{
+		if (!al_is_event_queue_empty(bench_timer_queue))
+		{
+			al_flush_event_queue(bench_timer_queue);
+			thisgraph->setBacklogOut(itemsDone);
+			itemsDone = 0;
+		}
+
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
 		if (bytesRead == 0) {
+
 			Sleep(1);
 			continue;
 		}
+		++itemsDone;
 
-		if (bytesRead == -1) //buffers empty
+		if (bytesRead == -1) //thread pipe closed
 		{
 			dump_loop();
 			timelinebuilder->notify_tid_end(PID, TID);
@@ -819,14 +835,14 @@ void thread_trace_handler::TID_thread()
 					}
 					if (find_internal_at_address(nextBlock, attempts)) 
 						break;
-					if (attempts <10)
-						++attempts;
-					if (attempts >= 10)
+
+					if (attempts++ >= 10)
 					{
-						cout << "[rgat] tid"<<TID<<" pid "<<PID<<" Warning: Failing to find address " << 
+						cerr << "[rgat] (tid:"<<TID<<" pid:"<<PID<<")Warning: Failing to find address " << 
 							std::hex << nextBlock <<" in instrumented or external code. Block tag(addr: " <<
-							thistag.blockaddr <<" inscount:" << thistag.insCount << " blockid: " <<
+							thistag.blockaddr <<" insQty: " << thistag.insCount << "id: " <<
 							thistag.blockID << " modtype: " << modType << endl;
+						Sleep(60);
 					}
 				} 
 
@@ -853,7 +869,7 @@ void thread_trace_handler::TID_thread()
 					loopState = LOOP_START;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stol(repeats_s, &loopCount, 10))
-						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s;
+						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
 					continue;
 				}
 
@@ -891,7 +907,7 @@ void thread_trace_handler::TID_thread()
 				}
 
 				//TODO: place on graph. i'm thinking a yellow highlight line.
-				cout << "[rgat]Exception detected in PID:" << PID << " TID " << TID
+				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
 					<< "[code " << std::hex << e_code << "] at address " << e_ip <<endl;
 				continue;
 			}

@@ -33,7 +33,7 @@ public:
 	VISSTATE *clientState;
 
 private:
-	void updateMainRender();
+	void updateMainRender(thread_graph_data *graph);
 	void performMainGraphRendering(thread_graph_data *graph);
 };
 

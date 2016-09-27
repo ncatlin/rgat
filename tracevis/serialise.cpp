@@ -176,7 +176,7 @@ void saveTrace(VISSTATE * clientState)
 	ofstream savefile;
 	string path;
 	if (!getSavePath(clientState->config->saveDir, 
-		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths[0],
+		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths.at(0),
 		&path, clientState->activePid->PID))
 	{
 		cerr << "[rgat]ERROR: Failed to get save path" << endl;
@@ -491,7 +491,7 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoi(tidstring, &TID, 10)) return false;
-		thread_graph_data *graph = new thread_graph_data(piddata);
+		thread_graph_data *graph = new thread_graph_data(piddata, TID);
 		
 		graph->tid = TID;
 		graph->pid = piddata->PID;

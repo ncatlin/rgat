@@ -27,6 +27,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "thread_trace_reader.h"
 #include "thread_graph_data.h"
 #include "GUIManagement.h"
+#include "b64.h"
 
 void __stdcall module_handler::ThreadEntry(void* pUserData) {
 	module_handler *newThread = (module_handler*)pUserData;
@@ -112,20 +113,19 @@ void module_handler::PID_thread()
 					cerr << "[rgat] Fail to extract thread ID from TI tag:" << buf << endl;
 					continue;
 				}
-				DWORD threadID = 0;
-
-				thread_trace_reader *TID_reader = new thread_trace_reader;
-				TID_reader->PID = PID;
-				TID_reader->TID = TID;
+				
+				thread_graph_data *graph = new thread_graph_data(piddata, TID);
+				thread_trace_reader *TID_reader = new thread_trace_reader(graph, PID, TID);
 				TID_reader->traceBufMax = clientState->config->traceBufMax;
+				graph->setReader(TID_reader);
 
+				DWORD threadID = 0;
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
 					(LPVOID)TID_reader, 0, &threadID);
 
-				thread_trace_handler *TID_thread = new thread_trace_handler;
-				TID_thread->PID = PID;
-				TID_thread->TID = TID;
+				thread_trace_handler *TID_thread = new thread_trace_handler(graph, PID, TID);
+
 				TID_thread->piddata = piddata;
 				TID_thread->reader = TID_reader;
 				TID_thread->timelinebuilder = clientState->timelineBuilder;
@@ -134,16 +134,13 @@ void module_handler::PID_thread()
 
 				threadList.push_back(make_pair(TID_reader, TID_thread));
 
-				thread_graph_data *tgraph =  new thread_graph_data(piddata);
 				if (clientState->launchopts.basic)
-					tgraph->basic = true;
-				tgraph->setReader(TID_reader);
+					graph->basic = true;
 
-				tgraph->tid = TID; //todo: dont need this
 				if (!obtainMutex(piddata->graphsListMutex, 2000)) return;
 				if (piddata->graphs.count(TID) > 0)
 					cerr << "[rgat]ERROR: Duplicate thread ID! Tell the dev to stop being awful" << endl;
-				piddata->graphs.insert(make_pair(TID, (void*)tgraph));
+				piddata->graphs.insert(make_pair(TID, (void*)graph));
 				dropMutex(piddata->graphsListMutex);
 
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
@@ -158,18 +155,20 @@ void module_handler::PID_thread()
 			{
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
-				char *symname = strtok_s(next_token, "@", &next_token);
+				string symname = string(strtok_s(next_token, "@", &next_token));
 				char *offset_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS address;
 				sscanf_s(offset_s, "%x", &address);
+				assert(piddata->modBounds.count(modnum)); //fail if sym came before module
 				address += piddata->modBounds.at(modnum).first;
-				if (!address | !symname | (next_token - buf != bread)) continue;
+				if (!address | (next_token - buf != bread)) continue;
 				if (modnum > piddata->modpaths.size()) {
 					cerr << "[rgat]Bad mod number "<<modnum<< "in sym processing. " <<
 						piddata->modpaths.size() << " exist." << endl;
 					continue;
 				}
-				piddata->modsyms[modnum][address] = symname;
+
+				piddata->modsyms[modnum][address] = base64_decode(symname);
 				continue;
 			}
 
@@ -177,22 +176,22 @@ void module_handler::PID_thread()
 			{
 				char *next_token = NULL;
 
-				char *path = NULL;
+				string b64path;
+				//null path
 				if (buf[2] == '@' && buf[3] == '@')
 				{
-					path = (char*)malloc(5); //mem leak
-					snprintf(path, 5, "NULL");
-					next_token = buf + 4;
+					next_token = buf + 4; //skip past 'mn@@'
 				}
 				else 
-					path = strtok_s(buf + 2, "@", &next_token);
+					b64path = string(strtok_s(buf + 2, "@", &next_token));
 
 				char *modnum_s = strtok_s(next_token, "@", &next_token);
 				long modnum = -1;
 				sscanf_s(modnum_s, "%d", &modnum);
 
 				if (piddata->modpaths.count(modnum) > 0) {
-					printf("ERROR: Bad module number in mn %s", buf);
+					printf("\n\nERROR: PID:%d, Bad(prexisting) module number %d in mn [%s]. current is:%s\n\n", 
+						PID,modnum,buf, piddata->modpaths.at(modnum).c_str());
 					assert(0);
 				}
 
@@ -216,9 +215,13 @@ void module_handler::PID_thread()
 					assert(0);
 				}
 
-				//printf("loaded module %lx:%s start:%lx, end:%lx, skipped:%c\n ", modnum, path, startaddr, endaddr, *skipped_s);
-				piddata->modpaths[modnum] = string(path);
+				if (!b64path.empty())
+					piddata->modpaths[modnum] = base64_decode(b64path);
+				else
+					piddata->modpaths[modnum] = string("NULL");
+				
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
+				printf("mod: %d = %s\n", modnum, piddata->modpaths[modnum].c_str());
 				continue;
 			}
 		}

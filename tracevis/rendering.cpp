@@ -382,7 +382,6 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 				drawnNodes[exttIt->nodeIdx] = exaddr;
 			}
 			exttIt->timeRemaining -= 1;
-			exttIt->yOffset += 0.5;
 			exttIt++;
 		}
 	}
@@ -404,13 +403,14 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
 {
 	thread_graph_data *graph = clientState->activeGraph;
+	assert(graph->pid == clientState->activePid->PID);
 
 	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
-		clientState->logSize = clientState->activeGraph->fill_extern_log(clientState->textlog, clientState->logSize);
+		clientState->logSize = graph->fill_extern_log(clientState->textlog, clientState->logSize);
 
 	//red line indicating last instruction
-	if (!clientState->activeGraph->basic)
+	if (!graph->basic)
 		drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
@@ -514,9 +514,11 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 void render_main_graph(VISSTATE *clientState)
 {
-	bool doResize = false;
+	
 	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 
+	if (!graph) return;
+	bool doResize = false;
 	if (clientState->rescale)
 	{
 		recalculate_scale(graph->m_scalefactors);
