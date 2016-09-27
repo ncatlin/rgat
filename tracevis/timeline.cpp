@@ -57,7 +57,7 @@ void timeline::notify_new_pid(unsigned int pid)
 	processEvent ev;
 	ev.eventType = PID_CREATE;
 	ev.eventTime = al_get_time();
-	obtainMutex(accessMutex, 1000);
+	obtainMutex(accessMutex, 1033);
 	creationLog.push_back(ev);
 	dropMutex(accessMutex);
 	pidlist[pid];
@@ -66,7 +66,7 @@ void timeline::notify_new_pid(unsigned int pid)
 
 void timeline::notify_new_tid(unsigned int pid, unsigned int tid) 
 {
-	obtainMutex(accessMutex, 1000);
+	obtainMutex(accessMutex, 1034);
 	processEvent ev;
 	ev.eventType = TID_CREATE;
 	ev.eventTime = al_get_time();
@@ -80,7 +80,7 @@ void timeline::notify_new_tid(unsigned int pid, unsigned int tid)
 
 void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
 {
-	obtainMutex(accessMutex, 1000);
+	obtainMutex(accessMutex, 1035);
 	processEvent ev;
 	ev.eventType = TID_DIE;
 	ev.eventTime = al_get_time();

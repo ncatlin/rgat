@@ -33,8 +33,8 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
-	obtainMutex(colmutex, 2124);
-	obtainMutex(posmutex, 1412);
+	obtainMutex(colmutex, 1004);
+	obtainMutex(posmutex, 1005);
 }
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
@@ -42,7 +42,7 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 	const unsigned int listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
-	obtainMutex(posmutex, 6000);
+	obtainMutex(posmutex, 1006);
 	result->x = vposarray.at(listIndex);
 	result->y = vposarray.at(listIndex + 1);
 	result->z = vposarray.at(listIndex + 2);
@@ -52,14 +52,14 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos()
 {
-	bool result = obtainMutex(posmutex, 2352);
+	bool result = obtainMutex(posmutex, 1007);
 	if (!result) return 0;
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col()
 {
-	bool result = obtainMutex(colmutex, 2040);
+	bool result = obtainMutex(colmutex, 1008);
 	if (!result) {
 		cerr << "[rgat]Acquire_col: Failed to obtain colmutex" << endl; return 0;
 	}

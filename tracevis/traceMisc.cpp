@@ -48,27 +48,27 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 	map<MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt;
 	while (true)
 	{
-		obtainMutex(mutex, 4000);
+		obtainMutex(mutex, 1036);
 		blockIt = blockList->find(blockaddr);
 		dropMutex(mutex);
 		if (blockIt != blockList->end()) break;
 
 		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of block" << std::hex << blockaddr << endl;
+			cerr << "[rgat]Warning... long wait for disassembly of block 0x" << std::hex << blockaddr << endl;
 		Sleep(1);
 	}
 
 	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
 	while (true)
 	{
-		obtainMutex(mutex, 4000);
+		obtainMutex(mutex, 1037);
 		mutationIt = blockIt->second.find(blockID);
 		dropMutex(mutex);
 
 		if (mutationIt != blockIt->second.end()) break;
 
 		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of block" << std::hex << blockaddr << endl;
+			cerr << "[rgat]Warning... long wait for disassembly of block 0x" << std::hex << blockaddr << endl;
 		Sleep(1);
 	}
 
@@ -78,7 +78,8 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 //takes MARKER1234 buf, marker and target int
 //if MARKER matches marker, converts 1234 to integer and places
 //in target
-int extract_integer(char *char_buf, string marker, int *target) {
+int extract_integer(char *char_buf, string marker, int *target)
+{
 	string pipeinput(char_buf);
 
 	if (pipeinput.substr(0, marker.length()) == marker)

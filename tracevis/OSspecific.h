@@ -26,7 +26,10 @@ string get_dr_path();
 bool fileExists(string path);
 void execute_tracer(string executable, string args, void *clientState_ptr);
 bool getSavePath(string saveDir, string filename, string *result, int PID);
-bool obtainMutex(HANDLE mutex, int waitTime);
+
+//in: mutex to wait on, waitTimeCode ms to wait per warning
+bool obtainMutex(HANDLE mutex, int waitTimeCode);
+
 void dropMutex(HANDLE mutex);
 void pipeExists(LPCTSTR pipeName);
 

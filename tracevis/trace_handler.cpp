@@ -36,7 +36,7 @@ bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int att
 }
 
 bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1) {
-	obtainMutex(piddata->externDictMutex, 1000);
+	obtainMutex(piddata->externDictMutex, 1041);
 	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
 	while (externIt == piddata->externdict.end())
 	{
@@ -46,7 +46,7 @@ bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **
 		}
 		dropMutex(piddata->externDictMutex);
 		Sleep(1);
-		obtainMutex(piddata->externDictMutex, 1000);
+		obtainMutex(piddata->externDictMutex, 1042);
 		externIt = piddata->externdict.find(address);
 	}
 
@@ -67,7 +67,7 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 //returns whether current thread has executed this instruction, places its vert in vertIdxOut
 bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 {
-	obtainMutex(piddata->disassemblyMutex, 100);
+	obtainMutex(piddata->disassemblyMutex, 1043);
 	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	dropMutex(piddata->disassemblyMutex);
 
@@ -161,7 +161,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 		assert(0);
 	thisgraph->insert_node(targVertID, thisnode);
 
-	obtainMutex(piddata->disassemblyMutex, 100);
+	obtainMutex(piddata->disassemblyMutex, 1044);
 	instruction->threadvertIdx[TID] = targVertID;
 	dropMutex(piddata->disassemblyMutex);
 }
@@ -176,7 +176,7 @@ void thread_trace_handler::increaseWeight(edge_data *edge, unsigned long executi
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 {
-	obtainMutex(piddata->disassemblyMutex, 100);
+	obtainMutex(piddata->disassemblyMutex, 1045);
 	targVertID = instruction->threadvertIdx.at(TID);
 	dropMutex(piddata->disassemblyMutex);
 }
@@ -380,7 +380,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				a += JUMPA_CLASH;
 				b += 1;
 				if (clash++ > 50)
-					printf("\tWARNING: Dense graph clashes (RET)\n");
+					cerr << "\tWARNING: Dense graph clashes (RET)"<<endl;
 			}
 			break;
 		}
@@ -543,7 +543,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
 
-	obtainMutex(thisgraph->funcQueueMutex, 1220);
+	obtainMutex(thisgraph->funcQueueMutex, 1046);
 	thisgraph->externList.push_back(targVertID);
 	dropMutex(thisgraph->funcQueueMutex);
 	*resultPair = std::make_pair(lastVertID, targVertID);
@@ -564,7 +564,7 @@ void thread_trace_handler::process_new_args()
 	{
 		MEM_ADDRESS funcad = pcaIt->first;
 
-		obtainMutex(piddata->externDictMutex, 1000);
+		obtainMutex(piddata->externDictMutex, 1047);
 		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
 		if (externIt == piddata->externdict.end() ||
@@ -598,7 +598,7 @@ void thread_trace_handler::process_new_args()
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
-				obtainMutex(thisgraph->funcQueueMutex, 3512);
+				obtainMutex(thisgraph->funcQueueMutex, 1048);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
 
@@ -653,7 +653,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		if (!basicMode)
 		{
-			obtainMutex(thisgraph->animationListsMutex, 3000);
+			obtainMutex(thisgraph->animationListsMutex, 1049);
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 
 			//could probably break this by mutating code in a running loop
@@ -682,7 +682,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		NODEPAIR resultPair;
 		if (run_external(thistag->blockaddr, repeats, &resultPair))
 		{
-			obtainMutex(thisgraph->animationListsMutex, 1000);
+			obtainMutex(thisgraph->animationListsMutex, 1050);
 			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
 			dropMutex(thisgraph->animationListsMutex);
 		}

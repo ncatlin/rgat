@@ -224,7 +224,7 @@ void basicblock_handler::PID_BB_thread()
 				bbdata->modnum = modnum;
 				bbdata->symbol.clear();
 
-				obtainMutex(piddata->externDictMutex, 1000);
+				obtainMutex(piddata->externDictMutex, 1001);
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 			
 				if (piddata->externdict[targetaddr] == 0)
@@ -244,7 +244,7 @@ void basicblock_handler::PID_BB_thread()
 				INS_DATA *instruction = NULL;
 
 				string opcodes(strtok_s(next_token, "@", &next_token));
-				obtainMutex(piddata->disassemblyMutex, 4000);
+				obtainMutex(piddata->disassemblyMutex, 1002);
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
@@ -286,7 +286,7 @@ void basicblock_handler::PID_BB_thread()
 				++i;
 			}
 
-			obtainMutex(piddata->disassemblyMutex, 4000);
+			obtainMutex(piddata->disassemblyMutex, 1003);
 			piddata->blocklist[targetaddr][blockID] = blockInstructions;
 			dropMutex(piddata->disassemblyMutex);
 			continue;

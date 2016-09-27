@@ -194,7 +194,7 @@ void saveTrace(VISSTATE * clientState)
 	savefile << "PID " << clientState->activePid->PID << " ";
 	saveProcessData(clientState->activePid, &savefile);
 
-	obtainMutex(clientState->activePid->graphsListMutex, 5523);
+	obtainMutex(clientState->activePid->graphsListMutex, 1012);
 	map <int, void *>::iterator graphit = clientState->activePid->graphs.begin();
 	for (; graphit != clientState->activePid->graphs.end(); graphit++)
 	{

@@ -97,7 +97,7 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 		clientState->spawnedProcess = piddata;
 
 
-	if (!obtainMutex(pidmutex, 1000)) return 0;
+	if (!obtainMutex(pidmutex, 1038)) return 0;
 	glob_piddata_map->insert_or_assign(PID, piddata);
 	dropMutex(pidmutex);
 
@@ -502,7 +502,7 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	cout << "Loading completed successfully" << endl;
 	loadfile.close();
 
-	if (!obtainMutex(clientState->pidMapMutex, 6000))
+	if (!obtainMutex(clientState->pidMapMutex, 1039))
 	{
 		cerr << "Failed to obtain pidMapMutex in load" << endl;
 		return false;
@@ -1061,7 +1061,7 @@ int main(int argc, char **argv)
 			PROCESS_DATA* activePid = clientstate.spawnedProcess;
 			clientstate.activeGraph = 0;
 
-			if (!obtainMutex(clientstate.pidMapMutex, 2000)) return 0;
+			if (!obtainMutex(clientstate.pidMapMutex, 1040)) return 0;
 			
 			widgets->setActivePID(activePid->PID);
 			clientstate.activePid = activePid;

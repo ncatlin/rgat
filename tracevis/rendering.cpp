@@ -695,7 +695,7 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
 	//todo: maintain local copy, update on size change?
-	obtainMutex(graph->funcQueueMutex, 1204);
+	obtainMutex(graph->funcQueueMutex, 1052);
 	vector<int> externListCopy = graph->externList;
 	dropMutex(graph->funcQueueMutex);
 

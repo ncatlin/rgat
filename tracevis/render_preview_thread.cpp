@@ -49,7 +49,7 @@ void preview_renderer::rendering_thread()
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 
-		if (!obtainMutex(piddata->graphsListMutex, 2000)) return;
+		if (!obtainMutex(piddata->graphsListMutex, 1011)) return;
 		
 		graphIt = piddata->graphs.begin();
 		for (; graphIt != piddata->graphs.end(); graphIt++)

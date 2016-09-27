@@ -147,7 +147,7 @@ void heatmap_renderer::heatmap_thread()
 
 	while (!clientState->die)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, 5000)) return;
+		if (!obtainMutex(piddata->graphsListMutex, 1054)) return;
 
 		vector<thread_graph_data *> graphlist;
 		map <int, void *>::iterator graphit = piddata->graphs.begin();

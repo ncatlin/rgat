@@ -137,7 +137,7 @@ void module_handler::PID_thread()
 				if (clientState->launchopts.basic)
 					graph->basic = true;
 
-				if (!obtainMutex(piddata->graphsListMutex, 2000)) return;
+				if (!obtainMutex(piddata->graphsListMutex, 1010)) return;
 				if (piddata->graphs.count(TID) > 0)
 					cerr << "[rgat]ERROR: Duplicate thread ID! Tell the dev to stop being awful" << endl;
 				piddata->graphs.insert(make_pair(TID, (void*)graph));

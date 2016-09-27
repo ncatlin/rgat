@@ -51,7 +51,7 @@ unsigned long thread_graph_data::get_backlog_total()
 //also adds them to the call log
 void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
-	obtainMutex(funcQueueMutex, 2132);
+	obtainMutex(funcQueueMutex, 1013);
 	while (!funcQueue.empty())
 	{
 		EXTERNCALLDATA resu = funcQueue.front();
@@ -74,7 +74,7 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 		{
 			if (!resu.callerAddr)
 			{
-				obtainMutex(piddata->disassemblyMutex, 4000);
+				obtainMutex(piddata->disassemblyMutex, 1014);
 				node_data* parentn = get_node(resu.edgeIdx.first);
 				node_data* externn = get_node(resu.edgeIdx.second);
 				resu.callerAddr = parentn->ins->address;
@@ -188,7 +188,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 {
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
-	obtainMutex(edMutex, 10000); //not sure if i should make a list-specific mutex
+	obtainMutex(edMutex, 1015); //not sure if i should make a list-specific mutex
 	if (doResize)
 	{
 		reset_mainlines();
@@ -216,7 +216,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 //given a sequence id, get the last instruciton in the block it refers to
 INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 {
-	obtainMutex(animationListsMutex, 1000);
+	obtainMutex(animationListsMutex, 1016);
 	pair<MEM_ADDRESS, int> targBlock_Size = bbsequence.at(sequenceId);
 	BLOCK_IDENTIFIER blockID = mutationSequence.at(sequenceId);
 	dropMutex(animationListsMutex);
@@ -234,7 +234,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	INS_DATA* ins = get_last_instruction(targetSequence);
 	int nodeIdx = ins->threadvertIdx[tid];
 
-	obtainMutex(animationListsMutex, 1000);
+	obtainMutex(animationListsMutex, 1017);
 	map <unsigned int, EDGELIST>::iterator externit = externCallSequence.find(nodeIdx);
 	if (externit == externCallSequence.end())
 	{
@@ -263,7 +263,7 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
 	ex.nodeIdx = n->index;
 
-	obtainMutex(funcQueueMutex, 1453);
+	obtainMutex(funcQueueMutex, 1018);
 	funcQueue.push(ex);
 	dropMutex(funcQueueMutex);
 
@@ -291,7 +291,7 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 
 void thread_graph_data::emptyArgQueue()
 {
-	obtainMutex(funcQueueMutex, 3000);
+	obtainMutex(funcQueueMutex, 1019);
 	while (!funcQueue.empty()) funcQueue.pop();
 	dropMutex(funcQueueMutex);
 }
@@ -539,7 +539,7 @@ int thread_graph_data::brighten_BBs()
 		}
 
 
-		obtainMutex(animationListsMutex, 2000);
+		obtainMutex(animationListsMutex, 1020);
 		pair<MEM_ADDRESS, int> targBlock_Size = bbsequence.at(animPosition);
 		BLOCK_IDENTIFIER blockID = mutationSequence.at(animPosition);
 		dropMutex(animationListsMutex);
@@ -559,7 +559,7 @@ int thread_graph_data::brighten_BBs()
 			break;
 		}
 		
-		obtainMutex(disassemblyMutex, 50); //do we need this here?
+		obtainMutex(disassemblyMutex, 1021); //do we need this here?
 		unsigned int nodeIdx = vertIt->second;
 		dropMutex(disassemblyMutex);
 
@@ -673,7 +673,7 @@ void thread_graph_data::update_animation_render(float fadeRate)
 unsigned int thread_graph_data::derive_anim_node()
 {
 
-	obtainMutex(animationListsMutex, 5223);
+	obtainMutex(animationListsMutex, 1022);
 	pair<MEM_ADDRESS, int> addr_size = bbsequence.at(sequenceIndex);
 	BLOCK_IDENTIFIER blockID = mutationSequence.at(sequenceIndex);
 	dropMutex(animationListsMutex);
@@ -696,7 +696,7 @@ void thread_graph_data::reset_mainlines()
 //true if found + edge data placed in edged
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	obtainMutex(edMutex, 6231);
+	obtainMutex(edMutex, 1023);
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
 
@@ -708,7 +708,7 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, 5129);
+	obtainMutex(edMutex, 1024);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
 	dropMutex(edMutex);
 	return linkingEdge;
@@ -757,7 +757,7 @@ VCOORD *thread_graph_data::get_active_node_coord()
 {
 	if (nodeList.empty()) return NULL;
 
-	obtainMutex(animationListsMutex, 1000);
+	obtainMutex(animationListsMutex, 1025);
 	VCOORD *result = &latest_active_node_coord;
 	dropMutex(animationListsMutex);
 
@@ -796,7 +796,7 @@ thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int thr
 
 void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 5235);
+	obtainMutex(edMutex, 1026);
 	*edgeIt = edgeList.begin();
 	*edgeEnd = edgeList.end();
 }
@@ -809,7 +809,7 @@ void thread_graph_data::stop_edgeL_iteration()
 void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
 	EDGEMAP::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 4526);
+	obtainMutex(edMutex, 1027);
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
 }
@@ -824,7 +824,7 @@ void thread_graph_data::highlightNodes(vector<node_data *> *nodePtrList, ALLEGRO
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
-	obtainMutex(nodeLMutex, 2699);
+	obtainMutex(nodeLMutex, 1028);
 	nodeList.push_back(node);
 	dropMutex(nodeLMutex);
 }
@@ -836,7 +836,7 @@ void thread_graph_data::stop_edgeD_iteration()
 
 void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, 6234);
+	obtainMutex(edMutex, 1029);
 	edgeDict.insert(make_pair(edgePair, e));
 	edgeList.push_back(edgePair);
 	dropMutex(edMutex);
@@ -919,7 +919,7 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< "}S,";
 
 	*file << "A{";
-	obtainMutex(animationListsMutex, 6342);
+	obtainMutex(animationListsMutex, 1030);
 	for (unsigned long i = 0; i < bbsequence.size(); ++i)
 	{
 		pair<MEM_ADDRESS, int> seq_size = bbsequence.at(i);

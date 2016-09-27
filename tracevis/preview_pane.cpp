@@ -190,7 +190,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
 	int first = 0;
 
-	if (!obtainMutex(clientState->pidMapMutex, 5000)) return;
+	if (!obtainMutex(clientState->pidMapMutex, 1051)) return;
 
 	thread_graph_data *previewGraph = 0;
 

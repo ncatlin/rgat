@@ -31,14 +31,23 @@ void pipeExists(LPCTSTR pipeName)
 	//);
 }
 
-bool obtainMutex(HANDLE mutex, int waitTime)
+/*
+a lot of the code checks this for success/failure
+have changed this to not return until success but leaving this here
+in case we want to revert it
+
+prints waitTimeCode in case of failure so use unique time for debugging
+*/
+bool obtainMutex(HANDLE mutex, int waitTimeCode)
 {
-	DWORD waitresult = WaitForSingleObject(mutex, waitTime);
-	if (waitresult == WAIT_TIMEOUT) {
-		cout << "WARNING! Mutex 0x" << std::hex << mutex << " wait expired after " << std::dec << waitTime << " ms" << endl;
-		return false;
-	}
-	return true;
+	DWORD waitresult;
+	do {
+		waitresult = WaitForSingleObject(mutex, waitTimeCode);
+		if (waitresult != WAIT_TIMEOUT) return true;
+		cout << "WARNING! Mutex wait failed after " << std::dec << waitTimeCode << " ms: " << waitresult <<  endl;
+	} while (true);
+
+	return false;
 }
 
 void dropMutex(HANDLE mutex) {

@@ -136,7 +136,7 @@ void conditional_renderer::conditional_thread()
 	map <int, void *>::iterator graphit;
 	while (!clientState->die)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, 4000)) return;
+		if (!obtainMutex(piddata->graphsListMutex, 1053)) return;
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex);

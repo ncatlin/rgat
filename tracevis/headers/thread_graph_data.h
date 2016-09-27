@@ -119,7 +119,7 @@ public:
 	inline edge_data *get_edge(NODEPAIR edge);
 	inline node_data *get_node(unsigned int index)
 	{
-		obtainMutex(nodeLMutex, 500);
+		obtainMutex(nodeLMutex, 1031);
 		node_data *n = &nodeList.at(index); 
 		dropMutex(nodeLMutex); 
 		return n;
@@ -156,7 +156,7 @@ public:
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx) {	
 		if (nodeList.size() <= idx) return;
-		obtainMutex(animationListsMutex, 1000);
+		obtainMutex(animationListsMutex, 1032);
 		latest_active_node_coord = get_node(idx)->vcoord;
 		dropMutex(animationListsMutex);
 	}
