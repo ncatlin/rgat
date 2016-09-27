@@ -63,8 +63,9 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 		thisgraph->maxWeight = e.weight;
 }
 
-//checks if current thread has executed this instruction
-bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx)
+//takes an instruction as input
+//returns whether current thread has executed this instruction, places its vert in vertIdxOut
+bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 {
 	obtainMutex(piddata->disassemblyMutex, 100);
 	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
@@ -72,7 +73,7 @@ bool thread_trace_handler::is_old_instruction(INS_DATA *instruction, unsigned in
 
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{
-		*vertIdx = vertIdIt->second;
+		targVertID = vertIdIt->second;
 		return true;
 	}
 	else 
@@ -110,7 +111,7 @@ void thread_trace_handler::update_conditional_state(MEM_ADDRESS nextAddress)
 }
 
 //creates a node for a newly excecuted instruction
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, int bb_inslist_index)
+void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID)
 {
 
 	node_data thisnode;
@@ -182,7 +183,6 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 
 void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
-	unsigned int bb_inslist_index = 0;
 	int numInstructions = tag->insCount;
 	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist);
 
@@ -201,15 +201,12 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 			}
 		}
 		
-		unsigned int existingVertID;
 		//target vert already on this threads graph?
-		bool alreadyExecuted = is_old_instruction(instruction, &existingVertID);
-		if (alreadyExecuted)
-			targVertID = existingVertID; 
-		else 
-			handle_new_instruction(instruction, tag->blockID, bb_inslist_index);
+		bool alreadyExecuted = set_target_instruction(instruction);
+		if (!alreadyExecuted)
+			handle_new_instruction(instruction, tag->blockID);
 
-		if (bb_inslist_index == startIndex && loopState == LOOP_START)
+		if (loopState == BUILDING_LOOP)
 		{
 			firstLoopVert = targVertID;
 			loopState = LOOP_PROGRESS;
@@ -217,10 +214,10 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
-		edge_data *edged;
-		if (thisgraph->edge_exists(edgeIDPair, &edged))
-			increaseWeight(edged, repeats);
+		edge_data *oldEdge;
 
+		if (thisgraph->edge_exists(edgeIDPair, &oldEdge))
+			increaseWeight(oldEdge, repeats);
 		else 
 			if (lastRIPType != FIRST_IN_THREAD)
 			{
@@ -723,7 +720,7 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 //updates graph entry for each tag in the trace loop cache
 void thread_trace_handler::dump_loop()
 {
-	loopState = LOOP_START;
+	assert(loopState == BUILDING_LOOP);
 
 	if (loopCache.empty())
 	{
@@ -758,6 +755,9 @@ void thread_trace_handler::TID_thread()
 
 	char* msgbuf;
 	unsigned long bytesRead;
+
+	unsigned long totalTags = 0;
+
 	while (!die)
 	{
 		if (!al_is_event_queue_empty(bench_timer_queue))
@@ -777,7 +777,12 @@ void thread_trace_handler::TID_thread()
 
 		if (bytesRead == -1) //thread pipe closed
 		{
-			dump_loop();
+			if (!loopCache.empty())
+			{
+				loopState = BUILDING_LOOP;
+				dump_loop();
+			}
+			
 			timelinebuilder->notify_tid_end(PID, TID);
 			thisgraph->active = false;
 			thisgraph->terminated = true;
@@ -797,6 +802,7 @@ void thread_trace_handler::TID_thread()
 
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
+				if ((++totalTags % 10000) == 0) cout << "done " << totalTags <<" Tags (verify with client)" << endl;
 				TAG thistag;
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
 				MEM_ADDRESS nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
@@ -805,7 +811,7 @@ void thread_trace_handler::TID_thread()
 				thistag.blockID = id_count >> 32;
 
 				thistag.jumpModifier = INTERNAL_CODE;
-				if (loopState == LOOP_START)
+				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
 					handle_tag(&thistag);
@@ -854,7 +860,7 @@ void thread_trace_handler::TID_thread()
 
 				int modu = thistag.foundExtern->modnum;
 
-				if (loopState == LOOP_START)
+				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
 					handle_tag(&thistag);
@@ -866,7 +872,7 @@ void thread_trace_handler::TID_thread()
 			{	
 				if (entry[1] == LOOP_START_MARKER)
 				{
-					loopState = LOOP_START;
+					loopState = BUILDING_LOOP;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stol(repeats_s, &loopCount, 10))
 						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;

@@ -81,8 +81,8 @@ private:
 	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
 	void updateStats(int a, int b, unsigned int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
-	bool is_old_instruction(INS_DATA *instruction, unsigned int *vertIdx);
-	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, int bb_inslist_index);
+	bool set_target_instruction(INS_DATA *instruction);
+	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID);
 	void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
@@ -98,7 +98,7 @@ private:
 	vector<FAILEDARGS> repeatArgAttempts;
 
 #define NO_LOOP 0
-#define LOOP_START 1
+#define BUILDING_LOOP 1
 #define LOOP_PROGRESS 2
 	bool afterReturn = false;
 	unsigned long loopCount = 0;
