@@ -100,7 +100,7 @@ public:
 		else if (thisNeedsAnIDField == "Basic mode")
 			clientState->launchopts.basic = state;
 		else
-			printf("Checkbox text %s does not match an expected value! Ignoring\n", source->getText().c_str());
+			cerr<< "[rgat]Checkbox text '"<< source->getText() << "' does not match an expected value! Ignoring" <<endl;
 	}
 private:
 	VISSTATE *clientState;

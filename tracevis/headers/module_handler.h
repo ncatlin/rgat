@@ -21,19 +21,19 @@ Header for the thread that manages each instrumented process
 
 #include "stdafx.h"
 #include "GUIStructs.h"
+#include "base_thread.h"
 #include "traceStructs.h"
 
-class module_handler
+class module_handler : public base_thread
 {
 public:
-	//thread_start_data startData;
-	static void __stdcall ThreadEntry(void* pUserData);
-	int PID;
-	bool die = false;
+	module_handler(unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID) {};
+	
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 	wstring pipename;
 
 private:
-	void PID_thread();
+	void main_loop();
 };

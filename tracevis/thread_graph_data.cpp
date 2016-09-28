@@ -272,21 +272,16 @@ void thread_graph_data::highlight_externs(unsigned long targetSequence)
 string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_node(idx);
-	map <int, std::map<MEM_ADDRESS, string>>::iterator symMapIt;
-	symMapIt = piddata->modsyms.find(n->nodeMod);
-	if (symMapIt == piddata->modsyms.end())
-		return ("NOMOD");
+	string sym;
 
-	map<MEM_ADDRESS, string> *modSyms = &symMapIt->second;
-	map<MEM_ADDRESS, string>::iterator symIt = modSyms->find(n->address);
-	if (symIt == modSyms->end())
+	if (!piddata->get_sym(n->nodeMod, n->address, &sym))
 	{
 		stringstream nosym;
 		nosym << "NOSYM:0x" << std::hex << n->address;
 		return nosym.str();
 	}
 
-	return symIt->second;
+	return sym;
 }
 
 void thread_graph_data::emptyArgQueue()
@@ -767,6 +762,7 @@ VCOORD *thread_graph_data::get_active_node_coord()
 thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int threadID)
 {
 	piddata = processdata;
+	pid = piddata->PID;
 	tid = threadID;
 
 	mainnodesdata = new GRAPH_DISPLAY_DATA();

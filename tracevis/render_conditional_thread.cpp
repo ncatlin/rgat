@@ -21,10 +21,6 @@ Header for the thread that renders graph conditional data
 #include "render_conditional_thread.h"
 #include "traceMisc.h"
 
-void __stdcall conditional_renderer::ThreadEntry(void* pUserData) {
-	return ((conditional_renderer*)pUserData)->conditional_thread();
-}
-
 bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
@@ -100,7 +96,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
-void conditional_renderer::conditional_thread()
+void conditional_renderer::main_loop()
 {
 	invisibleCol[0] = 0;
 	invisibleCol[1] = 0;
@@ -128,6 +124,10 @@ void conditional_renderer::conditional_thread()
 	while (!piddata || piddata->graphs.empty())
 	{
 		Sleep(200);
+		if (die) {
+			dead = true;
+			return;
+		}
 		continue;
 	}
 
@@ -136,7 +136,7 @@ void conditional_renderer::conditional_thread()
 	map <int, void *>::iterator graphit;
 	while (!clientState->die)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, 1053)) return;
+		obtainMutex(piddata->graphsListMutex, 1053);
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex);
@@ -157,5 +157,6 @@ void conditional_renderer::conditional_thread()
 		graphlist.clear();
 		Sleep(updateDelayMS);
 	}
+	dead = true;
 }
 

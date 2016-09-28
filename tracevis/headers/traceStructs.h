@@ -21,6 +21,7 @@ Structures used to represent the disassembly
 #include "stdafx.h"
 #include "edge_data.h"
 #include "traceConstants.h"
+#include "b64.h"
 
 /*
 Pinched from Boost
@@ -105,13 +106,37 @@ struct FUNCARG {
 	FUNCARG *nextarg;
 };
 
-struct PROCESS_DATA {
+class PROCESS_DATA 
+{
+public:
+	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym) 
+	{
+		if (modsymsPlain[modNum][addr].empty()) 
+		{
+			if (modsymsb64[modNum][addr].empty())
+			{
+				*sym = "";
+				return false;
+			}
+			else
+			{
+				*sym = base64_decode(modsymsb64[modNum][addr]);
+				modsymsPlain[modNum][addr] = *sym;
+				return true;
+			}
+		}
+		*sym = modsymsPlain[modNum][addr];
+		return true;
+	}
+
+//private:
 	bool active = true;
 	map <int, string>modpaths;
 	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
 	int PID = -1;
-	map <int, std::map<MEM_ADDRESS, string>>modsyms;
-	
+	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
+	map <int, std::map<MEM_ADDRESS, string>>modsymsb64;
+
 	//graph data for each thread in process
 	map <int, void *> graphs;
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);

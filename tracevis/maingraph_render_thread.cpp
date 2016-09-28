@@ -23,10 +23,6 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 #include "GUIManagement.h"
 #include "rendering.h"
 
-void __stdcall maingraph_render_thread::ThreadEntry(void* pUserData) {
-	return ((maingraph_render_thread*)pUserData)->rendering_thread();
-}
-
 void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
 {
 	render_main_graph(clientState);
@@ -112,14 +108,13 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 	graph->setGraphBusy(false);
 }
 
-void maingraph_render_thread::rendering_thread()
+void maingraph_render_thread::main_loop()
 {
 	thread_graph_data *activeGraph;
 	int renderFrequency = clientState->config->renderFrequency;
 
-	while (true)
+	while (!clientState->die)
 	{
-		if (clientState->die) break;
 		activeGraph = clientState->activeGraph;
 		if (!activeGraph) {
 			Sleep(5); continue;
@@ -127,15 +122,5 @@ void maingraph_render_thread::rendering_thread()
 		performMainGraphRendering(activeGraph);
 		Sleep(renderFrequency);
 	}
-
-
-}
-
-maingraph_render_thread::maingraph_render_thread()
-{
-}
-
-
-maingraph_render_thread::~maingraph_render_thread()
-{
+	dead = true;
 }

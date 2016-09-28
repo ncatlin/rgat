@@ -38,7 +38,7 @@ void AnimControls::setAnimState(int newAnimState)
 			clientState->modes.animation = true;
 		}
 		else
-			printf("How did we get here?\n");
+			cerr << "[rgat] Animation selection error"<<endl;
 	}
 	animationState = newAnimState;
 

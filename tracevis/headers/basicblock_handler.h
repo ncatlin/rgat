@@ -20,21 +20,19 @@ Header for the thread that processes basic block data
 #pragma once
 #include "traceStructs.h"
 #include "GUIStructs.h"
+#include "base_thread.h"
 
 size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long insaddr);
 
-class basicblock_handler
+class basicblock_handler : public base_thread
 {
 public:
-	//thread_start_data startData;
-	static void __stdcall ThreadEntry(void* pUserData);
-	int PID;
+	basicblock_handler(unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID) {};
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
-	bool die = false;
 	wstring pipename;
 
 private:
-	void PID_BB_thread();
-
+	void main_loop();
 };

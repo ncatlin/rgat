@@ -26,6 +26,7 @@ Header for the thread that builds a graph for each trace
 #include "thread_trace_reader.h"
 #include "GUIStructs.h"
 #include "timeline.h"
+#include "base_thread.h"
 
 struct TAG {
 	MEM_ADDRESS blockaddr;
@@ -41,24 +42,22 @@ struct FAILEDARGS {
 	MEM_ADDRESS targaddr;
 };
 
-class thread_trace_handler
+class thread_trace_handler : public base_thread
 {
 public:
-	//thread_start_data startData;
-	thread_trace_handler(thread_graph_data *thisgraph, unsigned int thisPID, unsigned int thisTID) {
-		PID = thisPID; TID = thisTID; graph = thisgraph;
+	thread_trace_handler(thread_graph_data *graph, unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID)
+	{
+		thisgraph = graph;
 	}
-	static void __stdcall ThreadEntry(void* pUserData);
 
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
 	thread_trace_reader *reader;
-	bool die = false;
 	bool basicMode = false;
 	
 private:
-	int PID;
-	int TID;
+	void main_loop();
 	thread_graph_data *graph;
 
 	//important state variables!
@@ -76,7 +75,7 @@ private:
 	void process_new_args();
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
-	void TID_thread();
+	
 	void runBB(TAG *tag, int startIndex, int repeats);
 	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
 	void updateStats(int a, int b, unsigned int bMod);

@@ -24,21 +24,14 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 #include "traceMisc.h"
 #include "rendering.h"
 
-void __stdcall preview_renderer::ThreadEntry(void* pUserData) {
-	return ((preview_renderer*)pUserData)->rendering_thread();
-}
-
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
-void preview_renderer::rendering_thread()
+void preview_renderer::main_loop()
 {
 	thread_graph_data *activeGraph = 0;
 
-	while (!piddata || piddata->graphs.empty())
-	{
+	while (!piddata || piddata->graphs.empty() || clientState->die)
 		Sleep(200);
-		continue;
-	}
 
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
@@ -49,7 +42,7 @@ void preview_renderer::rendering_thread()
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 
-		if (!obtainMutex(piddata->graphsListMutex, 1011)) return;
+		obtainMutex(piddata->graphsListMutex, 1011);
 		
 		graphIt = piddata->graphs.begin();
 		for (; graphIt != piddata->graphs.end(); graphIt++)
@@ -71,5 +64,6 @@ void preview_renderer::rendering_thread()
 		graphlist.clear();
 		Sleep(outerDelay);
 	}
+	dead = true;
 }
 

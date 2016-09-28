@@ -29,13 +29,8 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "GUIManagement.h"
 #include "b64.h"
 
-void __stdcall module_handler::ThreadEntry(void* pUserData) {
-	module_handler *newThread = (module_handler*)pUserData;
-	return newThread->PID_thread();
-}
-
 //listen to mod data for given PID
-void module_handler::PID_thread()
+void module_handler::main_loop()
 {
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadMod");
 	pipename.append(std::to_wstring(PID));
@@ -51,6 +46,7 @@ void module_handler::PID_thread()
 	if (ConnectNamedPipe(hPipe, &ov))
 	{
 		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << pipename << " for PID "<<PID<< ". Error: " << GetLastError();
+		dead = true;
 		return;
 	}
 
@@ -168,7 +164,7 @@ void module_handler::PID_thread()
 					continue;
 				}
 
-				piddata->modsyms[modnum][address] = base64_decode(symname);
+				piddata->modsymsb64[modnum][address] = symname;
 				continue;
 			}
 
@@ -190,8 +186,8 @@ void module_handler::PID_thread()
 				sscanf_s(modnum_s, "%d", &modnum);
 
 				if (piddata->modpaths.count(modnum) > 0) {
-					printf("\n\nERROR: PID:%d, Bad(prexisting) module number %d in mn [%s]. current is:%s\n\n", 
-						PID,modnum,buf, piddata->modpaths.at(modnum).c_str());
+					cerr<< "[rgat]ERROR: PID:"<<PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
+						buf<<"]. current is:" << piddata->modpaths.at(modnum) << endl;
 					assert(0);
 				}
 
@@ -208,10 +204,10 @@ void module_handler::PID_thread()
 				if (*skipped_s == '1')
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_UNINSTRUMENTED);
 				else
-					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_ACTIVE);
+					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_INSTRUMENTED);
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {
-					printf("ERROR! Processing module line: %s\n", buf);
+					cerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
 
@@ -221,7 +217,6 @@ void module_handler::PID_thread()
 					piddata->modpaths[modnum] = string("NULL");
 				
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
-				printf("mod: %d = %s\n", modnum, piddata->modpaths[modnum].c_str());
 				continue;
 			}
 		}
@@ -230,8 +225,21 @@ void module_handler::PID_thread()
 	vector < pair <thread_trace_reader*, thread_trace_handler *>>::iterator threadIt;
 	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
 	{
-		threadIt->first->die = true;
-		threadIt->second->die = true;
+		threadIt->first->kill();
+		threadIt->second->kill();
 	}
+
+	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
+	{
+		while (true)
+		{
+			Sleep(1);
+			if (!threadIt->first->is_dead()) continue;
+			if (!threadIt->second->is_dead()) continue;
+			break;
+		}
+	}
+
 	clientState->timelineBuilder->notify_pid_end(PID);
+	dead = true;
 }

@@ -641,6 +641,7 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 		cerr << "ERROR: Failed drawing new edges in render_preview_graph! returned: " << vresult << endl;
 		assert(0);
 	}
+
 	return 1;
 }
 
@@ -654,7 +655,8 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 		argstring << clientState->activePid->modpaths.at(n->nodeMod) << ":";
 
 	int numCalls = n->calls;
-	string symString = clientState->activePid->modsyms[n->nodeMod][n->address];
+	string symString;
+	clientState->activePid->get_sym(n->nodeMod,n->address,&symString);
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())
 		argstring << "[NOSYM]:0x" << std::hex << n->address;

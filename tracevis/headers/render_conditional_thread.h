@@ -22,19 +22,24 @@ Header for the thread that renders graph conditional data
 #include "GUIStructs.h"
 #include "traceStructs.h"
 #include "thread_graph_data.h"
+#include "base_thread.h"
 
-class conditional_renderer
+class conditional_renderer : public base_thread
 {
 public:
-	static void __stdcall ThreadEntry(void* pUserData);
+	conditional_renderer(unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID) {};
+
+public:
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 	void setUpdateDelay(int delay) { updateDelayMS = delay; }
-	bool die = false;
 
 private:
+	void main_loop();
+	thread_graph_data *thisgraph;
 	int updateDelayMS = 200;
-	void conditional_thread();
+	
 	bool render_graph_conditional(thread_graph_data *graph);
 
 	float invisibleCol[4];

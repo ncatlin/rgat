@@ -37,7 +37,7 @@ void timeline::notify_pid_end(unsigned int pid)
 {
 	if (!pidlist.count(pid))
 	{
-		printf("ERROR: UNKNOWN PID\n");
+		cerr<< "[rgat]ERROR: UNKNOWN PID"<<endl;
 		return;
 	}
 	processEvent ev;

@@ -94,7 +94,7 @@ bool getSavePath(string saveDir, string filename, string *result, int PID)
 		filename.erase(0, last_slash_idx + 1);
 
 	stringstream savepath;
-	savepath << saveDir << "\\" << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
+	savepath << saveDir << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
 	*result = savepath.str();
 	return true;
 }

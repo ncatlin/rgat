@@ -21,18 +21,18 @@ Header for the thread that renders previews for each graph
 #include <stdafx.h>
 #include "traceStructs.h"
 #include "GUIStructs.h"
+#include "base_thread.h"
 
-class preview_renderer
+class preview_renderer : public base_thread
 {
 public:
-	//thread_start_data startData;
-	static void __stdcall ThreadEntry(void* pUserData);
-	int PID;
+	preview_renderer(unsigned int thisPID, unsigned int thisTID)
+		: base_thread(thisPID, thisTID) {};
+
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
-	bool die = false;
 
 private:
-	void rendering_thread();
+	void main_loop();
 
 };

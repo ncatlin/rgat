@@ -141,6 +141,9 @@
     <ClInclude Include="headers\timeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base_thread.h">
+      <Filter>Header Files\threads</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -463,6 +466,9 @@
     </ClCompile>
     <ClCompile Include="GUIManagement.cpp">
       <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="base_thread.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

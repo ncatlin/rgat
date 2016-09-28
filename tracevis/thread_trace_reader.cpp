@@ -123,7 +123,7 @@ bool thread_trace_reader::getBufsState(pair <unsigned long, unsigned long> *bufS
 }
 
 //thread handler to build graph for a thread
-void thread_trace_reader::reader_thread()
+void thread_trace_reader::main_loop()
 {
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
 	pipename.append(std::to_wstring(TID));
@@ -138,7 +138,7 @@ void thread_trace_reader::reader_thread()
 
 	if ((int)hPipe == -1)
 	{
-		printf("[rgat]Error: Could not create pipe in thread handler %d. error:%d\n", TID, GetLastError());
+		cerr << "[rgat]Error: Could not create pipe in thread handler "<<TID<<". error:" << GetLastError() << endl;
 		return;
 	}
 
@@ -157,7 +157,6 @@ void thread_trace_reader::reader_thread()
 
 	int PIDcount = 0;
 	char *messageBuffer;
-
 	DWORD bytesRead = 0;
 	while (!die)
 	{
@@ -206,8 +205,6 @@ void thread_trace_reader::reader_thread()
 		if (die) break;
 		Sleep(10);
 	}
-}
 
-void __stdcall thread_trace_reader::ThreadEntry(void* pUserData) {
-	return ((thread_trace_reader*)pUserData)->reader_thread();
+	dead = true;
 }

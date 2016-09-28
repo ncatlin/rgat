@@ -21,11 +21,6 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 #include "render_heatmap_thread.h"
 #include "traceMisc.h"
 
-void __stdcall heatmap_renderer::ThreadEntry(void* pUserData) {
-	return ((heatmap_renderer*)pUserData)->heatmap_thread();
-}
-
-
 bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
@@ -91,7 +86,8 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	{
 		edge_data *edge = graph->get_edge(edgelist->at(edgeindex));
 		if (!edge) {
-			printf("Heatmap2 edge skip\n"); continue;
+			cerr << "[rgat]WARNING: Heatmap2 edge skip"<<endl;
+			continue;
 		}
 		COLSTRUCT *edgecol = &heatColours[edge->weight];
 		float edgeColArr[4] = { edgecol->r, edgecol->g, edgecol->b, 1};
@@ -103,9 +99,6 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 		graph->heatmaplines->inc_edgesRendered();
 		graph->heatmaplines->set_numVerts(graph->heatmaplines->get_numVerts() + vertIdx);
-		unsigned int htv = graph->heatmaplines->get_numVerts();
-		unsigned int mv = graph->get_mainlines()->get_numVerts();
-		if (htv > mv) printf("WARNING heatmapverts:%d, mainverts:%d\n", htv, mv);
 	}
 
 	graph->heatmaplines->release_col();
@@ -133,7 +126,7 @@ COLSTRUCT *col_to_colstruct(ALLEGRO_COLOR *c)
 
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
-void heatmap_renderer::heatmap_thread()
+void heatmap_renderer::main_loop()
 {
 	
 	//add our heatmap colours to a vector for lookup in render thread
@@ -147,7 +140,7 @@ void heatmap_renderer::heatmap_thread()
 
 	while (!clientState->die)
 	{
-		if (!obtainMutex(piddata->graphsListMutex, 1054)) return;
+		obtainMutex(piddata->graphsListMutex, 1054);
 
 		vector<thread_graph_data *> graphlist;
 		map <int, void *>::iterator graphit = piddata->graphs.begin();
@@ -179,5 +172,6 @@ void heatmap_renderer::heatmap_thread()
 		
 		Sleep(updateDelayMS);
 	}
+	dead = true;
 }
 

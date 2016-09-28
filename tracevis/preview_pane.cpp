@@ -176,7 +176,7 @@ bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *P
 	return false;
 }
 
-void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions) 
+void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions)
 {
 
 	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph)
@@ -221,7 +221,7 @@ void drawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPosition
 
 		al_set_target_bitmap(clientState->previewPaneBMP);
 		al_draw_bitmap(previewGraph->previewBMP, PREV_GRAPH_PADDING, graphy, 0);
-		//i wanted this in drawGraphBitmap, but it flickered
+
 		write_tid_text(clientState->standardFont, previewGraph, PREV_GRAPH_PADDING, graphy);
 
 		int TID = threadit->first;

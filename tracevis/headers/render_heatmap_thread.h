@@ -23,6 +23,7 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 #include "GUIStructs.h"
 #include "traceStructs.h"
 #include "thread_graph_data.h"
+#include "base_thread.h"
 
 struct COLSTRUCT {
 	float r;
@@ -30,20 +31,21 @@ struct COLSTRUCT {
 	float b;
 	float a;
 };
-class heatmap_renderer
+
+class heatmap_renderer : public base_thread
 {
 public:
-	//thread_start_data startData;
-	static void __stdcall ThreadEntry(void* pUserData);
+	heatmap_renderer(unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID) {};
+
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
-	bool die = false;
 	void setUpdateDelay(int delay) { updateDelayMS = delay; }
 
 private:
+	void main_loop();
 	int updateDelayMS = 200;
-
-	void heatmap_thread();
+	thread_graph_data *thisgraph;
 	bool render_graph_heatmap(thread_graph_data *graph);
 	vector<COLSTRUCT> colourRange;
 

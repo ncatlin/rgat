@@ -22,17 +22,19 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 #include <stdafx.h>
 #include "traceStructs.h"
 #include "GUIStructs.h"
+#include "base_thread.h"
 
-class maingraph_render_thread
+class maingraph_render_thread : public base_thread
 {
 public:
-	static void __stdcall ThreadEntry(void* pUserData);
-	maingraph_render_thread();
-	~maingraph_render_thread();
-	void rendering_thread();
+	maingraph_render_thread(unsigned int thisPID, unsigned int thisTID)
+		:base_thread(thisPID, thisTID) {}
+
+	
 	VISSTATE *clientState;
 
 private:
+	void main_loop();
 	void updateMainRender(thread_graph_data *graph);
 	void performMainGraphRendering(thread_graph_data *graph);
 };

@@ -319,8 +319,9 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			while (usedCoords[a][b])
 			{
 				a += JUMPA_CLASH;
-				if (clash++ > 30)
-					printf("\tWARNING: DENSE GRAPH CLASHES (JUMP)\n");
+				//not much point spamming it
+				//if (clash++ > 30)
+				//	cerr << "[rgat]WARNING: DENSE GRAPH CLASHES (JUMP)" << endl;
 			}
 			break;
 		}
@@ -379,14 +380,14 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			{
 				a += JUMPA_CLASH;
 				b += 1;
-				if (clash++ > 50)
-					cerr << "\tWARNING: Dense graph clashes (RET)"<<endl;
+				//if (clash++ > 50)
+				//	cerr << "[rgat]WARNING: Dense graph clashes (RET)"<<endl;
 			}
 			break;
 		}
 	default:
 		if (lastRIPType != FIRST_IN_THREAD)
-			printf("ERROR: Unknown Last RIP Type\n");
+			cerr << "[rgat]ERROR: Unknown Last RIP Type "<< lastRIPType << endl;
 		break;
 	}
 	*pa = a;
@@ -395,29 +396,25 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 	return;
 }
 
-void __stdcall thread_trace_handler::ThreadEntry(void* pUserData) {
-	return ((thread_trace_handler*)pUserData)->TID_thread();
-}
-
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	MEM_ADDRESS funcpc, returnpc;
 	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
 	int argpos;
 	if (!caught_stoi(argidx_s, &argpos, 10)) {
-		printf("handle_arg 3 STOL ERROR: %s\n", argidx_s.c_str());
-		return;
+		cerr << "[rgat]ERROR: Trace corruption. handle_arg index int ERROR: " << argidx_s << endl;
+		assert(0);
 	}
 
 	string funcpc_s = string(strtok_s(entry, ",", &entry));
 	if (!caught_stol(funcpc_s, &funcpc, 16)) {
-		printf("handle_arg 4 STOL ERROR: %s\n", funcpc_s.c_str());
-		return;
+		cerr << "[rgat]ERROR: Trace corruption. handle_arg funcpc address ERROR:" << funcpc_s << endl;
+		assert(0);
 	}
 
 	string retaddr_s = string(strtok_s(entry, ",", &entry));
 	if (!caught_stol(retaddr_s, &returnpc, 16)) {
-		printf("handle_arg 5 STOL ERROR: %s\n", retaddr_s.c_str());
-		return;
+		cerr << "[rgat]ERROR:Trace corruption. handle_arg returnpc address ERROR: " << retaddr_s << endl;
+		assert(0);
 	}
 
 	if (!pendingFunc) {
@@ -638,15 +635,15 @@ void thread_trace_handler::process_new_args()
 void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
 #ifdef VERBOSE
-	printf("handling tag %lx, jmpmod:%d", thistag->blockaddr, thistag->jumpModifier);
+	cout << "handling tag 0x"<< thistag->blockaddr << " jmpmod:" << thistag->jumpModifier;
 	if (thistag->jumpModifier == 2)
-		printf(" - sym: %s\n", piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr].c_str());
-	else printf("\n");
+		cout << " - sym: "<< piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr];
+	cout << endl;
 #endif
 
-	update_conditional_state(thistag->blockaddr);//todo update with bb
+	update_conditional_state(thistag->blockaddr);
 
-	if (thistag->jumpModifier == INTERNAL_CODE)
+	if (thistag->jumpModifier == MOD_INSTRUMENTED)
 	{
 
 		runBB(thistag, 0, repeats);
@@ -655,8 +652,6 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		{
 			obtainMutex(thisgraph->animationListsMutex, 1049);
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
-
-			//could probably break this by mutating code in a running loop
 			thisgraph->mutationSequence.push_back(thistag->blockID);
 			dropMutex(thisgraph->animationListsMutex);
 		}
@@ -674,7 +669,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		thisgraph->set_active_node(lastVertID);
 	}
 
-	else if (thistag->jumpModifier == EXTERNAL_CODE) //call to (uninstrumented) external library
+	else if (thistag->jumpModifier == MOD_UNINSTRUMENTED) //call to (uninstrumented) external library
 	{
 		if (!lastVertID) return;
 
@@ -706,10 +701,10 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
 		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = &piddata->modBounds.at(modNo);
-		if (address >= moduleBounds->first &&	address <= moduleBounds->second)
+		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
-			if (piddata->activeMods.at(modNo) == MOD_ACTIVE) 
-				return MOD_ACTIVE;
+			if (piddata->activeMods.at(modNo) == MOD_INSTRUMENTED)
+				return MOD_INSTRUMENTED;
 			else 
 				return MOD_UNINSTRUMENTED;
 		}
@@ -740,12 +735,8 @@ void thread_trace_handler::dump_loop()
 }
 
 //build graph for a thread as the trace data arrives from the reader thread
-void thread_trace_handler::TID_thread()
+void thread_trace_handler::main_loop()
 {
-	thisgraph = (thread_graph_data *)piddata->graphs[TID];
-	thisgraph->tid = TID;
-	thisgraph->pid = PID;
-
 	ALLEGRO_EVENT ev;
 	ALLEGRO_TIMER *secondtimer = al_create_timer(1);
 	ALLEGRO_EVENT_QUEUE *bench_timer_queue = al_create_event_queue();
@@ -755,9 +746,6 @@ void thread_trace_handler::TID_thread()
 
 	char* msgbuf;
 	unsigned long bytesRead;
-
-	unsigned long totalTags = 0;
-
 	while (!die)
 	{
 		if (!al_is_event_queue_empty(bench_timer_queue))
@@ -768,12 +756,10 @@ void thread_trace_handler::TID_thread()
 		}
 
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
-		if (bytesRead == 0) {
-
+		if (!bytesRead) {
 			Sleep(1);
 			continue;
 		}
-		++itemsDone;
 
 		if (bytesRead == -1) //thread pipe closed
 		{
@@ -788,9 +774,11 @@ void thread_trace_handler::TID_thread()
 			thisgraph->terminated = true;
 			thisgraph->emptyArgQueue();
 			thisgraph->needVBOReload_preview = true;
+			dead = true;
 			return;
 		}
 
+		++itemsDone;
 		char *next_token = msgbuf;
 		while (true)
 		{
@@ -802,7 +790,6 @@ void thread_trace_handler::TID_thread()
 
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
-				if ((++totalTags % 10000) == 0) cout << "done " << totalTags <<" Tags (verify with client)" << endl;
 				TAG thistag;
 				thistag.blockaddr = stol(strtok_s(entry + 1, ",", &entry), 0, 16);
 				MEM_ADDRESS nextBlock = stol(strtok_s(entry, ",", &entry), 0, 16);
@@ -810,7 +797,7 @@ void thread_trace_handler::TID_thread()
 				thistag.insCount = id_count & 0xffffffff;
 				thistag.blockID = id_count >> 32;
 
-				thistag.jumpModifier = INTERNAL_CODE;
+				thistag.jumpModifier = MOD_INSTRUMENTED;
 				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
@@ -820,27 +807,24 @@ void thread_trace_handler::TID_thread()
 				if (nextBlock == 0) continue;
 
 				int modType = find_containing_module(nextBlock);
-				if (modType == MOD_ACTIVE) continue;
+				if (modType == MOD_INSTRUMENTED) continue;
 
-				bool external;
-				if (modType == MOD_UNINSTRUMENTED)
-					external = true;
-				else
-					external = false;
-
-				//see if next block is external
-				//this is our alternative to instrumenting *everything*
-				//rarely called (hopefully)
+				//modType could be known unknown here
+				//in case of unknown, this waits until we know. hopefully rare.
 				int attempts = 1;
 				while (true)
 				{
+					//this is most likely to be called and looping is rare - usually
 					if (get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
 					{
-						external = true;
+						modType = MOD_UNINSTRUMENTED;
 						break;
 					}
-					if (find_internal_at_address(nextBlock, attempts)) 
+					if (find_internal_at_address(nextBlock, attempts))
+					{
+						modType = MOD_INSTRUMENTED;
 						break;
+					}
 
 					if (attempts++ >= 10)
 					{
@@ -852,13 +836,11 @@ void thread_trace_handler::TID_thread()
 					}
 				} 
 
-				if (!external) continue;
+				if (modType == MOD_INSTRUMENTED) continue;
 				
 				thistag.blockaddr = nextBlock;
-				thistag.jumpModifier = EXTERNAL_CODE;
+				thistag.jumpModifier = MOD_UNINSTRUMENTED;
 				thistag.insCount = 0;
-
-				int modu = thistag.foundExtern->modnum;
 
 				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
@@ -923,6 +905,6 @@ void thread_trace_handler::TID_thread()
 			if (next_token >= msgbuf + bytesRead) break;
 		}
 	}
-	
+	dead = true;
 }
 

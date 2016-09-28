@@ -84,12 +84,8 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 	return count;
 }
 
-void __stdcall basicblock_handler::ThreadEntry(void* pUserData) {
-	return ((basicblock_handler*)pUserData)->PID_BB_thread();
-}
-
 //listen to BB data for given PID
-void basicblock_handler::PID_BB_thread()
+void basicblock_handler::main_loop()
 {
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(std::to_wstring(PID));
@@ -102,6 +98,7 @@ void basicblock_handler::PID_BB_thread()
 	if ((int)hPipe == -1)
 	{
 		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
+		dead = true;
 		return;
 	}
 	OVERLAPPED ov = { 0 };
@@ -111,12 +108,14 @@ void basicblock_handler::PID_BB_thread()
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
 	{
 		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << PID << endl;
+		dead = true;
 		return;
 	}
 
 	if (ConnectNamedPipe(hPipe, &ov))
 	{
 		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << PID << ". Error: " << GetLastError();
+		dead = true;
 		return;
 	}
 	
@@ -298,4 +297,5 @@ void basicblock_handler::PID_BB_thread()
 
 	free(buf);
 	cs_close(&hCapstone);
+	dead = true;
 }

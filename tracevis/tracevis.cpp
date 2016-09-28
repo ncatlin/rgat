@@ -58,16 +58,15 @@ bool kbdInterrupt = false;
 void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
-	preview_renderer *previews_thread = new preview_renderer;
+	preview_renderer *previews_thread = new preview_renderer(PID,0);
 	previews_thread->clientState = clientState;
-	previews_thread->PID = PID;
 	previews_thread->piddata = piddata;
 
 	HANDLE hOutThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)previews_thread->ThreadEntry,
 		(LPVOID)previews_thread, 0, &threadID);
 
-	heatmap_renderer *heatmap_thread = new heatmap_renderer;
+	heatmap_renderer *heatmap_thread = new heatmap_renderer(PID, 0);
 	heatmap_thread->clientState = clientState;
 	heatmap_thread->piddata = piddata;
 
@@ -75,7 +74,7 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
 		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
 		(LPVOID)heatmap_thread, 0, &threadID);
 
-	conditional_renderer *conditional_thread = new conditional_renderer;
+	conditional_renderer *conditional_thread = new conditional_renderer(PID, 0);
 	conditional_thread->clientState = clientState;
 	conditional_thread->piddata = piddata;
 
@@ -89,7 +88,8 @@ void launch_saved_PID_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientSt
  
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditonals
 //+ module data and disassembly
-THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState) {
+THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
+{
 	THREAD_POINTERS *threads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
@@ -104,9 +104,8 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	DWORD threadID;
 
 	//handles new threads+dlls for process
-	module_handler *tPIDThread = new module_handler;
+	module_handler *tPIDThread = new module_handler(PID, 0);
 	tPIDThread->clientState = clientState;
-	tPIDThread->PID = PID;
 	tPIDThread->piddata = piddata;
 
 	HANDLE hPIDmodThread = CreateThread(
@@ -115,9 +114,8 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	threads->modThread = tPIDThread;
 
 	//handles new disassembly data
-	basicblock_handler *tBBThread = new basicblock_handler;
+	basicblock_handler *tBBThread = new basicblock_handler(PID, 0);
 	tBBThread->clientState = clientState;
-	tBBThread->PID = PID;
 	tBBThread->piddata = piddata;
 
 	HANDLE hPIDBBThread = CreateThread(
@@ -128,9 +126,8 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	if (!clientState->commandlineLaunchPath.empty()) return threads;
 	//graphics rendering threads for each process here	
 
-	preview_renderer *tPrevThread = new preview_renderer;
+	preview_renderer *tPrevThread = new preview_renderer(PID,0);
 	tPrevThread->clientState = clientState;
-	tPrevThread->PID = PID;
 	tPrevThread->piddata = piddata;
 
 	HANDLE hPreviewThread = CreateThread(
@@ -138,7 +135,7 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 		(LPVOID)tPrevThread, 0, &threadID);
 	threads->previewThread = tPrevThread;
 
-	heatmap_renderer *tHeatThread = new heatmap_renderer;
+	heatmap_renderer *tHeatThread = new heatmap_renderer(PID, 0);
 	tHeatThread->clientState = clientState;
 	tHeatThread->piddata = piddata;
 	tHeatThread->setUpdateDelay(clientState->config->heatmap.delay);
@@ -148,7 +145,7 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 		(LPVOID)tHeatThread, 0, &threadID);
 	threads->heatmapThread = tHeatThread;
 
-	conditional_renderer *tCondThread = new conditional_renderer;
+	conditional_renderer *tCondThread = new conditional_renderer(PID, 0);
 	tCondThread->clientState = clientState;
 	tCondThread->piddata = piddata;
 	tCondThread->setUpdateDelay(clientState->config->conditional.delay);
@@ -220,39 +217,42 @@ void process_coordinator_thread(VISSTATE *clientState)
 			threadsList.push_back(threads);
 			continue;
 		}
-
-		if (string(buf).substr(0,3) == "DIE")
-		{
-			vector<THREAD_POINTERS *>::iterator threadIt;
-			for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
-			{
-				THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
-				t->BBthread->die = true;
-				ofstream BBPipe;
-				BBPipe.open(t->BBthread->pipename);
-				BBPipe << "DIE" << endl;
-				BBPipe.close();
-
-				((THREAD_POINTERS *)*threadIt)->modThread->die = true;
-				ofstream modPipe;
-				modPipe.open(t->modThread->pipename);
-				modPipe << "DIE" << endl;
-				modPipe.close();
-
-				if (clientState->commandlineLaunchPath.empty())
-				{
-					t->heatmapThread->die = true;
-					t->conditionalThread->die = true;
-					t->previewThread->die = true;
-				}
-			}
-		}
-		else
-		{
-			cerr << "[rgat]ERROR: Something bad happened in process_coord_thread extract_integer, string is: " << buf << endl;
-		}
-		return;
+		
 	}
+
+	vector<THREAD_POINTERS *>::iterator threadIt;
+	for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
+	{
+		THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
+		t->BBthread->kill();
+		t->modThread->kill();
+		if (clientState->commandlineLaunchPath.empty())
+		{
+			t->heatmapThread->kill();
+			t->conditionalThread->kill();
+			t->previewThread->kill();
+		}
+	}
+
+	for (threadIt = threadsList.begin(); threadIt != threadsList.end(); ++threadIt)
+	{
+		THREAD_POINTERS *t = ((THREAD_POINTERS *)*threadIt);
+		while (true)
+		{
+			Sleep(1);
+			if (!t->BBthread->is_dead()) continue;
+			if (!t->modThread->is_dead()) continue;
+			if (clientState->commandlineLaunchPath.empty())
+			{
+				if (!t->heatmapThread->is_dead()) continue;
+				if (!t->conditionalThread->is_dead()) continue;
+				if (!t->previewThread->is_dead()) continue;
+			}
+			break;
+		}
+	}
+
+	clientState->glob_piddata_map.clear();
 }
 
 void change_mode(VISSTATE *clientState, int mode)
@@ -827,6 +827,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientstate)
 			{
 				widgets->exeSelector->hide();
 				ALLEGRO_FILECHOOSER *fileDialog;
+				//bug: sometimes uses current directory
 				fileDialog = al_create_native_file_dialog(clientstate->config->saveDir.c_str(),
 					"Choose saved trace to open", "*.rgat;*.*;",
 					ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
@@ -1035,7 +1036,7 @@ int main(int argc, char **argv)
 		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 		(LPVOID)&clientstate, 0, 0);
 
-	maingraph_render_thread *mainRenderThread = new maingraph_render_thread;
+	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(0,0);
 	mainRenderThread->clientState = &clientstate;
 
 	HANDLE hPIDmodThread = CreateThread(
@@ -1182,7 +1183,7 @@ int main(int argc, char **argv)
 			{
 				if (previewRenderFrame++ % (60 / clientstate.config->preview.FPS))
 				{
-					drawPreviewGraphs(&clientstate, &graphPositions);
+					redrawPreviewGraphs(&clientstate, &graphPositions);
 					previewRenderFrame = 0;
 				}
 				al_draw_bitmap(clientstate.previewPaneBMP, clientstate.mainFrameSize.width, MAIN_FRAME_Y, 0);
@@ -1242,7 +1243,7 @@ int main(int argc, char **argv)
 			{
 				clientstate.die = true;
 				running = false;
-				Sleep(800);
+				while (!clientstate.glob_piddata_map.empty()) { Sleep(1); }
 				break;
 			}
 			default:
