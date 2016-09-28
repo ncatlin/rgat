@@ -168,9 +168,9 @@ void thread_trace_reader::main_loop()
 		}
 
 		DWORD available;
-		PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL); //ugh, need to do more overlapped todo
-		if(!available)
+		if(!PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL))
 		{
+			if (GetLastError() == ERROR_BROKEN_PIPE) break;
 			Sleep(5);
 			continue;
 		}
@@ -180,13 +180,11 @@ void thread_trace_reader::main_loop()
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
 				cerr << "[rgat]Error: thread " << TID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
-			pipeClosed = true;
 			break;
 		}
 
-		if (bytesRead == TAGCACHESIZE) {
+		if (bytesRead >= TAGCACHESIZE) {
 			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
-			pipeClosed = true;
 			break;
 		}
 
@@ -198,8 +196,8 @@ void thread_trace_reader::main_loop()
 
 		++itemsRead;
 	}
-
-	//keep the thread open until killed or buffers emptied
+	pipeClosed = true;
+	//wait until buffers emptied
 	while (!firstQueue.empty() && !secondQueue.empty())
 	{
 		if (die) break;
