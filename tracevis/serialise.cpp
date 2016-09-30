@@ -76,13 +76,13 @@ void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 	writetag(file, tag_START, tag_SYM);
 	*file << " ";
 	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsymsb64.begin();
-	for (; modSymIt != piddata->modsymsb64.end(); ++modSymIt)
+	for (; modSymIt != piddata->modsymsPlain.end(); ++modSymIt)
 	{
 		*file << modSymIt->first;
 		writetag(file, tag_START);
 		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
 		for (; symIt != modSymIt->second.end(); symIt++)
-			*file << symIt->first << "," << symIt->second << "@";
+			*file << symIt->first << "," << base64_encode((unsigned char*)symIt->second.c_str(),symIt->second.size()) << "@";
 
 		writetag(file, tag_END);
 		*file << " ";

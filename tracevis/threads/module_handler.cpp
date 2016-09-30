@@ -149,23 +149,23 @@ void module_handler::main_loop()
 			{
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
-				string symname = string(strtok_s(next_token, "@", &next_token));
+				if (modnum > piddata->modpaths.size()) {
+					cerr << "[rgat]Bad mod number " << modnum << "in sym processing. " <<
+						piddata->modpaths.size() << " exist." << endl;
+					continue;
+				}
+
 				char *offset_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS address;
 				sscanf_s(offset_s, "%x", &address);
+
 				if(!piddata->modBounds.count(modnum)) 
 					printf("Warning: sym before module. handle me\n"); //fail if sym came before module
 				else
 					address += piddata->modBounds[modnum].first;
 
-				if (!address | (next_token - buf != bread)) continue;
-				if (modnum > piddata->modpaths.size()) {
-					cerr << "[rgat]Bad mod number "<<modnum<< "in sym processing. " <<
-						piddata->modpaths.size() << " exist." << endl;
-					continue;
-				}
-
-				piddata->modsymsb64[modnum][address] = symname;
+				string symname = string(next_token);
+				piddata->modsymsPlain[modnum][address] = symname;
 				continue;
 			}
 
@@ -218,7 +218,7 @@ void module_handler::main_loop()
 					piddata->modpaths[modnum] = string("NULL");
 				
 				if (!piddata->modBounds.count(modnum))
-					if (piddata->modsymsb64.count(modnum))
+					if (piddata->modsymsPlain.count(modnum))
 					{
 						printf("\n\nadd address to all these syms\n\n");
 						assert(0);
