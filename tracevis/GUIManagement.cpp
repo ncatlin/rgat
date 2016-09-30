@@ -213,14 +213,14 @@ void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg)
 }
 
 
-void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientstate, int verts, int edges)
+void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int verts, int edges)
 {
-	if (!clientstate->title->zoom) return;
-	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
+	if (!clientState->title->zoom) return;
+	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph) return;
 
-	snprintf(clientstate->title->Primitives, 55, "[TID:%d N:%d/E:%d]", graph->tid, verts,edges);
-	updateTitle(display, clientstate->title);
+	snprintf(clientState->title->Primitives, 55, "[TID:%d N:%d/E:%d]", graph->tid, verts,edges);
+	updateTitle(display, clientState->title);
 }
 
 void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPSMax) {
@@ -326,14 +326,12 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "E&xit", EV_BTN_QUIT, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
-		{ "&Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
-
-		ALLEGRO_START_OF_MENU("Views", 3),
+		ALLEGRO_START_OF_MENU("Visualisations", 3),
 		{ "&Heatmap [k]", EV_BTN_HEATMAP, 0, NULL },
 		{ "&Conditionals [j]", EV_BTN_CONDITION, 0, NULL },
-		{ "&Preview", EV_BTN_PREVIEW, 0, NULL },
-		//{ "&Mutation", EV_BTN_MUTATION, 0, NULL },
+		{ "&Previews", EV_BTN_PREVIEW, 0, NULL },
 		{ "&Divergence", EV_BTN_DIFF, 0, NULL },
+		//{ "&Mutation", EV_BTN_MUTATION, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		{ "&Call Log", EV_BTN_EXTERNLOG, 0, NULL },
@@ -342,10 +340,11 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		ALLEGRO_START_OF_MENU("Settings", 3),
 		{ "Show Nodes", EV_BTN_NODES, 0, NULL },
 		{ "Show Edges [e]", EV_BTN_EDGES, 0, NULL },
+		{ "Show &Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("Text", 3),
-		{ "Show Extern Modules", EV_BTN_EXT_MOD_TEXT, 0, NULL },
+		{ "Show Extern Modules [m]", EV_BTN_EXT_MOD_TEXT, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Help", 7),
@@ -358,4 +357,16 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 	al_set_display_menu(display, menu_file);
 	ALLEGRO_EVENT_SOURCE *menuEvents = al_enable_menu_event_source(menu_file);
 	return menuEvents;
+}
+
+
+void display_only_status_message(string msg, VISSTATE *clientState)
+{
+	al_clear_to_color(al_col_black);
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->controlWindow->setStatusLabel(msg);
+	widgets->paintWidgets();
+	al_set_target_backbuffer(clientState->maindisplay);
+	al_draw_bitmap(clientState->GUIBMP, 0, 0, 0);
+	al_flip_display();
 }

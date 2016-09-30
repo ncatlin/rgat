@@ -162,7 +162,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="base_thread.h" />
+    <ClInclude Include="headers\base_thread.h" />
     <ClInclude Include="headers\animControls.h" />
     <ClInclude Include="headers\clientConfig.h" />
     <ClInclude Include="headers\configDefaults.h" />
@@ -195,7 +195,7 @@
     <ClInclude Include="headers\trace_handler.h" />
     <ClInclude Include="headers\opengl_operations.h" />
     <ClInclude Include="headers\thread_graph_data.h" />
-    <ClInclude Include="OSspecific.h" />
+    <ClInclude Include="headers\OSspecific.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="headers\serialise.h" />
     <ClInclude Include="headers\thread_trace_reader.h" />
@@ -281,7 +281,7 @@
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\ToolTip\ToolTip.cpp" />
     <ClCompile Include="animControls.cpp" />
     <ClCompile Include="b64.cpp" />
-    <ClCompile Include="base_thread.cpp" />
+    <ClCompile Include="threads\base_thread.cpp" />
     <ClCompile Include="clientConfig.cpp" />
     <ClCompile Include="diffWindow.cpp" />
     <ClCompile Include="diff_plotter.cpp" />
@@ -289,24 +289,24 @@
     <ClCompile Include="exeWindow.cpp" />
     <ClCompile Include="graph_display_data.cpp" />
     <ClCompile Include="highlightWindow.cpp" />
-    <ClCompile Include="maingraph_render_thread.cpp" />
+    <ClCompile Include="threads\maingraph_render_thread.cpp" />
     <ClCompile Include="node_data.cpp" />
     <ClCompile Include="osSpecific.cpp" />
     <ClCompile Include="preview_pane.cpp" />
-    <ClCompile Include="render_conditional_thread.cpp" />
-    <ClCompile Include="render_heatmap_thread.cpp" />
-    <ClCompile Include="render_preview_thread.cpp" />
+    <ClCompile Include="threads\render_conditional_thread.cpp" />
+    <ClCompile Include="threads\render_heatmap_thread.cpp" />
+    <ClCompile Include="threads\render_preview_thread.cpp" />
     <ClCompile Include="graphicsMaths.cpp" />
-    <ClCompile Include="basicblock_handler.cpp" />
+    <ClCompile Include="threads\basicblock_handler.cpp" />
     <ClCompile Include="GUIManagement.cpp" />
-    <ClCompile Include="module_handler.cpp" />
+    <ClCompile Include="threads\module_handler.cpp" />
     <ClCompile Include="opengl_operations.cpp" />
     <ClCompile Include="serialise.cpp" />
     <ClCompile Include="thread_graph_data.cpp" />
-    <ClCompile Include="thread_trace_reader.cpp" />
+    <ClCompile Include="threads\thread_trace_reader.cpp" />
     <ClCompile Include="timeline.cpp" />
     <ClCompile Include="traceMisc.cpp" />
-    <ClCompile Include="trace_handler.cpp" />
+    <ClCompile Include="threads\trace_handler.cpp" />
     <ClCompile Include="rendering.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

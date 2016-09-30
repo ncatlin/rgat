@@ -77,3 +77,6 @@ Defaults for using when a config file does not exist
 #define MAINGRAPH_DEFAULT_RENDER_FREQUENCY 25
 
 #define DEFAULT_MAX_TRACE_BUFSIZE 400000
+
+//mazimum number of args to store per external
+#define DEFAULT_MAX_ARG_STORAGE 100

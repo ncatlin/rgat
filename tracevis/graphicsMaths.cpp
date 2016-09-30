@@ -150,11 +150,11 @@ bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 }
 
 //returns if the coord is present on the screen
-bool is_on_screen(DCOORD * screenCoord, void *clientstate)
+bool is_on_screen(DCOORD * screenCoord, void *clientState)
 {
-	VISSTATE *castclientstate = (VISSTATE *) clientstate; //compiler goes berserk if the header has GUIstructs
-	if (screenCoord->x < castclientstate->mainFrameSize.width &&
-		screenCoord->y < castclientstate->mainFrameSize.height &&
+	VISSTATE *castclientState = (VISSTATE *) clientState; //compiler goes berserk if the header has GUIstructs
+	if (screenCoord->x < castclientState->mainFrameSize.width &&
+		screenCoord->y < castclientState->mainFrameSize.height &&
 		screenCoord->x > 0 && screenCoord->y > 0 
 		)
 		return true;

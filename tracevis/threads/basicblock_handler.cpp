@@ -87,6 +87,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 //listen to BB data for given PID
 void basicblock_handler::main_loop()
 {
+	alive = true;
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(std::to_wstring(PID));
 
@@ -98,7 +99,7 @@ void basicblock_handler::main_loop()
 	if ((int)hPipe == -1)
 	{
 		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
-		dead = true;
+		alive = false;
 		return;
 	}
 	OVERLAPPED ov = { 0 };
@@ -108,18 +109,18 @@ void basicblock_handler::main_loop()
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
 	{
 		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << PID << endl;
-		dead = true;
+		alive = false;
 		return;
 	}
 
 	if (ConnectNamedPipe(hPipe, &ov))
 	{
 		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << PID << ". Error: " << GetLastError();
-		dead = true;
+		alive = false;
 		return;
 	}
 	
-	while (true)
+	while (!die)
 	{
 		int result = WaitForSingleObject(ov.hEvent, 3000);
 		if (result != WAIT_TIMEOUT) break;
@@ -130,21 +131,16 @@ void basicblock_handler::main_loop()
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	//string savedbuf;
-	while (true)
+	while (!die)
 	{
-		if (die || clientState->die) break;
 		if (clientState->terminationPid == PID)
 			break;
 
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, BBBUFSIZE, &bread, &ov2);
-		while (true)
+		while (!die)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
-			if (die || clientState->die) {
-				die = true;
-				break;
-			}
 		}
 		if (clientState->die || die) break;
 
@@ -297,5 +293,5 @@ void basicblock_handler::main_loop()
 
 	free(buf);
 	cs_close(&hCapstone);
-	dead = true;
+	alive = false;
 }

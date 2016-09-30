@@ -98,6 +98,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 //allows display in thumbnail style format
 void conditional_renderer::main_loop()
 {
+	alive = true;
 	invisibleCol[0] = 0;
 	invisibleCol[1] = 0;
 	invisibleCol[2] = 0;
@@ -121,20 +122,16 @@ void conditional_renderer::main_loop()
 	bothPathsCol[2] = bothPaths->b;
 	bothPathsCol[3] = bothPaths->a;
 
-	while (!piddata || piddata->graphs.empty())
+	while ((!piddata || piddata->graphs.empty()) && !die)
 	{
-		Sleep(200);
-		if (die) {
-			dead = true;
-			return;
-		}
+		Sleep(100);
 		continue;
 	}
 
 	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphit;
-	while (!clientState->die)
+	while (!die)
 	{
 		obtainMutex(piddata->graphsListMutex, 1053);
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
@@ -142,9 +139,8 @@ void conditional_renderer::main_loop()
 		dropMutex(piddata->graphsListMutex);
 		
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
-		while (graphlistIt != graphlist.end())
+		while (graphlistIt != graphlist.end() && !die)
 		{
-			if (die || clientState->die) break;
 			thread_graph_data *graph = *graphlistIt++;
 
 			if (graph->active || graph->get_num_edges() > graph->conditionallines->get_renderedEdges())
@@ -155,8 +151,13 @@ void conditional_renderer::main_loop()
 			Sleep(80);
 		}
 		graphlist.clear();
-		Sleep(updateDelayMS);
+		int waitForNextIt = 0;
+		while (waitForNextIt < updateDelayMS && !die)
+		{
+			Sleep(50);
+			waitForNextIt += 50;
+		}
 	}
-	dead = true;
+	alive = false;
 }
 

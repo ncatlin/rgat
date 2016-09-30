@@ -34,6 +34,7 @@ void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
 
 void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph)
 {
+	//if (graph->terminated) return;
 	graph->setGraphBusy(true);
 	
 	if (
@@ -110,6 +111,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 
 void maingraph_render_thread::main_loop()
 {
+	alive = true;
 	thread_graph_data *activeGraph;
 	int renderFrequency = clientState->config->renderFrequency;
 
@@ -122,5 +124,5 @@ void maingraph_render_thread::main_loop()
 		performMainGraphRendering(activeGraph);
 		Sleep(renderFrequency);
 	}
-	dead = true;
+	alive = false;
 }

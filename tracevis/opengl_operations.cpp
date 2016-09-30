@@ -30,19 +30,19 @@ void gather_projection_data(PROJECTDATA *pd)
 	glGetIntegerv(GL_VIEWPORT, pd->viewport);
 }
 
-void frame_gl_setup(VISSTATE* clientstate)
+void frame_gl_setup(VISSTATE* clientState)
 {
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 
 	glLoadIdentity();
-	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.height, 500, 
-		clientstate->zoomlevel + clientstate->activeGraph->m_scalefactors->radius);
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
+		clientState->zoomlevel + clientState->activeGraph->m_scalefactors->radius);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 
-	rotate_to_user_view(clientstate);
+	rotate_to_user_view(clientState);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
@@ -108,7 +108,7 @@ void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantit
 
 }
 
-void initial_gl_setup(VISSTATE *clientstate)
+void initial_gl_setup(VISSTATE *clientState)
 {
 	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_BLEND);
@@ -125,20 +125,20 @@ void initial_gl_setup(VISSTATE *clientstate)
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
 	//why 60000?
-	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.height, 50, clientstate->zoomlevel + 60000);
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50, clientState->zoomlevel + 60000);
 }
 
 //draw a segmented sphere with row gradiented red, cols green
-void plot_colourpick_sphere(VISSTATE *clientstate)
+void plot_colourpick_sphere(VISSTATE *clientState)
 {
-	GRAPH_DISPLAY_DATA *spheredata = clientstate->col_pick_sphere;
+	GRAPH_DISPLAY_DATA *spheredata = clientState->col_pick_sphere;
 	if (spheredata)
 		delete spheredata;
 
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
-	clientstate->col_pick_sphere = spheredata;
+	clientState->col_pick_sphere = spheredata;
 
-	int diam = clientstate->activeGraph->m_scalefactors->radius;
+	int diam = clientState->activeGraph->m_scalefactors->radius;
 
 	int rowi, coli;
 	float tlx, tlz, trx, ytop, trz;
@@ -207,18 +207,18 @@ void plot_colourpick_sphere(VISSTATE *clientstate)
 		}
 	}
 
-	load_VBO(VBO_SPHERE_POS, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
-	load_VBO(VBO_SPHERE_COL, clientstate->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
+	load_VBO(VBO_SPHERE_POS, clientState->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
+	load_VBO(VBO_SPHERE_COL, clientState->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
 	spheredata->release_col();
 	spheredata->release_pos();
 }
 
-void rotate_to_user_view(VISSTATE *clientstate)
+void rotate_to_user_view(VISSTATE *clientState)
 {
 
-	glTranslatef(0, 0, -clientstate->zoomlevel);
-	glRotatef(-clientstate->yturn, 1, 0, 0);
-	glRotatef(-clientstate->xturn, 0, 1, 0);
+	glTranslatef(0, 0, -clientState->zoomlevel);
+	glRotatef(-clientState->yturn, 1, 0, 0);
+	glRotatef(-clientState->xturn, 0, 1, 0);
 }
 
 //draw a colourful gradiented sphere on the screen
@@ -226,29 +226,29 @@ void rotate_to_user_view(VISSTATE *clientstate)
 //reset back to state before the call
 //return colours in passed S_E_P struct
 //pass doclear false if you want to see it, just for debugging
-void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doClear)
+void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear)
 {
 	
-	if (!clientstate->col_pick_sphere)
-		plot_colourpick_sphere(clientstate);
+	if (!clientState->col_pick_sphere)
+		plot_colourpick_sphere(clientState);
 	glPushMatrix();
-	gluPerspective(45, clientstate->mainFrameSize.width / clientstate->mainFrameSize.width, 500, clientstate->zoomlevel);
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 500, clientState->zoomlevel);
 	glLoadIdentity();
 
-	rotate_to_user_view(clientstate);
+	rotate_to_user_view(clientState);
 
-	glBindBuffer(GL_ARRAY_BUFFER, clientstate->colSphereVBOs[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, clientState->colSphereVBOs[0]);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, clientstate->colSphereVBOs[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, clientState->colSphereVBOs[1]);
 	glColorPointer(3, GL_FLOAT, 0, 0);
 	glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
 
 	GLfloat pixelRGB[3];
 	
 	//no idea why this ajustment needed, found by trial and error
-	int height = clientstate->mainFrameSize.height - 20;
-	int width = al_get_bitmap_width(clientstate->mainGraphBMP);
+	int height = clientState->mainFrameSize.height - 20;
+	int width = al_get_bitmap_width(clientState->mainGraphBMP);
 	int halfheight = height / 2;
 	int halfwidth = width / 2;
 
@@ -281,12 +281,12 @@ void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity) {
 //todo: see if we can have this done in a single array call by using one big loop,
 //link them together with alpha 0 edges to give same appearance
 //then can ditch the starts/sizes
-void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes)
+void draw_wireframe(VISSTATE *clientState, GLint *starts, GLint *sizes)
 {
-	glBindBuffer(GL_ARRAY_BUFFER, clientstate->wireframeVBOs[VBO_SPHERE_POS]);
+	glBindBuffer(GL_ARRAY_BUFFER, clientState->wireframeVBOs[VBO_SPHERE_POS]);
 	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, clientstate->wireframeVBOs[VBO_SPHERE_COL]);
+	glBindBuffer(GL_ARRAY_BUFFER, clientState->wireframeVBOs[VBO_SPHERE_COL]);
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
 	glMultiDrawArrays(GL_LINE_LOOP, starts, sizes, WIREFRAMELOOPS);

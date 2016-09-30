@@ -184,7 +184,7 @@ void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
 	int numInstructions = tag->insCount;
-	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist);
+	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist, &die);
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
@@ -604,12 +604,12 @@ void thread_trace_handler::process_new_args()
 					ex.nodeIdx = targn->index;
 					ex.callerAddr = parentn->ins->address;
 					ex.externPath = piddata->modpaths.at(piddata->externdict.at(funcad)->modnum);
-					ex.fdata = *callsIt;
+					ex.argList = *callsIt;
 
 					assert(parentn->index != targn->index);
 					thisgraph->funcQueue.push(ex);
 					
-					if (targn->funcargs.size() < MAX_ARG_STORAGE)
+					if (targn->funcargs.size() < arg_storage_capacity)
 						targn->funcargs.push_back(*callsIt);
 					callsIt = callsvector.erase(callsIt);
 				}
@@ -737,7 +737,7 @@ void thread_trace_handler::dump_loop()
 //build graph for a thread as the trace data arrives from the reader thread
 void thread_trace_handler::main_loop()
 {
-	ALLEGRO_EVENT ev;
+	alive = true;
 	ALLEGRO_TIMER *secondtimer = al_create_timer(1);
 	ALLEGRO_EVENT_QUEUE *bench_timer_queue = al_create_event_queue();
 	al_register_event_source(bench_timer_queue, al_get_timer_event_source(secondtimer));
@@ -757,7 +757,7 @@ void thread_trace_handler::main_loop()
 
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
 		if (!bytesRead) {
-			Sleep(1);
+			Sleep(5);
 			continue;
 		}
 
@@ -774,16 +774,14 @@ void thread_trace_handler::main_loop()
 			thisgraph->terminated = true;
 			thisgraph->emptyArgQueue();
 			thisgraph->needVBOReload_preview = true;
-			dead = true;
+			alive = false;
 			return;
 		}
 
 		++itemsDone;
 		char *next_token = msgbuf;
-		while (true)
+		while (!die)
 		{
-			if (die) break;
-
 			if (next_token >= msgbuf + bytesRead) break;
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) break;
@@ -812,7 +810,7 @@ void thread_trace_handler::main_loop()
 				//modType could be known unknown here
 				//in case of unknown, this waits until we know. hopefully rare.
 				int attempts = 1;
-				while (true)
+				while (!die)
 				{
 					//this is most likely to be called and looping is rare - usually
 					if (get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
@@ -905,6 +903,7 @@ void thread_trace_handler::main_loop()
 			if (next_token >= msgbuf + bytesRead) break;
 		}
 	}
-	dead = true;
+	thisgraph->die = true;
+	alive = false;
 }
 

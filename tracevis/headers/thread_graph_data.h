@@ -30,15 +30,14 @@ Monsterous class that handles the bulk of graph management
 #define MAX_DIFF_PATH_LENGTH 50
 #define ANIMATION_ENDED -1
 #define ANIMATION_WIDTH 8
-#define MINIMUM_FADE_ALPHA 0.06
-
 
 struct EXTERNCALLDATA {
 	NODEPAIR edgeIdx;
 	unsigned int nodeIdx;
-	ARGLIST fdata;
+	ARGLIST argList;
 	MEM_ADDRESS callerAddr = 0;
 	string externPath;
+	bool drawFloating = false;
 };
 
 class thread_graph_data
@@ -46,18 +45,22 @@ class thread_graph_data
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 
+	EDGEMAP edgeDict; //node id pairs to edge data
+	EDGELIST edgeList; //order of edge execution
+
 	unsigned int lastAnimatedBB = 0;
 	unsigned int firstAnimatedBB = 0;
+	vector<node_data> nodeList; //node id to node data
+
+	
+	PROCESS_DATA* piddata;
 	int baseMod = -1;
 	HANDLE disassemblyMutex;
 
-	vector<node_data> nodeList; //node id to node data
-	PROCESS_DATA* piddata;
-
+	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;
-	map <unsigned int, unsigned int> activeNodeMap;
-	EDGEMAP edgeDict; //node id pairs to edge data
-	EDGELIST edgeList; //order of edge execution
+	//<index, final (still active) node>
+	map <unsigned int, bool> activeNodeMap;
 
 	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
 	HANDLE nodeLMutex = CreateMutex(NULL, FALSE, NULL);
@@ -81,10 +84,12 @@ class thread_graph_data
 	unsigned int last_anim_stop = 0;
 
 	void *trace_reader;
+	
 	//updated with backlog input/processing each second for display
 	//dunno if ulong reads are atomic, not vital for this application
 	//adding accessor functions for future threadsafe acesss though
 	pair<unsigned long, unsigned long> backlogInOut = make_pair(0, 0);
+	node_data *latest_active_node = 0;
 
 public:
 	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
@@ -117,13 +122,8 @@ public:
 
 	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);
-	inline node_data *get_node(unsigned int index)
-	{
-		obtainMutex(nodeLMutex, 1031);
-		node_data *n = &nodeList.at(index); 
-		dropMutex(nodeLMutex); 
-		return n;
-	}
+	edge_data * get_edge(int edgeindex);
+	inline node_data *get_node(unsigned int index);
 
 	//   function 	      caller		
 	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>> pendingcallargs;
@@ -146,7 +146,8 @@ public:
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
 
-	void highlight_externs(unsigned long targetSequence);
+	//if block at targetSequence called something, this highlights it. if sendArg true, adds floating latest arg to animation
+	void brighten_externs(unsigned long targetSequence, bool updateArgs);
 	void transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata);
 
 	void reset_mainlines();
@@ -157,7 +158,8 @@ public:
 	void set_active_node(unsigned int idx) {	
 		if (nodeList.size() <= idx) return;
 		obtainMutex(animationListsMutex, 1032);
-		latest_active_node_coord = get_node(idx)->vcoord;
+		latest_active_node = get_node(idx);
+		latest_active_node_coord = latest_active_node->vcoord;
 		dropMutex(animationListsMutex);
 	}
 	void update_animation_render(float fadeRate);
@@ -184,13 +186,16 @@ public:
 	std::queue<EXTERNCALLDATA> funcQueue;
 
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
+	//ordered list of externs externs called by each node
 	map<unsigned int, EDGELIST> externCallSequence;
 
-	vector<int> externList; //list of external calls
+	//list of external calls used for listing possible highlights
+	vector<int> externList; 
 	string modPath;
 
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
-	map <unsigned int, unsigned int> callCounter;
+	//number of times each extern called, used for tracking which arg to display
+	map <unsigned int, unsigned long> callCounter;
 
 	//keep track of graph dimensions
 	int maxA = 0;
@@ -254,12 +259,15 @@ public:
 	vector <pair<MEM_ADDRESS,unsigned int>> bbsequence; //block address, number of instructions
 	vector <BLOCK_IDENTIFIER> mutationSequence; //blockID
 
-	//<which loop this is, how many iterations>
+	//<which loop this is, how many iterations of this block>
 	//todo: make private, add inserter
 	vector <pair<unsigned int, unsigned long>> loopStateList;
 
-	vector<unsigned int> animLoopProgress;
+	//record how many times each block in loop has been animated
+	vector<unsigned long> animLoopProgress;
+	//index into sequence where start of loop is
 	unsigned long animLoopStartIdx = 0;
+	//current progress animating loop
 	unsigned long animLoopIndex = 0;
 	//total number of individual loops
 	unsigned int loopCounter = 0;
@@ -282,7 +290,7 @@ public:
 	GRAPH_DISPLAY_DATA *animnodesdata = 0;
 	GRAPH_DISPLAY_DATA *animlinedata = 0;
 
-	void highlightNodes(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
+	void display_highlight_lines(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 
 	unsigned long traceBufferSize = 0;
 	void *getReader() { return trace_reader;}
@@ -293,5 +301,6 @@ public:
 	unsigned long getBacklogIn() { return backlogInOut.first; }
 	unsigned long getBacklogOut() { return backlogInOut.second; }
 	unsigned long get_backlog_total();
+	bool die = false;
 };
 

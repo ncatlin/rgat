@@ -56,7 +56,7 @@ public:
 
 	//call when client windows gets resized
 	void fitToResize();
-	
+	void setStatusLabel(string msg) { statusLabel->setText(msg); }
 	
 
 private:
@@ -79,7 +79,7 @@ private:
 	agui::Label *backlogLabel = NULL;
 
 	agui::Font *btnFont;
-	agui::Label *stepsLabel;
+	agui::Label *statusLabel;
 	bool enableState = true;
 	agui::Gui *guiwidgets;
 	VISSTATE *clientState;

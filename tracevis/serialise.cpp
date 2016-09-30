@@ -76,16 +76,14 @@ void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 	writetag(file, tag_START, tag_SYM);
 	*file << " ";
 	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsymsb64.begin();
-	for (; modSymIt != piddata->modsymsb64.end(); modSymIt++)
+	for (; modSymIt != piddata->modsymsb64.end(); ++modSymIt)
 	{
 		*file << modSymIt->first;
 		writetag(file, tag_START);
 		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
 		for (; symIt != modSymIt->second.end(); symIt++)
-		{
-			const unsigned char* cus_symstring = reinterpret_cast<const unsigned char*>(symIt->second.c_str());
-			*file << symIt->first << "," << base64_encode(cus_symstring, symIt->second.size()) << "@";
-		}
+			*file << symIt->first << "," << symIt->second << "@";
+
 		writetag(file, tag_END);
 		*file << " ";
 	}
@@ -101,7 +99,7 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 	{
 		*file << disasIt->second.size() << ","; //number of mutations at this address
 		*file << disasIt->first << ",";  //address
-
+		
 		INSLIST::iterator mutationIt = disasIt->second.begin();
 		for (; mutationIt != disasIt->second.end(); mutationIt++)
 		{
@@ -173,7 +171,6 @@ bool ensureDirExists(string dirname, VISSTATE *clientState)
 //this saves the process data of activePid and all of its graphs
 void saveTrace(VISSTATE * clientState)
 {	
-	ofstream savefile;
 	string path;
 	if (!getSavePath(clientState->config->saveDir, 
 		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths.at(0),
@@ -184,6 +181,9 @@ void saveTrace(VISSTATE * clientState)
 	}
 
 	cout << "[rgat]Saving process " << clientState->activePid->PID <<" to " << path << endl;
+
+	ofstream savefile;
+	savefile << std::dec;
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
@@ -270,7 +270,7 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 	}
 }
 
-bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
+bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
 {
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
 		cerr << "[rgat]Corrupt save (process data start)" << endl;
@@ -374,16 +374,19 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 			string threadVertSize_s;
 			int threadVertSize;
 			getline(*file, threadVertSize_s, ',');
-			if (!caught_stoi(threadVertSize_s, &threadVertSize, 10)) return false;
+			if (!caught_stoi(threadVertSize_s, &threadVertSize, 10)) 
+				return false;
 
 			for (int tvIdx = 0; tvIdx < threadVertSize; ++tvIdx)
 			{
 				int callTID, calledNode;
 				string callerTID_s, calledNode_s;
 				getline(*file, callerTID_s, ',');
-				if (!caught_stoi(callerTID_s, &callTID, 10)) return false;
+				if (!caught_stoi(callerTID_s, &callTID, 10)) 
+					return false;
 				getline(*file, calledNode_s, ',');
-				if (!caught_stoi(calledNode_s, &calledNode, 10)) return false;
+				if (!caught_stoi(calledNode_s, &calledNode, 10)) 
+					return false;
 				ins->threadvertIdx.emplace(callTID, calledNode);
 			}	
 		}
@@ -411,14 +414,14 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 		string numblocks_s;
 		unsigned int numblocks;
 		getline(*file, numblocks_s, ',');
-		if (!caught_stoi(numblocks_s, &numblocks, 10)) 
+		if (!caught_stoi(numblocks_s, &numblocks, 10))
 			return false;
 
 		//address of block
 		string blockaddress_s;
 		MEM_ADDRESS blockaddress;
 		getline(*file, blockaddress_s, ',');
-		if (!caught_stol(blockaddress_s, &blockaddress, 10)) 
+		if (!caught_stol(blockaddress_s, &blockaddress, 10))
 			return false;
 
 		map<MEM_ADDRESS, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
@@ -432,29 +435,28 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 			string blockID_s;
 			BLOCK_IDENTIFIER blockID;
 			getline(*file, blockID_s, ',');
-			if (!caught_stol(blockID_s, &blockID, 10)) 
+			if (!caught_stol(blockID_s, &blockID, 10))
 				return false;
 
 			string numinstructions_s;
 			unsigned int numinstructions;
 			getline(*file, numinstructions_s, ',');
-			if (!caught_stoi(numinstructions_s, &numinstructions, 10)) 
+			if (!caught_stoi(numinstructions_s, &numinstructions, 10))
 				return false;
 
 			piddata->blocklist[blockaddress][blockID] = new INSLIST;
-
 			for (unsigned int insi = 0; insi < numinstructions; ++insi)
 			{
 				string insAddr_s;
 				MEM_ADDRESS insAddr;
 				getline(*file, insAddr_s, ',');
-				if (!caught_stol(insAddr_s, &insAddr, 10)) 
+				if (!caught_stol(insAddr_s, &insAddr, 10))
 					return false;
 
 				string mutationIndex_s;
 				unsigned int mutationIndex;
 				getline(*file, mutationIndex_s, ',');
-				if (!caught_stoi(mutationIndex_s, &mutationIndex, 10)) 
+				if (!caught_stoi(mutationIndex_s, &mutationIndex, 10))
 					return false;
 
 				INSLIST *allInsMutations = &disasLookupIt->second;
@@ -481,7 +483,7 @@ bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddat
 }
 
 
-bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata)
+bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
 {
 	char tagbuf[3]; int TID; string tidstring;
 	cerr << "[rgat]Loading thread graphs..." << endl;
@@ -506,7 +508,13 @@ bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* pidd
 		graph->assign_modpath(piddata);
 
 		cerr << "[rgat]Loaded thread graph "<<TID <<endl;
-		if (file->peek() != 'T') break;
+		if (file->peek() != '}') 
+			return false;
+		file->seekg(1, ios::cur);
+
+		if (file->peek() != 'T')
+			break;
+
 	}
 	return true;
 }

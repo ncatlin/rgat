@@ -28,16 +28,16 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 //allows display in thumbnail style format
 void preview_renderer::main_loop()
 {
-	thread_graph_data *activeGraph = 0;
+	alive = true;
 
-	while (!piddata || piddata->graphs.empty() || clientState->die)
+	while ((!piddata || piddata->graphs.empty()) && !die)
 		Sleep(200);
 
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphIt;
-	while (!clientState->die)
+	while (!die)
 	{
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
@@ -58,12 +58,19 @@ void preview_renderer::main_loop()
 				(graph->previewlines->get_renderedEdges() < graph->get_num_edges()))
 				render_preview_graph(graph, clientState);
 
+			if (die) break;
 			Sleep(innerDelay);
 			++graphlistIt;
 		}
 		graphlist.clear();
-		Sleep(outerDelay);
+
+		int waitForNextIt = 0;
+		while (waitForNextIt < outerDelay && !die)
+		{
+			Sleep(50);
+			waitForNextIt += 50;
+		}
 	}
-	dead = true;
+	alive = false;
 }
 

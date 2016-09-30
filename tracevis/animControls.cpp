@@ -129,7 +129,7 @@ void AnimControls::displayBacklog(thread_graph_data *graph)
 
 	readLabel->setText(readString);
 	doneLabel->setText(processedString);
-	backlogLabel->setText("Queued: "+to_string(totalBacklog));
+	backlogLabel->setText("Backlog: "+to_string(totalBacklog));
 }
 
 void AnimControls::update(thread_graph_data *graph)
@@ -140,7 +140,7 @@ void AnimControls::update(thread_graph_data *graph)
 	if (graph->basic) 
 	{ 
 		controlsLayout->setVisibility(false);
-		stepsLabel->setText("Displaying basic graph");
+		statusLabel->setText("Displaying basic graph");
 		return; 
 	}
 	else
@@ -176,7 +176,7 @@ void AnimControls::update(thread_graph_data *graph)
 		stepInfo << graph->loopCounter << " loops";
 	}
 
-	stepsLabel->setText(stepInfo.str());
+	statusLabel->setText(stepInfo.str());
 
 	if (graph->active)
 	{
@@ -256,15 +256,15 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	widgets->add(mouseLayout);
 
-	stepsLabel = new agui::Label();
-	stepsLabel->setFont(btnFont);
-	stepsLabel->setFontColor(agui::Color(210, 210, 210));
-	stepsLabel->setText("Waiting for target");
-	stepsLabel->resizeToContents();
-	stepsLabel->setBackColor(agui::Color(0, 0, 210));
-	stepsLabel->setVisibility(true);
-	stepsLabel->setEnabled(true);
-	labelsLayout->add(stepsLabel);
+	statusLabel = new agui::Label();
+	statusLabel->setFont(btnFont);
+	statusLabel->setFontColor(agui::Color(210, 210, 210));
+	statusLabel->setText("Waiting for target");
+	statusLabel->resizeToContents();
+	statusLabel->setBackColor(agui::Color(0, 0, 210));
+	statusLabel->setVisibility(true);
+	statusLabel->setEnabled(true);
+	labelsLayout->add(statusLabel);
 
 	labelsLayout->resizeToContents();
 	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));

@@ -135,14 +135,14 @@
     <ClInclude Include="headers\clientConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OSspecific.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\timeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="base_thread.h">
+    <ClInclude Include="headers\base_thread.h">
       <Filter>Header Files\threads</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\OSspecific.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -431,24 +431,6 @@
     <ClCompile Include="preview_pane.cpp">
       <Filter>Source Files\interface</Filter>
     </ClCompile>
-    <ClCompile Include="render_conditional_thread.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="render_heatmap_thread.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="render_preview_thread.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="basicblock_handler.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="module_handler.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="trace_handler.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
     <ClCompile Include="exeWindow.cpp">
       <Filter>Source Files\interface</Filter>
     </ClCompile>
@@ -458,17 +440,35 @@
     <ClCompile Include="clientConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="maingraph_render_thread.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
-    <ClCompile Include="thread_trace_reader.cpp">
-      <Filter>Source Files\threads</Filter>
-    </ClCompile>
     <ClCompile Include="GUIManagement.cpp">
       <Filter>Source Files\interface</Filter>
     </ClCompile>
-    <ClCompile Include="base_thread.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="threads\trace_handler.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\thread_trace_reader.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\render_preview_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\render_heatmap_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\render_conditional_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\module_handler.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\maingraph_render_thread.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\basicblock_handler.cpp">
+      <Filter>Source Files\threads</Filter>
+    </ClCompile>
+    <ClCompile Include="threads\base_thread.cpp">
+      <Filter>Source Files\threads</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

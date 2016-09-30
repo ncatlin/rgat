@@ -30,6 +30,8 @@ public:
 	unsigned long first_divering_edge();
 	void render();
 	thread_graph_data *get_graph(int idx);
+	//return first node different between the two graphs
+	node_data *get_diff_node() { return diffNode; }
 
 private:
 	thread_graph_data *graph1;
@@ -37,4 +39,5 @@ private:
 	thread_graph_data *diffgraph;
 	VISSTATE *clientState;
 	unsigned long divergenceIdx = 0;
+	node_data *diffNode = 0;
 };

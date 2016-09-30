@@ -38,13 +38,13 @@ clientConfig::clientConfig(string filepath)
 		}
 		else
 		{
-			cout << "failed to load, loading from defaults..." << endl;
+			cout << "failed! [old version?], loading from defaults..." << endl;
 			loadDefaults();
 		}
 	}
 	else
 	{
-		cout << "[rgat]Config file " << filepath << " not found, loading from defaults...\n" << endl;
+		cout << "[rgat]WARNING: Config file " << filepath << " not found, loading from defaults...\n" << endl;
 		loadDefaults();
 		saveToFile();
 	}
@@ -52,6 +52,39 @@ clientConfig::clientConfig(string filepath)
 
 clientConfig::~clientConfig()
 {
+}
+
+//can this be cleaned up?
+void argtouni(const char* charstr, unsigned int *result, int *errorCount)
+{
+	if (!charstr) {
+		(*errorCount)++; return;
+	}
+	*result = atoi(charstr);
+}
+
+void argtounl(const char* charstr, unsigned long  *result, int *errorCount)
+{
+	if (!charstr) {
+		*errorCount++; return;
+	}
+	*result = atol(charstr);
+}
+
+void argtoi(const char* charstr, int *result, int *errorCount)
+{
+	if (!charstr) {
+		*errorCount++; return;
+	}
+	*result = atoi(charstr);
+}
+
+void argtof(const char* charstr, float *result, int *errorCount)
+{
+	if (!charstr) {
+		*errorCount++; return;
+	}
+	*result = atof(charstr);
 }
 
 const char* clientConfig::col_to_charstr(ALLEGRO_COLOR col)
@@ -64,12 +97,10 @@ const char* clientConfig::col_to_charstr(ALLEGRO_COLOR col)
 	return result;
 }
 
-void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destination)
+void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destination, int *errorCount)
 {
-	if (!charstr) 
-	{
-		cerr << "Bad save file - likely from an old version. Delete it and relaunch rgat" << endl;
-		assert(0);
+	if (!charstr) {
+		*errorCount++; return;
 	}
 
 	stringstream colstream(charstr);
@@ -90,96 +121,109 @@ void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destinatio
 	destination->a /= 255;
 }
 
-void clientConfig::loadPreview()
+bool clientConfig::loadPreview()
 {
-	preview.edgesPerRender = atoi(al_get_config_value(alConfig, "Preview", "EDGES_PER_FRAME"));
-	preview.processDelay = atoi(al_get_config_value(alConfig, "Preview", "MS_BETWEEN_UPDATES"));
-	preview.threadDelay = atoi(al_get_config_value(alConfig, "Preview", "MS_BETWEEN_GRAPHS"));
-	preview.spinPerFrame = atof(al_get_config_value(alConfig, "Preview", "SPIN_PER_FRAME"));
-	preview.FPS = atoi(al_get_config_value(alConfig, "Preview", "FPS"));
-	charstr_to_col(al_get_config_value(alConfig, "Preview", "HIGHLIGHT_ACTIVE_RGBA"), &preview.activeHighlight);
-	charstr_to_col(al_get_config_value(alConfig, "Preview", "HIGHLIGHT_INACTIVE_RGBA"), &preview.inactiveHighlight);
-	charstr_to_col(al_get_config_value(alConfig, "Preview", "BACKGROUND_RGBA"), &preview.background);
+	int errorCount = 0;
+	argtoi(al_get_config_value(alConfig, "Preview", "EDGES_PER_FRAME"), &preview.edgesPerRender, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Preview", "MS_BETWEEN_UPDATES"), &preview.processDelay, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Preview", "MS_BETWEEN_GRAPHS"), &preview.threadDelay, &errorCount);
+	argtof(al_get_config_value(alConfig, "Preview", "SPIN_PER_FRAME"), &preview.spinPerFrame, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Preview", "FPS"), &preview.FPS, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Preview", "HIGHLIGHT_ACTIVE_RGBA"), &preview.activeHighlight, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Preview", "HIGHLIGHT_INACTIVE_RGBA"), &preview.inactiveHighlight, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Preview", "BACKGROUND_RGBA"), &preview.background, &errorCount);
+	return (errorCount == 0);
 }
 
-void clientConfig::loadPaths()
+bool clientConfig::loadPaths()
 {
 	saveDir = string(al_get_config_value(alConfig, "Paths", "SAVE_PATH"));
 	DRDir = string(al_get_config_value(alConfig, "Paths", "DYNAMORIO_PATH"));
 	clientPath = string(al_get_config_value(alConfig, "Paths", "CLIENT_PATH"));
 	lastPath = string(al_get_config_value(alConfig, "Paths", "LAST_PATH"));
+	return true;
 }
 
-void clientConfig::loadConditionals()
+bool clientConfig::loadConditionals()
 {
-	conditional.delay = atoi(al_get_config_value(alConfig, "Conditionals", "MS_BETWEEN_UPDATES"));
-	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "EDGE_COLOUR_RGBA"), &conditional.edgeColor);
-	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "BG_COLOUR_RGBA"), &conditional.background);
-	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_FALLTHROUGH_RGBA") , &conditional.cond_fail);
-	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_TAKEN_RGBA") , &conditional.cond_succeed);
-	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_BOTH_RGBA"), &conditional.cond_both);
+	int errorCount = 0;
+	argtoi(al_get_config_value(alConfig, "Conditionals", "MS_BETWEEN_UPDATES"), &conditional.delay, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "EDGE_COLOUR_RGBA"), &conditional.edgeColor, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "BG_COLOUR_RGBA"), &conditional.background, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_FALLTHROUGH_RGBA") , &conditional.cond_fail, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_TAKEN_RGBA") , &conditional.cond_succeed, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Conditionals", "NODE_BOTH_RGBA"), &conditional.cond_both, &errorCount);
+	return (errorCount == 0);
 }
 
-void clientConfig::loadHeatmap()
+bool clientConfig::loadHeatmap()
 {
-	heatmap.delay = atoi(al_get_config_value(alConfig, "Heatmap", "DELAY_MS"));
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_TEXT_RGBA"), &heatmap.lineTextCol);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ0_COL"), &heatmap.edgeFrequencyCol[0]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ1_COL"), &heatmap.edgeFrequencyCol[1]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ2_COL"), &heatmap.edgeFrequencyCol[2]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ3_COL"), &heatmap.edgeFrequencyCol[3]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ4_COL"), &heatmap.edgeFrequencyCol[4]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ5_COL"), &heatmap.edgeFrequencyCol[5]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ6_COL"), &heatmap.edgeFrequencyCol[6]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ7_COL"), &heatmap.edgeFrequencyCol[7]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ8_COL"), &heatmap.edgeFrequencyCol[8]);
-	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ9_COL"), &heatmap.edgeFrequencyCol[9]);
-
+	int errorCount = 0;
+	argtoi(al_get_config_value(alConfig, "Heatmap", "DELAY_MS"), &heatmap.delay, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_TEXT_RGBA"), &heatmap.lineTextCol, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ0_COL"), &heatmap.edgeFrequencyCol[0], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ1_COL"), &heatmap.edgeFrequencyCol[1], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ2_COL"), &heatmap.edgeFrequencyCol[2], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ3_COL"), &heatmap.edgeFrequencyCol[3], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ4_COL"), &heatmap.edgeFrequencyCol[4], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ5_COL"), &heatmap.edgeFrequencyCol[5], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ6_COL"), &heatmap.edgeFrequencyCol[6], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ7_COL"), &heatmap.edgeFrequencyCol[7], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ8_COL"), &heatmap.edgeFrequencyCol[8], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Heatmap", "EDGE_FREQ9_COL"), &heatmap.edgeFrequencyCol[9], &errorCount);
+	return (errorCount == 0);
 }
 
-void clientConfig::loadColours()
+bool clientConfig::loadColours()
 {
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA"), &graphColours.lineColours[ICALL]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA"), &graphColours.lineColours[IOLD]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.lineColours[IRET]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA"), &graphColours.lineColours[ILIB]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA"), &graphColours.lineColours[INEW]);
+	int errorCount = 0;
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA"), &graphColours.lineColours[ICALL], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA"), &graphColours.lineColours[IOLD], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.lineColours[IRET], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA"), &graphColours.lineColours[ILIB], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA"), &graphColours.lineColours[INEW], &errorCount);
 
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA"), &graphColours.nodeColours[NONFLOW]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA"), &graphColours.nodeColours[JUMP]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA"), &graphColours.nodeColours[CALL]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_RET_RGBA"), &graphColours.nodeColours[RETURN]);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA"), &graphColours.nodeColours[EXTERNAL]);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA"), &graphColours.nodeColours[NONFLOW], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA"), &graphColours.nodeColours[JUMP], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA"), &graphColours.nodeColours[CALL], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_RET_RGBA"), &graphColours.nodeColours[RETURN], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA"), &graphColours.nodeColours[EXTERNAL], &errorCount);
+	return (errorCount == 0);
 }
 
 
 bool clientConfig::loadFromFile()
 {
+	int errorCount = 0;
 	string cstrpath(configFilePath.begin(), configFilePath.end());
 	alConfig = al_load_config_file(cstrpath.c_str());
 	if (!alConfig) return false;
 
-	charstr_to_col(al_get_config_value(alConfig, "Wireframe", "COL_RGBA"), &wireframe.edgeColor);
+	charstr_to_col(al_get_config_value(alConfig, "Wireframe", "COL_RGBA"), &wireframe.edgeColor, &errorCount);
 
-	loadPreview();
-	loadConditionals();
-	loadHeatmap();
+	if (!loadPreview()) return false;
+	if (!loadConditionals()) return false;
+	if (!loadHeatmap()) return false;
 
-	farA = atoi(al_get_config_value(alConfig, "Dimensions", "FAR_A_LIMIT"));
-	lowB = atoi(al_get_config_value(alConfig, "Dimensions", "LOW_B_LIMIT"));
 
-	charstr_to_col(al_get_config_value(alConfig, "Misc", "MAIN_BACKGROUND_RGBA"), &mainBackground);
-	charstr_to_col(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_RGBA"), &highlightColour);
-	highlightProtrusion = atoi(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION"));
-	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour);
-	animationFadeRate = atof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"));
-	renderFrequency = atoi(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"));
-	traceBufMax = atol(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"));
+	argtoi(al_get_config_value(alConfig, "Dimensions", "FAR_A_LIMIT"), &farA, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Dimensions", "LOW_B_LIMIT"), &lowB, &errorCount);
+
+	charstr_to_col(al_get_config_value(alConfig, "Misc", "MAIN_BACKGROUND_RGBA"), &mainBackground, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_RGBA"), &highlightColour, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION"), &highlightProtrusion, &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour, &errorCount);
+	argtof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"), &animationFadeRate, &errorCount);
+	argtouni(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"), &renderFrequency, &errorCount);
+	argtounl(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"), &traceBufMax, &errorCount);
+	argtouni(al_get_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE"), &maxArgStorage, &errorCount);
 
 	loadColours();
 	loadPaths();
 
 	al_destroy_config(alConfig);
+
+	if (errorCount) return false;
 	initialised = true;
 	return true;
 }
@@ -241,7 +285,7 @@ void clientConfig::loadConditionalDefaults()
 void clientConfig::saveHeatmap()
 {
 	al_add_config_section(alConfig, "Heatmap");
-	al_set_config_value(alConfig, "Heatmap", "DELAY_MS", to_string(heatmap.delay).c_str());
+	al_set_config_value(alConfig, "Heatmap", "MS_BETWEEN_UPDATES", to_string(heatmap.delay).c_str());
 	al_set_config_value(alConfig, "Heatmap", "EDGE_TEXT_RGBA", col_to_charstr(heatmap.lineTextCol));
 	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ0_COL", col_to_charstr(heatmap.edgeFrequencyCol[0]));
 	al_set_config_value(alConfig, "Heatmap", "EDGE_FREQ1_COL", col_to_charstr(heatmap.edgeFrequencyCol[1]));
@@ -309,7 +353,7 @@ void clientConfig::saveToFile()
 {
 	if (!initialised)
 	{
-		cerr << "Attempt to save uninitialised config" << endl;
+		cerr << "[rgat]ERROR:Attempt to save uninitialised config" << endl;
 		assert(0);
 	}
 
@@ -329,6 +373,7 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE", to_string(animationFadeRate).c_str());
 	al_set_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS", to_string(renderFrequency).c_str());
 	al_set_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX", to_string(traceBufMax).c_str());
+	al_set_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE", to_string(maxArgStorage).c_str());
 
 	al_set_config_value(alConfig, "Paths", "SAVE_PATH", saveDir.c_str());
 	al_set_config_value(alConfig, "Paths", "DYNAMORIO_PATH", DRDir.c_str());
@@ -339,9 +384,9 @@ void clientConfig::saveToFile()
 	cleanup();
 
 	if (al_save_config_file(configFilePath.c_str(), alConfig))
-		cout << "Saved config file " << configFilePath <<endl;
+		cout << "[rgat]Saved config file " << configFilePath <<endl;
 	else
-		cerr << "Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno() << endl;
+		cerr << "[rgat]Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno() << endl;
 }
 
 void clientConfig::updateLastPath(string path)
@@ -394,6 +439,7 @@ void clientConfig::loadDefaults()
 	animationFadeRate = ANIMATION_FADE_RATE;
 	renderFrequency = MAINGRAPH_DEFAULT_RENDER_FREQUENCY;
 	traceBufMax = DEFAULT_MAX_TRACE_BUFSIZE;
+	maxArgStorage = DEFAULT_MAX_ARG_STORAGE;
 
 	loadDefaultColours();
 

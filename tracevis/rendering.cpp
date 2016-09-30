@@ -369,8 +369,8 @@ void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *exter
 	{
 		if (exttIt->timeRemaining <= 0)
 		{
-			graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
-			graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
+			//graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
+			//graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
 			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
 		}
 		else
@@ -415,7 +415,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 
 	//green highlight lines
 	if (clientState->highlightData.highlightState)
-		graph->highlightNodes(&clientState->highlightData.highlightNodes,
+		graph->display_highlight_lines(&clientState->highlightData.highlightNodes,
 			&clientState->config->highlightColour, clientState->config->highlightProtrusion);
 
 	if (clientState->modes.heatmap)
@@ -661,7 +661,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	if (symString.empty())
 		argstring << "[NOSYM]:0x" << std::hex << n->address;
 
-	if (numCalls == 1)
+	if (numCalls > 1)
 		argstring << symString;
 	else
 		argstring << n->calls << "x " << symString;
@@ -692,7 +692,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 }
 
 //show functions/args for externs in active graph
-void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_data *graph)
+void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
@@ -709,20 +709,20 @@ void show_extern_labels(VISSTATE *clientstate, PROJECTDATA *pd, thread_graph_dat
 
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
-		if (is_on_screen(&screenCoord, clientstate))
-			draw_func_args(clientstate, clientstate->standardFont, screenCoord, n);
+		if (is_on_screen(&screenCoord, clientState))
+			draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 	}
 }
 
 
 //iterate through all the nodes, draw instruction text for the ones in view
-void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, thread_graph_data *graph)
+void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, thread_graph_data *graph)
 {
 
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 	stringstream ss;
@@ -737,37 +737,37 @@ void draw_instruction_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, th
 		//on screen but on the other side of the sphere
 		//implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
 		//bypass by turning instruction display always on
-		if (!show_all_always && !a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn,
-			clientstate->rightcolumn, graph->m_scalefactors->HEDGESEP))
+		if (!show_all_always && !a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
 			continue;
 
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue; //in graph but not rendered
-		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
 
 		if (!show_all_always) 
 		{
-			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
 		}
 
 		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address << ":" << itext;
-		al_draw_text(clientstate->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
-			clientstate->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		al_draw_text(clientState->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
+			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 		ss.str("");
 	}
 }
 
 //only draws text for instructions with unsatisfied conditions
-void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
+void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
 {
-	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
+	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientstate->show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (unsigned int i = 0; i < numVerts; ++i)
@@ -775,14 +775,14 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		node_data *n = graph->get_node(i);
 		if (n->external || !n->ins->conditional) continue;
 
-		if (!a_coord_on_screen(n->vcoord.a, clientstate->leftcolumn, clientstate->rightcolumn,
+		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn, clientState->rightcolumn,
 			graph->m_scalefactors->HEDGESEP)) continue;
 
 		//todo: experiment with performance re:how much of these checks to include
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(vertsdata, pd, &screenCoord)) continue;
-		if (screenCoord.x > clientstate->mainFrameSize.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientstate->mainFrameSize.height || screenCoord.y < -100) continue;
+		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
+		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
 
 		const int vectNodePos = n->index*COLELEMS;
 		ALLEGRO_COLOR textcol;
@@ -795,7 +795,7 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 		if (!show_all_always) {
 			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
-			if (zdist < 5 && clientstate->show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
@@ -804,8 +804,8 @@ void draw_condition_ins_text(VISSTATE *clientstate, int zdist, PROJECTDATA *pd, 
 
 		stringstream ss;
 		ss << "0x" << std::hex << n->ins->address << ": " << itext;
-		al_draw_text(clientstate->standardFont, textcol, screenCoord.x + INS_X_OFF,
-			clientstate->mainFrameSize.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
+		al_draw_text(clientState->standardFont, textcol, screenCoord.x + INS_X_OFF,
+			clientState->mainFrameSize.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 	}
 }
@@ -859,25 +859,25 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 }
 
 //standard animated or static display of the active graph
-void display_graph(VISSTATE *clientstate, thread_graph_data *graph, PROJECTDATA *pd)
+void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA *pd)
 {
-	if (clientstate->modes.animation && !graph->basic)
-		graph->display_active(clientstate->modes.nodes, clientstate->modes.edges);
+	if (clientState->modes.animation && !graph->basic)
+		graph->display_active(clientState->modes.nodes, clientState->modes.edges);
 	else
-		graph->display_static(clientstate->modes.nodes, clientstate->modes.edges);
+		graph->display_static(clientState->modes.nodes, clientState->modes.edges);
 
 	long sphereSize = graph->m_scalefactors->radius;
-	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
+	float zmul = (clientState->zoomlevel - sphereSize) / 1000 - 1;
 	
-	if (clientstate->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
-		draw_instruction_text(clientstate, zmul, pd, graph);
+	if (clientState->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
+		draw_instruction_text(clientState, zmul, pd, graph);
 	
 	if (zmul < 25)
-		show_extern_labels(clientstate, pd, graph);
+		show_extern_labels(clientState, pd, graph);
 }
 
 //displays the divergence of two selected graphs, defined in differenderer
-void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
+void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 	thread_graph_data *graph1 = diffRenderer->get_graph(1);
 	thread_graph_data *diffgraph = diffRenderer->get_diff_graph();
 	GRAPH_DISPLAY_DATA *vertsdata = graph1->get_mainnodes();
@@ -895,14 +895,14 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 		diffgraph->needVBOReload_main = false;
 	}
 
-	if (clientstate->modes.nodes)
+	if (clientState->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
 
-	if (clientstate->modes.edges)
+	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 
 	long sphereSize = graph1->m_scalefactors->radius;
-	float zmul = (clientstate->zoomlevel - sphereSize) / 1000 - 1;
+	float zmul = (clientState->zoomlevel - sphereSize) / 1000 - 1;
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
@@ -910,14 +910,14 @@ void display_graph_diff(VISSTATE *clientstate, diff_plotter *diffRenderer) {
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		show_extern_labels(clientstate, &pd, graph1);
+		show_extern_labels(clientState, &pd, graph1);
 	}
 
-	if (clientstate->show_ins_text && zmul < 10 && graph1->get_num_nodes() > 2)
+	if (clientState->show_ins_text && zmul < 10 && graph1->get_num_nodes() > 2)
 	{
 		if (!pdgathered) 
 			gather_projection_data(&pd);
-		draw_instruction_text(clientstate, zmul, &pd, graph1);
+		draw_instruction_text(clientState, zmul, &pd, graph1);
 	}
 }
 
@@ -1024,9 +1024,9 @@ void display_big_heatmap(VISSTATE *clientState)
 #define VBO_COND_NODE_COLOUR 0
 #define VBO_COND_LINE_COLOUR 1
 //displays the conditionals of the active graph
-void display_big_conditional(VISSTATE *clientstate)
+void display_big_conditional(VISSTATE *clientState)
 {
-	thread_graph_data *graph = (thread_graph_data *)clientstate->activeGraph;
+	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph->conditionallines || !graph->conditionalnodes) return;
 
 	if (graph->needVBOReload_conditional)
@@ -1047,7 +1047,7 @@ void display_big_conditional(VISSTATE *clientstate)
 		graph->needVBOReload_main = false;
 	}
 
-	if (clientstate->modes.nodes)
+	if (clientState->modes.nodes)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_NODE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
@@ -1057,7 +1057,7 @@ void display_big_conditional(VISSTATE *clientstate)
 		glDrawArrays(GL_POINTS, 0, graph->conditionalnodes->get_numVerts());
 	}
 
-	if (clientstate->modes.edges)
+	if (clientState->modes.edges)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, graph->graphVBOs[VBO_LINE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
@@ -1070,10 +1070,10 @@ void display_big_conditional(VISSTATE *clientstate)
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
-	float zoomDiffMult = (clientstate->zoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zoomDiffMult = (clientState->zoomlevel - graph->zoomLevel) / 1000 - 1;
 
-	if (clientstate->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
-		draw_condition_ins_text(clientstate, zoomDiffMult, &pd, graph->get_mainnodes());
+	if (clientState->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
+		draw_condition_ins_text(clientState, zoomDiffMult, &pd, graph->get_mainnodes());
 
 }
 

@@ -125,6 +125,7 @@ bool thread_trace_reader::getBufsState(pair <unsigned long, unsigned long> *bufS
 //thread handler to build graph for a thread
 void thread_trace_reader::main_loop()
 {
+	alive = true;
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
 	pipename.append(std::to_wstring(TID));
 	const wchar_t* szName = pipename.c_str();
@@ -149,7 +150,6 @@ void thread_trace_reader::main_loop()
 		return;
 	}
 
-	ALLEGRO_EVENT ev;
 	ALLEGRO_TIMER *secondtimer = al_create_timer(1);
 	al_register_event_source(bench_timer_queue, al_get_timer_event_source(secondtimer));
 	al_start_timer(secondtimer);
@@ -168,7 +168,7 @@ void thread_trace_reader::main_loop()
 		}
 
 		DWORD available;
-		if(!PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL))
+		if(!PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL) || !available)
 		{
 			if (GetLastError() == ERROR_BROKEN_PIPE) break;
 			Sleep(5);
@@ -198,11 +198,8 @@ void thread_trace_reader::main_loop()
 	}
 	pipeClosed = true;
 	//wait until buffers emptied
-	while (!firstQueue.empty() && !secondQueue.empty())
-	{
-		if (die) break;
+	while (!firstQueue.empty() && !secondQueue.empty() && !die)
 		Sleep(10);
-	}
 
-	dead = true;
+	alive = false;
 }

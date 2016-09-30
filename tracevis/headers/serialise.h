@@ -41,8 +41,8 @@ bool verifyTag(ifstream *file, char tag, int id = 0);
 int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag);
 
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata);
-bool loadProcessData(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);
-bool loadProcessGraphs(VISSTATE *clientstate, ifstream *file, PROCESS_DATA* piddata);
+bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata);
+bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata);
 
 //save every graph in activePid
 void saveAll(VISSTATE *clientState);

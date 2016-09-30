@@ -30,9 +30,6 @@ Constants used to interpret and plot the trace data
 
 #define MUTEXWAITPERIOD 6000
 
-//mazimum number of args to store per external
-#define MAX_ARG_STORAGE 20
-
 #define OPUNDEF 0
 #define OPJMP 1
 #define OPRET 2

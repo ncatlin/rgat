@@ -20,10 +20,10 @@ Most of the OpenGL functions are here
 #pragma once
 #include "stdafx.h"
 
-//void handle_resize(VISSTATE *clientstate);
+//void handle_resize(VISSTATE *clientState);
 
-void initial_gl_setup(VISSTATE *clientstate);
-void frame_gl_setup(VISSTATE* clientstate);
+void initial_gl_setup(VISSTATE *clientState);
+void frame_gl_setup(VISSTATE* clientState);
 void frame_gl_teardown();
 
 void load_VBO(int index, GLuint *VBOs, int bufsize, float *data);
@@ -33,13 +33,13 @@ void gen_graph_VBOs(thread_graph_data *graph);
 
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 
-void rotate_to_user_view(VISSTATE *clientstate);
+void rotate_to_user_view(VISSTATE *clientState);
 
-void edge_picking_colours(VISSTATE *clientstate, SCREEN_EDGE_PIX *TBRG, bool doClear = true);
+void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear = true);
 void array_render_points(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
-void draw_wireframe(VISSTATE *clientstate, GLint *starts, GLint *sizes);
-void plot_colourpick_sphere(VISSTATE *clientstate);
+void draw_wireframe(VISSTATE *clientState, GLint *starts, GLint *sizes);
+void plot_colourpick_sphere(VISSTATE *clientState);
 
 void drawHighlightLine(FCOORD endPt, ALLEGRO_COLOR *colour);
 void gather_projection_data(PROJECTDATA *pd);

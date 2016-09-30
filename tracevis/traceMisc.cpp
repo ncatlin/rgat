@@ -40,9 +40,8 @@ string generate_funcArg_string(string sym, ARGLIST args)
 }
 
 INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
-	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList)
+	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList, bool *dieFlag)
 {
-	INSLIST* result;
 	int iterations = 0;
 
 	map<MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt;
@@ -54,8 +53,10 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 		if (blockIt != blockList->end()) break;
 
 		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of block 0x" << std::hex << blockaddr << endl;
+			cerr << "[rgat]Warning: Long wait for disassembly of address 0x" << std::hex << blockaddr << endl;
+
 		Sleep(1);
+		if (*dieFlag) return 0;
 	}
 
 	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
@@ -68,8 +69,9 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 		if (mutationIt != blockIt->second.end()) break;
 
 		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for disassembly of block 0x" << std::hex << blockaddr << endl;
+			cerr << "[rgat]Warning... long wait for blockID "<< std::hex<<blockID <<"of address 0x" << blockaddr << endl;
 		Sleep(1);
+		if (*dieFlag) return 0;
 	}
 
 	return mutationIt->second;
@@ -89,7 +91,7 @@ int extract_integer(char *char_buf, string marker, int *target)
 		try {
 			*target = std::stoi(x, &sz);
 		}
-		catch (const std::exception& ia) {
+		catch (const std::exception& e) {
 			sz = 0;
 		}
 

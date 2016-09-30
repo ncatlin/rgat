@@ -36,6 +36,12 @@ public:
 	RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2);
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		//called due to user selecting a graph, not clicking a radio button
+		if (ignoreAction) {
+			ignoreAction = false;
+			return;
+		}
+
 		if (evt.getSource() == source1)
 			source2->setChecked(!source1->getRadioButtonState());
 		else {
@@ -43,8 +49,10 @@ public:
 				source1->setChecked(!source2->getRadioButtonState());
 		}
 	}
+	void setIgnoreFlag() { ignoreAction = true; }
 private:
 	VISSTATE *clientState;
+	bool ignoreAction = false;
 	agui::RadioButton *source1;
 	agui::RadioButton *source2;
 };
@@ -75,6 +83,7 @@ public:
 	int getSelectedDiff();
 	void setDiffGraph(thread_graph_data *graph);
 	thread_graph_data *get_graph(int idx);
+	RadioButtonListener *radiolisten;
 
 private:
 	agui::Label *graph1Info = 0;

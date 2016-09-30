@@ -32,6 +32,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 //listen to mod data for given PID
 void module_handler::main_loop()
 {
+	alive = true;
 	pipename = wstring(L"\\\\.\\pipe\\rioThreadMod");
 	pipename.append(std::to_wstring(PID));
 
@@ -46,14 +47,13 @@ void module_handler::main_loop()
 	if (ConnectNamedPipe(hPipe, &ov))
 	{
 		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << pipename << " for PID "<<PID<< ". Error: " << GetLastError();
-		dead = true;
+		alive = false;
 		return;
 	}
 
-	while (true)
+	while (!die)
 	{
-		int result = WaitForSingleObject(ov.hEvent, 3000);
-		if (result != WAIT_TIMEOUT) break;
+		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
 		cerr << "[rgat]WARNING: Long wait for module handler pipe" << endl;
 	}
 
@@ -69,7 +69,7 @@ void module_handler::main_loop()
 
 	OVERLAPPED ov2 = { 0 };
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-	vector < pair <thread_trace_reader*, thread_trace_handler *>> threadList;
+	vector < base_thread *> threadList;
 	DWORD res= 0;
 	while (!die)
 	{
@@ -97,6 +97,7 @@ void module_handler::main_loop()
 				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
 			piddata->active = false;
 			cerr << "Mod pipe exit" << endl;
+			alive = false;
 			return;
 		}
 		else
@@ -111,38 +112,35 @@ void module_handler::main_loop()
 				}
 				
 				thread_graph_data *graph = new thread_graph_data(piddata, TID);
+				graph->basic = clientState->launchopts.basic;
+
 				thread_trace_reader *TID_reader = new thread_trace_reader(graph, PID, TID);
 				TID_reader->traceBufMax = clientState->config->traceBufMax;
 				graph->setReader(TID_reader);
-
+				threadList.push_back(TID_reader);
 				DWORD threadID = 0;
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
 					(LPVOID)TID_reader, 0, &threadID);
+				
+				thread_trace_handler *TID_processor = new thread_trace_handler(graph, PID, TID);
+				TID_processor->piddata = piddata;
+				TID_processor->reader = TID_reader;
+				TID_processor->timelinebuilder = clientState->timelineBuilder;
+				TID_processor->basicMode = clientState->launchopts.basic;
+				TID_processor->set_max_arg_storage(clientState->config->maxArgStorage);
 
-				thread_trace_handler *TID_thread = new thread_trace_handler(graph, PID, TID);
-
-				TID_thread->piddata = piddata;
-				TID_thread->reader = TID_reader;
-				TID_thread->timelinebuilder = clientState->timelineBuilder;
-				if (clientState->launchopts.basic)
-					TID_thread->basicMode = true;
-
-				threadList.push_back(make_pair(TID_reader, TID_thread));
-
-				if (clientState->launchopts.basic)
-					graph->basic = true;
-
-				if (!obtainMutex(piddata->graphsListMutex, 1010)) return;
+				if (!obtainMutex(piddata->graphsListMutex, 1010)) break;
 				if (piddata->graphs.count(TID) > 0)
 					cerr << "[rgat]ERROR: Duplicate thread ID! Tell the dev to stop being awful" << endl;
 				piddata->graphs.insert(make_pair(TID, (void*)graph));
 				dropMutex(piddata->graphsListMutex);
 
+				threadList.push_back(TID_processor);
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
 				hOutThread = CreateThread(
-					NULL, 0, (LPTHREAD_START_ROUTINE)TID_thread->ThreadEntry,
-					(LPVOID)TID_thread, 0, &threadID);
+					NULL, 0, (LPTHREAD_START_ROUTINE)TID_processor->ThreadEntry,
+					(LPVOID)TID_processor, 0, &threadID);
 
 				continue;
 			}
@@ -155,8 +153,11 @@ void module_handler::main_loop()
 				char *offset_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS address;
 				sscanf_s(offset_s, "%x", &address);
-				assert(piddata->modBounds.count(modnum)); //fail if sym came before module
-				address += piddata->modBounds.at(modnum).first;
+				if(!piddata->modBounds.count(modnum)) 
+					printf("Warning: sym before module. handle me\n"); //fail if sym came before module
+				else
+					address += piddata->modBounds[modnum].first;
+
 				if (!address | (next_token - buf != bread)) continue;
 				if (modnum > piddata->modpaths.size()) {
 					cerr << "[rgat]Bad mod number "<<modnum<< "in sym processing. " <<
@@ -216,30 +217,36 @@ void module_handler::main_loop()
 				else
 					piddata->modpaths[modnum] = string("NULL");
 				
+				if (!piddata->modBounds.count(modnum))
+					if (piddata->modsymsb64.count(modnum))
+					{
+						printf("\n\nadd address to all these syms\n\n");
+						assert(0);
+					}
+
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
+
+
 				continue;
 			}
 		}
 	}
 
-	vector < pair <thread_trace_reader*, thread_trace_handler *>>::iterator threadIt;
-	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
-	{
-		threadIt->first->kill();
-		threadIt->second->kill();
-	}
+	//exited loop, retire worker threads
+	vector <base_thread *>::iterator threadIt = threadList.begin();
+	for (; threadIt != threadList.end(); ++threadIt)
+		((base_thread *)(*threadIt))->kill();
 
 	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
 	{
 		while (true)
 		{
-			Sleep(1);
-			if (!threadIt->first->is_dead()) continue;
-			if (!threadIt->second->is_dead()) continue;
+			Sleep(5);
+			if (((base_thread *)(*threadIt))->is_alive()) continue;
 			break;
 		}
 	}
 
 	clientState->timelineBuilder->notify_pid_end(PID);
-	dead = true;
+	alive = false;
 }

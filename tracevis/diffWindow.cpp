@@ -72,7 +72,7 @@ DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState
 	diffFrame->add(graph2Info);
 
 
-	RadioButtonListener *radiolisten = new RadioButtonListener(clientState, firstDiffLabel, secondDiffLabel);
+	radiolisten = new RadioButtonListener(clientState, firstDiffLabel, secondDiffLabel);
 	firstDiffLabel->addActionListener(radiolisten);
 	secondDiffLabel->addActionListener(radiolisten);
 
@@ -103,7 +103,8 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 	stringstream threadSummary;
 	threadSummary << "Edges:" << graph->get_num_edges()
 		<< " Verts:" << graph->get_num_nodes();
-
+	
+	radiolisten->setIgnoreFlag();
 	if (graphIdx == 0)
 	{
 		firstDiffLabel->setText(graphText.str());
@@ -111,6 +112,9 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 		graph1 = graph;
 		graph1Path->setText(graph->modPath);
 		graph1Info->setText(threadSummary.str());
+		firstDiffLabel->setChecked(false);
+		secondDiffLabel->setChecked(true);
+		
 	}
 	else
 	{
@@ -119,10 +123,11 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 		graph2 = graph;
 		graph2Path->setText(graph->modPath);
 		graph2Info->setText(threadSummary.str());
+		firstDiffLabel->setChecked(true);
+		secondDiffLabel->setChecked(false);
 	}
 
-	if (graph1 && graph2)
-		if (graph1 != graph2)
+	if (graph1 && graph2 && (graph1 != graph2))
 		{
 			//int similarityScore = IMPLEMENT_ME(graph1, graph2);
 			//set comparison label

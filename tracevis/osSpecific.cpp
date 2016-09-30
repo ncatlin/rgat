@@ -16,11 +16,12 @@ limitations under the License.
 
 /*
 This is intended to be the location for OS abstractions
-Need to migrate all Windows API (and -soon- Linux) routines here
+Need to migrate all Windows API (and soon Linux) routines here
 */
 #pragma once 
 #include <stdafx.h>
 #include "GUIStructs.h"
+
 
 #ifdef WIN32
 void pipeExists(LPCTSTR pipeName)
@@ -110,7 +111,7 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 #endif
 	if (!fileExists(DRPath.c_str()))
 	{
-		cerr << "ERROR: Unable to find DynamoRIO executable at " << DRPath << " listed in config file" << endl;
+		cerr << "[rgat] ERROR: Failed to find DynamoRIO executable at " << DRPath << " listed in config file" << endl;
 
 		string modPathDR = getModulePath();
 		modPathDR.append("\\DynamoRIO\\bin32\\drrun.exe");
@@ -121,7 +122,7 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 		}
 		else
 		{
-			cerr << "[rgat]Failed to find DynamoRIO executable at " << modPathDR << endl;
+			cerr << "[rgat]ERROR: Failed to find DynamoRIO executable at " << modPathDR << endl;
 			return false;
 		}
 	}
@@ -139,7 +140,7 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 		}
 		else
 		{
-			cerr << "[rgat] failed to find drgat.dll " << drgatPath2 << endl;
+			cerr << "[rgat] Failed to find drgat.dll " << drgatPath2 << endl;
 			return false;
 		}
 	}
@@ -184,7 +185,7 @@ void execute_tracer(string executable, string args, void *clientState_ptr)
 	PROCESS_INFORMATION pi;
 	ZeroMemory(&pi, sizeof(pi));
 
-	cout << "Starting execution using command line [" <<  runpath<< "]" << endl;
+	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
 	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
 	clientState->switchProcess = true;
 }

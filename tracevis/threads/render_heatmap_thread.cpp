@@ -84,7 +84,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 	for (; edgeindex != edgeEnd; ++edgeindex)
 	{
-		edge_data *edge = graph->get_edge(edgelist->at(edgeindex));
+		edge_data *edge = graph->get_edge(edgeindex);
 		if (!edge) {
 			cerr << "[rgat]WARNING: Heatmap2 edge skip"<<endl;
 			continue;
@@ -128,17 +128,17 @@ COLSTRUCT *col_to_colstruct(ALLEGRO_COLOR *c)
 //allows display in thumbnail style format
 void heatmap_renderer::main_loop()
 {
-	
+	alive = true;
 	//add our heatmap colours to a vector for lookup in render thread
 	for (int i = 0; i < 10; i++)
 		colourRange.insert(colourRange.begin(), *col_to_colstruct(&clientState->config->heatmap.edgeFrequencyCol[i]));
 
-	while (!piddata || piddata->graphs.empty())
+	while ((!piddata || piddata->graphs.empty()) && !die)
 		Sleep(200);
 
 	map<thread_graph_data *, bool> finishedGraphs;
 
-	while (!clientState->die)
+	while (!die)
 	{
 		obtainMutex(piddata->graphsListMutex, 1054);
 
@@ -149,29 +149,34 @@ void heatmap_renderer::main_loop()
 		dropMutex(piddata->graphsListMutex);
 
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
-		while (graphlistIt != graphlist.end())
+		while (graphlistIt != graphlist.end() && !die)
 		{
-			if (die || clientState->die) break;
-			thread_graph_data *graph = *graphlistIt;
-			graphlistIt++;
-			int i1 = graph->get_num_edges();
-			int i2 = graph->heatmaplines->get_renderedEdges();
+			thread_graph_data *graph = *graphlistIt++;
+			//always rerender an active graph (edge executions may have increased without adding new edges)
+			//render saved graphs if there are new edges
 			if (graph->active || graph->get_num_edges() > graph->heatmaplines->get_renderedEdges())
 			{
 				render_graph_heatmap(graph);
 				graph->dirtyHeatmap = false;
 			}
-			else 
+			else //last mop-up rendering of a recently finished graph
 				if (!finishedGraphs[graph])
 				{
 					finishedGraphs[graph] = true;
 					render_graph_heatmap(graph);
 				}
-			Sleep(80);
+
+			Sleep(50); //pause between graphs so other things don't struggle for mutex time
 		}
 		
-		Sleep(updateDelayMS);
+		int waitForNextIt = 0;
+		while (waitForNextIt < updateDelayMS && !die)
+		{
+			Sleep(50);
+			waitForNextIt += 50;
+		}
 	}
-	dead = true;
+
+	alive = false;
 }
 

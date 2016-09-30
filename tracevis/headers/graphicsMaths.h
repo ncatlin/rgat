@@ -33,5 +33,5 @@ void midpoint(DCOORD *c1, DCOORD *c2, DCOORD *c3);
 void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int totalpoints, FCOORD *resultC);
 void sphereAB(FCOORD *c, float *a, float *b, MULTIPLIERS *dimensions);
 void sphereAB(DCOORD *c, float *a, float *b, MULTIPLIERS *dimensions);
-bool is_on_screen(DCOORD * screenCoord, void *clientstate);
+bool is_on_screen(DCOORD * screenCoord, void *clientState);
 bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep);

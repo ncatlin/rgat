@@ -24,7 +24,7 @@ Misc disassembly and conversion functions
 #include "thread_graph_data.h"
 
 INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
-	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList);
+	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList, bool *dieFlag);
 
 int extract_integer(char *char_buf, string marker, int *target);
 

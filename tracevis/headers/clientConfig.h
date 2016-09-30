@@ -78,6 +78,7 @@ public:
 	string lastPath;
 
 	float animationFadeRate;
+	unsigned int maxArgStorage;
 
 	//these are not saved in the config file but toggled at runtime
 	bool showExternText = false;
@@ -93,7 +94,7 @@ private:
 
 	//convert col to a user friendly comma seperated list for saving
 	const char* col_to_charstr(ALLEGRO_COLOR col);
-	void charstr_to_col(const char *charstring, ALLEGRO_COLOR *destination);
+	void charstr_to_col(const char *charstring, ALLEGRO_COLOR *destination, int *errorCount);
 
 	string configFilePath;
 
@@ -109,15 +110,15 @@ private:
 	void saveHeatmap();
 	void saveColours();
 
+	//retrieve from config file
+	bool loadPreview();
+	bool loadConditionals();
+	bool loadHeatmap();
+	bool loadColours();
+	bool loadPaths();
+
 	//place default settings in memory
 	void loadDefaults();
-	void loadPreview();
-	void loadConditionals();
-	void loadHeatmap();
-	void loadColours();
-	void loadPaths();
-
-	//load individual default config sections into memory
 	void loadPreviewDefaults();
 	void loadConditionalDefaults();
 	void loadHeatmapDefaults();

@@ -28,13 +28,18 @@ Header for the thread that builds a graph for each trace
 #include "timeline.h"
 #include "base_thread.h"
 
-struct TAG {
-	MEM_ADDRESS blockaddr;
-	unsigned long insCount;
-	int jumpModifier;
-	BLOCK_IDENTIFIER blockID;
-	BB_DATA* foundExtern;
+#define NO_LOOP 0
+#define BUILDING_LOOP 1
+#define LOOP_PROGRESS 2
 
+struct TAG {
+	//come from trace
+	MEM_ADDRESS blockaddr;
+	BLOCK_IDENTIFIER blockID;
+	unsigned long insCount;
+	//used internally
+	int jumpModifier;
+	BB_DATA* foundExtern;
 };
 struct FAILEDARGS {
 	int caller;
@@ -55,7 +60,8 @@ public:
 	timeline *timelinebuilder;
 	thread_trace_reader *reader;
 	bool basicMode = false;
-	
+	void set_max_arg_storage(unsigned int maxargs) { arg_storage_capacity = maxargs; }
+
 private:
 	void main_loop();
 	thread_graph_data *graph;
@@ -91,14 +97,13 @@ private:
 	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();
 
+
 	MEM_ADDRESS pendingFunc = 0;
 	MEM_ADDRESS pendingRet = 0;
 	ARGLIST pendingArgs;
 	vector<FAILEDARGS> repeatArgAttempts;
 
-#define NO_LOOP 0
-#define BUILDING_LOOP 1
-#define LOOP_PROGRESS 2
+
 	bool afterReturn = false;
 	unsigned long loopCount = 0;
 	unsigned int firstLoopVert = 0;
@@ -107,5 +112,6 @@ private:
 	vector<TAG> loopCache;
 	NODEPAIR repeatStart;
 	NODEPAIR repeatEnd;
+	unsigned int arg_storage_capacity = 100;
 	
 };

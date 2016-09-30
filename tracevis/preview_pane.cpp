@@ -140,13 +140,13 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 
 	glRotatef(clientState->previewYAngle, 0, 1, 0);
 	glRotatef(90 / 1.0, 0, 1, 0);
-
+	
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewnodes->get_numVerts());
 	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph->previewVBOs, previewgraph->previewlines->get_numVerts());
 	glPopMatrix();
-
+	
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 

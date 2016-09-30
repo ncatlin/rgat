@@ -26,7 +26,8 @@ diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTAT
 {
 	graph1 = g1;
 	graph2 = g2;
-	diffgraph = new thread_graph_data(0,0);
+	diffgraph = new thread_graph_data(state->glob_piddata_map.at(g1->pid),0);
+	diffgraph->m_scalefactors = graph1->m_scalefactors;
 	diffgraph->needVBOReload_main = true;
 	glGenBuffers(4, diffgraph->graphVBOs);
 	clientState = state;
@@ -54,11 +55,15 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 //first edge pair in graph 1 that is different in graphs 1 and 2
 unsigned long diff_plotter::first_divering_edge()
 {
-	EDGELIST::iterator edgeSeqItG1, edgeSeqEndG1;
+	EDGELIST::iterator edgeSeqItG1, edgeSeqEndG1, nextEdgeG1;
 	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
 
-	EDGELIST::iterator edgeSeqItG2, edgeSeqEndG2;
+	EDGELIST::iterator edgeSeqItG2, edgeSeqEndG2,nextEdgeG2;
 	graph2->start_edgeL_iteration(&edgeSeqItG2, &edgeSeqEndG2);
+
+	node_data *g1targNode = graph1->get_node(0);
+	node_data *g2targNode = graph2->get_node(0);
+	node_data *sourceNode = 0;
 
 	unsigned long seqIndex = 0;
 	for (; edgeSeqItG1 != edgeSeqEndG1; )
@@ -68,26 +73,53 @@ unsigned long diff_plotter::first_divering_edge()
 
 		if (target1 != target2) break;
 
-		node_data *n1targ = graph1->get_node(target1);
-		node_data *n2targ = graph2->get_node(target2);
+		g1targNode = graph1->get_node(target1);
+		g2targNode = graph2->get_node(target2);
 
-		if (n1targ->external || n2targ->external)
+		if (g1targNode->external || g2targNode->external)
 		{
-			if (!n1targ->external || !n2targ->external) break;
-			if (n1targ->address != n2targ->address) break;
+			if (!g1targNode->external || !g2targNode->external) break;
+
+			int modnum1 = g2targNode->nodeMod;
+			if (g1targNode->address != g2targNode->address) break;
 		}
 		else
 		{
-			if (n1targ->ins->mnemonic != n2targ->ins->mnemonic) break;
-			if (n1targ->ins->op_str != n2targ->ins->op_str) break;
+			//different instruction is clear cut trace divergence
+			if (g1targNode->ins->mnemonic != g2targNode->ins->mnemonic)
+			{
+				cout << "[rgat]Divergence at nodes " << g1targNode->index << " Graph1 instruction " << g1targNode->ins->ins_text <<
+					" different to Graph 2 instruction " << g2targNode->ins->ins_text << endl;
+				break;
+			}
+
+			//comparing target addresses not much use with aslr
+			//can possibly measure distance between addresses?, but won't help with jumps to different memory regions
+			//for now: only compare register operands
+
+			nextEdgeG1 = edgeSeqItG1 + 1;
+			nextEdgeG2 = edgeSeqItG2 + 1;
+			//if (n1targ->ins->m && n1targ->ins->conditional) break;
+
+
+			
+			if (g1targNode->ins->op_str != g2targNode->ins->op_str)
+			{
+				cout << "[rgat]Divergence at nodes " << g1targNode->index << " Graph1 op_str " << g1targNode->ins->op_str <<
+					" different to Graph 2 op_str " << g2targNode->ins->op_str << endl;
+				break;
+			}
 		}
 
 		++seqIndex;
 		++edgeSeqItG1;
 		++edgeSeqItG2;
+		sourceNode = g1targNode;
 	}
 	graph1->stop_edgeL_iteration();
 	graph2->stop_edgeL_iteration();
+
+	diffNode = sourceNode;
 
 	if (edgeSeqItG1 != edgeSeqEndG1)
 		return seqIndex;
