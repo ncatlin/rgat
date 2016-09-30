@@ -165,6 +165,9 @@ string get_options(VISSTATE *clientState)
 	if (clientState->launchopts.pause)
 		optstring << " -sleep";
 
+	if (clientState->launchopts.debugMode)
+		optstring << " -blkdebug";
+
 	return optstring.str();
 }
 

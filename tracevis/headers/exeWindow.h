@@ -47,6 +47,7 @@ private:
 
 	agui::CheckBox *pauseCB;
 	agui::CheckBox *basicCB;
+	agui::CheckBox *debugCB;
 	agui::CheckBox *hideVMCB;
 	agui::CheckBox *hideSleepCB;
 
@@ -91,14 +92,17 @@ public:
 	virtual void checkedStateChanged(agui::CheckBox* source,
 		agui::CheckBox::CheckBoxCheckedEnum state)
 	{
-		
+		//i'm sure there must be a way to add an int ID to a checkbox
+		//can't find it though and haven't bothered to add it
 		string thisNeedsAnIDField = source->getText().c_str();
 		if (thisNeedsAnIDField == "Anti-Sleep")
 			clientState->launchopts.caffine = state;
 		else if (thisNeedsAnIDField == "Pause on start")
 			clientState->launchopts.pause = state;
-		else if (thisNeedsAnIDField == "Basic mode")
+		else if (thisNeedsAnIDField == "Structure only")
 			clientState->launchopts.basic = state;
+		else if (thisNeedsAnIDField == "Debugger mode")
+			clientState->launchopts.debugMode = state; 
 		else
 			cerr<< "[rgat]Checkbox text '"<< source->getText() << "' does not match an expected value! Ignoring" <<endl;
 	}

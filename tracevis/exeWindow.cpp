@@ -106,21 +106,40 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	pauseCB->setToolTipText("Pauses execution at program start with a message box to allow debugger attaching");
 	pauseCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(pauseCB);
+	
+	debugCB = new agui::CheckBox;
+	debugCB->setText("Debugger mode");
+	debugCB->setCheckBoxSize(CBSize);
+	debugCB->resizeToContents();
+	debugCB->setLocation(OPTS_X + 15, 165);
+	debugCB->setToolTipText("For manual debugger stepping.\nUpdate the visualisation at the end of every basic block. Massively degrades performance.");
+	debugCB->addCheckBoxListener(boxlistener);
+	exeFrame->add(debugCB);
 
 	basicCB = new agui::CheckBox;
-	basicCB->setText("Basic mode");
+	basicCB->setText("Structure only");
 	basicCB->setCheckBoxSize(CBSize);
 	basicCB->resizeToContents();
-	basicCB->setLocation(OPTS_X+15, 165);
-	basicCB->setToolTipText("Improve performance by not animating or saving trace history");
+	basicCB->setLocation(OPTS_X+15, 190);
+	basicCB->setToolTipText("Improve performance and reduce memory usage by disabling animation and replays");
 	basicCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(basicCB);
+
 
 	agui::Label *features = new agui::Label;
 	features->setText("Feature creep");
 	features->resizeToContents();
 	features->setLocation(FEATURES_X, 120);
 	exeFrame->add(features);
+
+	hideSleepCB = new agui::CheckBox;
+	hideSleepCB->setText("Anti-Sleep");
+	hideSleepCB->setCheckBoxSize(CBSize);
+	hideSleepCB->resizeToContents();
+	hideSleepCB->setLocation(FEATURES_X + 15, 140);
+	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls to reduce pauses and timer results to hide slowdown");
+	hideSleepCB->addCheckBoxListener(boxlistener);
+	exeFrame->add(hideSleepCB);
 
 	/*
 	hideVMCB = new agui::CheckBox;
@@ -133,14 +152,8 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	exeFrame->add(hideVMCB);
 	*/
 
-	hideSleepCB = new agui::CheckBox;
-	hideSleepCB->setText("Anti-Sleep");
-	hideSleepCB->setCheckBoxSize(CBSize);
-	hideSleepCB->resizeToContents();
-	hideSleepCB->setLocation(FEATURES_X + 15, 140);
-	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls to reduce pauses and timer results to hide slowdown");
-	hideSleepCB->addCheckBoxListener(boxlistener);
-	exeFrame->add(hideSleepCB);
+
+
 
 	launchBtn = new agui::Button;
 	launchBtn->setText("Launch");

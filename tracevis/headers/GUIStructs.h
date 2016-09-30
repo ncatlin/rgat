@@ -79,6 +79,7 @@ struct LAUNCHOPTIONS {
 	bool caffine = false;
 	bool pause = false;
 	bool basic = false;
+	bool debugMode = false;
 };
 
 class VISSTATE {
