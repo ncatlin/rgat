@@ -89,7 +89,7 @@ class thread_graph_data
 	//dunno if ulong reads are atomic, not vital for this application
 	//adding accessor functions for future threadsafe acesss though
 	pair<unsigned long, unsigned long> backlogInOut = make_pair(0, 0);
-	node_data *latest_active_node = 0;
+	
 
 public:
 	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
@@ -176,6 +176,7 @@ public:
 	vector <string> loggedCalls;
 
 	VCOORD latest_active_node_coord;
+	node_data *latest_active_node = 0;
 
 	unsigned int tid = 0;
 	unsigned int pid = 0;
@@ -301,6 +302,6 @@ public:
 	unsigned long getBacklogIn() { return backlogInOut.first; }
 	unsigned long getBacklogOut() { return backlogInOut.second; }
 	unsigned long get_backlog_total();
-	bool die = false;
+	bool terminationFlag = false;
 };
 

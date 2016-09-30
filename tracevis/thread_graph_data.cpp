@@ -226,7 +226,7 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	MEM_ADDRESS insAddr = targBlock_Size.first;
 	int instructionIndex = targBlock_Size.second-1;
 	
-	return getDisassemblyBlock(insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &die)->at(instructionIndex);
+	return getDisassemblyBlock(insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &terminationFlag)->at(instructionIndex);
 }
 
 //externs not included in sequence data, have to check if each block called one
@@ -574,7 +574,7 @@ int thread_graph_data::brighten_BBs()
 		MEM_ADDRESS blockAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
-		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist, &die);
+		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist, &terminationFlag);
 		INS_DATA *ins = block->at(0);
 
 		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
@@ -712,7 +712,7 @@ unsigned int thread_graph_data::derive_anim_node()
 	MEM_ADDRESS blockAddr = addr_size.first;
 	int remainingInstructions = blockInstruction;
 	
-	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &die)->at(blockInstruction);
+	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &terminationFlag)->at(blockInstruction);
 	return target_ins->threadvertIdx.at(tid);
 }
 

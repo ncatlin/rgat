@@ -369,6 +369,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	playBtn->addActionListener(btnListen);
 	pauseBtn->addActionListener(btnListen);
 	skipBtn->addActionListener(btnListen);
+	killBtn->addActionListener(btnListen);
 
 	scrollbar = new agui::VScrollBar;
 	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);

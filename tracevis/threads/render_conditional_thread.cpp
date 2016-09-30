@@ -131,7 +131,7 @@ void conditional_renderer::main_loop()
 	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphit;
-	while (!die)
+	while (!die && !piddata->should_die())
 	{
 		obtainMutex(piddata->graphsListMutex, 1053);
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)

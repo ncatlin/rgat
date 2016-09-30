@@ -872,8 +872,20 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 	if (clientState->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd, graph);
 	
+	//if zoomed in, show all extern labels
 	if (zmul < 25)
 		show_extern_labels(clientState, pd, graph);
+	else
+	{	//show label of extern we are blocked on
+		node_data *n = graph->latest_active_node;
+		if (n->external)
+		{
+			DCOORD screenCoord;
+			if (!n->get_screen_pos(graph->get_mainnodes(), pd, &screenCoord)) return;
+			if (is_on_screen(&screenCoord, clientState))
+				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+		}
+	}
 }
 
 //displays the divergence of two selected graphs, defined in differenderer

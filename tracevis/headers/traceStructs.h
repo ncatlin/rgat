@@ -129,11 +129,15 @@ public:
 		return true;
 	}
 
-//private:
-	bool active = true;
+	void kill() { die = true; }
+	bool should_die() { return die; }
+	bool is_running() { return running; }
+	void set_running(bool r) { running = r; }
+	int PID = -1;
+
 	map <int, string>modpaths;
 	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
-	int PID = -1;
+	
 	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
 	map <int, std::map<MEM_ADDRESS, string>>modsymsb64;
 
@@ -152,6 +156,9 @@ public:
 
 	vector <int> activeMods;
 	map <MEM_ADDRESS, BB_DATA *> externdict;
+private:
+	bool running = true;
+	bool die = false;
 };
 
 struct EXTTEXT {

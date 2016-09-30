@@ -30,14 +30,15 @@ void preview_renderer::main_loop()
 {
 	alive = true;
 
-	while ((!piddata || piddata->graphs.empty()) && !die)
+	while ((!piddata || piddata->graphs.empty()) && !die && !piddata->should_die())
 		Sleep(200);
 
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphIt;
-	while (!die)
+
+	while (!die && !piddata->should_die())
 	{
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly

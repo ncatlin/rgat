@@ -131,11 +131,8 @@ void basicblock_handler::main_loop()
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	//string savedbuf;
-	while (!die)
+	while (!die && !piddata->should_die())
 	{
-		if (clientState->terminationPid == PID)
-			break;
-
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, BBBUFSIZE, &bread, &ov2);
 		while (!die)

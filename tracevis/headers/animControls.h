@@ -180,7 +180,7 @@ public:
 
 		if (btntext == "Kill")
 		{
-			clientState->terminationPid = clientState->activePid->PID;
+			clientState->activePid->kill();
 			return;
 		}
 

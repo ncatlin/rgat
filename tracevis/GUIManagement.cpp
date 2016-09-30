@@ -243,7 +243,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	ALLEGRO_COLOR textColour;
 
 	PROCESS_DATA *piddata = clientState->activePid;
-	if (piddata->active)
+	if (piddata->is_running())
 		textColour = al_col_white;
 	else
 		textColour = al_col_red;

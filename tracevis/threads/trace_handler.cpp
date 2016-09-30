@@ -903,7 +903,9 @@ void thread_trace_handler::main_loop()
 			if (next_token >= msgbuf + bytesRead) break;
 		}
 	}
-	thisgraph->die = true;
+
+	thisgraph->terminationFlag = true;
+	thisgraph->active = false;
 	alive = false;
 }
 

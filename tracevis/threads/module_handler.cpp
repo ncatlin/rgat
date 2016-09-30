@@ -56,6 +56,7 @@ void module_handler::main_loop()
 		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
 		cerr << "[rgat]WARNING: Long wait for module handler pipe" << endl;
 	}
+	piddata->set_running(true);
 
 	//if not launch by command line - do GUI stuff
 	if (clientState->commandlineLaunchPath.empty())
@@ -71,19 +72,19 @@ void module_handler::main_loop()
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 	vector < base_thread *> threadList;
 	DWORD res= 0;
-	while (!die)
+	while (!die && !piddata->should_die())
 	{
+
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, 399, &bread, &ov2);
 		while (true)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
-			if (die || clientState->die) {
+			if (die || piddata->should_die() || clientState->die) {
 				die = true;
 				break;
 			}
 		}
-		if (clientState->die || die) break;
 
 		if (GetLastError() != ERROR_IO_PENDING) continue;
 		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
@@ -93,12 +94,12 @@ void module_handler::main_loop()
 		{
 			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE)
+			if (err != ERROR_BROKEN_PIPE && !piddata->should_die())
 				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
-			piddata->active = false;
+			piddata->set_running(false);
 			cerr << "Mod pipe exit" << endl;
 			alive = false;
-			return;
+			break;
 		}
 		else
 		{	
