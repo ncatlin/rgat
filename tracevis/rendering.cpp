@@ -867,18 +867,18 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 		graph->display_static(clientState->modes.nodes, clientState->modes.edges);
 
 	long sphereSize = graph->m_scalefactors->radius;
-	float zmul = (clientState->zoomlevel - sphereSize) / 1000 - 1;
+	float zmul = (clientState->cameraZoomlevel - sphereSize) / 1000 - 1;
 	
 	if (clientState->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd, graph);
 	
 	//if zoomed in, show all extern labels
-	if (zmul < 25)
+	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 		show_extern_labels(clientState, pd, graph);
 	else
 	{	//show label of extern we are blocked on
 		node_data *n = graph->latest_active_node;
-		if (n->external)
+		if (n && n->external)
 		{
 			DCOORD screenCoord;
 			if (!n->get_screen_pos(graph->get_mainnodes(), pd, &screenCoord)) return;
@@ -914,11 +914,11 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 
 	long sphereSize = graph1->m_scalefactors->radius;
-	float zmul = (clientState->zoomlevel - sphereSize) / 1000 - 1;
+	float zmul = (clientState->cameraZoomlevel - sphereSize) / 1000 - 1;
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
-	if (zmul < 25)
+	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
@@ -1019,12 +1019,12 @@ void display_big_heatmap(VISSTATE *clientState)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zmul = (clientState->zoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zmul = (clientState->cameraZoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 
-	if (zmul < 25)
+	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 		show_extern_labels(clientState, &pd, graph);
 
 	if (clientState->show_ins_text && zmul < 10 && graph->get_num_nodes() > 2)
@@ -1082,7 +1082,7 @@ void display_big_conditional(VISSTATE *clientState)
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
-	float zoomDiffMult = (clientState->zoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zoomDiffMult = (clientState->cameraZoomlevel - graph->zoomLevel) / 1000 - 1;
 
 	if (clientState->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
 		draw_condition_ins_text(clientState, zoomDiffMult, &pd, graph->get_mainnodes());

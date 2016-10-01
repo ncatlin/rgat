@@ -94,10 +94,9 @@ void module_handler::main_loop()
 		{
 			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE && !piddata->should_die())
+			if (err != ERROR_BROKEN_PIPE && !die)
 				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
 			piddata->set_running(false);
-			cerr << "Mod pipe exit" << endl;
 			alive = false;
 			break;
 		}
@@ -240,12 +239,8 @@ void module_handler::main_loop()
 
 	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
 	{
-		while (true)
-		{
-			Sleep(5);
-			if (((base_thread *)(*threadIt))->is_alive()) continue;
-			break;
-		}
+		while ((base_thread *)(*threadIt)->is_alive())
+			Sleep(1);
 	}
 
 	clientState->timelineBuilder->notify_pid_end(PID);

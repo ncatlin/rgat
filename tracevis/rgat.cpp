@@ -15,10 +15,12 @@ limitations under the License.
 */
 
 /*
-This is where main lives - after the initial setup it 
+This is where main lives
+
+Performs initial setup 
 handles all of the drawing and UI processing in a loop
 
-OpenGL activity must be done from this thread
+OpenGL activity must be done in this thread
 */
 
 #include "stdafx.h"
@@ -91,12 +93,11 @@ void launch_saved_process_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clie
 //+ module data and disassembly
 THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
 {
-	THREAD_POINTERS *threads = new THREAD_POINTERS;
+	THREAD_POINTERS *processThreads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
 	piddata->PID = PID;
 	if (clientState->switchProcess)
 		clientState->spawnedProcess = piddata;
-
 
 	if (!obtainMutex(pidmutex, 1038)) return 0;
 	glob_piddata_map->insert_or_assign(PID, piddata);
@@ -104,51 +105,45 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 
 	DWORD threadID;
 
-	//handles new threads+dlls for process
+	//spawns trace threads + handles module data for process
 	module_handler *tPIDThread = new module_handler(PID, 0);
 	tPIDThread->clientState = clientState;
 	tPIDThread->piddata = piddata;
 
-	HANDLE hPIDmodThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry,
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry,
 		(LPVOID)tPIDThread, 0, &threadID);
-	threads->modThread = tPIDThread;
-	threads->threads.push_back(tPIDThread);
+	processThreads->modThread = tPIDThread;
+	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
-	basicblock_handler *tBBThread = new basicblock_handler(PID, 0);
-	tBBThread->clientState = clientState;
-	tBBThread->piddata = piddata;
+	basicblock_handler *tBBHandler = new basicblock_handler(PID, 0);
+	tBBHandler->clientState = clientState;
+	tBBHandler->piddata = piddata;
 
-	HANDLE hPIDBBThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)tBBThread->ThreadEntry,
-		(LPVOID)tBBThread, 0, &threadID);
-	threads->BBthread = tBBThread;
-	threads->threads.push_back(tBBThread);
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tBBHandler->ThreadEntry,
+		(LPVOID)tBBHandler, 0, &threadID);
+	processThreads->BBthread = tBBHandler;
+	processThreads->threads.push_back(tBBHandler);
 
-	if (!clientState->commandlineLaunchPath.empty()) return threads;
+	if (!clientState->commandlineLaunchPath.empty()) return processThreads;
 
 	//graphics rendering threads for each process here	
 	preview_renderer *tPrevThread = new preview_renderer(PID,0);
 	tPrevThread->clientState = clientState;
 	tPrevThread->piddata = piddata;
 
-	HANDLE hPreviewThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry,
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry,
 		(LPVOID)tPrevThread, 0, &threadID);
-	threads->previewThread = tPrevThread;
-	threads->threads.push_back(tPrevThread);
 
 	heatmap_renderer *tHeatThread = new heatmap_renderer(PID, 0);
 	tHeatThread->clientState = clientState;
 	tHeatThread->piddata = piddata;
 	tHeatThread->setUpdateDelay(clientState->config->heatmap.delay);
 
-	HANDLE hHeatThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry,
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry,
 		(LPVOID)tHeatThread, 0, &threadID);
-	threads->heatmapThread = tHeatThread;
-	threads->threads.push_back(tHeatThread);
+	processThreads->heatmapThread = tHeatThread;
+	processThreads->threads.push_back(tHeatThread);
 
 	conditional_renderer *tCondThread = new conditional_renderer(PID, 0);
 	tCondThread->clientState = clientState;
@@ -156,13 +151,13 @@ THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA 
 	tCondThread->setUpdateDelay(clientState->config->conditional.delay);
 
 	Sleep(200);
-	HANDLE hConditionThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry,
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry,
 		(LPVOID)tCondThread, 0, &threadID);
-	threads->conditionalThread = tCondThread;
-	threads->threads.push_back(tCondThread);
 
-	return threads;
+	processThreads->conditionalThread = tCondThread;
+	processThreads->threads.push_back(tCondThread);
+
+	return processThreads;
 }
 
 //listens for new and dying processes, spawns and kills threads to handle them
@@ -564,7 +559,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
 		long slowRotateThresholdHigh = diam + 54650;// move very slow beyond this much zoom out
 
-		float zoomdiff = abs(mainscale->radius - clientState->zoomlevel);
+		float zoomdiff = abs(mainscale->radius - clientState->cameraZoomlevel);
 
 		if (ev->mouse.dz)
 		{
@@ -574,17 +569,17 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			{
 				//adjust speed of zoom depending on how close we are
 				int zoomfactor;
-				if (clientState->zoomlevel > 40000)
+				if (clientState->cameraZoomlevel > 40000)
 					zoomfactor = -5000;
 				else
 					zoomfactor = -1000;
 
-				float newZoom = clientState->zoomlevel + zoomfactor * ev->mouse.dz;
+				float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
 				if (newZoom >= maxZoomIn)
-					clientState->zoomlevel = newZoom;
+					clientState->cameraZoomlevel = newZoom;
 
 				if (clientState->activeGraph)
-					updateTitle_Zoom(display, clientState->title, (clientState->zoomlevel - clientState->activeGraph->zoomLevel));
+					updateTitle_Zoom(display, clientState->title, (clientState->cameraZoomlevel - clientState->activeGraph->zoomLevel));
 			}
 		}
 
@@ -789,10 +784,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				}
 				break;
 			case ALLEGRO_KEY_PAD_7:
-				clientState->zoomlevel += 100;
+				clientState->cameraZoomlevel += 100;
 				break;
 			case ALLEGRO_KEY_PAD_1:
-				clientState->zoomlevel -= 100;
+				clientState->cameraZoomlevel -= 100;
 				break;
 			}
 
@@ -1038,7 +1033,7 @@ int main(int argc, char **argv)
 	clientState.title = &windowtitle;
 
 	updateTitle_Mouse(clientState.maindisplay, &windowtitle, 0, 0);
-	updateTitle_Zoom(clientState.maindisplay, &windowtitle, clientState.zoomlevel);
+	updateTitle_Zoom(clientState.maindisplay, &windowtitle, clientState.cameraZoomlevel);
 
 	bool buildComplete = false;
 
@@ -1097,7 +1092,7 @@ int main(int argc, char **argv)
 	al_get_text_width(clientState.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 
-	clientState.zoomlevel = INITIALZOOM;
+	clientState.cameraZoomlevel = INITIALZOOM;
 	clientState.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState.displaySize.height - 50);
 	initial_gl_setup(&clientState);
 

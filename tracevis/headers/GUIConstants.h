@@ -117,6 +117,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define BAdj 35
 
 #define INITIALZOOM 80000
+#define EXTERN_VISIBLE_ZOOM_FACTOR 25
 
 //initial
 #define VERTBUFFERSIZE 1100

@@ -37,7 +37,7 @@ void frame_gl_setup(VISSTATE* clientState)
 
 	glLoadIdentity();
 	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
-		clientState->zoomlevel + clientState->activeGraph->m_scalefactors->radius);
+		clientState->cameraZoomlevel + clientState->activeGraph->m_scalefactors->radius);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
@@ -71,7 +71,6 @@ void frame_gl_teardown()
 	glPopMatrix();
 }
 
-//8% of cpu activity, reduce by updating active parts rather than all
 void load_VBO(int index, GLuint *VBOs, int bufsize, float *data)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[index]);
@@ -125,7 +124,7 @@ void initial_gl_setup(VISSTATE *clientState)
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
 	//why 60000?
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50, clientState->zoomlevel + 60000);
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50, clientState->cameraZoomlevel + 60000);
 }
 
 //draw a segmented sphere with row gradiented red, cols green
@@ -139,15 +138,10 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	clientState->col_pick_sphere = spheredata;
 
 	int diam = clientState->activeGraph->m_scalefactors->radius;
-
 	int rowi, coli;
-	float tlx, tlz, trx, ytop, trz;
-	float ybase, brx, brz, blz, blx;
-	int dr = 0;
-
+	float tlx, tlz, trx, topy, trz;
+	float basey, brx, brz, blz, blx;
 	int rowAngle = (int)(360 / BDIVISIONS);
-	int quads = 0;
-	int bufpos = 0;
 
 	vector<GLfloat> *spherepos = spheredata->acquire_pos();
 	vector<GLfloat> *spherecol = spheredata->acquire_col();
@@ -158,7 +152,6 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 		for (coli = 0; coli < ADIVISIONS; ++coli) 
 		{
 			float cola = 1 - ((float)coli / ADIVISIONS);
-
 			float iitop = rowi;
 			float iibase = rowi + rowAngle;
 
@@ -166,14 +159,14 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 			angler = (2 * M_PI * (coli + 1)) / ADIVISIONS;
 
 			ringSizeTop = diam * sin((iitop*M_PI) / 180);
-			ytop = diam * cos((iitop*M_PI) / 180);
+			topy = diam * cos((iitop*M_PI) / 180);
 			tlx = ringSizeTop * cos(anglel);
 			trx = ringSizeTop * cos(angler);
 			tlz = ringSizeTop * sin(anglel);
 			trz = ringSizeTop * sin(angler);
 
 			ringSizeBase = diam * sin((iibase*M_PI) / 180);
-			ybase = diam * cos((iibase*M_PI) / 180);
+			basey = diam * cos((iibase*M_PI) / 180);
 			blx = ringSizeBase * cos(anglel);
 			blz = ringSizeBase * sin(anglel);
 			brx = ringSizeBase * cos(angler);
@@ -187,23 +180,22 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 				spherecol->push_back(0);
 			}
 
-			//draw a segment of a sphere
+			//draw a segment of the sphere clockwise
 			spherepos->push_back(tlx);
-			spherepos->push_back(ytop);
+			spherepos->push_back(topy);
 			spherepos->push_back(tlz);
 
 			spherepos->push_back(trx);
-			spherepos->push_back(ytop);
+			spherepos->push_back(topy);
 			spherepos->push_back(trz);
 
 			spherepos->push_back(brx);
-			spherepos->push_back(ybase);
+			spherepos->push_back(basey);
 			spherepos->push_back(brz);
 
 			spherepos->push_back(blx);
-			spherepos->push_back(ybase);
+			spherepos->push_back(basey);
 			spherepos->push_back(blz);
-			quads += 4;
 		}
 	}
 
@@ -215,8 +207,7 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 
 void rotate_to_user_view(VISSTATE *clientState)
 {
-
-	glTranslatef(0, 0, -clientState->zoomlevel);
+	glTranslatef(0, 0, -clientState->cameraZoomlevel);
 	glRotatef(-clientState->yturn, 1, 0, 0);
 	glRotatef(-clientState->xturn, 0, 1, 0);
 }
@@ -224,63 +215,60 @@ void rotate_to_user_view(VISSTATE *clientState)
 //draw a colourful gradiented sphere on the screen
 //read colours on edge so we can see where window is on sphere
 //reset back to state before the call
-//return colours in passed S_E_P struct
-//pass doclear false if you want to see it, just for debugging
+//return colours in passed SCREEN_EDGE_PIX struct
+//pass doclear false if you want to see it for debugging
 void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear)
 {
-	
 	if (!clientState->col_pick_sphere)
 		plot_colourpick_sphere(clientState);
+
 	glPushMatrix();
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 500, clientState->zoomlevel);
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 500, clientState->cameraZoomlevel);
 	glLoadIdentity();
 
 	rotate_to_user_view(clientState);
 
 	glBindBuffer(GL_ARRAY_BUFFER, clientState->colSphereVBOs[0]);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
-
 	glBindBuffer(GL_ARRAY_BUFFER, clientState->colSphereVBOs[1]);
 	glColorPointer(3, GL_FLOAT, 0, 0);
 	glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
 
-	GLfloat pixelRGB[3];
-	
 	//no idea why this ajustment needed, found by trial and error
 	int height = clientState->mainFrameSize.height - 20;
 	int width = al_get_bitmap_width(clientState->mainGraphBMP);
 	int halfheight = height / 2;
 	int halfwidth = width / 2;
 
-	//TODO think we might not use top and bottom
+	GLfloat pixelRGB[3];
 	glReadPixels(0, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
 	TBRG->leftgreen = pixelRGB[1];
 	glReadPixels(width - 1, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
 	TBRG->rightgreen = pixelRGB[1];
-	glReadPixels(halfwidth, height - 1, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
-	TBRG->topred = pixelRGB[0];
-	glReadPixels(halfwidth, 3, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
-	TBRG->bottomred = pixelRGB[0];
+
+	//not using top and bottom because they blended into each other on the sphere
+	//might be fixed now the view distance is fixed though
+	//glReadPixels(halfwidth, height - 1, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	//TBRG->topred = pixelRGB[0];
+	//glReadPixels(halfwidth, 3, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	//TBRG->bottomred = pixelRGB[0];
 
 	glPopMatrix();
 
 	if (doClear)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	return;
 }
 
-void array_render_points(int POSVBO, int COLVBO, GLuint *buffers, int quantity) {
+void array_render_points(int POSVBO, int COLVBO, GLuint *buffers, int quantity) 
+{
 	array_render(GL_POINTS, POSVBO, COLVBO, buffers, quantity);
 }
 
-void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity) {
+void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity) 
+{
 	array_render(GL_LINES, POSVBO, COLVBO, buffers, quantity);
 }
 
-//todo: see if we can have this done in a single array call by using one big loop,
-//link them together with alpha 0 edges to give same appearance
-//then can ditch the starts/sizes
 void draw_wireframe(VISSTATE *clientState, GLint *starts, GLint *sizes)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, clientState->wireframeVBOs[VBO_SPHERE_POS]);

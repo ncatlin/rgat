@@ -28,6 +28,11 @@ void AnimControls::notifyAnimFinished()
 
 void AnimControls::setAnimState(int newAnimState)
 {
+	if (clientState->activePid && clientState->activePid->is_running())
+		killBtn->setVisibility(true);
+	else
+		killBtn->setVisibility(false);
+
 	if (newAnimState == animationState) return;
 	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
 	{
@@ -52,7 +57,6 @@ void AnimControls::setAnimState(int newAnimState)
 		forwardJumpBtn->setVisibility(false);
 		playBtn->setVisibility(false);
 		stepText->setVisibility(false);
-
 	}
 
 	if (newAnimState == ANIM_INACTIVE)
@@ -331,6 +335,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	killBtn->setBackColor(agui::Color(210, 210, 210));
 	killBtn->resizeToContents();
 	killBtn->setSize(killBtn->getWidth(), btnHeight);
+	killBtn->setVisibility(false);
 	controlsLayout->add(killBtn);
 
 	pauseBtn = new agui::Button();

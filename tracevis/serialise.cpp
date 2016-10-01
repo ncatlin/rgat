@@ -75,7 +75,7 @@ void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_SYM);
 	*file << " ";
-	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsymsb64.begin();
+	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsymsPlain.begin();
 	for (; modSymIt != piddata->modsymsPlain.end(); ++modSymIt)
 	{
 		*file << modSymIt->first;
@@ -248,7 +248,7 @@ int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, strin
 	return 1;
 }
 
-//take a {} enclosed blog of , separated b64 encoded symbols
+//take a {} enclosed blob of , separated b64 encoded symbols
 //insert into respective piddata
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 {
@@ -264,8 +264,6 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 		}
 
 		getline(*blob, b64Sym, '@');
-		piddata->modsymsb64[modnum][symAddress] = b64Sym;
-		//since we have more time at load, may as well decode now? disable if loads take too long
 		piddata->modsymsPlain[modnum][symAddress] = base64_decode(b64Sym);
 	}
 }

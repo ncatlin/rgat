@@ -63,6 +63,8 @@ void TraceVisGUI::updateWidgets(thread_graph_data *graph)
 		controlWindow->update(graph);
 }
 
+//widgets->render() is a monster on the CPU
+//try not to do it more than needed
 void TraceVisGUI::paintWidgets()
 {
 	if (widgetsUpdateCooldown > 0 && !smoothDrawing) return;
@@ -108,6 +110,7 @@ void TraceVisGUI::fitToResize()
 	controlWindow->fitToResize();	
 	widgets->resizeToDisplay();
 }
+
 void TraceVisGUI::widgetSetup(string fontpath) {
 
 	agui::Font::setFontLoader(new agui::Allegro5FontLoader);

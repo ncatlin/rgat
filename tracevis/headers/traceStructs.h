@@ -113,20 +113,14 @@ public:
 	{
 		if (modsymsPlain[modNum][addr].empty()) 
 		{
-			if (modsymsb64[modNum][addr].empty())
-			{
-				*sym = "";
-				return false;
-			}
-			else
-			{
-				*sym = base64_decode(modsymsb64[modNum][addr]);
-				modsymsPlain[modNum][addr] = *sym;
-				return true;
-			}
+			*sym = "";
+			return false;
 		}
-		*sym = modsymsPlain[modNum][addr];
-		return true;
+		else
+		{
+			*sym = modsymsPlain[modNum][addr];
+			return true;
+		}
 	}
 
 	void kill() { die = true; }
@@ -137,12 +131,11 @@ public:
 
 	map <int, string>modpaths;
 	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
-	
 	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
-	map <int, std::map<MEM_ADDRESS, string>>modsymsb64;
 
-	//graph data for each thread in process
+	//graph data for each thread in process, void* because t_g_d header causes build freakout
 	map <int, void *> graphs;
+
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);
 	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
 	HANDLE externDictMutex = CreateMutex(NULL, false, NULL);
@@ -156,6 +149,7 @@ public:
 
 	vector <int> activeMods;
 	map <MEM_ADDRESS, BB_DATA *> externdict;
+
 private:
 	bool running = true;
 	bool die = false;

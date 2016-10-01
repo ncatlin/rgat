@@ -103,7 +103,7 @@ public:
 	LAUNCHOPTIONS launchopts;
 
 	TITLE *title;
-	long zoomlevel = 0; //INITIALZOOM;
+	long cameraZoomlevel = 0;
 	float xturn = 135;
 	float yturn = -25;
 	HEIGHTWIDTH displaySize;
