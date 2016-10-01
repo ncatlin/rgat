@@ -21,6 +21,7 @@ Performs initial setup
 handles all of the drawing and UI processing in a loop
 
 OpenGL activity must be done in this thread
+Doing agui widget manipulation in other threads will cause deque errors
 */
 
 #include "stdafx.h"
@@ -486,7 +487,7 @@ bool loadTrace(VISSTATE *clientState, string filename)
 
 	loadfile >> s1;
 	if (s1 != "PID") {
-		cout << "[rgat]Corrupt save, start = " << s1 << endl;
+		cout << "[rgat]ERROR: Corrupt save, start = " << s1 << endl;
 		return false;
 	}
 
@@ -503,24 +504,25 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	newpiddata->PID = PID;
 	if (!loadProcessData(clientState, &loadfile, newpiddata))
 	{
-		cout << "Process data load failed" << endl;
+		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
 	}
 
-	cout << "Loaded process data. Loading graphs..." << endl;
+	
+	cout << "[rgat]Loaded process data. Loading graphs..." << endl;
 
 	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
 	{
-		cout << "Process Graph load failed" << endl;
+		cout << "[rgat]Process Graph load failed" << endl;
 		return false;
 	}
 
-	cout << "Loading completed successfully" << endl;
+	cout << "[rgat]Loading completed successfully" << endl;
 	loadfile.close();
 
 	if (!obtainMutex(clientState->pidMapMutex, 1039))
 	{
-		cerr << "Failed to obtain pidMapMutex in load" << endl;
+		cerr << "[rgat]ERROR: Failed to obtain pidMapMutex in load" << endl;
 		return false;
 	}
 	clientState->glob_piddata_map[PID] = newpiddata;
@@ -672,8 +674,13 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 		case ALLEGRO_EVENT_KEY_CHAR:
 		{
+			bool closed = false;
 			if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+			{
 				widgets->exeSelector->hide();
+				widgets->highlightWindow->highlightFrame->setVisibility(false);
+				widgets->diffWindow->diffFrame->setVisibility(false);
+			}
 
 			if (!clientState->activeGraph)
 			{
@@ -684,115 +691,103 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			MULTIPLIERS *mainscale = clientState->activeGraph->m_scalefactors;
 			switch (ev->keyboard.keycode)
 			{
-			case ALLEGRO_KEY_ESCAPE:
-			{
-				if (widgets->diffWindow->diffFrame->isVisible())
+				case ALLEGRO_KEY_ESCAPE:
 				{
-					widgets->diffWindow->diffFrame->setVisibility(false);
+				
+					if (clientState->highlightData.highlightState)
+					{
+						clientState->highlightData.highlightState = 0;
+						break;
+					}
+
+					if (clientState->modes.diff)
+					{
+						clientState->modes.diff = 0;
+						break;
+					}
+				}
+
+				case ALLEGRO_KEY_Y:
+					change_mode(clientState, EV_BTN_WIREFRAME);
+					break;
+
+				case ALLEGRO_KEY_K:
+					change_mode(clientState, EV_BTN_HEATMAP);
+					break;
+
+				case ALLEGRO_KEY_M:
+					clientState->config->showExternText = !clientState->config->showExternText;
+					break;
+
+				case ALLEGRO_KEY_J:
+					change_mode(clientState, EV_BTN_CONDITION);
+					break;
+
+				case ALLEGRO_KEY_E:
+					change_mode(clientState, EV_BTN_EDGES);
+					break;
+
+				case ALLEGRO_KEY_LEFT:
+					mainscale->userHEDGESEP -= 0.05;
+					clientState->rescale = true;
+					break;
+
+				case ALLEGRO_KEY_RIGHT:
+					mainscale->userHEDGESEP += 0.05;
+					clientState->rescale = true;
+					break;
+
+				case ALLEGRO_KEY_PAD_4:
+					mainscale->userHEDGESEP -= 0.005;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_PAD_6:
+					mainscale->userHEDGESEP += 0.005;
+					clientState->rescale = true;
+					break;
+
+				case ALLEGRO_KEY_DOWN:
+					mainscale->userVEDGESEP += 0.01;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_UP:
+					mainscale->userVEDGESEP -= 0.01;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_PAD_PLUS:
+					mainscale->userDiamModifier += 0.05;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_PAD_MINUS:
+					mainscale->userDiamModifier -= 0.05;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_T:
+					clientState->show_ins_text++;
+					if (clientState->show_ins_text > INSTEXT_LAST)
+						clientState->show_ins_text = INSTEXT_FIRST;
+					switch (clientState->show_ins_text) {
+					case INSTEXT_NONE:
+						cout << "[rgat]Instruction text off" << endl;
+						break;
+					case INSTEXT_AUTO:
+						cout << "[rgat]Instruction text auto" << endl;
+						break;
+					case INSTEXT_ALL_ALWAYS:
+						cout << "[rgat]Instruction text always on" << endl;
+						break;
+					}
+					break;
+				case ALLEGRO_KEY_PAD_7:
+					clientState->cameraZoomlevel += 100;
+					break;
+				case ALLEGRO_KEY_PAD_1:
+					clientState->cameraZoomlevel -= 100;
 					break;
 				}
 
-				if (widgets->isHighlightVisible())
-				{
-					widgets->highlightWindow->highlightFrame->setVisibility(false);
-					break;
-				}
-
-				if (clientState->highlightData.highlightState)
-				{
-					clientState->highlightData.highlightState = 0;
-					break;
-				}
-
-				if (clientState->modes.diff)
-				{
-					clientState->modes.diff = 0;
-					break;
-				}
-
-				return EV_BTN_QUIT;
-			}
-			case ALLEGRO_KEY_Y:
-				change_mode(clientState, EV_BTN_WIREFRAME);
-				break;
-
-			case ALLEGRO_KEY_K:
-				change_mode(clientState, EV_BTN_HEATMAP);
-				break;
-
-			case ALLEGRO_KEY_M:
-				clientState->config->showExternText = !clientState->config->showExternText;
-				break;
-
-			case ALLEGRO_KEY_J:
-				change_mode(clientState, EV_BTN_CONDITION);
-				break;
-
-			case ALLEGRO_KEY_E:
-				change_mode(clientState, EV_BTN_EDGES);
-				break;
-
-			case ALLEGRO_KEY_LEFT:
-				mainscale->userHEDGESEP -= 0.05;
-				clientState->rescale = true;
-				break;
-
-			case ALLEGRO_KEY_RIGHT:
-				mainscale->userHEDGESEP += 0.05;
-				clientState->rescale = true;
-				break;
-
-			case ALLEGRO_KEY_PAD_4:
-				mainscale->userHEDGESEP -= 0.005;
-				clientState->rescale = true;
-				break;
-			case ALLEGRO_KEY_PAD_6:
-				mainscale->userHEDGESEP += 0.005;
-				clientState->rescale = true;
-				break;
-
-			case ALLEGRO_KEY_DOWN:
-				mainscale->userVEDGESEP += 0.01;
-				clientState->rescale = true;
-				break;
-			case ALLEGRO_KEY_UP:
-				mainscale->userVEDGESEP -= 0.01;
-				clientState->rescale = true;
-				break;
-			case ALLEGRO_KEY_PAD_PLUS:
-				mainscale->userDiamModifier += 0.05;
-				clientState->rescale = true;
-				break;
-			case ALLEGRO_KEY_PAD_MINUS:
-				mainscale->userDiamModifier -= 0.05;
-				clientState->rescale = true;
-				break;
-			case ALLEGRO_KEY_T:
-				clientState->show_ins_text++;
-				if (clientState->show_ins_text > INSTEXT_LAST)
-					clientState->show_ins_text = INSTEXT_FIRST;
-				switch (clientState->show_ins_text) {
-				case INSTEXT_NONE:
-					cout << "[rgat]Instruction text off" << endl;
-					break;
-				case INSTEXT_AUTO:
-					cout << "[rgat]Instruction text auto" << endl;
-					break;
-				case INSTEXT_ALL_ALWAYS:
-					cout << "[rgat]Instruction text always on" << endl;
-					break;
-				}
-				break;
-			case ALLEGRO_KEY_PAD_7:
-				clientState->cameraZoomlevel += 100;
-				break;
-			case ALLEGRO_KEY_PAD_1:
-				clientState->cameraZoomlevel -= 100;
-				break;
-			}
-
-			widgets->processEvent(ev);
-			return EV_NONE;
+				widgets->processEvent(ev);
+				return EV_NONE;
 		}
 
 		case ALLEGRO_EVENT_MENU_CLICK:
@@ -844,8 +839,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				if (clientState->activeGraph)
 				{
 					stringstream displayMessage;
-					displayMessage << "[rgat]Saving process " << clientState->activeGraph->pid << " to file" << endl;
-					display_only_status_message(displayMessage.str(), clientState);
+					displayMessage << "[rgat]Saving process " << clientState->activeGraph->pid << " to filesystem" << endl;
+					display_only_status_message("Saving process "+to_string(clientState->activeGraph->pid), clientState);
 					cout << displayMessage.str();
 					saveTrace(clientState);
 				}
@@ -1077,6 +1072,7 @@ int main(int argc, char **argv)
 	fontPath_ss << getModulePath() << "\\" << "VeraSe.ttf";
 	string fontPath = fontPath_ss.str();
 	clientState.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
+	clientState.messageFont = al_load_ttf_font(fontPath.c_str(), 15, 0);
 	ALLEGRO_FONT *PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
 	if (!clientState.standardFont) {
 		cerr << "[rgat]ERROR: Could not load font file "<< fontPath << endl;
@@ -1291,7 +1287,7 @@ int main(int argc, char **argv)
 				break;
 			}
 			default:
-				cout << "[rgat]WARNING! Unhandled event "<< eventResult << endl;
+				cout << "[rgat]WARNING: Unhandled event "<< eventResult << endl;
 			}
 		}
 

@@ -28,6 +28,7 @@ float linedist(FCOORD *c1, FCOORD *c2);
 float linedist(DCOORD *c1, FCOORD *c2);
 void midpoint(FCOORD *c1, FCOORD *c2, FCOORD *c3);
 void midpoint(DCOORD *c1, DCOORD *c2, DCOORD *c3);
+float zoomFactor(long cameraZoom, long sphereSize);
 
 //computes location of point 'pointnum' on a quadratic bezier curve divided into totalpoints segments
 void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int totalpoints, FCOORD *resultC);

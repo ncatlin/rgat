@@ -24,6 +24,7 @@ Graph/Process Saving/Loading routines
 #include "traceMisc.h"
 #include "basicblock_handler.h"
 #include "OSspecific.h"
+#include "GUIManagement.h"
 
 #define tag_START '{'
 #define tag_END '}'
@@ -268,8 +269,10 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 	}
 }
 
+//load process data not specific to threads
 bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
 {
+	
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
 		cerr << "[rgat]Corrupt save (process data start)" << endl;
 		return false;
@@ -281,6 +284,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		return false;
 	}
 
+	display_only_status_message("Loading Modules", clientState);
 	cout << "[rgat]Loading Module Paths" << endl;
 	string pathstring("");
 	string endTagStr;
@@ -305,6 +309,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	endTagStr.clear();
 
 	//syms
+	display_only_status_message("Loading Symbols", clientState);
 	cout << "[rgat]Loading Module Symbols" << endl;
 	if (!verifyTag(file, tag_START, tag_SYM)) {
 		cerr<< "[rgat]Corrupt save (process- sym data start)" << endl;
@@ -330,6 +335,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	file->seekg(1, ios::cur);
 
 	//disassembly
+	display_only_status_message("Loading Disassembly", clientState);
 	cout << "[rgat]Loading instruction disassembly" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
 		cerr << "[rgat]Corrupt save (process- disassembly data start)" << endl;
@@ -398,7 +404,8 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	}
 	file->seekg(1, ios::cur);
 
-	//disassembly
+	//basic blocks
+	display_only_status_message("Loading Basic Blocks", clientState);
 	cout << "[rgat]Loading basic block mapping" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
 		cerr << "[rgat]Corrupt save (process- basic block data start)" << endl;
@@ -480,7 +487,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	return true;
 }
 
-
+//load each graph saved for the process
 bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
 {
 	char tagbuf[3]; int TID; string tidstring;
@@ -497,6 +504,8 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		graph->tid = TID;
 		graph->pid = piddata->PID;
 		graph->active = false;
+
+		display_only_status_message("Loading graph "+tidstring, clientState);
 
 		if(graph->unserialise(file, &piddata->disassembly))
 			piddata->graphs.emplace(TID, graph);

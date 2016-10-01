@@ -23,6 +23,12 @@ Sphere coordinate processing functions
 #include "graphicsMaths.h"
 #include "traceStructs.h"
 
+//returns a small number indicating rough zoom
+float zoomFactor(long cameraZoom, long sphereSize)
+{
+	return ((cameraZoom - sphereSize) / 1000) - 1;
+}
+
 //propagates changes to the sphere size to the separation between coordinates
 void recalculate_scale(MULTIPLIERS *mults)
 {

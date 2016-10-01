@@ -44,7 +44,8 @@ public:
 	void update(thread_graph_data *graph);
 	void notifyAnimFinished();
 	void setScrollbarVisible(bool enabled) { scrollbar->setVisibility(enabled); }
-	void setScrollbarMax(int val) { scrollbar->setMaxValue(val); }
+	void setScrollbarMax(int val) {	scrollbar->setMaxValue(val);}
+
 	agui::VScrollBar getScrollbar() { return scrollbar; }
 	
 	int getScroll() { return scrollbar->getValue(); }

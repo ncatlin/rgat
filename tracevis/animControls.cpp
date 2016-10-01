@@ -379,6 +379,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	scrollbar = new agui::VScrollBar;
 	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
 	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
+	scrollbar->setMaxValue(0);
 	widgets->add(scrollbar);
 
 	CreateBufLayout();

@@ -85,6 +85,9 @@ public:
 	thread_graph_data *get_graph(int idx);
 	RadioButtonListener *radiolisten;
 
+	bool isVisible() { return diffFrame->isVisible(); }
+	void setVisible(bool val) { diffFrame->setVisibility(val); }
+
 private:
 	agui::Label *graph1Info = 0;
 	agui::Label *graph1Path = 0;

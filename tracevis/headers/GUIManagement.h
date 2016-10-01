@@ -78,15 +78,20 @@ public:
 	bool isHighlightVisible() { return highlightWindow->highlightFrame->isVisible(); }
 
 private:
+	unsigned int processCount = 0;
 	agui::ToolTip *tippy;
 	agui::Gui *widgets;
 	VISSTATE *clientState;
 	agui::Allegro5Graphics *widgetGraphicsHandler;
 	agui::Label *pidDropLabel;
+	agui::Label *pidCountLabel;
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
 	int widgetsUpdateCooldown = 1;
 	bool smoothDrawing = false;
+
+	//agui is not thread safe. when a new process appears, we add it to this queue
+	//our main gui handlign thread will pop it out and handle it
 	vector<string> pidEntryQueue;
 };
 

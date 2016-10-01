@@ -98,6 +98,7 @@ public:
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
 	ALLEGRO_BITMAP *GUIBMP = 0;
 	ALLEGRO_FONT *standardFont;
+	ALLEGRO_FONT *messageFont;
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	LAUNCHOPTIONS launchopts;

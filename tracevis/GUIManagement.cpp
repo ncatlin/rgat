@@ -72,6 +72,8 @@ void TraceVisGUI::paintWidgets()
 	while (!pidEntryQueue.empty())
 	{
 		dropDownWidget->addItem(pidEntryQueue.back());
+		pidCountLabel->setText("(of " + to_string(++processCount) + ")");
+		pidCountLabel->resizeToContents();
 		pidEntryQueue.pop_back();
 	}
 	widgetsUpdateCooldown = WIDGET_UPDATE_GAP;
@@ -146,7 +148,7 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	widgets->add(dropDownWidget);
 	//todo: generic way of working out height. font height, padding, margins, blah blah blah
 	dropDownWidget->setLocation(framex + pidDropLabel->getSize().getWidth(), framey - 4); 
-	dropDownWidget->setSize(110, 25);
+	dropDownWidget->setSize(105, 25);
 	dropDownWidget->setText(" Select PID");
 	PIDDropdownListener *dropListen = new PIDDropdownListener(clientState);
 	dropDownWidget->addActionListener(dropListen);
@@ -154,6 +156,11 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	//cache glyphs
 	dropDownWidget->addItem("0123456789 ");
 	dropDownWidget->removeItemAt(0);
+
+	pidCountLabel = new agui::Label;
+	pidCountLabel->setLocation(dropDownWidget->getLocation().getX()+dropDownWidget->getWidth(), framey);
+	pidCountLabel->setFontColor(agui::Color(255, 255, 255));
+	widgets->add(pidCountLabel);
 
 	diffWindow = new DiffSelectionFrame(widgets, clientState, defaultFont);
 	controlWindow = new AnimControls(widgets, clientState, defaultFont);
@@ -318,7 +325,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 
 		ALLEGRO_START_OF_MENU("&File", 1),
 		{ "&Run executable", EV_BTN_RUN, 0, NULL },
-		{ "&Save trace", EV_BTN_SAVE, 0, NULL },
+		{ "&Save process traces", EV_BTN_SAVE, 0, NULL },
 		{ "&Load saved trace", EV_BTN_LOAD, 0, NULL },
 
 		//ALLEGRO_START_OF_MENU("Open &Recent...", 3),
@@ -362,13 +369,13 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 	return menuEvents;
 }
 
-
+//display message in middle of the screen when doing something that locks UI
 void display_only_status_message(string msg, VISSTATE *clientState)
 {
 	al_clear_to_color(al_col_black);
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->controlWindow->setStatusLabel(msg);
-	widgets->paintWidgets();
+	int textw = al_get_text_width(clientState->standardFont, msg.c_str());
+	int middlex = clientState->displaySize.width / 2 - textw / 2;
+	al_draw_text(clientState->messageFont, al_col_white, middlex, clientState->mainFrameSize.height / 2, 0, msg.c_str());
 	al_set_target_backbuffer(clientState->maindisplay);
 	al_draw_bitmap(clientState->GUIBMP, 0, 0, 0);
 	al_flip_display();

@@ -858,6 +858,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 	}
 }
 
+
 //standard animated or static display of the active graph
 void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA *pd)
 {
@@ -866,10 +867,9 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 	else
 		graph->display_static(clientState->modes.nodes, clientState->modes.edges);
 
-	long sphereSize = graph->m_scalefactors->radius;
-	float zmul = (clientState->cameraZoomlevel - sphereSize) / 1000 - 1;
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->m_scalefactors->radius);
 	
-	if (clientState->show_ins_text && zmul < 7 && graph->get_num_nodes() > 2)
+	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd, graph);
 	
 	//if zoomed in, show all extern labels
@@ -913,8 +913,7 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
 
-	long sphereSize = graph1->m_scalefactors->radius;
-	float zmul = (clientState->cameraZoomlevel - sphereSize) / 1000 - 1;
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->m_scalefactors->radius);
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
@@ -925,7 +924,7 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 		show_extern_labels(clientState, &pd, graph1);
 	}
 
-	if (clientState->show_ins_text && zmul < 10 && graph1->get_num_nodes() > 2)
+	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph1->get_num_nodes() > 2)
 	{
 		if (!pdgathered) 
 			gather_projection_data(&pd);
@@ -952,6 +951,7 @@ void draw_heatmap_key_blocks(VISSTATE *clientState, int x, int y)
 
 void draw_heatmap_key(VISSTATE *clientState)
 {
+	if (!clientState->activeGraph) return; 
 	int keyx = clientState->mainFrameSize.width / 2 + 150;
 
 	stringstream keytext;
@@ -968,6 +968,7 @@ void draw_heatmap_key(VISSTATE *clientState)
 
 void draw_conditional_key(VISSTATE *clientState)
 {
+	if (!clientState->activeGraph) return;
 	ALLEGRO_FONT *font = clientState->standardFont;
 	stringstream keytextA, keytextN;
 	keytextA << "Always Taken (" << clientState->activeGraph->condCounts.first << ")";
@@ -1019,7 +1020,7 @@ void display_big_heatmap(VISSTATE *clientState)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zmul = (clientState->cameraZoomlevel - graph->zoomLevel) / 1000 - 1;
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->m_scalefactors->radius);
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
@@ -1027,7 +1028,7 @@ void display_big_heatmap(VISSTATE *clientState)
 	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 		show_extern_labels(clientState, &pd, graph);
 
-	if (clientState->show_ins_text && zmul < 10 && graph->get_num_nodes() > 2)
+	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
 		draw_edge_heat_text(clientState, zmul, &pd);
 
 

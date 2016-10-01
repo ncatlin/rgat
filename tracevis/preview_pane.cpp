@@ -185,7 +185,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 	ALLEGRO_BITMAP *previousBmp = al_get_target_bitmap();
 	bool spinGraphs = true;
 
-	glPointSize(5);
+	glPointSize(PREVIEW_POINT_SIZE);
 
 	ALLEGRO_COLOR preview_bgcol = clientState->config->preview.background;
 	int first = 0;
@@ -207,7 +207,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 	glPushMatrix();
 
 	map<int, void *>::iterator threadit = clientState->activePid->graphs.begin();
-	for (;threadit != clientState->activePid->graphs.end(); threadit++)
+	for (;threadit != clientState->activePid->graphs.end(); ++threadit)
 	{
 		previewGraph = (thread_graph_data *)threadit->second;
 	
@@ -228,7 +228,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 		clientState->graphPositions[50+graphy] = make_pair(clientState->activePid->PID, TID);
 		graphy += PREV_Y_MULTIPLIER;
 		graphsHeight += PREV_Y_MULTIPLIER;
-		numGraphs++;
+		++numGraphs;
 
 	}
 
@@ -237,10 +237,9 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 	al_set_target_bitmap(previousBmp);
 
 	int scrollDiff = graphsHeight - clientState->displaySize.height;
-	if (scrollDiff < 0) 
-		widgets->setScrollbarMax(0);
-	else
-		widgets->setScrollbarMax(numGraphs - clientState->displaySize.height / PREV_Y_MULTIPLIER);
+
+	if (scrollDiff > 0) 
+		widgets->setScrollbarMax(numGraphs - (clientState->displaySize.height / PREV_Y_MULTIPLIER));
 
 	if (spinPerFrame)
 	{
