@@ -87,8 +87,11 @@ bool getSavePath(string saveDir, string filename, string *result, int PID)
 {
 	//if directory doesn't exist, create
 	if (!fileExists(saveDir.c_str()))
-		if (!CreateDirectoryA(saveDir.c_str(),NULL))
+		if (!CreateDirectoryA(saveDir.c_str(), NULL))
+		{
+			cerr << "[rgat]Error: Could not create non-existant directory " << saveDir << endl;
 			return false;
+		}
 
 	stringstream savepath;
 	savepath << saveDir << basename(filename) <<"-"<< PID <<"-"<< time_string() << ".rgat";

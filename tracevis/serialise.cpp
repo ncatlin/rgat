@@ -177,8 +177,19 @@ void saveTrace(VISSTATE * clientState)
 		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths.at(0),
 		&path, clientState->activePid->PID))
 	{
-		cerr << "[rgat]ERROR: Failed to get save path" << endl;
-		return;
+		cout << "[rgat]WARNING: Couldn't save to " << clientState->config->saveDir << endl;
+		clientState->config->saveDir = getModulePath()+"\\saves\\";
+		cout << "[rgat]Attempting to use " << clientState->config->saveDir << endl;
+
+		if (!getSavePath(clientState->config->saveDir,
+			clientState->glob_piddata_map[clientState->activePid->PID]->modpaths.at(0),
+			&path, clientState->activePid->PID))
+		{
+			cerr << "[rgat]ERROR: Failed to save to path " << clientState->config->saveDir << ", giving up." <<endl;
+			cerr << "[rgat]Add path of a writable directory to CLIENT_PATH in rgat.cfg" << endl;
+			return;
+		}
+		clientState->config->updateSavePath(clientState->config->saveDir);
 	}
 
 	cout << "[rgat]Saving process " << clientState->activePid->PID <<" to " << path << endl;

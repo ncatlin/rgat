@@ -389,17 +389,27 @@ void clientConfig::saveToFile()
 		cerr << "[rgat]Failed to create config file " << configFilePath <<", Allegro error: " << al_get_errno() << endl;
 }
 
-void clientConfig::updateLastPath(string path)
+void clientConfig::reSaveToFile()
 {
-	lastPath = path;
-
 	string cstrpath(configFilePath.begin(), configFilePath.end());
 	alConfig = al_load_config_file(cstrpath.c_str());
 	if (!alConfig) return;
-	
+
 	saveToFile();
 
 	al_destroy_config(alConfig);
+}
+
+void clientConfig::updateSavePath(string path)
+{
+	saveDir = path;
+	reSaveToFile();
+}
+
+void clientConfig::updateLastPath(string path)
+{
+	lastPath = path;
+	reSaveToFile();
 }
 
 void clientConfig::loadDefaultPaths()
@@ -415,8 +425,6 @@ void clientConfig::loadDefaultPaths()
 #elif LINUX
 	assert(0);
 #endif
-
-
 }
 
 void clientConfig::loadDefaults()

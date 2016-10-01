@@ -128,16 +128,24 @@ void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int t
 	resultC->z = ((1 - t) * (1 - t) * startC->z + 2 * (1 - t) * t * bezierC->z + t * t * endC->z);
 }
 
-//take an a coordinate, left and right columns of screen, horiz sep
-//return if coord is within those columns
-//only as accurate as the mystery constant
+/*
+input: an 'a' coordinate, left and right columns of screen, horiz separation
+return: if coord is within those columns
+only as accurate as the inaccurate mystery constant
+
+TODO: come up with a way of deriving row 'b' from a given coordinate
+then we can improve performance even more by looking at the top and bottom rows
+instead of getting everything in the column
+
+Graph tends to not have much per column though so this isn't a desperate requirement
+*/
 bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 {
 	/* the idea here is to calculate the column of the given coordinate
 	   dunno how though!
 	   FIX ME - to fix text display
 	*/
-									//bad bad bad bad bad bad bad... but close
+									//bad bad bad bad bad bad bad... but close. gets worse the wider the graph is
 	int coordcolumn = floor(-a / (COLOUR_PICKING_MYSTERY_CONSTANTA / hedgesep));
 	coordcolumn = coordcolumn % ADIVISIONS;
 
@@ -149,7 +157,7 @@ bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 		coordcolumn += shifter;
 	}
 
-	//this code is horrendous and doesn't fix it
+	//this code is horrendous and doesn't fix it and ugh
 	int stupidHack = 1;
 	if (coordcolumn >= leftcol && coordcolumn <= rightcol+ stupidHack) return true;
 	else return false;

@@ -105,6 +105,7 @@ public:
 
 	TITLE *title;
 	long cameraZoomlevel = 0;
+	bool nearSide = false;
 	float xturn = 135;
 	float yturn = -25;
 	HEIGHTWIDTH displaySize;

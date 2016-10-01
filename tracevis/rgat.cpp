@@ -910,6 +910,13 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 			case EV_BTN_LOAD:
 			{
+
+				if (!fileExists(clientState->config->saveDir))
+				{
+					string newSavePath = getModulePath() + "\\saves\\";
+					clientState->config->updateSavePath(newSavePath);
+				}
+
 				widgets->exeSelector->hide();
 				ALLEGRO_FILECHOOSER *fileDialog;
 				//bug: sometimes uses current directory
@@ -1262,7 +1269,8 @@ int main(int argc, char **argv)
 			else
 				al_clear_to_color(mainBackground);
 
-			if (!al_is_event_queue_empty(low_frequency_timer_queue))
+			//set to true if displaying the colour picking sphere
+			if (!al_is_event_queue_empty(low_frequency_timer_queue)) 
 			{
 				al_flush_event_queue(low_frequency_timer_queue);
 				performIrregularActions(&clientState);

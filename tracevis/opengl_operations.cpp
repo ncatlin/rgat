@@ -36,8 +36,15 @@ void frame_gl_setup(VISSTATE* clientState)
 	glPushMatrix();
 
 	glLoadIdentity();
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
-		clientState->cameraZoomlevel + clientState->activeGraph->m_scalefactors->radius);
+
+	if (clientState->nearSide)
+		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
+			clientState->cameraZoomlevel);
+	else
+		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
+			clientState->cameraZoomlevel + clientState->activeGraph->m_scalefactors->radius);
+
+
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
@@ -123,8 +130,6 @@ void initial_gl_setup(VISSTATE *clientState)
 	glMatrixMode(GL_MODELVIEW);
 	glPointSize(DEFAULTPOINTSIZE);
 	glClearColor(0, 0, 0, 1.0);
-	//why 60000?
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50, clientState->cameraZoomlevel + 60000);
 }
 
 //draw a segmented sphere with row gradiented red, cols green
@@ -223,7 +228,9 @@ void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doC
 		plot_colourpick_sphere(clientState);
 
 	glPushMatrix();
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 500, clientState->cameraZoomlevel);
+	//make sure camera only sees the nearest side of the sphere
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 50, 
+		clientState->cameraZoomlevel);
 	glLoadIdentity();
 
 	rotate_to_user_view(clientState);
@@ -245,17 +252,14 @@ void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doC
 	TBRG->leftgreen = pixelRGB[1];
 	glReadPixels(width - 1, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
 	TBRG->rightgreen = pixelRGB[1];
-
-	//not using top and bottom because they blended into each other on the sphere
-	//might be fixed now the view distance is fixed though
-	//glReadPixels(halfwidth, height - 1, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
-	//TBRG->topred = pixelRGB[0];
-	//glReadPixels(halfwidth, 3, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
-	//TBRG->bottomred = pixelRGB[0];
-
+	//not used yet
+	glReadPixels(halfwidth, height - 1, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->topred = pixelRGB[0];
+	glReadPixels(halfwidth, 3, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->bottomred = pixelRGB[0];
 	glPopMatrix();
 
-	if (doClear)
+	if (doClear) //also need to call this function on every frame to see it
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 

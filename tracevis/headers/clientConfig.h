@@ -24,7 +24,9 @@ class clientConfig
 
 public:
 	clientConfig(string filepath);
-	
+	//save config from memory into file
+	void saveToFile();
+
 	~clientConfig();
 
 	struct {
@@ -81,7 +83,7 @@ public:
 	unsigned int maxArgStorage;
 
 	//these are not saved in the config file but toggled at runtime
-	bool showExternText = false;
+	void updateSavePath(string path);
 	void updateLastPath(string path);
 
 private:
@@ -100,9 +102,7 @@ private:
 
 	//read config file at configFilePath into memory
 	bool loadFromFile();
-
-	//save config from memory into file
-	void saveToFile();
+	void reSaveToFile();
 
 	//save individual sections of memory config to file
 	void savePreview();
