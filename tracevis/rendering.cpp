@@ -392,6 +392,12 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 	{
 		EXTTEXT* ex = drawIt->first;
 		node_data *n = graph->get_node(ex->nodeIdx);
+		if (clientState->nearSide)
+		{
+			if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+				continue;
+		}
 		if (!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
