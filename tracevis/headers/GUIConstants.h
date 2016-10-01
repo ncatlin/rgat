@@ -62,10 +62,24 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define TOP_SUMMARY_HEIGHT 40
 
 #define INSTEXT_FIRST 0
+//show no instruction text
 #define INSTEXT_NONE INSTEXT_FIRST
+//show instruction text selected by distance
 #define INSTEXT_AUTO 1
+//show all instruction text
 #define INSTEXT_ALL_ALWAYS 2
 #define INSTEXT_LAST INSTEXT_ALL_ALWAYS
+
+#define EXTERNTEXT_FIRST 0
+//show no external labels
+#define EXTERNTEXT_NONE EXTERNTEXT_FIRST
+//show symbols
+#define EXTERNTEXT_SYMS 1
+//show path and symbols
+#define EXTERNTEXT_ALL 2
+#define EXTERNTEXT_LAST EXTERNTEXT_ALL
+
+
 
 #define WF_POINTSPERLINE 64
 #define WIREFRAMELOOPS 18 //meant to be alterable but stuff breaks if you change this. don't.
@@ -100,7 +114,18 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define EV_BTN_NODES EV_BTN_DIFF+1
 #define EV_BTN_EDGES EV_BTN_NODES+1
 #define EV_BTN_HIGHLIGHT EV_BTN_EDGES+1
-#define EV_BTN_EXT_MOD_TEXT EV_BTN_HIGHLIGHT+1
+
+#define EV_BTN_EXT_TEXT_NONE EV_BTN_HIGHLIGHT+1
+#define EV_BTN_EXT_TEXT_SYMS EV_BTN_EXT_TEXT_NONE+1
+#define EV_BTN_EXT_TEXT_PATH EV_BTN_EXT_TEXT_SYMS+1
+
+#define EV_BTN_INS_TEXT_NONE EV_BTN_EXT_TEXT_PATH+1
+#define EV_BTN_INS_TEXT_AUTO EV_BTN_INS_TEXT_NONE+1
+#define EV_BTN_INS_TEXT_ALWA EV_BTN_INS_TEXT_AUTO+1
+
+#define EV_BTN_AUTOSCALE EV_BTN_INS_TEXT_ALWA+1
+
+#define EV_BTN_ABOUT EV_BTN_AUTOSCALE+1
 
 #define DIFF_SELECTED 1
 #define DIFF_STARTED 2

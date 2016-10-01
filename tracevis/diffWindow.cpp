@@ -19,18 +19,20 @@ The class for the divergence/diff selection window
 */
 #include "diffWindow.h"
 
-int DiffSelectionFrame::getSelectedDiff() {
+int DiffSelectionFrame::getSelectedDiff() 
+{
 	if (firstDiffLabel->getCheckedState()) return 0;
 	if (secondDiffLabel->getCheckedState()) return 1;
 	return 0;
 }
 
-DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) {
+DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) 
+{
 	int paneHeight = 400;
 	diffFrame = new agui::Frame;
 	diffFrame->setSize(480, paneHeight);
 	diffFrame->setLocation(200, 300);
-	diffFrame->setText("Select threads to compare->");
+	diffFrame->setText("Select graphs to compare->");
 	diffFrame->setVisibility(false);
 	widgets->add(diffFrame);
 
@@ -83,9 +85,17 @@ DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState
 	diffBtn->setSize(100, 40);
 	diffBtn->setBackColor(agui::Color(210, 210, 210));
 
-	CompareButtonListener *compareBtn = new CompareButtonListener(clientState);
-	diffBtn->addActionListener(compareBtn);
+	agui::Button *closeBtn = new agui::Button();
+	closeBtn->setText("X");
+	closeBtn->setSize(25, 25);
+	closeBtn->setLocation(diffFrame->getWidth() - closeBtn->getWidth() - 15, 5);
+	closeBtn->setBackColor(agui::Color(210, 210, 210));
+
+	CompareButtonListener *btnListener = new CompareButtonListener(clientState, this);
+	diffBtn->addActionListener(btnListener);
 	diffFrame->add(diffBtn);
+	closeBtn->addActionListener(btnListener);
+	diffFrame->add(closeBtn);
 }
 
 thread_graph_data *DiffSelectionFrame::get_graph(int idx)

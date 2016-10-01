@@ -525,42 +525,45 @@ void render_main_graph(VISSTATE *clientState)
 		doResize = true;
 	}
 
-	//doesn't take bmod into account
-	//keeps graph away from the south pole
-	int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
-	if (lowestPoint > clientState->config->lowB)
+	if (clientState->autoscale)
 	{
-		float startB = lowestPoint;
-		while (lowestPoint > clientState->config->lowB)
+		//doesn't take bmod into account
+		//keeps graph away from the south pole
+		int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+		if (lowestPoint > clientState->config->lowB)
 		{
-			graph->m_scalefactors->userVEDGESEP *= 0.98;
-			graph->p_scalefactors->userVEDGESEP *= 0.98;
-			recalculate_scale(graph->m_scalefactors);
-			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+			float startB = lowestPoint;
+			while (lowestPoint > clientState->config->lowB)
+			{
+				graph->m_scalefactors->userVEDGESEP *= 0.98;
+				graph->p_scalefactors->userVEDGESEP *= 0.98;
+				recalculate_scale(graph->m_scalefactors);
+				lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+			}
+			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
+
+			recalculate_scale(graph->p_scalefactors);
+			doResize = true;
+			graph->vertResizeIndex = 0;
 		}
-		//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
-		recalculate_scale(graph->p_scalefactors);
-		doResize = true;
-		graph->vertResizeIndex = 0;
-	}
-
-	//more straightforward, stops graph from wrapping around the globe
-	int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
-	if (widestPoint > clientState->config->farA)
-	{
-		float startA = widestPoint;
-		while (widestPoint > clientState->config->farA)
+		//more straightforward, stops graph from wrapping around the globe
+		int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+		if (widestPoint > clientState->config->farA)
 		{
-			graph->m_scalefactors->userHEDGESEP *= 0.99;
-			graph->p_scalefactors->userHEDGESEP *= 0.99;
-			recalculate_scale(graph->m_scalefactors);
-			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+			float startA = widestPoint;
+			while (widestPoint > clientState->config->farA)
+			{
+				graph->m_scalefactors->userHEDGESEP *= 0.99;
+				graph->p_scalefactors->userHEDGESEP *= 0.99;
+				recalculate_scale(graph->m_scalefactors);
+				widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+			}
+			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
+			recalculate_scale(graph->p_scalefactors);
+			doResize = true;
+			graph->vertResizeIndex = 0;
 		}
-		//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
-		recalculate_scale(graph->p_scalefactors);
-		doResize = true;
-		graph->vertResizeIndex = 0;
 	}
 
 	if (doResize) graph->previewNeedsResize = true;
@@ -654,7 +657,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 
 	stringstream argstring;
 
-	if (clientState->config->showExternText)
+	if (clientState->show_extern_text == EXTERNTEXT_ALL)
 		argstring << modPath << ":";
 
 	int numCalls = n->calls;
@@ -878,7 +881,7 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 		draw_instruction_text(clientState, zmul, pd, graph);
 	
 	//if zoomed in, show all extern labels
-	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
+	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR && clientState->show_extern_text != EXTERNTEXT_NONE)
 		show_extern_labels(clientState, pd, graph);
 	else
 	{	//show label of extern we are blocked on

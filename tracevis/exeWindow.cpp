@@ -22,7 +22,7 @@ The class for the executable launching dialog
 #include "OSspecific.h"
 
 #define EXEFRAME_W 500
-#define EXEFRAME_H 300
+#define EXEFRAME_H 330
 #define EXETEXT_W 350
 #define EXETEXT_X 60
 #define EXETEXT_Y 50
@@ -153,15 +153,32 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	*/
 
 
+	agui::Label *warnLabel = new agui::Label;
+	warnLabel->setText("Target will have rgat's privileges in this environment. Be sensible.");
+	warnLabel->resizeToContents();
+	warnLabel->setLocation(0, exeFrame->getHeight() - 100);
+	warnLabel->setMargins(0, 15, 0, 0);
+	exeFrame->add(warnLabel);
 
+	exeButtonListener *btnListener2 = new exeButtonListener(state, this);
 
 	launchBtn = new agui::Button;
 	launchBtn->setText("Launch");
 	launchBtn->setSize(60, 25);
-	launchBtn->setLocation(exeFrame->getWidth() / 2 - launchBtn->getWidth() / 2, exeFrame->getHeight()-70);
-	launchButtonListener *btnListener2 = new launchButtonListener(state, this);
+	int midframeX = exeFrame->getWidth() / 2 - launchBtn->getWidth() / 2;
+	launchBtn->setLocation(midframeX, exeFrame->getHeight()-70);
 	launchBtn->addActionListener(btnListener2);
+	launchBtn->setToolTipText("Visualise target execution");
 	exeFrame->add(launchBtn);
+
+	agui::Button *closeBtn = new agui::Button;
+	closeBtn->setText("X");
+	closeBtn->setSize(25, 25);
+	int sideFrameX = exeFrame->getWidth() - closeBtn->getWidth() - 15;
+	closeBtn->setLocation(sideFrameX, 5);
+	closeBtn->addActionListener(btnListener2);
+	closeBtn->setToolTipText("Close Dialog (or press Esc)");
+	exeFrame->add(closeBtn);
 }
 
 

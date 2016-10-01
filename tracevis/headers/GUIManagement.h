@@ -66,6 +66,7 @@ public:
 	HighlightSelectionFrame *highlightWindow = NULL;
 	AnimControls *controlWindow = NULL;
 	exeWindow *exeSelector = NULL;
+	agui::Frame *aboutBox = NULL;
 	void fitToResize();
 
 	//redrawing every widget is awfully slow
@@ -87,6 +88,7 @@ private:
 	agui::Label *pidCountLabel;
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
+
 	int widgetsUpdateCooldown = 1;
 	bool smoothDrawing = false;
 
@@ -108,6 +110,29 @@ public:
 private:
 	VISSTATE *clientState;
 };
+
+class aboutListener : public agui::KeyboardListener
+{
+public:
+	virtual void keyDownCB(const agui::KeyEvent &evt)
+	{
+		//if (evt.control && evt.getKey() == ALLEGRO_KEY_C)
+		printf("copy %d, %d\n", evt.control(), evt.getKey());
+	}
+};
+
+class aboutBtnListener : public agui::ActionListener
+{
+public:
+	aboutBtnListener(TraceVisGUI *guiptr) { gui = guiptr; }
+	virtual void actionPerformed(const agui::ActionEvent &evt)
+	{
+		gui->aboutBox->setVisibility(false);
+	}
+private:
+	TraceVisGUI *gui;
+};
+
 
 ALLEGRO_DISPLAY* displaySetup();
 void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title);

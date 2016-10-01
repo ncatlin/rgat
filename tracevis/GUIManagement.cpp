@@ -166,6 +166,45 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	controlWindow = new AnimControls(widgets, clientState, defaultFont);
 	highlightWindow = new HighlightSelectionFrame(widgets, clientState, defaultFont);
 	exeSelector = new exeWindow(widgets, clientState, defaultFont);
+
+	aboutBox = new agui::Frame();
+	aboutBox->setSize(300, 110);
+	aboutBox->setVisibility(false);
+	agui::FlowLayout *aboutLayout = new agui::FlowLayout;
+	aboutLayout->setMargins(5, 10, 5, 10);
+	aboutLayout->setMaxOnRow(1);
+	aboutLayout->setHorizontallyCentered(true);
+	aboutBox->add(aboutLayout);
+	
+	agui::Label *versionLabel = new agui::Label;
+	versionLabel->setText("rgat Version 0.1 (Preview/Unstable)");
+	versionLabel->resizeToContents();
+	aboutLayout->add(versionLabel);
+
+	aboutBtnListener *abtBtnListen = new aboutBtnListener(this);
+
+	//this was a textfield but the keyboardevent handler wasnt seeing ctrl-c
+	//could add a 'Copy' button but that looks crap
+	//instead ill just leave it as a label until I can summon the will to diagnose the keyboard issue
+	agui::Label *seeElseWhereUrl = new agui::Label;
+	seeElseWhereUrl->setText("https://github.com/ncatlin/rgat/");
+	seeElseWhereUrl->resizeToContents();
+	seeElseWhereUrl->setBackColor(aboutBox->getContentPane()->getBackColor());
+	//seeElseWhereUrl->setReadOnly(true);
+	//seeElseWhereUrl->setWantHotkeys(true);
+	aboutLayout->add(seeElseWhereUrl);
+
+	agui::Button *closeBtn = new agui::Button;
+
+	closeBtn->setText("Close");
+	closeBtn->resizeToContents();
+	closeBtn->setLocation(60, closeBtn->getLocation().getY());
+	closeBtn->addActionListener(abtBtnListen);
+	aboutLayout->add(closeBtn);
+
+	aboutLayout->resizeToContents();
+	aboutBox->resizeToContents();
+	widgets->add(aboutBox);
 }
 
 ALLEGRO_DISPLAY* displaySetup() 
@@ -176,17 +215,15 @@ ALLEGRO_DISPLAY* displaySetup()
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 16, ALLEGRO_SUGGEST);
 
 	ALLEGRO_DISPLAY *display = al_create_display(STARTWWIDTH, STARTWHEIGHT);
-	if (!display) {
-		if (!display)
-		{
-			cerr << "[rgat]Failed to create display! Allegro error: "<< al_get_errno() << endl;
-			cerr << "[rgat]Running this on VirtualBox?" << endl;
-			cerr << "[rgat]VirtualBox Manual:" << endl;
-			cerr << "\t\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"" << endl;
-			cerr << "[rgat]It is safer to record the trace in nongraphical mode [-e from the command line]" << endl;
-			cerr << "[rgat]Replay the trace in an environment with 3D support." << endl;
-			return NULL;
-		}
+	if (!display) 
+	{
+		cerr << "[rgat]Failed to create display! Allegro error: "<< al_get_errno() << endl;
+		cerr << "[rgat]Running this on VirtualBox?" << endl;
+		cerr << "[rgat]VirtualBox Manual:" << endl;
+		cerr << "\t\"3D acceleration with Windows guests requires Windows 2000, Windows XP, Vista or Windows 7\"" << endl;
+		cerr << "[rgat]It is safer to record the trace in nongraphical mode [-e from the command line]" << endl;
+		cerr << "[rgat]Replay the trace in an environment with 3D support." << endl;
+		return NULL;
 	}
 
 	return display;
@@ -221,14 +258,13 @@ void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg)
 	updateTitle(display, title);
 }
 
-
-void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int verts, int edges)
+void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int nodes, int edges)
 {
 	if (!clientState->title->zoom) return;
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph) return;
 
-	snprintf(clientState->title->Primitives, 55, "[target:%s TID:%d N:%d/E:%d]", graph->modPath.c_str(), graph->tid, verts,edges);
+	snprintf(clientState->title->Primitives, 55, "[target:%s TID:%d %d Nodes / %d Edges]", graph->modPath.c_str(), graph->tid, nodes, edges);
 	updateTitle(display, clientState->title);
 }
 
@@ -328,10 +364,12 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "&Save process traces", EV_BTN_SAVE, 0, NULL },
 		{ "&Load saved trace", EV_BTN_LOAD, 0, NULL },
 
+		//todo?
 		//ALLEGRO_START_OF_MENU("Open &Recent...", 3),
 		//{ "Recent 1", 4, 0, NULL },
 		//{ "Recent 2", 5, 0, NULL },
 		//ALLEGRO_END_OF_MENU,
+
 		ALLEGRO_MENU_SEPARATOR,
 		{ "E&xit", EV_BTN_QUIT, 0, NULL },
 		ALLEGRO_END_OF_MENU,
@@ -351,15 +389,19 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "Show Nodes", EV_BTN_NODES, 0, NULL },
 		{ "Show Edges [e]", EV_BTN_EDGES, 0, NULL },
 		{ "Show &Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
+		{ "Toggle Autoscale", EV_BTN_AUTOSCALE, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("Text", 3),
-		{ "Show Extern Modules [m]", EV_BTN_EXT_MOD_TEXT, 0, NULL },
+		{ "Disable extern labels [m]", EV_BTN_EXT_TEXT_NONE, 0, NULL },
+		{ "Show extern symbols [m]", EV_BTN_EXT_TEXT_SYMS, 0, NULL },
+		{ "Show symbols and paths [m]", EV_BTN_EXT_TEXT_PATH, 0, NULL },
+		{ "Disable instruction labels [t]", EV_BTN_INS_TEXT_NONE, 0, NULL },
+		{ "Auto instruction display [t]", EV_BTN_INS_TEXT_AUTO, 0, NULL },
+		{ "Always show instructions [t]", EV_BTN_INS_TEXT_ALWA, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
-		ALLEGRO_START_OF_MENU("&Help", 7),
-		{ "&About", 8, 0, NULL },
-		ALLEGRO_END_OF_MENU,
+		{ "&About", EV_BTN_ABOUT, 0, NULL },
 		ALLEGRO_END_OF_MENU
 	};
 

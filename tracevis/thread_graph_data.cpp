@@ -273,10 +273,7 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 	{
 		if (!n->funcargs.empty())
 			if (callsSoFar < n->funcargs.size())
-			{
 				ex.argList = n->funcargs.at(callsSoFar);
-				printf("pushing new funcarg %s\n", ex.argList.at(0).second.c_str());
-			}
 			else
 				ex.argList = *n->funcargs.rbegin();
 

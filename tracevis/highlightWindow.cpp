@@ -217,9 +217,18 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 
 	agui::Button *refreshBtn = new agui::Button;
 	refreshBtn->setLocation(HLT_TEXT_X, HLT_MODULE_Y + 40);
-	refreshBtn->setText("Refresh");
+	refreshBtn->setText("Refresh List");
+	refreshBtn->setMargins(2, 5, 2, 5);
 	refreshBtn->resizeToContents();
 	highlightBtnListen = new highlightButtonListener(clientState, HL_REFRESH_BTN, this);
 	refreshBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(refreshBtn);
+
+	agui::Button *closeBtn = new agui::Button;
+	closeBtn->setLocation(HLT_TEXT_X+ refreshBtn->getWidth()+10, HLT_MODULE_Y + 40);
+	closeBtn->setText("Close");
+	closeBtn->setMargins(2, 5, 2, 5);
+	closeBtn->resizeToContents();
+	closeBtn->addActionListener(highlightBtnListen);
+	highlightFrame->add(closeBtn);
 }

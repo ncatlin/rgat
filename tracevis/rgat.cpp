@@ -682,6 +682,20 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				widgets->diffWindow->diffFrame->setVisibility(false);
 			}
 
+			//clipboard/select
+			switch (ev->keyboard.keycode)
+			{
+				case ALLEGRO_KEY_LCTRL:
+					printf("l cont\n");
+					break;
+				case ALLEGRO_KEY_C:
+					printf("c pressed\n");
+					break;
+				case ALLEGRO_KEY_V:
+				case ALLEGRO_KEY_X:
+					break;
+			}
+
 			if (!clientState->activeGraph)
 			{
 				widgets->processEvent(ev);
@@ -716,7 +730,21 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_M:
-					clientState->config->showExternText = !clientState->config->showExternText;
+					clientState->show_extern_text++;
+					if (clientState->show_extern_text > EXTERNTEXT_LAST)
+						clientState->show_extern_text = EXTERNTEXT_FIRST;
+					switch (clientState->show_extern_text) 
+					{
+						case EXTERNTEXT_NONE:
+							cout << "[rgat]Extern labels off" << endl;
+							break;
+						case EXTERNTEXT_SYMS:
+							cout << "[rgat]Extern syms shown" << endl;
+							break;
+						case EXTERNTEXT_ALL:
+							cout << "[rgat]Extern paths and syms shown" << endl;
+							break;
+					}
 					break;
 
 				case ALLEGRO_KEY_J:
@@ -727,13 +755,21 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					change_mode(clientState, EV_BTN_EDGES);
 					break;
 
+				//stretch and shrink the graph
 				case ALLEGRO_KEY_LEFT:
 					mainscale->userHEDGESEP -= 0.05;
 					clientState->rescale = true;
 					break;
-
 				case ALLEGRO_KEY_RIGHT:
 					mainscale->userHEDGESEP += 0.05;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_DOWN:
+					mainscale->userVEDGESEP += 0.01;
+					clientState->rescale = true;
+					break;
+				case ALLEGRO_KEY_UP:
+					mainscale->userVEDGESEP -= 0.01;
 					clientState->rescale = true;
 					break;
 
@@ -746,14 +782,22 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					clientState->rescale = true;
 					break;
 
-				case ALLEGRO_KEY_DOWN:
-					mainscale->userVEDGESEP += 0.01;
-					clientState->rescale = true;
+				//fine zoon control
+				case ALLEGRO_KEY_PAD_7:
+					clientState->cameraZoomlevel += 100;
 					break;
-				case ALLEGRO_KEY_UP:
-					mainscale->userVEDGESEP -= 0.01;
-					clientState->rescale = true;
+				case ALLEGRO_KEY_PAD_1:
+					clientState->cameraZoomlevel -= 100;
 					break;
+				case ALLEGRO_KEY_PAD_8:
+					clientState->cameraZoomlevel += 10;
+					break;
+				case ALLEGRO_KEY_PAD_2:
+					clientState->cameraZoomlevel -= 10;
+					break;
+
+
+
 				case ALLEGRO_KEY_PAD_PLUS:
 					mainscale->userDiamModifier += 0.05;
 					clientState->rescale = true;
@@ -762,6 +806,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					mainscale->userDiamModifier -= 0.05;
 					clientState->rescale = true;
 					break;
+
 				case ALLEGRO_KEY_T:
 					clientState->show_ins_text++;
 					if (clientState->show_ins_text > INSTEXT_LAST)
@@ -777,12 +822,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 						cout << "[rgat]Instruction text always on" << endl;
 						break;
 					}
-					break;
-				case ALLEGRO_KEY_PAD_7:
-					clientState->cameraZoomlevel += 100;
-					break;
-				case ALLEGRO_KEY_PAD_1:
-					clientState->cameraZoomlevel -= 100;
 					break;
 				}
 
@@ -831,8 +870,31 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				}
 				break;
 
-			case EV_BTN_EXT_MOD_TEXT:
-				clientState->config->showExternText = !clientState->config->showExternText;
+			case EV_BTN_EXT_TEXT_NONE:
+				clientState->show_extern_text = EXTERNTEXT_NONE;
+				break;
+			case EV_BTN_EXT_TEXT_SYMS:
+				clientState->show_extern_text = EXTERNTEXT_SYMS;
+				break;
+			case EV_BTN_EXT_TEXT_PATH:
+				clientState->show_extern_text = EXTERNTEXT_ALL;
+				break;
+
+			case EV_BTN_INS_TEXT_NONE:
+				clientState->show_ins_text = INSTEXT_NONE;
+				break;
+			case EV_BTN_INS_TEXT_AUTO:
+				clientState->show_ins_text = INSTEXT_AUTO;
+				break;
+			case EV_BTN_INS_TEXT_ALWA:
+				clientState->show_ins_text = INSTEXT_ALL_ALWAYS;
+				break;
+
+			case EV_BTN_AUTOSCALE:
+				clientState->autoscale = !clientState->autoscale;
+				cout << "[rgat]Autoscale ";
+					if (clientState->autoscale) cout << "On." << endl;
+					else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
 				break;
 
 			case EV_BTN_SAVE:
@@ -867,6 +929,14 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				clientState->modes.animation = false;
 				break;
 			}
+
+			case EV_BTN_ABOUT:
+			{
+				widgets->aboutBox->setLocation(200, 200);
+				widgets->aboutBox->setVisibility(!widgets->aboutBox->isVisible());
+				break;
+			}
+
 			default:
 				cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1;
 				break;
@@ -1255,41 +1325,41 @@ int main(int argc, char **argv)
 			if (!eventResult) continue;
 			switch (eventResult)
 			{
-			case EV_MOUSE:
-				widgets->processEvent(&ev);
+				case EV_MOUSE:
+					widgets->processEvent(&ev);
 				
-				if (clientState.selectedPID > -1)
-				{
-					clientState.activePid = clientState.glob_piddata_map[clientState.selectedPID];
-					clientState.graphPositions.clear();
-					map<int, void *> *pidGraphList = &clientState.activePid->graphs;
-					map<int, void *>::iterator pidIt;
-					//get first graph with some verts
-					clientState.newActiveGraph = 0;
-					for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)
+					if (clientState.selectedPID > -1)
 					{
-						pair<int, void *> graphPair = *pidIt;
-						thread_graph_data *graph = (thread_graph_data *)graphPair.second;
-						if (graph->get_num_nodes())
+						clientState.activePid = clientState.glob_piddata_map[clientState.selectedPID];
+						clientState.graphPositions.clear();
+						map<int, void *> *pidGraphList = &clientState.activePid->graphs;
+						map<int, void *>::iterator pidIt;
+						//get first graph with some verts
+						clientState.newActiveGraph = 0;
+						for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)
 						{
-							clientState.newActiveGraph = graph;
-							break;
-						}
-					}			
-					clientState.selectedPID = -1;
-				}
+							pair<int, void *> graphPair = *pidIt;
+							thread_graph_data *graph = (thread_graph_data *)graphPair.second;
+							if (graph->get_num_nodes())
+							{
+								clientState.newActiveGraph = graph;
+								break;
+							}
+						}			
+						clientState.selectedPID = -1;
+					}
 	
-				break;
+					break;
 
-			case EV_BTN_QUIT:
-			{
-				clientState.die = true;
-				running = false;
-				while (!clientState.glob_piddata_map.empty()) { Sleep(1); }
-				break;
-			}
-			default:
-				cout << "[rgat]WARNING: Unhandled event "<< eventResult << endl;
+				case EV_BTN_QUIT:
+				{
+					clientState.die = true;
+					running = false;
+					while (!clientState.glob_piddata_map.empty()) { Sleep(1); }
+					break;
+				}
+				default:
+					cout << "[rgat]WARNING: Unhandled event "<< eventResult << endl;
 			}
 		}
 

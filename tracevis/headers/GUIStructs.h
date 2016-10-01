@@ -110,7 +110,10 @@ public:
 	HEIGHTWIDTH displaySize;
 	HEIGHTWIDTH mainFrameSize;
 	bool rescale = false;
+	bool autoscale = true;
 	int show_ins_text = INSTEXT_AUTO;
+	int show_extern_text = EXTERNTEXT_SYMS;
+
 	int leftcolumn = 0;
 	int rightcolumn = 0;
 

@@ -68,6 +68,12 @@ public:
 
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		if (evt.getSource()->getText() == "Close")
+		{
+			hl_frame->highlightFrame->setVisibility(false);
+			return;
+		}
+
 		switch (id)
 		{
 		case HL_REFRESH_BTN:

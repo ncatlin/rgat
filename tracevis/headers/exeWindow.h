@@ -142,15 +142,20 @@ private:
 	exeWindow *exe_wind;
 };
 
-class launchButtonListener : public agui::ActionListener
+class exeButtonListener : public agui::ActionListener
 {
 public:
-	launchButtonListener(VISSTATE *state, exeWindow *exeWind) {
+	exeButtonListener(VISSTATE *state, exeWindow *exeWind) {
 		clientState = state; exe_wind = exeWind;
 	}
 
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		if (evt.getSource()->getText() == "X")
+		{
+			exe_wind->hide();
+			return;
+		}
 		string path = exe_wind->getPath();
 		if (!fileExists(path))
 		{	

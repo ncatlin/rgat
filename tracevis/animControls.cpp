@@ -44,11 +44,11 @@ void AnimControls::setAnimState(int newAnimState)
 			clientState->modes.animation = true;
 			stringstream logentry;
 			logentry << "Replay of " << clientState->activeGraph->modPath << " PID:" <<
-				clientState->activePid->PID << " TID:" << clientState->activeGraph->tid << " started."<<endl;
+				clientState->activePid->PID << " TID:" << clientState->activeGraph->tid << " started." << endl;
 			al_append_native_text_log(clientState->textlog, logentry.str().c_str());
 		}
 		else
-			cerr << "[rgat] Animation selection error"<<endl;
+			cerr << "[rgat] Animation selection error" << endl;
 	}
 	animationState = newAnimState;
 

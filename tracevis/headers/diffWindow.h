@@ -57,19 +57,9 @@ private:
 	agui::RadioButton *source2;
 };
 
-class CompareButtonListener : public agui::ActionListener
-{
-public:
-	CompareButtonListener(VISSTATE *state) { clientState = state; }
-	virtual void actionPerformed(const agui::ActionEvent &evt)
-	{
-		clientState->modes.diff = DIFF_SELECTED;
-	}
-private:
-	VISSTATE *clientState;
-};
 
-class DiffSelectionFrame {
+class DiffSelectionFrame 
+{
 public:
 	DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
 	agui::RadioButton *firstDiffLabel;
@@ -95,4 +85,25 @@ private:
 	agui::Label *graph2Path = 0;
 	thread_graph_data *graph1 = 0;
 	thread_graph_data *graph2 = 0;
+};
+
+class CompareButtonListener : public agui::ActionListener
+{
+public:
+	CompareButtonListener(VISSTATE *state, DiffSelectionFrame *diffWindowPtr) {
+		clientState = state; diffWindow = diffWindowPtr;
+	}
+	virtual void actionPerformed(const agui::ActionEvent &evt)
+	{
+		if (evt.getSource()->getText() == "X")
+		{
+			diffWindow->setVisible(false);
+			return;
+		}
+		clientState->modes.diff = DIFF_SELECTED;
+	}
+
+private:
+	VISSTATE *clientState;
+	DiffSelectionFrame *diffWindow;
 };
