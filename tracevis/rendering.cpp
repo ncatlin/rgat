@@ -358,7 +358,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 }
 
 //draw floating extern texts. delete from list if time expired
-void drawExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
+void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
 {
 	if (externFloatingText->at(graph->tid).empty()) return;
 
@@ -434,7 +434,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *
 	gather_projection_data(&pd);
 	display_graph(clientState, graph, &pd);
 	graph->transferNewLiveCalls(externFloatingText, clientState->activePid);
-	drawExternTexts(graph, externFloatingText, clientState, &pd);
+	drawFloatingExternTexts(graph, externFloatingText, clientState, &pd);
 }
 
 //takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
@@ -716,6 +716,14 @@ void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
+
+		if (clientState->nearSide)
+		{
+			if(!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+				continue;
+		}
+
 		if (is_on_screen(&screenCoord, clientState))
 			draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 	}

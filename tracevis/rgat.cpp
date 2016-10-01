@@ -747,6 +747,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					}
 					break;
 
+				case ALLEGRO_KEY_N:
+					clientState->nearSide = !clientState->nearSide;
+					break;
+
 				case ALLEGRO_KEY_J:
 					change_mode(clientState, EV_BTN_CONDITION);
 					break;
@@ -895,6 +899,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				cout << "[rgat]Autoscale ";
 					if (clientState->autoscale) cout << "On." << endl;
 					else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
+				break;
+
+			case EV_BTN_NEARSIDE:
+				clientState->nearSide = !clientState->nearSide;
 				break;
 
 			case EV_BTN_SAVE:

@@ -390,6 +390,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "Show Edges [e]", EV_BTN_EDGES, 0, NULL },
 		{ "Show &Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
 		{ "Toggle Autoscale", EV_BTN_AUTOSCALE, 0, NULL },
+		{ "View sphere nearside only [n]", EV_BTN_NEARSIDE, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("Text", 3),
