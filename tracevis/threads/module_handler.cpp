@@ -160,7 +160,7 @@ void module_handler::main_loop()
 				sscanf_s(offset_s, "%x", &address);
 
 				if(!piddata->modBounds.count(modnum)) 
-					printf("Warning: sym before module. handle me\n"); //fail if sym came before module
+					cerr << "[rgat]Warning: sym before module. handle me"<<endl; //fail if sym came before module
 				else
 					address += piddata->modBounds[modnum].first;
 
@@ -201,31 +201,37 @@ void module_handler::main_loop()
 				MEM_ADDRESS endaddr = 0;
 				sscanf_s(endaddr_s, "%lx", &endaddr);
 
+				obtainMutex(piddata->disassemblyMutex, 2090);
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
 				if (*skipped_s == '1')
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_UNINSTRUMENTED);
 				else
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_INSTRUMENTED);
+				dropMutex(piddata->disassemblyMutex);
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {
 					cerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
 
-				if (!b64path.empty())
-					piddata->modpaths[modnum] = base64_decode(b64path);
-				else
-					piddata->modpaths[modnum] = string("NULL");
 				
-				if (!piddata->modBounds.count(modnum))
-					if (piddata->modsymsPlain.count(modnum))
+				string path_plain;
+				if (!b64path.empty())
+					path_plain = base64_decode(b64path);
+				else
+					path_plain = "";
+
+				obtainMutex(piddata->disassemblyMutex, 2091);
+				piddata->modpaths[modnum] = path_plain;
+				
+				if (!piddata->modBounds.count(modnum) && piddata->modsymsPlain.count(modnum))
 					{
-						printf("\n\nadd address to all these syms\n\n");
+						cerr << "[rgat]ERROR: module after sym - add address to all relevant syms" << endl;
 						assert(0);
 					}
 
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
-
+				dropMutex(piddata->disassemblyMutex);
 
 				continue;
 			}

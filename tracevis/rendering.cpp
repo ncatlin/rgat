@@ -457,10 +457,8 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 					//think mutexes fixes have made this irrelevant
 					Sleep(50);
 					if (retries++ > 25)
-						printf("MUTEX BLOCKAGE?\n");
+						cerr<< "[rgat]MUTEX BLOCKAGE?" << endl;
 			}
-			if (retries > 25)
-				printf("BLOCKAGE CLEARED\n");
 			if (!maxVerts--)break;
 	}
 	return 1;
@@ -540,7 +538,7 @@ void render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
 		}
-		cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
+		//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
@@ -559,7 +557,7 @@ void render_main_graph(VISSTATE *clientState)
 			recalculate_scale(graph->m_scalefactors);
 			widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
 		}
-		cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
+		//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
 		recalculate_scale(graph->p_scalefactors);
 		doResize = true;
 		graph->vertResizeIndex = 0;
@@ -649,17 +647,23 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 //draw text for quantity + symbol + argument indicator
 void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
+	//ive never had a crash from not guarding this operation but its prob a good idea
+	obtainMutex(clientState->activePid->disassemblyMutex, 2043);
+	string modPath = clientState->activePid->modpaths.at(n->nodeMod);
+	dropMutex(clientState->activePid->disassemblyMutex);
+
 	stringstream argstring;
 
 	if (clientState->config->showExternText)
-		argstring << clientState->activePid->modpaths.at(n->nodeMod) << ":";
+		argstring << modPath << ":";
 
 	int numCalls = n->calls;
 	string symString;
 	clientState->activePid->get_sym(n->nodeMod,n->address,&symString);
+
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())
-		argstring << "[NOSYM]:0x" << std::hex << n->address;
+		argstring << basename(modPath) << ":0x" << std::hex << n->address;
 
 	if (numCalls > 1)
 		argstring << symString;
@@ -836,7 +840,8 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 
 		edge_data *e = graph->get_edge(*ePair);
 		if (!e) {
-			printf("Heatmap edge skip\n"); continue;
+			cerr<< "[rgat]WARNING: Heatmap edge skip"<<endl; 
+			continue;
 		}
 		int edgeWeight = e->weight;
 		if (edgeWeight < 2) continue;

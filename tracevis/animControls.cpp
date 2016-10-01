@@ -36,11 +36,16 @@ void AnimControls::setAnimState(int newAnimState)
 	if (newAnimState == animationState) return;
 	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
 	{
+		//start replay
 		if (!clientState->activeGraph->active)
 		{
 			newAnimState = ANIM_REPLAY;
 			clientState->animationUpdate = std::stoi(this->stepText->getText());
 			clientState->modes.animation = true;
+			stringstream logentry;
+			logentry << "Replay of " << clientState->activeGraph->modPath << " PID:" <<
+				clientState->activePid->PID << " TID:" << clientState->activeGraph->tid << " started."<<endl;
+			al_append_native_text_log(clientState->textlog, logentry.str().c_str());
 		}
 		else
 			cerr << "[rgat] Animation selection error"<<endl;
@@ -140,6 +145,12 @@ void AnimControls::update(thread_graph_data *graph)
 {
 	if (graph->active)
 		displayBacklog(graph);
+		
+	if (graph->vertResizeIndex)
+	{
+		statusLabel->setText("(Rescaling graph...)");
+		return;
+	}
 
 	if (graph->basic) 
 	{ 
@@ -380,6 +391,8 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
 	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
 	scrollbar->setMaxValue(0);
+	ScrollBarMouseListener *sbml = new ScrollBarMouseListener(this, clientState, scrollbar);
+	scrollbar->addMouseListener(sbml);
 	widgets->add(scrollbar);
 
 	CreateBufLayout();

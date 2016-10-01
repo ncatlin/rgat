@@ -168,7 +168,8 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	exeSelector = new exeWindow(widgets, clientState, defaultFont);
 }
 
-ALLEGRO_DISPLAY* displaySetup() {
+ALLEGRO_DISPLAY* displaySetup() 
+{
 
 	al_set_new_window_position(100, 100);
 	al_set_new_display_flags(ALLEGRO_OPENGL | ALLEGRO_WINDOWED | ALLEGRO_RESIZABLE);
@@ -194,10 +195,8 @@ ALLEGRO_DISPLAY* displaySetup() {
 void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	if (!title) return;
 	stringstream newTitle;
-	newTitle << "rgat. Mouse:(" << title->MPos
-		<< ") Zoom:(" << title->zoom << ") "
-		<< title->Primitives
-		<< " FPS: " << title->FPS;
+	newTitle << "rgat " << title->Primitives;
+		//<< " FPS: " << title->FPS;
 	al_set_window_title(display, newTitle.str().c_str());
 }
 
@@ -229,16 +228,17 @@ void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, 
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph) return;
 
-	snprintf(clientState->title->Primitives, 55, "[TID:%d N:%d/E:%d]", graph->tid, verts,edges);
+	snprintf(clientState->title->Primitives, 55, "[target:%s TID:%d N:%d/E:%d]", graph->modPath.c_str(), graph->tid, verts,edges);
 	updateTitle(display, clientState->title);
 }
 
 void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPSMax) {
 	if (!title->FPS) return;
 
+	if (FPS >= 59) FPS = 60;
 	//get rid of annoying flicker
 	if (FPSMax > 10000) FPSMax = 10000;
-	if (FPS >= 59) FPS = 60;
+	
 
 	snprintf(title->FPS, 25, "%d (%.0f)\n", FPS, FPSMax);
 	updateTitle(display, title);

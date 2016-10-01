@@ -53,10 +53,10 @@ unsigned long thread_graph_data::get_backlog_total()
 void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
 	obtainMutex(funcQueueMutex, 1013);
-	while (!funcQueue.empty())
+	while (!floatingExternsQueue.empty())
 	{
-		EXTERNCALLDATA nextExtern = funcQueue.front();
-		funcQueue.pop();
+		EXTERNCALLDATA nextExtern = floatingExternsQueue.front();
+		floatingExternsQueue.pop();
 
 		EXTTEXT extt;
 		extt.edge = nextExtern.edgeIdx;
@@ -89,11 +89,6 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 					extt.displayString = hexaddr.str();
 				}
 			}
-			stringstream callLog;
-			callLog << "0x" << std::hex << nextExtern.callerAddr << ": ";
-			callLog << nextExtern.externPath << " -> ";
-			callLog << extt.displayString << "\n";
-			loggedCalls.push_back(callLog.str());
 		}
 
 		//set_edge_alpha(nextExtern.edgeIdx, get_activelines(), 1.0);
@@ -275,11 +270,26 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 	
 	string funcArgString;
 	if (updateArgs)
-		if (!n->funcargs.empty() && callsSoFar < n->funcargs.size())
-			ex.argList = n->funcargs.at(callsSoFar);
+	{
+		if (!n->funcargs.empty())
+			if (callsSoFar < n->funcargs.size())
+			{
+				ex.argList = n->funcargs.at(callsSoFar);
+				printf("pushing new funcarg %s\n", ex.argList.at(0).second.c_str());
+			}
+			else
+				ex.argList = *n->funcargs.rbegin();
+
+		stringstream callLog;
+		callLog << "0x" << std::hex << n->address << ": ";
+		callLog << piddata->modpaths[n->nodeMod] << " -> ";
+		callLog << generate_funcArg_string(get_node_sym(n->index, piddata), ex.argList) << "\n";
+		loggedCalls.push_back(callLog.str());
+	}
+
 
 	obtainMutex(funcQueueMutex, 1018);
-	funcQueue.push(ex);
+	floatingExternsQueue.push(ex);
 	dropMutex(funcQueueMutex);
 
 }
@@ -291,8 +301,12 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 
 	if (!piddata->get_sym(n->nodeMod, n->address, &sym))
 	{
+		obtainMutex(piddata->disassemblyMutex, 2043);
+		string modPath = piddata->modpaths.at(n->nodeMod);
+		dropMutex(piddata->disassemblyMutex);
+
 		stringstream nosym;
-		nosym << "NOSYM:0x" << std::hex << n->address;
+		nosym << basename(modPath) << ":0x" << std::hex << n->address;
 		return nosym.str();
 	}
 
@@ -302,7 +316,7 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 void thread_graph_data::emptyArgQueue()
 {
 	obtainMutex(funcQueueMutex, 1019);
-	while (!funcQueue.empty()) funcQueue.pop();
+	while (!floatingExternsQueue.empty()) floatingExternsQueue.pop();
 	dropMutex(funcQueueMutex);
 }
 
@@ -416,12 +430,13 @@ unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool an
 
 	bool animation_end = false;
 
-	if (sequenceIndex == bbsequence.size() - 1)
+	if (sequenceIndex >= (bbsequence.size() - 1))
 		return ANIMATION_ENDED;
 
 	return 0;
 }
 
+//todo move elsewhere
 //returns number in the repeating range 0.0-1.0-0.0, oscillating with the clock
 float getPulseAlpha()
 {
@@ -1053,12 +1068,12 @@ bool thread_graph_data::loadExterns(ifstream *file)
 
 bool thread_graph_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-	if (!loadNodes(file, disassembly)) { printf("Node load failed\n");  return false; }
-	if (!loadEdgeDict(file)) { printf("EdgeD load failed\n");  return false; }
-	if (!loadExterns(file)) { printf("Externs load failed\n");  return false; }
-	if (!loadStats(file)) { printf("Stats load failed\n");  return false; }
-	if (!loadAnimationData(file)) { printf("Animation load failed\n");  return false; }
-	if (!loadCallSequence(file)) { printf("Call sequence load failed\n"); return false; }
+	if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed"<<endl;  return false; }
+	if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
+	if (!loadExterns(file)) { cerr << "[rgat]ERROR:Externs load failed" << endl;  return false; }
+	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
+	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
+	if (!loadCallSequence(file)) { cerr << "[rgat]ERROR:Call sequence load failed" << endl; return false; }
 
 	dirtyHeatmap = true;
 	return true;
@@ -1099,7 +1114,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 {
 
 	if (!verifyTag(file, tag_START, 'N')) {
-		printf("Bad node data\n");
+		cerr << "[rgat]Bad node data" << endl;
 		return false;
 	}
 	string endtag("}N,D");

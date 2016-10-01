@@ -922,6 +922,7 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <int, 
 	}
 
 	clientState->activeGraph->emptyArgQueue();
+	clientState->activeGraph->assign_modpath(clientState->activePid);
 
 	clientState->newActiveGraph = 0;
 	if (!externFloatingText->count(clientState->activeGraph->tid))
@@ -938,7 +939,7 @@ int main(int argc, char **argv)
 
 	if (fileExists("\\\\.\\pipe\\BootstrapPipe"))
 	{
-		printf("[rgat]Already running [Existing BootstrapPipe found]. Exiting...\n");
+		cerr << "[rgat]Already running [Existing BootstrapPipe found]. Exiting..." << endl;
 		return -1;
 	}
 
@@ -1161,7 +1162,7 @@ int main(int argc, char **argv)
 				plot_colourpick_sphere(&clientState);
 
 				widgets->toggleSmoothDrawing(false);
-				
+				graph->assign_modpath(activePid);
 				break;
 			}
 
@@ -1215,16 +1216,17 @@ int main(int argc, char **argv)
 				widgets->controlWindow->notifyAnimFinished();
 			}
 			
-			//draw preview graphs onto the previewpane bitmap
+			
 			al_set_target_backbuffer(clientState.maindisplay);
 			if (clientState.modes.preview)
 			{
 				if (previewRenderFrame++ % (60 / clientState.config->preview.FPS))
 				{
+					//update and draw preview graphs onto the previewpane bitmap
 					redrawPreviewGraphs(&clientState, &graphPositions);
 					previewRenderFrame = 0;
 				}
-				//draw them on the screen
+				//draw previews on the screen
 				al_draw_bitmap(clientState.previewPaneBMP, clientState.mainFrameSize.width, MAIN_FRAME_Y, 0);
 			}
 			//draw the main big graph bitmap on the screen

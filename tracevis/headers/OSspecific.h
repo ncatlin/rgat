@@ -22,7 +22,7 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 #include <stdafx.h>
 
 string getModulePath();
-string get_dr_path();
+string basename(string path);
 bool fileExists(string path);
 void execute_tracer(string executable, string args, void *clientState_ptr);
 bool getSavePath(string saveDir, string filename, string *result, int PID);
@@ -31,5 +31,4 @@ bool getSavePath(string saveDir, string filename, string *result, int PID);
 bool obtainMutex(HANDLE mutex, int waitTimeCode);
 
 void dropMutex(HANDLE mutex);
-void pipeExists(LPCTSTR pipeName);
 

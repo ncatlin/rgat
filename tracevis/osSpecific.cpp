@@ -24,14 +24,6 @@ Need to migrate all Windows API (and soon Linux) routines here
 
 
 #ifdef WIN32
-void pipeExists(LPCTSTR pipeName)
-{
-	//BOOL WINAPI WaitNamedPipe(
-	//	_In_ LPCTSTR lpNamedPipeName,
-	//	_In_ DWORD   nTimeOut
-	//);
-}
-
 /*
 a lot of the code checks this for success/failure
 have changed this to not return until success but leaving this here
@@ -80,6 +72,16 @@ string getModulePath()
 	return string(buffer).substr(0, pos);
 }
 
+//get filename from path
+//http://stackoverflow.com/a/8520815
+string basename(string path)
+{
+	const size_t last_slash_idx = path.find_last_of("\\/");
+	if (std::string::npos != last_slash_idx)
+		path.erase(0, last_slash_idx + 1);
+	return path;
+}
+
 //returns path for saving files, tries to create if it doesn't exist
 bool getSavePath(string saveDir, string filename, string *result, int PID)
 {
@@ -88,14 +90,8 @@ bool getSavePath(string saveDir, string filename, string *result, int PID)
 		if (!CreateDirectoryA(saveDir.c_str(),NULL))
 			return false;
 
-	//get filename from path
-	//http://stackoverflow.com/a/8520815
-	const size_t last_slash_idx = filename.find_last_of("\\/");
-	if (std::string::npos != last_slash_idx)
-		filename.erase(0, last_slash_idx + 1);
-
 	stringstream savepath;
-	savepath << saveDir << filename <<"-"<< PID <<"-"<< time_string() << ".rgat";
+	savepath << saveDir << basename(filename) <<"-"<< PID <<"-"<< time_string() << ".rgat";
 	*result = savepath.str();
 	return true;
 }

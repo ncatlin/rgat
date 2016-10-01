@@ -184,7 +184,7 @@ public:
 	bool terminated = false;
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
-	std::queue<EXTERNCALLDATA> funcQueue;
+	std::queue<EXTERNCALLDATA> floatingExternsQueue;
 
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
 	//ordered list of externs externs called by each node

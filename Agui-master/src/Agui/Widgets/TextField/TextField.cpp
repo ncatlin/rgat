@@ -625,7 +625,6 @@ namespace agui {
 			invalidateBlink();
 			break;
 		case EXT_KEY_LEFT:
-			printf("xxext_keyleft\n");
 			if(getCaretPosition() == 0 
 				&& getSelectionStart() != getSelectionEnd() &&
 				keyEvent.shift())

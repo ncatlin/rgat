@@ -188,17 +188,14 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
 	{
-		//conspicuous lack of mutation handling here
-		//we could check this by looking at the mutation state of all members of the block
+
+		if (piddata->should_die()) return;
 		INS_DATA *instruction = block->at(instructionIndex);
 
-		if (lastRIPType != FIRST_IN_THREAD)
+		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
 		{
-			if (!thisgraph->node_exists(lastVertID))
-			{
-				cerr << "\t\t[rgat]ERROR: Last vert "<<lastVertID<<" not found" << endl;
-				assert(0);
-			}
+			cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
+			assert(0);
 		}
 		
 		//target vert already on this threads graph?
@@ -268,7 +265,9 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 	}
 }
 
-void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) {
+//tracking how big the graph gets
+void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) 
+{
 	//the extra work of 2xabs() happens so rarely that its worth avoiding
 	//the stack allocations of a variable every call
 	if (abs(a) > thisgraph->maxA) thisgraph->maxA = abs(a);
@@ -319,10 +318,12 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			while (usedCoords[a][b])
 			{
 				a += JUMPA_CLASH;
-				//not much point spamming it
-				//if (clash++ > 30)
-				//	cerr << "[rgat]WARNING: DENSE GRAPH CLASHES (JUMP)" << endl;
+				++clash;
 			}
+
+			if (clash > 15)
+				cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+
 			break;
 		}
 	//long purple line to show possible distinct functional blocks of the program
@@ -334,12 +335,15 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			{
 				a += CALLA_CLASH;
 				b += CALLB_CLASH * BMULT;
-
-				if (clash++ > 15)
-					printf("\tWARNING: DENSE GRAPH CLASH (CALL)\n");
+				++clash;
 			}
 
-			if (clash) a += CALLA_CLASH;
+			if (clash)
+			{
+				a += CALLA_CLASH;
+				if (clash > 15)
+					cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+			}
 			break;
 		}
 
@@ -380,9 +384,11 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			{
 				a += JUMPA_CLASH;
 				b += 1;
-				//if (clash++ > 50)
-				//	cerr << "[rgat]WARNING: Dense graph clashes (RET)"<<endl;
+				++clash;
 			}
+
+			if (clash > 15)
+				cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
 			break;
 		}
 	default:
@@ -396,6 +402,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 	return;
 }
 
+//decodes argument and places in processing queue, processes if all decoded for that call
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	MEM_ADDRESS funcpc, returnpc;
 	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
@@ -466,26 +473,24 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	process_new_args();
 }
 
+
 bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
-	//if parent calls multiple children, spread them out around caller
+	//start by examining our caller
 	node_data *lastNode = thisgraph->get_node(lastVertID);
 	assert(lastNode->ins->numbytes);
-
-	//start by examining our caller
 	
 	int callerModule = lastNode->nodeMod;
-	//if caller is external, not interested in this
+	//if caller is also external, not interested in this
 	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) 
 		return false;
 
 	BB_DATA *thisbb = 0;
-	do {
+	while (!thisbb)
 		get_extern_at_address(targaddr, &thisbb);
-	} while (!thisbb);
 
 	//see if caller already called this
-	//if so, get the destination so we can just increase edge weight
+	//if so, get the destination node so we can just increase edge weight
 	auto x = thisbb->thread_callers.find(TID);
 	if (x != thisbb->thread_callers.end())
 	{
@@ -529,6 +534,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	int parentExterns = thisgraph->get_node(lastVertID)->childexterns;
 	VCOORD lastnodec = thisgraph->get_node(lastVertID)->vcoord;
 
+	//if parent calls multiple children, spread them out around caller
 	newTargNode.vcoord.a = lastnodec.a + 2 * parentExterns + 5;
 	newTargNode.vcoord.b = lastnodec.b + parentExterns + 5;
 	newTargNode.vcoord.bMod = lastnodec.bMod;
@@ -553,6 +559,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	return true;
 }
 
+//places args for extern calls on screen and in storage if space
 void thread_trace_handler::process_new_args()
 {
 	//function				caller		args
@@ -607,7 +614,7 @@ void thread_trace_handler::process_new_args()
 					ex.argList = *callsIt;
 
 					assert(parentn->index != targn->index);
-					thisgraph->funcQueue.push(ex);
+					thisgraph->floatingExternsQueue.push(ex);
 					
 					if (targn->funcargs.size() < arg_storage_capacity)
 						targn->funcargs.push_back(*callsIt);
@@ -650,6 +657,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		if (!basicMode)
 		{
+			//store for animation and replay
 			obtainMutex(thisgraph->animationListsMutex, 1049);
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
 			thisgraph->mutationSequence.push_back(thistag->blockID);

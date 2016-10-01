@@ -221,3 +221,26 @@ private:
 	int *animState;
 	VISSTATE *clientState;
 };
+
+class ScrollBarMouseListener : public agui::MouseListener
+{
+public:
+	ScrollBarMouseListener(AnimControls *mycontrols, VISSTATE *state, agui::VScrollBar *sb)
+	{
+		controls = mycontrols; clientState = state; scrollbar = sb;
+	}
+
+	void mouseClickCB(agui::MouseEvent &evt) 
+	{
+		int clickY = evt.getY();
+		int scrollBarMidY = scrollbar->getHeight() / 2;
+		if (clickY > scrollBarMidY)
+			scrollbar->scrollDown();
+		else
+			scrollbar->scrollUp();
+	}
+private:
+	agui::VScrollBar *scrollbar;
+	AnimControls *controls;
+	VISSTATE *clientState;
+};
