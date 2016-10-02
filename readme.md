@@ -55,7 +55,7 @@ Instrumenting arbitrary code - especially malicious obfuscated code - tends to p
 
 ## Credit where it is due
 
-rgat uses 
+rgat relies upon: 
 
 * [DynamoRIO](https://github.com/DynamoRIO/) for generating instruction [opcode] traces
 * [Capstone](http://www.capstone-engine.org/) for disassembling them
