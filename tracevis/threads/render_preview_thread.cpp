@@ -38,17 +38,22 @@ void preview_renderer::main_loop()
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphIt;
 
-	while (!die && !piddata->should_die())
+	int dietimer = -1;
+	
+	while (!clientState->die && dietimer != 0)
 	{
+		//if this closes with the process then previews are left unrendered
+		if (dietimer == 0) break;
+		if ((die || piddata->should_die()) && dietimer-- < 0)
+			dietimer = 120;
+
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 
 		obtainMutex(piddata->graphsListMutex, 1011);
-		
 		graphIt = piddata->graphs.begin();
 		for (; graphIt != piddata->graphs.end(); graphIt++)
 			graphlist.push_back((thread_graph_data *)graphIt->second);
-
 		dropMutex(piddata->graphsListMutex);
 
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();

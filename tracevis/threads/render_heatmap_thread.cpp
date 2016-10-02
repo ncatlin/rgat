@@ -137,9 +137,13 @@ void heatmap_renderer::main_loop()
 		Sleep(200);
 
 	map<thread_graph_data *, bool> finishedGraphs;
-
-	while (!die && !piddata->should_die())
+	int dietimer = -1;
+	while (!clientState->die && dietimer != 0)
 	{
+		if (dietimer == 0) break;
+		if ((die || piddata->should_die()) && dietimer-- < 0)
+			dietimer = 3;
+
 		obtainMutex(piddata->graphsListMutex, 1054);
 
 		vector<thread_graph_data *> graphlist;

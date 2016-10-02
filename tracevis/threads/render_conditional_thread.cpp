@@ -131,8 +131,14 @@ void conditional_renderer::main_loop()
 	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
 	map <int, void *>::iterator graphit;
-	while (!die && !piddata->should_die())
+	int dietimer = -1;
+
+	while (!clientState->die && dietimer != 0)
 	{
+		if (dietimer == 0) break;
+		if ((die || piddata->should_die()) && dietimer-- < 0)
+			dietimer = 3;
+
 		obtainMutex(piddata->graphsListMutex, 1053);
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
