@@ -230,7 +230,11 @@ void process_coordinator_thread(VISSTATE *clientState)
 		THREAD_POINTERS *p = ((THREAD_POINTERS *)*processIt);
 		vector<base_thread *>::iterator threadIt = p->threads.begin();
 		for (; threadIt != p->threads.end(); ++threadIt)
+		{
+			//killing BB thread frees the disassembly data, causing race
+			if (*threadIt == p->BBthread) continue;
 			((base_thread *)*threadIt)->kill();
+		}
 	}
 
 	//wait for all children to terminate
@@ -254,6 +258,14 @@ void process_coordinator_thread(VISSTATE *clientState)
 		}
 		
 	}
+
+	//now safe to kill the disassembler threads
+	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
+		((THREAD_POINTERS *)*processIt)->BBthread->kill();
+
+	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
+		while (((THREAD_POINTERS *)*processIt)->BBthread->is_alive())
+			Sleep(1);
 
 	clientState->glob_piddata_map.clear();
 }
