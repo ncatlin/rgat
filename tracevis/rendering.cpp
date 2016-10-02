@@ -368,11 +368,7 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 	for (; exttIt != externFloatingText->at(graph->tid).end(); )
 	{
 		if (exttIt->timeRemaining <= 0)
-		{
-			//graph->set_edge_alpha(exttIt->edge, graph->get_activelines(), 0.3);
-			//graph->set_node_alpha(exttIt->nodeIdx, graph->get_activenodes(), 0.3);
 			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
-		}
 		else
 		{
 			if (!drawnNodes.count(exttIt->nodeIdx))
@@ -402,6 +398,7 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
 			pos.x, clientState->mainFrameSize.height - pos.y - ex->yOffset, 0, displayString.c_str());
+		ex->yOffset += EXTERN_FLOAT_RATE;
 	}
 }
 

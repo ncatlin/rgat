@@ -1184,6 +1184,7 @@ int main(int argc, char **argv)
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
 	map <int, NODEPAIR> graphPositions;
+	//new sym/arg strings currently being displayed on the graph
 	map <int, vector<EXTTEXT>> externFloatingText;
 
 	HANDLE hProcessCoordinator = CreateThread(

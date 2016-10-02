@@ -48,7 +48,7 @@ unsigned long thread_graph_data::get_backlog_total()
 	return sizePair.first + sizePair.second;
 }
 
-//take externs called from the trace and make them float on graph
+//take externs called from the trace/replay and make them float on graph
 //also adds them to the call log
 void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
@@ -71,13 +71,13 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 			continue; 
 		}
 
+		node_data* externn = get_node(nextExtern.edgeIdx.second);
 		if (active)
 		{
 			if (!nextExtern.callerAddr)
 			{
 				obtainMutex(piddata->disassemblyMutex, 1014);
 				node_data* parentn = get_node(nextExtern.edgeIdx.first);
-				node_data* externn = get_node(nextExtern.edgeIdx.second);
 				nextExtern.callerAddr = parentn->ins->address;
 				dropMutex(piddata->disassemblyMutex);
 
@@ -90,6 +90,12 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 				}
 			}
 		}
+
+		stringstream callLog;
+		callLog << "0x" << std::hex << externn->address << ": ";
+		callLog << piddata->modpaths[externn->nodeMod] << " -> ";
+		callLog << generate_funcArg_string(get_node_sym(externn->index, piddata), nextExtern.argList) << "\n";
+		loggedCalls.push_back(callLog.str());
 
 		//set_edge_alpha(nextExtern.edgeIdx, get_activelines(), 1.0);
 		//set_node_alpha(nextExtern.nodeIdx, get_activenodes(), 1.0);
@@ -276,12 +282,6 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 				ex.argList = n->funcargs.at(callsSoFar);
 			else
 				ex.argList = *n->funcargs.rbegin();
-
-		stringstream callLog;
-		callLog << "0x" << std::hex << n->address << ": ";
-		callLog << piddata->modpaths[n->nodeMod] << " -> ";
-		callLog << generate_funcArg_string(get_node_sym(n->index, piddata), ex.argList) << "\n";
-		loggedCalls.push_back(callLog.str());
 	}
 
 

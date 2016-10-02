@@ -184,6 +184,7 @@ public:
 	bool terminated = false;
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
+	//sym/arg strings that are to be made floating
 	std::queue<EXTERNCALLDATA> floatingExternsQueue;
 
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
