@@ -367,7 +367,7 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 	map <int, EXTTEXT*> drawnNodes;
 	for (; exttIt != externFloatingText->at(graph->tid).end(); )
 	{
-		if (exttIt->timeRemaining <= 0)
+		if (exttIt->framesRemaining-- <= 0)
 			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
 		else
 		{
@@ -377,12 +377,11 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 				drawMap[exaddr] = 1;
 				drawnNodes[exttIt->nodeIdx] = exaddr;
 			}
-			exttIt->timeRemaining -= 1;
-			exttIt++;
+			++exttIt;
 		}
 	}
 
-	DCOORD pos;
+	DCOORD nodepos;
 	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
 	for (; drawIt != drawMap.end(); ++drawIt)
 	{
@@ -394,10 +393,10 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
 				continue;
 		}
-		if (!n->get_screen_pos(graph->get_mainnodes(), pd, &pos)) continue;
+		if (!n->get_screen_pos(graph->get_mainnodes(), pd, &nodepos)) continue;
 		string displayString = ex->displayString;
 		al_draw_text(clientState->standardFont, al_col_green,
-			pos.x, clientState->mainFrameSize.height - pos.y - ex->yOffset, 0, displayString.c_str());
+			nodepos.x, clientState->mainFrameSize.height - nodepos.y - ex->yOffset, 0, displayString.c_str());
 		ex->yOffset += EXTERN_FLOAT_RATE;
 	}
 }

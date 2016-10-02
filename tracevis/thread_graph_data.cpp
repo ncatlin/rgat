@@ -61,7 +61,7 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 		EXTTEXT extt;
 		extt.edge = nextExtern.edgeIdx;
 		extt.nodeIdx = nextExtern.nodeIdx;
-		extt.timeRemaining = 40;
+		extt.framesRemaining = EXTERN_LIFETIME_FRAMES;
 		extt.yOffset = 10;
 		extt.displayString = generate_funcArg_string(get_node_sym(extt.nodeIdx, piddata), nextExtern.argList);
 

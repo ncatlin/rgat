@@ -79,6 +79,7 @@ public:
 	}
 	string getPath() { return target; }
 	string getArgs() {	return fileArgsTxt->getText(); }
+	void pasteArgs() { fileArgsTxt->paste(); }
 
 };
 
@@ -120,6 +121,12 @@ public:
 
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
+		if (evt.getSource()->getText() == "Paste")
+		{
+			exe_wind->pasteArgs();
+			return;
+		}
+
 		ALLEGRO_FILECHOOSER *fileDialog;
 		string startPath = clientState->config->lastPath;
 		fileDialog = al_create_native_file_dialog(startPath.c_str(), "Choose target to execute", "*.exe;*.*;",

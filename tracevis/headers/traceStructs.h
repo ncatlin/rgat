@@ -158,7 +158,7 @@ private:
 struct EXTTEXT {
 	NODEPAIR edge;
 	int nodeIdx;
-	float timeRemaining;
+	unsigned int framesRemaining;
 	float yOffset;
 	string displayString;
 };

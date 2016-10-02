@@ -82,8 +82,15 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	filePathBtn->setLocation(EXETEXT_X + EXETEXT_W +10, EXETEXT_Y);
 	exeFrame->add(filePathBtn);
 
+	agui::Button *fileArgsBtn = new agui::Button;
+	fileArgsBtn->setText("Paste"); //TODO(polish): file icon
+	fileArgsBtn->setSize(50, fileArgsTxt->getHeight());
+	fileArgsBtn->setLocation(EXETEXT_X + EXETEXT_W + 10, fileArgsTxt->getLocation().getY());
+	exeFrame->add(fileArgsBtn);
+
 	fileButtonListener *btnListener1 = new fileButtonListener(state, this);
 	filePathBtn->addActionListener(btnListener1);
+	fileArgsBtn->addActionListener(btnListener1);
 	exeFrame->setVisibility(false);
 
 	agui::Label *opts = new agui::Label;
@@ -152,21 +159,29 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	exeFrame->add(hideVMCB);
 	*/
 
+	int midframeX = exeFrame->getWidth() / 2;
 
-	agui::Label *warnLabel = new agui::Label;
-	warnLabel->setText("Target will have rgat's privileges in this environment. Be sensible.");
-	warnLabel->resizeToContents();
-	warnLabel->setLocation(0, exeFrame->getHeight() - 100);
-	warnLabel->setMargins(0, 15, 0, 0);
-	exeFrame->add(warnLabel);
+	agui::Label *warnLabel1 = new agui::Label;
+	warnLabel1->setText("Target will execute with rgat's privileges in this environment");
+	warnLabel1->resizeToContents();
+	warnLabel1->setLocation(midframeX - warnLabel1->getWidth() / 2, exeFrame->getHeight() - 100);
+	//warnLabel1->setMargins(0, 15, 0, 0);
+	exeFrame->add(warnLabel1);
+
+	agui::Label *warnLabel2 = new agui::Label;
+	warnLabel2->setText("Do be sensible");
+	warnLabel2->resizeToContents();
+	warnLabel2->setLocation(midframeX - warnLabel2->getWidth() / 2, exeFrame->getHeight() - 80);
+	//warnLabel2->setMargins(0, 15, 0, 0);
+	exeFrame->add(warnLabel2);
 
 	exeButtonListener *btnListener2 = new exeButtonListener(state, this);
 
 	launchBtn = new agui::Button;
 	launchBtn->setText("Launch");
 	launchBtn->setSize(60, 25);
-	int midframeX = exeFrame->getWidth() / 2 - launchBtn->getWidth() / 2;
-	launchBtn->setLocation(midframeX, exeFrame->getHeight()-70);
+	
+	launchBtn->setLocation(midframeX - launchBtn->getWidth()/2, exeFrame->getHeight()-58);
 	launchBtn->addActionListener(btnListener2);
 	launchBtn->setToolTipText("Visualise target execution");
 	exeFrame->add(launchBtn);
