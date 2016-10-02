@@ -42,7 +42,7 @@ void write_tid_text(ALLEGRO_FONT* font, thread_graph_data *graph, int x, int y)
 		infotxt << " (Active)";
 
 		unsigned long backlog = graph->get_backlog_total();
-		if (backlog)
+		if (backlog > 10)
 			infotxt << " Q:" << backlog;
 
 		unsigned long newIn = graph->getBacklogIn();
