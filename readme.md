@@ -25,6 +25,18 @@ Try to execute something. If you get an error then you likely need to install th
 
 It should create a default config file at start up, feel free to customise.
 
+## Running
+
+Run, save and load traces from the file menu. Other functionality should be reasonably self explanatory from the other menus.
+
+run from the command line with -h to get a list of command line options
+
+Graph navigation is intended to be similar to Google Earth: drag it with the mouse and zoom with the scroll wheel. Num pad 7,8,1 and 2 allow finer grained zoom control.
+
+Press 'n' to stop the stuff on the back of the sphere cluttering up your view, and 't' and 'm' to toggle instruction and dll text to the situation if the default's don't work for the situation.
+
+Use the arrow keys to stretch and compress the graph you are looking at. Turn off autoscaling in the options menu if rgat doesn't like it.
+
 ## Problems
 
 See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://github.com/ncatlin/rgat/wiki#limitations)
