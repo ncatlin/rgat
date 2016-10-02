@@ -91,16 +91,18 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 			}
 		}
 
-		stringstream callLog;
-		callLog << "0x" << std::hex << externn->address << ": ";
-		callLog << piddata->modpaths[externn->nodeMod] << " -> ";
-		callLog << generate_funcArg_string(get_node_sym(externn->index, piddata), nextExtern.argList) << "\n";
-		loggedCalls.push_back(callLog.str());
+		
 
-		//set_edge_alpha(nextExtern.edgeIdx, get_activelines(), 1.0);
-		//set_node_alpha(nextExtern.nodeIdx, get_activenodes(), 1.0);
 		if (nextExtern.drawFloating)
+		{
+			stringstream callLog;
+			callLog << "0x" << std::hex << externn->address << ": ";
+			callLog << piddata->modpaths[externn->nodeMod] << " -> ";
+			callLog << generate_funcArg_string(get_node_sym(externn->index, piddata), nextExtern.argList) << "\n";
+			loggedCalls.push_back(callLog.str());
+
 			externFloatingText->at(tid).push_back(extt);
+		}
 	}
 	dropMutex(funcQueueMutex);
 }
