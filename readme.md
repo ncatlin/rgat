@@ -55,4 +55,4 @@ rgat uses
 * [Capstone](http://www.capstone-engine.org/) for disassembling them
 * [Allegro 5](https://www.allegro.cc/) for managing OpenGL and handling input
 * [agui](https://github.com/jmasterx/Agui/) for a lightweight UI that didn't involve distributing GTK/Qt/etc
-* [base 64 code from René Nyffenegger](http://www.adp-gmbh.ch/cpp/common/base64.html) for platform independent encoding.
+* [base 64 code](http://www.adp-gmbh.ch/cpp/common/base64.html) for platform independent encoding.
