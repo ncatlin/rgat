@@ -188,7 +188,10 @@ void execute_tracer(string executable, string args, void *clientState_ptr)
 	ZeroMemory(&pi, sizeof(pi));
 
 	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
-	CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi);
-	clientState->switchProcess = true;
+	if (CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &si, &pi))
+		clientState->switchProcess = true;
+	else
+		cerr << "[rgat]ERROR: Failed to execute target, error: " << GetLastError() << endl;
+
 }
 #endif // WIN32

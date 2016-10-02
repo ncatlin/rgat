@@ -139,7 +139,6 @@ void basicblock_handler::main_loop()
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
 		}
-		if (clientState->die || die) break;
 
 		if (GetLastError() != ERROR_IO_PENDING) continue;
 		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);

@@ -186,7 +186,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 	int numInstructions = tag->insCount;
 	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist, &die);
 
-	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
+	for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
 	{
 
 		if (piddata->should_die()) return;
