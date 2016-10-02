@@ -15,7 +15,7 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Download/Installation
 
-It's [here](link), for instrumenting Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+It's [here](https://github.com/ncatlin/rgat/raw/master/drgat-0.1.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
 
 It's built to depend on the Windows 10 Universal CRT so if you have a version lower than that you might need to [install it](https://support.microsoft.com/en-gb/kb/2999226)
 
@@ -48,6 +48,10 @@ See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://g
 It's reliance on DynamoRIO means that rgat suffers from all of the same limitations and many more as well.
 
 Instrumenting arbitrary code - especially malicious obfuscated code - tends to present a *lot* of edge cases.
+
+## 'rgat'?
+
+'runtime graph analysis tool' or 'ridiculous graph analysis tool', depending on your fondness for the concept.
 
 ## Credit where it is due
 
