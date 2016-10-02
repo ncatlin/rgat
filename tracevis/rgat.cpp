@@ -410,36 +410,46 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 			continue;
 		}
 
-		if (arg == "-l" && idx + 1 < argc)
+		if (arg == "-l")
 		{
-			clientState->commandlineLaunchPath = string(argv[++idx]);
-			clientState->commandlineLaunchArgs = "";
-			continue;
+			if (idx + 1 < argc)
+			{
+				clientState->commandlineLaunchPath = string(argv[++idx]);
+				clientState->commandlineLaunchArgs = "";
+				continue;
+			}
+			cerr << "[rgat]ERROR: The -l option requires a path to an exeutable" << endl;
+			return false;
 		}
 
-		if (arg == "-e" && idx+2 < argc)
+		if (arg == "-e")
 		{
-			clientState->commandlineLaunchPath = string(argv[++idx]);
-			clientState->commandlineLaunchArgs = string(argv[++idx]);
-			continue;
+			if (idx + 2 < argc)
+			{
+				clientState->commandlineLaunchPath = string(argv[++idx]);
+				clientState->commandlineLaunchArgs = string(argv[++idx]);
+				continue;
+			}
+			cerr << "[rgat]ERROR: The -e option requires an executable and an argument string" << endl;
+			return false;
 		}
 
 		if (arg == "-h" )
 		{
-			//TODO
 			cout << "rgat - Instruction trace visualiser" << endl;
 			cout << "-e target \"arguments\" Execute target with specified argument string"  << endl;
 			cout << "-l target Execute target without arguments" << endl;
 			cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
 			cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
 			cout << "-b Launch in basic mode which does not save animation data" << endl;
+			cout << "No further processing due to help argument" << endl;
 			return false;
 		}
 	}
 
 	if (!fileExists(clientState->commandlineLaunchPath))
 	{
-		cerr << "[rgat]ERROR: File " << clientState->commandlineLaunchPath << " does not exist, exiting..." << endl;
+		cerr << "[rgat]ERROR: File [" << clientState->commandlineLaunchPath << "] does not exist, exiting..." << endl;
 		return false;
 	}
 	return true;

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Defaults for using when a config file does not exist
+Defaults for using when a config file exist
 */
 #pragma once
 #include "GUIConstants.h"

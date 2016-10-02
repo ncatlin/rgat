@@ -91,8 +91,6 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 			}
 		}
 
-		
-
 		if (nextExtern.drawFloating)
 		{
 			stringstream callLog;
