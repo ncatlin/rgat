@@ -42,12 +42,16 @@ struct DIFFIDS {
 	int tid2 = -1;
 };
 
+#define TITLE_STRING_MAX 300
+#define PRIMITIVES_STRING_MAX 200
+#define FPS_STRING_MAX 200
+
 struct TITLE {
 	char zoom[25] = { 0 };
 	char MPos[25] = { 0 };
-	char title[255] = { 0 };
+	char title[TITLE_STRING_MAX] = { 0 };
 	char FPS[25] = { 0 };
-	char Primitives[55] = { 0 };
+	char Primitives[PRIMITIVES_STRING_MAX] = { 0 };
 	char dbg[200] = { 0 };
 };
 

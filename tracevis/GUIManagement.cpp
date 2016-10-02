@@ -21,6 +21,7 @@ misc other UI elements
 #include "stdafx.h"
 #include "GUIConstants.h"
 #include "GUIManagement.h"
+#include "OSspecific.h"
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)
 {
@@ -264,7 +265,7 @@ void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, 
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	if (!graph) return;
 
-	snprintf(clientState->title->Primitives, 55, "[target:%s TID:%d %d Nodes / %d Edges]", graph->modPath.c_str(), graph->tid, nodes, edges);
+	snprintf(clientState->title->Primitives, PRIMITIVES_STRING_MAX, "[target:%s TID:%d %d Nodes / %d Edges]", basename(graph->modPath).c_str(), graph->tid, nodes, edges);
 	updateTitle(display, clientState->title);
 }
 

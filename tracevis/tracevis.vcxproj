@@ -201,6 +201,7 @@
     <ClInclude Include="headers\serialise.h" />
     <ClInclude Include="headers\thread_trace_reader.h" />
     <ClInclude Include="headers\timeline.h" />
+    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Agui-master\src\Agui\ActionEvent.cpp" />
@@ -319,12 +320,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="tracevis.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -248,3 +248,4 @@ tracelog*
 # FAKE - F# Make
 .fake/
 /issues
+/INSTALLING.txt

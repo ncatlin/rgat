@@ -102,6 +102,7 @@ bool diff_plotter::get_sequence_node(node_data **n1, node_data **n2)
 	*n2 = graph2->get_node(idx2);
 
 	blockIdx++;
+	return true;
 }
 
 //first edge pair in graph 1 that is different in graphs 1 and 2
@@ -174,8 +175,6 @@ unsigned long diff_plotter::first_divering_edge()
 
 	dropMutex(graph1->animationListsMutex);
 	dropMutex(graph2->animationListsMutex);
-	if (doneFlag)
-		printf("no diversion found\n");
 	return animIndex;
 
 }
