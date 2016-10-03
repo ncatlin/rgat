@@ -2,4 +2,10 @@ Changelog
 ----------
 
 02/10/16 0.1:   Initial preview release
+
 02/10/16 0.1.1: Fix save corruption during save of running thread
+				Other minor fixes
+
+03/10/16 0.1.2: Improved performance with multithreaded targets
+				Prevented loading of pre-existing PID's		
+				
