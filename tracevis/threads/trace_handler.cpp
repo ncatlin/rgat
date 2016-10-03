@@ -903,16 +903,23 @@ void thread_trace_handler::main_loop()
 					assert(0);
 				}
 
-				unsigned long e_code;
+				DWORD e_code;
 				string e_code_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stoul(e_code_s, &e_code, 16)) {
 					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
 					assert(0);
 				}
 
+				DWORD e_flags;
+				string e_flags_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(e_flags_s, &e_flags, 16)) {
+					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
+					assert(0);
+				}
+
 				//TODO: place on graph. i'm thinking a yellow highlight line.
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
-					<< "[code " << std::hex << e_code << "] at address " << e_ip <<endl;
+					<< "[code " << std::hex << e_code << " flags: "<< e_flags << "] at address " << e_ip << "/" << e_ip_s <<endl;
 				continue;
 			}
 

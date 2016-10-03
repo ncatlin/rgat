@@ -921,7 +921,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				if (clientState->activeGraph)
 				{
 					stringstream displayMessage;
-					displayMessage << "[rgat]Saving process " << clientState->activeGraph->pid << " to filesystem" << endl;
+					displayMessage << "[rgat]Starting save of process " << clientState->activeGraph->pid << " to filesystem" << endl;
 					display_only_status_message("Saving process "+to_string(clientState->activeGraph->pid), clientState);
 					cout << displayMessage.str();
 					saveTrace(clientState);
@@ -1007,7 +1007,6 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 		widgets->controlWindow->setAnimState(ANIM_LIVE);
 		clientState->animationUpdate = 1;
 		clientState->modes.animation = true;
-
 	}
 	else
 	{
@@ -1041,7 +1040,6 @@ int main(int argc, char **argv)
 	}
 
 	VISSTATE clientState;
-
 	if (!al_init())
 	{
 		cerr << "[rgat]ERROR:Failed to initialise Allegro! Try using nongraphical mode -e from command line" << endl;

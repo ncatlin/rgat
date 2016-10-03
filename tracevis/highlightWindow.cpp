@@ -39,7 +39,9 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			for (; insListIt != insList.end(); ++insListIt)
 			{
 				INS_DATA *target = *insListIt;
-				node_data *n = graph->get_node(target->threadvertIdx.at(currentTid));
+				unordered_map<PID_TID, int>::iterator threadVIt = target->threadvertIdx.find(currentTid);
+				if (threadVIt == target->threadvertIdx.end()) continue;
+				node_data *n = graph->get_node(threadVIt->second);
 				highlightData->highlightNodes.push_back(n);
 			}
 			break;
