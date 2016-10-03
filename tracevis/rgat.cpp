@@ -517,7 +517,7 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	int PID;
 	loadfile >> PID_s;
 	if (!caught_stoi(PID_s, &PID, 10)) return false;
-	if (PID < 0 || PID > 100000) { cout << "[rgat]Corrupt save (pid= " << PID << ")" << endl; return false; }
+	if (clientState->glob_piddata_map.count(PID)) { cout << "[rgat]PID " << PID << " already loaded! Close rgat and reload" << endl; return false; }
 	else
 		cout << "[rgat]Loading saved PID: " << PID << endl;
 	loadfile.seekg(1, ios::cur);
@@ -623,22 +623,12 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 				// here we control drag speed at various zoom levels
 				// todo when we have insturctions to look at
-				//todo: fix speed at further out zoom levels
-
-				//if (zoomdiff > slowRotateThresholdLow && zoomdiff < slowRotateThresholdHigh) {
-				//	printf("non slowed drag! low:%ld -> zd: %f -> high:%ld\n", slowRotateThresholdLow, zoomdiff, slowRotateThresholdHigh);
-				//	dx *= 0.1;
-				//	dy *= 0.1;
-				//}
-				//else
-				//{
 				if (slowdown > 0)
 				{
-					//printf("slowed drag! low:%ld -> zd: %f -> high:%ld slowdown:%f\n",slowRotateThresholdLow,zoomdiff,slowRotateThresholdHigh,slowdown);
 					if (dx != 0) dx *= (slowdown * slowdownfactor);
 					if (dy != 0) dy *= (slowdown * slowdownfactor);
 				}
-				//}
+
 				clientState->xturn -= dx;
 				clientState->yturn -= dy;
 				char tistring[200];

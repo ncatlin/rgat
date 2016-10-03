@@ -178,7 +178,7 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	aboutBox->add(aboutLayout);
 	
 	agui::Label *versionLabel = new agui::Label;
-	versionLabel->setText("rgat Version 0.1 (Preview/Unstable)");
+	versionLabel->setText("rgat Version 0.1.2 (Preview/Unstable)");
 	versionLabel->resizeToContents();
 	aboutLayout->add(versionLabel);
 

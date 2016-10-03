@@ -708,7 +708,6 @@ namespace agui
 
 			while(!unsafeq.empty())
 			{
-				//[ncatlin]TODO: there is probably a race condition here causing regular crashes
 				currentNode = unsafeq.top();
 
 				unsafeq.pop();
