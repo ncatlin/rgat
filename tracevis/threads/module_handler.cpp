@@ -165,7 +165,9 @@ void module_handler::main_loop()
 					address += piddata->modBounds[modnum].first;
 
 				string symname = string(next_token);
+				obtainMutex(piddata->disassemblyMutex, 2089);
 				piddata->modsymsPlain[modnum][address] = symname;
+				dropMutex(piddata->disassemblyMutex);
 				continue;
 			}
 
@@ -186,6 +188,7 @@ void module_handler::main_loop()
 				long modnum = -1;
 				sscanf_s(modnum_s, "%d", &modnum);
 
+				obtainMutex(piddata->disassemblyMutex, 2090);
 				if (piddata->modpaths.count(modnum) > 0) {
 					cerr<< "[rgat]ERROR: PID:"<<PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
 						buf<<"]. current is:" << piddata->modpaths.at(modnum) << endl;
@@ -201,7 +204,6 @@ void module_handler::main_loop()
 				MEM_ADDRESS endaddr = 0;
 				sscanf_s(endaddr_s, "%lx", &endaddr);
 
-				obtainMutex(piddata->disassemblyMutex, 2090);
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
 				if (*skipped_s == '1')
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_UNINSTRUMENTED);
