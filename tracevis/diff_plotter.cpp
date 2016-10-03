@@ -91,12 +91,12 @@ bool diff_plotter::get_sequence_node(node_data **n1, node_data **n2)
 		blockAddr2 = targBlock_Size2.first;
 	}
 
-	INSLIST *block1 = getDisassemblyBlock(blockAddr1, blockID1, g1mutex, g1blocks, &ignore);
+	INSLIST *block1 = getDisassemblyBlock(blockAddr1, blockID1, g1ProcessData, &ignore);
 	INS_DATA *ins1 = block1->at(blockIdx);
 	int idx1 = ins1->threadvertIdx.at(graph1->tid);
 	*n1 = graph1->get_node(idx1);
 
-	INSLIST *block2 = getDisassemblyBlock(blockAddr2, blockID2, g2mutex, g2blocks, &ignore);
+	INSLIST *block2 = getDisassemblyBlock(blockAddr2, blockID2, g2ProcessData, &ignore);
 	INS_DATA *ins2 = block2->at(blockIdx);
 	int idx2 = ins2->threadvertIdx.at(graph2->tid);
 	*n2 = graph2->get_node(idx2);
@@ -110,10 +110,8 @@ unsigned long diff_plotter::first_divering_edge()
 {
 	obtainMutex(graph1->animationListsMutex, 9932);
 	obtainMutex(graph2->animationListsMutex, 9932);
-	g1mutex = clientState->glob_piddata_map.at(graph1->pid)->disassemblyMutex;
-	g2mutex = clientState->glob_piddata_map.at(graph2->pid)->disassemblyMutex;
-	g1blocks = &clientState->glob_piddata_map.at(graph1->pid)->blocklist;
-	g2blocks = &clientState->glob_piddata_map.at(graph2->pid)->blocklist;
+	g1ProcessData = clientState->glob_piddata_map.at(graph1->pid);
+	g2ProcessData = clientState->glob_piddata_map.at(graph2->pid);
 
 	unsigned long compareIndex = 0;
 

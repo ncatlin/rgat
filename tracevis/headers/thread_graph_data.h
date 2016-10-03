@@ -62,8 +62,24 @@ class thread_graph_data
 	//<index, final (still active) node>
 	map <unsigned int, bool> activeNodeMap;
 
-	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
+
+#ifdef XP_COMPATIBLE
 	HANDLE nodeLMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
+#else
+	SRWLOCK nodeLock = SRWLOCK_INIT;
+	SRWLOCK edgeLock = SRWLOCK_INIT;
+#endif
+
+	inline void getEdgeReadLock();
+	inline void getEdgeWriteLock();
+	inline void dropEdgeReadLock();
+	inline void dropEdgeWriteLock();
+
+	inline void getNodeReadLock();
+	inline void getNodeWriteLock();
+	inline void dropNodeReadLock();
+	inline void dropNodeWriteLock();
 
 	bool advance_sequence(bool);
 	bool decrease_sequence();

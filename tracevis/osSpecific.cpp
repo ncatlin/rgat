@@ -43,6 +43,18 @@ bool obtainMutex(HANDLE mutex, int waitTimeCode)
 	return false;
 }
 
+bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
+{
+	DWORD waitresult;
+	do {
+		waitresult = WaitForSingleObject(mutex, waitTimeCode);
+		if (waitresult != WAIT_TIMEOUT) return true;
+		cout << "WARNING! Mutex wait failed after " << std::dec << waitTimeCode << " ms: " << waitresult << endl;
+	} while (true);
+
+	return false;
+}
+
 void dropMutex(HANDLE mutex) {
 	ReleaseMutex(mutex);
 }

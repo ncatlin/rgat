@@ -469,6 +469,9 @@
     <ClCompile Include="rgat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="traceStructs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

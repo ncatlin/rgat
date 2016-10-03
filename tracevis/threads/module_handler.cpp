@@ -166,9 +166,9 @@ void module_handler::main_loop()
 					address += piddata->modBounds[modnum].first;
 
 				string symname = string(next_token);
-				obtainMutex(piddata->disassemblyMutex, 2089);
+				piddata->getDisassemblyWriteLock();
 				piddata->modsymsPlain[modnum][address] = symname;
-				dropMutex(piddata->disassemblyMutex);
+				piddata->dropDisassemblyWriteLock();
 				continue;
 			}
 
@@ -189,12 +189,13 @@ void module_handler::main_loop()
 				long modnum = -1;
 				sscanf_s(modnum_s, "%d", &modnum);
 
-				obtainMutex(piddata->disassemblyMutex, 2090);
+				piddata->getDisassemblyReadLock();
 				if (piddata->modpaths.count(modnum) > 0) {
 					cerr<< "[rgat]ERROR: PID:"<<PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
 						buf<<"]. current is:" << piddata->modpaths.at(modnum) << endl;
 					assert(0);
 				}
+				piddata->dropDisassemblyReadLock();
 
 				//todo: safe stol? if this is safe whytf have i implented safe stol
 				char *startaddr_s = strtok_s(next_token, "@", &next_token);
@@ -205,12 +206,14 @@ void module_handler::main_loop()
 				MEM_ADDRESS endaddr = 0;
 				sscanf_s(endaddr_s, "%lx", &endaddr);
 
+
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
+				piddata->getDisassemblyWriteLock();
 				if (*skipped_s == '1')
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_UNINSTRUMENTED);
 				else
 					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_INSTRUMENTED);
-				dropMutex(piddata->disassemblyMutex);
+				piddata->dropDisassemblyWriteLock();
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {
 					cerr << "ERROR! Processing module line: "<< buf << endl;
@@ -224,7 +227,7 @@ void module_handler::main_loop()
 				else
 					path_plain = "";
 
-				obtainMutex(piddata->disassemblyMutex, 2091);
+				piddata->getDisassemblyWriteLock();
 				piddata->modpaths[modnum] = path_plain;
 				
 				if (!piddata->modBounds.count(modnum) && piddata->modsymsPlain.count(modnum))
@@ -234,7 +237,7 @@ void module_handler::main_loop()
 					}
 
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
-				dropMutex(piddata->disassemblyMutex);
+				piddata->dropDisassemblyWriteLock();
 
 				continue;
 			}

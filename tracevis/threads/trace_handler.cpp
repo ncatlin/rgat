@@ -36,23 +36,23 @@ bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int att
 }
 
 bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1) {
-	obtainMutex(piddata->externDictMutex, 1041);
+	piddata->getExternlistReadLock();
 	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
 	while (externIt == piddata->externdict.end())
 	{
 		if (!attempts--) { 
-			dropMutex(piddata->externDictMutex); 
+			piddata->dropExternlistReadLock();
 			return false; 
 		}
-		dropMutex(piddata->externDictMutex);
+		piddata->dropExternlistReadLock();
 		Sleep(1);
-		obtainMutex(piddata->externDictMutex, 1042);
+		piddata->getExternlistReadLock();
 		externIt = piddata->externdict.find(address);
 	}
 
 	if(BB)
 		*BB = externIt->second;
-	dropMutex(piddata->externDictMutex);
+	piddata->dropExternlistReadLock();
 	return true;
 }
 
@@ -67,9 +67,9 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 //returns whether current thread has executed this instruction, places its vert in vertIdxOut
 bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 {
-	obtainMutex(piddata->disassemblyMutex, 1043);
+	piddata->getDisassemblyReadLock();
 	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
-	dropMutex(piddata->disassemblyMutex);
+	piddata->dropDisassemblyReadLock();
 
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{
@@ -161,9 +161,9 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 		assert(0);
 	thisgraph->insert_node(targVertID, thisnode);
 
-	obtainMutex(piddata->disassemblyMutex, 1044);
+	piddata->getDisassemblyWriteLock();
 	instruction->threadvertIdx[TID] = targVertID;
-	dropMutex(piddata->disassemblyMutex);
+	piddata->dropDisassemblyWriteLock();
 }
 
 
@@ -176,15 +176,15 @@ void thread_trace_handler::increaseWeight(edge_data *edge, unsigned long executi
 
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 {
-	obtainMutex(piddata->disassemblyMutex, 1045);
+	piddata->getDisassemblyReadLock();
 	targVertID = instruction->threadvertIdx.at(TID);
-	dropMutex(piddata->disassemblyMutex);
+	piddata->dropDisassemblyReadLock();
 }
 
 void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
 	int numInstructions = tag->insCount;
-	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata->disassemblyMutex, &piddata->blocklist, &die);
+	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata, &die);
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
 	{
@@ -482,7 +482,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	
 	int callerModule = lastNode->nodeMod;
 	//if caller is also external, not interested in this
-	if (piddata->activeMods[callerModule] == MOD_UNINSTRUMENTED) 
+	if (piddata->activeMods.at(callerModule) == MOD_UNINSTRUMENTED) 
 		return false;
 
 	BB_DATA *thisbb = 0;
@@ -568,18 +568,18 @@ void thread_trace_handler::process_new_args()
 	{
 		MEM_ADDRESS funcad = pcaIt->first;
 
-		obtainMutex(piddata->externDictMutex, 1047);
+		piddata->getExternlistReadLock();
 		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
 		if (externIt == piddata->externdict.end() ||
 			!externIt->second->thread_callers.count(TID)) {
-			dropMutex(piddata->externDictMutex);
+			piddata->dropExternlistReadLock();
 			++pcaIt; 
 			continue; 
 		}
 
 		EDGELIST callvs = externIt->second->thread_callers.at(TID);
-		dropMutex(piddata->externDictMutex);
+		piddata->dropExternlistReadLock();
 
 		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
@@ -603,9 +603,9 @@ void thread_trace_handler::process_new_args()
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
 				string externPath;
-				obtainMutex(piddata->externDictMutex, 7321);
+				piddata->getExternlistReadLock();
 				piddata->get_modpath(piddata->externdict.at(funcad)->modnum, &externPath);
-				dropMutex(piddata->externDictMutex);
+				piddata->dropExternlistReadLock();
 
 				obtainMutex(thisgraph->funcQueueMutex, 1048);
 				while (callsIt != callsvector.end())//run through each call made by caller
@@ -713,9 +713,9 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 	const int numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-		obtainMutex(piddata->disassemblyMutex, 3632);
+		piddata->getDisassemblyReadLock();
 		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = &piddata->modBounds.at(modNo);
-		dropMutex(piddata->disassemblyMutex);
+		piddata->dropDisassemblyReadLock();
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
 			if (piddata->activeMods.at(modNo) == MOD_INSTRUMENTED)

@@ -7,6 +7,9 @@
 #define WINDOWS
 #define X86_32
 
+//#define XP_COMPATIBLE
+
+//not implemented yet
 //#define LINUX
 //#define X86_64
 

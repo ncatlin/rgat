@@ -40,17 +40,18 @@ string generate_funcArg_string(string sym, ARGLIST args)
 }
 
 INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
-	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList, bool *dieFlag)
+	PROCESS_DATA *piddata, bool *dieFlag)
 {
 	int iterations = 0;
 
 	map<MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt;
 	while (true)
 	{
-		obtainMutex(mutex, 1036);
-		blockIt = blockList->find(blockaddr);
-		dropMutex(mutex);
-		if (blockIt != blockList->end()) break;
+		piddata->getDisassemblyReadLock();
+		blockIt = piddata->blocklist.find(blockaddr);
+		piddata->dropDisassemblyReadLock();
+
+		if (blockIt != piddata->blocklist.end()) break;
 
 		if (iterations++ > 20)
 			cerr << "[rgat]Warning: Long wait for disassembly of address 0x" << std::hex << blockaddr << endl;
@@ -62,9 +63,9 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
 	while (true)
 	{
-		obtainMutex(mutex, 1037);
+		piddata->getDisassemblyReadLock();
 		mutationIt = blockIt->second.find(blockID);
-		dropMutex(mutex);
+		piddata->dropDisassemblyReadLock();
 
 		if (mutationIt != blockIt->second.end()) break;
 

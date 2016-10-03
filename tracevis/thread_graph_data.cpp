@@ -76,10 +76,8 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 		{
 			if (!nextExtern.callerAddr)
 			{
-				obtainMutex(piddata->disassemblyMutex, 1014);
 				node_data* parentn = get_node(nextExtern.edgeIdx.first);
 				nextExtern.callerAddr = parentn->ins->address;
-				dropMutex(piddata->disassemblyMutex);
 
 				if (!piddata->get_modpath(externn->nodeMod, &nextExtern.externPath))
 					cerr << "[rgat]WARNING: mod " << externn->nodeMod << " expected but not found" << endl;
@@ -196,7 +194,8 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 {
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
-	obtainMutex(edMutex, 1015); //not sure if i should make a list-specific mutex
+
+	getEdgeReadLock();
 	if (doResize)
 	{
 		reset_mainlines();
@@ -218,7 +217,7 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 		extend_faded_edges();
 		lines->inc_edgesRendered();
 	}
-	dropMutex(edMutex);
+	dropEdgeReadLock();
 }
 
 //given a sequence id, get the last instruction in the block it refers to
@@ -232,7 +231,7 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	MEM_ADDRESS insAddr = targBlock_Size.first;
 	int instructionIndex = targBlock_Size.second-1;
 	
-	return getDisassemblyBlock(insAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &terminationFlag)->at(instructionIndex);
+	return getDisassemblyBlock(insAddr, blockID, piddata, &terminationFlag)->at(instructionIndex);
 }
 
 //externs not included in sequence data, have to check if each block called one
@@ -592,7 +591,7 @@ int thread_graph_data::brighten_BBs()
 		MEM_ADDRESS blockAddr = targBlock_Size.first;
 		int numInstructions = targBlock_Size.second;
 		
-		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,disassemblyMutex,&piddata->blocklist, &terminationFlag);
+		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,piddata, &terminationFlag);
 		INS_DATA *ins = block->at(0);
 
 		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
@@ -604,9 +603,9 @@ int thread_graph_data::brighten_BBs()
 			break;
 		}
 		
-		obtainMutex(disassemblyMutex, 1021); //do we need this here?
+		piddata->getDisassemblyReadLock();
 		unsigned int nodeIdx = vertIt->second;
-		dropMutex(disassemblyMutex);
+		piddata->dropDisassemblyReadLock();
 
 		if (lastNodeIdx)
 		{
@@ -730,7 +729,7 @@ unsigned int thread_graph_data::derive_anim_node()
 	MEM_ADDRESS blockAddr = addr_size.first;
 	int remainingInstructions = blockInstruction;
 	
-	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata->disassemblyMutex, &piddata->blocklist, &terminationFlag)->at(blockInstruction);
+	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata, &terminationFlag)->at(blockInstruction);
 	return target_ins->threadvertIdx.at(tid);
 }
 
@@ -745,9 +744,10 @@ void thread_graph_data::reset_mainlines()
 //true if found + edge data placed in edged
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	obtainMutex(edMutex, 8023);
+
+	getEdgeReadLock();
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
-	dropMutex(edMutex);
+	dropEdgeReadLock();
 
 	if (edgeit == edgeDict.end()) return false;
 
@@ -757,35 +757,116 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, 8024);
+
+	getEdgeReadLock();
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
-	dropMutex(edMutex);
+	dropEdgeReadLock();
+
 	return linkingEdge;
+}
+
+
+inline void thread_graph_data::getEdgeReadLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(edMutex, 10001);
+#else
+	AcquireSRWLockShared(&edgeLock);
+#endif
+}
+
+inline void thread_graph_data::getEdgeWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(edMutex, 10002);
+#else
+	AcquireSRWLockExclusive(&edgeLock);
+#endif
+}
+
+inline void thread_graph_data::dropEdgeReadLock()
+{
+#ifdef XP_COMPATIBLE 
+	dropMutex(edMutex);
+#else
+	ReleaseSRWLockShared(&edgeLock);
+#endif
+}
+
+inline void thread_graph_data::dropEdgeWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	dropMutex(edMutex);
+#else
+	ReleaseSRWLockExclusive(&edgeLock);
+#endif
+	
+}
+
+inline void thread_graph_data::getNodeReadLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(nodeLMutex, 10005);
+#else
+	AcquireSRWLockShared(&nodeLock);
+#endif
+}
+
+inline void thread_graph_data::getNodeWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(nodeLMutex, 10006);
+#else
+	AcquireSRWLockExclusive(&nodeLock);
+#endif
+}
+
+inline void thread_graph_data::dropNodeReadLock()
+{
+#ifdef XP_COMPATIBLE 
+	dropMutex(nodeLMutex);
+#else
+	ReleaseSRWLockShared(&nodeLock);
+#endif
+}
+
+inline void thread_graph_data::dropNodeWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	dropMutex(nodeLMutex);
+#else
+	ReleaseSRWLockExclusive(&nodeLock);
+#endif
 }
 
 //linker error if we make this inline too
 edge_data * thread_graph_data::get_edge(int edgeindex)
 {
-	obtainMutex(edMutex, 8224);
+
+	getEdgeReadLock();
 	edge_data *linkingEdge = &edgeDict.at(edgeList.at(edgeindex));
-	dropMutex(edMutex);
+	dropEdgeReadLock();
+
 	return linkingEdge;
 }
 
 inline node_data *thread_graph_data::get_node(unsigned int index)
 {
-	obtainMutex(nodeLMutex, 1031);
+	getNodeReadLock();
 	node_data *n = &nodeList.at(index);
-	dropMutex(nodeLMutex);
+	dropNodeReadLock();
 	return n;
 }
 
+//IMPORTANT: Must have edge reader lock to call this
 int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 	ALLEGRO_COLOR *forceColour, bool preview)
 {
 	node_data *sourceNode = get_node(ePair.first);
 	node_data *targetNode = get_node(ePair.second);
-	edge_data *e = get_edge(ePair);
+
+	edge_data *e = &edgeDict.at(ePair);
+
 	if (!e) return 0;
 
 	MULTIPLIERS *scaling;
@@ -863,22 +944,27 @@ thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int thr
 
 void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 6026);
+	getEdgeReadLock();
 	*edgeIt = edgeList.begin();
 	*edgeEnd = edgeList.end();
 }
 
 void thread_graph_data::stop_edgeL_iteration()
 {
-	dropMutex(edMutex);
+	dropEdgeReadLock();
 }
 
 void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
 	EDGEMAP::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 6027);
+	getEdgeReadLock();
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
+}
+
+void thread_graph_data::stop_edgeD_iteration()
+{
+	dropEdgeReadLock();
 }
 
 void thread_graph_data::display_highlight_lines(vector<node_data *> *nodePtrList, ALLEGRO_COLOR *colour, int lengthModifier)
@@ -891,22 +977,19 @@ void thread_graph_data::display_highlight_lines(vector<node_data *> *nodePtrList
 void thread_graph_data::insert_node(int targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
-	obtainMutex(nodeLMutex, 1028);
+	getNodeWriteLock();
 	nodeList.push_back(node);
-	dropMutex(nodeLMutex);
+	dropNodeWriteLock();
 }
 
-void thread_graph_data::stop_edgeD_iteration()
-{
-	dropMutex(edMutex);
-}
 
 void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, 1029);
+	getEdgeWriteLock();
 	edgeDict.insert(make_pair(edgePair, e));
 	edgeList.push_back(edgePair);
-	dropMutex(edMutex);
+	dropEdgeWriteLock();
+
 }
 
 thread_graph_data::~thread_graph_data()

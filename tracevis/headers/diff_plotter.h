@@ -42,8 +42,7 @@ private:
 	unsigned long divergenceIdx = 0;
 	node_data *diffNode = 0;
 
-	HANDLE g1mutex, g2mutex;
-	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *g1blocks, *g2blocks;
+	PROCESS_DATA *g1ProcessData, *g2ProcessData;
 	unsigned long animIndex = 0;
 	unsigned int blockIdx = 0;
 

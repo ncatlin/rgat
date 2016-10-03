@@ -23,8 +23,7 @@ Misc disassembly and conversion functions
 #include "traceStructs.h"
 #include "thread_graph_data.h"
 
-INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
-	HANDLE mutex, map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> *blockList, bool *dieFlag);
+INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *piddata, bool *dieFlag);
 
 int extract_integer(char *char_buf, string marker, int *target);
 

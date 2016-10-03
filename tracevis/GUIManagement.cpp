@@ -296,10 +296,9 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 		textColour = al_col_red;
 
 	int activeModule = clientState->activeGraph->get_node(0)->nodeMod;
-	obtainMutex(piddata->disassemblyMutex, 1294);
-	infotxt << piddata->modpaths.at(activeModule);
-	dropMutex(piddata->disassemblyMutex);
-	infotxt << " (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
+	string modPath;
+	piddata->get_modpath(activeModule, &modPath);
+	infotxt << modPath <<" (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
 
 	al_draw_filled_rectangle(0, 0, clientState->mainFrameSize.width, 32, al_map_rgba(0, 0, 0, 235));
 	al_draw_text(font, textColour, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());

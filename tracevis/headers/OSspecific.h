@@ -29,6 +29,4 @@ bool getSavePath(string saveDir, string filename, string *result, int PID);
 
 //in: mutex to wait on, waitTimeCode ms to wait per warning
 bool obtainMutex(HANDLE mutex, int waitTimeCode);
-
 void dropMutex(HANDLE mutex);
-

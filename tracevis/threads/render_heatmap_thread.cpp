@@ -37,7 +37,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	EDGEMAP::iterator edgeDit, edgeDEnd;
 	
 	graph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
-	for (; edgeDit != edgeDEnd; edgeDit++)
+	for (; edgeDit != edgeDEnd; ++edgeDit)
 		heatValues.insert(edgeDit->second.weight);
 	graph->stop_edgeD_iteration();
 

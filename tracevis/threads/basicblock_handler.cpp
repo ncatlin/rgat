@@ -215,12 +215,12 @@ void basicblock_handler::main_loop()
 				bbdata->modnum = modnum;
 				bbdata->symbol.clear();
 
-				obtainMutex(piddata->externDictMutex, 1001);
+				piddata->getExternlistWriteLock();
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 			
 				if (piddata->externdict[targetaddr] == 0)
 					piddata->externdict[targetaddr] = bbdata;
-				dropMutex(piddata->externDictMutex);
+				piddata->dropExternlistWriteLock();
 
 				continue;
 			}
@@ -235,7 +235,7 @@ void basicblock_handler::main_loop()
 				INS_DATA *instruction = NULL;
 
 				string opcodes(strtok_s(next_token, "@", &next_token));
-				obtainMutex(piddata->disassemblyMutex, 1002);
+				piddata->getDisassemblyWriteLockB();
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
@@ -270,16 +270,16 @@ void basicblock_handler::main_loop()
 					instruction->mutationIndex = piddata->disassembly[insaddr].size()-1;
 				}
 				blockInstructions->push_back(instruction);
-				dropMutex(piddata->disassemblyMutex);
+				piddata->dropDisassemblyWriteLockB();
 
 				insaddr += instruction->numbytes;
 				if (next_token >= buf + bread) break;
 				++i;
 			}
 
-			obtainMutex(piddata->disassemblyMutex, 1003);
+			piddata->getDisassemblyWriteLockB();
 			piddata->blocklist[targetaddr][blockID] = blockInstructions;
-			dropMutex(piddata->disassemblyMutex);
+			piddata->dropDisassemblyWriteLockB();
 			continue;
 		}
 
