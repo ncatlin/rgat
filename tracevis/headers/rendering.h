@@ -35,7 +35,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *vertdata, FCOORD *startC, FCOORD *endC, ALLEGR
 //wireframe starts/sizes are the opengl vertex array positions/offsets
 void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
 void plot_wireframe(VISSTATE *clientState);
-void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText);
+void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText);
 
 int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, 
 	GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours);

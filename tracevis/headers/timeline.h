@@ -20,6 +20,8 @@ Intended to be used to provide a visualisation
 */
 #pragma once
 
+#include <traceStructs.h>
+
 #define PID_CREATE 1
 #define PID_DIE 2
 #define TID_CREATE 3
@@ -28,8 +30,8 @@ Intended to be used to provide a visualisation
 struct processEvent {
 	int eventType;
 	double eventTime;
-	int PID;
-	int TID;
+	PID_TID PID;
+	PID_TID TID;
 };
 
 class timeline
@@ -37,10 +39,10 @@ class timeline
 public:
 	timeline();
 	~timeline();
-	void notify_new_pid(unsigned int pid);
-	void notify_new_tid(unsigned int pid, unsigned int tid);
-	void notify_pid_end(unsigned int pid);
-	void notify_tid_end(unsigned int pid, unsigned int tid);
+	void notify_new_pid(PID_TID pid);
+	void notify_new_tid(PID_TID pid, PID_TID tid);
+	void notify_pid_end(PID_TID pid);
+	void notify_tid_end(PID_TID pid, PID_TID tid);
 	unsigned int numLiveThreads() {return liveThreads;}
 	unsigned int numLiveProcesses() { return liveProcesses; }
 

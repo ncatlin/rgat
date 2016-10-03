@@ -95,7 +95,7 @@ string basename(string path)
 }
 
 //returns path for saving files, tries to create if it doesn't exist
-bool getSavePath(string saveDir, string filename, string *result, int PID)
+bool getSavePath(string saveDir, string filename, string *result, PID_TID PID)
 {
 	//if directory doesn't exist, create
 	if (!fileExists(saveDir.c_str()))

@@ -130,7 +130,7 @@ void conditional_renderer::main_loop()
 
 	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
-	map <int, void *>::iterator graphit;
+	map <PID_TID, void *>::iterator graphit;
 	int dietimer = -1;
 
 	while (!clientState->die && dietimer != 0)

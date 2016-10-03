@@ -178,7 +178,7 @@ void basicblock_handler::main_loop()
 
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
 			MEM_ADDRESS targetaddr;
-			if (!caught_stol(string(start_s), &targetaddr, 16)) {
+			if (!caught_stoul(string(start_s), &targetaddr, 16)) {
 				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);
 			}

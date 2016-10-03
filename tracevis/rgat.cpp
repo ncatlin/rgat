@@ -59,7 +59,7 @@ struct THREAD_POINTERS {
 bool kbdInterrupt = false;
 
 //for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
-void launch_saved_process_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clientState)
+void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
 	DWORD threadID;
 	preview_renderer *previews_thread = new preview_renderer(PID,0);
@@ -92,7 +92,7 @@ void launch_saved_process_threads(int PID, PROCESS_DATA *piddata, VISSTATE *clie
  
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditonals
 //+ module data and disassembly
-THREAD_POINTERS *launch_new_process_threads(int PID, std::map<int, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
+THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
 {
 	THREAD_POINTERS *processThreads = new THREAD_POINTERS;
 	PROCESS_DATA *piddata = new PROCESS_DATA;
@@ -211,8 +211,8 @@ void process_coordinator_thread(VISSTATE *clientState)
 		}
 		buf[bread] = 0;
 
-		int PID = 0;
-		if (extract_integer(buf, string("PID"), &PID))
+		PID_TID PID = 0;
+		if (extract_pid_tid(buf, string("PID"), &PID))
 		{
 			clientState->timelineBuilder->notify_new_pid(PID);
 			THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
@@ -471,7 +471,7 @@ void handleKBDExit()
 	}
 }
 
-static void set_active_graph(VISSTATE *clientState, int PID, int TID)
+static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 {
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
 	clientState->newActiveGraph = target_pid->graphs[TID];
@@ -642,14 +642,14 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				else
 				{
 					widgets->toggleSmoothDrawing(true); //redraw every frame so preview tooltip moves smoothly
-					int PID, TID;
+					PID_TID PID, TID;
 					if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
 					{
-						map<int, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
+						map<PID_TID, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
 						if (PIDIt != clientState->glob_piddata_map.end())
 						{
 							PROCESS_DATA* PID = PIDIt->second;
-							map<int, void *>::iterator graphit = PID->graphs.find(TID);
+							map<PID_TID, void *>::iterator graphit = PID->graphs.find(TID);
 							if (graphit != PID->graphs.end())
 								widgets->showGraphToolTip((thread_graph_data *)graphit->second, PID, ev->mouse.x, ev->mouse.y);
 						}
@@ -671,7 +671,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			else
 			{
 				if (widgets->dropdownDropped()) return EV_MOUSE;
-				int PID, TID;
+				PID_TID PID, TID;
 				if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
 					set_active_graph(clientState, PID, TID);
 			}
@@ -995,7 +995,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 }
 
 //performs cleanup of old active graph, sets up environment to display new one
-void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <int, vector<EXTTEXT>> *externFloatingText)
+void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
 	clientState->activeGraph = (thread_graph_data *)clientState->newActiveGraph;
 	clientState->activeGraph->needVBOReload_active = true;
@@ -1195,9 +1195,9 @@ int main(int argc, char **argv)
 
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
-	map <int, NODEPAIR> graphPositions;
+	map <PID_TID, NODEPAIR> graphPositions;
 	//new sym/arg strings currently being displayed on the graph
-	map <int, vector<EXTTEXT>> externFloatingText;
+	map <PID_TID, vector<EXTTEXT>> externFloatingText;
 
 	HANDLE hProcessCoordinator = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
@@ -1231,7 +1231,7 @@ int main(int argc, char **argv)
 			
 			widgets->setActivePID(activePid->PID);
 			clientState.activePid = activePid;
-			map<int, void *>::iterator graphIt;
+			map<PID_TID, void *>::iterator graphIt;
 			graphIt = activePid->graphs.begin();
 
 			for (; graphIt != activePid->graphs.end(); ++graphIt)
@@ -1361,8 +1361,8 @@ int main(int argc, char **argv)
 					{
 						clientState.activePid = clientState.glob_piddata_map[clientState.selectedPID];
 						clientState.graphPositions.clear();
-						map<int, void *> *pidGraphList = &clientState.activePid->graphs;
-						map<int, void *>::iterator pidIt;
+						map<PID_TID, void *> *pidGraphList = &clientState.activePid->graphs;
+						map<PID_TID, void *>::iterator pidIt;
 						//get first graph with some verts
 						clientState.newActiveGraph = 0;
 						for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)

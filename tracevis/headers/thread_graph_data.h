@@ -161,7 +161,7 @@ public:
 
 	//if block at targetSequence called something, this highlights it. if sendArg true, adds floating latest arg to animation
 	void brighten_externs(unsigned long targetSequence, bool updateArgs);
-	void transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata);
+	void transferNewLiveCalls(map <PID_TID, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata);
 
 	void reset_mainlines();
 	unsigned int derive_anim_node();
@@ -191,8 +191,8 @@ public:
 	VCOORD latest_active_node_coord;
 	node_data *latest_active_node = 0;
 
-	unsigned int tid = 0;
-	unsigned int pid = 0;
+	PID_TID tid = 0;
+	PID_TID pid = 0;
 	bool active = true;
 	bool terminated = false;
 

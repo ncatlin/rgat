@@ -84,7 +84,7 @@ public:
 		case HL_HIGHLIGHT_ADDRESS:
 			{
 				string address_s = hl_frame->addressText->getText();
-				if (!caught_stol(address_s, &clientState->highlightData.highlightAddr, 16)) break;
+				if (!caught_stoul(address_s, &clientState->highlightData.highlightAddr, 16)) break;
 				hl_frame->highlightFrame->setVisibility(false);
 				if (clientState->activePid->disassembly.count(clientState->highlightData.highlightAddr))
 					clientState->highlightData.highlightState = HL_HIGHLIGHT_ADDRESS;

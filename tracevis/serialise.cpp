@@ -107,7 +107,7 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 			INS_DATA *ins = *mutationIt;
 			//for each mutation write opcodes, number of threads executing it
 			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
-			unordered_map<int, int>::iterator threadVertIt = ins->threadvertIdx.begin();
+			unordered_map<PID_TID, int>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
 				//write thread ID, vert index of node in thread
@@ -211,7 +211,7 @@ void saveTrace(VISSTATE * clientState)
 	saveProcessData(clientState->activePid, &savefile);
 
 	obtainMutex(clientState->activePid->graphsListMutex, 1012);
-	map <int, void *>::iterator graphit = clientState->activePid->graphs.begin();
+	map <PID_TID, void *>::iterator graphit = clientState->activePid->graphs.begin();
 	for (; graphit != clientState->activePid->graphs.end(); graphit++)
 	{
 		thread_graph_data *graph = (thread_graph_data *)graphit->second;
@@ -260,7 +260,7 @@ int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, strin
 	string modnum_s, b64path;
 	getline(ss, modnum_s, ',');
 	getline(ss, b64path, ' ');
-	if (!caught_stol(modnum_s, modNum, 10)) return -1;
+	if (!caught_stoul(modnum_s, modNum, 10)) return -1;
 	*modpath = base64_decode(b64path);
 	return 1;
 }
@@ -275,7 +275,7 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 	{
 		getline(*blob, symAddress_s, ',');
 		if (symAddress_s == "}") return 1;
-		if (!caught_stol(symAddress_s, &symAddress, 10))		{
+		if (!caught_stoul(symAddress_s, &symAddress, 10))		{
 			cerr << "[rgat]extractmodsyms: bad address: " << symAddress_s << endl;
 			return -1;
 		}
@@ -378,7 +378,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		}
 
 		getline(*file, address_s, ',');
-		if (!caught_stol(address_s, &address, 10)) {
+		if (!caught_stoul(address_s, &address, 10)) {
 			cerr << "[rgat]address stol failed with " << address_s << endl; return false;
 		}
 
@@ -442,7 +442,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		string blockaddress_s;
 		MEM_ADDRESS blockaddress;
 		getline(*file, blockaddress_s, ',');
-		if (!caught_stol(blockaddress_s, &blockaddress, 10))
+		if (!caught_stoul(blockaddress_s, &blockaddress, 10))
 			return false;
 
 		map<MEM_ADDRESS, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
@@ -456,7 +456,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 			string blockID_s;
 			BLOCK_IDENTIFIER blockID;
 			getline(*file, blockID_s, ',');
-			if (!caught_stol(blockID_s, &blockID, 10))
+			if (!caught_stoul(blockID_s, &blockID, 10))
 				return false;
 
 			string numinstructions_s;
@@ -471,7 +471,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 				string insAddr_s;
 				MEM_ADDRESS insAddr;
 				getline(*file, insAddr_s, ',');
-				if (!caught_stol(insAddr_s, &insAddr, 10))
+				if (!caught_stoul(insAddr_s, &insAddr, 10))
 					return false;
 
 				string mutationIndex_s;
@@ -506,7 +506,10 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 //load each graph saved for the process
 bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
 {
-	char tagbuf[3]; int TID; string tidstring;
+	char tagbuf[3]; 
+	PID_TID TID; 
+	string tidstring;
+
 	cerr << "[rgat]Loading thread graphs..." << endl;
 	while (true)
 	{
@@ -514,7 +517,7 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		if (strncmp(tagbuf, "TID", 3)) return false;
 
 		getline(*file, tidstring, '{');
-		if (!caught_stoi(tidstring, &TID, 10)) return false;
+		if (!caught_stoul(tidstring, &TID, 10)) return false;
 		thread_graph_data *graph = new thread_graph_data(piddata, TID);
 		
 		graph->tid = TID;
@@ -544,7 +547,7 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 
 void saveAll(VISSTATE *clientState)
 {
-	map<int, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.begin();
+	map<PID_TID, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.begin();
 	for (; pidIt != clientState->glob_piddata_map.end(); pidIt++)
 	{
 		clientState->activePid = pidIt->second;

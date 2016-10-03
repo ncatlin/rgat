@@ -3,7 +3,7 @@
 class base_thread
 {
 public:
-	base_thread(int thisPID, int thisTID) { PID = thisPID; TID = thisTID; }
+	base_thread(DWORD thisPID, DWORD thisTID) { PID = thisPID; TID = thisTID; }
 	void kill() { die = true; }
 	bool is_alive() { return alive; }
 
@@ -13,8 +13,8 @@ public:
 	virtual void main_loop() {};
 
 protected:
-	int PID;
-	int TID;
+	DWORD PID;
+	DWORD TID;
 	bool die = false;
 	bool alive = false;	
 };

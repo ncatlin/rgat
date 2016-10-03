@@ -36,7 +36,7 @@ void preview_renderer::main_loop()
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
 	vector<thread_graph_data *> graphlist;
-	map <int, void *>::iterator graphIt;
+	map <PID_TID, void *>::iterator graphIt;
 
 	int dietimer = -1;
 	

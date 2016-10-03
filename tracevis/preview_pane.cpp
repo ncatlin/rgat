@@ -154,11 +154,11 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 }
 
 
-bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *PID, int* TID)
+bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, PID_TID *PID, PID_TID* TID)
 {
 	if (mousex >= clientState->mainFrameSize.width && mousex <= clientState->displaySize.width)
 	{
-		map <int, NODEPAIR>::iterator graphPosIt = clientState->graphPositions.begin();
+		map <PID_TID, NODEPAIR>::iterator graphPosIt = clientState->graphPositions.begin();
 		for (; graphPosIt != clientState->graphPositions.end(); graphPosIt++)
 		{
 			const int graphTop = graphPosIt->first;
@@ -176,7 +176,7 @@ bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, int *P
 	return false;
 }
 
-void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositions)
+void redrawPreviewGraphs(VISSTATE *clientState, map <PID_TID, NODEPAIR> *graphPositions)
 {
 
 	if (clientState->glob_piddata_map.empty() || !clientState->activeGraph)
@@ -206,7 +206,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 	glLoadIdentity();
 	glPushMatrix();
 
-	map<int, void *>::iterator threadit = clientState->activePid->graphs.begin();
+	map<PID_TID, void *>::iterator threadit = clientState->activePid->graphs.begin();
 	for (;threadit != clientState->activePid->graphs.end(); ++threadit)
 	{
 		previewGraph = (thread_graph_data *)threadit->second;
@@ -224,7 +224,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <int, NODEPAIR> *graphPositi
 
 		write_tid_text(clientState->standardFont, previewGraph, PREV_GRAPH_PADDING, graphy);
 
-		int TID = threadit->first;
+		PID_TID TID = threadit->first;
 		clientState->graphPositions[50+graphy] = make_pair(clientState->activePid->PID, TID);
 		graphy += PREV_Y_MULTIPLIER;
 		graphsHeight += PREV_Y_MULTIPLIER;

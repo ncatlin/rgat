@@ -147,7 +147,7 @@ void heatmap_renderer::main_loop()
 		obtainMutex(piddata->graphsListMutex, 1054);
 
 		vector<thread_graph_data *> graphlist;
-		map <int, void *>::iterator graphit = piddata->graphs.begin();
+		map <PID_TID, void *>::iterator graphit = piddata->graphs.begin();
 		for (; graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex);

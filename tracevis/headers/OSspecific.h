@@ -20,12 +20,13 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 */
 #pragma once
 #include <stdafx.h>
+#include "traceStructs.h"
 
 string getModulePath();
 string basename(string path);
 bool fileExists(string path);
 void execute_tracer(string executable, string args, void *clientState_ptr);
-bool getSavePath(string saveDir, string filename, string *result, int PID);
+bool getSavePath(string saveDir, string filename, string *result, PID_TID PID);
 
 //in: mutex to wait on, waitTimeCode ms to wait per warning
 bool obtainMutex(HANDLE mutex, int waitTimeCode);

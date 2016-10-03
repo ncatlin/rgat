@@ -50,7 +50,7 @@ unsigned long thread_graph_data::get_backlog_total()
 
 //take externs called from the trace/replay and make them float on graph
 //also adds them to the call log
-void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
+void thread_graph_data::transferNewLiveCalls(map <PID_TID, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
 {
 	obtainMutex(funcQueueMutex, 1013);
 	while (!floatingExternsQueue.empty())
@@ -594,7 +594,7 @@ int thread_graph_data::brighten_BBs()
 		INSLIST *block = getDisassemblyBlock(blockAddr, blockID,piddata, &terminationFlag);
 		INS_DATA *ins = block->at(0);
 
-		unordered_map<int, int>::iterator vertIt = ins->threadvertIdx.find(tid);
+		unordered_map<PID_TID, int>::iterator vertIt = ins->threadvertIdx.find(tid);
 		if (vertIt == ins->threadvertIdx.end())
 		{
 			cerr << "[rgat]WARNING: BrightenBBs going too far? Breaking!" << endl;
@@ -1114,7 +1114,7 @@ bool thread_graph_data::loadEdgeDict(ifstream *file)
 	{
 		edge_data *edge = new edge_data;
 		getline(*file, weight_s, ',');
-		if (!caught_stol(weight_s, (unsigned long *)&edge->weight, 10))
+		if (!caught_stoul(weight_s, (unsigned long *)&edge->weight, 10))
 		{
 			if (weight_s == string("}D"))
 				return true;
@@ -1231,7 +1231,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 		if (!caught_stoi(value_s, &n->nodeMod, 10))
 			return false;
 		getline(*file, value_s, ',');
-		if (!caught_stol(value_s, &n->address, 10))
+		if (!caught_stoul(value_s, &n->address, 10))
 			return false;
 
 		getline(*file, value_s, ',');
@@ -1300,13 +1300,13 @@ bool thread_graph_data::loadStats(ifstream *file)
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, &maxB, 10)) return false;
 	getline(*file, value_s, ',');
-	if (!caught_stol(value_s, (unsigned long*)&maxWeight, 10)) return false;
+	if (!caught_stoul(value_s, (unsigned long*)&maxWeight, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&loopCounter, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&baseMod, 10)) return false;
 	getline(*file, value_s, '}');
-	if (!caught_stol(value_s, (unsigned long*)&totalInstructions, 10)) return false;
+	if (!caught_stoul(value_s, (unsigned long*)&totalInstructions, 10)) return false;
 
 	getline(*file, endtag, ',');
 	if (endtag.c_str()[0] != 'S') return false;
@@ -1334,13 +1334,13 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 				basic = true;
 			return true; 
 		}
-		if (!caught_stol(sequence_s, &seq_size.first, 10)) break;
+		if (!caught_stoul(sequence_s, &seq_size.first, 10)) break;
 		getline(*file, size_s, ',');
 		if (!caught_stoi(size_s, &seq_size.second, 10)) break;
 		bbsequence.push_back(seq_size);
 
 		getline(*file, mutation_s, ',');
-		if (!caught_stol(mutation_s, &blockID, 10)) break;
+		if (!caught_stoul(mutation_s, &blockID, 10)) break;
 
 		mutationSequence.push_back(blockID);
 
@@ -1349,7 +1349,7 @@ bool thread_graph_data::loadAnimationData(ifstream *file)
 		if (loopstateIdx_Its.first)
 		{
 			getline(*file, loopstateIts_s, ',');
-			if (!caught_stol(loopstateIts_s, &loopstateIdx_Its.second, 10)) break;
+			if (!caught_stoul(loopstateIts_s, &loopstateIdx_Its.second, 10)) break;
 		}
 		else
 			loopstateIdx_Its.second = 0xbad;

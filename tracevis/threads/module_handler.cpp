@@ -104,8 +104,8 @@ void module_handler::main_loop()
 		{	
 			if (buf[0] == 'T' && buf[1] == 'I')
 			{
-				int TID = 0;
-				if (!extract_integer(buf, string("TI"), &TID))
+				PID_TID TID = 0;
+				if (!extract_pid_tid(buf, string("TI"), &TID))
 				{
 					cerr << "[rgat] Fail to extract thread ID from TI tag:" << buf << endl;
 					continue;

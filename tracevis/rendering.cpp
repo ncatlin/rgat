@@ -358,7 +358,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 }
 
 //draw floating extern texts. delete from list if time expired
-void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
+void drawFloatingExternTexts(thread_graph_data *graph, map <PID_TID, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
 {
 	if (externFloatingText->at(graph->tid).empty()) return;
 
@@ -402,7 +402,7 @@ void drawFloatingExternTexts(thread_graph_data *graph, map <int, vector<EXTTEXT>
 }
 
 
-void performMainGraphDrawing(VISSTATE *clientState, map <int, vector<EXTTEXT>> *externFloatingText)
+void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
 	thread_graph_data *graph = clientState->activeGraph;
 	assert(graph->pid == clientState->activePid->PID);

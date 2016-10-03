@@ -37,7 +37,7 @@ void TraceVisGUI::showHideHighlightFrame()
 		highlightWindow->refreshDropdowns();
 }
 
-void TraceVisGUI::addPID(int PID) 
+void TraceVisGUI::addPID(PID_TID PID)
 {
 	string pidstring = " "+std::to_string(PID);
 	//crash here if we add it while the mouse is
@@ -45,7 +45,7 @@ void TraceVisGUI::addPID(int PID)
 	pidEntryQueue.push_back(pidstring);
 }
 
-void TraceVisGUI::setActivePID(int PID) 
+void TraceVisGUI::setActivePID(PID_TID PID)
 {
 	string pidstring = " "+std::to_string(PID);
 	dropDownWidget->setText(pidstring);

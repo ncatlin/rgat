@@ -33,7 +33,7 @@ timeline::~timeline()
 {
 }
 
-void timeline::notify_pid_end(unsigned int pid)
+void timeline::notify_pid_end(PID_TID pid)
 {
 	if (!pidlist.count(pid))
 	{
@@ -47,7 +47,7 @@ void timeline::notify_pid_end(unsigned int pid)
 	--liveProcesses;
 }
 
-void timeline::notify_new_pid(unsigned int pid) 
+void timeline::notify_new_pid(PID_TID pid)
 {
 	if (pidlist.count(pid))
 	{
@@ -64,7 +64,7 @@ void timeline::notify_new_pid(unsigned int pid)
 	++liveProcesses;
 }
 
-void timeline::notify_new_tid(unsigned int pid, unsigned int tid) 
+void timeline::notify_new_tid(PID_TID pid, PID_TID tid)
 {
 	obtainMutex(accessMutex, 1034);
 	processEvent ev;
@@ -78,7 +78,7 @@ void timeline::notify_new_tid(unsigned int pid, unsigned int tid)
 	++liveThreads;
 }
 
-void timeline::notify_tid_end(unsigned int pid, unsigned int tid)
+void timeline::notify_tid_end(PID_TID pid, PID_TID tid)
 {
 	obtainMutex(accessMutex, 1035);
 	processEvent ev;

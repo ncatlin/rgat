@@ -36,10 +36,10 @@ A messy collection of state structures, generally targeted to the visualiser sta
 #define AOFF 3
 
 struct DIFFIDS {
-	int pid1 = -1;
-	int pid2 = -1;
-	int tid1 = -1;
-	int tid2 = -1;
+	PID_TID pid1 = -1;
+	PID_TID pid2 = -1;
+	PID_TID tid1 = -1;
+	PID_TID tid2 = -1;
 };
 
 #define TITLE_STRING_MAX 300
@@ -129,7 +129,7 @@ public:
 
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;
-	map <int, NODEPAIR> graphPositions;
+	map <PID_TID, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;
 	string commandlineLaunchArgs;
@@ -154,7 +154,7 @@ public:
 	GLuint wireframeVBOs[2];
 	bool remakeWireframe = false;
 	
-	map<int, PROCESS_DATA *> glob_piddata_map;
+	map<PID_TID, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
 	timeline *timelineBuilder;

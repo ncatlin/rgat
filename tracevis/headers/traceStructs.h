@@ -77,7 +77,7 @@ struct INS_DATA {
 	MEM_ADDRESS condTakenAddress;
 	MEM_ADDRESS condDropAddress;
 	//thread id, vert idx
-	unordered_map<int, int> threadvertIdx;
+	unordered_map<PID_TID, int> threadvertIdx;
 	unsigned int modnum;
 	unsigned int mutationIndex;
 
@@ -94,7 +94,7 @@ struct BB_DATA {
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
 	//  tid     
-	map <int, EDGELIST> thread_callers;
+	map <DWORD, EDGELIST> thread_callers;
 
 	string symbol;
 };
@@ -114,14 +114,14 @@ public:
 	bool should_die() { return die; }
 	bool is_running() { return running; }
 	void set_running(bool r) { running = r; }
-	int PID = -1;
+	PID_TID PID = -1;
 
 	map <int, string>modpaths;
 	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
 	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
 
 	//graph data for each thread in process, void* because t_g_d header causes build freakout
-	map <int, void *> graphs;
+	map <PID_TID, void *> graphs;
 
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);
 #ifdef XP_COMPATIBLE

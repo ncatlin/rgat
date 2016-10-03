@@ -53,8 +53,8 @@ public:
 	int getScroll() { return controlWindow->getScroll(); }
 	void setScrollbarMax(int val) { controlWindow->setScrollbarMax(val); }
 	void doLogic() { widgets->logic(); }
-	void setActivePID(int PID);
-	void addPID(int PID);
+	void setActivePID(PID_TID PID);
+	void addPID(PID_TID PID);
 	void showHideDiffFrame();
 	void showHideHighlightFrame();
 	void processEvent(ALLEGRO_EVENT *ev)
@@ -103,7 +103,7 @@ public:
 	PIDDropdownListener(VISSTATE *state) { clientState = state; }
 	virtual void actionPerformed(const agui::ActionEvent &evt)
 	{
-		int PID = std::stoi(evt.getSource()->getText());
+		PID_TID PID = std::stoi(evt.getSource()->getText());
 		if (!clientState->activePid || (PID != clientState->activePid->PID))
 			clientState->selectedPID = PID;
 	}

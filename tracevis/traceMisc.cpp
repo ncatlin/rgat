@@ -81,7 +81,7 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 //takes MARKER1234 buf, marker and target int
 //if MARKER matches marker, converts 1234 to integer and places
 //in target
-int extract_integer(char *char_buf, string marker, int *target)
+int extract_pid_tid(char *char_buf, string marker, PID_TID *target)
 {
 	string pipeinput(char_buf);
 
@@ -90,7 +90,7 @@ int extract_integer(char *char_buf, string marker, int *target)
 		std::string::size_type sz = 0;
 		string x = pipeinput.substr(marker.length(), pipeinput.length());
 		try {
-			*target = std::stoi(x, &sz);
+			*target = std::stoul(x, &sz);
 		}
 		catch (const std::exception& e) {
 			sz = 0;
@@ -106,7 +106,7 @@ int extract_integer(char *char_buf, string marker, int *target)
 
 }
 
-int caught_stoi(string s,int *result, int base) {
+int caught_stoi(string s, int *result, int base) {
 	try {
 		*result = std::stoi(s,0,base);
 	}
@@ -126,9 +126,9 @@ int caught_stoi(string s, unsigned int *result, int base) {
 	return 1;
 }
 
-int caught_stol(string s, unsigned long *result, int base) {
+int caught_stoul(string s, unsigned long *result, int base) {
 	try {
-		*result = std::stoll(s,0,base);
+		*result = std::stoul(s,0,base);
 	}
 	catch (std::exception const & e) {
 

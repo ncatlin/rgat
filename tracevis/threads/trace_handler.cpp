@@ -68,7 +68,7 @@ void thread_trace_handler::insert_edge(edge_data e, NODEPAIR edgePair)
 bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 {
 	piddata->getDisassemblyReadLock();
-	unordered_map<int,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
+	unordered_map<PID_TID,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	piddata->dropDisassemblyReadLock();
 
 	if (vertIdIt != instruction->threadvertIdx.end())
@@ -413,13 +413,13 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	}
 
 	string funcpc_s = string(strtok_s(entry, ",", &entry));
-	if (!caught_stol(funcpc_s, &funcpc, 16)) {
+	if (!caught_stoul(funcpc_s, &funcpc, 16)) {
 		cerr << "[rgat]ERROR: Trace corruption. handle_arg funcpc address ERROR:" << funcpc_s << endl;
 		assert(0);
 	}
 
 	string retaddr_s = string(strtok_s(entry, ",", &entry));
-	if (!caught_stol(retaddr_s, &returnpc, 16)) {
+	if (!caught_stoul(retaddr_s, &returnpc, 16)) {
 		cerr << "[rgat]ERROR:Trace corruption. handle_arg returnpc address ERROR: " << retaddr_s << endl;
 		assert(0);
 	}
@@ -872,7 +872,7 @@ void thread_trace_handler::main_loop()
 				{
 					loopState = BUILDING_LOOP;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
-					if (!caught_stol(repeats_s, &loopCount, 10))
+					if (!caught_stoul(repeats_s, &loopCount, 10))
 						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
 					continue;
 				}
@@ -898,14 +898,14 @@ void thread_trace_handler::main_loop()
 			{
 				MEM_ADDRESS e_ip;
 				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
-				if (!caught_stol(e_ip_s, &e_ip, 16)) {
+				if (!caught_stoul(e_ip_s, &e_ip, 16)) {
 					
 					assert(0);
 				}
 
 				unsigned long e_code;
 				string e_code_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stol(e_code_s, &e_code, 16)) {
+				if (!caught_stoul(e_code_s, &e_code, 16)) {
 					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
 					assert(0);
 				}

@@ -53,7 +53,7 @@ private:
 
 
 	string target;
-	int PID = -1;
+	PID_TID PID = -1;
 	VISSTATE *clientState;
 	agui::Gui *guiWidgets;
 
