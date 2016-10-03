@@ -15,7 +15,7 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Download/Installation
 
-It's [here](https://github.com/ncatlin/rgat/raw/master/drgat-0.1.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+It's [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.1.1.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
 
 It's built to depend on the Windows 10 Universal CRT so if you have a version lower than that you might need to [install it](https://support.microsoft.com/en-gb/kb/2999226)
 
@@ -27,7 +27,7 @@ It should create a default config file at start up, feel free to customise.
 
 ## Running
 
-Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox.
+Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elesewhere.
 
 Run, save and load traces from the file menu. Other functionality should be reasonably self explanatory from the other menus.
 
@@ -45,7 +45,9 @@ See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://g
 
 ## Excuses
 
-It's reliance on DynamoRIO means that rgat suffers from all of the same limitations and many more as well.
+This is an unstable preview release (0.1.1). I promise not to use that excuse for long. 
+
+It's reliance on DynamoRIO means that rgat suffers from all of the same limitations. 99% of problems you find will be my fault though.
 
 Instrumenting arbitrary code - especially malicious obfuscated code - tends to present a *lot* of edge cases.
 
