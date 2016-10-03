@@ -129,6 +129,7 @@ void module_handler::main_loop()
 				TID_processor->timelinebuilder = clientState->timelineBuilder;
 				TID_processor->basicMode = clientState->launchopts.basic;
 				TID_processor->set_max_arg_storage(clientState->config->maxArgStorage);
+				TID_processor->saveFlag = &clientState->saving;
 
 				if (!obtainMutex(piddata->graphsListMutex, 1010)) break;
 				if (piddata->graphs.count(TID) > 0)

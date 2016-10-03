@@ -61,6 +61,7 @@ public:
 	thread_trace_reader *reader;
 	bool basicMode = false;
 	void set_max_arg_storage(unsigned int maxargs) { arg_storage_capacity = maxargs; }
+	bool *saveFlag;
 
 private:
 	void main_loop();

@@ -713,7 +713,9 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 	const int numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
+		obtainMutex(piddata->disassemblyMutex, 3632);
 		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = &piddata->modBounds.at(modNo);
+		dropMutex(piddata->disassemblyMutex);
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
 			if (piddata->activeMods.at(modNo) == MOD_INSTRUMENTED)
@@ -791,7 +793,10 @@ void thread_trace_handler::main_loop()
 			return;
 		}
 
+		while (*saveFlag && !die) Sleep(20); //writing while saving == corruption
+
 		++itemsDone;
+
 		char *next_token = msgbuf;
 		while (!die)
 		{

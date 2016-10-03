@@ -172,6 +172,7 @@ bool ensureDirExists(string dirname, VISSTATE *clientState)
 //this saves the process data of activePid and all of its graphs
 void saveTrace(VISSTATE * clientState)
 {	
+	clientState->saving = true;
 	string path;
 	if (!getSavePath(clientState->config->saveDir, 
 		clientState->glob_piddata_map[clientState->activePid->PID]->modpaths.at(0),
@@ -187,6 +188,7 @@ void saveTrace(VISSTATE * clientState)
 		{
 			cerr << "[rgat]ERROR: Failed to save to path " << clientState->config->saveDir << ", giving up." <<endl;
 			cerr << "[rgat]Add path of a writable directory to CLIENT_PATH in rgat.cfg" << endl;
+			clientState->saving = false;
 			return;
 		}
 		clientState->config->updateSavePath(clientState->config->saveDir);
@@ -194,12 +196,14 @@ void saveTrace(VISSTATE * clientState)
 
 	cout << "[rgat]Saving process " << clientState->activePid->PID <<" to " << path << endl;
 
+
 	ofstream savefile;
 	savefile << std::dec;
 	savefile.open(path.c_str(), std::ofstream::binary);
 	if (!savefile.is_open())
 	{
 		cerr << "[rgat]Failed to open " << path << "for save" << endl;
+		clientState->saving = false;
 		return;
 	}
 
@@ -221,6 +225,7 @@ void saveTrace(VISSTATE * clientState)
 	dropMutex(clientState->activePid->graphsListMutex);
 
 	savefile.close();
+	clientState->saving = false;
 	cout<<"[rgat]Save complete"<<endl;
 }
 

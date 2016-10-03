@@ -249,3 +249,13 @@ tracelog*
 .fake/
 /issues
 /INSTALLING.txt
+/tracevis/drgat/DynamoRIO
+/tracevis/drgat/allegro_ttf-5.2.dll
+/tracevis/drgat/allegro_primitives-5.2.dll
+/tracevis/drgat/allegro_image-5.2.dll
+/tracevis/drgat/allegro_font-5.2.dll
+/tracevis/drgat/allegro_dialog-5.2.dll
+/tracevis/drgat/allegro-5.2.dll
+/tracevis/drgat/vcruntime140.dll
+/tracevis/drgat/msvcp140.dll
+/tracevis/drgat/drgat.dll

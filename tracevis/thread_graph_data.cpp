@@ -745,7 +745,7 @@ void thread_graph_data::reset_mainlines()
 //true if found + edge data placed in edged
 bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 {
-	obtainMutex(edMutex, 1023);
+	obtainMutex(edMutex, 8023);
 	EDGEMAP::iterator edgeit = edgeDict.find(edge);
 	dropMutex(edMutex);
 
@@ -757,7 +757,7 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-	obtainMutex(edMutex, 1024);
+	obtainMutex(edMutex, 8024);
 	edge_data *linkingEdge = &edgeDict.at(edgePair);
 	dropMutex(edMutex);
 	return linkingEdge;
@@ -766,7 +766,7 @@ inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 //linker error if we make this inline too
 edge_data * thread_graph_data::get_edge(int edgeindex)
 {
-	obtainMutex(edMutex, 1024);
+	obtainMutex(edMutex, 8224);
 	edge_data *linkingEdge = &edgeDict.at(edgeList.at(edgeindex));
 	dropMutex(edMutex);
 	return linkingEdge;
@@ -863,7 +863,7 @@ thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int thr
 
 void thread_graph_data::start_edgeL_iteration(EDGELIST::iterator *edgeIt, EDGELIST::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 1026);
+	obtainMutex(edMutex, 6026);
 	*edgeIt = edgeList.begin();
 	*edgeEnd = edgeList.end();
 }
@@ -876,7 +876,7 @@ void thread_graph_data::stop_edgeL_iteration()
 void thread_graph_data::start_edgeD_iteration(EDGEMAP::iterator *edgeIt,
 	EDGEMAP::iterator *edgeEnd)
 {
-	obtainMutex(edMutex, 1027);
+	obtainMutex(edMutex, 6027);
 	*edgeIt = edgeDict.begin();
 	*edgeEnd = edgeDict.end();
 }
@@ -1159,7 +1159,12 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 			getline(*file, value_s, '}');
 			if (!caught_stoi(value_s, (int *)&n->mutation, 10))
 				return false;
-			n->ins = disassembly->at(n->address).at(n->mutation);
+
+			map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(n->address);
+			if ((addressIt == disassembly->end()) || (n->mutation >= addressIt->second.size()))
+				return false;
+
+			n->ins = addressIt->second.at(n->mutation);
 			insert_node(n->index, *n);
 			continue;
 		}
@@ -1198,6 +1203,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 		insert_node(n->index, *n);
 	}
 }
+
 //todo: move this and the other graph loads to graph class!
 bool thread_graph_data::loadStats(ifstream *file)
 {

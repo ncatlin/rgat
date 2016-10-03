@@ -165,6 +165,7 @@ public:
 	clientConfig *config;
 
 	bool die = false;
+	bool saving = false;
 };
 
 //screen top bottom red green
