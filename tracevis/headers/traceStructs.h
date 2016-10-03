@@ -95,8 +95,6 @@ struct BB_DATA {
 	//  tid     
 	map <int, EDGELIST> thread_callers;
 
-	//   tid	caller    
-	map <int, map<MEM_ADDRESS, ARGLIST>> pendingcallargs;
 	string symbol;
 };
 

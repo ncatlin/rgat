@@ -125,9 +125,6 @@ public:
 	edge_data * get_edge(int edgeindex);
 	inline node_data *get_node(unsigned int index);
 
-	//   function 	      caller		
-	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>> pendingcallargs;
-
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
 	unsigned int get_num_nodes() { return nodeList.size();}
 	unsigned int get_num_edges() { return edgeDict.size();}

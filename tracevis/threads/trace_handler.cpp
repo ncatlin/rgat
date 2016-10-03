@@ -447,16 +447,16 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	if (!callDone) return;
 
 	//func been called in thread already? if not, have to place args in holding buffer
-	if (thisgraph->pendingcallargs.count(pendingFunc) == 0)
+	if (pendingcallargs.count(pendingFunc) == 0)
 	{
 		map <MEM_ADDRESS, vector<ARGLIST>> *newmap = new map <MEM_ADDRESS, vector<ARGLIST>>;
-		thisgraph->pendingcallargs.emplace(pendingFunc, *newmap);
+		pendingcallargs.emplace(pendingFunc, *newmap);
 	}
 
-	if (thisgraph->pendingcallargs.at(pendingFunc).count(pendingRet) == 0)
+	if (pendingcallargs.at(pendingFunc).count(pendingRet) == 0)
 	{
 		vector<ARGLIST> *newvec = new vector<ARGLIST>;
-		thisgraph->pendingcallargs.at(pendingFunc).emplace(pendingRet, *newvec);
+		pendingcallargs.at(pendingFunc).emplace(pendingRet, *newvec);
 	}
 		
 	ARGLIST::iterator pendcaIt = pendingArgs.begin();
@@ -464,7 +464,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
 		thisCallArgs.push_back(*pendcaIt);
 
-	thisgraph->pendingcallargs.at(pendingFunc).at(pendingRet).push_back(thisCallArgs);
+	pendingcallargs.at(pendingFunc).at(pendingRet).push_back(thisCallArgs);
 
 	pendingArgs.clear();
 	pendingFunc = 0;
@@ -563,8 +563,8 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 void thread_trace_handler::process_new_args()
 {
 	//function				caller		args
-	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pcaIt = thisgraph->pendingcallargs.begin();
-	while (pcaIt != thisgraph->pendingcallargs.end())
+	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pcaIt = pendingcallargs.begin();
+	while (pcaIt != pendingcallargs.end())
 	{
 		MEM_ADDRESS funcad = pcaIt->first;
 
@@ -602,6 +602,10 @@ void thread_trace_handler::process_new_args()
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
+				obtainMutex(piddata->externDictMutex, 7321);
+				string externPath = piddata->modpaths.at(piddata->externdict.at(funcad)->modnum);
+				dropMutex(piddata->externDictMutex);
+
 				obtainMutex(thisgraph->funcQueueMutex, 1048);
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
@@ -610,7 +614,7 @@ void thread_trace_handler::process_new_args()
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
 					ex.callerAddr = parentn->ins->address;
-					ex.externPath = piddata->modpaths.at(piddata->externdict.at(funcad)->modnum);
+					ex.externPath = externPath;
 					ex.argList = *callsIt;
 
 					assert(parentn->index != targn->index);
@@ -626,13 +630,13 @@ void thread_trace_handler::process_new_args()
 				if (callersIt->second.empty())
 					callersIt = pcaIt->second.erase(callersIt);
 				else
-					callersIt++;
+					++callersIt;
 			}
 
-			callvsIt++;
+			++callvsIt;
 		}
 		if (pcaIt->second.empty())
-			pcaIt = thisgraph->pendingcallargs.erase(pcaIt);
+			pcaIt = pendingcallargs.erase(pcaIt);
 		else
 			++pcaIt;
 	}
