@@ -652,13 +652,10 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 //draw text for quantity + symbol + argument indicator
 void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
-	//ive never had a crash from not guarding this operation but its prob a good idea
-	obtainMutex(clientState->activePid->disassemblyMutex, 2043);
-	string modPath = clientState->activePid->modpaths.at(n->nodeMod);
-	dropMutex(clientState->activePid->disassemblyMutex);
+	string modPath;
+	clientState->activePid->get_modpath(n->nodeMod, &modPath);
 
 	stringstream argstring;
-
 	if (clientState->show_extern_text == EXTERNTEXT_ALL)
 		argstring << modPath << ":";
 

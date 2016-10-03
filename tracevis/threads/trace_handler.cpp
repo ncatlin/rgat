@@ -602,8 +602,9 @@ void thread_trace_handler::process_new_args()
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
+				string externPath;
 				obtainMutex(piddata->externDictMutex, 7321);
-				string externPath = piddata->modpaths.at(piddata->externdict.at(funcad)->modnum);
+				piddata->get_modpath(piddata->externdict.at(funcad)->modnum, &externPath);
 				dropMutex(piddata->externDictMutex);
 
 				obtainMutex(thisgraph->funcQueueMutex, 1048);

@@ -109,14 +109,33 @@ class PROCESS_DATA
 public:
 	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym) 
 	{
+		obtainMutex(disassemblyMutex, 6396);
 		if (modsymsPlain[modNum][addr].empty()) 
 		{
 			*sym = "";
+			dropMutex(disassemblyMutex);
 			return false;
 		}
 		else
 		{
 			*sym = modsymsPlain[modNum][addr];
+			dropMutex(disassemblyMutex);
+			return true;
+		}
+	}
+
+	bool get_modpath(unsigned int modNum, string *path)
+	{
+		obtainMutex(disassemblyMutex, 6396);
+		map<int, string>::iterator modPathIt = modpaths.find(modNum);
+		dropMutex(disassemblyMutex);
+		if (modPathIt == modpaths.end())
+		{
+			return false;
+		}
+		else
+		{
+			*path = modPathIt->second;
 			return true;
 		}
 	}

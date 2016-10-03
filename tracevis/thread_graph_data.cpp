@@ -81,7 +81,9 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 				nextExtern.callerAddr = parentn->ins->address;
 				dropMutex(piddata->disassemblyMutex);
 
-				nextExtern.externPath = piddata->modpaths.at(externn->nodeMod);
+				if (!piddata->get_modpath(externn->nodeMod, &nextExtern.externPath))
+					cerr << "[rgat]WARNING: mod " << externn->nodeMod << " expected but not found" << endl;
+
 				if (extt.displayString == "()")
 				{
 					stringstream hexaddr;
@@ -93,9 +95,12 @@ void thread_graph_data::transferNewLiveCalls(map <int, vector<EXTTEXT>> *externF
 
 		if (nextExtern.drawFloating)
 		{
+			string externModPath;
+			if (nextExtern.externPath.empty()) piddata->get_modpath(externn->nodeMod, &externModPath);
+
 			stringstream callLog;
 			callLog << "0x" << std::hex << externn->address << ": ";
-			callLog << piddata->modpaths[externn->nodeMod] << " -> ";
+			callLog << externModPath << " -> ";
 			callLog << generate_funcArg_string(get_node_sym(externn->index, piddata), nextExtern.argList) << "\n";
 			loggedCalls.push_back(callLog.str());
 
@@ -298,9 +303,10 @@ string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
 
 	if (!piddata->get_sym(n->nodeMod, n->address, &sym))
 	{
-		obtainMutex(piddata->disassemblyMutex, 2043);
-		string modPath = piddata->modpaths.at(n->nodeMod);
-		dropMutex(piddata->disassemblyMutex);
+	
+		string modPath;
+		if (!piddata->get_modpath(n->nodeMod, &modPath))
+			cerr << "[rgat]WARNING: mod " << n->nodeMod << " expected but not found" << endl;
 
 		stringstream nosym;
 		nosym << basename(modPath) << ":0x" << std::hex << n->address;
@@ -939,7 +945,8 @@ void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo)
 {
 	baseMod = get_node(0)->nodeMod;
 	if (baseMod >= (int)pidinfo->modpaths.size()) return;
-	string longmodPath = pidinfo->modpaths.at(baseMod);
+	string longmodPath;
+	pidinfo->get_modpath(baseMod, &longmodPath);
 
 	if (longmodPath.size() > MAX_DIFF_PATH_LENGTH)
 		modPath = ".."+longmodPath.substr(longmodPath.size() - MAX_DIFF_PATH_LENGTH, longmodPath.size());
