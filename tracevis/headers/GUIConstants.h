@@ -40,17 +40,18 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define al_col_purple al_map_rgb(139, 0, 139)
 #define al_col_orange al_map_rgb(255, 126, 0)
 #define al_col_yellow al_map_rgb(255, 255, 0)
-#define al_col_grey al_map_rgb(0.3 * 255, 0.3 * 255, 0.3 * 255)
+#define al_col_grey al_map_rgb(77, 77, 77)
 #define al_col_black al_map_rgb(0, 0, 0)
+#define al_col_cyan al_map_rgba(0, 255, 255, 255)
 
 #define ICALL 0
 #define IOLD 1
 #define IRET 2
 #define ILIB 3
 #define INEW 4
-#define ISTD 5
-#define IFLOW 6
-#define ISYS 7
+#define IEXCEPT 5
+//#define ISYS 6
+
 
 #define PREV_SCROLLBAR_WIDTH 15
 #define PREV_GRAPH_PADDING 10
@@ -168,7 +169,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 
 //offset the instruction text on the drawn node
 #define INS_X_OFF 5
-#define INS_Y_OFF 3
+#define INS_Y_OFF 1
 
 #define MAX_LIVE_ANIMATION_NODES_PER_FRAME 100
 
@@ -182,3 +183,5 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 
 #define ANIM_INACTIVE_NODE_ALPHA 0.00
 #define ANIM_INACTIVE_EDGE_ALPHA 0.00
+
+#define HIGHLIGHT_REFRESH_DELAY_MS 700

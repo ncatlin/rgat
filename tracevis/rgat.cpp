@@ -698,10 +698,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			switch (ev->keyboard.keycode)
 			{
 				case ALLEGRO_KEY_LCTRL:
-					printf("l cont\n");
+					//printf("l cont\n");
 					break;
 				case ALLEGRO_KEY_C:
-					printf("c pressed\n");
+					//printf("c pressed\n");
 					break;
 				case ALLEGRO_KEY_V:
 				case ALLEGRO_KEY_X:

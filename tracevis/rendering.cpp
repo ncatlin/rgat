@@ -224,12 +224,6 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			bezierC = middleC;
 			break;
 		}
-		case ICALL:
-		{
-			curvePoints = LONGCURVEPTS;
-			bezierC = middleC;
-			break;
-		}
 
 		case IRET:
 		case IOLD:
@@ -252,7 +246,9 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			break;
 		}
 
+		case ICALL:
 		case ILIB: 
+		case IEXCEPT:
 		{
 			curvePoints = LONGCURVEPTS;
 			bezierC = middleC;
@@ -320,9 +316,9 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 			case OPCALL:
 				active_col = &nodeColours->at(CALL);
 				break;
-			case ISYS: //todo: never used - intended for syscalls
-				active_col = &al_col_grey;
-				break;
+			//case ISYS: //todo: never used - intended for syscalls
+			//	active_col = &al_col_grey;
+			//	break;
 
 			default:
 				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
@@ -703,11 +699,11 @@ void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
 	//todo: maintain local copy, update on size change?
-	obtainMutex(graph->funcQueueMutex, 1052);
-	vector<int> externListCopy = graph->externList;
-	dropMutex(graph->funcQueueMutex);
+	obtainMutex(graph->highlightsMutex, 1052);
+	vector<unsigned int> externListCopy = graph->externList;
+	dropMutex(graph->highlightsMutex);
 
-	vector<int>::iterator externCallIt = externListCopy.begin();
+	vector<unsigned int>::iterator externCallIt = externListCopy.begin();
 	for (; externCallIt != externListCopy.end(); ++externCallIt)
 	{
 		node_data *n = graph->get_node(*externCallIt);

@@ -34,7 +34,7 @@ void TraceVisGUI::showHideHighlightFrame()
 {
 	highlightWindow->highlightFrame->setVisibility(!highlightWindow->highlightFrame->isVisible());
 	if (highlightWindow->highlightFrame->isVisible())
-		highlightWindow->refreshDropdowns();
+		highlightWindow->refreshData();
 }
 
 void TraceVisGUI::addPID(PID_TID PID)
@@ -62,6 +62,9 @@ void TraceVisGUI::updateWidgets(thread_graph_data *graph)
 	if (!graph) return;
 	if (ticksRemaining == 0)
 		controlWindow->update(graph);
+
+	if (highlightWindow->highlightFrame->isVisible() && highlightWindow->staleData())
+		highlightWindow->refreshData();
 }
 
 //widgets->render() is a monster on the CPU
@@ -177,8 +180,13 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	aboutLayout->setHorizontallyCentered(true);
 	aboutBox->add(aboutLayout);
 	
+	stringstream versionSS;
+	versionSS << "rgat Version " << RGAT_VERSION_MAJ << ".";
+	versionSS << RGAT_VERSION_MIN << "." << RGAT_VERSION_FEATURE;
+	versionSS << " (" << RGAT_VERSION_DESCRIPTION << ")";
+
 	agui::Label *versionLabel = new agui::Label;
-	versionLabel->setText("rgat Version 0.1.2 (Preview/Unstable)");
+	versionLabel->setText(versionSS.str());
 	versionLabel->resizeToContents();
 	aboutLayout->add(versionLabel);
 

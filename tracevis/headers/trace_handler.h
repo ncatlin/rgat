@@ -84,6 +84,8 @@ private:
 
 	
 	void runBB(TAG *tag, int startIndex, int repeats);
+	void run_faulting_BB(TAG *tag);
+
 	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
 	void updateStats(int a, int b, unsigned int bMod);
 	void insert_edge(edge_data e, NODEPAIR edgepair);
@@ -93,7 +95,10 @@ private:
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
 	void increaseWeight(edge_data *edge, unsigned long executions);
+
 	void handle_tag(TAG *thistag, unsigned long repeats);
+	void handle_exception_tag(TAG *thistag);
+
 	void update_conditional_state(MEM_ADDRESS nextAddress);
 	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();

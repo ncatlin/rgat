@@ -31,6 +31,11 @@ in case we want to revert it
 
 prints waitTimeCode in case of failure so use unique time for debugging
 */
+void renameFile(string originalPath, string targetPath)
+{
+	MoveFileA(originalPath.c_str(), targetPath.c_str());
+}
+
 bool obtainMutex(HANDLE mutex, int waitTimeCode)
 {
 	DWORD waitresult;

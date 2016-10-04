@@ -63,7 +63,8 @@ struct INS_DATA {
 	void *bb_ptr;
 	string mnemonic;
 	string op_str;
-	vector<unsigned int> blockIDs;
+	//store all the basic blocks this instruction is a member of
+	vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>> blockIDs;
 	/* memory/speed tradeoff 
 	1.construct every frame and save memory 
 	2.construct at disassemble time and improve render speed

@@ -32,12 +32,13 @@ class HighlightSelectionFrame {
 public:
 	HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
 
-	void refreshDropdowns();
+	void refreshData();
 	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, thread_graph_data *graph, PROCESS_DATA* activePid);
 	agui::Frame *highlightFrame = NULL;
 	agui::DropDown *symbolDropdown;
 	agui::DropDown *moduleDropdown;
 	agui::TextField *addressText;
+	bool staleData() { return (GetTickCount64() > (lastRefresh + HIGHLIGHT_REFRESH_DELAY_MS)); }
 
 private:
 	agui::Label *addressLabel;
@@ -48,11 +49,15 @@ private:
 
 	agui::Label *moduleLabel;
 	agui::Button *moduleBtn;
+
+	agui::Label *exceptionLabel;
+	agui::Button *exceptionBtn;
 	
 	agui::Font *highlightFont;
+	DWORD64 lastRefresh = 0;
 
-	int lastModCount = 0;
-	int lastSymCount = 0;
+	unsigned int lastSymCount = 0;
+	unsigned int lastExceptionCount = 0;
 	VISSTATE *clientState;
 };
 
@@ -60,6 +65,7 @@ private:
 #define HL_HIGHLIGHT_ADDRESS 1
 #define HL_HIGHLIGHT_SYM 2
 #define HL_HIGHLIGHT_MODULE 3
+#define HL_HIGHLIGHT_EXCEPTIONS 4
 class highlightButtonListener : public agui::ActionListener
 {
 public:
@@ -76,13 +82,9 @@ public:
 
 		switch (id)
 		{
-		case HL_REFRESH_BTN:
-			{
-			hl_frame->refreshDropdowns();
-			break;
-			}
 		case HL_HIGHLIGHT_ADDRESS:
 			{
+				if (!clientState->activePid) break;
 				string address_s = hl_frame->addressText->getText();
 				if (!caught_stoul(address_s, &clientState->highlightData.highlightAddr, 16)) break;
 				hl_frame->highlightFrame->setVisibility(false);
@@ -109,6 +111,13 @@ public:
 				clientState->highlightData.highlightModule = hl_frame->moduleDropdown->getSelectedIndex();
 				clientState->highlightData.highlightState = HL_HIGHLIGHT_MODULE;
 				break; 
+			}
+
+		case HL_HIGHLIGHT_EXCEPTIONS:
+			{
+				hl_frame->highlightFrame->setVisibility(false);
+				clientState->highlightData.highlightState = HL_HIGHLIGHT_EXCEPTIONS;
+				break;
 			}
 		}
 		hl_frame->updateHighlightNodes(&clientState->highlightData,

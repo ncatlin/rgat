@@ -25,6 +25,7 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 string getModulePath();
 string basename(string path);
 bool fileExists(string path);
+void renameFile(string originalPath, string targetPath);
 void execute_tracer(string executable, string args, void *clientState_ptr);
 bool getSavePath(string saveDir, string filename, string *result, PID_TID PID);
 

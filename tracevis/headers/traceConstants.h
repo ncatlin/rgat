@@ -40,6 +40,7 @@ Constants used to interpret and plot the trace data
 #define CALL 2
 #define RETURN 3
 #define EXTERNAL 4
+#define EXCEPTION_GENERATOR 5
 #define NOSYM 8
 #define AFTERRETURN 9
 #define FIRST_IN_THREAD 10

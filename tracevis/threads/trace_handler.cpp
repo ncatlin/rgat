@@ -215,25 +215,31 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 
 		if (thisgraph->edge_exists(edgeIDPair, &oldEdge))
 			increaseWeight(oldEdge, repeats);
-		else 
+		else //only need to do this for bb index 0
 			if (lastRIPType != FIRST_IN_THREAD)
 			{
 				edge_data newEdge;
 				newEdge.weight = repeats;
 			
-				if (lastRIPType == RETURN)
-					newEdge.edgeClass = IRET;
-				else 
-					if (alreadyExecuted)
-						newEdge.edgeClass = IOLD;
+				if (instructionIndex > 0)
+					newEdge.edgeClass = alreadyExecuted ? IOLD : INEW;
+				else
+				{
+					if (lastRIPType == RETURN)
+						newEdge.edgeClass = IRET;
 					else
-					{
+						if (lastRIPType == EXCEPTION_GENERATOR)
+							newEdge.edgeClass = IEXCEPT;
+					else
+						if (alreadyExecuted)
+							newEdge.edgeClass = IOLD;
+					else
 						if (lastRIPType == CALL)
 							newEdge.edgeClass = ICALL;
-						else
-							newEdge.edgeClass = INEW;
-					}						
-
+					else
+						newEdge.edgeClass = INEW;
+						
+				}
 				insert_edge(newEdge, edgeIDPair);
 			}
 
@@ -261,6 +267,76 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 				lastRIPType = NONFLOW;
 				break;
 		}
+		lastVertID = targVertID;
+	}
+}
+
+void thread_trace_handler::run_faulting_BB(TAG *tag)
+{
+	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata, &die);
+	for (int instructionIndex = 0; instructionIndex <= tag->insCount; ++instructionIndex)
+	{
+
+		if (piddata->should_die()) return;
+		INS_DATA *instruction = block->at(instructionIndex);
+
+		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
+		{
+			cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
+			assert(0);
+		}
+
+		//target vert already on this threads graph?
+		bool alreadyExecuted = set_target_instruction(instruction);
+		if (!alreadyExecuted)
+			handle_new_instruction(instruction, tag->blockID);
+
+		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
+		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
+		edge_data *oldEdge;
+
+		if (thisgraph->edge_exists(edgeIDPair, &oldEdge))
+			increaseWeight(oldEdge, 1);
+		else
+			if (lastRIPType != FIRST_IN_THREAD)
+			{
+				edge_data newEdge;
+				newEdge.weight = 1;
+
+				if (instructionIndex > 0)
+					newEdge.edgeClass = alreadyExecuted ? IOLD : INEW;
+				else
+				{
+					if (lastRIPType == RETURN)
+						newEdge.edgeClass = IRET;
+					else
+						if (lastRIPType == EXCEPTION_GENERATOR)
+							newEdge.edgeClass = IEXCEPT;
+					else
+						if (alreadyExecuted)
+							newEdge.edgeClass = IOLD;
+					else
+						if (lastRIPType == CALL)
+							newEdge.edgeClass = ICALL;
+					else
+						newEdge.edgeClass = INEW;
+
+				}
+
+				insert_edge(newEdge, edgeIDPair);
+			}
+
+		//setup conditions for next instruction
+		if (instructionIndex < tag->insCount)
+			lastRIPType = NONFLOW;
+		else
+		{
+			lastRIPType = EXCEPTION_GENERATOR;
+			obtainMutex(thisgraph->highlightsMutex, 4531);
+			thisgraph->exceptionSet.insert(thisgraph->exceptionSet.end(),targVertID);
+			dropMutex(thisgraph->highlightsMutex);
+		}
+
 		lastVertID = targVertID;
 	}
 }
@@ -309,8 +385,10 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				break;
 			}
 		}
+
 	//long diagonal separation to show distinct basic blocks
 	case JUMP:
+	case EXCEPTION_GENERATOR:
 		{
 			a += JUMPA;
 			b += JUMPB * BMULT;
@@ -391,6 +469,10 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
 			break;
 		}
+
+
+		
+
 	default:
 		if (lastRIPType != FIRST_IN_THREAD)
 			cerr << "[rgat]ERROR: Unknown Last RIP Type "<< lastRIPType << endl;
@@ -546,9 +628,9 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
 
-	obtainMutex(thisgraph->funcQueueMutex, 1046);
+	obtainMutex(thisgraph->highlightsMutex, 1046);
 	thisgraph->externList.push_back(targVertID);
-	dropMutex(thisgraph->funcQueueMutex);
+	dropMutex(thisgraph->highlightsMutex);
 	*resultPair = std::make_pair(lastVertID, targVertID);
 
 	edge_data newEdge;
@@ -640,6 +722,60 @@ void thread_trace_handler::process_new_args()
 			pcaIt = pendingcallargs.erase(pcaIt);
 		else
 			++pcaIt;
+	}
+}
+
+//#define VERBOSE
+void thread_trace_handler::handle_exception_tag(TAG *thistag)
+{
+#ifdef VERBOSE
+	cout << "handling tag 0x" << thistag->blockaddr << " jmpmod:" << thistag->jumpModifier;
+	if (thistag->jumpModifier == 2)
+		cout << " - sym: " << piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr];
+	cout << endl;
+#endif
+
+	update_conditional_state(thistag->blockaddr);
+
+	if (thistag->jumpModifier == MOD_INSTRUMENTED)
+	{
+		run_faulting_BB(thistag);
+
+		if (!basicMode)
+		{
+			//store for animation and replay
+			obtainMutex(thisgraph->animationListsMutex, 1049);
+			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
+			thisgraph->mutationSequence.push_back(thistag->blockID);
+			dropMutex(thisgraph->animationListsMutex);
+		}
+
+		thisgraph->totalInstructions += thistag->insCount;
+		thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
+
+		thisgraph->set_active_node(lastVertID);
+	}
+
+	else if (thistag->jumpModifier == MOD_UNINSTRUMENTED) //call to (uninstrumented) external library
+	{
+		if (!lastVertID) return;
+
+		//find caller,external vertids if old + add node to graph if new
+		NODEPAIR resultPair;
+		cout << "[rgat]WARNING: Exception handler in uninstrumented module reached." <<
+			"I have no idea if this code will handle it; Let me know when you reach the other side..." << endl;
+		if (run_external(thistag->blockaddr, 1, &resultPair))
+		{
+			obtainMutex(thisgraph->animationListsMutex, 1150);
+			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
+			dropMutex(thisgraph->animationListsMutex);
+		}
+		thisgraph->set_active_node(resultPair.second);
+	}
+	else
+	{
+		cerr << "[rgat]Handle_tag dead code assert" << endl;
+		assert(0);
 	}
 }
 
@@ -920,6 +1056,35 @@ void thread_trace_handler::main_loop()
 				//TODO: place on graph. i'm thinking a yellow highlight line.
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
 					<< "[code " << std::hex << e_code << " flags: "<< e_flags << "] at address " << e_ip << "/" << e_ip_s <<endl;
+
+				cout << "last node was " << lastVertID << " at addr " << thisgraph->get_node(lastVertID)->address << endl;
+				
+				piddata->getDisassemblyReadLock();
+				//problem here: no way of knowing which mutation of the faulting instruction was executed
+				//going to have to assume it's the most recent mutation
+				INS_DATA *exceptingins = piddata->disassembly.at(e_ip).back();
+				//problem here: no way of knowing which mutation of the exception handler block was executed
+				//going to have to assume it's the most recent mutation
+				pair<MEM_ADDRESS, BLOCK_IDENTIFIER> *faultingBB = &exceptingins->blockIDs.back();
+				piddata->dropDisassemblyReadLock();
+
+				INSLIST *interruptedBlock = getDisassemblyBlock(faultingBB->first, faultingBB->second, piddata, &die);
+				INSLIST::iterator blockIt = interruptedBlock->begin();
+				int instructionsUntilFault = 0;
+				for (; blockIt != interruptedBlock->end(); ++blockIt)
+				{
+					
+					if (((INS_DATA *)*blockIt)->address == e_ip) break;
+					++instructionsUntilFault;
+				}
+
+
+				TAG interruptedBlockTag;
+				interruptedBlockTag.blockaddr = faultingBB->first;
+				interruptedBlockTag.insCount = instructionsUntilFault;
+				interruptedBlockTag.blockID = faultingBB->second >> 32;
+				interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED; //todo
+				handle_exception_tag(&interruptedBlockTag);
 				continue;
 			}
 

@@ -62,12 +62,14 @@ Defaults for using when a config file exist
 #define DEFAULT_EDGE_RET al_col_orange
 #define DEFAULT_EDGE_LIB al_col_green
 #define DEFAULT_EDGE_NEW al_col_yellow
+#define DEFAULT_EDGE_EXCEPT al_col_cyan
 
 #define DEFAULT_NODE_STD al_col_yellow
 #define DEFAULT_NODE_JUMP al_col_red
 #define DEFAULT_NODE_CALL al_col_purple
 #define DEFAULT_NODE_RET al_col_orange
 #define DEFAULT_NODE_EXT al_col_green
+#define DEFAULT_NODE_EXCEPT al_col_cyan
 
 #define HIGHLIGHT_LINE_COLOUR al_col_green
 #define HIGHLIGHT_LINE_PROTRUSION 3000

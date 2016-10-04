@@ -27,7 +27,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 	thread_graph_data *graph, PROCESS_DATA* activePid)
 {
 	highlightData->highlightNodes.clear();
-	if (!highlightData->highlightState) return;
+	if (!highlightData->highlightState || !graph) return;
 
 	switch (highlightData->highlightState)
 	{
@@ -49,30 +49,47 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 
 		case HL_HIGHLIGHT_SYM:
 		{
-			vector<int>::iterator externIt = graph->externList.begin();
+			obtainMutex(graph->highlightsMutex, 1361);
+			vector<unsigned int>::iterator externIt = graph->externList.begin();
 			for (; externIt != graph->externList.end(); ++externIt)
 			{
 				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
 					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
 			}
+			dropMutex(graph->highlightsMutex);
 			break;
 		}
 
 		case HL_HIGHLIGHT_MODULE:
 		{
-			vector<int>::iterator externIt = graph->externList.begin();
+			obtainMutex(graph->highlightsMutex, 1362);
+			vector<unsigned int>::iterator externIt = graph->externList.begin();
 			for (; externIt != graph->externList.end(); ++externIt)
 			{
 				if (highlightData->highlightModule == graph->get_node(*externIt)->nodeMod)
 					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
 			}
+			dropMutex(graph->highlightsMutex);
+			break;
+		}
+
+		case HL_HIGHLIGHT_EXCEPTIONS:
+		{
+			obtainMutex(graph->highlightsMutex, 1362);
+			if (!graph->exceptionSet.empty())
+			{
+				set<unsigned int>::iterator exceptIt = graph->exceptionSet.begin();
+				for (; exceptIt != graph->exceptionSet.end(); ++exceptIt)
+					highlightData->highlightNodes.push_back(graph->get_node(*exceptIt));
+			}
+			dropMutex(graph->highlightsMutex);
 			break;
 		}
 	}
 }
 
 //adds new relevant items to dropdown menu
-void HighlightSelectionFrame::refreshDropdowns()
+void HighlightSelectionFrame::refreshData()
 {
 	thread_graph_data *graph = clientState->activeGraph;
 	if (!clientState->activePid || !graph) return;
@@ -86,51 +103,62 @@ void HighlightSelectionFrame::refreshDropdowns()
 		addressText->setText(hexaddress.str());
 	}
 
-	if (lastSymCount == graph->externList.size()) return;
-
-	//add all the used symbols to symbol list
-	obtainMutex(graph->funcQueueMutex, 1009);
-	vector<int> externListCopy = graph->externList;
-	dropMutex(graph->funcQueueMutex);
-	vector<int>::iterator externIt = externListCopy.begin();
-
-	vector<string> addedSyms;
-	map<int,int> activeModules;
-	for (; externIt != externListCopy.end(); ++externIt)
+	if (lastSymCount != graph->externList.size())
 	{
-		string sym = graph->get_node_sym(*externIt, clientState->activePid);
-		bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
-		if (newSym)
-			addedSyms.push_back(sym);
-		node_data* node = graph->get_node(*externIt);
-		++activeModules[node->nodeMod];
+		//add all the used symbols to symbol list
+		obtainMutex(graph->highlightsMutex, 1009);
+		vector<unsigned int> externListCopy = graph->externList;
+		dropMutex(graph->highlightsMutex);
 
+		vector<unsigned int>::iterator externIt = externListCopy.begin();
+
+		vector<string> addedSyms;
+		map<int, int> activeModules;
+		for (; externIt != externListCopy.end(); ++externIt)
+		{
+			string sym = graph->get_node_sym(*externIt, clientState->activePid);
+			bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
+			if (newSym)
+				addedSyms.push_back(sym);
+			node_data* node = graph->get_node(*externIt);
+			++activeModules[node->nodeMod];
+
+		}
+		lastSymCount = externListCopy.size();
+		symbolDropdown->clearItems();
+		symbolDropdown->setText(" " + to_string(lastSymCount) + " Called Symbols");
+		std::sort(addedSyms.begin(), addedSyms.end());
+		vector<string>::iterator symIt;
+		for (symIt = addedSyms.begin(); symIt != addedSyms.end(); ++symIt)
+			symbolDropdown->addItem(*symIt);
+
+		//add all the modules to the module dropdown, including indicator of num symbols called
+		moduleDropdown->clearItems();
+		map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
+		for (; pathIt != clientState->activePid->modpaths.end(); ++pathIt)
+		{
+			stringstream pathString;
+			if (pathIt->second == "NULL")
+				pathString << "[UNKNOWN]";
+			else
+				pathString << pathIt->second;
+
+			if (activeModules.count(pathIt->first))
+				pathString << " (" << activeModules.at(pathIt->first) << ")";
+			moduleDropdown->addItem(pathString.str());
+		}
+		moduleDropdown->setText(" " + to_string(moduleDropdown->getItemCount()) + " Called Symbols");
 	}
-	lastSymCount = externListCopy.size();
 
-	std::sort(addedSyms.begin(), addedSyms.end());
-	vector<string>::iterator symIt;
-	symbolDropdown->clearItems();
-	for (symIt = addedSyms.begin(); symIt != addedSyms.end(); ++symIt)
-		symbolDropdown->addItem(*symIt);
+	obtainMutex(graph->highlightsMutex,1092);
+	unsigned int exceptionCount = graph->exceptionSet.size();
+	dropMutex(graph->highlightsMutex);
+	if (exceptionCount == 1)
+		exceptionLabel->setText("1 Exception");
+	else
+		exceptionLabel->setText(to_string(exceptionCount) + " Exceptions");
 
-	//add all the modules to the module dropdown, including indicator of num symbols called
-	moduleDropdown->clearItems();
-	map<int, string>::iterator pathIt = clientState->activePid->modpaths.begin();
-	for (; pathIt != clientState->activePid->modpaths.end(); ++pathIt)
-	{
-		stringstream pathString;
-		if (pathIt->second == "NULL")
-			pathString << "[UNKNOWN]";
-		else
-			pathString << pathIt->second;
-		
-		if (activeModules.count(pathIt->first))
-			pathString << " (" << activeModules.at(pathIt->first) << ")";
-		moduleDropdown->addItem(pathString.str());
-	}
-	lastModCount = clientState->activePid->modpaths.size();
-
+	lastRefresh = GetTickCount64();
 }
 
 
@@ -139,10 +167,11 @@ void HighlightSelectionFrame::refreshDropdowns()
 #define HLT_BTN_X 315
 #define HLT_TEXT_LEN (HLT_BTN_X-HLT_TEXT_X)-10
 
-#define HLT_ADDRESS_Y 10
-#define HLT_SYMBOL_Y 50
-#define HLT_MODULE_Y 90
-
+#define HIGHLIGHT_Y_SEP 30
+#define HLT_ADDRESS_Y 30
+#define HLT_SYMBOL_Y HLT_ADDRESS_Y + HIGHLIGHT_Y_SEP
+#define HLT_MODULE_Y HLT_SYMBOL_Y + HIGHLIGHT_Y_SEP
+#define HLT_EXCEPT_Y HLT_MODULE_Y + HIGHLIGHT_Y_SEP
 
 HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 {
@@ -150,10 +179,11 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	highlightButtonListener *highlightBtnListen;
 
 	highlightFrame = new agui::Frame;
-	highlightFrame->setSize(400, 190);
+	highlightFrame->setSize(400, 200);
 	highlightFrame->setLocation(200, 300);
 	widgets->add(highlightFrame);
 	highlightFrame->setVisibility(false);
+
 
 	addressLabel = new agui::Label;
 	addressLabel->setLocation(HLT_LABEL_X, HLT_ADDRESS_Y);
@@ -176,6 +206,7 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	addressBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(addressBtn);
 
+
 	symbolLabel = new agui::Label;
 	symbolLabel->setLocation(HLT_LABEL_X, HLT_SYMBOL_Y);
 	symbolLabel->setText("Symbol:");
@@ -184,7 +215,7 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 
 	symbolDropdown = new agui::DropDown;
 	symbolDropdown->setLocation(HLT_TEXT_X, HLT_SYMBOL_Y);
-	symbolDropdown->setText("Loaded Symbols");
+	symbolDropdown->setText(" 0 Called Symbols");
 	symbolDropdown->setSize(HLT_TEXT_LEN, 20);
 	highlightFrame->add(symbolDropdown);
 
@@ -197,6 +228,8 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	symbolBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(symbolBtn);
 
+
+
 	moduleLabel = new agui::Label;
 	moduleLabel->setLocation(HLT_LABEL_X, HLT_MODULE_Y);
 	moduleLabel->setText("Module:");
@@ -205,7 +238,7 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 
 	moduleDropdown = new agui::DropDown;
 	moduleDropdown->setLocation(HLT_TEXT_X, HLT_MODULE_Y);
-	moduleDropdown->setText("Loaded Modules");
+	moduleDropdown->setText(" 0 Loaded Modules");
 	moduleDropdown->setSize(HLT_TEXT_LEN, 20);
 	highlightFrame->add(moduleDropdown);
 
@@ -217,20 +250,26 @@ HighlightSelectionFrame::HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *s
 	moduleBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(moduleBtn);
 
-	agui::Button *refreshBtn = new agui::Button;
-	refreshBtn->setLocation(HLT_TEXT_X, HLT_MODULE_Y + 40);
-	refreshBtn->setText("Refresh List");
-	refreshBtn->setMargins(2, 5, 2, 5);
-	refreshBtn->resizeToContents();
-	highlightBtnListen = new highlightButtonListener(clientState, HL_REFRESH_BTN, this);
-	refreshBtn->addActionListener(highlightBtnListen);
-	highlightFrame->add(refreshBtn);
+
+	exceptionLabel = new agui::Label;
+	exceptionLabel->setLocation(HLT_TEXT_X+40, HLT_EXCEPT_Y);
+	exceptionLabel->setText("0 Exceptions");
+	exceptionLabel->resizeToContents();
+	highlightFrame->add(exceptionLabel);
+
+	exceptionBtn = new agui::Button;
+	exceptionBtn->setLocation(HLT_BTN_X, HLT_EXCEPT_Y);
+	exceptionBtn->setText("Highlight");
+	exceptionBtn->resizeToContents();
+	highlightBtnListen = new highlightButtonListener(clientState, HL_HIGHLIGHT_EXCEPTIONS, this);
+	exceptionBtn->addActionListener(highlightBtnListen);
+	highlightFrame->add(exceptionBtn);
 
 	agui::Button *closeBtn = new agui::Button;
-	closeBtn->setLocation(HLT_TEXT_X+ refreshBtn->getWidth()+10, HLT_MODULE_Y + 40);
-	closeBtn->setText("Close");
+	closeBtn->setText("X");
 	closeBtn->setMargins(2, 5, 2, 5);
 	closeBtn->resizeToContents();
+	closeBtn->setLocation(highlightFrame->getWidth() - closeBtn->getWidth()-15, 5);
 	closeBtn->addActionListener(highlightBtnListen);
 	highlightFrame->add(closeBtn);
 }

@@ -612,9 +612,11 @@ int thread_graph_data::brighten_BBs()
 			NODEPAIR edgePair = make_pair(lastNodeIdx, nodeIdx);
 			edge_data *linkingEdge;
 			if (!edge_exists(edgePair, &linkingEdge)) {
-				cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
-					<< nodeIdx << " not in edgedict." << endl;
-				continue;
+				//TODO: FIXME! this happens when an exception causes a basic block to be half executed
+				//cerr << "[rgat]WARNING: BrightenBBs: lastnode " << lastNodeIdx << "->node "
+				//	<< nodeIdx << " not in edgedict." << endl;
+				++animPosition;
+				break;
 			}
 
 			int numEdgeVerts = linkingEdge->vertSize;
@@ -1057,10 +1059,16 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "}D,";
 
 	*file << "E{";
-	vector<int>::iterator externit = externList.begin();
+	vector<unsigned int>::iterator externit = externList.begin();
 	for (; externit != externList.end(); ++externit)
 		*file << *externit << ",";
 	*file << "}E,";
+
+	*file << "X{";
+	set<unsigned int>::iterator exceptit = exceptionSet.begin();
+	for (; exceptit != exceptionSet.end(); ++exceptit)
+		*file << *exceptit << ",";
+	*file << "}X,";
 
 	//S for stats
 	*file << "S{" 
@@ -1140,7 +1148,7 @@ bool thread_graph_data::loadExterns(ifstream *file)
 	if (endtag.c_str()[0] != 'E') return false;
 
 	int index;
-	string address_s, index_s;
+	string index_s;
 
 	while (true) {
 		getline(*file, index_s, ',');
@@ -1153,11 +1161,33 @@ bool thread_graph_data::loadExterns(ifstream *file)
 	}
 }
 
+bool thread_graph_data::loadExceptions(ifstream *file)
+{
+	string endtag;
+	getline(*file, endtag, '{');
+	if (endtag.c_str()[0] != 'X') return false;
+
+	unsigned int index;
+	string index_s;
+
+	while (true) {
+		getline(*file, index_s, ',');
+		if (!caught_stoi(index_s, (int *)&index, 10))
+		{
+			if (index_s == string("}X")) return true;
+			return false;
+		}
+		exceptionSet.insert(exceptionSet.end(),index);
+	}
+}
+
+
 bool thread_graph_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
 	if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed"<<endl;  return false; }
 	if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
 	if (!loadExterns(file)) { cerr << "[rgat]ERROR:Externs load failed" << endl;  return false; }
+	if (!loadExceptions(file)) { cerr << "[rgat]ERROR:Exceptions load failed" << endl;  return false; }
 	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
 	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
 	if (!loadCallSequence(file)) { cerr << "[rgat]ERROR:Call sequence load failed" << endl; return false; }

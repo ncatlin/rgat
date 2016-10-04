@@ -258,7 +258,7 @@ void basicblock_handler::main_loop()
 					instruction->opcodes = opcodes;
 					instruction->modnum = modnum;
 					instruction->dataEx = dataExecution;
-					instruction->blockIDs.push_back(blockID);
+					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
 					
 					
 					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) {

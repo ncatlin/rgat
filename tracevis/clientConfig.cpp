@@ -39,7 +39,10 @@ clientConfig::clientConfig(string filepath)
 		else
 		{
 			cout << "failed! [old version?], loading from defaults..." << endl;
+			string backupFilePath = filepath + ".obsolete";
+			renameFile(filepath, backupFilePath);
 			loadDefaults();
+			saveToFile();
 		}
 	}
 	else
@@ -66,7 +69,7 @@ void argtouni(const char* charstr, unsigned int *result, int *errorCount)
 void argtounl(const char* charstr, unsigned long  *result, int *errorCount)
 {
 	if (!charstr) {
-		*errorCount++; return;
+		(*errorCount)++; return;
 	}
 	*result = atol(charstr);
 }
@@ -74,7 +77,7 @@ void argtounl(const char* charstr, unsigned long  *result, int *errorCount)
 void argtoi(const char* charstr, int *result, int *errorCount)
 {
 	if (!charstr) {
-		*errorCount++; return;
+		(*errorCount)++; return;
 	}
 	*result = atoi(charstr);
 }
@@ -82,7 +85,7 @@ void argtoi(const char* charstr, int *result, int *errorCount)
 void argtof(const char* charstr, float *result, int *errorCount)
 {
 	if (!charstr) {
-		*errorCount++; return;
+		(*errorCount)++; return;
 	}
 	*result = atof(charstr);
 }
@@ -100,7 +103,7 @@ const char* clientConfig::col_to_charstr(ALLEGRO_COLOR col)
 void clientConfig::charstr_to_col(const char* charstr, ALLEGRO_COLOR* destination, int *errorCount)
 {
 	if (!charstr) {
-		*errorCount++; return;
+		(*errorCount)++; return;
 	}
 
 	stringstream colstream(charstr);
@@ -182,6 +185,7 @@ bool clientConfig::loadColours()
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.lineColours[IRET], &errorCount);
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA"), &graphColours.lineColours[ILIB], &errorCount);
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA"), &graphColours.lineColours[INEW], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA"), &graphColours.lineColours[IEXCEPT], &errorCount);
 
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA"), &graphColours.nodeColours[NONFLOW], &errorCount);
 	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA"), &graphColours.nodeColours[JUMP], &errorCount);
@@ -218,8 +222,8 @@ bool clientConfig::loadFromFile()
 	argtounl(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"), &traceBufMax, &errorCount);
 	argtouni(al_get_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE"), &maxArgStorage, &errorCount);
 
-	loadColours();
-	loadPaths();
+	if (!loadColours()) return false;
+	if (!loadPaths()) return false;
 
 	al_destroy_config(alConfig);
 
@@ -325,6 +329,7 @@ void clientConfig::saveColours()
 	al_set_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA", col_to_charstr(graphColours.lineColours[IRET]));
 	al_set_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA", col_to_charstr(graphColours.lineColours[ILIB]));
 	al_set_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA", col_to_charstr(graphColours.lineColours[INEW]));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA", col_to_charstr(graphColours.lineColours[IEXCEPT]));
 
 	al_set_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA", col_to_charstr(graphColours.nodeColours[NONFLOW]));
 	al_set_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA", col_to_charstr(graphColours.nodeColours[JUMP]));
@@ -341,6 +346,7 @@ void clientConfig::loadDefaultColours()
 	graphColours.lineColours[IRET] = DEFAULT_EDGE_RET;
 	graphColours.lineColours[ILIB] = DEFAULT_EDGE_LIB;
 	graphColours.lineColours[INEW] = DEFAULT_EDGE_NEW;
+	graphColours.lineColours[IEXCEPT] = DEFAULT_EDGE_EXCEPT;
 
 	graphColours.nodeColours[NONFLOW] = DEFAULT_NODE_STD;
 	graphColours.nodeColours[JUMP] = DEFAULT_NODE_JUMP;

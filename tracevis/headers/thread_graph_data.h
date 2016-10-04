@@ -86,6 +86,7 @@ class thread_graph_data
 
 	bool loadEdgeDict(ifstream *file);
 	bool loadExterns(ifstream *file);
+	bool loadExceptions(ifstream *file);
 	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 	bool loadStats(ifstream *file);
 	bool loadAnimationData(ifstream *file);
@@ -205,7 +206,9 @@ public:
 	map<unsigned int, EDGELIST> externCallSequence;
 
 	//list of external calls used for listing possible highlights
-	vector<int> externList; 
+	HANDLE highlightsMutex = CreateMutex(NULL, FALSE, NULL);
+	vector<unsigned int> externList; 
+	set<unsigned int> exceptionSet;
 	string modPath;
 
 	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
