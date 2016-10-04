@@ -159,7 +159,7 @@ bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 
 	//this code is horrendous and doesn't fix it and ugh
 	int stupidHack = 1;
-	if (coordcolumn >= leftcol && coordcolumn <= rightcol+ stupidHack) return true;
+	if ((coordcolumn >= leftcol) && (coordcolumn <= (rightcol+stupidHack))) return true;
 	else return false;
 }
 

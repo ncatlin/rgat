@@ -181,6 +181,9 @@ public:
 
 		if (btntext == "Kill")
 		{
+			clientState->animationUpdate = 0;
+			clientState->modes.animation = false;
+			clientState->activeGraph->reset_animation();
 			clientState->activePid->kill();
 			return;
 		}

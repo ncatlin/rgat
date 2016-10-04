@@ -27,7 +27,7 @@ public:
 	~GRAPH_DISPLAY_DATA();
 
 	vector <float>* acquire_pos();
-	vector <float>* acquire_col();
+	vector <float>* acquire_col(int caller);
 
 	float *readonly_col() { if (!vcolarray.empty()) return &vcolarray.at(0); return 0; }
 	float *readonly_pos() { if (!vposarray.empty()) return &vposarray.at(0); return 0; }
@@ -65,4 +65,6 @@ private:
 	//not used for nodes
 	unsigned int edgesRendered = 0;
 	bool preview = false;
+
+	int holder = 0;
 };

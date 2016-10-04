@@ -37,7 +37,15 @@ void frame_gl_setup(VISSTATE* clientState)
 
 	glLoadIdentity();
 
-	if (clientState->nearSide)
+	bool zoomedIn = false;
+	if (clientState->activeGraph)
+	{
+		float zmul = zoomFactor(clientState->cameraZoomlevel, clientState->activeGraph->m_scalefactors->radius);
+		if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR)
+			zoomedIn = true;
+	}
+
+	if (zoomedIn || clientState->nearSide)
 		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
 			clientState->cameraZoomlevel);
 	else
@@ -148,8 +156,8 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	float basey, brx, brz, blz, blx;
 	int rowAngle = (int)(360 / BDIVISIONS);
 
-	vector<GLfloat> *spherepos = spheredata->acquire_pos();
-	vector<GLfloat> *spherecol = spheredata->acquire_col();
+	vector<GLfloat> *spherepos = spheredata->acquire_pos(); 
+	vector<GLfloat> *spherecol = spheredata->acquire_col(27);
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) 
 	{
 		float colb = (float)rowi / 180;
@@ -229,7 +237,7 @@ void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doC
 
 	glPushMatrix();
 	//make sure camera only sees the nearest side of the sphere
-	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.width, 50, 
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50, 
 		clientState->cameraZoomlevel);
 	glLoadIdentity();
 

@@ -25,7 +25,7 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 
 void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
 {
-	render_main_graph(clientState);
+	render_static_graph(graph, clientState);
 
 	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
 		graph->get_mainlines()->get_renderedEdges());

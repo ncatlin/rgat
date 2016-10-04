@@ -79,7 +79,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_pos();
 
-	lineVector = previewgraph->previewlines->acquire_col();
+	lineVector = previewgraph->previewlines->acquire_col(26);
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_COL, VBOs, linebufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_col();

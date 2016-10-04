@@ -34,7 +34,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	conditionalNodes->reset();
 	if (nodeEnd)
 	{
-		vector<float> *nodeCol = conditionalNodes->acquire_col();
+		vector<float> *nodeCol = conditionalNodes->acquire_col(62);
 		if (nodeIdx < nodeEnd) newDrawn = true;
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
@@ -81,7 +81,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR *edgeColour = &clientState->config->conditional.edgeColor;
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a };
 
-		vector<float> *edgecol = graph->conditionallines->acquire_col();
+		vector<float> *edgecol = graph->conditionallines->acquire_col(21);
 		
 		while (condLineverts++ < mainLineverts)
 			edgecol->insert(edgecol->end(), edgeColArr, end(edgeColArr));
@@ -131,30 +131,38 @@ void conditional_renderer::main_loop()
 	map<thread_graph_data *,bool> finishedGraphs;
 	vector<thread_graph_data *> graphlist;
 	map <PID_TID, void *>::iterator graphit;
-	int dietimer = -1;
 
-	while (!clientState->die && dietimer != 0)
+	while (!clientState->die)
 	{
-		if (dietimer == 0) break;
-		if ((die || piddata->should_die()) && dietimer-- < 0)
-			dietimer = 3;
 
 		obtainMutex(piddata->graphsListMutex, 1053);
 		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex);
 		
+		//process terminated, all graphs fully rendered, now can head off to valhalla
+		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
+			break;
+
 		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end() && !die)
 		{
 			thread_graph_data *graph = *graphlistIt++;
 
-			if (graph->active || graph->get_num_edges() > graph->conditionallines->get_renderedEdges())
+			if (graph->active)
 				render_graph_conditional(graph);
 			else if (!finishedGraphs[graph])
-				finishedGraphs[graph] = render_graph_conditional(graph);
+			{
+				bool renderSuccess = render_graph_conditional(graph);
+				//if this fails then the static vert data hasn't been created yet
+				//the heatmap thread should do it, but if that thread is disabled then this will fail
+				if (renderSuccess || !graph->get_num_nodes())
+					finishedGraphs[graph] = true;
+				else
+					finishedGraphs.erase(graph);
+			}
 
-			Sleep(80);
+			Sleep(20);
 		}
 		graphlist.clear();
 		int waitForNextIt = 0;
@@ -164,6 +172,7 @@ void conditional_renderer::main_loop()
 			waitForNextIt += 50;
 		}
 	}
+
 	alive = false;
 }
 

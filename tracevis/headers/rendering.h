@@ -42,7 +42,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata,
 int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours);
 void rescale_nodes(thread_graph_data *graph, bool isPreview);
 
-void render_main_graph(VISSTATE *clientState);
+void render_static_graph(thread_graph_data *graph, VISSTATE *clientState);
 int render_preview_graph(thread_graph_data *activeGraph, VISSTATE *clientState);
 void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA *pd);
 void display_big_heatmap(VISSTATE *clientState);

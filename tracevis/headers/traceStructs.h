@@ -77,7 +77,7 @@ struct INS_DATA {
 	unsigned int numbytes;
 	MEM_ADDRESS condTakenAddress;
 	MEM_ADDRESS condDropAddress;
-	//thread id, vert idx
+	//thread id, vert idx TODO: make unsigned
 	unordered_map<PID_TID, int> threadvertIdx;
 	unsigned int modnum;
 	unsigned int mutationIndex;
@@ -112,6 +112,7 @@ public:
 	bool get_modpath(unsigned int modNum, string *path);
 
 	void kill() { die = true; }
+
 	bool should_die() { return die; }
 	bool is_running() { return running; }
 	void set_running(bool r) { running = r; }
@@ -159,6 +160,7 @@ public:
 private:
 	bool running = true;
 	bool die = false;
+	bool dieSlowly = false;
 };
 
 struct EXTTEXT {

@@ -57,7 +57,7 @@ void plot_wireframe(VISSTATE *clientState)
 	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
 	vector <float> *vpos = wireframe_data->acquire_pos();
-	vector <float> *vcol = wireframe_data->acquire_col();
+	vector <float> *vcol = wireframe_data->acquire_col(18);
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -96,8 +96,8 @@ void plot_wireframe(VISSTATE *clientState)
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
-	vector <float> *vpos = vertdata->acquire_pos();
-	vector <float> *vcol = vertdata->acquire_col();
+	vector <float> *vpos = vertdata->acquire_pos(); 
+	vector <float> *vcol = vertdata->acquire_col(19);
 
 	int numverts = vertdata->get_numVerts();
 
@@ -132,7 +132,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int vsadded = 0;
 	curvePoints += 2;
 	vector<GLfloat> *vertpos = vertdata->acquire_pos();
-	vector<GLfloat> *vertcol = vertdata->acquire_col();
+	vector<GLfloat> *vertcol = vertdata->acquire_col(20);
 	if (!vertpos || !vertcol) return 0;
 	*colarraypos = vertcol->size();
 	int ci = 0;
@@ -290,7 +290,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos();
-	vector<GLfloat> *mainNcol = vertdata->acquire_col();
+	vector<GLfloat> *mainNcol = vertdata->acquire_col(15);
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
@@ -339,7 +339,8 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	//place node on the animated version of the graph
 	if (!vertdata->isPreview())
 	{
-		vector<GLfloat> *animNcol = animvertdata->acquire_col();
+
+		vector<GLfloat> *animNcol = animvertdata->acquire_col(16);
 
 		animNcol->push_back(active_col->r);
 		animNcol->push_back(active_col->g);
@@ -478,6 +479,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 	}
 	else
 	{
+		//only resize 250 nodes per call to stop it hanging
 		nodeIdx = graph->vertResizeIndex;
 		graph->vertResizeIndex += 250;
 		vertsdata = graph->get_mainnodes();
@@ -508,10 +510,8 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
-void render_main_graph(VISSTATE *clientState)
+void render_static_graph(thread_graph_data *graph, VISSTATE *clientState)
 {
-	
-	thread_graph_data *graph = (thread_graph_data*)clientState->activeGraph;
 
 	if (!graph) return;
 	bool doResize = false;
@@ -960,21 +960,23 @@ void draw_heatmap_key_blocks(VISSTATE *clientState, int x, int y)
 	}
 }
 
+#define HEATKEY_POS_Y 40
 void draw_heatmap_key(VISSTATE *clientState)
 {
 	if (!clientState->activeGraph) return; 
-	int keyx = clientState->mainFrameSize.width / 2 + 150;
+	int keyx = clientState->mainFrameSize.width - (10 * HEATMAP_KEY_SQUARESIZE + 70);
+	
 
 	stringstream keytext;
 	keytext << "Frequency:  " << clientState->activeGraph->heatExtremes.second;
 	const std::string& ks = keytext.str();
 	int ksWidth = al_get_text_width(clientState->standardFont, ks.c_str()) + 8;
-	al_draw_text(clientState->standardFont, al_col_white, keyx - ksWidth, 8, 0, ks.c_str());
+	al_draw_text(clientState->standardFont, al_col_white, keyx - ksWidth, HEATKEY_POS_Y, 0, ks.c_str());
 
-	draw_heatmap_key_blocks(clientState, keyx, 0);
+	draw_heatmap_key_blocks(clientState, keyx, HEATKEY_POS_Y-8);
 
 	string keyend = to_string(clientState->activeGraph->heatExtremes.first);
-	al_draw_text(clientState->standardFont, al_col_white, keyx + 10 * HEATMAP_KEY_SQUARESIZE + 8, 8, 0, keyend.c_str());
+	al_draw_text(clientState->standardFont, al_col_white, keyx + 10 * HEATMAP_KEY_SQUARESIZE + 8, HEATKEY_POS_Y, 0, keyend.c_str());
 }
 
 void draw_conditional_key(VISSTATE *clientState)

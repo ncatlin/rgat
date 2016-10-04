@@ -96,7 +96,6 @@ void module_handler::main_loop()
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE && !die)
 				cerr << "[rgat]ERROR. threadpipe ReadFile error: " << err << endl;
-			piddata->set_running(false);
 			alive = false;
 			break;
 		}
@@ -256,5 +255,6 @@ void module_handler::main_loop()
 	}
 
 	clientState->timelineBuilder->notify_pid_end(PID);
-	alive = false;
+	piddata->set_running(false); //the process is done
+	alive = false; //this thread is done
 }
