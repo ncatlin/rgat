@@ -4,12 +4,22 @@ An instruction trace visualisation tool intended to help reverse engineers make 
 ## What is rgat?
 
 rgat uses dynamic binary instrumentation (courtesy of DynamoRIO) to produce graphs from running executables. 
-It creates visualisations in realtime to support types of analysis that might be a lot more cumbersome with 
+It creates static and animated visualisations in realtime to support types of analysis that might be a lot more cumbersome with 
 disassemblers and debuggers alone.
 
 [This page](https://github.com/ncatlin/rgat/wiki) explains what kind of things you can and can't do with it but basically it looks like this:
 
+Live animation:
+
 ![sample image](https://github.com/ncatlin/ncatlin/raw/master/firefox-live-small.gif)
+
+Edge frequency Heatmap:
+  
+![gametime heatmap](https://github.com/ncatlin/ncatlin/raw/master/heatmapfront.png)
+
+Static view zoomed in to individual instructions:
+
+![Static view zoomed in to individual instructions](https://github.com/ncatlin/ncatlin/raw/master/frontpage1.png)
 
 You may also want a brief introduction to the [graph layout](https://github.com/ncatlin/rgat/wiki/Graph-Layout).
 
@@ -27,7 +37,7 @@ It should create a default config file at start up, feel free to customise.
 
 ## Running
 
-Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elesewhere.
+Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elsewhere.
 
 Run, save and load traces from the file menu. Other functionality should be reasonably self explanatory from the other menus.
 
