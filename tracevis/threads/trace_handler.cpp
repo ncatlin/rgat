@@ -1082,8 +1082,8 @@ void thread_trace_handler::main_loop()
 				TAG interruptedBlockTag;
 				interruptedBlockTag.blockaddr = faultingBB->first;
 				interruptedBlockTag.insCount = instructionsUntilFault;
-				interruptedBlockTag.blockID = faultingBB->second >> 32;
-				interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED; //todo
+				interruptedBlockTag.blockID = (BLOCK_IDENTIFIER)(faultingBB->second >> 32);
+				interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED;
 				handle_exception_tag(&interruptedBlockTag);
 				continue;
 			}

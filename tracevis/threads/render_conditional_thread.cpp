@@ -34,7 +34,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	conditionalNodes->reset();
 	if (nodeEnd)
 	{
-		vector<float> *nodeCol = conditionalNodes->acquire_col(62);
+		vector<float> *nodeCol = conditionalNodes->acquire_col();
 		if (nodeIdx < nodeEnd) newDrawn = true;
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
@@ -81,7 +81,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR *edgeColour = &clientState->config->conditional.edgeColor;
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a };
 
-		vector<float> *edgecol = graph->conditionallines->acquire_col(21);
+		vector<float> *edgecol = graph->conditionallines->acquire_col();
 		
 		while (condLineverts++ < mainLineverts)
 			edgecol->insert(edgecol->end(), edgeColArr, end(edgeColArr));

@@ -164,8 +164,8 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 void thread_graph_data::extend_faded_edges()
 {
 
-	vector<GLfloat> *animecol = animlinedata->acquire_col(8);
-	vector<GLfloat> *mainecol = mainlinedata->acquire_col(9);
+	vector<GLfloat> *animecol = animlinedata->acquire_col();
+	vector<GLfloat> *mainecol = mainlinedata->acquire_col();
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
@@ -458,7 +458,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 {
 
 	if (!animlinedata->get_numVerts()) return;
-	GLfloat *ecol = &animlinedata->acquire_col(10)->at(0);
+	GLfloat *ecol = &animlinedata->acquire_col()->at(0);
 
 	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
 	bool update = false;
@@ -504,7 +504,7 @@ void thread_graph_data::darken_animation(float alphaDelta)
 			++activeEdgeIt;
 	}
 	animlinedata->release_col();
-	GLfloat *ncol = &animnodesdata->acquire_col(1)->at(0);
+	GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
 	int colBufSize = animnodesdata->col_buf_capacity_floats();
 
 	map<unsigned int, bool>::iterator activeNodeIt = activeNodeMap.begin();
@@ -577,8 +577,8 @@ int thread_graph_data::brighten_BBs()
 		if (recentHighlights.count(animPosition)) continue;
 		recentHighlights[animPosition] = true;
 
-		GLfloat *ncol = &animnodesdata->acquire_col(2)->at(0);
-		GLfloat *ecol = &animlinedata->acquire_col(3)->at(0);
+		GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col()->at(0);
 
 		while (!ncol || !ecol) 
 		{
@@ -586,8 +586,8 @@ int thread_graph_data::brighten_BBs()
 			animlinedata->release_col();
 			cerr << "[rgat]Warning: BB brighten failed" << endl;
 			Sleep(75); 
-			ncol = &animnodesdata->acquire_col(4)->at(0);
-			ecol = &animlinedata->acquire_col(5)->at(0);
+			ncol = &animnodesdata->acquire_col()->at(0);
+			ecol = &animlinedata->acquire_col()->at(0);
 		}
 
 
@@ -1027,7 +1027,7 @@ void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesd
 	edge_data *e = get_edge(eIdx);
 	if (!e) return; 
 	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
-	GLfloat *colarray = &edgesdata->acquire_col(6)->at(0);
+	GLfloat *colarray = &edgesdata->acquire_col()->at(0);
 	for (unsigned int i = 0; i < e->vertSize; ++i)
 	{
 		unsigned int bufIndex = e->arraypos + i*COLELEMS + AOFF;
@@ -1042,7 +1042,7 @@ void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *no
 	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
 	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
 
-	GLfloat *colarray = &nodesdata->acquire_col(7)->at(0);
+	GLfloat *colarray = &nodesdata->acquire_col()->at(0);
 	colarray[bufIndex] = alpha;
 	nodesdata->release_col();
 }

@@ -85,7 +85,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	graph->heatmaplines->reset();
 
 	//finally build a colours buffer using the heat/colour map entry for each edge weight
-	vector <float> *lineVector = graph->heatmaplines->acquire_col(25);
+	vector <float> *lineVector = graph->heatmaplines->acquire_col();
 	unsigned int edgeindex = 0;
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
 	EDGELIST* edgelist = graph->edgeLptr();

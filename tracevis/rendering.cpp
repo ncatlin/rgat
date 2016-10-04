@@ -57,7 +57,7 @@ void plot_wireframe(VISSTATE *clientState)
 	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
 	vector <float> *vpos = wireframe_data->acquire_pos();
-	vector <float> *vcol = wireframe_data->acquire_col(18);
+	vector <float> *vcol = wireframe_data->acquire_col();
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -97,7 +97,7 @@ void plot_wireframe(VISSTATE *clientState)
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
 	vector <float> *vpos = vertdata->acquire_pos(); 
-	vector <float> *vcol = vertdata->acquire_col(19);
+	vector <float> *vcol = vertdata->acquire_col();
 
 	int numverts = vertdata->get_numVerts();
 
@@ -132,7 +132,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int vsadded = 0;
 	curvePoints += 2;
 	vector<GLfloat> *vertpos = vertdata->acquire_pos();
-	vector<GLfloat> *vertcol = vertdata->acquire_col(20);
+	vector<GLfloat> *vertcol = vertdata->acquire_col();
 	if (!vertpos || !vertcol) return 0;
 	*colarraypos = vertcol->size();
 	int ci = 0;
@@ -290,7 +290,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos();
-	vector<GLfloat> *mainNcol = vertdata->acquire_col(15);
+	vector<GLfloat> *mainNcol = vertdata->acquire_col();
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
@@ -340,7 +340,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	if (!vertdata->isPreview())
 	{
 
-		vector<GLfloat> *animNcol = animvertdata->acquire_col(16);
+		vector<GLfloat> *animNcol = animvertdata->acquire_col();
 
 		animNcol->push_back(active_col->r);
 		animNcol->push_back(active_col->g);

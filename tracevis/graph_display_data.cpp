@@ -57,15 +57,9 @@ vector<float> *GRAPH_DISPLAY_DATA::acquire_pos()
 	return &vposarray;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_col(int caller)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_col()
 {
-	//printf("c %d getting (current %d) mutex\n", caller, holder);
-	bool result = obtainMutex(colmutex, 2000+caller);
-	holder = caller;
-
-	if (!result) {
-		cerr << "[rgat]Acquire_col: caller "<<caller<<" Failed to obtain colmutex" << endl; return 0;
-	}
+	obtainMutex(colmutex, 2000);
 	return &vcolarray;
 }
 
@@ -76,8 +70,6 @@ void GRAPH_DISPLAY_DATA::release_pos()
 
 void GRAPH_DISPLAY_DATA::release_col()
 {
-	//printf("(current %d) dropping mutex\n", holder);
-	//holder = 0;
 	dropMutex(colmutex);
 }
 
@@ -98,7 +90,7 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 void GRAPH_DISPLAY_DATA::clear()
 {
 	acquire_pos();
-	acquire_col(22);
+	acquire_col();
 	edgesRendered = 0;
 	release_col();
 	release_pos();
@@ -107,7 +99,7 @@ void GRAPH_DISPLAY_DATA::clear()
 void GRAPH_DISPLAY_DATA::reset()
 {
 	acquire_pos(); 
-	acquire_col(23);
+	acquire_col();
 	//needed? try without
 	vposarray.clear();
 	vcolarray.clear();
