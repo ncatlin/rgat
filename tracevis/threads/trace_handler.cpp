@@ -153,6 +153,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	thisnode.ins = instruction;
 	thisnode.address = instruction->address;
 	thisnode.mutation = blockID;
+	thisnode.executionCount = 1;
 
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
@@ -174,12 +175,14 @@ void thread_trace_handler::increaseWeight(edge_data *edge, unsigned long executi
 		thisgraph->maxWeight = edge->weight;
 }
 
+/*
 void thread_trace_handler::handle_existing_instruction(INS_DATA *instruction)
 {
 	piddata->getDisassemblyReadLock();
 	targVertID = instruction->threadvertIdx.at(TID);
 	piddata->dropDisassemblyReadLock();
 }
+*/
 
 void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 {
@@ -202,6 +205,9 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
 			handle_new_instruction(instruction, tag->blockID);
+		else
+			++thisgraph->get_node(targVertID)->executionCount;
+
 
 		if (loopState == BUILDING_LOOP)
 		{
@@ -290,6 +296,8 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
 			handle_new_instruction(instruction, tag->blockID);
+		else
+			++thisgraph->get_node(targVertID)->executionCount;
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
@@ -584,6 +592,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->get_node(targVertID);
+			++targNode->executionCount;
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
 			increaseWeight(thisgraph->get_edge(*resultPair), repeats);
@@ -624,6 +633,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	newTargNode.address = targaddr;
 	newTargNode.index = targVertID;
 	newTargNode.parentIdx = lastVertID;
+	newTargNode.executionCount = 1;
 
 	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
 	lastNode = &newTargNode;
@@ -885,6 +895,44 @@ void thread_trace_handler::dump_loop()
 	loopState = NO_LOOP;
 }
 
+//update nodes with cached execution counts
+void thread_trace_handler::assign_blockrepeats()
+{
+	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blocklistIt;
+	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
+
+	vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
+	for (; repeatIt != blockRepeatQueue.end(); ++repeatIt)
+	{
+		MEM_ADDRESS blockaddr = repeatIt->blockaddr;
+		piddata->getDisassemblyReadLock();
+		blocklistIt = piddata->blocklist.find(blockaddr);
+		piddata->dropDisassemblyReadLock();
+
+		if (blocklistIt == piddata->blocklist.end()) continue;
+
+		BLOCK_IDENTIFIER blockID = repeatIt->blockID;
+
+		piddata->getDisassemblyReadLock();
+		mutationIt = blocklistIt->second.find(blockID);
+		piddata->dropDisassemblyReadLock();
+
+		if (mutationIt != blocklistIt->second.end()) continue;
+
+		
+		INSLIST* repeatedBlock = mutationIt->second;
+		INSLIST::iterator blockIt = repeatedBlock->begin();
+		for (; blockIt != repeatedBlock->end(); ++blockIt)
+		{
+			INS_DATA *ins = *blockIt;
+			//todo check membership first
+			node_data *n = thisgraph->get_node(ins->threadvertIdx.at(TID));
+			n->executionCount += repeatIt->repeats;
+		}
+	}
+	lastRepeatUpdate = GetTickCount64();
+}
+
 //build graph for a thread as the trace data arrives from the reader thread
 void thread_trace_handler::main_loop()
 {
@@ -908,9 +956,13 @@ void thread_trace_handler::main_loop()
 
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
 		if (!bytesRead) {
+			assign_blockrepeats();
 			Sleep(5);
 			continue;
 		}
+
+		if(repeatsUpdateDue())
+			assign_blockrepeats();
 
 		if (bytesRead == -1) //thread pipe closed
 		{
@@ -1024,9 +1076,38 @@ void thread_trace_handler::main_loop()
 			}
 
 			string enter_s = string(entry);
+
+			//wrapped function arguments
 			if (enter_s.substr(0, 3) == "ARG")
 			{
 				handle_arg(entry, bytesRead);
+				continue;
+			}
+
+			//unchained block execution count
+			if (enter_s.substr(0, 2) == "BX")
+			{
+				BLOCKREPEAT newRepeat;
+
+				string block_ip_s = string(strtok_s(entry + 4, ",", &entry));
+				if (!caught_stoul(block_ip_s, &newRepeat.blockaddr, 16)) {
+					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
+					assert(0);
+				}
+
+				string b_id_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(b_id_s, &newRepeat.blockID, 16)) {
+					cerr << "[rgat]ERROR: BX handling bid STOL: " << b_id_s << endl;
+					assert(0);
+				}
+
+				string count_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(count_s, &newRepeat.repeats, 16)) {
+					cerr << "[rgat]ERROR: BX handling count STOL: " << count_s << endl;
+					assert(0);
+				}
+
+				blockRepeatQueue.push_back(newRepeat);
 				continue;
 			}
 

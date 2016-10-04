@@ -47,6 +47,12 @@ struct FAILEDARGS {
 	MEM_ADDRESS targaddr;
 };
 
+struct BLOCKREPEAT {
+	MEM_ADDRESS blockaddr;
+	BLOCK_IDENTIFIER blockID;
+	unsigned long repeats;
+};
+
 class thread_trace_handler : public base_thread
 {
 public:
@@ -91,7 +97,7 @@ private:
 	void insert_edge(edge_data e, NODEPAIR edgepair);
 	bool set_target_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID);
-	void handle_existing_instruction(INS_DATA *instruction);
+	//void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
 	void increaseWeight(edge_data *edge, unsigned long executions);
@@ -102,7 +108,11 @@ private:
 	void update_conditional_state(MEM_ADDRESS nextAddress);
 	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();
+	void assign_blockrepeats();
 
+	vector <BLOCKREPEAT> blockRepeatQueue;
+	DWORD64 lastRepeatUpdate = GetTickCount64();
+	bool repeatsUpdateDue() { return (GetTickCount64() > lastRepeatUpdate + 800); }
 
 	MEM_ADDRESS pendingFunc = 0;
 	MEM_ADDRESS pendingRet = 0;

@@ -47,5 +47,7 @@ public:
 	unsigned childexterns = 0;
 	MEM_ADDRESS address = 0; //this is only used in externs. bit big?
 	unsigned int parentIdx = 0;
+
+	unsigned long executionCount = 0;
 };
 
