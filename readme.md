@@ -27,7 +27,7 @@ It should create a default config file at start up, feel free to customise.
 
 ## Running
 
-Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elesewhere.
+Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elsewhere.
 
 Run, save and load traces from the file menu. Other functionality should be reasonably self explanatory from the other menus.
 
