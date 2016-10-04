@@ -94,15 +94,6 @@ void HighlightSelectionFrame::refreshData()
 	thread_graph_data *graph = clientState->activeGraph;
 	if (!clientState->activePid || !graph) return;
 
-	//place address of first not in address selector
-	if (graph->get_num_nodes())
-	{
-		MEM_ADDRESS firstAddress = graph->get_node(0)->address;
-		stringstream hexaddress;
-		hexaddress << "0x" << hex << firstAddress;
-		addressText->setText(hexaddress.str());
-	}
-
 	if (lastSymCount != graph->externList.size())
 	{
 		//add all the used symbols to symbol list

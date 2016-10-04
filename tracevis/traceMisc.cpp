@@ -106,7 +106,9 @@ int extract_pid_tid(char *char_buf, string marker, PID_TID *target)
 
 }
 
-int caught_stoi(string s, int *result, int base) {
+int caught_stoi(string s, int *result, int base) 
+{
+	if (s.empty()) return 0;
 	try {
 		*result = std::stoi(s,0,base);
 	}
@@ -116,7 +118,10 @@ int caught_stoi(string s, int *result, int base) {
 	return 1;
 }
 
-int caught_stoi(string s, unsigned int *result, int base) {
+int caught_stoi(string s, unsigned int *result, int base) 
+{
+	if (s.empty()) return 0;
+
 	try {
 		*result = std::stoi(s, 0, base);
 	}
@@ -127,6 +132,8 @@ int caught_stoi(string s, unsigned int *result, int base) {
 }
 
 int caught_stoul(string s, unsigned long *result, int base) {
+	if (s.empty()) return 0;
+
 	try {
 		*result = std::stoul(s,0,base);
 	}
