@@ -64,7 +64,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 		for (std::advance(distit, 1); distit != heatDistances.end(); distit++)
 		{
 			float distratio = (float)distit->second / (float)maxDist;
-			int colourIndex = floor(numColours*distratio);
+			int colourIndex = min(floor(numColours*distratio), numColours-1);
 			heatColours[distit->first] = colourRange[colourIndex];
 		}
 	}
