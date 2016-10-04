@@ -15,7 +15,7 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Download/Installation
 
-It (version 0.1.2) is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.1.2.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+It (version 0.1.3) is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.1.3.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
 
 It's built to depend on the Windows 10 Universal CRT so if you have a version lower than that you might need to [install it](https://support.microsoft.com/en-gb/kb/2999226)
 
