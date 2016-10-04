@@ -23,7 +23,7 @@
 
 #define RGAT_VERSION_MAJ 0
 #define RGAT_VERSION_MIN 1
-#define RGAT_VERSION_FEATURE 3
+#define RGAT_VERSION_FEATURE 4
 #define RGAT_VERSION_DESCRIPTION "Preview/Unstable"
 
 using namespace std;
