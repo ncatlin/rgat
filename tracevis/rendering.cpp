@@ -668,6 +668,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	else
 		argstring << n->calls << "x " << symString;
 
+	obtainMutex(clientState->activeGraph->funcQueueMutex,3521);
 	if (n->funcargs.empty()) 
 		argstring << " ()";
 	else
@@ -686,6 +687,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 			else
 				argstring << ")";
 		}
+	dropMutex(clientState->activeGraph->funcQueueMutex);
 	
 	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
 		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
@@ -832,6 +834,8 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 	int edgelistIdx = 0;
 	int edgelistEnd = graph->heatmaplines->get_renderedEdges();
 
+	set <node_data *> displayNodes;
+
 	EDGELIST *edgelist = graph->edgeLptr();
 	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
 	{
@@ -849,8 +853,6 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 			cerr<< "[rgat]WARNING: Heatmap edge skip"<<endl; 
 			continue;
 		}
-		int edgeWeight = e->weight;
-		if (edgeWeight < 2) continue;
 
 		DCOORD screenCoordA;
 		if(!firstNode->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
@@ -862,11 +864,33 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
 		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
 
+		displayNodes.insert(firstNode);
+		displayNodes.insert(graph->get_node(ePair->second));
+
+		//int edgeWeight = e->weight;
+		unsigned long edgeWeight = e->chainedWeight;
+		if (edgeWeight < 2) continue;
+
 		string weightString = to_string(edgeWeight);
 		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			weightString.c_str());
 	}
+
+	set <node_data *>::iterator nodesIt = displayNodes.begin();
+	for (; nodesIt != displayNodes.end(); ++nodesIt)
+	{
+		node_data *nd = *nodesIt;
+		DCOORD screenCoordN;
+		if (!nd->get_screen_pos(vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
+
+		al_draw_text(clientState->standardFont, al_col_white, screenCoordN.x + INS_X_OFF,
+			clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			to_string(nd->executionCount).c_str());
+
+	}
+
+
 }
 
 

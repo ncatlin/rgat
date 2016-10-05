@@ -32,7 +32,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	{
 		numLineVerts = linedata->get_numVerts();
 
-		//graph never been rendered so we cant get the vertex data to colourise it
+		//graph never been rendered so we cant get the edge vertex data to colourise it
 		if (!numLineVerts)
 			if (!graph->active)
 				render_static_graph(graph, clientState); //got final data so may as well force rendering
@@ -41,14 +41,140 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	} 
 	else return false; 
 
+	DWORD this_run_marker = GetTickCount();
+
 	//build set of all heat values
 	std::set<unsigned long> heatValues;
 	EDGEMAP::iterator edgeDit, edgeDEnd;
-	
+
+	vector<pair<pair<node_data*,node_data*>,edge_data *>> unfinishedEdgeList;
+	vector<edge_data *> finishedEdgeList;
+
 	graph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
 	for (; edgeDit != edgeDEnd; ++edgeDit)
-		heatValues.insert(edgeDit->second.weight);
+	{
+		node_data *snode = graph->get_node(edgeDit->first.first);
+		node_data *tnode = graph->get_node(edgeDit->first.second);
+		edge_data *edge = &edgeDit->second;
+
+		//initialise temporary counters
+		if (snode->heat_run_marker != this_run_marker)
+		{
+			snode->chain_remaining_in = snode->executionCount;
+			snode->chain_remaining_out = snode->executionCount;
+			snode->heat_run_marker = this_run_marker;
+		}
+		if (tnode->heat_run_marker != this_run_marker)
+		{
+			tnode->chain_remaining_in = tnode->executionCount;
+			tnode->chain_remaining_out = tnode->executionCount;
+			tnode->heat_run_marker = this_run_marker;
+		}
+
+		//the easiest edges to work out are the most numerous
+		if (snode->outgoingNeighbours.size() == 1)
+		{
+			edge->chainedWeight = snode->executionCount;
+			snode->chain_remaining_out = 0;
+			tnode->chain_remaining_in -= snode->executionCount;
+			finishedEdgeList.push_back(edge);
+		}
+		else if (tnode->incomingNeighbours.size() == 1)
+		{
+			edge->chainedWeight = tnode->executionCount;
+			tnode->chain_remaining_in = 0;
+			snode->chain_remaining_out -= tnode->executionCount;
+			finishedEdgeList.push_back(edge);
+		}
+		else
+		{
+			edge->chainedWeight = 0;
+			unfinishedEdgeList.push_back(make_pair(make_pair(snode,tnode), edge));
+		}
+	}
 	graph->stop_edgeD_iteration();
+
+	printf("starting solver with %d unsolved\n", unfinishedEdgeList.size());
+
+	int itlimit = 10;
+	vector<pair<pair<node_data*, node_data*>, edge_data *>>::iterator unfinishedIt;
+	while (true)
+	{
+		unfinishedIt = unfinishedEdgeList.begin();
+		for (; unfinishedIt != unfinishedEdgeList.end(); ++unfinishedIt)
+		{
+			node_data *snode = unfinishedIt->first.first;
+			node_data *tnode = unfinishedIt->first.second;
+			edge_data *edge = unfinishedIt->second;
+
+			//see if targets other inputs have remaining output
+			unsigned long targOtherNeighboursOut = 0;
+			set<unsigned int>::iterator targincomingIt = tnode->incomingNeighbours.begin();
+			for (; targincomingIt != tnode->incomingNeighbours.end(); targincomingIt++)
+			{
+				unsigned int idx = *targincomingIt;
+				if (idx == snode->index) continue;
+				node_data *neib = graph->get_node(idx);
+				targOtherNeighboursOut += neib->chain_remaining_out;
+			}
+
+			//no? only source node giving input. complete edge and subtract from source output 
+			if (targOtherNeighboursOut == 0)
+			{
+				edge->chainedWeight = tnode->chain_remaining_in;
+				tnode->chain_remaining_in = 0;
+				snode->chain_remaining_out -= edge->chainedWeight;
+				finishedEdgeList.push_back(edge);
+				unfinishedIt = unfinishedEdgeList.erase(unfinishedIt);
+				itlimit++;
+				break;
+			}
+
+			//see if other source outputs need input
+			unsigned long sourceOtherNeighboursIn = 0;
+			set<unsigned int>::iterator sourceoutgoingIt = snode->outgoingNeighbours.begin();
+			for (; sourceoutgoingIt != snode->outgoingNeighbours.end(); sourceoutgoingIt++)
+			{
+				unsigned int idx = *sourceoutgoingIt;
+				if (idx == tnode->index) continue;
+				node_data *neib = graph->get_node(idx);
+				sourceOtherNeighboursIn += neib->chain_remaining_in;
+			}
+
+			//no? only targ edge taking input. complete edge and subtract from targ input 
+			if (sourceOtherNeighboursIn == 0)
+			{
+				edge->chainedWeight = snode->chain_remaining_out;
+				snode->chain_remaining_out = 0;
+				tnode->chain_remaining_in -= edge->chainedWeight;
+				finishedEdgeList.push_back(edge);
+				unfinishedIt = unfinishedEdgeList.erase(unfinishedIt);
+				itlimit++;
+				break;
+			}	
+
+		}
+
+		if (--itlimit <= 0)
+		{ 
+			//printf("[rgat]Heatmap Failure: ending solver with %d unsolved\n", unfinishedEdgeList.size()); 
+			break; 
+		}
+		if (unfinishedEdgeList.empty())
+		{
+			//printf("[rgat]Heatmap Success: ending solver with %d unsolved\n", unfinishedEdgeList.size());
+			break;
+		}
+	}
+
+
+	//for all in finsihed map, heatValues.insert(edgeDit->second.weight);
+	vector<edge_data *>::iterator finishedEdgeIt;
+	for (finishedEdgeIt = finishedEdgeList.begin(); finishedEdgeIt != finishedEdgeList.end(); ++finishedEdgeIt)
+	{
+		edge_data *thisedge = *finishedEdgeIt;
+		heatValues.insert(thisedge->chainedWeight);
+	}
 
 	int heatrange = heatValues.size();
 
@@ -90,6 +216,12 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
 	EDGELIST* edgelist = graph->edgeLptr();
 
+	COLSTRUCT debuggingUnfin;
+	debuggingUnfin.a = 1;
+	debuggingUnfin.b = 0;
+	debuggingUnfin.g = 1;
+	debuggingUnfin.r = 0;
+
 	for (; edgeindex != edgeEnd; ++edgeindex)
 	{
 		edge_data *edge = graph->get_edge(edgeindex);
@@ -99,11 +231,15 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 		}
 
 		COLSTRUCT *edgeColour = 0;
-		map<unsigned long, COLSTRUCT>::iterator foundHeatColour = heatColours.find(edge->weight);
+		//map<unsigned long, COLSTRUCT>::iterator foundHeatColour = heatColours.find(edge->weight);
+		map<unsigned long, COLSTRUCT>::iterator foundHeatColour = heatColours.find(edge->chainedWeight);
 
 		//this edge has a new value since we recalculated the heats, this finds the nearest
 		if (foundHeatColour == heatColours.end())
 		{
+
+			edgeColour = &debuggingUnfin;
+			/*
 			unsigned long searchWeight = edge->weight;
 			map<unsigned long, COLSTRUCT>::iterator previousHeatColour = foundHeatColour;
 			for (foundHeatColour = heatColours.begin(); foundHeatColour != heatColours.end(); ++foundHeatColour)
@@ -119,6 +255,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 				edgeColour = &heatColours.rbegin()->second;
 			//record it so any others with this weight are found
 			heatColours[searchWeight] = *edgeColour;
+			*/
 		}
 		else
 			edgeColour = &foundHeatColour->second;

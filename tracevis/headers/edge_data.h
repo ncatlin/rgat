@@ -35,5 +35,8 @@ public:
 	unsigned int arraypos = 0; 
 	//type of edge (call,extern,etc)
 	char edgeClass = 0;  
+
+	//number of times executed - chained
+	unsigned long chainedWeight = 0;
 };
 

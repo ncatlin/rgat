@@ -154,7 +154,7 @@ public:
 	//   address		    blockID			instructionlist
 	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
 
-	vector <int> activeMods;
+	map <int,int> activeMods;
 	map <MEM_ADDRESS, BB_DATA *> externdict;
 
 private:

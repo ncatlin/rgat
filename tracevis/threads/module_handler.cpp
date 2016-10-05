@@ -208,10 +208,13 @@ void module_handler::main_loop()
 
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
 				piddata->getDisassemblyWriteLock();
+
+				int instrumentation;
 				if (*skipped_s == '1')
-					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_UNINSTRUMENTED);
+					piddata->activeMods[modnum] = MOD_UNINSTRUMENTED;
 				else
-					piddata->activeMods.insert(piddata->activeMods.begin() + modnum, MOD_INSTRUMENTED);
+					piddata->activeMods[modnum] = MOD_INSTRUMENTED;
+
 				piddata->dropDisassemblyWriteLock();
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {

@@ -49,5 +49,11 @@ public:
 	unsigned int parentIdx = 0;
 
 	unsigned long executionCount = 0;
+	unsigned long chain_remaining_in = 0;
+	unsigned long chain_remaining_out = 0;
+	DWORD heat_run_marker;
+	//node_data* pointers seem to be invalid in heatmap_R?
+	set<unsigned int> incomingNeighbours;
+	set<unsigned int> outgoingNeighbours;
 };
 

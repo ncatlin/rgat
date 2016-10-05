@@ -217,6 +217,9 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
+		thisgraph->get_node(lastVertID)->outgoingNeighbours.insert(targVertID);
+		thisgraph->get_node(targVertID)->incomingNeighbours.insert(lastVertID);
+
 		edge_data *oldEdge;
 
 		if (thisgraph->edge_exists(edgeIDPair, &oldEdge))
@@ -301,6 +304,10 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
+		//thisgraph->get_node(lastVertID)->outgoingNeighbours.insert(thisgraph->get_node(targVertID));
+		//thisgraph->get_node(targVertID)->incomingNeighbours.insert(thisgraph->get_node(lastVertID));
+		thisgraph->get_node(lastVertID)->outgoingNeighbours.insert(targVertID);
+		thisgraph->get_node(targVertID)->incomingNeighbours.insert(lastVertID);
 		edge_data *oldEdge;
 
 		if (thisgraph->edge_exists(edgeIDPair, &oldEdge))
@@ -592,6 +599,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->get_node(targVertID);
+			targNode->incomingNeighbours.insert(targVertID);
 			++targNode->executionCount;
 
 			*resultPair = std::make_pair(vecit->first, vecit->second);
