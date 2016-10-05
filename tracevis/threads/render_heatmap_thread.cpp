@@ -94,9 +94,10 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	}
 	graph->stop_edgeD_iteration();
 
-	printf("starting solver with %d unsolved\n", unfinishedEdgeList.size());
+	//printf("[rgat]starting solver with %d unsolved\n", unfinishedEdgeList.size());
 
-	int itlimit = 10;
+	//todo: this won't work until nodes have correct values
+	int itlimit = 5;
 	vector<pair<pair<node_data*, node_data*>, edge_data *>>::iterator unfinishedIt;
 	while (true)
 	{
@@ -157,7 +158,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 
 		if (--itlimit <= 0)
 		{ 
-			//printf("[rgat]Heatmap Failure: ending solver with %d unsolved\n", unfinishedEdgeList.size()); 
+			cout<<"[rgat]Heatmap Failure: ending solver with "<< unfinishedEdgeList.size()<< "edges unsolved (green)\n"; 
 			break; 
 		}
 		if (unfinishedEdgeList.empty())
@@ -185,7 +186,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph)
 	for (setit = heatValues.begin(); setit != heatValues.end(); ++setit)
 		heatDistances[*setit] = distance++;
 	graph->heatExtremes = make_pair(*heatValues.begin(),*heatValues.rbegin());
-
+	printf("set extremes to %dl,%dl\n", *heatValues.begin(), *heatValues.rbegin());
 
 	int maxDist = heatDistances.size();
 	map<unsigned long, int>::iterator distit = heatDistances.begin();

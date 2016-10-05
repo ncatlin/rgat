@@ -51,6 +51,7 @@ struct BLOCKREPEAT {
 	MEM_ADDRESS blockaddr;
 	BLOCK_IDENTIFIER blockID;
 	unsigned long repeats;
+	unsigned int insCount;
 };
 
 class thread_trace_handler : public base_thread

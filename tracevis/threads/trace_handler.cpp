@@ -925,7 +925,7 @@ void thread_trace_handler::assign_blockrepeats()
 		mutationIt = blocklistIt->second.find(blockID);
 		piddata->dropDisassemblyReadLock();
 
-		if (mutationIt != blocklistIt->second.end()) continue;
+		if (mutationIt == blocklistIt->second.end()) continue;
 
 		
 		INSLIST* repeatedBlock = mutationIt->second;
@@ -936,7 +936,10 @@ void thread_trace_handler::assign_blockrepeats()
 			//todo check membership first
 			node_data *n = thisgraph->get_node(ins->threadvertIdx.at(TID));
 			n->executionCount += repeatIt->repeats;
+			if (--repeatIt->insCount == 0) break;
 		}
+		repeatIt = blockRepeatQueue.erase(repeatIt);
+		if (repeatIt == blockRepeatQueue.end()) break;
 	}
 	lastRepeatUpdate = GetTickCount64();
 }
@@ -1097,17 +1100,18 @@ void thread_trace_handler::main_loop()
 			{
 				BLOCKREPEAT newRepeat;
 
-				string block_ip_s = string(strtok_s(entry + 4, ",", &entry));
+
+				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
 				if (!caught_stoul(block_ip_s, &newRepeat.blockaddr, 16)) {
 					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
 
+				UINT64 id_count;
 				string b_id_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(b_id_s, &newRepeat.blockID, 16)) {
-					cerr << "[rgat]ERROR: BX handling bid STOL: " << b_id_s << endl;
-					assert(0);
-				}
+				id_count = stoll(b_id_s, 0, 16);
+				newRepeat.insCount = id_count & 0xffffffff;
+				newRepeat.blockID = id_count >> 32;
 
 				string count_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stoul(count_s, &newRepeat.repeats, 16)) {
