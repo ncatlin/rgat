@@ -75,7 +75,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 		if (insdata->mnemonic[0] == 'j')
 		{
 			insdata->conditional = true;
-			insdata->condTakenAddress = std::stol(insdata->op_str, 0, 16);
+			insdata->condTakenAddress = std::stoul(insdata->op_str, 0, 16);
 			insdata->condDropAddress = insaddr + insdata->numbytes;
 		}
 	}
@@ -201,8 +201,8 @@ void basicblock_handler::main_loop()
 			}
 			
 			char *blockID_s = strtok_s(next_token, "@", &next_token);
-			unsigned int blockID;
-			if (!caught_stoi(string(blockID_s), &blockID, 16)) {
+			BLOCK_IDENTIFIER blockID;
+			if (!caught_stoul(string(blockID_s), &blockID, 16)) {
 				cerr << "[rgat]bb blockID stoi error: " << blockID_s << endl;
 				assert(0);
 			};

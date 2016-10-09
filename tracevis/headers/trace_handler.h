@@ -50,9 +50,18 @@ struct FAILEDARGS {
 struct BLOCKREPEAT {
 	MEM_ADDRESS blockaddr;
 	BLOCK_IDENTIFIER blockID;
-	unsigned long repeats;
-	unsigned int insCount;
+	unsigned int insCount = 0;
+	vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>> targBlocks;
+	unsigned long totalExecs;
+	INSLIST *blockInslist = 0;
 };
+
+struct PENDING_REPEAT {
+	MEM_ADDRESS blockaddr;
+	BLOCK_IDENTIFIER blocID;
+	vector <pair<MEM_ADDRESS, unsigned long>> pendingTargs;
+};
+
 
 class thread_trace_handler : public base_thread
 {
@@ -89,27 +98,26 @@ private:
 	void process_new_args();
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
-	
 	void runBB(TAG *tag, int startIndex, int repeats);
 	void run_faulting_BB(TAG *tag);
 
 	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
 	void updateStats(int a, int b, unsigned int bMod);
-	void insert_edge(edge_data e, NODEPAIR edgepair);
+
 	bool set_target_instruction(INS_DATA *instruction);
-	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID);
+	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
 	//void handle_existing_instruction(INS_DATA *instruction);
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
-	void increaseWeight(edge_data *edge, unsigned long executions);
+
+	INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);
 
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void handle_exception_tag(TAG *thistag);
 
-	void update_conditional_state(MEM_ADDRESS nextAddress);
 	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();
-	void assign_blockrepeats();
+	bool assign_blockrepeats();
 
 	vector <BLOCKREPEAT> blockRepeatQueue;
 	DWORD64 lastRepeatUpdate = GetTickCount64();
@@ -122,6 +130,14 @@ private:
 	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>> pendingcallargs;
 	vector<FAILEDARGS> repeatArgAttempts;
 
+	vector<PENDING_REPEAT> pendingTargCounts;
+	struct NEW_EDGE_BLOCKDATA {
+		MEM_ADDRESS sourceAddr;
+		BLOCK_IDENTIFIER sourceID;
+		MEM_ADDRESS targAddr;
+		BLOCK_IDENTIFIER targID;
+	};
+	vector<NEW_EDGE_BLOCKDATA> pendingEdges;
 
 	bool afterReturn = false;
 	unsigned long loopCount = 0;
@@ -132,5 +148,4 @@ private:
 	NODEPAIR repeatStart;
 	NODEPAIR repeatEnd;
 	unsigned int arg_storage_capacity = 100;
-	
 };

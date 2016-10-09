@@ -392,11 +392,6 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 	for (int idx = 1; idx < argc; idx++)
 	{
 		string arg(argv[idx]);
-		if (arg == "-b")
-		{
-			clientState->launchopts.basic = true;
-			continue;
-		}
 
 		if (arg == "-s")
 		{
@@ -434,15 +429,18 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 			return false;
 		}
 
-		if (arg == "-h" )
+		if (arg == "-h" || arg == "-?")
 		{
 			cout << "rgat - Instruction trace visualiser" << endl;
 			cout << "-e target \"arguments\" Execute target with specified argument string"  << endl;
 			cout << "-l target Execute target without arguments" << endl;
 			cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
 			cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
-			cout << "-b Launch in basic mode which does not save animation data" << endl;
-			cout << "No further processing due to help argument" << endl;
+			return false;
+		}
+		else
+		{
+			cout << "[rgat]Unknown arg: " << arg << endl;
 			return false;
 		}
 	}
@@ -490,6 +488,9 @@ static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 
 	if (clientState->modes.diff)
 		clientState->modes.diff = 0;
+
+	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
+		graph->get_mainlines()->get_renderedEdges());
 }
 
 static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
@@ -631,9 +632,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 				clientState->xturn -= dx;
 				clientState->yturn -= dy;
-				char tistring[200];
-				snprintf(tistring, 200, "xt:%f, yt:%f", fmod(clientState->xturn, 360), fmod(clientState->yturn, 360));
-				updateTitle_dbg(display, clientState->title, tistring);
 			}
 			else
 			{
@@ -1060,12 +1058,14 @@ int main(int argc, char **argv)
 	{
 		if(!process_rgat_args(argc, argv, &clientState)) return 0;
 
+		handleKBDExit();
+
 		HANDLE hProcessCoordinator = CreateThread(
 			NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 			(LPVOID)&clientState, 0, 0);
 
 		execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState);
-		handleKBDExit();
+		
 		
 		int newTIDs,activeTIDs = 0;
 		int newPIDs,activePIDs = 0;
@@ -1104,7 +1104,7 @@ int main(int argc, char **argv)
 	ALLEGRO_DISPLAY *newDisplay = 0;
 	ALLEGRO_EVENT_QUEUE *newQueue = 0;
 	if (!GUI_init(&newQueue, &newDisplay)) {
-		cout << "[rgat]GUI init failed - Use nongraphical mode -e from command line" << endl;
+		cout << "[rgat]GUI init failed - Use nongraphical mode from command line" << endl;
 		return 0;
 	}
 	
@@ -1357,7 +1357,7 @@ int main(int argc, char **argv)
 				
 					if (clientState.selectedPID > -1)
 					{
-						clientState.activePid = clientState.glob_piddata_map[clientState.selectedPID];
+						clientState.activePid = clientState.glob_piddata_map.at(clientState.selectedPID);
 						clientState.graphPositions.clear();
 						map<PID_TID, void *> *pidGraphList = &clientState.activePid->graphs;
 						map<PID_TID, void *>::iterator pidIt;

@@ -50,10 +50,10 @@ Constants used to interpret and plot the trace data
 #define MOD_UNINSTRUMENTED 2 //client didn't instrument further - usually windows dlls
 
 //can leave a conditional 2 ways, keep record of what has happened
-#define CONDPENDING 1
+#define ISCONDITIONAL 1
 #define CONDFELLTHROUGH 2
 #define CONDTAKEN 4
-#define CONDCOMPLETE 8
+#define CONDCOMPLETE (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
 
 #define BMULT 2
 

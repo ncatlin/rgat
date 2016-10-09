@@ -155,8 +155,8 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	float tlx, tlz, trx, topy, trz;
 	float basey, brx, brz, blz, blx;
 	int rowAngle = (int)(360 / BDIVISIONS);
-
-	vector<GLfloat> *spherepos = spheredata->acquire_pos(); 
+	
+	vector<GLfloat> *spherepos = spheredata->acquire_pos(23); 
 	vector<GLfloat> *spherecol = spheredata->acquire_col();
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) 
 	{

@@ -69,7 +69,8 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 	if (!posbufsize || !linebufsize) return;
 
 	vector<float> *lineVector = 0;
-	lineVector = previewgraph->previewlines->acquire_pos();
+	
+	lineVector = previewgraph->previewlines->acquire_pos(25);
 	if (previewgraph->previewlines->get_numVerts() == 0)
 	{
 		previewgraph->previewlines->release_pos();

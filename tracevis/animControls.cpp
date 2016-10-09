@@ -296,7 +296,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	backStepBtn->resizeToContents();
 	backStepBtn->setBackColor(agui::Color(210, 210, 210));
 	backStepBtn->setToolTipText("Step animation back by one");
-	controlsLayout->add(backStepBtn);
+	//controlsLayout->add(backStepBtn);
 
 	forwardStepBtn = new agui::Button();
 	forwardStepBtn->setFont(btnFont);
@@ -304,7 +304,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	forwardStepBtn->resizeToContents();
 	forwardStepBtn->setBackColor(agui::Color(210, 210, 210));
 	forwardStepBtn->setToolTipText("Step animation forward by one");
-	controlsLayout->add(forwardStepBtn);
+	//controlsLayout->add(forwardStepBtn);
 
 	int btnHeight = forwardStepBtn->getHeight();
 
@@ -314,13 +314,13 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	backJumpBtn->resizeToContents();
 	backJumpBtn->setBackColor(agui::Color(210, 210, 210));
 	backJumpBtn->setToolTipText("Jump animation back by specified steps");
-	controlsLayout->add(backJumpBtn);
+	//controlsLayout->add(backJumpBtn);
 
 	stepText = new agui::TextField();
 	stepText->setText("1");
 	stepText->setSize(70, btnHeight);
 	stepText->setNumeric(true);
-	controlsLayout->add(stepText);
+	//controlsLayout->add(stepText);
 
 	forwardJumpBtn = new agui::Button();
 	forwardJumpBtn->setFont(btnFont);
@@ -328,7 +328,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	forwardJumpBtn->resizeToContents();
 	forwardJumpBtn->setBackColor(agui::Color(210, 210, 210));
 	forwardJumpBtn->setToolTipText("Jump animation forward by specified steps");
-	controlsLayout->add(forwardJumpBtn);
+	//controlsLayout->add(forwardJumpBtn);
 
 	playBtn = new agui::Button();
 	playBtn->setFont(btnFont);
@@ -337,7 +337,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	playBtn->setMargins(0, 8, 0, 8);
 	playBtn->setSize(80, btnHeight);
 	playBtn->setBackColor(agui::Color(210, 210, 210));
-	controlsLayout->add(playBtn);
+	//controlsLayout->add(playBtn);
 
 	killBtn = new agui::Button();
 	killBtn->setFont(btnFont);

@@ -29,7 +29,11 @@ class node_data
 public:
 	node_data() {};
 	~node_data() {};
+
 	bool serialise(ofstream *file);
+	//takes a file with a pointer next to a node entry, loads it into the node
+	int unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
+
 	bool get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	FCOORD sphereCoordB(MULTIPLIERS *dimensions, float diamModifier);
 
@@ -52,7 +56,7 @@ public:
 	unsigned long chain_remaining_in = 0;
 	unsigned long chain_remaining_out = 0;
 	DWORD heat_run_marker;
-	//node_data* pointers seem to be invalid in heatmap_R?
+
 	set<unsigned int> incomingNeighbours;
 	set<unsigned int> outgoingNeighbours;
 };

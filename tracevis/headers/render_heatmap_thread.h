@@ -46,7 +46,7 @@ private:
 	void main_loop();
 	int updateDelayMS = 200;
 	thread_graph_data *thisgraph;
-	bool render_graph_heatmap(thread_graph_data *graph);
+	bool render_graph_heatmap(thread_graph_data *graph, bool verbose = false);
 	vector<COLSTRUCT> colourRange;
 
 };

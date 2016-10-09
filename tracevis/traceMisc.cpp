@@ -70,7 +70,7 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 		if (mutationIt != blockIt->second.end()) break;
 
 		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for blockID "<< std::hex<<blockID <<"of address 0x" << blockaddr << endl;
+			cerr << "[rgat]Warning... long wait for blockID "<< std::hex << blockID <<"of address 0x" << blockaddr << endl;
 		Sleep(1);
 		if (*dieFlag) return 0;
 	}

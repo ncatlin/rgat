@@ -91,7 +91,11 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 
 	}
 	if (newDrawn) graph->needVBOReload_conditional = true;
-	return true;
+
+	if (mainLineverts == graph->get_num_nodes())
+		return true;
+	else
+		return false;
 }
 
 //thread handler to build graph for each thread

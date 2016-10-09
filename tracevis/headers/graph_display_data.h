@@ -26,7 +26,7 @@ public:
 	GRAPH_DISPLAY_DATA(bool preview = false);
 	~GRAPH_DISPLAY_DATA();
 
-	vector <float>* acquire_pos();
+	vector <float>* acquire_pos(int holder = 0);
 	vector <float>* acquire_col();
 
 	float *readonly_col() { if (!vcolarray.empty()) return &vcolarray.at(0); return 0; }

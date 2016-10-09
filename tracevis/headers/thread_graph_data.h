@@ -77,8 +77,8 @@ class thread_graph_data
 	inline void dropEdgeWriteLock();
 
 	inline void getNodeReadLock();
-	inline void getNodeWriteLock();
 	inline void dropNodeReadLock();
+	inline void getNodeWriteLock();
 	inline void dropNodeWriteLock();
 
 	bool advance_sequence(bool);
@@ -115,11 +115,14 @@ public:
 	void display_active(bool showNodes, bool showEdges);
 	void display_static(bool showNodes, bool showEdges);
 
+	void acquireNodeReadLock() { getNodeReadLock(); }
+	void releaseNodeReadLock() { dropNodeReadLock(); }
+
 	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
 	
 	bool edge_exists(NODEPAIR edge, edge_data **edged);
-	void add_edge(edge_data e, NODEPAIR edge);
+	void add_edge(edge_data e, node_data *source, node_data *target);
 	void insert_node(int targVertID, node_data node); 
 	void extend_faded_edges();
 	void assign_modpath(PROCESS_DATA *);
@@ -139,8 +142,13 @@ public:
 
 	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);
-	edge_data * get_edge(int edgeindex);
+	edge_data * get_edge(unsigned int edgeindex);
+	edge_data *get_edge_create(node_data *source, node_data *target);
+
 	inline node_data *get_node(unsigned int index);
+	node_data *locked_get_node(unsigned int index);
+
+	void insert_edge_between_BBs(INSLIST *source, INSLIST *target);
 
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
 	unsigned int get_num_nodes() { return nodeList.size();}
@@ -169,13 +177,7 @@ public:
 	void performStep(int stepSize, bool skipLoop);
 	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	VCOORD *get_active_node_coord();
-	void set_active_node(unsigned int idx) {	
-		if (nodeList.size() <= idx) return;
-		obtainMutex(animationListsMutex, 1032);
-		latest_active_node = get_node(idx);
-		latest_active_node_coord = latest_active_node->vcoord;
-		dropMutex(animationListsMutex);
-	}
+	void set_active_node(unsigned int idx);
 	void update_animation_render(float fadeRate);
 	void reset_animation();
 	void darken_animation(float alphaDelta);
@@ -190,7 +192,8 @@ public:
 	vector <string> loggedCalls;
 
 	VCOORD latest_active_node_coord;
-	node_data *latest_active_node = 0;
+	unsigned int latest_active_node_idx = 0;
+	unsigned int finalNodeID = 0;
 
 	PID_TID tid = 0;
 	PID_TID pid = 0;
@@ -218,10 +221,8 @@ public:
 	//keep track of graph dimensions
 	int maxA = 0;
 	int maxB = 0;
-	unsigned int bigBMod = 0;
 	long zoomLevel = 0;
 
-	unsigned long maxWeight = 0;
 	unsigned long vertResizeIndex = 0;
 
 	MULTIPLIERS *m_scalefactors = NULL;
@@ -233,22 +234,8 @@ public:
 
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
 	
-	bool isGraphBusy() { 
-		bool busy = (WaitForSingleObject(graphwritingMutex, 0) == WAIT_TIMEOUT); 
-		if (!busy)
-			ReleaseMutex(graphwritingMutex); 
-		return busy;
-	}
-
-	void setGraphBusy(bool set) { 
-		if (set) { 
-			DWORD res = WaitForSingleObject(graphwritingMutex, 1000); 
-			if (res == WAIT_TIMEOUT)
-				cerr << "[rgat]Timeout waiting for release of graph "<< tid <<endl;
-			assert(res != WAIT_TIMEOUT);
-		}
-		else ReleaseMutex(graphwritingMutex); 
-	}
+	bool isGraphBusy();
+	void setGraphBusy(bool set);
 
 	bool VBOsGenned = false;
 	//node+edge col+pos
@@ -258,14 +245,12 @@ public:
 	GRAPH_DISPLAY_DATA *previewnodes = 0;
 	GRAPH_DISPLAY_DATA *previewlines = 0;
 
-	bool dirtyHeatmap = false;
 	bool needVBOReload_heatmap = true;
 	//lowest/highest numbers of edge iterations
 	pair<unsigned long,unsigned long> heatExtremes;
 	GLuint heatmapEdgeVBO[1] = { 0 };
 	GRAPH_DISPLAY_DATA *heatmaplines = 0;
 
-	bool dirtyConditional = false;
 	bool needVBOReload_conditional = true;
 	//number of taken, not taken conditionals
 	pair<unsigned long, unsigned long> condCounts;

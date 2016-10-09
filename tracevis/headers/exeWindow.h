@@ -100,10 +100,8 @@ public:
 			clientState->launchopts.caffine = state;
 		else if (thisNeedsAnIDField == "Pause on start")
 			clientState->launchopts.pause = state;
-		else if (thisNeedsAnIDField == "Structure only")
-			clientState->launchopts.basic = state;
-		else if (thisNeedsAnIDField == "Debugger mode")
-			clientState->launchopts.debugMode = state; 
+		//else if (thisNeedsAnIDField == "Debugger mode")
+		//	clientState->launchopts.debugMode = state; 
 		else
 			cerr<< "[rgat]Checkbox text '"<< source->getText() << "' does not match an expected value! Ignoring" <<endl;
 	}

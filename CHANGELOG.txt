@@ -31,3 +31,29 @@ Fixed hangs and crashes related to heatmap renderering
 Fixed a hang related to termination during rescaling
 Fixed text sometimes not appearing while zoomed in
 Improved thread termination
+
+
+09/10/16 0.2 [PREVIOUS SAVES OBSOLETE]
+-----------------
+The trace generator has had its algorithm completely revamped with a form of 
+soft deinstrumentation (see issue #6).
+
+This means that in areas of repeating blocks with no fresh code, drgat stops recording 
+exact trace data, ensuring that only target branches and execution counts are recorded.
+In many circumstances this is an improvement of an order of magnitude over the previous algorithm
+and makes rgat usable for many applications that would previously have filled the 
+trace buffer.
+
+Unfortunately it no longer provides an exact log of every instruction in order. Replay is currently disabled,
+but will return in a more fuzzy 'busy areas' format in future 0.2.* updates (instead of the 
+previous exact instruction replay). Divergence is also disabled and will return soon.
+
+This change also meant that creating the heatmap is a lot less straightforward. rgat now uses a network flow
+solver to calculate the weight of all of the edges, and displays instruction execution counts (in white) as 
+well as the edge weights. An unexpected benefit is that it if there are any errors in the graph,
+the solver will detect it and complain. This has uncovered a significant number of errors in trace 
+generation and graph construction which have now been fixed.
+
+Various crashes have been fixed.
+
+ 

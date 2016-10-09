@@ -50,9 +50,10 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 	return true;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_pos()
+vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(int holder)
 {
 	bool result = obtainMutex(posmutex, 1007);
+	//printf("holder %d got 1007 --- ", holder);
 	if (!result) return 0;
 	return &vposarray;
 }

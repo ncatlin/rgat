@@ -209,7 +209,6 @@ void module_handler::main_loop()
 				char *skipped_s = strtok_s(next_token, "@", &next_token);
 				piddata->getDisassemblyWriteLock();
 
-				int instrumentation;
 				if (*skipped_s == '1')
 					piddata->activeMods[modnum] = MOD_UNINSTRUMENTED;
 				else
@@ -221,7 +220,6 @@ void module_handler::main_loop()
 					cerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
-
 				
 				string path_plain;
 				if (!b64path.empty())

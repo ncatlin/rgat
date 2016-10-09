@@ -23,9 +23,15 @@ Static view zoomed in to individual instructions:
 
 You may also want a brief introduction to the [graph layout](https://github.com/ncatlin/rgat/wiki/Graph-Layout).
 
-## Download/Installation
+## Latest Version
 
-It (version 0.1.4) is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.1.4.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+Version 0.2 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.2.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+
+Significant changes in the trace generation from v 0.1.* mean that execution for many applications with tightly looping code is at least an order of magnitude faster.
+
+Some features (replay, divergence) have been temporarily disabled as a result. See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for further details. 
+
+## Download/Installation
 
 It's built to depend on the Windows 10 Universal CRT so if you have a version lower than that you might need to [install it](https://support.microsoft.com/en-gb/kb/2999226)
 

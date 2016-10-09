@@ -194,7 +194,7 @@ void saveTrace(VISSTATE * clientState)
 		clientState->config->updateSavePath(clientState->config->saveDir);
 	}
 
-	cout << "[rgat]Saving process " << clientState->activePid->PID <<" to " << path << endl;
+	cout << "[rgat]Saving process " <<dec<< clientState->activePid->PID <<" to " << path << endl;
 
 
 	ofstream savefile;

@@ -24,6 +24,57 @@ Monsterous class that handles the bulk of graph management
 #include "rendering.h"
 #include "serialise.h"
 
+
+bool thread_graph_data::isGraphBusy() 
+{
+	bool busy = (WaitForSingleObject(graphwritingMutex, 0) == WAIT_TIMEOUT);
+	if (!busy)
+		ReleaseMutex(graphwritingMutex);
+	return busy;
+}
+
+void thread_graph_data::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
+{
+	INS_DATA *sourceIns = source->back();
+	INS_DATA *targetIns = target->front();
+
+	unsigned int sourceNodeIdx = sourceIns->threadvertIdx.at(tid);
+	unsigned int targNodeIdx = targetIns->threadvertIdx.at(tid);
+
+	NODEPAIR edgeNodes = make_pair(sourceNodeIdx, targNodeIdx);
+
+	if (edgeDict.count(edgeNodes)) return;
+
+	node_data *sourceNode = get_node(sourceNodeIdx);
+	node_data *targNode = get_node(targNodeIdx);
+
+	edge_data newEdge;
+	
+	if (targNode->external)
+		newEdge.edgeClass = ILIB;
+	else if (sourceNode->ins->itype = OPCALL)
+		newEdge.edgeClass = ICALL;
+	else if (sourceNode->ins->itype = OPRET)
+		newEdge.edgeClass = IRET;
+	else
+		newEdge.edgeClass = IOLD;
+
+	add_edge(newEdge, sourceNode, targNode);
+
+}
+
+void thread_graph_data::setGraphBusy(bool set) 
+{
+	if (set) {
+		DWORD res = WaitForSingleObject(graphwritingMutex, 1000);
+		if (res == WAIT_TIMEOUT)
+			cerr << "[rgat]Timeout waiting for release of graph " << tid << endl;
+		assert(res != WAIT_TIMEOUT);
+	}
+	else ReleaseMutex(graphwritingMutex);
+}
+
+
 //add new extern calls to log
 unsigned int thread_graph_data::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize)
 {
@@ -240,7 +291,7 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 {
 	//check if block called an extern
 	INS_DATA* ins = get_last_instruction(targetSequence);
-	int nodeIdx = ins->threadvertIdx[tid];
+	int nodeIdx = ins->threadvertIdx.at(tid);
 
 	obtainMutex(animationListsMutex, 1017);
 	map <unsigned int, EDGELIST>::iterator externit = externCallSequence.find(nodeIdx);
@@ -264,11 +315,18 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 
 	dropMutex(animationListsMutex);
 
-	node_data *n = get_node(targetExternIdx);
+
 
 	EXTERNCALLDATA ex;
 	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
+	edge_data *e = get_edge(ex.edgeIdx);
+	if (!e) return;
+
+	getNodeReadLock();
+	node_data *n = locked_get_node(targetExternIdx);
+	vector<ARGLIST> *funcArgs = &n->funcargs;
 	ex.nodeIdx = n->index;
+	dropNodeReadLock();
 	ex.drawFloating = updateArgs;
 
 	set_node_alpha(ex.nodeIdx, animnodesdata, 1);
@@ -277,20 +335,19 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 
 	set_edge_alpha(ex.edgeIdx,animlinedata, 1);
 	if (!activeEdgeMap.count(ex.edgeIdx))
-		activeEdgeMap[ex.edgeIdx] = get_edge(ex.edgeIdx);
+		activeEdgeMap[ex.edgeIdx] = e;
 	
+	obtainMutex(funcQueueMutex, 1018);
 	string funcArgString;
 	if (updateArgs)
 	{
 		if (!n->funcargs.empty())
-			if (callsSoFar < n->funcargs.size())
-				ex.argList = n->funcargs.at(callsSoFar);
+			if (callsSoFar < funcArgs->size())
+				ex.argList = funcArgs->at(callsSoFar);
 			else
-				ex.argList = *n->funcargs.rbegin();
+				ex.argList = *funcArgs->rbegin();
 	}
 
-
-	obtainMutex(funcQueueMutex, 1018);
 	floatingExternsQueue.push(ex);
 	dropMutex(funcQueueMutex);
 
@@ -675,6 +732,8 @@ int thread_graph_data::brighten_BBs()
 			NODEPAIR edgePair = make_pair(nodeIdx, nextInsIndex);
 
 			edge_data *e = get_edge(edgePair);
+			if (!e) break;
+
 			unsigned long edgeColPos = e->arraypos;
 			ecol[edgeColPos + AOFF] = 1.0;
 			ecol[edgeColPos + COLELEMS + AOFF] = 1.0;
@@ -719,7 +778,7 @@ void thread_graph_data::animate_latest(float fadeRate)
 
 	lastAnimatedBB = brighten_BBs();
 
-	set_node_alpha(latest_active_node->index, animnodesdata, getPulseAlpha());
+	set_node_alpha(get_node(latest_active_node_idx)->index, animnodesdata, getPulseAlpha());
 	//live process always at least has pulsing active node
 	needVBOReload_active = true;
 }
@@ -773,18 +832,42 @@ bool thread_graph_data::edge_exists(NODEPAIR edge, edge_data **edged)
 
 	if (edgeit == edgeDict.end()) return false;
 
-	*edged = &edgeit->second;
+	if (edged)
+		*edged = &edgeit->second;
 	return true;
+}
+
+edge_data *thread_graph_data::get_edge_create(node_data *source, node_data *target)
+{
+	NODEPAIR edge;
+	edge.first = source->index;
+	edge.second = target->index;
+
+	getEdgeReadLock();
+	EDGEMAP::iterator edgeDIt = edgeDict.find(edge);
+	dropEdgeReadLock();
+
+	if (edgeDIt != edgeDict.end())
+		return &edgeDIt->second;
+
+	edge_data edgeData;
+	edgeData.edgeClass = INEW; //TODO!
+	edgeData.chainedWeight = 0;
+	add_edge(edgeData, source, target);
+
+	return &edgeDict.at(edge);
 }
 
 inline edge_data *thread_graph_data::get_edge(NODEPAIR edgePair)
 {
-
 	getEdgeReadLock();
-	edge_data *linkingEdge = &edgeDict.at(edgePair);
+	EDGEMAP::iterator edgeIt = edgeDict.find(edgePair);
 	dropEdgeReadLock();
-
-	return linkingEdge;
+	
+	if (edgeIt != edgeDict.end())
+		return &edgeIt->second;
+	else
+		return 0;
 }
 
 
@@ -834,21 +917,21 @@ inline void thread_graph_data::getNodeReadLock()
 #endif
 }
 
-inline void thread_graph_data::getNodeWriteLock()
-{
-#ifdef XP_COMPATIBLE 
-	obtainMutex(nodeLMutex, 10006);
-#else
-	AcquireSRWLockExclusive(&nodeLock);
-#endif
-}
-
 inline void thread_graph_data::dropNodeReadLock()
 {
 #ifdef XP_COMPATIBLE 
 	dropMutex(nodeLMutex);
 #else
 	ReleaseSRWLockShared(&nodeLock);
+#endif
+}
+
+inline void thread_graph_data::getNodeWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(nodeLMutex, 10006);
+#else
+	AcquireSRWLockExclusive(&nodeLock);
 #endif
 }
 
@@ -862,14 +945,19 @@ inline void thread_graph_data::dropNodeWriteLock()
 }
 
 //linker error if we make this inline too
-edge_data * thread_graph_data::get_edge(int edgeindex)
+edge_data * thread_graph_data::get_edge(unsigned int edgeindex)
 {
+	if (edgeindex >= edgeList.size()) return 0;
 
 	getEdgeReadLock();
-	edge_data *linkingEdge = &edgeDict.at(edgeList.at(edgeindex));
+	EDGEMAP::iterator edgeIt = edgeDict.find(edgeList.at(edgeindex));
 	dropEdgeReadLock();
 
-	return linkingEdge;
+	if (edgeIt != edgeDict.end())
+		return &edgeIt->second;
+	else
+		return 0;
+
 }
 
 inline node_data *thread_graph_data::get_node(unsigned int index)
@@ -878,6 +966,20 @@ inline node_data *thread_graph_data::get_node(unsigned int index)
 	node_data *n = &nodeList.at(index);
 	dropNodeReadLock();
 	return n;
+}
+
+node_data *thread_graph_data::locked_get_node(unsigned int index)
+{
+	return &nodeList.at(index);
+}
+
+void thread_graph_data::set_active_node(unsigned int idx)
+{
+	if (nodeList.size() <= idx) return;
+	getNodeWriteLock();
+	latest_active_node_idx = idx;
+	latest_active_node_coord = locked_get_node(idx)->vcoord;
+	dropNodeWriteLock();
 }
 
 //IMPORTANT: Must have edge reader lock to call this
@@ -926,9 +1028,9 @@ VCOORD *thread_graph_data::get_active_node_coord()
 {
 	if (nodeList.empty()) return NULL;
 
-	obtainMutex(animationListsMutex, 1025);
+	getNodeReadLock();
 	VCOORD *result = &latest_active_node_coord;
-	dropMutex(animationListsMutex);
+	dropNodeReadLock();
 
 	return result;
 }
@@ -1005,13 +1107,30 @@ void thread_graph_data::insert_node(int targVertID, node_data node)
 }
 
 
-void thread_graph_data::add_edge(edge_data e, NODEPAIR edgePair)
+void thread_graph_data::add_edge(edge_data e, node_data *source, node_data *target)
 {
+	NODEPAIR edgePair;
+	edgePair.first = source->index;
+	edgePair.second = target->index;
+
+	getNodeWriteLock();
+
+	source->outgoingNeighbours.insert(edgePair.second);
+	if (source->conditional && (source->conditional != CONDCOMPLETE))
+	{
+		if (source->ins->condDropAddress == target->address)
+			source->conditional |= CONDFELLTHROUGH;
+		else if (source->ins->condTakenAddress == target->address)
+			source->conditional |= CONDTAKEN;
+	}
+
+	target->incomingNeighbours.insert(edgePair.first);
+	dropNodeWriteLock();
+
 	getEdgeWriteLock();
 	edgeDict.insert(make_pair(edgePair, e));
 	edgeList.push_back(edgePair);
 	dropEdgeWriteLock();
-
 }
 
 thread_graph_data::~thread_graph_data()
@@ -1019,7 +1138,6 @@ thread_graph_data::~thread_graph_data()
 	delete animlinedata;
 	delete animnodesdata;
 }
-
 
 void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
@@ -1075,6 +1193,7 @@ bool thread_graph_data::serialise(ofstream *file)
 	for (; edgeLIt != edgeList.end(); ++edgeLIt)
 	{
 		edge_data *e = get_edge(*edgeLIt);
+		assert(e);
 		e->serialise(file, edgeLIt->first, edgeLIt->second);
 	}
 	*file << "}D,";
@@ -1095,7 +1214,6 @@ bool thread_graph_data::serialise(ofstream *file)
 	*file << "S{" 
 		<< maxA << ","
 		<< maxB << ","
-		<< maxWeight << ","
 		<< loopCounter << ","
 		<< baseMod << ","
 		<< totalInstructions
@@ -1137,27 +1255,26 @@ bool thread_graph_data::serialise(ofstream *file)
 
 bool thread_graph_data::loadEdgeDict(ifstream *file)
 {
-	string index_s, weight_s, source_s, target_s, edgeclass_s;
+	string index_s, source_s, target_s, edgeclass_s;
 	int source, target;
 	while (true)
 	{
 		edge_data *edge = new edge_data;
-		getline(*file, weight_s, ',');
-		if (!caught_stoul(weight_s, (unsigned long *)&edge->weight, 10))
+
+		getline(*file, source_s, ',');
+		if (!caught_stoi(source_s, (int *)&source, 10))
 		{
-			if (weight_s == string("}D"))
+			if (source_s == string("}D"))
 				return true;
 			else
 				return false;
 		}
-		getline(*file, source_s, ',');
-		if (!caught_stoi(source_s, (int *)&source, 10)) return false;
 		getline(*file, target_s, ',');
 		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
 		getline(*file, edgeclass_s, '@');
 		edge->edgeClass = edgeclass_s.c_str()[0];
 		NODEPAIR stpair = make_pair(source, target);
-		add_edge(*edge, stpair);
+		add_edge(*edge, get_node(source), get_node(target));
 	}
 	return false;
 }
@@ -1212,8 +1329,6 @@ bool thread_graph_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *
 	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
 	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
 	if (!loadCallSequence(file)) { cerr << "[rgat]ERROR:Call sequence load failed" << endl; return false; }
-
-	dirtyHeatmap = true;
 	return true;
 }
 
@@ -1255,86 +1370,22 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 		cerr << "[rgat]Bad node data" << endl;
 		return false;
 	}
-	string endtag("}N,D");
 	string value_s;
 	while (true)
 	{
 		node_data *n = new node_data;
-		
-		getline(*file, value_s, '{');
-		if (value_s == endtag) return true;
-
-		if (!caught_stoi(value_s, (int *)&n->index, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, (int *)&n->vcoord.a, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, (int *)&n->vcoord.b, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, (int *)&n->vcoord.bMod, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, (int *)&n->conditional, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, &n->nodeMod, 10))
-			return false;
-		getline(*file, value_s, ',');
-		if (!caught_stoul(value_s, &n->address, 10))
-			return false;
-
-		getline(*file, value_s, ',');
-		if (value_s.at(0) == '0')
+		int result = n->unserialise(file, disassembly);
+		if (result > 0)
 		{
-			n->external = false;
-
-			getline(*file, value_s, '}');
-			if (!caught_stoi(value_s, (int *)&n->mutation, 10))
-				return false;
-
-			map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(n->address);
-			if ((addressIt == disassembly->end()) || (n->mutation >= addressIt->second.size()))
-				return false;
-
-			n->ins = addressIt->second.at(n->mutation);
 			insert_node(n->index, *n);
 			continue;
 		}
 
-		n->external = true;
+		delete n;
 
-		int numCalls;
-		getline(*file, value_s, '{');
-		if (!caught_stoi(value_s, &numCalls, 10))
-			return false;
-
-		vector <ARGLIST> funcCalls;
-		for (int i = 0; i < numCalls; ++i)
-		{
-			int argidx, numArgs = 0;
-			getline(*file, value_s, ',');
-			if (!caught_stoi(value_s, &numArgs, 10))
-				return false;
-			ARGLIST callArgs;
-
-			for (int i = 0; i < numArgs; ++i)
-			{
-				getline(*file, value_s, ',');
-				if (!caught_stoi(value_s, &argidx, 10))
-					return false;
-				getline(*file, value_s, ',');
-				string decodedarg = base64_decode(value_s);
-				callArgs.push_back(make_pair(argidx, decodedarg));
-			}
-			if (!callArgs.empty())
-				funcCalls.push_back(callArgs);
-		}
-		if (!funcCalls.empty())
-			n->funcargs = funcCalls;
-		file->seekg(1, ios::cur); //skip closing brace
-		insert_node(n->index, *n);
+		if (!result) return true;
+		else return false;
+		
 	}
 }
 
@@ -1350,8 +1401,6 @@ bool thread_graph_data::loadStats(ifstream *file)
 	if (!caught_stoi(value_s, &maxA, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, &maxB, 10)) return false;
-	getline(*file, value_s, ',');
-	if (!caught_stoul(value_s, (unsigned long*)&maxWeight, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&loopCounter, 10)) return false;
 	getline(*file, value_s, ',');

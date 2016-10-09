@@ -32,8 +32,7 @@ edge_data::~edge_data()
 
 bool edge_data::serialise(ofstream *file, int source, int target)
 {
-	*file << weight << "," <<
-		source << "," <<
+	*file << source << "," <<
 		target << "," <<
 		edgeClass << "@";
 

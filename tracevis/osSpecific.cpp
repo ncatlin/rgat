@@ -161,7 +161,7 @@ bool get_dr_path(VISSTATE *clientState, string *path)
 		}
 	}
 
-	string drrunArgs = " -c ";
+	string drrunArgs = " -thread_private -c ";
 	string retstring = DRPath;
 	if (clientState->launchopts.pause)
 		retstring.append(" -msgbox_mask 15 ");

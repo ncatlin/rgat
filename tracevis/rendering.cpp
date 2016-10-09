@@ -55,9 +55,9 @@ void plot_wireframe(VISSTATE *clientState)
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
-
-	vector <float> *vpos = wireframe_data->acquire_pos();
-	vector <float> *vcol = wireframe_data->acquire_col();
+	
+	vector <float> *vpos = wireframe_data->acquire_pos(234);
+	vector <float> *vcol = wireframe_data->acquire_col(); 
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -96,7 +96,8 @@ void plot_wireframe(VISSTATE *clientState)
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
-	vector <float> *vpos = vertdata->acquire_pos(); 
+	
+	vector <float> *vpos = vertdata->acquire_pos(52); 
 	vector <float> *vcol = vertdata->acquire_col();
 
 	int numverts = vertdata->get_numVerts();
@@ -130,10 +131,12 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		0.3, 0.3, 0.5, 0.7, 0.9, 1 };
 
 	int vsadded = 0;
-	curvePoints += 2;
-	vector<GLfloat> *vertpos = vertdata->acquire_pos();
-	vector<GLfloat> *vertcol = vertdata->acquire_col();
-	if (!vertpos || !vertcol) return 0;
+	curvePoints += 2; 
+	vector<GLfloat> *vertpos = vertdata->acquire_pos(63);
+	vector<GLfloat> *vertcol = vertdata->acquire_col(); 
+
+	if (!vertpos || !vertcol) 
+		return 0;
 	*colarraypos = vertcol->size();
 	int ci = 0;
 	int pi = 0;
@@ -288,8 +291,8 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	float adjB = n->vcoord.b + float(n->vcoord.bMod * BMODMAG);
 	FCOORD screenc;
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
-
-	vector<GLfloat> *mainNpos = vertdata->acquire_pos();
+	
+	vector<GLfloat> *mainNpos = vertdata->acquire_pos(677);
 	vector<GLfloat> *mainNcol = vertdata->acquire_col();
 
 	mainNpos->push_back(screenc.x);
@@ -488,8 +491,9 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 	}
 	
 	if (!targetIdx) return;
+	
+	GLfloat *vpos = &vertsdata->acquire_pos(152)->at(0);
 
-	GLfloat *vpos = &vertsdata->acquire_pos()->at(0);
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
 		node_data *n = graph->get_node(nodeIdx);
@@ -503,9 +507,6 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 	}
 
 	vertsdata->release_pos();
-	
-	if (!isPreview)
-		graph->dirtyHeatmap = true;
 }
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
@@ -648,6 +649,8 @@ int render_preview_graph(thread_graph_data *previewGraph, VISSTATE *clientState)
 //draw text for quantity + symbol + argument indicator
 void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
+	if (clientState->activeGraph->externList.empty()) return;
+
 	string modPath;
 	clientState->activePid->get_modpath(n->nodeMod, &modPath);
 
@@ -673,14 +676,25 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 		argstring << " ()";
 	else
 		{
-			argstring << " (";
-			vector<ARGIDXDATA> *args = &n->funcargs.at(0);
-			vector<ARGIDXDATA>::iterator argIt = args->begin();
-			while (argIt != args->end())
+			//TODO: crash here with argIt->second or first == <NULL>. 
+			//not sure why because funcargs accesses seem to be guarded
+			try 
 			{
-				argstring << argIt->first << ": " << argIt->second;
-				++argIt;
+
+					argstring << " (";
+					vector<ARGIDXDATA> *args = &n->funcargs.at(0);
+					vector<ARGIDXDATA>::iterator argIt = args->begin();
+
+					while (argIt != args->end())
+					{
+							argstring << argIt->first << ": " << argIt->second;
+							++argIt;
+					}
 			}
+			catch (std::exception const & e) {
+				cerr << "[rgat]Warning: Known argument handling race encountered. Ignoring." << endl;
+			}
+
 			int remainingCalls = n->funcargs.size() - 1;
 			if (remainingCalls)
 				argstring << ") +" << remainingCalls << "saved";
@@ -856,8 +870,11 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 
 		DCOORD screenCoordA;
 		if(!firstNode->get_screen_pos(vertsdata, pd, &screenCoordA)) continue;
+
+		if (ePair->second >= graph->get_num_nodes()) continue;
 		DCOORD screenCoordB;
 		if(!graph->get_node(ePair->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
+
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
 
@@ -912,7 +929,7 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 		show_extern_labels(clientState, pd, graph);
 	else
 	{	//show label of extern we are blocked on
-		node_data *n = graph->latest_active_node;
+		node_data *n = graph->get_node(graph->latest_active_node_idx);
 		if (n && n->external)
 		{
 			DCOORD screenCoord;

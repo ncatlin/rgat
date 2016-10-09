@@ -131,9 +131,9 @@ void thread_trace_reader::main_loop()
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
-		255, //max instances
-		64, //outbuffer
-		1024 * 1024, //inbuffer
+		1, //max instances
+		1, //outbuffer
+		1024 * 1024, //inbuffermax
 		1, //timeout?
 		NULL);
 
@@ -189,6 +189,13 @@ void thread_trace_reader::main_loop()
 		}
 
 		tagReadBuf[bytesRead] = 0;
+		//cout << "[rgat] "<<TID<<"reader read [" << tagReadBuf << "]" << endl;
+		if (tagReadBuf[bytesRead - 1] != '@')
+		{
+			cerr << "[rgat]ERROR: [tid"<<TID<<"] Improperly terminated trace message recieved ["<<tagReadBuf<<"]. ("<<bytesRead<<" bytes) Terminating." << endl;
+			assert(0);
+		}
+		
 		messageBuffer = (char*)malloc(bytesRead + 1);
 		memcpy(messageBuffer, tagReadBuf, bytesRead + 1);
 

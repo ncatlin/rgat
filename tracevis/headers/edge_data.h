@@ -27,8 +27,6 @@ public:
 	//and the target of the edge, so pass those along too
 	bool serialise(ofstream *file, int source, int target);
 
-	//number of times executed
-	unsigned long weight = 0; 
 	//number of verticies taken up in OpenGL data
 	unsigned int vertSize = 0; 
 	//position in rendering data structure
@@ -36,7 +34,7 @@ public:
 	//type of edge (call,extern,etc)
 	char edgeClass = 0;  
 
-	//number of times executed - chained
+	//number of times executed, temporary variable used by heatmap solver
 	unsigned long chainedWeight = 0;
 };
 

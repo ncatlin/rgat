@@ -22,6 +22,7 @@ Class describing each node
 #include "b64.h"
 #include "graphicsMaths.h"
 #include "GUIConstants.h"
+#include "traceMisc.h"
 
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
 FCOORD node_data::sphereCoordB(MULTIPLIERS *dimensions, float diamModifier) 
@@ -52,13 +53,26 @@ bool node_data::serialise(ofstream *outfile)
 		vcoord.bMod << "," <<
 		conditional << "," << nodeMod << ",";
 	*outfile << address << ",";
+
+	*outfile << executionCount << ",";
+
+	set<unsigned int>::iterator adjacentIt = incomingNeighbours.begin();
+	*outfile << incomingNeighbours.size() << ",";
+	for (; adjacentIt != incomingNeighbours.end(); ++adjacentIt)
+		*outfile << *adjacentIt << ",";
+
+	adjacentIt = outgoingNeighbours.begin();
+	*outfile << outgoingNeighbours.size() << ",";
+	for (; adjacentIt != outgoingNeighbours.end(); ++adjacentIt)
+		*outfile << *adjacentIt << ",";
+
 	*outfile << external << ",";
 
 	if (!external)
 		*outfile << ins->mutationIndex;
 	else
 	{
-		*outfile << funcargs.size() << "{"; //number of calls
+		*outfile << funcargs.size() << ","; //number of calls
 		vector<ARGLIST>::iterator callIt = funcargs.begin();
 		ARGLIST::iterator argIt;
 		for (; callIt != funcargs.end(); callIt++)
@@ -75,4 +89,122 @@ bool node_data::serialise(ofstream *outfile)
 	*outfile << "}";
 
 	return true;
+}
+
+
+int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
+{
+	string value_s;
+
+	getline(*file, value_s, '{');
+	if (value_s == "}N,D") return 0;
+
+	if (!caught_stoi(value_s, (int *)&index, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&vcoord.a, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&vcoord.b, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&vcoord.bMod, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, (int *)&conditional, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &nodeMod, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoul(value_s, &address, 10))
+		return -1;
+
+	getline(*file, value_s, ',');
+	if (!caught_stoul(value_s, &executionCount, 10))
+		return -1;
+
+	unsigned int adjacentQty;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &adjacentQty, 10))
+		return -1;
+
+	for (unsigned int i = 0; i < adjacentQty; ++i)
+	{
+		unsigned int adjacentIndex;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, &adjacentIndex, 10))
+			return -1;
+		incomingNeighbours.insert(adjacentIndex);
+	}
+
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &adjacentQty, 10))
+		return -1;
+
+	for (unsigned int i = 0; i < adjacentQty; ++i)
+	{
+		unsigned int adjacentIndex;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, &adjacentIndex, 10))
+			return -1;
+		outgoingNeighbours.insert(adjacentIndex);
+	}
+
+	getline(*file, value_s, ',');
+	if (value_s.at(0) == '0')
+	{
+		external = false;
+
+		getline(*file, value_s, '}');
+		if (!caught_stoi(value_s, (int *)&mutation, 10))
+			return -1;
+
+		map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(address);
+		if ((addressIt == disassembly->end()) || (mutation >= addressIt->second.size()))
+			return -1;
+
+		ins = addressIt->second.at(mutation);
+		return 1;
+	}
+
+	external = true;
+
+	int numCalls;
+	getline(*file, value_s, ',');
+	if (!caught_stoi(value_s, &numCalls, 10))
+		return -1;
+
+	vector <ARGLIST> funcCalls;
+	for (int i = 0; i < numCalls; ++i)
+	{
+		int argidx, numArgs = 0;
+		getline(*file, value_s, ',');
+		if (!caught_stoi(value_s, &numArgs, 10))
+			return -1;
+		ARGLIST callArgs;
+
+		for (int i = 0; i < numArgs; ++i)
+		{
+			getline(*file, value_s, ',');
+			if (!caught_stoi(value_s, &argidx, 10))
+				return -1;
+			getline(*file, value_s, ',');
+			string decodedarg = base64_decode(value_s);
+			callArgs.push_back(make_pair(argidx, decodedarg));
+		}
+		if (!callArgs.empty())
+			funcCalls.push_back(callArgs);
+	}
+	if (!funcCalls.empty())
+		funcargs = funcCalls;
+
+	file->seekg(1, ios::cur);
+	return 1;
 }

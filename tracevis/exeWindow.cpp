@@ -114,6 +114,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	pauseCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(pauseCB);
 	
+	/*
 	debugCB = new agui::CheckBox;
 	debugCB->setText("Debugger mode");
 	debugCB->setCheckBoxSize(CBSize);
@@ -122,15 +123,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	debugCB->setToolTipText("For manual debugger stepping.\nUpdate the visualisation at the end of every basic block. Massively degrades performance.");
 	debugCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(debugCB);
-
-	basicCB = new agui::CheckBox;
-	basicCB->setText("Structure only");
-	basicCB->setCheckBoxSize(CBSize);
-	basicCB->resizeToContents();
-	basicCB->setLocation(OPTS_X+15, 190);
-	basicCB->setToolTipText("Improve performance and reduce memory usage by disabling animation and replays");
-	basicCB->addCheckBoxListener(boxlistener);
-	exeFrame->add(basicCB);
+	*/
 
 
 	agui::Label *features = new agui::Label;

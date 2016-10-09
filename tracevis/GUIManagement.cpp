@@ -241,7 +241,9 @@ ALLEGRO_DISPLAY* displaySetup()
 void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	if (!title) return;
 	stringstream newTitle;
-	newTitle << "rgat " << title->Primitives;
+	newTitle << "rgat " 
+		<< RGAT_VERSION_MAJ << "." << RGAT_VERSION_MIN << "." << RGAT_VERSION_FEATURE << " " 
+		<<title->Primitives;
 		//<< " FPS: " << title->FPS;
 	al_set_window_title(display, newTitle.str().c_str());
 }
@@ -388,7 +390,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "&Heatmap [k]", EV_BTN_HEATMAP, 0, NULL },
 		{ "&Conditionals [j]", EV_BTN_CONDITION, 0, NULL },
 		{ "&Previews", EV_BTN_PREVIEW, 0, NULL },
-		{ "&Divergence", EV_BTN_DIFF, 0, NULL },
+		//{ "&Divergence", EV_BTN_DIFF, 0, NULL },
 		//{ "&Mutation", EV_BTN_MUTATION, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 

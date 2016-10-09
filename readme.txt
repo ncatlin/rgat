@@ -1,4 +1,4 @@
-rgat 0.1.4 (unstable preview it's-gonna-break release) https://github.com/ncatlin/drgat 
+rgat 0.2 (unstable preview 'where did all the features go' release) https://github.com/ncatlin/drgat 
 
 Installation
 ---------------
