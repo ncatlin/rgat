@@ -226,7 +226,8 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 void thread_trace_handler::run_faulting_BB(TAG *tag)
 {
 	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata, &die);
-	if (!block) return; //terminate during wait
+	if (!block) return; //terminate happened during wait for block disassembly
+
 	for (unsigned int instructionIndex = 0; instructionIndex <= tag->insCount; ++instructionIndex)
 	{
 
@@ -420,9 +421,6 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			break;
 		}
 
-
-		
-
 	default:
 		if (lastRIPType != FIRST_IN_THREAD)
 			cerr << "[rgat]ERROR: Unknown Last RIP Type "<< lastRIPType << endl;
@@ -493,7 +491,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 		
 	ARGLIST::iterator pendcaIt = pendingArgs.begin();
 	ARGLIST thisCallArgs;
-	for (; pendcaIt != pendingArgs.end(); pendcaIt++)
+	for (; pendcaIt != pendingArgs.end(); ++pendcaIt)
 		thisCallArgs.push_back(*pendcaIt);
 
 	pendingcallargs.at(pendingFunc).at(pendingRet).push_back(thisCallArgs);
@@ -722,11 +720,9 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 		}
 		thisgraph->set_active_node(resultPair.second);
 	}
-	else
-	{
-		cerr << "[rgat]Handle_tag dead code assert" << endl;
-		assert(0);
-	}
+
+	cerr << "[rgat]Error: Bad jump tag" << endl;
+	assert(0);
 }
 
 //#define VERBOSE
@@ -909,6 +905,7 @@ bool thread_trace_handler::assign_blockrepeats()
 				
 				n = thisgraph->get_node(ins->threadvertIdx.at(TID));
 				n->executionCount += repeatIt->totalExecs;
+				thisgraph->totalInstructions += repeatIt->totalExecs;
 				if (--repeatIt->insCount == 0)
 					break;
 			}
@@ -1005,12 +1002,9 @@ void thread_trace_handler::main_loop()
 				dump_loop();
 			}
 			
-			timelinebuilder->notify_tid_end(PID, TID);
-			thisgraph->active = false;
 			thisgraph->terminated = true;
 			thisgraph->emptyArgQueue();
 			thisgraph->needVBOReload_preview = true;
-			alive = false;
 			break;
 		}
 
@@ -1330,6 +1324,7 @@ void thread_trace_handler::main_loop()
 	thisgraph->terminationFlag = true;
 	thisgraph->active = false;
 	thisgraph->finalNodeID = lastVertID;
+	timelinebuilder->notify_tid_end(PID, TID);
 
 	alive = false;
 }
