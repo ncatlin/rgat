@@ -53,6 +53,13 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 
 		if (blockIt != piddata->blocklist.end()) break;
 
+		piddata->getExternlistReadLock();
+		int externCount = piddata->externdict.count(blockaddr);
+		piddata->dropExternlistReadLock();
+
+		if (externCount> 0) return 0;
+	
+
 		if (iterations++ > 20)
 			cerr << "[rgat]Warning: Long wait for disassembly of address 0x" << std::hex << blockaddr << endl;
 

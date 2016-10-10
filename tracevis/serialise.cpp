@@ -107,7 +107,7 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 			INS_DATA *ins = *mutationIt;
 			//for each mutation write opcodes, number of threads executing it
 			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
-			unordered_map<PID_TID, int>::iterator threadVertIt = ins->threadvertIdx.begin();
+			unordered_map<PID_TID, NODEINDEX>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
 				//write thread ID, vert index of node in thread

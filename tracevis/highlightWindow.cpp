@@ -39,7 +39,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			for (; insListIt != insList.end(); ++insListIt)
 			{
 				INS_DATA *target = *insListIt;
-				unordered_map<PID_TID, int>::iterator threadVIt = target->threadvertIdx.find(currentTid);
+				unordered_map<PID_TID, NODEINDEX>::iterator threadVIt = target->threadvertIdx.find(currentTid);
 				if (threadVIt == target->threadvertIdx.end()) continue;
 				node_data *n = graph->get_node(threadVIt->second);
 				highlightData->highlightNodes.push_back(n);
@@ -78,7 +78,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			obtainMutex(graph->highlightsMutex, 1362);
 			if (!graph->exceptionSet.empty())
 			{
-				set<unsigned int>::iterator exceptIt = graph->exceptionSet.begin();
+				set<NODEINDEX>::iterator exceptIt = graph->exceptionSet.begin();
 				for (; exceptIt != graph->exceptionSet.end(); ++exceptIt)
 					highlightData->highlightNodes.push_back(graph->get_node(*exceptIt));
 			}

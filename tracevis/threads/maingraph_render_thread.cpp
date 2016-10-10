@@ -61,7 +61,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		}
 		return;
 	}
-
+	/*
 	if (!graph->active && clientState->animationUpdate)
 	{
 
@@ -85,7 +85,7 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		else
 			clientState->animationUpdate = 0;
 	}
-
+	*/
 	if (graph->active)
 	{
 		if (clientState->modes.animation)

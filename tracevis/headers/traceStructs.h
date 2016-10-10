@@ -55,7 +55,7 @@ typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
 
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN {
-	int vertid;
+	NODEINDEX vertid;
 	CHILDEXTERN *next;
 };
 
@@ -78,7 +78,7 @@ struct INS_DATA {
 	MEM_ADDRESS condTakenAddress;
 	MEM_ADDRESS condDropAddress;
 	//thread id, vert idx TODO: make unsigned
-	unordered_map<PID_TID, int> threadvertIdx;
+	unordered_map<PID_TID, NODEINDEX> threadvertIdx;
 	unsigned int modnum;
 	unsigned int mutationIndex;
 

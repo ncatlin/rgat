@@ -40,6 +40,30 @@ struct EXTERNCALLDATA {
 	bool drawFloating = false;
 };
 
+#define ANIM_EXEC_TAG 0
+#define ANIM_LOOP 1
+#define ANIM_LOOP_LAST 2
+#define ANIM_UNCHAINED 3
+#define ANIM_UNCHAINED_RESULTS 4
+#define ANIM_UNCHAINED_DONE 5
+#define ANIM_EXEC_EXCEPTION 6
+
+#define KEEP_BRIGHT -1
+
+struct ANIMATIONENTRY {
+	char entryType;
+	MEM_ADDRESS blockAddr;
+	BLOCK_IDENTIFIER blockID;
+	unsigned long count;
+	MEM_ADDRESS targetAddr;
+	BLOCK_IDENTIFIER targetID;
+};
+
+struct VERTREMAINING {
+	unsigned int vertIdx;
+	unsigned int timeRemaining;
+};
+
 class thread_graph_data
 {
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
@@ -107,6 +131,28 @@ class thread_graph_data
 	//adding accessor functions for future threadsafe acesss though
 	pair<unsigned long, unsigned long> backlogInOut = make_pair(0, 0);
 	
+	bool fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
+
+	void process_live_animation_updates();
+	void process_replay_animation_updates();
+	void brighten_new_active();
+	void maintain_active();
+	void darken_fading(float fadeRate);
+
+
+	map <NODEINDEX, int> newAnimNodes;
+	map <unsigned int, int> activeAnimNodes;
+	set <unsigned int> fadingAnimNodes;
+
+	map <NODEPAIR, int> newAnimEdges;
+	map <NODEPAIR, int> activeAnimEdges;
+	set <NODEPAIR> fadingAnimEdges;
+
+	queue <ANIMATIONENTRY> animUpdates;
+	vector <ANIMATIONENTRY> currentUnchainedBlocks;
+
+	NODEINDEX lastAnimatedNode = 0;
+	unsigned long animLoopCounter = 0;
 
 public:
 	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
@@ -123,7 +169,7 @@ public:
 	
 	bool edge_exists(NODEPAIR edge, edge_data **edged);
 	void add_edge(edge_data e, node_data *source, node_data *target);
-	void insert_node(int targVertID, node_data node); 
+	void insert_node(NODEINDEX targVertID, node_data node); 
 	void extend_faded_edges();
 	void assign_modpath(PROCESS_DATA *);
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
@@ -132,6 +178,9 @@ public:
 	GRAPH_DISPLAY_DATA *get_activelines() { return animlinedata; }
 	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
 	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
+	void redraw_anim_edges();
+
+	void push_anim_update(ANIMATIONENTRY);
 
 	unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize);
 
@@ -174,18 +223,18 @@ public:
 
 	void reset_mainlines();
 	unsigned int derive_anim_node();
-	void performStep(int stepSize, bool skipLoop);
-	unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
+	//void performStep(int stepSize, bool skipLoop);
+	//unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx);
 	void update_animation_render(float fadeRate);
 	void reset_animation();
-	void darken_animation(float alphaDelta);
+	//void darken_animation(float alphaDelta);
 
 	//during live animation the sequence list is ahead of the rendering
 	//returns the last rendered sequenceIndex we managed to animate
-	int brighten_BBs();
-
+	//int brighten_BBs();
+	
 	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	void emptyArgQueue();
@@ -270,10 +319,7 @@ public:
 	vector<unsigned long> animLoopProgress;
 	//index into sequence where start of loop is
 	unsigned long animLoopStartIdx = 0;
-	//current progress animating loop
-	unsigned long animLoopIndex = 0;
-	//total number of individual loops
-	unsigned int loopCounter = 0;
+
 
 	//position out of all the instructions instrumented
 	unsigned long animInstructionIndex = 0;

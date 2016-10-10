@@ -21,6 +21,8 @@ Header for sphere coordinate processing functions
 #include <stdafx.h>
 #include "mathStructs.h"
 
+float getPulseAlpha();
+
 void recalculate_scale(MULTIPLIERS *mults);
 //take longitude a, latitude b, output coord in space
 void sphereCoord(int ia, float b, FCOORD *c, MULTIPLIERS *dimensions, float diamModifier = 0);

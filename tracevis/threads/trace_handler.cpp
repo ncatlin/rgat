@@ -61,7 +61,7 @@ bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **
 bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 {
 	piddata->getDisassemblyReadLock();
-	unordered_map<PID_TID,int>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
+	unordered_map<PID_TID, NODEINDEX>::iterator vertIdIt = instruction->threadvertIdx.find(TID);
 	piddata->dropDisassemblyReadLock();
 
 	if (vertIdIt != instruction->threadvertIdx.end())
@@ -694,7 +694,6 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 			//store for animation and replay
 			obtainMutex(thisgraph->animationListsMutex, 1049);
 			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
-			thisgraph->mutationSequence.push_back(thistag->blockID);
 			dropMutex(thisgraph->animationListsMutex);
 		}
 
@@ -720,9 +719,11 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 		}
 		thisgraph->set_active_node(resultPair.second);
 	}
-
-	cerr << "[rgat]Error: Bad jump tag" << endl;
-	assert(0);
+	else
+	{
+		cerr << "[rgat]Error: Bad jump tag" << endl;
+		assert(0);
+	}
 }
 
 //#define VERBOSE
@@ -752,12 +753,12 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		if (repeats == 1)
 		{
 			thisgraph->totalInstructions += thistag->insCount;
-			thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
+			//thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
 		}
 		else
 		{
-			thisgraph->totalInstructions += thistag->insCount*loopCount;
-			thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopCount));
+			thisgraph->totalInstructions += thistag->insCount*loopIterations;
+			//thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopIterations));
 		}
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -817,16 +818,33 @@ void thread_trace_handler::dump_loop()
 		loopState = NO_LOOP;
 		return;
 	}
-	++thisgraph->loopCounter;
+	//++thisgraph->loopCounter;
 
-	vector<TAG>::iterator tagIt;
 	//put the verts/edges on the graph
-	for (tagIt = loopCache.begin(); tagIt != loopCache.end(); ++tagIt)
-		handle_tag(&*tagIt, loopCount);
+	for (int cacheIdx = 0; cacheIdx < loopCache.size(); ++cacheIdx)
+	{
+		TAG *thistag = &loopCache[cacheIdx];
+		handle_tag(thistag, loopIterations);
+
+		ANIMATIONENTRY animUpdate;
+		animUpdate.blockAddr = thistag->blockaddr;
+		animUpdate.blockID = thistag->blockID;
+		animUpdate.count = loopIterations;
+
+		if (cacheIdx == loopCache.size() - 1)
+			animUpdate.entryType = ANIM_LOOP_LAST;
+		else
+			animUpdate.entryType = ANIM_LOOP;
+
+		thisgraph->push_anim_update(animUpdate);
+
+	}
 
 	loopCache.clear();
-	loopCount = 0;
+	loopIterations = 0;
 	loopState = NO_LOOP;
+
+
 }
 
 //todo: move this to piddata class
@@ -1037,7 +1055,17 @@ void thread_trace_handler::main_loop()
 				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
+				{
 					handle_tag(&thistag);
+
+					ANIMATIONENTRY animUpdate;
+					animUpdate.blockAddr = thistag.blockaddr;
+					animUpdate.blockID = thistag.blockID;
+					animUpdate.entryType = ANIM_EXEC_TAG;
+					thisgraph->push_anim_update(animUpdate);
+				}
+
+
 
 				//fallen through/failed conditional jump
 				if (nextBlock == 0) continue;
@@ -1078,10 +1106,20 @@ void thread_trace_handler::main_loop()
 				thistag.jumpModifier = MOD_UNINSTRUMENTED;
 				thistag.insCount = 0;
 
+
+
 				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
+				{
 					handle_tag(&thistag);
+
+					ANIMATIONENTRY animUpdate;
+					animUpdate.blockAddr = thistag.blockaddr;
+					animUpdate.blockID = thistag.blockID;
+					animUpdate.entryType = ANIM_EXEC_TAG;
+					thisgraph->push_anim_update(animUpdate);
+				}
 
 				continue;
 			}
@@ -1092,7 +1130,7 @@ void thread_trace_handler::main_loop()
 				{
 					loopState = BUILDING_LOOP;
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
-					if (!caught_stoul(repeats_s, &loopCount, 10))
+					if (!caught_stoul(repeats_s, &loopIterations, 10))
 						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
 					continue;
 				}
@@ -1116,7 +1154,7 @@ void thread_trace_handler::main_loop()
 				continue;
 			}
 
-			//link last unchained block to new block
+			//unchained ended - link last unchained block to new block
 			//need to change lastVertID
 			if (enter_s.substr(0, 2) == "UL")
 			{
@@ -1152,10 +1190,57 @@ void thread_trace_handler::main_loop()
 				thistag.jumpModifier = 1;
 				handle_tag(&thistag, 1);
 
+				ANIMATIONENTRY animUpdate;
+				animUpdate.blockAddr = thistag.blockaddr;
+				animUpdate.blockID = thistag.blockID;
+				animUpdate.entryType = ANIM_UNCHAINED_DONE;
+				thisgraph->push_anim_update(animUpdate);
+
 				continue;
 			}
 
-			//unchained block execution count
+			//block unchaining notification
+			if (enter_s.substr(0, 2) == "UC")
+			{
+				MEM_ADDRESS blockAddr;
+				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
+				if (!caught_stoul(block_ip_s, &blockAddr, 16)) {
+					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
+					assert(0);
+				}
+
+				BLOCK_IDENTIFIER blockId;
+				string block_id_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(block_id_s, &blockId, 16)) {
+					cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
+					assert(0);
+				}
+
+				MEM_ADDRESS targAddr;
+				block_ip_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(block_ip_s, &targAddr, 16)) {
+					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
+					assert(0);
+				}
+
+				BLOCK_IDENTIFIER targId;
+				block_id_s = string(strtok_s(entry, ",", &entry));
+				if (!caught_stoul(block_id_s, &targId, 16)) {
+					cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
+					assert(0);
+				}
+
+				ANIMATIONENTRY animUpdate;
+				animUpdate.entryType = ANIM_UNCHAINED;
+				animUpdate.blockAddr = blockAddr;
+				animUpdate.blockID = blockId;
+				animUpdate.targetAddr = targAddr;
+				animUpdate.targetID = targId;
+				thisgraph->push_anim_update(animUpdate);
+				continue;
+			}
+
+			//block execution count + targets after end of unchained execution
 			if (enter_s.substr(0, 2) == "BX")
 			{
 				BLOCKREPEAT newRepeat;
@@ -1201,6 +1286,14 @@ void thread_trace_handler::main_loop()
 				}
 
 				blockRepeatQueue.push_back(newRepeat);
+
+				ANIMATIONENTRY animUpdate;
+				animUpdate.entryType = ANIM_UNCHAINED_RESULTS;
+				animUpdate.blockAddr = newRepeat.blockaddr;
+				animUpdate.blockID = newRepeat.blockID;
+				animUpdate.count = newRepeat.totalExecs;
+				thisgraph->push_anim_update(animUpdate);
+
 				continue;
 			}
 
@@ -1247,7 +1340,6 @@ void thread_trace_handler::main_loop()
 					assert(0);
 				}
 
-				//TODO: place on graph. i'm thinking a yellow highlight line.
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
 					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address " << e_ip << "/" << e_ip_s << endl;
 
@@ -1269,7 +1361,7 @@ void thread_trace_handler::main_loop()
 					}
 				}
 				INS_DATA *exceptingins = piddata->disassembly.at(e_ip).back();
-				//problem here: no way of knowing which mutation of the exception handler block was executed
+				//problem here: no way of knowing which mutation of the faulting block was executed
 				//going to have to assume it's the most recent mutation
 				pair<MEM_ADDRESS, BLOCK_IDENTIFIER> *faultingBB = &exceptingins->blockIDs.back();
 				piddata->dropDisassemblyReadLock();
@@ -1291,6 +1383,14 @@ void thread_trace_handler::main_loop()
 				interruptedBlockTag.blockID = faultingBB->second;
 				interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED;
 				handle_exception_tag(&interruptedBlockTag);
+
+				ANIMATIONENTRY animUpdate;
+				animUpdate.entryType = ANIM_EXEC_EXCEPTION;
+				animUpdate.blockAddr = interruptedBlockTag.blockaddr;
+				animUpdate.blockID = interruptedBlockTag.blockID;
+				animUpdate.count = instructionsUntilFault;
+				thisgraph->push_anim_update(animUpdate);
+
 				continue;
 			}
 

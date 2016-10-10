@@ -37,7 +37,7 @@ public:
 	bool get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	FCOORD sphereCoordB(MULTIPLIERS *dimensions, float diamModifier);
 
-	unsigned int index = 0;
+	NODEINDEX index = 0;
 	VCOORD vcoord;
 	int conditional = 0;
 	INS_DATA* ins = NULL;
@@ -50,14 +50,14 @@ public:
 	//number of external functions called
 	unsigned childexterns = 0;
 	MEM_ADDRESS address = 0; //this is only used in externs. bit big?
-	unsigned int parentIdx = 0;
+	NODEINDEX parentIdx = 0;
 
 	unsigned long executionCount = 0;
 	unsigned long chain_remaining_in = 0;
 	unsigned long chain_remaining_out = 0;
 	DWORD heat_run_marker;
 
-	set<unsigned int> incomingNeighbours;
-	set<unsigned int> outgoingNeighbours;
+	set<NODEINDEX> incomingNeighbours;
+	set<NODEINDEX> outgoingNeighbours;
 };
 

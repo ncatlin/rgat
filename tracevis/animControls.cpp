@@ -175,6 +175,7 @@ void AnimControls::update(thread_graph_data *graph)
 	else
 		stepInfo << (graph->totalInstructions - 1) / 1000000 << "M instructions. ";
 
+	/*
 	if (graph->loopCounter)//loops exist
 	{
 		if (graph->animLoopStartIdx) //in loop
@@ -190,7 +191,7 @@ void AnimControls::update(thread_graph_data *graph)
 			stepInfo << graph->loopsPlayed << "/";
 		stepInfo << graph->loopCounter << " loops";
 	}
-
+	*/
 	statusLabel->setText(stepInfo.str());
 
 	if (graph->active)
@@ -199,9 +200,11 @@ void AnimControls::update(thread_graph_data *graph)
 			pauseBtn->setText("Structure");
 		else
 			pauseBtn->setText("Activity");
+		killBtn->setVisibility(true);
 	}
 	else
 	{
+		killBtn->setVisibility(false);
 		backlogLayout->setVisibility(false);
 		if (clientState->modes.animation)
 			pauseBtn->setText("Pause");

@@ -101,6 +101,7 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 	vector <float> *vcol = vertdata->acquire_col();
 
 	int numverts = vertdata->get_numVerts();
+	*arraypos = vcol->size();
 
 	vpos->push_back(startC->x);
 	vpos->push_back(startC->y);
@@ -466,6 +467,7 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 	return 1;
 }
 
+
 //rescale all drawn verts to sphere of new diameter by altering the vertex data
 void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
@@ -571,6 +573,7 @@ void render_static_graph(thread_graph_data *graph, VISSTATE *clientState)
 	{
 		rescale_nodes(graph, false);
 		
+		
 		graph->zoomLevel = graph->m_scalefactors->radius;
 		graph->needVBOReload_main = true;
 
@@ -588,6 +591,7 @@ void render_static_graph(thread_graph_data *graph, VISSTATE *clientState)
 		graph->needVBOReload_main = true;
 
 	graph->render_new_edges(doResize, &clientState->config->graphColours.lineColours);
+	graph->redraw_anim_edges();
 }
 
 //renders edgePerRender edges of graph onto the preview data

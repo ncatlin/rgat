@@ -39,7 +39,7 @@ struct TAG {
 	unsigned long insCount;
 	//used internally
 	int jumpModifier;
-	BB_DATA* foundExtern;
+	BB_DATA* foundExtern = 0;
 };
 struct FAILEDARGS {
 	int caller;
@@ -81,7 +81,6 @@ public:
 
 private:
 	void main_loop();
-	thread_graph_data *graph;
 
 	//important state variables!
 	unsigned int lastVertID = 0; //the vert that led to new instruction
@@ -140,7 +139,7 @@ private:
 	vector<NEW_EDGE_BLOCKDATA> pendingEdges;
 
 	bool afterReturn = false;
-	unsigned long loopCount = 0;
+	unsigned long loopIterations = 0;
 	unsigned int firstLoopVert = 0;
 	int loopState = NO_LOOP;
 	//tag address, mod type

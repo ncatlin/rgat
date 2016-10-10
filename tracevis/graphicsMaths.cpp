@@ -23,6 +23,21 @@ Sphere coordinate processing functions
 #include "graphicsMaths.h"
 #include "traceStructs.h"
 
+//returns number in the repeating range 0.0-1.0-0.0, oscillating with the clock
+float getPulseAlpha()
+{
+	int millisecond = ((int)(clock() / 100)) % 10;
+	int countUp = ((int)(clock() / 1000) % 10) % 2;
+
+	float pulseAlpha;
+	if (countUp)
+		pulseAlpha = (float)millisecond / 10.0;
+	else
+		pulseAlpha = 1.0 - (millisecond / 10.0);
+	return pulseAlpha;
+}
+
+
 //returns a small number indicating rough zoom
 float zoomFactor(long cameraZoom, long sphereSize)
 {

@@ -73,7 +73,8 @@ Constants used to interpret and plot the trace data
 #define ARG_NOTB64 '0'
 #define ARG_BASE64 '1'
 
-typedef pair<unsigned int, unsigned int> NODEPAIR;
+typedef unsigned int NODEINDEX;
+typedef pair<NODEINDEX, NODEINDEX> NODEPAIR;
 typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
