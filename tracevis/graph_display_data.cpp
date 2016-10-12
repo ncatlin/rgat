@@ -36,13 +36,8 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(colmutex, 9004);
-	obtainMutex(posmutex, 9005);
-#else
-	AcquireSRWLockExclusive(&collock);
-	AcquireSRWLockExclusive(&poslock);
-#endif
+	acquire_pos_write();
+	acquire_col_write();
 }
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
@@ -50,20 +45,12 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 	const unsigned int listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
-#ifdef XP_COMPATIBLE
-	obtainMutex(posmutex, 1006);
-#else
-	AcquireSRWLockShared(&poslock);
-#endif
+	acquire_pos_read(12);
+	//wonder if we can do this in one range call
 	result->x = vposarray.at(listIndex);
 	result->y = vposarray.at(listIndex + 1);
 	result->z = vposarray.at(listIndex + 2);
-
-#ifdef XP_COMPATIBLE
-	dropMutex(posmutex);
-#else
-	ReleaseSRWLockShared(&poslock);
-#endif
+	release_pos_read();
 
 	return true;
 }
@@ -86,7 +73,6 @@ vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_write(int holder)
 #else
 	AcquireSRWLockExclusive(&poslock);
 #endif
-
 	return &vposarray;
 }
 
@@ -163,7 +149,7 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 void GRAPH_DISPLAY_DATA::clear()
 {
 	assert(0);
-	acquire_pos_write();
+	acquire_pos_write(266);
 	acquire_col_write();
 	edgesRendered = 0;
 	release_col_write();
@@ -172,7 +158,7 @@ void GRAPH_DISPLAY_DATA::clear()
 
 void GRAPH_DISPLAY_DATA::reset()
 {
-	acquire_pos_write();
+	acquire_pos_write(342);
 	acquire_col_write();
 	//needed? try without
 	vposarray.clear();

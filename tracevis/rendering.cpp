@@ -96,7 +96,6 @@ void plot_wireframe(VISSTATE *clientState)
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
-	
 	vector <float> *vpos = vertdata->acquire_pos_write(52);
 	vector <float> *vcol = vertdata->acquire_col_write();
 
@@ -136,8 +135,11 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	vector<GLfloat> *vertpos = vertdata->acquire_pos_write(63);
 	vector<GLfloat> *vertcol = vertdata->acquire_col_write();
 
-	if (!vertpos || !vertcol) 
+	if (!vertpos || !vertcol)
+	{
+		assert(0);
 		return 0;
+	}
 	*colarraypos = vertcol->size();
 	int ci = 0;
 	int pi = 0;
@@ -287,11 +289,11 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata, 
 	MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
 {
-	ALLEGRO_COLOR *active_col;
+	ALLEGRO_COLOR *active_col = 0;
 
-	float adjB = n->vcoord.b + float(n->vcoord.bMod * BMODMAG);
+	float adjustedB = n->vcoord.b + float(n->vcoord.bMod * BMODMAG);
 	FCOORD screenc;
-	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
+	sphereCoord(n->vcoord.a, adjustedB, &screenc, dimensions, 0);
 	
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
 	vector<GLfloat> *mainNcol = vertdata->acquire_col_write();
@@ -326,7 +328,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 			default:
 				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
-				return 0;
+				assert(0);
 		}
 	}
 
@@ -453,7 +455,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
-		node_data *n = graph->get_node(nodeIdx);
+		node_data *n = graph->locked_get_node(nodeIdx);
 		FCOORD newCoord = n->sphereCoordB(scalefactors, 0);
 		assert(nodeIdx == n->index);
 

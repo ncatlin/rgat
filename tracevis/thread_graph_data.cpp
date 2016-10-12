@@ -713,11 +713,12 @@ void thread_graph_data::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int 
 		}
 		getNodeReadLock();
 		node_data *n = locked_get_node(activeExternIt->first);
-		if (nearOnly)
+		if (nearOnly && !a_coord_on_screen(n->vcoord.a, left, right, m_scalefactors->HEDGESEP))
 		{
-			if (!a_coord_on_screen(n->vcoord.a, left, right, m_scalefactors->HEDGESEP))
-				{dropNodeReadLock(); continue;}
+			dropNodeReadLock(); 
+			continue;
 		}
+
 		if (!n->get_screen_pos(mainnodesdata, pd, &nodepos)) 
 			{dropNodeReadLock(); continue;}
 
@@ -1344,6 +1345,7 @@ inline node_data *thread_graph_data::get_node(unsigned int index)
 	return n;
 }
 
+//for when caller already has read/write lock
 node_data *thread_graph_data::locked_get_node(unsigned int index)
 {
 	return &nodeList.at(index);
@@ -1477,6 +1479,7 @@ void thread_graph_data::display_highlight_lines(vector<node_data *> *nodePtrList
 void thread_graph_data::insert_node(NODEINDEX targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
+
 	getNodeWriteLock();
 	nodeList.push_back(node);
 	dropNodeWriteLock();
