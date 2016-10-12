@@ -758,7 +758,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_N:
-					clientState->nearSide = !clientState->nearSide;
+					clientState->modes.nearSide = !clientState->modes.nearSide;
 					break;
 
 				case ALLEGRO_KEY_J:
@@ -912,7 +912,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				break;
 
 			case EV_BTN_NEARSIDE:
-				clientState->nearSide = !clientState->nearSide;
+				clientState->modes.nearSide = !clientState->modes.nearSide;
 				break;
 
 			case EV_BTN_SAVE:

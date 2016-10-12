@@ -34,7 +34,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	conditionalNodes->reset();
 	if (nodeEnd)
 	{
-		vector<float> *nodeCol = conditionalNodes->acquire_col();
+		vector<float> *nodeCol = conditionalNodes->acquire_col_write();
 		if (nodeIdx < nodeEnd) newDrawn = true;
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
@@ -71,7 +71,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 			
 		}
 	}
-	conditionalNodes->release_col();
+	conditionalNodes->release_col_write();
 
 	int condLineverts = graph->conditionallines->get_numVerts();
 	int mainLineverts = graph->get_mainlines()->get_numVerts();
@@ -81,13 +81,13 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		const ALLEGRO_COLOR *edgeColour = &clientState->config->conditional.edgeColor;
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a };
 
-		vector<float> *edgecol = graph->conditionallines->acquire_col();
+		vector<float> *edgecol = graph->conditionallines->acquire_col_write();
 		
 		while (condLineverts++ < mainLineverts)
 			edgecol->insert(edgecol->end(), edgeColArr, end(edgeColArr));
 
 		graph->conditionallines->set_numVerts(condLineverts);
-		graph->conditionallines->release_col();
+		graph->conditionallines->release_col_write();
 
 	}
 	if (newDrawn) graph->needVBOReload_conditional = true;

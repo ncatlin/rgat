@@ -105,8 +105,8 @@ class thread_graph_data
 	inline void getNodeWriteLock();
 	inline void dropNodeWriteLock();
 
-	bool advance_sequence(bool);
-	bool decrease_sequence();
+	//bool advance_sequence(bool);
+	//bool decrease_sequence();
 
 	bool loadEdgeDict(ifstream *file);
 	bool loadExterns(ifstream *file);
@@ -139,14 +139,16 @@ class thread_graph_data
 	void maintain_active();
 	void darken_fading(float fadeRate);
 
-
-	map <NODEINDEX, int> newAnimNodes;
-	map <unsigned int, int> activeAnimNodes;
+	map <NODEINDEX, int> newAnimNodeTimes;
+	map <unsigned int, int> activeAnimNodeTimes;
 	set <unsigned int> fadingAnimNodes;
 
-	map <NODEPAIR, int> newAnimEdges;
-	map <NODEPAIR, int> activeAnimEdges;
+	map <NODEPAIR, int> newAnimEdgeTimes;
+	map <NODEPAIR, int> activeAnimEdgeTimes;
 	set <NODEPAIR> fadingAnimEdges;
+
+	map <NODEINDEX, int> newExternTimes;
+	map <NODEINDEX, EXTTEXT> activeExternTimes;
 
 	queue <ANIMATIONENTRY> animUpdates;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
@@ -160,6 +162,8 @@ public:
 
 	void display_active(bool showNodes, bool showEdges);
 	void display_static(bool showNodes, bool showEdges);
+
+	void draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd);
 
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
@@ -241,7 +245,9 @@ public:
 	vector <string> loggedCalls;
 
 	VCOORD latest_active_node_coord;
+	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
+	//used by heatmap solver
 	unsigned int finalNodeID = 0;
 
 	PID_TID tid = 0;

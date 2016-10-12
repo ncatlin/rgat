@@ -82,6 +82,7 @@ public:
 private:
 	void main_loop();
 
+
 	//important state variables!
 	unsigned int lastVertID = 0; //the vert that led to new instruction
 	unsigned int targVertID = 0; //new vert we are creating

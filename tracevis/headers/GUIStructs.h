@@ -63,6 +63,7 @@ struct DISPLAYMODES {
 	bool animation = false;
 	bool heatmap = false;
 	bool conditional = false;
+	bool nearSide = false;
 	int diff = 0;
 };
 
@@ -109,7 +110,6 @@ public:
 
 	TITLE *title;
 	long cameraZoomlevel = 0;
-	bool nearSide = false;
 	float xturn = 135;
 	float yturn = -25;
 	HEIGHTWIDTH displaySize;

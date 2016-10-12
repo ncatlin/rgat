@@ -164,8 +164,6 @@ private:
 };
 
 struct EXTTEXT {
-	NODEPAIR edge;
-	int nodeIdx;
 	unsigned int framesRemaining;
 	float yOffset;
 	string displayString;

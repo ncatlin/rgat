@@ -99,66 +99,6 @@ unsigned long thread_graph_data::get_backlog_total()
 	return sizePair.first + sizePair.second;
 }
 
-//take externs called from the trace/replay and make them float on graph
-//also adds them to the call log
-void thread_graph_data::transferNewLiveCalls(map <PID_TID, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata)
-{
-	obtainMutex(funcQueueMutex, 1013);
-	while (!floatingExternsQueue.empty())
-	{
-		EXTERNCALLDATA nextExtern = floatingExternsQueue.front();
-		floatingExternsQueue.pop();
-
-		EXTTEXT extt;
-		extt.edge = nextExtern.edgeIdx;
-		extt.nodeIdx = nextExtern.nodeIdx;
-		extt.framesRemaining = EXTERN_LIFETIME_FRAMES;
-		extt.yOffset = 10;
-		extt.displayString = generate_funcArg_string(get_node_sym(extt.nodeIdx, piddata), nextExtern.argList);
-
-		if (nextExtern.edgeIdx.first == nextExtern.edgeIdx.second)
-		{ 
-			cout << "[rgat]WARNING: bad argument edge!" << endl; 
-			continue; 
-		}
-
-		node_data* externn = get_node(nextExtern.edgeIdx.second);
-		if (active)
-		{
-			if (!nextExtern.callerAddr)
-			{
-				node_data* parentn = get_node(nextExtern.edgeIdx.first);
-				nextExtern.callerAddr = parentn->ins->address;
-
-				if (!piddata->get_modpath(externn->nodeMod, &nextExtern.externPath))
-					cerr << "[rgat]WARNING: mod " << externn->nodeMod << " expected but not found" << endl;
-
-				if (extt.displayString == "()")
-				{
-					stringstream hexaddr;
-					hexaddr << "NOSYM:<0x" << std::hex << externn->address << ">";
-					extt.displayString = hexaddr.str();
-				}
-			}
-		}
-
-		if (nextExtern.drawFloating)
-		{
-			string externModPath;
-			if (nextExtern.externPath.empty()) piddata->get_modpath(externn->nodeMod, &externModPath);
-
-			stringstream callLog;
-			callLog << "0x" << std::hex << externn->address << ": ";
-			callLog << externModPath << " -> ";
-			callLog << generate_funcArg_string(get_node_sym(externn->index, piddata), nextExtern.argList) << "\n";
-			loggedCalls.push_back(callLog.str());
-
-			externFloatingText->at(tid).push_back(extt);
-		}
-	}
-	dropMutex(funcQueueMutex);
-}
-
 //display live or animated graph with active areas on faded areas
 void thread_graph_data::display_active(bool showNodes, bool showEdges)
 {
@@ -199,6 +139,7 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 	if (needVBOReload_main && !isGraphBusy())
 	{
 		setGraphBusy(true);
+		//lock for reading?
 		loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
 		setGraphBusy(false);
@@ -215,8 +156,8 @@ void thread_graph_data::display_static(bool showNodes, bool showEdges)
 void thread_graph_data::extend_faded_edges()
 {
 
-	vector<GLfloat> *animecol = animlinedata->acquire_col();
-	vector<GLfloat> *mainecol = mainlinedata->acquire_col();
+	vector<GLfloat> *animecol = animlinedata->acquire_col_write();
+	vector<GLfloat> *mainecol = mainlinedata->acquire_col_write();
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
@@ -229,7 +170,7 @@ void thread_graph_data::extend_faded_edges()
 	vector<float>::iterator mainEIt= mainecol->begin();
 	advance(mainEIt, fadedIndex);
 	animecol->insert(animecol->end(), mainEIt, mainecol->end());
-	mainlinedata->release_col();
+	mainlinedata->release_col_write();
 
 	//fade new colours alpha
 	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
@@ -238,7 +179,7 @@ void thread_graph_data::extend_faded_edges()
 		animecol->at(index2 + AOFF) = 0.01; //TODO: config file entry for anim inactive
 
 	animlinedata->set_numVerts(drawnVerts);
-	animlinedata->release_col();
+	animlinedata->release_col_write();
 }
 
 //create edges in opengl buffers
@@ -286,42 +227,10 @@ INS_DATA* thread_graph_data::get_last_instruction(unsigned long sequenceId)
 	return getDisassemblyBlock(insAddr, blockID, piddata, &terminationFlag)->at(instructionIndex);
 }
 
+/*
 //externs not included in sequence data, have to check if each block called one
-void thread_graph_data::brighten_externs(unsigned long targetSequence, bool updateArgs)
+void thread_graph_data::display_extern_text(NODEINDEX node, unsigned int callIndex)
 {
-	//check if block called an extern
-	INS_DATA* ins = get_last_instruction(targetSequence);
-	int nodeIdx = ins->threadvertIdx.at(tid);
-
-	obtainMutex(animationListsMutex, 1017);
-	map <unsigned int, EDGELIST>::iterator externit = externCallSequence.find(nodeIdx);
-	if (externit == externCallSequence.end())
-	{
-		dropMutex(animationListsMutex);
-		return; 
-	}
-
-	EDGELIST callList = externit->second;
-
-	unsigned int callsSoFar = callCounter[nodeIdx];
-	if(updateArgs) 
-		callCounter[nodeIdx] = callsSoFar + 1;
-	int targetExternIdx;
-	
-	if (callsSoFar < callList.size()) 
-		targetExternIdx = callList.at(callsSoFar).second;
-	else 
-		targetExternIdx = callList.at(0).second;
-
-	dropMutex(animationListsMutex);
-
-
-
-	EXTERNCALLDATA ex;
-	ex.edgeIdx = make_pair(nodeIdx, targetExternIdx);
-	edge_data *e = get_edge(ex.edgeIdx);
-	if (!e) return;
-
 	getNodeReadLock();
 	node_data *n = locked_get_node(targetExternIdx);
 	vector<ARGLIST> *funcArgs = &n->funcargs;
@@ -329,13 +238,7 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 	dropNodeReadLock();
 	ex.drawFloating = updateArgs;
 
-	set_node_alpha(ex.nodeIdx, animnodesdata, 1);
-	if (!activeNodeMap.count(ex.nodeIdx))
-		activeNodeMap[ex.nodeIdx] = true;
 
-	set_edge_alpha(ex.edgeIdx,animlinedata, 1);
-	if (!activeEdgeMap.count(ex.edgeIdx))
-		activeEdgeMap[ex.edgeIdx] = e;
 	
 	obtainMutex(funcQueueMutex, 1018);
 	string funcArgString;
@@ -352,8 +255,9 @@ void thread_graph_data::brighten_externs(unsigned long targetSequence, bool upda
 	dropMutex(funcQueueMutex);
 
 }
+*/
 
-string thread_graph_data::get_node_sym(unsigned int idx, PROCESS_DATA* piddata)
+string thread_graph_data::get_node_sym(NODEINDEX idx, PROCESS_DATA* piddata)
 {
 	node_data *n = get_node(idx);
 	string sym;
@@ -589,8 +493,8 @@ void thread_graph_data::reset_animation()
 	}
 	firstAnimatedBB = 0;
 	lastAnimatedBB = 0;
-	activeAnimEdges.clear();
-	activeAnimNodes.clear();
+	activeAnimEdgeTimes.clear();
+	activeAnimNodeTimes.clear();
 	loopsPlayed = 0;
 	loopIteration = 0;
 	targetIterations = 0;
@@ -639,16 +543,23 @@ void thread_graph_data::process_live_animation_updates()
 		ANIMATIONENTRY entry = animUpdates.front();
 		dropMutex(animationListsMutex);
 
+		NODEINDEX backupLastAnimNode = lastAnimatedNode;
 		//todo, add to vector for saving/replay
 		if (entry.entryType == ANIM_UNCHAINED_RESULTS)
 		{
-			map <unsigned int, int>::iterator nodeIt = activeAnimNodes.begin();
-			for (; nodeIt != activeAnimNodes.end(); ++nodeIt)
+			//todo: remove from newAnimX as well as activeAnimX
+			map <unsigned int, int>::iterator nodeIt = activeAnimNodeTimes.begin();
+			for (; nodeIt != activeAnimNodeTimes.end(); ++nodeIt)
 				if (nodeIt->second == KEEP_BRIGHT)
 					nodeIt->second = 0;
 
-			map <NODEPAIR, int>::iterator edgeIt =  activeAnimEdges.begin();
-			for (; edgeIt != activeAnimEdges.end(); ++edgeIt)
+			map <NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
+			for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
+				if (activeExternIt->second.framesRemaining == KEEP_BRIGHT)
+					activeExternIt->second.framesRemaining = (int)(EXTERN_LIFETIME_FRAMES/2);
+
+			map <NODEPAIR, int>::iterator edgeIt =  activeAnimEdgeTimes.begin();
+			for (; edgeIt != activeAnimEdgeTimes.end(); ++edgeIt)
 				if (edgeIt->second == KEEP_BRIGHT)
 					edgeIt->second = 0;
 
@@ -700,8 +611,15 @@ void thread_graph_data::process_live_animation_updates()
 		for (; nodeIt != nodeIDList.end(); ++nodeIt)
 		{
 			NODEINDEX nodeIdx = *nodeIt;
-			newAnimNodes[nodeIdx] = brightTime;
+			newAnimNodeTimes[nodeIdx] = brightTime;
 
+			if (get_node(nodeIdx)->external)
+			{
+				if (brightTime == KEEP_BRIGHT)
+					newExternTimes[nodeIdx] = KEEP_BRIGHT;
+				else
+					newExternTimes[nodeIdx] = EXTERN_LIFETIME_FRAMES;
+			}
 			if ((animInstructionIndex != 0) && //cant draw edge to first node in animation
 				//edge to unchained area is not part of unchained area
 				!(entry.entryType == ANIM_UNCHAINED && nodeIt == nodeIDList.begin())) 
@@ -712,7 +630,7 @@ void thread_graph_data::process_live_animation_updates()
 					cerr << "[rgat]ERROR: Tried to animate non-existing edge!" << endl;
 					assert(0);
 				}
-				newAnimEdges[edge] = brightTime;
+				newAnimEdgeTimes[edge] = brightTime;
 			}
 			lastAnimatedNode = nodeIdx;
 			
@@ -723,14 +641,44 @@ void thread_graph_data::process_live_animation_updates()
 		//also add brighten edge to next unchained block
 		if (entry.entryType == ANIM_UNCHAINED)
 		{
-			NODEINDEX nextNode = getDisassemblyBlock(entry.targetAddr, entry.targetID, piddata, &terminationFlag)->front()->threadvertIdx.at(tid);
-			NODEPAIR linkingPair = make_pair(lastAnimatedNode, nextNode);
-			if (!edge_exists(linkingPair, 0))
+			NODEINDEX nextNode;
+			NODEPAIR linkingPair;
+			if (piddata->externdict.count(entry.targetAddr))
 			{
-				cerr << "[rgat]ERROR: Tried to animate non-existing edge!" << endl;
-				assert(0);
+				EDGELIST callers = piddata->externdict.at(entry.targetAddr)->thread_callers.at(tid);
+				EDGELIST::iterator callIt = callers.begin();
+				for (; callIt != callers.end(); ++callIt)
+					if (callIt->first == lastAnimatedNode)
+					{
+						nextNode = callIt->second;
+						linkingPair = make_pair(lastAnimatedNode, nextNode);
+						break;
+					}
+				assert(callIt != callers.end());
 			}
-			newAnimEdges[linkingPair] = brightTime;
+			else
+			{
+				INSLIST* nextBlock = getDisassemblyBlock(entry.targetAddr, entry.targetID, piddata, &terminationFlag);
+				INS_DATA* nextIns = nextBlock->front();
+				nextNode = nextIns->threadvertIdx.at(tid);
+				linkingPair = make_pair(lastAnimatedNode, nextNode);
+			}
+			
+
+			if (!edge_exists(linkingPair, 0)) 
+			{
+				node_data* nextnode = get_node(nextNode);
+				int thisc = nextnode->incomingNeighbours.count(lastAnimatedNode);
+				if (thisc)
+				{
+					printf("WARN/ERR? failed render non yetnode\n");
+					lastAnimatedNode = backupLastAnimNode;
+					break; //edge exists but not rendered yet, try again later;
+				}
+				break;
+			}
+
+			newAnimEdgeTimes[linkingPair] = brightTime;
 		}
 
 		animInstructionIndex += instructionCount;
@@ -741,32 +689,69 @@ void thread_graph_data::process_live_animation_updates()
 	}
 }
 
+//not part of maintain_active because al_draw_text has to be called from the opengl context holding thread
+void thread_graph_data::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
+{
+	DCOORD nodepos;
+	map <NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
+	for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
+	{
+		EXTTEXT *extxt = &activeExternIt->second;
+
+		if (extxt->framesRemaining != KEEP_BRIGHT)
+		{
+			extxt->yOffset += EXTERN_FLOAT_RATE;
+
+			if (extxt->framesRemaining-- == 0)
+			{
+				activeExternIt = activeExternTimes.erase(activeExternIt);
+				if (activeExternIt == activeExternTimes.end())
+					break;
+				else
+					continue;
+			}
+		}
+		getNodeReadLock();
+		node_data *n = locked_get_node(activeExternIt->first);
+		if (nearOnly)
+		{
+			if (!a_coord_on_screen(n->vcoord.a, left, right, m_scalefactors->HEDGESEP))
+				{dropNodeReadLock(); continue;}
+		}
+		if (!n->get_screen_pos(mainnodesdata, pd, &nodepos)) 
+			{dropNodeReadLock(); continue;}
+
+		dropNodeReadLock();
+
+		al_draw_text(font, al_col_green, nodepos.x, height - nodepos.y - extxt->yOffset, 
+			0, extxt->displayString.c_str());
+	}
+}
+
 void thread_graph_data::maintain_active()
 {
-	map<NODEINDEX, int>::iterator nodeIDIt = activeAnimNodes.begin();
-	GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
-	for (; nodeIDIt != activeAnimNodes.end(); ++nodeIDIt)
+	map<unsigned int, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
+	GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
+	for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
 	{
-		int brightTime = nodeIDIt->second;
+		int brightTime = nodeAPosTimeIt->second;
 		if (brightTime == KEEP_BRIGHT) 
 		{ 
-			
-			ncol[nodeIDIt->first] = getPulseAlpha();
-			
+			ncol[nodeAPosTimeIt->first] = getPulseAlpha();
 			continue; 
 		}
 
-		if (--nodeIDIt->second <= 0)
+		if (--nodeAPosTimeIt->second <= 0)
 		{
-			fadingAnimNodes.insert(nodeIDIt->first);
-			nodeIDIt = activeAnimNodes.erase(nodeIDIt);
-			if (nodeIDIt == activeAnimNodes.end()) break;
+			fadingAnimNodes.insert(nodeAPosTimeIt->first);
+			nodeAPosTimeIt = activeAnimNodeTimes.erase(nodeAPosTimeIt);
+			if (nodeAPosTimeIt == activeAnimNodeTimes.end()) break;
 		}
 	}
-	animnodesdata->release_col();
+	animnodesdata->release_col_write();
 
-	map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdges.begin();
-	for (; edgeIDIt != activeAnimEdges.end(); ++edgeIDIt)
+	map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
+	for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
 	{
 		int brightTime = edgeIDIt->second;
 		if (brightTime == KEEP_BRIGHT) 
@@ -776,38 +761,38 @@ void thread_graph_data::maintain_active()
 
 			unsigned int colArrIndex = pulsingEdge->arraypos + AOFF;
 			int numEdgeVerts = pulsingEdge->vertSize;
-			GLfloat *ecol = &animlinedata->acquire_col()->at(0);
+			GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 			for (int i = 1; i < numEdgeVerts; ++i)
 			{
 				const unsigned int colArrIndex = pulsingEdge->arraypos + i*COLELEMS + AOFF;
 				if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 				{
-					animlinedata->release_col();
+					animlinedata->release_col_write();
 					break;
 				}
 				ecol[colArrIndex] = getPulseAlpha();
 			}
-			animlinedata->release_col();
+			animlinedata->release_col_write();
 			continue;
 		}
 
 		if (--edgeIDIt->second <= 0)
 		{
 			fadingAnimEdges.insert(edgeIDIt->first);
-			edgeIDIt = activeAnimEdges.erase(edgeIDIt);
-			if (edgeIDIt == activeAnimEdges.end()) break;
+			edgeIDIt = activeAnimEdgeTimes.erase(edgeIDIt);
+			if (edgeIDIt == activeAnimEdgeTimes.end()) break;
 		}
 	}
 }
 
 void thread_graph_data::redraw_anim_edges()
 {
-	map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdges.begin();
-	for (; edgeIDIt != activeAnimEdges.end(); ++edgeIDIt)
+	map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
+	for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
 	{
 		NODEPAIR nodePair = edgeIDIt->first;
 
-		GLfloat *ecol = &animlinedata->acquire_col()->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 
 		edge_data *linkingEdge;
 		assert(edge_exists(nodePair, &linkingEdge));
@@ -816,6 +801,8 @@ void thread_graph_data::redraw_anim_edges()
 		unsigned int colArrIndex = linkingEdge->arraypos + AOFF;
 		for (int i = 0; i < numEdgeVerts; ++i)
 			ecol[colArrIndex] = 1;
+
+		animlinedata->release_col_write();
 	}
 }
 
@@ -830,12 +817,12 @@ void thread_graph_data::darken_fading(float fadeRate)
 	{
 		unsigned int nodeAlphaIndex = *alphaPosIt;
 
-		GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
+		GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 		//set alpha value to 1 in animation colour data
 		float currentAlpha = ncol[nodeAlphaIndex];
 		currentAlpha = fmax(ANIM_INACTIVE_NODE_ALPHA, currentAlpha - fadeRate);
 		ncol[nodeAlphaIndex] = currentAlpha;
-		animnodesdata->release_col();
+		animnodesdata->release_col_write();
 
 		if (currentAlpha == ANIM_INACTIVE_NODE_ALPHA)
 		{
@@ -850,7 +837,7 @@ void thread_graph_data::darken_fading(float fadeRate)
 	{
 		NODEPAIR nodePair = *edgeIDIt;
 
-		GLfloat *ecol = &animlinedata->acquire_col()->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 
 		edge_data *linkingEdge;
 		assert(edge_exists(nodePair, &linkingEdge));
@@ -867,12 +854,12 @@ void thread_graph_data::darken_fading(float fadeRate)
 			const unsigned int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
 			if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 			{
-				animlinedata->release_col();
+				animlinedata->release_col_write();
 				break;
 			}
 			ecol[colArrIndex] = currentAlpha;
 		}
-		animlinedata->release_col();
+		animlinedata->release_col_write();
 
 		if (currentAlpha == ANIM_INACTIVE_EDGE_ALPHA)
 		{
@@ -885,34 +872,31 @@ void thread_graph_data::darken_fading(float fadeRate)
 void thread_graph_data::brighten_new_active()
 {
 	//brighten any new verts
-	map<NODEINDEX, int>::iterator vertIDIt = newAnimNodes.begin();
-	for (; vertIDIt != newAnimNodes.end(); ++vertIDIt)
+	map<NODEINDEX, int>::iterator vertIDIt = newAnimNodeTimes.begin();
+	for (; vertIDIt != newAnimNodeTimes.end(); ++vertIDIt)
 	{
 		NODEINDEX nodeIdx = vertIDIt->first;
 		int animTime = vertIDIt->second;
 
-		//node_data *n = get_node(nodeIdx);
-		//brighten_externs(animEnd, active); todo??
-
-		GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
+		GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 		
 
 		const unsigned int arrIndexNodeAlpha = (nodeIdx * COLELEMS) + AOFF;
 		if (arrIndexNodeAlpha >= animnodesdata->col_buf_capacity_floats())
 		{
 			//trying to brighten nodes we havent rendered yet
-			animnodesdata->release_col();
+			animnodesdata->release_col_write();
 			break;
 		}
 
 		//set alpha value to 1 in animation colour data
 		ncol[arrIndexNodeAlpha] = 1;
-		animnodesdata->release_col();
+		animnodesdata->release_col_write();
 
 		//want to delay fading if in loop/unchained area, 
 		if (animTime)
 		{
-			activeAnimNodes[arrIndexNodeAlpha] = animTime;
+			activeAnimNodeTimes[arrIndexNodeAlpha] = animTime;
 			set <unsigned int>::iterator fadeIt = fadingAnimNodes.find(arrIndexNodeAlpha);
 			if (fadeIt != fadingAnimNodes.end()) 
 				fadingAnimNodes.erase(fadeIt);
@@ -920,26 +904,66 @@ void thread_graph_data::brighten_new_active()
 		else
 			fadingAnimNodes.insert(arrIndexNodeAlpha);
 
-		vertIDIt = newAnimNodes.erase(vertIDIt);
-		if (vertIDIt == newAnimNodes.end()) break;
+		vertIDIt = newAnimNodeTimes.erase(vertIDIt);
+		if (vertIDIt == newAnimNodeTimes.end()) break;
 	}
 	
+	map <NODEINDEX, int>::iterator externTimeIt = newExternTimes.begin();
+	for (; externTimeIt != newExternTimes.end(); ++externTimeIt)
+	{
+		NODEINDEX externNodeIdx = externTimeIt->first;
 
+		unsigned int callsSoFar = callCounter[externNodeIdx]++;
+		
+		getNodeReadLock();
+		node_data *externNode = locked_get_node(externNodeIdx);
+		ARGLIST *args;
+		obtainMutex(funcQueueMutex, 2121);
+		if (externNode->funcargs.size() > callsSoFar)
+			args = &externNode->funcargs.at(callsSoFar);
+		else
+			args = 0;
+
+		MEM_ADDRESS insaddr = externNode->address;
+		int nodeModule = externNode->nodeMod;
+		dropNodeReadLock();
+		
+		string externString = generate_funcArg_string(get_node_sym(externNodeIdx, piddata), args);
+		dropMutex(funcQueueMutex);
+
+		string modPath;
+		piddata->get_modpath(nodeModule, &modPath);
+
+		stringstream callLogEntry;
+		callLogEntry << "0x" << std::hex << insaddr << ": ";
+		callLogEntry << modPath << " -> ";
+		callLogEntry << externString << "\n";
+		loggedCalls.push_back(callLogEntry.str());
+
+		EXTTEXT extEntry;
+		extEntry.framesRemaining = externTimeIt->second;
+		extEntry.displayString = externString;
+		extEntry.yOffset = 10;
+
+		activeExternTimes[externNodeIdx] = extEntry;
+
+		externTimeIt = newExternTimes.erase(externTimeIt);
+		if (externTimeIt == newExternTimes.end()) break;
+	}
+	
 	//brighten any new edges
-	map<NODEPAIR, int>::iterator edgeIDIt = newAnimEdges.begin();
-	for (; edgeIDIt != newAnimEdges.end(); ++edgeIDIt)
+	map<NODEPAIR, int>::iterator edgeIDIt = newAnimEdgeTimes.begin();
+	for (; edgeIDIt != newAnimEdgeTimes.end(); ++edgeIDIt)
 	{
 		NODEPAIR nodePair = edgeIDIt->first;
 		unsigned int animTime = edgeIDIt->second;
 
-
-		GLfloat *ecol = &animlinedata->acquire_col()->at(0);
+		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 
 		edge_data *linkingEdge;
 		if (!edge_exists(nodePair, &linkingEdge)) {
-			//TODO: FIXME! this happens when an exception causes a basic block to be half executed
 			cerr << "[rgat]WARNING: brightening new edges non-existant edge "<< nodePair.first << "," << nodePair.second<<endl;
-			animlinedata->release_col();
+			animlinedata->release_col_write();
 			break;
 		}
 
@@ -950,17 +974,17 @@ void thread_graph_data::brighten_new_active()
 			const unsigned int colArrIndex = linkingEdge->arraypos + i*COLELEMS + AOFF;
 			if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 			{
-				animlinedata->release_col();
+				animlinedata->release_col_write();
 				break;
 			}
 			ecol[colArrIndex] = (float)1.0;
 		}
-		animlinedata->release_col();
+		animlinedata->release_col_write();
 
 		//want to delay fading if in loop/unchained area, 
 		if (animTime)
 		{
-			activeAnimEdges[nodePair] = animTime;
+			activeAnimEdgeTimes[nodePair] = animTime;
 			set <NODEPAIR>::iterator fadeIt = fadingAnimEdges.find(nodePair);
 
 			if (fadeIt != fadingAnimEdges.end())
@@ -969,8 +993,8 @@ void thread_graph_data::brighten_new_active()
 		else
 			fadingAnimEdges.insert(nodePair);
 
-		edgeIDIt = newAnimEdges.erase(edgeIDIt);
-		if (edgeIDIt == newAnimEdges.end()) break;
+		edgeIDIt = newAnimEdgeTimes.erase(edgeIDIt);
+		if (edgeIDIt == newAnimEdgeTimes.end()) break;
 	}
 }
 
@@ -1491,30 +1515,32 @@ thread_graph_data::~thread_graph_data()
 	delete animnodesdata;
 }
 
+//unused, should it be?
 void thread_graph_data::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
 	if (!edgesdata->get_numVerts()) return;
 	edge_data *e = get_edge(eIdx);
 	if (!e) return; 
 	const unsigned int bufsize = edgesdata->col_buf_capacity_floats();
-	GLfloat *colarray = &edgesdata->acquire_col()->at(0);
+	GLfloat *colarray = &edgesdata->acquire_col_write()->at(0);
 	for (unsigned int i = 0; i < e->vertSize; ++i)
 	{
 		unsigned int bufIndex = e->arraypos + i*COLELEMS + AOFF;
 		if (bufIndex > bufsize) break;
 		colarray[bufIndex] = alpha;
 	}
-	edgesdata->release_col();
+	edgesdata->release_col_write();
 }
 
+//unused, should it be?
 void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
 {
 	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
 	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
 
-	GLfloat *colarray = &nodesdata->acquire_col()->at(0);
+	GLfloat *colarray = &nodesdata->acquire_col_write()->at(0);
 	colarray[bufIndex] = alpha;
-	nodesdata->release_col();
+	nodesdata->release_col_write();
 }
 
 void thread_graph_data::assign_modpath(PROCESS_DATA *pidinfo) 

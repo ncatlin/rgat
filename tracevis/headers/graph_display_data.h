@@ -26,14 +26,19 @@ public:
 	GRAPH_DISPLAY_DATA(bool preview = false);
 	~GRAPH_DISPLAY_DATA();
 
-	vector <float>* acquire_pos(int holder = 0);
-	vector <float>* acquire_col();
+	vector <float>* acquire_pos_read(int holder = 0);
+	vector <float>* acquire_col_read();
+	vector <float>* acquire_pos_write(int holder = 0);
+	vector <float>* acquire_col_write();
 
 	float *readonly_col() { if (!vcolarray.empty()) return &vcolarray.at(0); return 0; }
 	float *readonly_pos() { if (!vposarray.empty()) return &vposarray.at(0); return 0; }
 
-	void release_pos();
-	void release_col();
+	void release_pos_write();
+	void release_pos_read();
+	void release_col_write();
+	void release_col_read();
+
 	void clear();
 	void reset();
 	unsigned int col_size() { return colSize; }
@@ -51,8 +56,15 @@ public:
 	bool isPreview() { return preview; }
 
 private:
+	//priority todo: make these reader/writer locks 
+#ifdef XP_COMPATIBLE
 	HANDLE posmutex;
 	HANDLE colmutex;
+#else
+	SRWLOCK poslock = SRWLOCK_INIT;
+	SRWLOCK collock = SRWLOCK_INIT;
+#endif
+
 	unsigned int numVerts = 0;
 
 	vector<GLfloat> vposarray;

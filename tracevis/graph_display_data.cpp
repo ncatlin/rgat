@@ -25,16 +25,24 @@ This class holds (and provides dubiously mutex guarded access to) OpenGl vertex 
 GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 {
 	if (prev) preview = true;
+
+#ifdef XP_COMPATIBLE
 	posmutex = CreateMutex(NULL, FALSE, NULL);
 	colmutex = CreateMutex(NULL, FALSE, NULL);
+#endif
 	numVerts = 0;
 	edgesRendered = 0;
 }
 
 GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 {
+#ifdef XP_COMPATIBLE
 	obtainMutex(colmutex, 9004);
 	obtainMutex(posmutex, 9005);
+#else
+	AcquireSRWLockExclusive(&collock);
+	AcquireSRWLockExclusive(&poslock);
+#endif
 }
 
 bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
@@ -42,36 +50,100 @@ bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
 	const unsigned int listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
+#ifdef XP_COMPATIBLE
 	obtainMutex(posmutex, 1006);
+#else
+	AcquireSRWLockShared(&poslock);
+#endif
 	result->x = vposarray.at(listIndex);
 	result->y = vposarray.at(listIndex + 1);
 	result->z = vposarray.at(listIndex + 2);
+
+#ifdef XP_COMPATIBLE
 	dropMutex(posmutex);
+#else
+	ReleaseSRWLockShared(&poslock);
+#endif
+
 	return true;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_pos(int holder)
+vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_read(int holder)
 {
-	bool result = obtainMutex(posmutex, 1007);
-	//printf("holder %d got 1007 --- ", holder);
-	if (!result) return 0;
+#ifdef XP_COMPATIBLE
+	obtainMutex(posmutex, 1007);
+#else
+	AcquireSRWLockShared(&poslock);
+#endif
+
 	return &vposarray;
 }
 
-vector<float> *GRAPH_DISPLAY_DATA::acquire_col()
+vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_write(int holder)
 {
-	obtainMutex(colmutex, 2000);
+#ifdef XP_COMPATIBLE
+	obtainMutex(posmutex, 1007);
+#else
+	AcquireSRWLockExclusive(&poslock);
+#endif
+
+	return &vposarray;
+}
+
+vector<float> *GRAPH_DISPLAY_DATA::acquire_col_read()
+{
+#ifdef XP_COMPATIBLE
+	obtainMutex(colmutex, 1007);
+#else
+	AcquireSRWLockShared(&collock);
+#endif
 	return &vcolarray;
 }
 
-void GRAPH_DISPLAY_DATA::release_pos()
+vector<float> *GRAPH_DISPLAY_DATA::acquire_col_write()
 {
-	dropMutex(posmutex);	
+#ifdef XP_COMPATIBLE
+	obtainMutex(colmutex, 1007);
+#else
+	AcquireSRWLockExclusive(&collock);
+#endif
+	return &vcolarray;
 }
 
-void GRAPH_DISPLAY_DATA::release_col()
+void GRAPH_DISPLAY_DATA::release_pos_write()
 {
-	dropMutex(colmutex);
+#ifdef XP_COMPATIBLE
+	dropMutex(posmutex);
+#else
+	ReleaseSRWLockExclusive(&poslock);
+#endif
+}
+
+void GRAPH_DISPLAY_DATA::release_pos_read()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(posmutex);
+#else
+	ReleaseSRWLockShared(&poslock);
+#endif
+}
+
+void GRAPH_DISPLAY_DATA::release_col_write()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(posmutex);
+#else
+	ReleaseSRWLockExclusive(&collock);
+#endif
+}
+
+void GRAPH_DISPLAY_DATA::release_col_read()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(posmutex);
+#else
+	ReleaseSRWLockShared(&collock);
+#endif
 }
 
 //TODO: this is awful. need to add to vector ert by vert
@@ -90,22 +162,23 @@ void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)
 //delete me if unused
 void GRAPH_DISPLAY_DATA::clear()
 {
-	acquire_pos();
-	acquire_col();
+	assert(0);
+	acquire_pos_write();
+	acquire_col_write();
 	edgesRendered = 0;
-	release_col();
-	release_pos();
+	release_col_write();
+	release_pos_write();
 }
 
 void GRAPH_DISPLAY_DATA::reset()
 {
-	acquire_pos(); 
-	acquire_col();
+	acquire_pos_write();
+	acquire_col_write();
 	//needed? try without
 	vposarray.clear();
 	vcolarray.clear();
 	numVerts = 0;
 	edgesRendered = 0;
-	release_col();
-	release_pos();
+	release_col_write();
+	release_pos_write();
 }

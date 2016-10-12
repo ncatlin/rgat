@@ -45,7 +45,7 @@ void frame_gl_setup(VISSTATE* clientState)
 			zoomedIn = true;
 	}
 
-	if (zoomedIn || clientState->nearSide)
+	if (zoomedIn || clientState->modes.nearSide)
 		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
 			clientState->cameraZoomlevel);
 	else
@@ -156,8 +156,8 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	float basey, brx, brz, blz, blx;
 	int rowAngle = (int)(360 / BDIVISIONS);
 	
-	vector<GLfloat> *spherepos = spheredata->acquire_pos(23); 
-	vector<GLfloat> *spherecol = spheredata->acquire_col();
+	vector<GLfloat> *spherepos = spheredata->acquire_pos_write(23);
+	vector<GLfloat> *spherecol = spheredata->acquire_col_write();
 	for (rowi = 180; rowi >= 0; rowi -= rowAngle) 
 	{
 		float colb = (float)rowi / 180;
@@ -214,8 +214,8 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 
 	load_VBO(VBO_SPHERE_POS, clientState->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
 	load_VBO(VBO_SPHERE_COL, clientState->colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
-	spheredata->release_col();
-	spheredata->release_pos();
+	spheredata->release_col_write();
+	spheredata->release_pos_write();
 }
 
 void rotate_to_user_view(VISSTATE *clientState)

@@ -23,18 +23,23 @@ Misc disassembly and conversion functions
 #include "GUIStructs.h"
 
 //takes symbol+arguments and cats them together for display
-string generate_funcArg_string(string sym, ARGLIST args)
+string generate_funcArg_string(string sym, ARGLIST *args)
 {
 	stringstream funcArgStr;
 	funcArgStr << sym << "(";
 
-	int numargs = args.size();
-	for (int i = 0; i < numargs; ++i)
+	if (args)
 	{
-		funcArgStr << args[i].first << ": " << args[i].second;
-		if (i < numargs - 1)
-			funcArgStr << ", ";
+		int numargs = args->size();
+		for (int i = 0; i < numargs; ++i)
+		{
+			ARGIDXDATA arg = args->at(i);
+			funcArgStr << arg.first << ": " << arg.second;
+			if (i < numargs - 1)
+				funcArgStr << ", ";
+		}
 	}
+
 	funcArgStr << ")";
 	return funcArgStr.str();
 }

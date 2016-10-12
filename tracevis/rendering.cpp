@@ -56,8 +56,8 @@ void plot_wireframe(VISSTATE *clientState)
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 	
-	vector <float> *vpos = wireframe_data->acquire_pos(234);
-	vector <float> *vcol = wireframe_data->acquire_col(); 
+	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
+	vector <float> *vcol = wireframe_data->acquire_col_write();
 	for (ii = 0; ii < 180; ii += lineDivisions) {
 
 		float ringSize = diam * sin((ii*M_PI) / 180);
@@ -89,16 +89,16 @@ void plot_wireframe(VISSTATE *clientState)
 
 	load_VBO(VBO_SPHERE_POS, clientState->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
 	load_VBO(VBO_SPHERE_COL, clientState->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
-	wireframe_data->release_pos();
-	wireframe_data->release_col();
+	wireframe_data->release_pos_write();
+	wireframe_data->release_col_write();
 }
 
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {
 	
-	vector <float> *vpos = vertdata->acquire_pos(52); 
-	vector <float> *vcol = vertdata->acquire_col();
+	vector <float> *vpos = vertdata->acquire_pos_write(52);
+	vector <float> *vcol = vertdata->acquire_col_write();
 
 	int numverts = vertdata->get_numVerts();
 	*arraypos = vcol->size();
@@ -120,8 +120,8 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 	vcol->push_back(colour->a);
 
 	vertdata->set_numVerts(numverts + 2);
-	vertdata->release_pos();
-	vertdata->release_col();
+	vertdata->release_pos_write();
+	vertdata->release_col_write();
 
 }
 
@@ -133,8 +133,8 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 
 	int vsadded = 0;
 	curvePoints += 2; 
-	vector<GLfloat> *vertpos = vertdata->acquire_pos(63);
-	vector<GLfloat> *vertcol = vertdata->acquire_col(); 
+	vector<GLfloat> *vertpos = vertdata->acquire_pos_write(63);
+	vector<GLfloat> *vertcol = vertdata->acquire_col_write();
 
 	if (!vertpos || !vertcol) 
 		return 0;
@@ -195,8 +195,8 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int numverts = vertdata->get_numVerts();
 
 	vertdata->set_numVerts(numverts + curvePoints + 2);
-	vertdata->release_col();
-	vertdata->release_pos();
+	vertdata->release_col_write();
+	vertdata->release_pos_write();
 
 	return curvePoints + 2;
 }
@@ -293,8 +293,8 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 	FCOORD screenc;
 	sphereCoord(n->vcoord.a, adjB, &screenc, dimensions, 0);
 	
-	vector<GLfloat> *mainNpos = vertdata->acquire_pos(677);
-	vector<GLfloat> *mainNcol = vertdata->acquire_col();
+	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
+	vector<GLfloat> *mainNcol = vertdata->acquire_col_write();
 
 	mainNpos->push_back(screenc.x);
 	mainNpos->push_back(screenc.y);
@@ -337,14 +337,14 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	vertdata->set_numVerts(vertdata->get_numVerts()+1);
 
-	vertdata->release_col();
-	vertdata->release_pos();
+	vertdata->release_col_write();
+	vertdata->release_pos_write();
 
 	//place node on the animated version of the graph
 	if (!vertdata->isPreview())
 	{
 
-		vector<GLfloat> *animNcol = animvertdata->acquire_col();
+		vector<GLfloat> *animNcol = animvertdata->acquire_col_write();
 
 		animNcol->push_back(active_col->r);
 		animNcol->push_back(active_col->g);
@@ -352,56 +352,11 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 		animNcol->push_back(0);
 
 		animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
-		animvertdata->release_col();
+		animvertdata->release_col_write();
 	}
 
 	return 1;
 }
-
-//draw floating extern texts. delete from list if time expired
-void drawFloatingExternTexts(thread_graph_data *graph, map <PID_TID, vector<EXTTEXT>> *externFloatingText, VISSTATE *clientState, PROJECTDATA *pd)
-{
-	if (externFloatingText->at(graph->tid).empty()) return;
-
-	vector <EXTTEXT>::iterator exttIt = externFloatingText->at(graph->tid).begin();
-	map <EXTTEXT*, int> drawMap;
-	map <int, EXTTEXT*> drawnNodes;
-	for (; exttIt != externFloatingText->at(graph->tid).end(); )
-	{
-		if (exttIt->framesRemaining-- <= 0)
-			exttIt = externFloatingText->at(graph->tid).erase(exttIt);
-		else
-		{
-			if (!drawnNodes.count(exttIt->nodeIdx))
-			{
-				EXTTEXT *exaddr = &*exttIt;
-				drawMap[exaddr] = 1;
-				drawnNodes[exttIt->nodeIdx] = exaddr;
-			}
-			++exttIt;
-		}
-	}
-
-	DCOORD nodepos;
-	map <EXTTEXT*, int>::iterator drawIt = drawMap.begin();
-	for (; drawIt != drawMap.end(); ++drawIt)
-	{
-		EXTTEXT* ex = drawIt->first;
-		node_data *n = graph->get_node(ex->nodeIdx);
-		if (clientState->nearSide)
-		{
-			if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
-				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
-				continue;
-		}
-		if (!n->get_screen_pos(graph->get_mainnodes(), pd, &nodepos)) continue;
-		string displayString = ex->displayString;
-		al_draw_text(clientState->standardFont, al_col_green,
-			nodepos.x, clientState->mainFrameSize.height - nodepos.y - ex->yOffset, 0, displayString.c_str());
-		ex->yOffset += EXTERN_FLOAT_RATE;
-	}
-}
-
 
 void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
@@ -436,8 +391,8 @@ void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	display_graph(clientState, graph, &pd);
-	graph->transferNewLiveCalls(externFloatingText, clientState->activePid);
-	drawFloatingExternTexts(graph, externFloatingText, clientState, &pd);
+	graph->draw_externTexts(clientState->standardFont, clientState->modes.nearSide,
+		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd);
 }
 
 //takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
@@ -494,7 +449,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 	
 	if (!targetIdx) return;
 	
-	GLfloat *vpos = &vertsdata->acquire_pos(152)->at(0);
+	GLfloat *vpos = &vertsdata->acquire_pos_write(152)->at(0);
 
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
@@ -508,7 +463,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 		vpos[arrayIndex + ZOFF] = newCoord.z;
 	}
 
-	vertsdata->release_pos();
+	vertsdata->release_pos_write();
 }
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
@@ -732,7 +687,7 @@ void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 		DCOORD screenCoord;
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
 
-		if (clientState->nearSide)
+		if (clientState->modes.nearSide)
 		{
 			if(!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
 				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))

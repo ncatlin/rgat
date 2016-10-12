@@ -32,4 +32,4 @@ int caught_stoi(string s, int *result, int base);
 int caught_stoi(string s, unsigned int *result, int base);
 int caught_stoul(string s, unsigned long *result, int base);
 
-string generate_funcArg_string(string sym, ARGLIST args);
+string generate_funcArg_string(string sym, ARGLIST *args);

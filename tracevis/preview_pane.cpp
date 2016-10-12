@@ -70,20 +70,20 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 
 	vector<float> *lineVector = 0;
 	
-	lineVector = previewgraph->previewlines->acquire_pos(25);
+	lineVector = previewgraph->previewlines->acquire_pos_read(25);
 	if (previewgraph->previewlines->get_numVerts() == 0)
 	{
-		previewgraph->previewlines->release_pos();
+		previewgraph->previewlines->release_pos_read();
 		return;
 	}
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
-	previewgraph->previewlines->release_pos();
+	previewgraph->previewlines->release_pos_read();
 
-	lineVector = previewgraph->previewlines->acquire_col();
+	lineVector = previewgraph->previewlines->acquire_col_read();
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_COL, VBOs, linebufsize, &lineVector->at(0));
-	previewgraph->previewlines->release_col();
+	previewgraph->previewlines->release_col_read();
 
 	previewgraph->needVBOReload_preview = false;
 }

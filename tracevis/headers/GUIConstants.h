@@ -149,7 +149,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define INSTEXT_VISIBLE_ZOOMFACTOR 7
 
 //how far floating text rises per frame. can be negative. todo: add to config
-#define EXTERN_FLOAT_RATE 0.5
+#define EXTERN_FLOAT_RATE 0.3
 //how many frames to display it
 #define EXTERN_LIFETIME_FRAMES 40
 
