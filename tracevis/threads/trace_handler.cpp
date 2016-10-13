@@ -92,8 +92,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	}
 	else
 	{
-		node_data *lastNode = thisgraph->get_node(lastVertID);
-		VCOORD lastnodec = lastNode->vcoord;
+		VCOORD lastnodec = thisgraph->safe_get_node(lastVertID)->vcoord;
 		a = lastnodec.a;
 		b = lastnodec.b;
 		bMod = lastnodec.bMod;
@@ -153,7 +152,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 		if (!alreadyExecuted)
 			handle_new_instruction(instruction, tag->blockID, repeats);
 		else
-			thisgraph->get_node(targVertID)->executionCount += repeats;
+			thisgraph->safe_get_node(targVertID)->executionCount += repeats;
 
 		if (loopState == BUILDING_LOOP)
 		{
@@ -191,7 +190,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 									newEdge.edgeClass = INEW;
 
 				}
-				thisgraph->add_edge(newEdge, thisgraph->get_node(lastVertID), thisgraph->get_node(targVertID));
+				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
 			}
 		}
 		//setup conditions for next instruction
@@ -245,7 +244,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		if (!alreadyExecuted)
 			handle_new_instruction(instruction, tag->blockID, 1);
 		else
-			++thisgraph->get_node(targVertID)->executionCount;
+			++thisgraph->safe_get_node(targVertID)->executionCount;
 
 		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
 		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
@@ -275,7 +274,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 									newEdge.edgeClass = INEW;
 
 				}
-				thisgraph->add_edge(newEdge, thisgraph->get_node(lastVertID), thisgraph->get_node(targVertID));
+				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
 			}
 
 		//setup conditions for next instruction
@@ -329,7 +328,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 		{
 			//conditional jumps are assume non-flow control until their target is seen
 			//if it's taken then fall through to jump
-			node_data *lastNode = thisgraph->get_node(lastVertID);
+			node_data *lastNode = thisgraph->safe_get_node(lastVertID);
 			if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
 			{
 				bMod += 1 * BMULT;
@@ -394,7 +393,7 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			//if so, position next node near caller
 			if (result != -1)
 			{
-				VCOORD *caller = &thisgraph->get_node(result)->vcoord;
+				VCOORD *caller = &thisgraph->safe_get_node(result)->vcoord;
 				a = caller->a + RETURNA_OFFSET;
 				b = caller->b + RETURNB_OFFSET;
 				bMod = caller->bMod;
@@ -507,7 +506,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//start by examining our caller
-	node_data *lastNode = thisgraph->get_node(lastVertID);
+	node_data *lastNode = thisgraph->safe_get_node(lastVertID);
 	if (lastNode->external) return false;
 	assert(lastNode->ins->numbytes);
 	
@@ -532,7 +531,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 
 			//this instruction in this thread has already called it
 			targVertID = vecit->second;
-			node_data *targNode = thisgraph->get_node(targVertID);
+			node_data *targNode = thisgraph->safe_get_node(targVertID);
 			targNode->executionCount += repeats;
 			targNode->calls += repeats;
 			lastVertID = targVertID;
@@ -560,12 +559,11 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	node_data newTargNode;
 	newTargNode.nodeMod = module;
 
-	int parentExterns = thisgraph->get_node(lastVertID)->childexterns;
-	VCOORD lastnodec = thisgraph->get_node(lastVertID)->vcoord;
+	VCOORD lastnodec = lastNode->vcoord;
 
 	//if parent calls multiple children, spread them out around caller
-	newTargNode.vcoord.a = lastnodec.a + 2 * parentExterns + 5;
-	newTargNode.vcoord.b = lastnodec.b + parentExterns + 5;
+	newTargNode.vcoord.a = lastnodec.a + 2 * lastNode->childexterns + 5;
+	newTargNode.vcoord.b = lastnodec.b + lastNode->childexterns + 5;
 	newTargNode.vcoord.bMod = lastnodec.bMod;
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
@@ -584,7 +582,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	edge_data newEdge;
 	newEdge.chainedWeight = 0;
 	newEdge.edgeClass = ILIB;
-	thisgraph->add_edge(newEdge, thisgraph->get_node(lastVertID), thisgraph->get_node(targVertID));
+	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
 	lastRIPType = EXTERNAL;
 	lastVertID = targVertID;
 	return true;
@@ -615,11 +613,11 @@ void thread_trace_handler::process_new_args()
 		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
 		{
-			node_data *parentn = thisgraph->get_node(callvsIt->first);
+			node_data *parentn = thisgraph->safe_get_node(callvsIt->first);
 			//this breaks if call not used!
 			MEM_ADDRESS callerAddress = parentn->ins->address;
 
-			node_data *targn = thisgraph->get_node(callvsIt->second);
+			node_data *targn = thisgraph->safe_get_node(callvsIt->second);
 
 			map <MEM_ADDRESS, vector<ARGLIST>>::iterator callersIt = pcaIt->second.begin();
 			while (callersIt != pcaIt->second.end())//run through each caller to this function
@@ -689,16 +687,7 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 	{
 		run_faulting_BB(thistag);
 
-		if (!basicMode)
-		{
-			//store for animation and replay
-			obtainMutex(thisgraph->animationListsMutex, 1049);
-			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
-			dropMutex(thisgraph->animationListsMutex);
-		}
-
 		thisgraph->totalInstructions += thistag->insCount;
-		thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
 
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -711,12 +700,7 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 		NODEPAIR resultPair;
 		cout << "[rgat]WARNING: Exception handler in uninstrumented module reached." <<
 			"I have no idea if this code will handle it; Let me know when you reach the other side..." << endl;
-		if (run_external(thistag->blockaddr, 1, &resultPair))
-		{
-			obtainMutex(thisgraph->animationListsMutex, 1150);
-			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
-			dropMutex(thisgraph->animationListsMutex);
-		}
+		run_external(thistag->blockaddr, 1, &resultPair);
 		thisgraph->set_active_node(resultPair.second);
 	}
 	else
@@ -738,28 +722,8 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 #endif
 	if (thistag->jumpModifier == MOD_INSTRUMENTED)
 	{
-
 		runBB(thistag, 0, repeats);
-
-		if (!basicMode)
-		{
-			//store for animation and replay
-			obtainMutex(thisgraph->animationListsMutex, 1049);
-			thisgraph->bbsequence.push_back(make_pair(thistag->blockaddr, thistag->insCount));
-			thisgraph->mutationSequence.push_back(thistag->blockID);
-			dropMutex(thisgraph->animationListsMutex);
-		}
-
-		if (repeats == 1)
-		{
-			thisgraph->totalInstructions += thistag->insCount;
-			//thisgraph->loopStateList.push_back(make_pair(0, 0xbad));
-		}
-		else
-		{
-			thisgraph->totalInstructions += thistag->insCount*loopIterations;
-			//thisgraph->loopStateList.push_back(make_pair(thisgraph->loopCounter, loopIterations));
-		}
+		thisgraph->totalInstructions += thistag->insCount*repeats;
 		thisgraph->set_active_node(lastVertID);
 	}
 
@@ -769,13 +733,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
-		if (run_external(thistag->blockaddr, repeats, &resultPair))
-		{
-			obtainMutex(thisgraph->animationListsMutex, 1050);
-			thisgraph->externCallSequence[resultPair.first].push_back(resultPair);
-			dropMutex(thisgraph->animationListsMutex);
-		}
-
+		run_external(thistag->blockaddr, repeats, &resultPair);
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
 	}
@@ -921,7 +879,7 @@ bool thread_trace_handler::assign_blockrepeats()
 			{
 				INS_DATA *ins = *blockIt;
 				
-				n = thisgraph->get_node(ins->threadvertIdx.at(TID));
+				n = thisgraph->safe_get_node(ins->threadvertIdx.at(TID));
 				n->executionCount += repeatIt->totalExecs;
 				thisgraph->totalInstructions += repeatIt->totalExecs;
 				if (--repeatIt->insCount == 0)
@@ -931,7 +889,7 @@ bool thread_trace_handler::assign_blockrepeats()
 		else
 		{
 			INS_DATA* lastIns = repeatIt->blockInslist->at(repeatIt->blockInslist->size() - 1);
-			n = thisgraph->get_node(lastIns->threadvertIdx.at(TID));
+			n = thisgraph->safe_get_node(lastIns->threadvertIdx.at(TID));
 		}
 		
 		//create any new edges between unchained nodes
@@ -947,7 +905,7 @@ bool thread_trace_handler::assign_blockrepeats()
 				bool alreadyPresent = false;
 				set<unsigned int>::iterator calledIt = n->outgoingNeighbours.begin();
 				for (; calledIt != n->outgoingNeighbours.end(); ++calledIt)
-					if (thisgraph->get_node(*calledIt)->address == targCallIt->first)
+					if (thisgraph->safe_get_node(*calledIt)->address == targCallIt->first)
 					{
 						alreadyPresent = true;
 						break;
@@ -966,7 +924,7 @@ bool thread_trace_handler::assign_blockrepeats()
 			if (!firstIns->threadvertIdx.count(TID)) continue;
 
 			unsigned int targNodeIdx = firstIns->threadvertIdx.at(TID);
-			edge_data *targEdge = thisgraph->get_edge_create(n, thisgraph->get_node(targNodeIdx));
+			edge_data *targEdge = thisgraph->get_edge_create(n, thisgraph->safe_get_node(targNodeIdx));
 
 			targCallIt = repeatIt->targBlocks.erase(targCallIt);
 			if (targCallIt == repeatIt->targBlocks.end()) break;
@@ -1173,8 +1131,20 @@ void thread_trace_handler::main_loop()
 				sourceID = id_count >> 32;
 
 				INSLIST* lastBB = find_block_disassembly(sourceAddr, sourceID);
+				if(!lastBB)	{
+					if (die) break;
+					cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
+					assert(0);
+				}
 				INS_DATA* lastIns = lastBB->back();
+
 				lastVertID = lastIns->threadvertIdx.at(TID);
+				unordered_map<PID_TID,NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
+				if (vertIt == lastIns->threadvertIdx.end()) {
+					if (die) break;
+					cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
+					assert(0);
+				}
 
 				TAG thistag;
 				string target_ip_s = string(strtok_s(entry, ",", &entry));
@@ -1188,7 +1158,7 @@ void thread_trace_handler::main_loop()
 				thistag.insCount = id_count & 0xffffffff;
 				thistag.blockID = id_count >> 32;
 				thistag.jumpModifier = 1;
-				handle_tag(&thistag, 1);
+				handle_tag(&thistag);
 
 				ANIMATIONENTRY animUpdate;
 				animUpdate.blockAddr = thistag.blockaddr;
@@ -1343,7 +1313,7 @@ void thread_trace_handler::main_loop()
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
 					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address " << e_ip << "/" << e_ip_s << endl;
 
-				cout << "last node was " << lastVertID << " at addr " << thisgraph->get_node(lastVertID)->address << endl;
+				cout << "last node was " << lastVertID << " at addr " << thisgraph->safe_get_node(lastVertID)->address << endl;
 
 				piddata->getDisassemblyReadLock();
 				//problem here: no way of knowing which mutation of the faulting instruction was executed
@@ -1422,6 +1392,7 @@ void thread_trace_handler::main_loop()
 	}
 
 	thisgraph->terminationFlag = true;
+	thisgraph->terminated = true;
 	thisgraph->active = false;
 	thisgraph->finalNodeID = lastVertID;
 	timelinebuilder->notify_tid_end(PID, TID);

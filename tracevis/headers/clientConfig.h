@@ -73,6 +73,7 @@ public:
 	int farA;
 	unsigned int renderFrequency;
 	unsigned long traceBufMax;
+	unsigned int maxWaitFrames;
 
 	string saveDir;
 	string DRDir;

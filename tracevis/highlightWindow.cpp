@@ -41,7 +41,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 				INS_DATA *target = *insListIt;
 				unordered_map<PID_TID, NODEINDEX>::iterator threadVIt = target->threadvertIdx.find(currentTid);
 				if (threadVIt == target->threadvertIdx.end()) continue;
-				node_data *n = graph->get_node(threadVIt->second);
+				node_data *n = graph->safe_get_node(threadVIt->second);
 				highlightData->highlightNodes.push_back(n);
 			}
 			break;
@@ -54,7 +54,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			for (; externIt != graph->externList.end(); ++externIt)
 			{
 				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
-					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+					highlightData->highlightNodes.push_back(graph->safe_get_node(*externIt));
 			}
 			dropMutex(graph->highlightsMutex);
 			break;
@@ -66,8 +66,9 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			vector<unsigned int>::iterator externIt = graph->externList.begin();
 			for (; externIt != graph->externList.end(); ++externIt)
 			{
-				if (highlightData->highlightModule == graph->get_node(*externIt)->nodeMod)
-					highlightData->highlightNodes.push_back(graph->get_node(*externIt));
+				node_data *externNode = graph->safe_get_node(*externIt);
+				if (highlightData->highlightModule == externNode->nodeMod)
+					highlightData->highlightNodes.push_back(externNode);
 			}
 			dropMutex(graph->highlightsMutex);
 			break;
@@ -80,7 +81,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 			{
 				set<NODEINDEX>::iterator exceptIt = graph->exceptionSet.begin();
 				for (; exceptIt != graph->exceptionSet.end(); ++exceptIt)
-					highlightData->highlightNodes.push_back(graph->get_node(*exceptIt));
+					highlightData->highlightNodes.push_back(graph->safe_get_node(*exceptIt));
 			}
 			dropMutex(graph->highlightsMutex);
 			break;
@@ -111,7 +112,7 @@ void HighlightSelectionFrame::refreshData()
 			bool newSym = find(addedSyms.begin(), addedSyms.end(), sym) == addedSyms.end();
 			if (newSym)
 				addedSyms.push_back(sym);
-			node_data* node = graph->get_node(*externIt);
+			node_data* node = graph->safe_get_node(*externIt);
 			++activeModules[node->nodeMod];
 
 		}

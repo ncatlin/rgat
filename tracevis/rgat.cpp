@@ -358,7 +358,7 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 		((diff_plotter*)*diffRenderer)->render();
 	}
 
-	((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
+	//((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
 }
 
 void closeTextLog(VISSTATE *clientState)
@@ -1141,13 +1141,13 @@ int main(int argc, char **argv)
 	double fps, fps_max, frame_start_time;
 
 	ALLEGRO_EVENT tev;
-	ALLEGRO_TIMER *frametimer = al_create_timer(1.0 / 60.0);
+	ALLEGRO_TIMER *frametimer = al_create_timer(1.0 / TARGET_FPS);
 	ALLEGRO_EVENT_QUEUE *frame_timer_queue = al_create_event_queue();
 	al_register_event_source(frame_timer_queue, al_get_timer_event_source(frametimer));
 	al_start_timer(frametimer);
 
 	//edge_picking_colours() is a hefty call, but doesn't need calling often
-	ALLEGRO_TIMER *updatetimer = al_create_timer(40.0 / 60.0);
+	ALLEGRO_TIMER *updatetimer = al_create_timer(40.0 / TARGET_FPS);
 	ALLEGRO_EVENT_QUEUE *low_frequency_timer_queue = al_create_event_queue();
 	al_register_event_source(low_frequency_timer_queue, al_get_timer_event_source(updatetimer));
 	al_start_timer(updatetimer);
@@ -1317,7 +1317,7 @@ int main(int argc, char **argv)
 			al_set_target_backbuffer(clientState.maindisplay);
 			if (clientState.modes.preview)
 			{
-				if (previewRenderFrame++ % (60 / clientState.config->preview.FPS))
+				if (previewRenderFrame++ % (TARGET_FPS / clientState.config->preview.FPS))
 				{
 					//update and draw preview graphs onto the previewpane bitmap
 					redrawPreviewGraphs(&clientState, &graphPositions);

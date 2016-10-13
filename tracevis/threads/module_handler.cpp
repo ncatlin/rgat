@@ -111,7 +111,7 @@ void module_handler::main_loop()
 				}
 				
 				thread_graph_data *graph = new thread_graph_data(piddata, TID);
-				graph->basic = clientState->launchopts.basic;
+				graph->set_max_wait_frames(clientState->config->maxWaitFrames);
 
 				thread_trace_reader *TID_reader = new thread_trace_reader(graph, PID, TID);
 				TID_reader->traceBufMax = clientState->config->traceBufMax;

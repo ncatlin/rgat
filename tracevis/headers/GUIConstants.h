@@ -185,3 +185,5 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define ANIM_INACTIVE_EDGE_ALPHA 0.00
 
 #define HIGHLIGHT_REFRESH_DELAY_MS 700
+
+#define TARGET_FPS 60

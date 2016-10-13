@@ -114,10 +114,9 @@ class thread_graph_data
 	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 	bool loadStats(ifstream *file);
 	bool loadAnimationData(ifstream *file);
-	bool loadCallSequence(ifstream *file);
 
 	//which BB we are pointing to in the sequence list
-	unsigned long sequenceIndex = 0;
+	unsigned long animationIndex = 0;
 	//which instruction we are pointing to in the BB
 	unsigned long blockInstruction = 0;
 	bool newanim = true;
@@ -134,10 +133,12 @@ class thread_graph_data
 	bool fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
 
 	void process_live_animation_updates();
-	void process_replay_animation_updates();
+	int process_replay_animation_updates(int stepSize);
 	void brighten_new_active();
 	void maintain_active();
 	void darken_fading(float fadeRate);
+	void remove_unchained_from_animation();
+	unsigned long calculate_wait_frames(unsigned int stepSize, unsigned long executions);
 
 	map <NODEINDEX, int> newAnimNodeTimes;
 	map <unsigned int, int> activeAnimNodeTimes;
@@ -150,11 +151,16 @@ class thread_graph_data
 	map <NODEINDEX, int> newExternTimes;
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 
+	//animation data as it is received from drgat
 	queue <ANIMATIONENTRY> animUpdates;
+	//animation data saved here for replays
+	vector <ANIMATIONENTRY> savedAnimationData;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 
 	NODEINDEX lastAnimatedNode = 0;
 	unsigned long animLoopCounter = 0;
+	unsigned int unchainedWaitFrames = 0;
+	unsigned int maxWaitFrames = 0;
 
 public:
 	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
@@ -183,6 +189,7 @@ public:
 	GRAPH_DISPLAY_DATA *get_activenodes() { return animnodesdata; }
 	void render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr);
 	void redraw_anim_edges();
+	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 
 	void push_anim_update(ANIMATIONENTRY);
 
@@ -190,16 +197,14 @@ public:
 
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
-	//string get_mod_name(map <int, string> *modpaths);
-	bool basic = false;
 
 	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);
 	edge_data * get_edge(unsigned int edgeindex);
 	edge_data *get_edge_create(node_data *source, node_data *target);
 
-	inline node_data *get_node(unsigned int index);
-	node_data *locked_get_node(unsigned int index);
+	inline node_data *unsafe_get_node(unsigned int index);
+	node_data *safe_get_node(unsigned int index);
 
 	void insert_edge_between_BBs(INSLIST *source, INSLIST *target);
 
@@ -216,28 +221,21 @@ public:
 	//i feel like this misses the point, idea is to iterate safely
 	EDGELIST *edgeLptr() { return &edgeList; } 
 
-	void animate_latest(float fadeRate);
+	void render_animation(float fadeRate);
+	void render_live_animation(float fadeRate);
+	int render_replay_animation(int stepSize, float fadeRate);
+
 
 	INS_DATA* get_last_instruction(unsigned long sequenceId);
 	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
 
-	//if block at targetSequence called something, this highlights it. if sendArg true, adds floating latest arg to animation
-	void brighten_externs(unsigned long targetSequence, bool updateArgs);
-	void transferNewLiveCalls(map <PID_TID, vector<EXTTEXT>> *externFloatingText, PROCESS_DATA* piddata);
-
 	void reset_mainlines();
-	unsigned int derive_anim_node();
+	//unsigned int derive_anim_node();
 	//void performStep(int stepSize, bool skipLoop);
 	//unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx);
-	void update_animation_render(float fadeRate);
 	void reset_animation();
-	//void darken_animation(float alphaDelta);
-
-	//during live animation the sequence list is ahead of the rendering
-	//returns the last rendered sequenceIndex we managed to animate
-	//int brighten_BBs();
 	
 	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
@@ -260,8 +258,6 @@ public:
 	std::queue<EXTERNCALLDATA> floatingExternsQueue;
 
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
-	//ordered list of externs externs called by each node
-	map<unsigned int, EDGELIST> externCallSequence;
 
 	//list of external calls used for listing possible highlights
 	HANDLE highlightsMutex = CreateMutex(NULL, FALSE, NULL);
@@ -313,27 +309,10 @@ public:
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
 
-	//todo: make private, add inserter
-	vector <pair<MEM_ADDRESS,unsigned int>> bbsequence; //block address, number of instructions
-	vector <BLOCK_IDENTIFIER> mutationSequence; //blockID
-
-	//<which loop this is, how many iterations of this block>
-	//todo: make private, add inserter
-	vector <pair<unsigned int, unsigned long>> loopStateList;
-
-	//record how many times each block in loop has been animated
-	vector<unsigned long> animLoopProgress;
-	//index into sequence where start of loop is
-	unsigned long animLoopStartIdx = 0;
-
 
 	//position out of all the instructions instrumented
 	unsigned long animInstructionIndex = 0;
 	unsigned long totalInstructions = 0;
-
-	unsigned int loopsPlayed = 0;
-	unsigned long loopIteration = 0;
-	unsigned long targetIterations = 0;
 
 	bool needVBOReload_active = true;
 	//two sets of VBOs for graph so we can display one

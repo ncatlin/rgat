@@ -45,28 +45,10 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 		updateMainRender(graph);
 	}
 	
-	if (graph->basic)
-	{
-		graph->setGraphBusy(false);
-		if (graph->terminated)
-		{
-			graph->terminated = false;
-			if (clientState->highlightData.highlightState)
-			{
-				TraceVisGUI* gui = (TraceVisGUI*)clientState->widgets;
-				gui->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-					clientState->activeGraph,
-					clientState->activePid);
-			}
-		}
-		return;
-	}
-	/*
 	if (!graph->active && clientState->animationUpdate)
 	{
 
-		int animationResult = graph->updateAnimation(clientState->animationUpdate,
-			clientState->modes.animation, clientState->skipLoop);
+		int animationResult = graph->render_replay_animation(clientState->animationUpdate, clientState->config->animationFadeRate);
 
 		if (clientState->skipLoop) clientState->skipLoop = false;
 
@@ -79,17 +61,15 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 				clientState->modes.animation = false;
 				clientState->animFinished = true;
 			}
-			else
-				graph->update_animation_render(clientState->config->animationFadeRate);
 		}
 		else
 			clientState->animationUpdate = 0;
 	}
-	*/
+	
 	if (graph->active)
 	{
 		if (clientState->modes.animation)
-			graph->animate_latest(clientState->config->animationFadeRate);
+			graph->render_live_animation(clientState->config->animationFadeRate);
 	}
 	else
 		if (graph->terminated)

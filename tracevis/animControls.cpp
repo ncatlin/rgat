@@ -34,6 +34,7 @@ void AnimControls::setAnimState(int newAnimState)
 		killBtn->setVisibility(false);
 
 	if (newAnimState == animationState) return;
+
 	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
 	{
 		//start replay
@@ -152,14 +153,8 @@ void AnimControls::update(thread_graph_data *graph)
 		return;
 	}
 
-	if (graph->basic) 
-	{ 
-		controlsLayout->setVisibility(false);
-		statusLabel->setText("Displaying basic graph");
-		return; 
-	}
-	else
-		controlsLayout->setVisibility(true);
+
+	controlsLayout->setVisibility(true);
 
 
 	if (!graph->active && animationState == ANIM_LIVE)
@@ -340,7 +335,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	playBtn->setMargins(0, 8, 0, 8);
 	playBtn->setSize(80, btnHeight);
 	playBtn->setBackColor(agui::Color(210, 210, 210));
-	//controlsLayout->add(playBtn);
+	controlsLayout->add(playBtn);
 
 	killBtn = new agui::Button();
 	killBtn->setFont(btnFont);

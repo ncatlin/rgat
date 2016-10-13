@@ -139,7 +139,8 @@ public:
 		{
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
-			clientState->activeGraph->reset_animation();
+			clientState->activeGraph->terminated = true;
+			//clientState->activeGraph->reset_animation();
 			evt.getSource()->setText("Play");
 			return;
 		}
@@ -183,7 +184,8 @@ public:
 		{
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
-			clientState->activeGraph->reset_animation();
+			clientState->activeGraph->terminated = true;
+			//clientState->activeGraph->reset_animation();
 			clientState->activePid->kill();
 			return;
 		}

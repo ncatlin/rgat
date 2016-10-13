@@ -221,6 +221,7 @@ bool clientConfig::loadFromFile()
 	argtouni(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"), &renderFrequency, &errorCount);
 	argtounl(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"), &traceBufMax, &errorCount);
 	argtouni(al_get_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE"), &maxArgStorage, &errorCount);
+	argtouni(al_get_config_value(alConfig, "Misc", "ANIM_MAX_WAIT_FRAMES"), &maxWaitFrames, &errorCount);
 
 	if (!loadColours()) return false;
 	if (!loadPaths()) return false;
@@ -380,6 +381,8 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS", to_string(renderFrequency).c_str());
 	al_set_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX", to_string(traceBufMax).c_str());
 	al_set_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE", to_string(maxArgStorage).c_str());
+	al_set_config_value(alConfig, "Misc", "DEFAULT_MAX_WAIT_FRAMES", to_string(maxWaitFrames).c_str());
+	
 
 	al_set_config_value(alConfig, "Paths", "SAVE_PATH", saveDir.c_str());
 	al_set_config_value(alConfig, "Paths", "DYNAMORIO_PATH", DRDir.c_str());
@@ -454,6 +457,7 @@ void clientConfig::loadDefaults()
 	renderFrequency = MAINGRAPH_DEFAULT_RENDER_FREQUENCY;
 	traceBufMax = DEFAULT_MAX_TRACE_BUFSIZE;
 	maxArgStorage = DEFAULT_MAX_ARG_STORAGE;
+	maxWaitFrames = DEFAULT_MAX_WAIT_FRAMES;
 
 	loadDefaultColours();
 

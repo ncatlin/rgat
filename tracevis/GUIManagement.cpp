@@ -305,7 +305,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	else
 		textColour = al_col_red;
 
-	int activeModule = clientState->activeGraph->get_node(0)->nodeMod;
+	int activeModule = clientState->activeGraph->safe_get_node(0)->nodeMod;
 	string modPath;
 	piddata->get_modpath(activeModule, &modPath);
 	infotxt << modPath <<" (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";

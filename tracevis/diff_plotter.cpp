@@ -38,6 +38,7 @@ thread_graph_data *diff_plotter::get_graph(int idx) {
 	return graph2;
 }
 
+/*
 void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
 	stringstream infotxt1, infotxt2, infotxt3;
@@ -176,13 +177,13 @@ unsigned long diff_plotter::first_divering_edge()
 	return animIndex;
 
 }
-
+*/
 void diff_plotter::render() 
 {
 	EDGELIST::iterator edgeSeqItG1;
 	EDGELIST::iterator edgeSeqEndG1;
 	
-	divergenceIdx = first_divering_edge();
+	//divergenceIdx = first_divering_edge();
 	unsigned long renderIdx = 0;
 
 	GRAPH_DISPLAY_DATA *linedata = diffgraph->get_mainlines();

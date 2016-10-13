@@ -54,8 +54,8 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 	graph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
 	for (; edgeDit != edgeDEnd; ++edgeDit)
 	{
-		node_data *snode = graph->get_node(edgeDit->first.first);
-		node_data *tnode = graph->get_node(edgeDit->first.second);
+		node_data *snode = graph->safe_get_node(edgeDit->first.first);
+		node_data *tnode = graph->safe_get_node(edgeDit->first.second);
 		edge_data *edge = &edgeDit->second;
 
 		//initialise temporary counters
@@ -136,15 +136,15 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 			unsigned long targOtherNeighboursOut = 0;
 
 			graph->acquireNodeReadLock();
-			node_data *tnode = graph->locked_get_node(targNodeIdx);
-			node_data *snode = graph->locked_get_node(srcNodeIdx);
+			node_data *tnode = graph->unsafe_get_node(targNodeIdx);
+			node_data *snode = graph->unsafe_get_node(srcNodeIdx);
 
 			set<unsigned int>::iterator targincomingIt = tnode->incomingNeighbours.begin();
 			for (; targincomingIt != tnode->incomingNeighbours.end(); targincomingIt++)
 			{
 				unsigned int idx = *targincomingIt;
 				if (idx == srcNodeIdx) continue; 
-				node_data *neib = graph->locked_get_node(idx);
+				node_data *neib = graph->unsafe_get_node(idx);
 				targOtherNeighboursOut += neib->chain_remaining_out;
 			}
 			
@@ -185,7 +185,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 			{
 				unsigned int idx = *sourceoutgoingIt;
 				if (idx == tnode->index) continue;
-				node_data *neib = graph->locked_get_node(idx);
+				node_data *neib = graph->unsafe_get_node(idx);
 				sourceOtherNeighboursIn += neib->chain_remaining_in;
 			}
 			graph->releaseNodeReadLock();
@@ -193,7 +193,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 			//no? only targ edge taking input. complete edge and subtract from targ input 
 			if (sourceOtherNeighboursIn == 0)
 			{
-				//only remaining node accepting executions has less than this node remaining
+				//only remaining folllower node executed less than this node did
 				if (snode->chain_remaining_out > tnode->chain_remaining_in)
 				{
 					++solverErrors;

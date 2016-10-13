@@ -82,3 +82,5 @@ Defaults for using when a config file exist
 
 //mazimum number of args to store per external
 #define DEFAULT_MAX_ARG_STORAGE 100
+
+#define DEFAULT_MAX_WAIT_FRAMES 180

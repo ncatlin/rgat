@@ -370,8 +370,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT
 		clientState->logSize = graph->fill_extern_log(clientState->textlog, clientState->logSize);
 
 	//red line indicating last instruction
-	if (!graph->basic)
-		drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
 	if (clientState->highlightData.highlightState)
@@ -412,7 +411,7 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 	for (; nodeIdx != nodeEnd; ++nodeIdx)
 	{
 		int retries = 0;
-		while (!add_node(graph->get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors, nodeColours))
+		while (!add_node(graph->unsafe_get_node(nodeIdx), vertsdata, graph->animnodesdata, scalefactors, nodeColours))
 			{
 					//think mutexes fixes have made this irrelevant
 					Sleep(50);
@@ -455,7 +454,7 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
-		node_data *n = graph->locked_get_node(nodeIdx);
+		node_data *n = graph->unsafe_get_node(nodeIdx);
 		FCOORD newCoord = n->sphereCoordB(scalefactors, 0);
 		assert(nodeIdx == n->index);
 
@@ -683,7 +682,7 @@ void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 	vector<unsigned int>::iterator externCallIt = externListCopy.begin();
 	for (; externCallIt != externListCopy.end(); ++externCallIt)
 	{
-		node_data *n = graph->get_node(*externCallIt);
+		node_data *n = graph->safe_get_node(*externCallIt);
 		assert(n->external);
 
 		DCOORD screenCoord;
@@ -717,7 +716,7 @@ void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, th
 	string itext("?");
 	for (unsigned int i = 0; i < numVerts; ++i)
 	{
-		node_data *n = graph->get_node(i);
+		node_data *n = graph->safe_get_node(i);
 		if (n->external) continue;
 
 		//this check removes the bulk of the instructions at a low performance cost, including those
@@ -759,7 +758,7 @@ void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, 
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (unsigned int i = 0; i < numVerts; ++i)
 	{
-		node_data *n = graph->get_node(i);
+		node_data *n = graph->safe_get_node(i);
 		if (n->external || !n->ins->conditional) continue;
 
 		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn, clientState->rightcolumn,
@@ -815,7 +814,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
 	{
 		NODEPAIR *ePair = &edgelist->at(edgelistIdx);
-		node_data *firstNode = graph->get_node(ePair->first);
+		node_data *firstNode = graph->safe_get_node(ePair->first);
 
 		//should these checks should be done on the midpoint rather than the first node?
 		if (firstNode->external) continue; //don't care about instruction in library call
@@ -834,7 +833,8 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 
 		if (ePair->second >= graph->get_num_nodes()) continue;
 		DCOORD screenCoordB;
-		if(!graph->get_node(ePair->second)->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
+		node_data *targ_node = graph->safe_get_node(ePair->second);
+		if(!targ_node->get_screen_pos(vertsdata, pd, &screenCoordB)) continue;
 
 		DCOORD screenCoordMid;
 		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
@@ -843,7 +843,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
 
 		displayNodes.insert(firstNode);
-		displayNodes.insert(graph->get_node(ePair->second));
+		displayNodes.insert(targ_node);
 
 		//int edgeWeight = e->weight;
 		unsigned long edgeWeight = e->chainedWeight;
@@ -875,7 +875,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 //standard animated or static display of the active graph
 void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA *pd)
 {
-	if (clientState->modes.animation && !graph->basic)
+	if (clientState->modes.animation)
 		graph->display_active(clientState->modes.nodes, clientState->modes.edges);
 	else
 		graph->display_static(clientState->modes.nodes, clientState->modes.edges);
@@ -890,7 +890,7 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 		show_extern_labels(clientState, pd, graph);
 	else
 	{	//show label of extern we are blocked on
-		node_data *n = graph->get_node(graph->latest_active_node_idx);
+		node_data *n = graph->safe_get_node(graph->latest_active_node_idx);
 		if (n && n->external)
 		{
 			DCOORD screenCoord;

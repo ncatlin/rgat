@@ -41,7 +41,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		{
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
-			int condStatus = graph->get_node(nodeIdx++)->conditional;
+			int condStatus = graph->safe_get_node(nodeIdx++)->conditional;
 			if (!condStatus)
 			{
 				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
