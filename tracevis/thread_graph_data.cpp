@@ -285,223 +285,25 @@ void thread_graph_data::emptyArgQueue()
 	dropMutex(funcQueueMutex);
 }
 
-/*
-bool thread_graph_data::decrease_sequence()
-{
-	return true; //unimplemented, better things to do at the moment
-}
-
-bool thread_graph_data::advance_sequence(bool skipLoop = false)
-{
-	if (sequenceIndex + 1 >= bbsequence.size()) return false;
-
-	animInstructionIndex += bbsequence.at(sequenceIndex).second;
-	//if not looping
-	if (!loopStateList.at(sequenceIndex).first)
-	{
-		brighten_externs(++sequenceIndex, true);
-		return true;
-	}
-
-	//first we update loop progress
-
-	//just started loop
-	if (!animLoopStartIdx)
-	{
-		targetIterations = loopStateList.at(sequenceIndex).second;
-		animLoopIndex = 0;
-		animLoopStartIdx = sequenceIndex;
-		loopIteration = 1;
-		animLoopProgress.push_back(loopIteration);
-	}
-	//block of first iteration of loop
-	else if (animLoopIndex > animLoopProgress.size() - 1)
-	{
-		loopIteration = 1;
-		animLoopProgress.push_back(loopIteration);
-	}
-	else
-	{
-		loopIteration = animLoopProgress.at(animLoopIndex) + 1;
-		animLoopProgress.at(animLoopIndex) = loopIteration;
-	}
-
-	brighten_externs(sequenceIndex, true);
-
-	//now set where to go next
-	//last iteration of loop
-	if (skipLoop || (loopStateList.at(sequenceIndex).second == animLoopProgress.at(animLoopCounter)))
-	{
-		//last block of loop
-		if ((animLoopIndex >= animLoopProgress.size() - 1) || skipLoop)
-		{
-			++loopsPlayed;
-			animLoopProgress.clear();
-			animLoopStartIdx = 0;
-			animLoopIndex = 0;
-		}
-		else
-			++animLoopIndex;
-		
-		if (sequenceIndex + 1 >= bbsequence.size()) return false;
-		++sequenceIndex;
-
-		if (skipLoop)
-			while (loopStateList.at(sequenceIndex).first)
-				++sequenceIndex;
-	}
-
-	//last block of loop but not last iteration
-	else if (loopStateList.at(sequenceIndex).first != loopStateList.at(sequenceIndex + 1).first)
-	{
-
-		sequenceIndex = animLoopStartIdx;
-		animLoopIndex = 0;
-		
-	}
-	else //inside loop
-	{
-		if (sequenceIndex + 1 >= bbsequence.size()) return false;
-		++sequenceIndex;
-		++animLoopIndex;
-	}
-	return true;
-}
-
-void thread_graph_data::performStep(int stepSize, bool skipLoop = false)
-{
-
-	if (stepSize > 0)
-	{
-		for (int i = 0; i < stepSize; ++i)
-			if (!advance_sequence(skipLoop)) break;
-
-	}
-	else if (stepSize < 0)
-	{
-		stepSize *= -1;
-		for (int i = 0; i < stepSize; ++i)
-			decrease_sequence();
-	}
-
-	set_active_node(derive_anim_node());
-}
-
-unsigned int thread_graph_data::updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop = false)
-{
-	if (nodeList.empty()) return ANIMATION_ENDED;
-
-	performStep(updateSize, skipLoop);
-	if (!animationMode) return 0;
-
-	bool animation_end = false;
-
-	if (sequenceIndex >= (bbsequence.size() - 1))
-		return ANIMATION_ENDED;
-
-	return 0;
-}
-
-void thread_graph_data::darken_animation(float alphaDelta)
-{
-
-	if (!animlinedata->get_numVerts()) return;
-	GLfloat *ecol = &animlinedata->acquire_col()->at(0);
-
-	map<NODEPAIR, edge_data *>::iterator activeEdgeIt = activeEdgeMap.begin();
-	bool update = false;
-
-	if (activeEdgeIt != activeEdgeMap.end()) 
-		update = true;
-	while (activeEdgeIt != activeEdgeMap.end())
-	{
-		edge_data *e = activeEdgeIt->second;
-		if (!e->vertSize) { 
-			++activeEdgeIt;
-			continue; 
-		}
-
-		unsigned long edgeStart = e->arraypos;
-		float edgeAlpha;
-		float lowestAlpha = 0;
-
-		for (unsigned int i = 0; i < e->vertSize; ++i)
-		{
-			const unsigned int colBufIndex = edgeStart + i*COLELEMS + AOFF;
-			if (colBufIndex >= animlinedata->col_buf_capacity_floats())
-			{
-				//sometimes happens if terminated at a bad time. will fix itself
-				cerr << "[rgat]Warning: colbufIndex > capacity" << endl;
-				animlinedata->release_col();
-				return;
-			}
-			edgeAlpha = ecol[colBufIndex];
-
-			//TODO: problems here!
-			//0.05 stored as 0.05000000002
-			//0.06 stored as 0.59999999999997 [not the real number of 0's]
-			edgeAlpha = fmax(ANIM_INACTIVE_EDGE_ALPHA, edgeAlpha - alphaDelta);
-			ecol[colBufIndex] = edgeAlpha;
-			lowestAlpha = fmax(lowestAlpha, edgeAlpha);
-		}	
-
-		//workaround to problem, fails with 0.05, works with 0.06
-		if (lowestAlpha <= ANIM_INACTIVE_EDGE_ALPHA)
-			activeEdgeIt = activeEdgeMap.erase(activeEdgeIt);
-		else
-			++activeEdgeIt;
-	}
-	animlinedata->release_col();
-	GLfloat *ncol = &animnodesdata->acquire_col()->at(0);
-	int colBufSize = animnodesdata->col_buf_capacity_floats();
-
-	map<unsigned int, bool>::iterator activeNodeIt = activeNodeMap.begin();
-	if (activeNodeIt != activeNodeMap.end()) 
-		update = true;
-	while (activeNodeIt != activeNodeMap.end())
-	{
-		unsigned int nodeIndex = activeNodeIt->first;
-		node_data *n = get_node(nodeIndex);
-		int colBufIndex = (nodeIndex * COLELEMS) + AOFF;
-		if (colBufIndex >= colBufSize) break;
-		float currentAlpha = ncol[colBufIndex];
-		currentAlpha = fmax(ANIM_INACTIVE_NODE_ALPHA, currentAlpha - alphaDelta);
-		ncol[colBufIndex] = currentAlpha;
-
-		if (currentAlpha == ANIM_INACTIVE_NODE_ALPHA)
-			activeNodeIt = activeNodeMap.erase(activeNodeIt);
-		else
-			++activeNodeIt;
-	}
-
-	animnodesdata->release_col();
-	if (update) needVBOReload_active = true;
-}
-*/
 void thread_graph_data::reset_animation()
 {
-	last_anim_start = 0;
-	last_anim_stop = 0;
 	animInstructionIndex = 0;
-	newanim = true;
+	lastAnimatedNode = 0;
 
 	animationIndex = 0;
-	blockInstruction = 0;
+
 	if (!nodeList.empty())
 	{
 		set_active_node(0);
 		darken_fading(1);
 	}
-	firstAnimatedBB = 0;
-	lastAnimatedBB = 0;
+
 	newAnimEdgeTimes.clear();
 	newAnimNodeTimes.clear();
 	darken_fading(1);
 	activeAnimEdgeTimes.clear();
 	activeAnimNodeTimes.clear();
-	//loopsPlayed = 0;
-	//loopIteration = 0;
-	//targetIterations = 0;
+
 	callCounter.clear();
 }
 
@@ -587,7 +389,6 @@ void thread_graph_data::process_live_animation_updates()
 			remove_unchained_from_animation();
 
 			obtainMutex(animationListsMutex, 6211);
-			savedAnimationData.push_back(entry);
 			animUpdates.pop();
 			dropMutex(animationListsMutex);
 			continue;
@@ -599,8 +400,7 @@ void thread_graph_data::process_live_animation_updates()
 			NODEINDEX firstChainedNode = getDisassemblyBlock(entry.blockAddr, entry.blockID, piddata, &terminationFlag)->back()->threadvertIdx.at(tid);
 			lastAnimatedNode = firstChainedNode;
 
-			obtainMutex(animationListsMutex, 6211);
-			savedAnimationData.push_back(entry);
+			obtainMutex(animationListsMutex, 6212);
 			animUpdates.pop();
 			dropMutex(animationListsMutex);
 			continue;
@@ -696,8 +496,7 @@ void thread_graph_data::process_live_animation_updates()
 
 		animInstructionIndex += instructionCount;
 
-		obtainMutex(animationListsMutex, 6212);
-		savedAnimationData.push_back(entry);
+		obtainMutex(animationListsMutex, 6213);
 		animUpdates.pop();
 		dropMutex(animationListsMutex);	
 	}
@@ -720,6 +519,8 @@ unsigned long thread_graph_data::calculate_wait_frames(unsigned int stepSize, un
 
 int thread_graph_data::process_replay_animation_updates(int stepSize)
 {
+	if (savedAnimationData.empty()) return ANIMATION_ENDED;
+
 	unsigned long targetAnimIndex = animationIndex + stepSize;
 	if (targetAnimIndex >= savedAnimationData.size())
 		targetAnimIndex = savedAnimationData.size() - 1;
@@ -1183,29 +984,7 @@ int thread_graph_data::render_replay_animation(int stepSize, float fadeRate)
 	render_animation(fadeRate);
 	return result;
 }
-/*
-//find the node corresponding to the lateset instruction in the animation sequence
-unsigned int thread_graph_data::derive_anim_node()
-{
 
-	obtainMutex(animationListsMutex, 1022);
-	pair<MEM_ADDRESS, int> addr_size = bbsequence.at(sequenceIndex);
-	BLOCK_IDENTIFIER blockID = mutationSequence.at(sequenceIndex);
-	dropMutex(animationListsMutex);
-
-	MEM_ADDRESS blockAddr = addr_size.first;
-	int remainingInstructions = blockInstruction;
-	
-	INS_DATA *target_ins = getDisassemblyBlock(blockAddr, blockID, piddata, &terminationFlag)->at(blockInstruction);
-
-	//this check is needed on early termination
-	unordered_map<PID_TID, NODEINDEX>::iterator foundIdx = target_ins->threadvertIdx.find(tid);
-	if (foundIdx != target_ins->threadvertIdx.end())
-		return foundIdx->second;
-	else
-		return 0;
-}
-*/
 void thread_graph_data::reset_mainlines() 
 {
 	mainlinedata->reset();
@@ -1493,6 +1272,21 @@ void thread_graph_data::insert_node(NODEINDEX targVertID, node_data node)
 {
 	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
 
+	
+	if (node.external)
+	{
+		obtainMutex(highlightsMutex, 5271);
+		externList.push_back(node.index);
+		dropMutex(highlightsMutex);
+	}
+	else if (node.ins->hasSymbol)
+	{
+		obtainMutex(highlightsMutex, 5272);
+		internList.push_back(node.index);
+		dropMutex(highlightsMutex);
+	}
+	
+
 	getNodeWriteLock();
 	nodeList.push_back(node);
 	dropNodeWriteLock();
@@ -1592,12 +1386,6 @@ bool thread_graph_data::serialise(ofstream *file)
 	}
 	*file << "}D,";
 
-	*file << "E{";
-	vector<unsigned int>::iterator externit = externList.begin();
-	for (; externit != externList.end(); ++externit)
-		*file << *externit << ",";
-	*file << "}E,";
-
 	*file << "X{";
 	set<unsigned int>::iterator exceptit = exceptionSet.begin();
 	for (; exceptit != exceptionSet.end(); ++exceptit)
@@ -1613,23 +1401,20 @@ bool thread_graph_data::serialise(ofstream *file)
 		<< totalInstructions
 		<< "}S,";
 
-	/*
 	*file << "A{";
 	obtainMutex(animationListsMutex, 1030);
-	for (unsigned long i = 0; i < bbsequence.size(); ++i)
+	for (unsigned long i = 0; i < savedAnimationData.size(); ++i)
 	{
-		pair<MEM_ADDRESS, int> seq_size = bbsequence.at(i);
-		int mutation = mutationSequence.at(i);
+		ANIMATIONENTRY entry = savedAnimationData.at(i);
 
-		*file << seq_size.first << "," << seq_size.second << ","
-			<< mutationSequence[i] << ","
-			<< loopStateList[i].first << ",";
-		if (loopStateList[i].first )
-			*file << loopStateList[i].second << ",";
+		*file << (unsigned int)entry.entryType << ","
+			<< entry.blockAddr << "," << entry.blockID << ","
+			<< entry.count << ","
+			<< entry.targetAddr << "," << entry.targetID << ",";
 	}
 	dropMutex(animationListsMutex);
 	*file << "}A,";
-	*/
+	
 	*file << "}";
 	return true;
 }
@@ -1638,6 +1423,7 @@ void thread_graph_data::push_anim_update(ANIMATIONENTRY entry)
 {
 	obtainMutex(animationListsMutex, 2412);
 	animUpdates.push(entry);
+	savedAnimationData.push_back(entry);
 	dropMutex(animationListsMutex);
 }
 
@@ -1667,26 +1453,6 @@ bool thread_graph_data::loadEdgeDict(ifstream *file)
 	return false;
 }
 
-bool thread_graph_data::loadExterns(ifstream *file)
-{
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'E') return false;
-
-	int index;
-	string index_s;
-
-	while (true) {
-		getline(*file, index_s, ',');
-		if (!caught_stoi(index_s, (int *)&index, 10))
-		{
-			if (index_s == string("}E")) return true;
-			return false;
-		}
-		externList.push_back(index);
-	}
-}
-
 bool thread_graph_data::loadExceptions(ifstream *file)
 {
 	string endtag;
@@ -1712,10 +1478,9 @@ bool thread_graph_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *
 {
 	if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed"<<endl;  return false; }
 	if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
-	if (!loadExterns(file)) { cerr << "[rgat]ERROR:Externs load failed" << endl;  return false; }
 	if (!loadExceptions(file)) { cerr << "[rgat]ERROR:Exceptions load failed" << endl;  return false; }
 	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
-	//if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
+	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
 	return true;
 }
 
@@ -1731,6 +1496,7 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 	{
 		node_data *n = new node_data;
 		int result = n->unserialise(file, disassembly);
+
 		if (result > 0)
 		{
 			insert_node(n->index, *n);
@@ -1739,8 +1505,10 @@ bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *di
 
 		delete n;
 
-		if (!result) return true;
-		else return false;
+		if (!result) 
+			return true;
+		else	
+			return false;
 		
 	}
 }
@@ -1757,8 +1525,6 @@ bool thread_graph_data::loadStats(ifstream *file)
 	if (!caught_stoi(value_s, &maxA, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, &maxB, 10)) return false;
-	//getline(*file, value_s, ',');
-	//if (!caught_stoi(value_s, (int *)&loopCounter, 10)) return false;
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&baseMod, 10)) return false;
 	getline(*file, value_s, '}');
@@ -1769,49 +1535,45 @@ bool thread_graph_data::loadStats(ifstream *file)
 	return true;
 }
 
-/*
+
 bool thread_graph_data::loadAnimationData(ifstream *file)
 {
 	string endtag;
 	getline(*file, endtag, '{');
 	if (endtag.c_str()[0] != 'A') return false;
 
-	string sequence_s, size_s, mutation_s, loopstateIdx_s, loopstateIts_s;
-	pair<MEM_ADDRESS, int> seq_size;
-	pair<unsigned int, unsigned long> loopstateIdx_Its;
-	BLOCK_IDENTIFIER blockID;
-
+	string type_s, sourceAddr_s, sourceID_s, targAddr_s, targID_s, count_s;
+	ANIMATIONENTRY entry;
 	while (true)
 	{
-		getline(*file, sequence_s, ',');
-		if (sequence_s == "}A") 
-		{ 
-			//no trace data, assume graph was created in basic mode
-			if (bbsequence.empty())
-				basic = true;
-			return true; 
-		}
-		if (!caught_stoul(sequence_s, &seq_size.first, 10)) break;
-		getline(*file, size_s, ',');
-		if (!caught_stoi(size_s, &seq_size.second, 10)) break;
-		bbsequence.push_back(seq_size);
+		getline(*file, type_s, ',');
+		if (type_s == "}A")
+			return true;
 
-		getline(*file, mutation_s, ',');
-		if (!caught_stoul(mutation_s, &blockID, 10)) break;
+		int entryTypeI;
+		if (!caught_stoi(type_s, &entryTypeI, 10)) 
+			break;
+		entry.entryType = entryTypeI;
 
-		mutationSequence.push_back(blockID);
+		getline(*file, sourceAddr_s, ',');
+		if (!caught_stoul(sourceAddr_s, &entry.blockAddr, 10)) 
+			break;
+		getline(*file, sourceID_s, ',');
+		if (!caught_stoul(sourceID_s, &entry.blockID, 10)) 
+			break;
 
-		getline(*file, loopstateIdx_s, ',');
-		if (!caught_stoi(loopstateIdx_s, (int *)&loopstateIdx_Its.first, 10)) break;
-		if (loopstateIdx_Its.first)
-		{
-			getline(*file, loopstateIts_s, ',');
-			if (!caught_stoul(loopstateIts_s, &loopstateIdx_Its.second, 10)) break;
-		}
-		else
-			loopstateIdx_Its.second = 0xbad;
+		getline(*file, count_s, ',');
+		if (!caught_stoul(count_s, &entry.count, 10)) 
+			break;
 
-		loopStateList.push_back(loopstateIdx_Its);
+		getline(*file, targAddr_s, ',');
+		if (!caught_stoul(targAddr_s, &entry.targetAddr, 10)) 
+			break;
+		getline(*file, targID_s, ',');
+		if (!caught_stoul(targID_s, &entry.targetID, 10))
+			break;
+
+		savedAnimationData.push_back(entry);
 	}
 	return false;
-}*/
+}

@@ -363,7 +363,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
 	thread_graph_data *graph = clientState->activeGraph;
-	assert(graph->pid == clientState->activePid->PID);
+	if (graph->pid != clientState->activePid->PID) return;
 
 	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < graph->loggedCalls.size())
@@ -615,7 +615,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	clientState->activePid->get_modpath(n->nodeMod, &modPath);
 
 	stringstream argstring;
-	if (clientState->show_extern_text == EXTERNTEXT_ALL)
+	if (clientState->modes.show_extern_text == EXTERNTEXT_ALL)
 		argstring << modPath << ":";
 
 	int numCalls = n->calls;
@@ -663,40 +663,93 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 		}
 	dropMutex(clientState->activeGraph->funcQueueMutex);
 	
-	al_draw_text(font, al_col_white, screenCoord.x + INS_X_OFF,
+	al_draw_text(font, al_col_light_green, screenCoord.x + INS_X_OFF,
 		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 		argstring.str().c_str());
 
 }
 
+void draw_internal_symbol(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
+{
+
+	string symString;
+	clientState->activePid->get_sym(n->nodeMod, n->address, &symString);
+
+	int textLength = al_get_text_width(font, symString.c_str());
+	al_draw_text(font, al_col_white, screenCoord.x - textLength,
+		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+		symString.c_str());
+
+}
+
 //show functions/args for externs in active graph
-void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_data *graph)
+void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_data *graph)
 {
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 
-	//todo: maintain local copy, update on size change?
-	obtainMutex(graph->highlightsMutex, 1052);
-	vector<unsigned int> externListCopy = graph->externList;
-	dropMutex(graph->highlightsMutex);
+	bool showExterns = (clientState->modes.show_extern_text != EXTERNTEXT_NONE);
+	bool showDbgSymbols = clientState->modes.show_dbg_symbol_text;
 
-	vector<unsigned int>::iterator externCallIt = externListCopy.begin();
-	for (; externCallIt != externListCopy.end(); ++externCallIt)
+	if (!showExterns && !showDbgSymbols) return;
+
+	vector<unsigned int> externListCopy;
+	vector<unsigned int> internListCopy;
+
+
+
+	if (showExterns)
 	{
-		node_data *n = graph->safe_get_node(*externCallIt);
-		assert(n->external);
+		obtainMutex(graph->highlightsMutex, 1052);
+		externListCopy = graph->externList;
+		dropMutex(graph->highlightsMutex);
 
-		DCOORD screenCoord;
-		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
-
-		if (clientState->modes.nearSide)
+		vector<unsigned int>::iterator externCallIt = externListCopy.begin();
+		for (; externCallIt != externListCopy.end(); ++externCallIt)
 		{
-			if(!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
-				clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
-				continue;
-		}
+			node_data *n = graph->safe_get_node(*externCallIt);
+			assert(n->external);
 
-		if (is_on_screen(&screenCoord, clientState))
-			draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+			DCOORD screenCoord;
+			if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
+
+			if (clientState->modes.nearSide)
+			{
+				if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+					clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+					continue;
+			}
+
+			if (is_on_screen(&screenCoord, clientState))
+				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+		}
+	}
+
+	if (showDbgSymbols)
+	{
+		obtainMutex(graph->highlightsMutex, 1053);
+		if (showDbgSymbols)
+			internListCopy = graph->internList;
+		dropMutex(graph->highlightsMutex);
+
+		vector<unsigned int>::iterator internSymIt = internListCopy.begin();
+		for (; internSymIt != internListCopy.end(); ++internSymIt)
+		{
+			node_data *n = graph->safe_get_node(*internSymIt);
+			assert(!n->external);
+
+			DCOORD screenCoord;
+			if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue;
+
+			if (clientState->modes.nearSide)
+			{
+				if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
+					clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+					continue;
+			}
+
+			if (is_on_screen(&screenCoord, clientState))
+				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
+		}
 	}
 }
 
@@ -708,7 +761,7 @@ void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, th
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	bool show_all_always = (clientState->show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = graph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = graph->get_mainnodes();
 	stringstream ss;
@@ -733,7 +786,7 @@ void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, th
 
 		if (!show_all_always) 
 		{
-			if (zdist < 5 && clientState->show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
@@ -753,7 +806,7 @@ void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, 
 	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientState->show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
 	unsigned int numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (unsigned int i = 0; i < numVerts; ++i)
@@ -781,7 +834,7 @@ void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, 
 		if (!show_all_always) {
 			float nB = n->vcoord.b + n->vcoord.bMod*BMODMAG;
 
-			if (zdist < 5 && clientState->show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
@@ -865,10 +918,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 		al_draw_text(clientState->standardFont, al_col_white, screenCoordN.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			to_string(nd->executionCount).c_str());
-
 	}
-
-
 }
 
 
@@ -882,12 +932,12 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->m_scalefactors->radius);
 	
-	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
+	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd, graph);
 	
-	//if zoomed in, show all extern labels
-	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR && clientState->show_extern_text != EXTERNTEXT_NONE)
-		show_extern_labels(clientState, pd, graph);
+	//if zoomed in, show all extern/internal labels
+	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
+		show_symbol_labels(clientState, pd, graph);
 	else
 	{	//show label of extern we are blocked on
 		node_data *n = graph->safe_get_node(graph->latest_active_node_idx);
@@ -934,10 +984,10 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		show_extern_labels(clientState, &pd, graph1);
+		show_symbol_labels(clientState, &pd, graph1);
 	}
 
-	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph1->get_num_nodes() > 2)
+	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph1->get_num_nodes() > 2)
 	{
 		if (!pdgathered) 
 			gather_projection_data(&pd);
@@ -1041,9 +1091,9 @@ void display_big_heatmap(VISSTATE *clientState)
 	gather_projection_data(&pd);
 
 	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
-		show_extern_labels(clientState, &pd, graph);
+		show_symbol_labels(clientState, &pd, graph);
 
-	if (clientState->show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
+	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
 		draw_edge_heat_text(clientState, zmul, &pd);
 
 
@@ -1100,7 +1150,7 @@ void display_big_conditional(VISSTATE *clientState)
 	gather_projection_data(&pd);
 	float zoomDiffMult = (clientState->cameraZoomlevel - graph->zoomLevel) / 1000 - 1;
 
-	if (clientState->show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
+	if (clientState->modes.show_ins_text && zoomDiffMult < 10 && graph->get_num_nodes() > 2)
 		draw_condition_ins_text(clientState, zoomDiffMult, &pd, graph->get_mainnodes());
 
 }

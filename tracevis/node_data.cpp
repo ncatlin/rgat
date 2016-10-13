@@ -163,14 +163,14 @@ int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassemb
 		external = false;
 
 		getline(*file, value_s, '}');
-		if (!caught_stoi(value_s, (int *)&mutation, 10))
+		if (!caught_stoi(value_s, (int *)&blockID, 10))
 			return -1;
 
 		map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(address);
-		if ((addressIt == disassembly->end()) || (mutation >= addressIt->second.size()))
+		if ((addressIt == disassembly->end()) || (blockID >= addressIt->second.size()))
 			return -1;
 
-		ins = addressIt->second.at(mutation);
+		ins = addressIt->second.at(blockID);
 		return 1;
 	}
 

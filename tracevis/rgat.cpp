@@ -740,10 +740,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_M:
-					clientState->show_extern_text++;
-					if (clientState->show_extern_text > EXTERNTEXT_LAST)
-						clientState->show_extern_text = EXTERNTEXT_FIRST;
-					switch (clientState->show_extern_text) 
+					clientState->modes.show_extern_text++;
+					if (clientState->modes.show_extern_text > EXTERNTEXT_LAST)
+						clientState->modes.show_extern_text = EXTERNTEXT_FIRST;
+					switch (clientState->modes.show_extern_text) 
 					{
 						case EXTERNTEXT_NONE:
 							cout << "[rgat]Extern labels off" << endl;
@@ -821,11 +821,16 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					clientState->rescale = true;
 					break;
 
+				case ALLEGRO_KEY_I:
+					clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
+					break;
+
 				case ALLEGRO_KEY_T:
-					clientState->show_ins_text++;
-					if (clientState->show_ins_text > INSTEXT_LAST)
-						clientState->show_ins_text = INSTEXT_FIRST;
-					switch (clientState->show_ins_text) {
+					clientState->modes.show_ins_text++;
+					if (clientState->modes.show_ins_text > INSTEXT_LAST)
+						clientState->modes.show_ins_text = INSTEXT_FIRST;
+
+					switch (clientState->modes.show_ins_text) {
 					case INSTEXT_NONE:
 						cout << "[rgat]Instruction text off" << endl;
 						break;
@@ -884,24 +889,28 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				}
 				break;
 
+			case EV_BTN_DBGSYM:
+				clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
+				break;
+
 			case EV_BTN_EXT_TEXT_NONE:
-				clientState->show_extern_text = EXTERNTEXT_NONE;
+				clientState->modes.show_extern_text = EXTERNTEXT_NONE;
 				break;
 			case EV_BTN_EXT_TEXT_SYMS:
-				clientState->show_extern_text = EXTERNTEXT_SYMS;
+				clientState->modes.show_extern_text = EXTERNTEXT_SYMS;
 				break;
 			case EV_BTN_EXT_TEXT_PATH:
-				clientState->show_extern_text = EXTERNTEXT_ALL;
+				clientState->modes.show_extern_text = EXTERNTEXT_ALL;
 				break;
 
 			case EV_BTN_INS_TEXT_NONE:
-				clientState->show_ins_text = INSTEXT_NONE;
+				clientState->modes.show_ins_text = INSTEXT_NONE;
 				break;
 			case EV_BTN_INS_TEXT_AUTO:
-				clientState->show_ins_text = INSTEXT_AUTO;
+				clientState->modes.show_ins_text = INSTEXT_AUTO;
 				break;
 			case EV_BTN_INS_TEXT_ALWA:
-				clientState->show_ins_text = INSTEXT_ALL_ALWAYS;
+				clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
 				break;
 
 			case EV_BTN_AUTOSCALE:

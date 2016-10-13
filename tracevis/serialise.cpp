@@ -32,7 +32,7 @@ Graph/Process Saving/Loading routines
 #define tag_PATH 42
 #define tag_SYM 43
 #define tag_DISAS 44
-
+#define tag_EXTERND 45
 
 
 void writetag(ofstream *file, char tag, int id = 0) {
@@ -96,13 +96,14 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 	writetag(file, tag_START, tag_DISAS);
 
 	map <MEM_ADDRESS, INSLIST>::iterator disasIt = piddata->disassembly.begin();
-	for (; disasIt != piddata->disassembly.end(); disasIt++)
+	for (; disasIt != piddata->disassembly.end(); ++disasIt)
 	{
 		*file << disasIt->second.size() << ","; //number of mutations at this address
 		*file << disasIt->first << ",";  //address
+		*file << disasIt->second.front()->modnum << ","; //module number (same for all mutations (i really hope))
 		
 		INSLIST::iterator mutationIt = disasIt->second.begin();
-		for (; mutationIt != disasIt->second.end(); mutationIt++)
+		for (; mutationIt != disasIt->second.end(); ++mutationIt)
 		{
 			INS_DATA *ins = *mutationIt;
 			//for each mutation write opcodes, number of threads executing it
@@ -116,6 +117,30 @@ void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
 		}
 	}
 	writetag(file, tag_END, tag_DISAS);
+}
+
+void saveExternDict(PROCESS_DATA *piddata, ofstream *file)
+{
+	writetag(file, tag_START, tag_EXTERND);
+
+	map <MEM_ADDRESS, BB_DATA *>::iterator externIt = piddata->externdict.begin();
+	for (; externIt != piddata->externdict.end(); ++externIt)
+	{
+		*file << externIt->first << ","; //extern address
+		*file << externIt->second->modnum << ","; 
+		*file << externIt->second->hasSymbol << ",";
+
+		*file << externIt->second->thread_callers.size() << ",";
+		map<DWORD, EDGELIST>::iterator threadCallIt = externIt->second->thread_callers.begin();
+		for (; threadCallIt != externIt->second->thread_callers.end(); ++threadCallIt)
+		{
+			*file << threadCallIt->first << "," << threadCallIt->second.size() << ",";
+			EDGELIST::iterator edgeIt = threadCallIt->second.begin();
+			for (; edgeIt != threadCallIt->second.end(); ++edgeIt)
+				*file << edgeIt->first << "," << edgeIt->second << ",";
+		}
+	}
+	writetag(file, tag_END, tag_EXTERND);
 }
 
 void saveBlockData(PROCESS_DATA *piddata, ofstream *file)
@@ -157,8 +182,12 @@ void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 
 	saveDisassembly(piddata, file);
 	*file << " ";
-
+	
 	saveBlockData(piddata, file);
+	*file << " ";
+
+	saveExternDict(piddata, file);
+
 
 	writetag(file, tag_END, tag_PROCESSDATA);
 }
@@ -246,7 +275,7 @@ bool verifyTag(ifstream *file, char tag, int id = 0) {
 	}
 }
 
-int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag)
+int extractb64path(ifstream *file, unsigned int *modNum, string *modpath, string endTag)
 {
 	string modblob;
 	*file >> modblob;
@@ -260,7 +289,7 @@ int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, strin
 	string modnum_s, b64path;
 	getline(ss, modnum_s, ',');
 	getline(ss, b64path, ' ');
-	if (!caught_stoul(modnum_s, modNum, 10)) return -1;
+	if (!caught_stoi(modnum_s, modNum, 10)) return -1;
 	*modpath = base64_decode(b64path);
 	return 1;
 }
@@ -308,17 +337,17 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	endTagStr += tag_PATH;
 
 	int result, count = 0;
-	unsigned long modNum;
+	unsigned int modnum;
 	string content;
 	while (true)
 	{
-		result = extractb64path(file, &modNum, &content, endTagStr);
+		result = extractb64path(file, &modnum, &content, endTagStr);
 		if (result < 0) 
 			return false;
 		else 
 			if (result == 0) break;
 		else 
-			piddata->modpaths.emplace(modNum, content);
+			piddata->modpaths.emplace(modnum, content);
 		if (count++ > 255) 
 			return false;
 	}
@@ -334,10 +363,10 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 
 	endTagStr += tag_END;
 	endTagStr += tag_SYM;
+	string modSymsBlob_s, modNum_s;
 	while (true)
 	{
-		int modnum;
-		string modSymsBlob_s, modNum_s;
+		
 		*file >> modSymsBlob_s;
 		if (modSymsBlob_s == endTagStr) break;
 
@@ -364,11 +393,11 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		return false;
 	}
 
-	string mutations_s;
-	int mutations;
+	string mutations_s, opcodes, address_s, modnum_s, threadVertSize_s, callerTID_s, calledNode_s;
+	int mutations, insmodnum;
 	while (true)
 	{
-		string opcodes, address_s;
+		
 		MEM_ADDRESS address;
 		if (file->peek() == '}') break;
 
@@ -382,16 +411,28 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 			cerr << "[rgat]address stol failed with " << address_s << endl; return false;
 		}
 
+		getline(*file, modnum_s, ',');
+		if (!caught_stoi(modnum_s, &insmodnum, 10)) {
+			cerr << "[rgat]modnum stoi failed with " << modnum_s << endl; return false;
+		}
+
+		bool hasSym;
+		if (piddata->modsymsPlain.at(insmodnum).count(address))
+			hasSym = true;
+		else 
+			hasSym = false;
+
 		INSLIST mutationVector;
 		for (int midx = 0; midx < mutations; midx++)
 		{
-			INS_DATA *ins = new INS_DATA;
-			
+			INS_DATA *ins = new INS_DATA; //failed load is mem leak
+			ins->modnum = insmodnum;
+			ins->hasSymbol = hasSym;
+
 			getline(*file, opcodes, ',');
 			disassemble_ins(hCapstone, opcodes, ins, address);
 			mutationVector.push_back(ins);
 
-			string threadVertSize_s;
 			int threadVertSize;
 			getline(*file, threadVertSize_s, ',');
 			if (!caught_stoi(threadVertSize_s, &threadVertSize, 10)) 
@@ -400,7 +441,6 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 			for (int tvIdx = 0; tvIdx < threadVertSize; ++tvIdx)
 			{
 				int callTID, calledNode;
-				string callerTID_s, calledNode_s;
 				getline(*file, callerTID_s, ',');
 				if (!caught_stoi(callerTID_s, &callTID, 10)) 
 					return false;
@@ -428,18 +468,17 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		return false;
 	}
 
+	string numblocks_s, blockaddress_s, blockID_s, numinstructions_s, mutationIndex_s, insAddr_s;
 	while (true)
 	{
 		if (file->peek() == '}') break;
 		//number of blockIDs recorded for address
-		string numblocks_s;
 		unsigned int numblocks;
 		getline(*file, numblocks_s, ',');
 		if (!caught_stoi(numblocks_s, &numblocks, 10))
 			return false;
 
 		//address of block
-		string blockaddress_s;
 		MEM_ADDRESS blockaddress;
 		getline(*file, blockaddress_s, ',');
 		if (!caught_stoul(blockaddress_s, &blockaddress, 10))
@@ -452,14 +491,11 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 
 		for (unsigned int blocki = 0; blocki < numblocks; ++blocki)
 		{
-
-			string blockID_s;
 			BLOCK_IDENTIFIER blockID;
 			getline(*file, blockID_s, ',');
 			if (!caught_stoul(blockID_s, &blockID, 10))
 				return false;
 
-			string numinstructions_s;
 			unsigned int numinstructions;
 			getline(*file, numinstructions_s, ',');
 			if (!caught_stoi(numinstructions_s, &numinstructions, 10))
@@ -468,13 +504,11 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 			piddata->blocklist[blockaddress][blockID] = new INSLIST;
 			for (unsigned int insi = 0; insi < numinstructions; ++insi)
 			{
-				string insAddr_s;
 				MEM_ADDRESS insAddr;
 				getline(*file, insAddr_s, ',');
 				if (!caught_stoul(insAddr_s, &insAddr, 10))
 					return false;
 
-				string mutationIndex_s;
 				unsigned int mutationIndex;
 				getline(*file, mutationIndex_s, ',');
 				if (!caught_stoi(mutationIndex_s, &mutationIndex, 10))
@@ -492,6 +526,83 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
 		cerr << "[rgat]Corrupt save (process- basic block data end)" << endl;
+		return false;
+	}
+	file->seekg(1, ios::cur);
+
+	if (!verifyTag(file, tag_START, tag_EXTERND)) {
+		cerr << "[rgat]Corrupt save (process- extern data start)" << endl;
+		return false;
+	}
+
+	string data_s;
+	unsigned int modNum;
+	MEM_ADDRESS externAddr;
+	BB_DATA *externEntry;
+	
+	while (true)
+	{
+		if (file->peek() == '}') break;
+		//number of blockIDs recorded for address
+		
+		
+		getline(*file, data_s, ',');
+		if (!caught_stoul(data_s, &externAddr, 10))
+			return false;
+		
+		if (piddata->externdict.count(externAddr))
+			return false;
+
+		externEntry = new BB_DATA;
+
+		getline(*file, data_s, ',');
+		if (!caught_stoi(data_s, &externEntry->modnum, 10))
+			return false;
+
+		int hasSymI;
+		getline(*file, data_s, ',');
+		if (!caught_stoi(data_s, &hasSymI, 10))
+			return false;
+		externEntry->hasSymbol = hasSymI;
+
+		unsigned int threadsCalling;
+		getline(*file, data_s, ',');
+		if (!caught_stoi(data_s, &threadsCalling, 10))
+			return false;
+
+		for (unsigned int tIdx = 0; tIdx < threadsCalling; ++tIdx)
+		{
+			PID_TID externThreadID;
+			getline(*file, data_s, ',');
+			if (!caught_stoul(data_s, &externThreadID, 10))
+				return false;
+
+			unsigned int numEdges;
+			getline(*file, data_s, ',');
+			if (!caught_stoi(data_s, &numEdges, 10))
+				return false;
+
+			EDGELIST externCalls;
+			for (unsigned int eIdx = 0; eIdx < numEdges; ++eIdx)
+			{
+				NODEINDEX source, targ;
+				getline(*file, data_s, ',');
+				if (!caught_stoi(data_s, &source, 10))
+					return false;
+				getline(*file, data_s, ',');
+				if (!caught_stoi(data_s, &targ, 10))
+					return false;
+
+				externCalls.push_back(make_pair(source, targ));
+			}
+			externEntry->thread_callers[externThreadID] = externCalls;
+		}
+		piddata->externdict[externAddr] = externEntry;
+	}
+
+
+	if (!verifyTag(file, tag_END, tag_EXTERND)) {
+		cerr << "[rgat]Corrupt save (process- extern data end)" << endl;
 		return false;
 	}
 

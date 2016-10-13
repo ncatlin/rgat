@@ -35,6 +35,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define COLOUR_PICKING_MYSTERY_CONSTANTA 11.16
 
 #define al_col_red al_map_rgb(255, 0, 0)
+#define al_col_light_green al_map_rgb(180, 255, 190)
 #define al_col_green al_map_rgb(0, 255, 0)
 #define al_col_white al_map_rgb(255, 255, 255)
 #define al_col_purple al_map_rgb(139, 0, 139)
@@ -128,6 +129,7 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define EV_BTN_NEARSIDE EV_BTN_AUTOSCALE+1
 
 #define EV_BTN_ABOUT EV_BTN_NEARSIDE+1
+#define EV_BTN_DBGSYM EV_BTN_ABOUT+1
 
 #define DIFF_SELECTED 1
 #define DIFF_STARTED 2

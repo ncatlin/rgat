@@ -409,6 +409,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "Disable extern labels [m]", EV_BTN_EXT_TEXT_NONE, 0, NULL },
 		{ "Show extern symbols [m]", EV_BTN_EXT_TEXT_SYMS, 0, NULL },
 		{ "Show symbols and paths [m]", EV_BTN_EXT_TEXT_PATH, 0, NULL },
+		{ "Show internal/debug symbols [i]", EV_BTN_DBGSYM, 0, NULL },
 		{ "Disable instruction labels [t]", EV_BTN_INS_TEXT_NONE, 0, NULL },
 		{ "Auto instruction display [t]", EV_BTN_INS_TEXT_AUTO, 0, NULL },
 		{ "Always show instructions [t]", EV_BTN_INS_TEXT_ALWA, 0, NULL },

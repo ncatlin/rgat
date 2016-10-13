@@ -43,10 +43,12 @@ public:
 	INS_DATA* ins = NULL;
 	bool external = false;
 	int nodeMod;
-	BLOCK_IDENTIFIER mutation;
+
+	BLOCK_IDENTIFIER blockID;
 	//list of lists of arg number, contents
 	vector<ARGLIST> funcargs;
 	unsigned long calls = 1;
+
 	//number of external functions called
 	unsigned childexterns = 0;
 	MEM_ADDRESS address = 0; //this is only used in externs. bit big?

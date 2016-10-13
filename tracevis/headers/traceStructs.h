@@ -54,12 +54,14 @@ namespace std
 typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
 
 //extern nodes this node calls. useful for 'call eax' situations
-struct CHILDEXTERN {
+struct CHILDEXTERN 
+{
 	NODEINDEX vertid;
 	CHILDEXTERN *next;
 };
 
-struct INS_DATA {
+struct INS_DATA 
+{
 	void *bb_ptr;
 	string mnemonic;
 	string op_str;
@@ -73,6 +75,8 @@ struct INS_DATA {
 	char itype;
 	bool conditional = false;
 	bool dataEx = false;
+	bool hasSymbol = false;
+
 	MEM_ADDRESS address;
 	unsigned int numbytes;
 	MEM_ADDRESS condTakenAddress;
@@ -90,14 +94,14 @@ typedef vector<INS_DATA *> INSLIST;
 
 struct BB_DATA {
 	INSLIST inslist;
-	int modnum;
+	unsigned int modnum;
 	//list of threads that call this BB
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
 	//  tid     
 	map <DWORD, EDGELIST> thread_callers;
 
-	string symbol;
+	bool hasSymbol = false;
 };
 
 struct FUNCARG {

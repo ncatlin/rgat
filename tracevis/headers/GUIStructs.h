@@ -64,6 +64,9 @@ struct DISPLAYMODES {
 	bool heatmap = false;
 	bool conditional = false;
 	bool nearSide = false;
+	bool show_dbg_symbol_text = true;
+	int show_ins_text = INSTEXT_AUTO;
+	int show_extern_text = EXTERNTEXT_SYMS;
 	int diff = 0;
 };
 
@@ -116,8 +119,6 @@ public:
 	HEIGHTWIDTH mainFrameSize;
 	bool rescale = false;
 	bool autoscale = true;
-	int show_ins_text = INSTEXT_AUTO;
-	int show_extern_text = EXTERNTEXT_SYMS;
 
 	int leftcolumn = 0;
 	int rightcolumn = 0;

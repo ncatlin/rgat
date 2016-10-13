@@ -213,14 +213,24 @@ void basicblock_handler::main_loop()
 			{
 				BB_DATA *bbdata = new BB_DATA;
 				bbdata->modnum = modnum;
-				bbdata->symbol.clear();
+
+				piddata->getDisassemblyReadLock();
+				if (!piddata->modsymsPlain.at(modnum).count(targetaddr))
+					bbdata->hasSymbol = true;
+				piddata->dropDisassemblyReadLock();
 
 				piddata->getExternlistWriteLock();
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 			
 				if (piddata->externdict[targetaddr] == 0)
+				{
+					assert(0); //why would this happen? delete me if no assert here
 					piddata->externdict[targetaddr] = bbdata;
+				}
 				piddata->dropExternlistWriteLock();
+
+
+
 
 				continue;
 			}
@@ -229,12 +239,12 @@ void basicblock_handler::main_loop()
 			MEM_ADDRESS insaddr = targetaddr;
 			while (true)
 			{
-				
 				if (next_token[0] == NULL) 
 					break;
 				INS_DATA *instruction = NULL;
 
 				string opcodes(strtok_s(next_token, "@", &next_token));
+
 				piddata->getDisassemblyWriteLockB();
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
@@ -259,8 +269,9 @@ void basicblock_handler::main_loop()
 					instruction->modnum = modnum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
-					
-					
+					if (piddata->modsymsPlain.at(modnum).count(targetaddr))
+						instruction->hasSymbol = true;
+
 					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) {
 						cerr << "[rgat]ERROR: Bad dissasembly in PID: " << PID << ". Corrupt trace?" << endl;
 						assert(0);
@@ -270,6 +281,7 @@ void basicblock_handler::main_loop()
 					instruction->mutationIndex = piddata->disassembly[insaddr].size()-1;
 				}
 				blockInstructions->push_back(instruction);
+
 				piddata->dropDisassemblyWriteLockB();
 
 				insaddr += instruction->numbytes;

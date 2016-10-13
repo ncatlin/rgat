@@ -114,9 +114,8 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	thisnode.ins = instruction;
 	thisnode.conditional = thisnode.ins->conditional;
 	thisnode.address = instruction->address;
-	thisnode.mutation = blockID;
+	thisnode.blockID = blockID;
 	thisnode.executionCount = repeats;
-
 
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
@@ -571,12 +570,9 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	newTargNode.parentIdx = lastVertID;
 	newTargNode.executionCount = 1;
 
-	thisgraph->insert_node(targVertID, newTargNode); //this invalidates lastnode
+	thisgraph->insert_node(targVertID, newTargNode); //this invalidates all node_data* pointers
 	lastNode = &newTargNode;
 
-	obtainMutex(thisgraph->highlightsMutex, 1046);
-	thisgraph->externList.push_back(targVertID);
-	dropMutex(thisgraph->highlightsMutex);
 	*resultPair = std::make_pair(lastVertID, targVertID);
 
 	edge_data newEdge;
@@ -779,7 +775,7 @@ void thread_trace_handler::dump_loop()
 	//++thisgraph->loopCounter;
 
 	//put the verts/edges on the graph
-	for (int cacheIdx = 0; cacheIdx < loopCache.size(); ++cacheIdx)
+	for (unsigned int cacheIdx = 0; cacheIdx < loopCache.size(); ++cacheIdx)
 	{
 		TAG *thistag = &loopCache[cacheIdx];
 		handle_tag(thistag, loopIterations);
@@ -1311,9 +1307,9 @@ void thread_trace_handler::main_loop()
 				}
 
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
-					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address " << e_ip << "/" << e_ip_s << endl;
+					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address 0x" <<hex<< e_ip << endl;
 
-				cout << "last node was " << lastVertID << " at addr " << thisgraph->safe_get_node(lastVertID)->address << endl;
+				cout << "last node was " << lastVertID << " at addr 0x" <<hex<< thisgraph->safe_get_node(lastVertID)->address << endl;
 
 				piddata->getDisassemblyReadLock();
 				//problem here: no way of knowing which mutation of the faulting instruction was executed
@@ -1326,7 +1322,7 @@ void thread_trace_handler::main_loop()
 					if (!piddata->disassembly.count(e_ip))
 					{
 						piddata->dropDisassemblyReadLock();
-						cerr << "[rgat]Exception address " << e_ip << " not found in disassembly" << endl;
+						cerr << "[rgat]Exception address 0x" <<hex<< e_ip << " not found in disassembly" << endl;
 						continue;
 					}
 				}
@@ -1381,7 +1377,7 @@ void thread_trace_handler::main_loop()
 		std::vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
 		for (; repeatIt != blockRepeatQueue.end(); ++repeatIt)
 		{
-			cerr << "\t Block Addr:" << hex << repeatIt->blockaddr << endl;
+			cerr << "\t Block Addr: 0x" << hex << repeatIt->blockaddr << endl;
 			cerr << "\t Targeted unavailable blocks: ";
 
 			vector<pair<unsigned long, unsigned long>>::iterator targIt = repeatIt->targBlocks.begin();

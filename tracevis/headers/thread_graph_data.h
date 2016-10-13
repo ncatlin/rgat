@@ -72,11 +72,8 @@ class thread_graph_data
 	EDGEMAP edgeDict; //node id pairs to edge data
 	EDGELIST edgeList; //order of edge execution
 
-	unsigned int lastAnimatedBB = 0;
-	unsigned int firstAnimatedBB = 0;
 	vector<node_data> nodeList; //node id to node data
 
-	
 	PROCESS_DATA* piddata;
 	int baseMod = -1;
 	HANDLE disassemblyMutex;
@@ -117,12 +114,6 @@ class thread_graph_data
 
 	//which BB we are pointing to in the sequence list
 	unsigned long animationIndex = 0;
-	//which instruction we are pointing to in the BB
-	unsigned long blockInstruction = 0;
-	bool newanim = true;
-	unsigned int last_anim_start = 0;
-	unsigned int last_anim_stop = 0;
-
 	void *trace_reader;
 	
 	//updated with backlog input/processing each second for display
@@ -170,6 +161,7 @@ public:
 	void display_static(bool showNodes, bool showEdges);
 
 	void draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd);
+	string get_node_sym(NODEINDEX idx, PROCESS_DATA* piddata);
 
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
@@ -225,14 +217,8 @@ public:
 	void render_live_animation(float fadeRate);
 	int render_replay_animation(int stepSize, float fadeRate);
 
-
-	INS_DATA* get_last_instruction(unsigned long sequenceId);
-	string get_node_sym(unsigned int idx, PROCESS_DATA* piddata);
-
 	void reset_mainlines();
-	//unsigned int derive_anim_node();
-	//void performStep(int stepSize, bool skipLoop);
-	//unsigned int updateAnimation(unsigned int updateSize, bool animationMode, bool skipLoop);
+
 	VCOORD *get_active_node_coord();
 	void set_active_node(unsigned int idx);
 	void reset_animation();
@@ -261,7 +247,12 @@ public:
 
 	//list of external calls used for listing possible highlights
 	HANDLE highlightsMutex = CreateMutex(NULL, FALSE, NULL);
-	vector<unsigned int> externList; 
+
+	//list of all external nodes
+	vector<unsigned int> externList;
+	//list of all internal nodes with symbols
+	vector<unsigned int> internList;
+
 	set<unsigned int> exceptionSet;
 	string modPath;
 
