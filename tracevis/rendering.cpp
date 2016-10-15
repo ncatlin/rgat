@@ -631,7 +631,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	else
 		argstring << n->calls << "x " << symString;
 
-	obtainMutex(clientState->activeGraph->funcQueueMutex,3521);
+	obtainMutex(clientState->activeGraph->externGuardMutex,3521);
 	if (n->funcargs.empty()) 
 		argstring << " ()";
 	else
@@ -661,7 +661,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 			else
 				argstring << ")";
 		}
-	dropMutex(clientState->activeGraph->funcQueueMutex);
+	dropMutex(clientState->activeGraph->externGuardMutex);
 	
 	al_draw_text(font, al_col_light_green, screenCoord.x + INS_X_OFF,
 		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,

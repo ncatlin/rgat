@@ -147,5 +147,6 @@ private:
 	vector<TAG> loopCache;
 	NODEPAIR repeatStart;
 	NODEPAIR repeatEnd;
+	map <pair<MEM_ADDRESS, BLOCK_IDENTIFIER>, unsigned long> callCounter;
 	unsigned int arg_storage_capacity = 100;
 };

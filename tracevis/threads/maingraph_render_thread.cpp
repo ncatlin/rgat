@@ -69,8 +69,6 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 
 		int animationResult = graph->render_replay_animation(clientState->animationUpdate, clientState->config->animationFadeRate);
 
-		if (clientState->skipLoop) clientState->skipLoop = false;
-
 		if (clientState->modes.animation)
 		{
 			if (animationResult == ANIMATION_ENDED)

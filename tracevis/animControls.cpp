@@ -26,6 +26,8 @@ void AnimControls::notifyAnimFinished()
 	setAnimState(ANIM_INACTIVE);
 }
 
+#define ANIM_SCROLL_X 320
+
 void AnimControls::setAnimState(int newAnimState)
 {
 	if (clientState->activePid && clientState->activePid->is_running())
@@ -41,7 +43,7 @@ void AnimControls::setAnimState(int newAnimState)
 		if (!clientState->activeGraph->active)
 		{
 			newAnimState = ANIM_REPLAY;
-			clientState->animationUpdate = std::stoi(this->stepText->getText());
+			clientState->animationUpdate = getSpeed();
 			clientState->modes.animation = true;
 			stringstream logentry;
 			logentry << "Replay of " << clientState->activeGraph->modPath << " PID:" <<
@@ -55,57 +57,60 @@ void AnimControls::setAnimState(int newAnimState)
 
 	if (newAnimState == ANIM_LIVE)
 	{
-		//connectBtn->setVisibility(true);
 		pauseBtn->setVisibility(true);
-		backJumpBtn->setVisibility(false);
-		backStepBtn->setVisibility(false);
-		forwardStepBtn->setVisibility(false);
-		forwardJumpBtn->setVisibility(false);
 		playBtn->setVisibility(false);
-		stepText->setVisibility(false);
+		animHSlide->setVisibility(false);
+		speedSelect->setVisibility(false);
 	}
 
 	if (newAnimState == ANIM_INACTIVE)
 	{
-		backJumpBtn->setVisibility(true);
-		backJumpBtn->setToolTipText("Unimplemented");
-		//backStepBtn->setVisibility(true); //disabled while unimplemented
-		forwardStepBtn->setVisibility(true);
-		forwardStepBtn->setToolTipText("Step animation forward by one");
-		forwardJumpBtn->setVisibility(true);
 		playBtn->setText("Play");
-
-		stepText->setVisibility(true);
 
 		clientState->animationUpdate = 0;
 		clientState->modes.animation = false;
-		//connectBtn->setVisibility(false);
+		clientState->activeGraph->terminated = true;
 
 		pauseBtn->setVisibility(false);
 		playBtn->setVisibility(true);
+
+		speedSelect->setVisibility(true);
+
+		animHSlide->setVisibility(true);
+		int scrollX = ANIM_SCROLL_X;
+		int scrollWidth = (int)floor((clientState->mainFrameSize.width - scrollX)*(2.0 / 3.0));
+
+		animHSlide->setSize(scrollWidth, 20);
+		animHSlide->setLocation(scrollX, playBtn->getAbsolutePosition().getY() + 2);
+		ignoreSliderChange = true;
+
+		setSlider(0);
 	}
 
 	else if (newAnimState == ANIM_REPLAY)
 	{
-		backStepBtn->setVisibility(false);
-		backJumpBtn->setVisibility(true);
-		backJumpBtn->setToolTipText("Decrease animation speed");
-		forwardStepBtn->setVisibility(true);
-		forwardStepBtn->setToolTipText("Skip loop");
-		forwardJumpBtn->setVisibility(true);
-		forwardJumpBtn->setToolTipText("Increase animation speed");
 		playBtn->setVisibility(true);
 		playBtn->setText("Stop");
+		playBtn->setToolTipText("Reset animation");
 
-		stepText->setVisibility(true);
-		//connectBtn->setVisibility(false);
-
-		clientState->animationUpdate = std::stoi(this->stepText->getText());
+		clientState->animationUpdate = getSpeed();
 		clientState->modes.animation = true;
+		
+
+		speedSelect->setVisibility(true);
+
+		animHSlide->setVisibility(true);
+		int scrollX = ANIM_SCROLL_X;
+		int scrollWidth = (int)floor((clientState->mainFrameSize.width - scrollX)*(2.0 / 3.0));
+		animHSlide->setSize(scrollWidth, 20);
+		animHSlide->setLocation(scrollX, playBtn->getAbsolutePosition().getY()+2);
+		ignoreSliderChange = true;
+
+		setSlider((int)((float)1000 * clientState->activeGraph->getAnimationPercent()));
 
 		pauseBtn->setVisibility(true);
 		pauseBtn->setText("Pause");
-		pauseBtn->setSize(90, forwardStepBtn->getHeight());
+		pauseBtn->setSize(90, playBtn->getHeight());
 	}
 
 }
@@ -153,16 +158,34 @@ void AnimControls::update(thread_graph_data *graph)
 		return;
 	}
 
-
 	controlsLayout->setVisibility(true);
-
 
 	if (!graph->active && animationState == ANIM_LIVE)
 		setAnimState(ANIM_INACTIVE);
 
 	stringstream stepInfo;
 
-	stepInfo << graph->animInstructionIndex << "/";
+	if (!graph->active && graph->animInstructionIndex)
+	{
+		if (graph->animInstructionIndex < 10000)
+			stepInfo << graph->animInstructionIndex - 1;
+		else if (graph->animInstructionIndex < 1000000)
+			stepInfo << (graph->animInstructionIndex - 1) / 1000 << "K";
+		else
+			stepInfo << (graph->animInstructionIndex - 1) / 1000000 << "M";
+
+		stepInfo << " / ";
+
+		ALLEGRO_MOUSE_STATE mstate;
+		al_get_mouse_state(&mstate);
+		if (mstate.y < clientState->mainFrameSize.height || !mstate.buttons)
+		{
+			float animPC = graph->getAnimationPercent();
+			int newVal = (int)(1000.0 * animPC);
+			ignoreSliderChange = true;
+			setSlider(newVal);
+		}
+	}
 	if (graph->totalInstructions < 10000)
 		stepInfo << graph->totalInstructions - 1 << " instructions. ";
 	else if (graph->totalInstructions < 1000000)
@@ -170,23 +193,6 @@ void AnimControls::update(thread_graph_data *graph)
 	else
 		stepInfo << (graph->totalInstructions - 1) / 1000000 << "M instructions. ";
 
-	/*
-	if (graph->loopCounter)//loops exist
-	{
-		if (graph->animLoopStartIdx) //in loop
-		{
-			if (!graph->active)
-				skipBtn->setVisibility(true);
-			stepInfo << "Iteration " << graph->loopIteration << "/" << graph->targetIterations << " of ";
-		}
-		else
-			skipBtn->setVisibility(false);
-
-		if (!graph->active)
-			stepInfo << graph->loopsPlayed << "/";
-		stepInfo << graph->loopCounter << " loops";
-	}
-	*/
 	statusLabel->setText(stepInfo.str());
 
 	if (graph->active)
@@ -208,10 +214,15 @@ void AnimControls::update(thread_graph_data *graph)
 	}
 }
 
+int AnimControls::getSpeed()
+{
+	return (1 << speedSelect->getSelectedIndex());
+}
+
 void AnimControls::fitToResize()
 {
-	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
-	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
+	previewVScroll->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
+	previewVScroll->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	controlsLayout->setLocation(15, clientState->displaySize.height - 40);
 	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
@@ -288,54 +299,17 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 
 	controlsLayout = new agui::FlowLayout;
 
-	backStepBtn = new agui::Button();
-	backStepBtn->setFont(btnFont);
-	backStepBtn->setText("<");
-	backStepBtn->resizeToContents();
-	backStepBtn->setBackColor(agui::Color(210, 210, 210));
-	backStepBtn->setToolTipText("Step animation back by one");
-	//controlsLayout->add(backStepBtn);
-
-	forwardStepBtn = new agui::Button();
-	forwardStepBtn->setFont(btnFont);
-	forwardStepBtn->setText(">");
-	forwardStepBtn->resizeToContents();
-	forwardStepBtn->setBackColor(agui::Color(210, 210, 210));
-	forwardStepBtn->setToolTipText("Step animation forward by one");
-	//controlsLayout->add(forwardStepBtn);
-
-	int btnHeight = forwardStepBtn->getHeight();
-
-	backJumpBtn = new agui::Button();
-	backJumpBtn->setFont(btnFont);
-	backJumpBtn->setText("<<");
-	backJumpBtn->resizeToContents();
-	backJumpBtn->setBackColor(agui::Color(210, 210, 210));
-	backJumpBtn->setToolTipText("Jump animation back by specified steps");
-	//controlsLayout->add(backJumpBtn);
-
-	stepText = new agui::TextField();
-	stepText->setText("1");
-	stepText->setSize(70, btnHeight);
-	stepText->setNumeric(true);
-	//controlsLayout->add(stepText);
-
-	forwardJumpBtn = new agui::Button();
-	forwardJumpBtn->setFont(btnFont);
-	forwardJumpBtn->setText(">>");
-	forwardJumpBtn->resizeToContents();
-	forwardJumpBtn->setBackColor(agui::Color(210, 210, 210));
-	forwardJumpBtn->setToolTipText("Jump animation forward by specified steps");
-	//controlsLayout->add(forwardJumpBtn);
 
 	playBtn = new agui::Button();
 	playBtn->setFont(btnFont);
 	playBtn->setText("Play");
-	playBtn->setToolTipText("Play animation at specified steps per frame");
+	playBtn->setToolTipText("Replay animation");
 	playBtn->setMargins(0, 8, 0, 8);
-	playBtn->setSize(80, btnHeight);
+	playBtn->setSize(80, 25);
 	playBtn->setBackColor(agui::Color(210, 210, 210));
 	controlsLayout->add(playBtn);
+
+	int btnHeight = playBtn->getHeight();
 
 	killBtn = new agui::Button();
 	killBtn->setFont(btnFont);
@@ -357,15 +331,26 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	pauseBtn->setSize(90, btnHeight);
 	controlsLayout->add(pauseBtn);
 
-	skipBtn = new agui::Button();
-	skipBtn->setFont(btnFont);
-	skipBtn->setText("Skip");
-	skipBtn->setToolTipText("Skip Loop");
-	skipBtn->setMargins(0, 8, 0, 8);
-	skipBtn->setBackColor(agui::Color(210, 210, 210));
-	skipBtn->setVisibility(false);
-	skipBtn->setSize(65, btnHeight);
-	controlsLayout->add(skipBtn);
+	speedSelect = new agui::DropDown;
+	speedSelect->setText("Replay Speed");
+	speedSelect->addItem("0.5x");
+	speedSelect->addItem("1x");
+	speedSelect->addItem("2x");
+	speedSelect->addItem("4x");
+	speedSelect->addItem("8x");
+	speedSelect->addItem("16x");
+	speedSelect->addItem("32x");
+	speedSelect->addItem("64x");
+	speedSelect->addItem("128x");
+	speedSelect->setSelectedIndex(0);
+	speedSelect->resizeToContents();
+	speedSelect->setSize(speedSelect->getWidth(), pauseBtn->getHeight());
+	speedSelect->setToolTipText("Replay speed");
+	speedSelect->setVisibility(false);
+	controlsLayout->add(speedSelect);
+
+	speedDropListener *dropListen = new speedDropListener(clientState, this);
+	speedSelect->addActionListener(dropListen);
 
 	controlsLayout->resizeToContents();
 	controlsLayout->setLocation(15, clientState->displaySize.height - playBtn->getHeight()*3);
@@ -375,23 +360,25 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 	animationState = -1;
 
 	AnimButtonListener *btnListen = new AnimButtonListener(this, &animationState, clientState);
-	//connectBtn->addActionListener(btnListen);
-	backStepBtn->addActionListener(btnListen);
-	backJumpBtn->addActionListener(btnListen);
-	forwardStepBtn->addActionListener(btnListen);
-	forwardJumpBtn->addActionListener(btnListen);
 	playBtn->addActionListener(btnListen);
 	pauseBtn->addActionListener(btnListen);
-	skipBtn->addActionListener(btnListen);
 	killBtn->addActionListener(btnListen);
 
-	scrollbar = new agui::VScrollBar;
-	scrollbar->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
-	scrollbar->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
-	scrollbar->setMaxValue(0);
-	ScrollBarMouseListener *sbml = new ScrollBarMouseListener(this, clientState, scrollbar);
-	scrollbar->addMouseListener(sbml);
-	widgets->add(scrollbar);
+	previewVScroll = new agui::VScrollBar;
+	previewVScroll->setSize(PREV_SCROLLBAR_WIDTH, clientState->displaySize.height - 50);
+	previewVScroll->setLocation(clientState->displaySize.width - PREV_SCROLLBAR_WIDTH, 50);
+	previewVScroll->setMaxValue(0);
+	PrevScrollBarMouseListener *sbmlPrev = new PrevScrollBarMouseListener(this, clientState, previewVScroll);
+	previewVScroll->addMouseListener(sbmlPrev);
+	widgets->add(previewVScroll);
+
+	animHSlide = new agui::Slider;
+	animHSlide->setMinValue(0);
+	animHSlide->setMaxValue(1000);
+	animHSlide->setVisibility(false);
+	HSliderMouseListener *sbmlAnim = new HSliderMouseListener(this, clientState, animHSlide);
+	animHSlide->addSliderListener(sbmlAnim);
+	widgets->add(animHSlide);
 
 	CreateBufLayout();
 

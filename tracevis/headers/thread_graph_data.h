@@ -57,6 +57,7 @@ struct ANIMATIONENTRY {
 	unsigned long count;
 	MEM_ADDRESS targetAddr;
 	BLOCK_IDENTIFIER targetID;
+	unsigned long callCount;
 };
 
 struct VERTREMAINING {
@@ -106,7 +107,6 @@ class thread_graph_data
 	//bool decrease_sequence();
 
 	bool loadEdgeDict(ifstream *file);
-	bool loadExterns(ifstream *file);
 	bool loadExceptions(ifstream *file);
 	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 	bool loadStats(ifstream *file);
@@ -130,6 +130,7 @@ class thread_graph_data
 	void darken_fading(float fadeRate);
 	void remove_unchained_from_animation();
 	unsigned long calculate_wait_frames(unsigned int stepSize, unsigned long executions);
+	void clear_active();
 
 	map <NODEINDEX, int> newAnimNodeTimes;
 	map <unsigned int, int> activeAnimNodeTimes;
@@ -139,7 +140,9 @@ class thread_graph_data
 	map <NODEPAIR, int> activeAnimEdgeTimes;
 	set <NODEPAIR> fadingAnimEdges;
 
-	map <NODEINDEX, int> newExternTimes;
+	bool animBuildingLoop = false;
+
+	map <pair<NODEINDEX, unsigned int>, int> newExternTimes;
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 
 	//animation data as it is received from drgat
@@ -163,6 +166,7 @@ public:
 	void draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd);
 	string get_node_sym(NODEINDEX idx, PROCESS_DATA* piddata);
 
+	unsigned long getAnimDataSize() { return savedAnimationData.size(); }
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
 
@@ -184,6 +188,7 @@ public:
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 
 	void push_anim_update(ANIMATIONENTRY);
+	float getAnimationPercent() { return (float)((float)animationIndex / (float)savedAnimationData.size()); }
 
 	unsigned int fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int logSize);
 
@@ -256,7 +261,7 @@ public:
 	set<unsigned int> exceptionSet;
 	string modPath;
 
-	HANDLE funcQueueMutex = CreateMutex(NULL, FALSE, NULL);
+	HANDLE externGuardMutex = CreateMutex(NULL, FALSE, NULL);
 	//number of times each extern called, used for tracking which arg to display
 	map <unsigned int, unsigned long> callCounter;
 
@@ -300,10 +305,10 @@ public:
 	GRAPH_DISPLAY_DATA *conditionallines = 0;
 	GRAPH_DISPLAY_DATA *conditionalnodes = 0;
 
-
 	//position out of all the instructions instrumented
 	unsigned long animInstructionIndex = 0;
 	unsigned long totalInstructions = 0;
+	long long userSelectedAnimPosition = -1;
 
 	bool needVBOReload_active = true;
 	//two sets of VBOs for graph so we can display one

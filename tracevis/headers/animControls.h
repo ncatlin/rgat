@@ -27,6 +27,8 @@ limitations under the License.
 #include "Agui\Widgets\TextField\TextField.hpp"
 #include "Agui\Widgets\ToolTip\ToolTip.hpp"
 #include "Agui\Widgets\ScrollBar\VScrollBar.hpp"
+#include "Agui\Widgets\Slider\Slider.hpp"
+#include "Agui\Widgets\Slider\SliderListener.hpp"
 
 #define CONTROLS_Y 80
 #define ANIM_INACTIVE 0
@@ -43,36 +45,35 @@ public:
 	bool isEnabled() { return enableState; }
 	void update(thread_graph_data *graph);
 	void notifyAnimFinished();
-	void setScrollbarVisible(bool enabled) { scrollbar->setVisibility(enabled); }
-	void setScrollbarMax(int val) {	scrollbar->setMaxValue(val);}
+	void setScrollbarVisible(bool enabled) { previewVScroll->setVisibility(enabled); }
+	void setScrollbarMax(int val) { previewVScroll->setMaxValue(val);}
 
-	agui::VScrollBar getScrollbar() { return scrollbar; }
+	agui::VScrollBar getScrollbar() { return previewVScroll; }
 	
-	int getScroll() { return scrollbar->getValue(); }
-	agui::TextField *stepText = NULL;
+	int getScroll() { return previewVScroll->getValue(); }
+	int getSpeed();
+	void setSlider(int val) { animHSlide->setValue(val); }
+
 	void doScroll(int z) {
-		if (z > 0) scrollbar->scrollUp();
-		else scrollbar->scrollDown();
+		if (z > 0) previewVScroll->scrollUp();
+		else previewVScroll->scrollDown();
 	}
 
 	//call when client windows gets resized
 	void fitToResize();
-	void setStatusLabel(string msg) { statusLabel->setText(msg); }
-	
+	void setStatusLabel(string msg) { statusLabel->setText(msg); };
+	bool ignoreSliderChange = false;
 
 private:
 	agui::FlowLayout *mouseLayout = NULL;
 	agui::FlowLayout *controlsLayout = NULL;
 	agui::FlowLayout *labelsLayout = NULL;
 	agui::Button *killBtn = NULL;
-	agui::Button *backJumpBtn = NULL;
-	agui::Button *backStepBtn = NULL;
-	agui::Button *forwardStepBtn = NULL;
-	agui::Button *forwardJumpBtn = NULL;
 	agui::Button *playBtn = NULL;
 	agui::Button *pauseBtn = NULL;
-	agui::Button *skipBtn = NULL;
-	agui::VScrollBar *scrollbar = NULL;
+	agui::VScrollBar *previewVScroll = NULL;
+	agui::DropDown *speedSelect = NULL;
+	agui::Slider *animHSlide = NULL;
 
 	agui::FlowLayout *backlogLayout = NULL;
 	agui::Label *readLabel = NULL;
@@ -113,34 +114,11 @@ public:
 				controls->setAnimState(ANIM_ACTIVATED);
 		}
 
-		//one step forward
-		if (btntext == ">")
-		{
-			if (currentState == ANIM_INACTIVE)
-				clientState->animationUpdate = 1;
-			return;
-		}
-
-		if (btntext == "Skip")
-		{
-			clientState->skipLoop = true;
-			return;
-		}
-
-		//one step back
-		if (btntext == "<")
-		{
-			if (currentState == ANIM_INACTIVE)
-				clientState->animationUpdate = -1;
-			return;
-		}
-
 		if (btntext == "Stop")
 		{
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
 			clientState->activeGraph->terminated = true;
-			//clientState->activeGraph->reset_animation();
 			evt.getSource()->setText("Play");
 			return;
 		}
@@ -161,10 +139,9 @@ public:
 			return;
 		}
 
-		int quantity = std::stoi(controls->stepText->getText());
 		if (btntext == "Activity")
 		{
-			clientState->animationUpdate = quantity;
+			clientState->animationUpdate = controls->getSpeed();
 			clientState->modes.animation = true;
 			evt.getSource()->setText("Structure");
 			evt.getSource()->setSize(90, evt.getSource()->getHeight());
@@ -173,7 +150,7 @@ public:
 
 		if (btntext == "Continue")
 		{
-			clientState->animationUpdate = quantity;
+			clientState->animationUpdate = controls->getSpeed();
 			clientState->modes.animation = true;
 			evt.getSource()->setText("Pause");
 			evt.getSource()->setSize(90, evt.getSource()->getHeight());
@@ -190,36 +167,6 @@ public:
 			return;
 		}
 
-		if (btntext == ">>")
-		{
-			if (currentState == ANIM_INACTIVE)
-			{
-				clientState->animationUpdate = quantity;
-			}
-			else if (currentState == ANIM_REPLAY)
-			{
-				quantity++;
-				controls->stepText->setText(to_string(quantity));
-				clientState->animationUpdate = quantity;
-			}
-			return;
-		}
-
-		if (btntext == "<<")
-		{
-			if (currentState == ANIM_INACTIVE)
-			{
-				clientState->animationUpdate = -quantity;
-			}
-			else if (currentState == ANIM_REPLAY)
-			{
-				if (quantity == 0) return;
-				quantity--;
-				controls->stepText->setText(to_string(quantity));
-				clientState->animationUpdate = quantity;
-			}
-			return;
-		}
 	}
 private:
 	AnimControls *controls;
@@ -227,10 +174,10 @@ private:
 	VISSTATE *clientState;
 };
 
-class ScrollBarMouseListener : public agui::MouseListener
+class PrevScrollBarMouseListener : public agui::MouseListener
 {
 public:
-	ScrollBarMouseListener(AnimControls *mycontrols, VISSTATE *state, agui::VScrollBar *sb)
+	PrevScrollBarMouseListener(AnimControls *mycontrols, VISSTATE *state, agui::VScrollBar *sb)
 	{
 		controls = mycontrols; clientState = state; scrollbar = sb;
 	}
@@ -248,4 +195,45 @@ private:
 	agui::VScrollBar *scrollbar;
 	AnimControls *controls;
 	VISSTATE *clientState;
+};
+
+class HSliderMouseListener : public agui::SliderListener
+{
+public:
+	HSliderMouseListener(AnimControls *mycontrols, VISSTATE *state, agui::Slider *sb)
+	{
+		controls = mycontrols; clientState = state; scrollbar = sb;
+	}
+
+	void valueChanged(agui::Slider* source, int value)
+	{
+		if (controls->ignoreSliderChange)
+		{
+			controls->ignoreSliderChange = false;
+			return;
+		}
+
+		float newVal = source->getValue();
+		float maxVal = source->getMaxValue();
+		clientState->activeGraph->userSelectedAnimPosition = (unsigned long)(clientState->activeGraph->getAnimDataSize()*(newVal / maxVal));
+	}
+
+private:
+	agui::Slider *scrollbar;
+	AnimControls *controls;
+	VISSTATE *clientState;
+	int lastX =-1;
+};
+
+class speedDropListener : public agui::ActionListener
+{
+public:
+	speedDropListener(VISSTATE *state, AnimControls *acontrols) { clientState = state; controls = acontrols; }
+	virtual void actionPerformed(const agui::ActionEvent &evt)
+	{
+		clientState->animationUpdate = controls->getSpeed();
+	}
+private:
+	VISSTATE *clientState;
+	AnimControls *controls;
 };

@@ -56,4 +56,9 @@ generation and graph construction which have now been fixed.
 
 Various crashes have been fixed.
 
- 
+
+09/10/16 0.3 [PREVIOUS SAVES+CONFIGS OBSOLETE]
+-----------------
+Replay is reimplemented and now has a much cleaner interface, including a progress control slider
+Debugging symbols are now optionally displayed on the graph with key [i]
+

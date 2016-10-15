@@ -125,8 +125,9 @@ public:
 
 	void *widgets = 0;
 	int animationUpdate = 0;
+
+	int userSelectedAnimPos = 0;
 	bool animFinished = false;
-	bool skipLoop = false;
 
 	bool mouse_dragging = false;
 	thread_graph_data *mouse_drag_graph = NULL;

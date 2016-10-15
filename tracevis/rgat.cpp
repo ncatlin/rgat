@@ -499,6 +499,15 @@ static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 		mousex > clientState->mainFrameSize.width);
 }
 
+static bool mouse_in_maingraphpane(VISSTATE* clientState, int mousex, int mousey)
+{
+	return (mousex > 0 &&
+			mousex < clientState->mainFrameSize.width &&
+			mousey > 0 &&
+			mousey < clientState->mainFrameSize.height);
+}
+
+
 bool loadTrace(VISSTATE *clientState, string filename)
 {
 	ifstream loadfile;
@@ -664,15 +673,16 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	{
 		case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
 		{
-			if (!mouse_in_previewpane(clientState, ev->mouse.x))
+			if (mouse_in_maingraphpane(clientState, ev->mouse.x, ev->mouse.y))
 				clientState->mouse_dragging = true;
-			else
-			{
-				if (widgets->dropdownDropped()) return EV_MOUSE;
-				PID_TID PID, TID;
-				if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
-					set_active_graph(clientState, PID, TID);
-			}
+			else 
+				if (mouse_in_previewpane(clientState, ev->mouse.x))
+				{
+					if (widgets->dropdownDropped()) return EV_MOUSE;
+					PID_TID PID, TID;
+					if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
+						set_active_graph(clientState, PID, TID);
+				}
 			return EV_MOUSE;
 		}
 

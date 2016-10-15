@@ -623,7 +623,7 @@ void thread_trace_handler::process_new_args()
 					++callersIt; 
 					continue;
 				}
-				obtainMutex(thisgraph->funcQueueMutex, 1048);
+				obtainMutex(thisgraph->externGuardMutex, 1048);
 				vector<ARGLIST> callsvector = callersIt->second;
 				vector<ARGLIST>::iterator callsIt = callsvector.begin();
 
@@ -658,7 +658,7 @@ void thread_trace_handler::process_new_args()
 				else
 					++callersIt;
 
-				dropMutex(thisgraph->funcQueueMutex);
+				dropMutex(thisgraph->externGuardMutex);
 			}
 
 			++callvsIt;
@@ -772,7 +772,6 @@ void thread_trace_handler::dump_loop()
 		loopState = NO_LOOP;
 		return;
 	}
-	//++thisgraph->loopCounter;
 
 	//put the verts/edges on the graph
 	for (unsigned int cacheIdx = 0; cacheIdx < loopCache.size(); ++cacheIdx)
@@ -784,15 +783,17 @@ void thread_trace_handler::dump_loop()
 		animUpdate.blockAddr = thistag->blockaddr;
 		animUpdate.blockID = thistag->blockID;
 		animUpdate.count = loopIterations;
-
-		if (cacheIdx == loopCache.size() - 1)
-			animUpdate.entryType = ANIM_LOOP_LAST;
-		else
-			animUpdate.entryType = ANIM_LOOP;
+		animUpdate.entryType = ANIM_LOOP;
+		if (get_extern_at_address(animUpdate.blockAddr, 0, 0))
+			animUpdate.callCount = callCounter[make_pair(thistag->blockaddr, thistag->blockID)]++;
 
 		thisgraph->push_anim_update(animUpdate);
 
 	}
+
+	ANIMATIONENTRY animUpdate;
+	animUpdate.entryType = ANIM_LOOP_LAST;
+	thisgraph->push_anim_update(animUpdate);
 
 	loopCache.clear();
 	loopIterations = 0;
@@ -834,27 +835,32 @@ bool thread_trace_handler::assign_blockrepeats()
 	{
 		
 		vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
-		for (; pendIt != pendingEdges.end(); ++pendIt)
+		while (pendIt != pendingEdges.end())
 		{
 			INSLIST *source = find_block_disassembly(pendIt->sourceAddr, pendIt->sourceID);
-			if (!source) continue;
+			if (!source) {
+				++pendIt;
+				continue;
+			}
 
 			INSLIST *targ = find_block_disassembly(pendIt->targAddr, pendIt->targID);
-			if (!targ) continue;
+			if (!targ) {
+				++pendIt;
+				continue;
+			}
 
 			thisgraph->insert_edge_between_BBs(source, targ);
 			pendIt = pendingEdges.erase(pendIt);
 
 			//not sure what causes these to happen but haven't seen any get satisfied
 			cout << "Satisfied an edge request!" << endl;
-			if (pendIt == pendingEdges.end()) break;
 		}
 	}
 
 	if (blockRepeatQueue.empty()) return true;
 
 	vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
-	for (; repeatIt != blockRepeatQueue.end(); ++repeatIt)
+	while (repeatIt != blockRepeatQueue.end())
 	{
 		//first find the blocks instruction list
 		MEM_ADDRESS blockaddr = repeatIt->blockaddr;
@@ -864,10 +870,14 @@ bool thread_trace_handler::assign_blockrepeats()
 		if(!repeatIt->blockInslist)
 		{
 			repeatIt->blockInslist = find_block_disassembly(blockaddr, blockID);
-			if (!repeatIt->blockInslist) continue;
+			if (!repeatIt->blockInslist) {
+				++repeatIt; continue;
+			}
 
 			//first/last vert not on drawn yet? skip until it is
-			if (repeatIt->blockInslist->front()->threadvertIdx.count(TID) == 0 || repeatIt->blockInslist->back()->threadvertIdx.count(TID) == 0) continue;
+			if (repeatIt->blockInslist->front()->threadvertIdx.count(TID) == 0 || repeatIt->blockInslist->back()->threadvertIdx.count(TID) == 0) {
+				++repeatIt; continue;
+			}
 
 			//increase weight of all of its instructions
 			INSLIST::iterator blockIt = repeatIt->blockInslist->begin();
@@ -890,8 +900,8 @@ bool thread_trace_handler::assign_blockrepeats()
 		
 		//create any new edges between unchained nodes
 		unsigned int sourceNodeidx = n->index;
-		vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>>::iterator targCallIt;
-		for (targCallIt = repeatIt->targBlocks.begin(); targCallIt != repeatIt->targBlocks.end(); ++targCallIt)
+		vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>>::iterator targCallIt = repeatIt->targBlocks.begin();
+		while (targCallIt != repeatIt->targBlocks.end())
 		{
 			INSLIST* targetBlock = find_block_disassembly(targCallIt->first, targCallIt->second);
 			if (!targetBlock)
@@ -908,28 +918,27 @@ bool thread_trace_handler::assign_blockrepeats()
 					}
 
 				if (alreadyPresent)
-				{
 					targCallIt = repeatIt->targBlocks.erase(targCallIt);
-					if (targCallIt == repeatIt->targBlocks.end()) break;
-				}
+				else
+					++targCallIt;
 	
 				continue;
 			}
 
 			INS_DATA *firstIns = targetBlock->front();
-			if (!firstIns->threadvertIdx.count(TID)) continue;
+			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIt; continue; }
 
 			unsigned int targNodeIdx = firstIns->threadvertIdx.at(TID);
 			edge_data *targEdge = thisgraph->get_edge_create(n, thisgraph->safe_get_node(targNodeIdx));
 
 			targCallIt = repeatIt->targBlocks.erase(targCallIt);
-			if (targCallIt == repeatIt->targBlocks.end()) break;
 		}
 
 		if (repeatIt->targBlocks.empty())
 			repeatIt = blockRepeatQueue.erase(repeatIt);
+		else
+			++repeatIt;
 		
-		if (repeatIt == blockRepeatQueue.end()) return blockRepeatQueue.empty();
 	}
 
 	return blockRepeatQueue.empty();
@@ -1019,8 +1028,6 @@ void thread_trace_handler::main_loop()
 					thisgraph->push_anim_update(animUpdate);
 				}
 
-
-
 				//fallen through/failed conditional jump
 				if (nextBlock == 0) continue;
 
@@ -1060,8 +1067,6 @@ void thread_trace_handler::main_loop()
 				thistag.jumpModifier = MOD_UNINSTRUMENTED;
 				thistag.insCount = 0;
 
-
-
 				if (loopState == BUILDING_LOOP)
 					loopCache.push_back(thistag);
 				else
@@ -1072,6 +1077,7 @@ void thread_trace_handler::main_loop()
 					animUpdate.blockAddr = thistag.blockaddr;
 					animUpdate.blockID = thistag.blockID;
 					animUpdate.entryType = ANIM_EXEC_TAG;
+					animUpdate.callCount = callCounter[make_pair(thistag.blockaddr, thistag.blockID)]++;
 					thisgraph->push_anim_update(animUpdate);
 				}
 
@@ -1086,6 +1092,7 @@ void thread_trace_handler::main_loop()
 					string repeats_s = string(strtok_s(entry+2, ",", &entry));
 					if (!caught_stoul(repeats_s, &loopIterations, 10))
 						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
+
 					continue;
 				}
 

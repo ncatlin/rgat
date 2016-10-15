@@ -536,7 +536,6 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	}
 
 	string data_s;
-	unsigned int modNum;
 	MEM_ADDRESS externAddr;
 	BB_DATA *externEntry;
 	
