@@ -140,10 +140,21 @@ bool clientConfig::loadPreview()
 
 bool clientConfig::loadPaths()
 {
-	saveDir = string(al_get_config_value(alConfig, "Paths", "SAVE_PATH"));
-	DRDir = string(al_get_config_value(alConfig, "Paths", "DYNAMORIO_PATH"));
-	clientPath = string(al_get_config_value(alConfig, "Paths", "CLIENT_PATH"));
-	lastPath = string(al_get_config_value(alConfig, "Paths", "LAST_PATH"));
+	const char *savepath = al_get_config_value(alConfig, "Paths", "SAVE_PATH");
+	if (!savepath) return false;
+	saveDir = string(savepath);
+
+	savepath = al_get_config_value(alConfig, "Paths", "DYNAMORIO_PATH");
+	if (!savepath) return false;
+	DRDir = string(savepath);
+
+	savepath = al_get_config_value(alConfig, "Paths", "CLIENT_PATH");
+	if (!savepath) return false;
+	clientPath = string(savepath);
+
+	savepath = al_get_config_value(alConfig, "Paths", "LAST_PATH");
+	if (!savepath) return false;
+	lastPath = string(savepath);
 	return true;
 }
 
