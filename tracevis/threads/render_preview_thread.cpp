@@ -30,7 +30,7 @@ void preview_renderer::main_loop()
 {
 	alive = true;
 
-	while ((!piddata || piddata->graphs.empty()) && !die && !piddata->should_die())
+	while ((!piddata || piddata->graphs.empty()) && !die)
 		Sleep(200);
 
 	const int outerDelay = clientState->config->preview.processDelay;
@@ -44,13 +44,13 @@ void preview_renderer::main_loop()
 	{
 		//if this closes with the process then previews are left unrendered
 		if (dietimer == 0) break;
-		if ((die || piddata->should_die()) && dietimer-- < 0)
+		if (die && dietimer-- < 0)
 			dietimer = 120;
 
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
 
-		obtainMutex(piddata->graphsListMutex, 1011);
+		obtainMutex(piddata->graphsListMutex, 9011);
 		graphIt = piddata->graphs.begin();
 		for (; graphIt != piddata->graphs.end(); graphIt++)
 			graphlist.push_back((thread_graph_data *)graphIt->second);

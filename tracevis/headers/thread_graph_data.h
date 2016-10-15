@@ -131,6 +131,7 @@ class thread_graph_data
 	void remove_unchained_from_animation();
 	unsigned long calculate_wait_frames(unsigned int stepSize, unsigned long executions);
 	void clear_active();
+	void removeEntryFromQueue();
 
 	map <NODEINDEX, int> newAnimNodeTimes;
 	map <unsigned int, int> activeAnimNodeTimes;
@@ -155,6 +156,7 @@ class thread_graph_data
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;
 	unsigned int maxWaitFrames = 0;
+	unsigned long entriesProcessed = 0;
 
 public:
 	thread_graph_data(PROCESS_DATA* processdata, unsigned int threadID);
@@ -166,12 +168,14 @@ public:
 	void draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd);
 	string get_node_sym(NODEINDEX idx, PROCESS_DATA* piddata);
 
-	unsigned long getAnimDataSize() { return savedAnimationData.size(); }
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
 
+	unsigned long getAnimDataSize() { return savedAnimationData.size(); }
+	vector <ANIMATIONENTRY> * getSavedAnimData() { return &savedAnimationData; }
+
 	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
-		ALLEGRO_COLOR *forceColour = 0, bool preview = false);
+		ALLEGRO_COLOR *forceColour = 0, bool preview = false, bool noUpdate = false);
 	
 	bool edge_exists(NODEPAIR edge, edge_data **edged);
 	void add_edge(edge_data e, node_data *source, node_data *target);
@@ -262,8 +266,6 @@ public:
 	string modPath;
 
 	HANDLE externGuardMutex = CreateMutex(NULL, FALSE, NULL);
-	//number of times each extern called, used for tracking which arg to display
-	map <unsigned int, unsigned long> callCounter;
 
 	//keep track of graph dimensions
 	int maxA = 0;

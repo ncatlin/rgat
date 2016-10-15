@@ -106,8 +106,6 @@ private:
 
 	bool set_target_instruction(INS_DATA *instruction);
 	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
-	//void handle_existing_instruction(INS_DATA *instruction);
-	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA ** BB, int attempts);
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
 
 	INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);

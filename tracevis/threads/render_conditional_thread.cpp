@@ -139,8 +139,8 @@ void conditional_renderer::main_loop()
 	while (!clientState->die)
 	{
 
-		obtainMutex(piddata->graphsListMutex, 1053);
-		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); graphit++)
+		obtainMutex(piddata->graphsListMutex, 9053);
+		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); ++graphit)
 			graphlist.push_back((thread_graph_data *)graphit->second);
 		dropMutex(piddata->graphsListMutex);
 		

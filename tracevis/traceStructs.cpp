@@ -110,3 +110,25 @@ bool PROCESS_DATA::get_modpath(unsigned int modNum, string *path)
 		return true;
 	}
 }
+
+bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts) {
+
+	getExternlistReadLock();
+	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = externdict.find(address);
+	while (externIt == externdict.end())
+	{
+		if (!attempts--) {
+			dropExternlistReadLock();
+			return false;
+		}
+		dropExternlistReadLock();
+		Sleep(1);
+		getExternlistReadLock();
+		externIt = externdict.find(address);
+	}
+
+	if (BB)
+		*BB = externIt->second;
+	dropExternlistReadLock();
+	return true;
+}

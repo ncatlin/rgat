@@ -34,7 +34,6 @@ void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
 
 void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph)
 {
-	//if (graph->terminated) return;
 	graph->setGraphBusy(true);
 	
 	if (

@@ -544,7 +544,6 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		if (file->peek() == '}') break;
 		//number of blockIDs recorded for address
 		
-		
 		getline(*file, data_s, ',');
 		if (!caught_stoul(data_s, &externAddr, 10))
 			return false;
@@ -634,7 +633,7 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		graph->pid = piddata->PID;
 		graph->active = false;
 
-		display_only_status_message("Loading graph "+tidstring, clientState);
+		display_only_status_message("Loading Graph "+tidstring, clientState);
 
 		if(graph->unserialise(file, &piddata->disassembly))
 			piddata->graphs.emplace(TID, graph);

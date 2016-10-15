@@ -71,6 +71,7 @@ void module_handler::main_loop()
 	OVERLAPPED ov2 = { 0 };
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 	vector < base_thread *> threadList;
+	vector < thread_trace_reader *> readerThreadList;
 	DWORD res= 0;
 	while (!die && !piddata->should_die())
 	{
@@ -117,6 +118,7 @@ void module_handler::main_loop()
 				TID_reader->traceBufMax = clientState->config->traceBufMax;
 				graph->setReader(TID_reader);
 				threadList.push_back(TID_reader);
+				readerThreadList.push_back(TID_reader);
 				DWORD threadID = 0;
 				HANDLE hOutThread = CreateThread(
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
@@ -244,14 +246,16 @@ void module_handler::main_loop()
 		}
 	}
 
-	//exited loop, retire worker threads
-	vector <base_thread *>::iterator threadIt = threadList.begin();
-	for (; threadIt != threadList.end(); ++threadIt)
-		((base_thread *)(*threadIt))->kill();
+	//exited loop, first get readers to terminate
+	vector <thread_trace_reader *>::iterator threadIt = readerThreadList.begin();
+	for (; threadIt != readerThreadList.end(); ++threadIt)
+		((thread_trace_reader *)(*threadIt))->kill();
 
-	for (threadIt = threadList.begin(); threadIt != threadList.end(); ++threadIt)
+	//wait for both readers and processors to terminate as a result
+	vector <base_thread *>::iterator athreadIt = threadList.begin();
+	for (athreadIt = threadList.begin(); athreadIt != threadList.end(); ++athreadIt)
 	{
-		while ((base_thread *)(*threadIt)->is_alive())
+		while ((base_thread *)(*athreadIt)->is_alive())
 			Sleep(1);
 	}
 

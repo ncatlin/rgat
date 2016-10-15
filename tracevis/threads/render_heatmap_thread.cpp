@@ -43,6 +43,8 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 
 	DWORD this_run_marker = GetTickCount();
 
+	map <NODEINDEX,bool> errorNodes;
+
 	//build set of all heat values
 	std::set<unsigned long> heatValues;
 	EDGEMAP::iterator edgeDit, edgeDEnd;
@@ -85,10 +87,13 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 				if ((snode->index != graph->finalNodeID) && (snode->executionCount != (tnode->chain_remaining_in + 1)))
 				{
 					++solverErrors;
-					if (verbose)
-						cerr << "[rgat]Heat solver warning 1: (TID" << dec << graph->tid << "): Sourcenode:" << snode->index << 
-						" (only 1 target) has " << snode->executionCount <<	" output but targnode " << tnode->index <<
-						" only needs " << tnode->chain_remaining_in << endl;
+					if (verbose && errorNodes.count(snode->index) == 0)
+					{
+						cerr << "[rgat]Heat solver warning 1: (TID" << dec << graph->tid << "): Sourcenode:" << snode->index <<
+							" (only 1 target) has " << snode->executionCount << " output but targnode " << tnode->index <<
+							" only needs " << tnode->chain_remaining_in << endl;
+						errorNodes[snode->index] = true;
+					}
 				}
 			}
 			tnode->chain_remaining_in -= snode->executionCount;
@@ -103,9 +108,13 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 			if (tnode->executionCount > snode->chain_remaining_out)
 			{
 				++solverErrors;
-				if (verbose)
-					cerr << "[rgat]Heat solver warning 2: (TID" << dec << graph->tid << "): Targnode:" << tnode->index << " (only only 1 caller) needs " << tnode->executionCount <<
-					" in but sourcenode: " << snode->index << " only provides " << snode->chain_remaining_out << " out\n" << endl;
+				if (verbose && errorNodes.count(tnode->index) == 0)
+				{
+					cerr << "[rgat]Heat solver warning 2: (TID" << dec << graph->tid << "): Targnode:" << tnode->index 
+						<< " (only only 1 caller) needs " << tnode->executionCount <<	" in but sourcenode (" 
+						<< snode->index << ") only provides " << snode->chain_remaining_out << " out" << endl;
+					errorNodes[tnode->index] = true;
+				}
 			}
 			snode->chain_remaining_out -= tnode->executionCount;
 			finishedEdgeList.push_back(edge);
@@ -155,10 +164,13 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 				if (tnode->chain_remaining_in > snode->chain_remaining_out)
 				{
 					++solverErrors;
-					if (verbose)
+					if (verbose && errorNodes.count(tnode->index) == 0)
+					{
 						cerr << "[rgat]Heat solver warning 3: (TID" << dec << graph->tid << "): Targnode  " << tnode->index <<
-						" has only one adjacent providing output, but needs more " << tnode->chain_remaining_in << "than snode(" << snode->index <<
-						") provides(" << snode->chain_remaining_out << ")" << endl;
+							" has only one adjacent providing output, but needs more (" << tnode->chain_remaining_in << ") than snode (" 
+							<< snode->index <<") provides (" << snode->chain_remaining_out << ")" << endl;
+						errorNodes[tnode->index] = true;
+					}
 				}
 				else
 				{
@@ -197,9 +209,13 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 				if (snode->chain_remaining_out > tnode->chain_remaining_in)
 				{
 					++solverErrors;
-					if (verbose)
-						cerr << "[rgat]Heat solver warning 4: (TID" << dec << graph->tid << ") : Sourcenode " << snode->index << " has one adjacent taking input, but has more (" <<
-						snode->chain_remaining_out << ") than the targnode(" << tnode->index << ") needs(" << tnode->chain_remaining_in << endl;
+					if (verbose && errorNodes.count(snode->index) == 0)
+					{
+						cerr << "[rgat]Heat solver warning 4: (TID" << dec << graph->tid << ") : Sourcenode " << snode->index 
+							<< " has one adjacent taking input, but has more (" << snode->chain_remaining_out << ") than the targnode (" 
+							<< tnode->index << ") needs (" << tnode->chain_remaining_in << ")" << endl;	
+						errorNodes[snode->index] = true;
+					}
 				}
 				else
 				{
@@ -220,45 +236,6 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 
 	if (verbose)
 	{
-		/*
-		if (attemptLimit <= 0)
-		{
-			cout << "[rgat]Heatmap Failure: ending solver with " << unfinishedEdgeList.size() << " edges unsolved (green)\n";
-
-			unfinishedIt = unfinishedEdgeList.begin();
-			for (; unfinishedIt != unfinishedEdgeList.end(); ++unfinishedIt)
-			{
-				graph->acquireNodeReadLock();
-				node_data *snode = graph->get_node(unfinishedIt->first.first);
-				node_data *tnode = graph->get_node(unfinishedIt->first.second);
-
-				printf("edge %d->%d\n", snode->index, tnode->index);
-
-				printf("\t%d -> [remout:%d (%d neighbours needing in:", snode->index, snode->chain_remaining_out, snode->outgoingNeighbours.size());
-				
-				set<unsigned int>::iterator neibIt = snode->outgoingNeighbours.begin();;
-				for (; neibIt != snode->outgoingNeighbours.end(); ++neibIt)
-				{
-					node_data *neib = graph->locked_get_node(*neibIt);
-					if (neib->chain_remaining_in)
-						printf("%d:%d,", *neibIt, neib->chain_remaining_in);
-				}
-				printf(")]\n");
-
-				printf("\t%d -> [remin:%d (%d neibs remout:", tnode->index, tnode->chain_remaining_in, tnode->incomingNeighbours.size());
-
-				neibIt = tnode->incomingNeighbours.begin();
-				for (; neibIt != tnode->incomingNeighbours.end(); ++neibIt)
-				{
-					node_data *neib = graph->locked_get_node(*neibIt);
-					if (neib->chain_remaining_out)
-						printf("%d:%d,", *neibIt, neib->chain_remaining_out);
-				}
-				graph->releaseNodeReadLock();
-				printf(")]\n");
-			}
-		}
-		*/
 		if (!unfinishedEdgeList.empty() || solverErrors)
 			cout << "[rgat]Heatmap Failure for thread " << dec << graph->tid << ": Ending solver with "<<
 			unfinishedEdgeList.size() << " unsolved / " << dec << solverErrors <<" errors. Trace may have inaccuracies (eg: due to unexpected termination)." << endl;
@@ -331,7 +308,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 		//this edge has a new value since we recalculated the heats, this finds the nearest
 		if (foundHeatColour == heatColours.end())
 		{
-
+			//just make them green, not as big of an issue with new trace format
 			edgeColour = &debuggingUnfin;
 			/*
 			unsigned long searchWeight = edge->weight;

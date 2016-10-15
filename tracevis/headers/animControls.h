@@ -108,6 +108,8 @@ public:
 		string btntext = evt.getSource()->getText();
 		if (btntext == "Stop" || btntext == "Play")
 		{
+			if (clientState->modes.diff)
+				clientState->modes.diff = false;
 			if (currentState == ANIM_LIVE || currentState == ANIM_REPLAY)
 				controls->setAnimState(ANIM_INACTIVE);
 			else
@@ -159,10 +161,6 @@ public:
 
 		if (btntext == "Kill")
 		{
-			clientState->animationUpdate = 0;
-			clientState->modes.animation = false;
-			clientState->activeGraph->terminated = true;
-			//clientState->activeGraph->reset_animation();
 			clientState->activePid->kill();
 			return;
 		}

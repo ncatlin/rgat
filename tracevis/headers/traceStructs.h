@@ -99,7 +99,7 @@ struct BB_DATA {
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
 	//  tid     
-	map <DWORD, EDGELIST> thread_callers;
+	map <PID_TID, EDGELIST> thread_callers;
 
 	bool hasSymbol = false;
 };
@@ -120,6 +120,8 @@ public:
 	bool should_die() { return die; }
 	bool is_running() { return running; }
 	void set_running(bool r) { running = r; }
+	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1);
+
 	PID_TID PID = -1;
 
 	map <int, string>modpaths;

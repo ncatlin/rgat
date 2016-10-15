@@ -336,10 +336,11 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 	if (clientState->modes.diff == DIFF_STARTED) //diff graph built, display it
 	{
 		
-		thread_graph_data *graph2 = (*diffRenderer)->get_graph(1);
-		node_data *n = (*diffRenderer)->get_diff_node();
+		thread_graph_data *graph1 = (*diffRenderer)->get_graph(1);
+		NODEINDEX nIdx = (*diffRenderer)->get_diff_node();
+		node_data *n = graph1->safe_get_node(nIdx);
 		if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
-			drawHighlight(&n->vcoord, graph2->m_scalefactors, &al_col_orange, 10);
+			drawHighlight(&n->vcoord, graph1->m_scalefactors, &al_col_orange, 10);
 
 		thread_graph_data *diffGraph = (*diffRenderer)->get_diff_graph();
 		display_graph_diff(clientState, *diffRenderer);
@@ -482,6 +483,7 @@ static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 
 	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
 	if (graph->modPath.empty())	graph->assign_modpath(target_pid);
+	graph->reset_animation();
 
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->diffWindow->setDiffGraph(graph);

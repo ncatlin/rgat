@@ -144,7 +144,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int ci = 0;
 	int pi = 0;
 
-	float cols[4] = { colour->r , colour->g, colour->b, 1 };
+	float cols[4] = { colour->r , colour->g, colour->b, colour->a };
 
 	vertpos->push_back(startC->x);
 	vertpos->push_back(startC->y);
@@ -211,7 +211,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	r = colour->r;
 	b = colour->b;
 	g = colour->g;
-	a = 1;
+	a = colour->a;
 
 	//describe the normal
 	FCOORD middleC;
@@ -974,7 +974,7 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
 
 	if (clientState->modes.edges)
-		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, linedata->get_numVerts());
+		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->m_scalefactors->radius);
 

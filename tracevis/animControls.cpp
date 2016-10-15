@@ -167,6 +167,12 @@ void AnimControls::update(thread_graph_data *graph)
 
 	if (!graph->active && graph->animInstructionIndex)
 	{
+
+		/*
+		//ruined by skipping using replay slider
+		//could implement by adding current instruction count to every animation update in trace
+		//but not sure if worth the extra file size
+
 		if (graph->animInstructionIndex < 10000)
 			stepInfo << graph->animInstructionIndex - 1;
 		else if (graph->animInstructionIndex < 1000000)
@@ -175,6 +181,7 @@ void AnimControls::update(thread_graph_data *graph)
 			stepInfo << (graph->animInstructionIndex - 1) / 1000000 << "M";
 
 		stepInfo << " / ";
+		*/
 
 		ALLEGRO_MOUSE_STATE mstate;
 		al_get_mouse_state(&mstate);

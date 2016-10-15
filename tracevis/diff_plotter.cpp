@@ -24,9 +24,17 @@ Class for the code that plots graph divergence
 
 diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTATE *state)
 {
-	graph1 = g1;
-	graph2 = g2;
-	diffgraph = new thread_graph_data(state->glob_piddata_map.at(g1->pid),0);
+	if (g1->getAnimDataSize() >= g2->getAnimDataSize())
+	{
+		graph1 = g1;
+		graph2 = g2;
+	}
+	else
+	{
+		graph1 = g2;
+		graph2 = g1;
+	}
+	diffgraph = new thread_graph_data(state->glob_piddata_map.at(graph1->pid),0);
 	diffgraph->m_scalefactors = graph1->m_scalefactors;
 	diffgraph->needVBOReload_main = true;
 	glGenBuffers(4, diffgraph->graphVBOs);
@@ -53,150 +61,199 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 	al_draw_text(font, al_col_white, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
 	al_draw_text(font, al_col_white, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
 }
-
-bool diff_plotter::get_sequence_node(node_data **n1, node_data **n2)
-{
-	bool ignore = false;
-	pair<MEM_ADDRESS, int> targBlock_Size1 = graph1->bbsequence.at(animIndex);
-	BLOCK_IDENTIFIER blockID1 = graph1->mutationSequence.at(animIndex);
-	MEM_ADDRESS blockAddr1 = targBlock_Size1.first;
-	int numInstructions1 = targBlock_Size1.second;
-
-	pair<MEM_ADDRESS, int> targBlock_Size2 = graph1->bbsequence.at(animIndex);
-	BLOCK_IDENTIFIER blockID2 = graph2->mutationSequence.at(animIndex);
-	MEM_ADDRESS blockAddr2 = targBlock_Size2.first;
-	int numInstructions2 = targBlock_Size2.second;
-
-	if (numInstructions1 != numInstructions2)
-	{
-		cout << "Graphs diverges after node " << last_node1->index << endl;
-		return false;
-	}
-
-	if (blockIdx == numInstructions1)
-	{
-		blockIdx = 0;
-		++animIndex;
-		if (animIndex == graph1->bbsequence.size() || animIndex == graph2->bbsequence.size())
-		{
-			if (animIndex == graph1->bbsequence.size() && animIndex == graph2->bbsequence.size())
-				doneFlag = true;
-
-			return false;
-		}
-		targBlock_Size1 = graph1->bbsequence.at(animIndex);
-		blockID1 = graph1->mutationSequence.at(animIndex);
-		blockAddr1 = targBlock_Size1.first;
-		targBlock_Size2 = graph2->bbsequence.at(animIndex);
-		blockID2 = graph2->mutationSequence.at(animIndex);
-		blockAddr2 = targBlock_Size2.first;
-	}
-
-	INSLIST *block1 = getDisassemblyBlock(blockAddr1, blockID1, g1ProcessData, &ignore);
-	INS_DATA *ins1 = block1->at(blockIdx);
-	int idx1 = ins1->threadvertIdx.at(graph1->tid);
-	*n1 = graph1->get_node(idx1);
-
-	INSLIST *block2 = getDisassemblyBlock(blockAddr2, blockID2, g2ProcessData, &ignore);
-	INS_DATA *ins2 = block2->at(blockIdx);
-	int idx2 = ins2->threadvertIdx.at(graph2->tid);
-	*n2 = graph2->get_node(idx2);
-
-	blockIdx++;
-	return true;
-}
-
-//first edge pair in graph 1 that is different in graphs 1 and 2
-unsigned long diff_plotter::first_divering_edge()
-{
-	obtainMutex(graph1->animationListsMutex, 9932);
-	obtainMutex(graph2->animationListsMutex, 9932);
-	g1ProcessData = clientState->glob_piddata_map.at(graph1->pid);
-	g2ProcessData = clientState->glob_piddata_map.at(graph2->pid);
-
-	unsigned long compareIndex = 0;
-
-	node_data *g1Node;
-	node_data *g2Node;
-	node_data *sourceNode = 0;
-
-	bool ignore = false;
-	unsigned long animPosition = 0;
-	unsigned int prevVertIdx = 0;
-	while ((animPosition < graph1->bbsequence.size()) && (animPosition < graph2->bbsequence.size()))
-	{
-
-		if (!get_sequence_node(&g1Node, &g2Node)) break;
-		int g1Index = g1Node->index;
-		int g2Index = g2Node->index;
-		if (g1Index != g2Index)
-		{
-			cout << "Divergence after vert index " << prevVertIdx << endl;
-			cout << "graph1 goes to idx " << g1Index << ", graph2 goes to idx " << g2Index << endl;
-			break;
-		}
-
-		if (g1Node->external || g2Node->external)
-		{
-			if (!g1Node->external || !g2Node->external) break;
-
-			int modnum1 = g1Node->nodeMod;
-			if (g1Node->address != g2Node->address) break;
-		}
-		else
-		{
-			//different instruction is clear cut trace divergence
-			if (g1Node->ins->mnemonic != g2Node->ins->mnemonic)
-			{
-				cout << "[rgat]Divergence at nodes " << g1Index << " Graph1 instruction " << g1Node->ins->ins_text <<
-					" different to Graph 2 instruction " << g2Node->ins->ins_text << endl;
-				break;
-			}
-
-			//comparing target addresses not much use with aslr
-			//can possibly measure distance between addresses?, but won't help with jumps to different memory regions
-			//for now: only compare register operands
-			
-			if (g1Node->ins->op_str != g2Node->ins->op_str)
-			{
-				cout << "[rgat]Divergence at nodes " << g1Index << " Graph1 op_str " << g1Node->ins->op_str <<
-					" different to Graph 2 op_str " << g2Node->ins->op_str << endl;
-				break;
-			}
-		}
-
-		if (g1Node->index > 0)
-			matchingEdgeList[make_pair(sourceNode->index, g1Index)] = true;
-		sourceNode = g1Node;
-	}
-
-	diffNode = sourceNode;
-
-	dropMutex(graph1->animationListsMutex);
-	dropMutex(graph2->animationListsMutex);
-	return animIndex;
-
-}
 */
+
+void diff_plotter::mark_divergence()
+{
+	divergenceFound = true;
+	diffNode = lastNode;
+	edgeColour = divergingEdgeColour;
+}
+
+NODEPAIR diff_plotter::firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *pd, PID_TID thread)
+{
+	bool die = false;
+	INSLIST *blk = getDisassemblyBlock(blockAddr, blockID, pd, &die);
+	if (!blk)
+	{
+		BB_DATA *foundExtern;
+		pd->get_extern_at_address(blockAddr, &foundExtern, 1);
+		EDGELIST callingNodes = foundExtern->thread_callers.at(thread);
+		EDGELIST::iterator callIt = callingNodes.begin();
+		for (; callIt != callingNodes.end(); ++callIt)
+			if (callIt->first == lastNode) break;
+		assert(callIt != callingNodes.end());
+		return make_pair(callIt->second, callIt->second);
+	}
+
+	NODEINDEX first = blk->front()->threadvertIdx.at(thread);
+	NODEINDEX last = blk->back()->threadvertIdx.at(thread);
+	return make_pair(first, last);
+}
+
 void diff_plotter::render() 
 {
 	EDGELIST::iterator edgeSeqItG1;
 	EDGELIST::iterator edgeSeqEndG1;
 	
-	//divergenceIdx = first_divering_edge();
+	obtainMutex(graph1->animationListsMutex, 9932);
+	obtainMutex(graph2->animationListsMutex, 9932);
+	g1ProcessData = clientState->glob_piddata_map.at(graph1->pid);
+	g2ProcessData = clientState->glob_piddata_map.at(graph2->pid);
+	vector <ANIMATIONENTRY> *graph1Data = graph1->getSavedAnimData();
+	vector <ANIMATIONENTRY> *graph2Data = graph2->getSavedAnimData();
+
 	unsigned long renderIdx = 0;
+	unsigned long renderEnd = graph1Data->size();
 
+	PID_TID g1TID = graph1->tid;
+	PID_TID g2TID = graph2->tid;
+	ANIMATIONENTRY *g1Entry, *g2Entry;
+
+	bool die = false;
+	
 	GRAPH_DISPLAY_DATA *linedata = diffgraph->get_mainlines();
-	ALLEGRO_COLOR *edgeColour = &al_col_green;
+	NODEPAIR first_lastNodeG1, first_lastNodeG2;
 
-	graph1->start_edgeL_iteration(&edgeSeqItG1, &edgeSeqEndG1);
-	for (; edgeSeqItG1 != edgeSeqEndG1; ++edgeSeqItG1)
+	matchingEdgeColour = &al_col_green;
+	divergingEdgeColour = &al_col_red;
+	divergingEdgeColour->a *= 0.3;
+
+	edgeColour = matchingEdgeColour;
+
+	
+
+	for (; renderIdx < renderEnd; ++renderIdx)
 	{
-		if (matchingEdgeList.count(*edgeSeqItG1)) 
-			graph1->render_edge(*edgeSeqItG1, linedata, NULL, &al_col_green);
+		//stop comparing once divergence is found
+		//just draw the rest of the larger trace in red
+		g1Entry = &graph1Data->at(renderIdx);
+
+		if (renderIdx < graph2Data->size())
+			g2Entry = &graph2Data->at(renderIdx);
 		else
-			graph1->render_edge(*edgeSeqItG1, linedata, NULL, &al_col_red);
+		{
+			if (!divergenceFound)
+				mark_divergence();
+			g2Entry = g1Entry;
+			g2ProcessData = g1ProcessData;
+			g2TID = g1TID;
+		}
+
+		if ((g1Entry->entryType != g2Entry->entryType) && !divergenceFound)
+			mark_divergence();	
+
+		NODEPAIR nextEdge;
+		switch (g1Entry->entryType)
+		{
+			case ANIM_LOOP_LAST:
+			case ANIM_UNCHAINED:
+				continue;
+
+			case ANIM_UNCHAINED_RESULTS:
+				if ((g1Entry->count != g2Entry->count) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") returned from unchained with " << g1Entry->count 
+						<< " iterations at 0x" << g1Entry->blockAddr << " wheras graph2 had " << g2Entry->count << " iterations" << endl;
+					mark_divergence();
+				}
+				continue;
+
+			case ANIM_UNCHAINED_DONE:
+			{
+				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID); 
+				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") left unchained area to node " << first_lastNodeG1.first << " (0x"
+						<< g1Entry->blockAddr << " wheras Graph 2 left to node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+					mark_divergence();
+				}
+				lastNode = first_lastNodeG1.second;
+				continue;
+			}
+
+			case ANIM_LOOP:
+			{
+				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID);
+				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") loop hit node " << first_lastNodeG1.first << " (0x"
+						<< g1Entry->blockAddr << ") while Graph 2 hit node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << endl;
+					mark_divergence();
+				}
+
+				if ((g1Entry->count != g2Entry->count) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") entered " << g1Entry->count << "iteration loop at (0x"
+						<< g1Entry->blockAddr << " ) while Graph 2 entered " << g2Entry->count << " iteration loop" << endl;
+					mark_divergence();
+				}
+				break;
+			}
+
+
+			case ANIM_EXEC_EXCEPTION:
+			{
+				INSLIST *faultingBlockG1 = getDisassemblyBlock(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, &die);
+				INSLIST *faultingBlockG2 = getDisassemblyBlock(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, &die);
+				first_lastNodeG1.first = faultingBlockG1->front()->threadvertIdx.at(g1TID);
+				first_lastNodeG2.first = faultingBlockG2->front()->threadvertIdx.at(g2TID);
+				first_lastNodeG1.second = faultingBlockG1->at(g1Entry->count)->threadvertIdx.at(g1TID);
+
+				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
+						<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+					mark_divergence();
+				}
+
+				if ((g1Entry->count != g2Entry->count) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") exeption in block " << first_lastNodeG1.first << " (0x"
+						<< g1Entry->blockAddr << ") after "<<g1Entry->count << " instructions while Graph 2 executed " << g2Entry->count <<
+						" instructions" << endl;
+					mark_divergence();
+				}
+				break;
+			}
+
+			default:
+			{
+				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID);
+				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				{
+					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
+						<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+					mark_divergence();
+				}
+
+				break;
+			}
+		} 
+
+		if (renderIdx > 0)
+		{
+			nextEdge = make_pair(lastNode, first_lastNodeG1.first);
+			if (!graph1->edge_exists(nextEdge, 0))
+			{
+				cerr << "[rgat]ERROR: Divergence renderer tried to colour non-rendered edge " << nextEdge.first << "," << nextEdge.second << endl;
+				break;
+			}
+			graph1->render_edge(nextEdge, linedata, NULL, edgeColour, false, true);
+
+			//draw block internal edges
+			for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
+				graph1->render_edge(make_pair(i,i+1), linedata, NULL, edgeColour, false, true);
+
+		}
+
+		lastNode = first_lastNodeG1.second;
 	}
-	graph1->stop_edgeL_iteration();
+
+	dropMutex(graph1->animationListsMutex);
+	dropMutex(graph2->animationListsMutex);
 	diffgraph->needVBOReload_main = true;
 }

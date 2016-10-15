@@ -25,6 +25,7 @@ Header for the thread that builds a graph for each trace
 #include "b64.h"
 #include "OSspecific.h"
 
+//todo move to trace structs
 bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int attempts)
 {
 	while (!piddata->disassembly.count(address))
@@ -32,27 +33,6 @@ bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int att
 		Sleep(1);
 		if (!attempts--) return false;
 	}
-	return true;
-}
-
-bool thread_trace_handler::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1) {
-	piddata->getExternlistReadLock();
-	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = piddata->externdict.find(address);
-	while (externIt == piddata->externdict.end())
-	{
-		if (!attempts--) { 
-			piddata->dropExternlistReadLock();
-			return false; 
-		}
-		piddata->dropExternlistReadLock();
-		Sleep(1);
-		piddata->getExternlistReadLock();
-		externIt = piddata->externdict.find(address);
-	}
-
-	if(BB)
-		*BB = externIt->second;
-	piddata->dropExternlistReadLock();
 	return true;
 }
 
@@ -136,8 +116,6 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
 	{
-
-		if (piddata->should_die()) return;
 		INS_DATA *instruction = block->at(instructionIndex);
 
 		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
@@ -228,8 +206,6 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 
 	for (unsigned int instructionIndex = 0; instructionIndex <= tag->insCount; ++instructionIndex)
 	{
-
-		if (piddata->should_die()) return;
 		INS_DATA *instruction = block->at(instructionIndex);
 
 		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
@@ -516,7 +492,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 
 	BB_DATA *thisbb = 0;
 	while (!thisbb)
-		get_extern_at_address(targaddr, &thisbb);
+		piddata->get_extern_at_address(targaddr, &thisbb);
 
 	//see if caller already called this
 	//if so, get the destination node so we can just increase edge weight
@@ -784,7 +760,7 @@ void thread_trace_handler::dump_loop()
 		animUpdate.blockID = thistag->blockID;
 		animUpdate.count = loopIterations;
 		animUpdate.entryType = ANIM_LOOP;
-		if (get_extern_at_address(animUpdate.blockAddr, 0, 0))
+		if (piddata->get_extern_at_address(animUpdate.blockAddr, 0, 0))
 			animUpdate.callCount = callCounter[make_pair(thistag->blockaddr, thistag->blockID)]++;
 
 		thisgraph->push_anim_update(animUpdate);
@@ -1040,7 +1016,7 @@ void thread_trace_handler::main_loop()
 				while (!die)
 				{
 					//this is most likely to be called and looping is rare - usually
-					if (get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
+					if (piddata->get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
 					{
 						modType = MOD_UNINSTRUMENTED;
 						break;
@@ -1135,16 +1111,17 @@ void thread_trace_handler::main_loop()
 
 				INSLIST* lastBB = find_block_disassembly(sourceAddr, sourceID);
 				if(!lastBB)	{
-					if (die) break;
+					Sleep(50);
+					if (die || thisgraph->terminated) break;
 					cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 					assert(0);
 				}
 				INS_DATA* lastIns = lastBB->back();
 
-				lastVertID = lastIns->threadvertIdx.at(TID);
 				unordered_map<PID_TID,NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
 				if (vertIt == lastIns->threadvertIdx.end()) {
-					if (die) break;
+					Sleep(50);
+					if (die || thisgraph->terminated) break;
 					cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
 					assert(0);
 				}
