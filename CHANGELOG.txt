@@ -61,4 +61,7 @@ Various crashes have been fixed.
 -----------------
 Replay is reimplemented and now has a much cleaner interface, including a progress control slider
 Debugging symbols are now optionally displayed on the graph with key [i]
+Trace divergence generation has been reimplemented, though it is less precise
+Various minor fixes
+
 

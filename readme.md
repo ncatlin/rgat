@@ -1,10 +1,10 @@
 # rgat
-An instruction trace visualization tool intended to help reverse engineers make the link between target behavior and code
+An instruction trace visualisation tool intended to help reverse engineers make the link between target behaviour and code
 
 ## What is rgat?
 
 rgat uses dynamic binary instrumentation (courtesy of DynamoRIO) to produce graphs from running executables. 
-It creates static and animated visualizations in real-time to support types of analysis that might be a lot more cumbersome with 
+It creates static and animated visualisations in real-time to support types of analysis that might be a lot more cumbersome with 
 disassemblers and debuggers alone.
 
 [This page](https://github.com/ncatlin/rgat/wiki) explains what kind of things you can and can't do with it but basically, it looks like this:
@@ -25,11 +25,15 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.2 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.2.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+Version 0.3 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.3.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
 
-Significant changes in the trace generation from v 0.1.* mean that execution for many applications with tightly looping code is at least an order of magnitude faster.
+Replay is back with a significantly improved interface, including a progress control slider.
 
-Some features (replay, divergence) have been temporarily disabled as a result. See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for further details. 
+Graph divergence is also back, but less precise.
+
+See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for further details. 
+
+For the next version I plan to add support 64 bit executables.
 
 ## Download/Installation
 
@@ -39,7 +43,7 @@ Unzip it, run it.
 
 Try to execute something. If you get an error then you likely need to install the [Visual C++ Redistributable for Visual Studio 2012](https://www.microsoft.com/en-gb/download/details.aspx?id=30679), because of reasons.
 
-It should create a default config file at start-up, feel free to customize.
+It should create a default config file at start-up, feel free to customise.
 
 ## Running
 
