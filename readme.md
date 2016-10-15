@@ -65,7 +65,7 @@ See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://g
 
 ## Excuses
 
-This is an unstable preview release (0.1.1). I promise not to use that excuse for long. 
+This is an unstable preview release. I promise not to use that excuse when the basic functionality has been done. 
 
 Its reliance on DynamoRIO means that rgat suffers from all of the same limitations. 99% of problems you find will be my fault, though.
 
