@@ -215,7 +215,7 @@ void basicblock_handler::main_loop()
 				bbdata->modnum = modnum;
 
 				piddata->getDisassemblyReadLock();
-				if (!piddata->modsymsPlain.at(modnum).count(targetaddr))
+				if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr))
 					bbdata->hasSymbol = true;
 				piddata->dropDisassemblyReadLock();
 
@@ -228,10 +228,6 @@ void basicblock_handler::main_loop()
 					piddata->externdict[targetaddr] = bbdata;
 				}
 				piddata->dropExternlistWriteLock();
-
-
-
-
 				continue;
 			}
 

@@ -165,7 +165,7 @@ void AnimControls::update(thread_graph_data *graph)
 
 	stringstream stepInfo;
 
-	if (!graph->active && graph->animInstructionIndex)
+	if (!graph->active)
 	{
 
 		/*
@@ -183,14 +183,17 @@ void AnimControls::update(thread_graph_data *graph)
 		stepInfo << " / ";
 		*/
 
-		ALLEGRO_MOUSE_STATE mstate;
-		al_get_mouse_state(&mstate);
-		if (mstate.y < clientState->mainFrameSize.height || !mstate.buttons)
+		float animPercent = graph->getAnimationPercent();
+		if (animPercent)
 		{
-			float animPC = graph->getAnimationPercent();
-			int newVal = (int)(1000.0 * animPC);
-			ignoreSliderChange = true;
-			setSlider(newVal);
+			ALLEGRO_MOUSE_STATE mstate;
+			al_get_mouse_state(&mstate);
+			if (mstate.y < clientState->mainFrameSize.height || !mstate.buttons)
+			{
+				int newVal = (int)(SLIDER_MAXVAL * animPercent);
+				ignoreSliderChange = true;
+				setSlider(newVal);
+			}
 		}
 	}
 	if (graph->totalInstructions < 10000)
@@ -381,7 +384,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 
 	animHSlide = new agui::Slider;
 	animHSlide->setMinValue(0);
-	animHSlide->setMaxValue(1000);
+	animHSlide->setMaxValue((int)SLIDER_MAXVAL);
 	animHSlide->setVisibility(false);
 	HSliderMouseListener *sbmlAnim = new HSliderMouseListener(this, clientState, animHSlide);
 	animHSlide->addSliderListener(sbmlAnim);

@@ -788,14 +788,14 @@ void thread_graph_data::redraw_anim_edges()
 
 		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 
-		edge_data *linkingEdge;
-		assert(edge_exists(nodePair, &linkingEdge));
-
-		int numEdgeVerts = linkingEdge->vertSize;
-		unsigned int colArrIndex = linkingEdge->arraypos + AOFF;
-		for (int i = 0; i < numEdgeVerts; ++i)
-			ecol[colArrIndex] = 1;
-
+		edge_data *linkingEdge = 0;
+		if (edge_exists(nodePair, &linkingEdge) && linkingEdge)
+		{
+			int numEdgeVerts = linkingEdge->vertSize;
+			unsigned int colArrIndex = linkingEdge->arraypos + AOFF;
+			for (int i = 0; i < numEdgeVerts; ++i)
+				ecol[colArrIndex] = 1;
+		}
 		animlinedata->release_col_write();
 	}
 }
@@ -835,8 +835,13 @@ void thread_graph_data::darken_fading(float fadeRate)
 
 		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 
-		edge_data *linkingEdge;
-		assert(edge_exists(nodePair, &linkingEdge));
+		edge_data *linkingEdge = 0;
+		if (!edge_exists(nodePair, &linkingEdge))
+		{
+			cerr << "[rgat]ERROR: Attempted darkening of non-rendered edge " << nodePair.first << "," << nodePair.second << endl;
+			Sleep(50);
+			return;
+		}
 
 		unsigned int colArrIndex = linkingEdge->arraypos + AOFF;
 		float currentAlpha = ecol[colArrIndex];

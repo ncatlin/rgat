@@ -162,33 +162,42 @@ void diff_plotter::render()
 			case ANIM_UNCHAINED_DONE:
 			{
 				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID); 
-				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
-				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
-				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") left unchained area to node " << first_lastNodeG1.first << " (0x"
-						<< g1Entry->blockAddr << " wheras Graph 2 left to node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
-					mark_divergence();
-				}
 				lastNode = first_lastNodeG1.second;
+
+				if (!divergenceFound)
+				{
+					first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+					if (first_lastNodeG1.first != first_lastNodeG2.first)
+					{
+						cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") left unchained area to node " << first_lastNodeG1.first << " (0x"
+							<< g1Entry->blockAddr << " wheras Graph 2 left to node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+						mark_divergence();
+					}
+				}
 				continue;
 			}
 
 			case ANIM_LOOP:
 			{
 				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID);
-				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
-				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				if (!divergenceFound)
 				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") loop hit node " << first_lastNodeG1.first << " (0x"
-						<< g1Entry->blockAddr << ") while Graph 2 hit node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << endl;
-					mark_divergence();
-				}
+					first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+					if (first_lastNodeG1.first != first_lastNodeG2.first)
+					{
+						cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") loop hit node " << first_lastNodeG1.first << " (0x"
+							<< g1Entry->blockAddr << ") while Graph 2 hit node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << endl;
+						mark_divergence();
+						break;
+					}
 
-				if ((g1Entry->count != g2Entry->count) && !divergenceFound)
-				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") entered " << g1Entry->count << "iteration loop at (0x"
-						<< g1Entry->blockAddr << " ) while Graph 2 entered " << g2Entry->count << " iteration loop" << endl;
-					mark_divergence();
+					if (g1Entry->count != g2Entry->count)
+					{
+						cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") entered " << g1Entry->count << "iteration loop at (0x"
+							<< g1Entry->blockAddr << " ) while Graph 2 entered " << g2Entry->count << " iteration loop" << endl;
+						mark_divergence();
+						break;
+					}
 				}
 				break;
 			}
@@ -196,40 +205,51 @@ void diff_plotter::render()
 
 			case ANIM_EXEC_EXCEPTION:
 			{
+				
 				INSLIST *faultingBlockG1 = getDisassemblyBlock(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, &die);
-				INSLIST *faultingBlockG2 = getDisassemblyBlock(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, &die);
 				first_lastNodeG1.first = faultingBlockG1->front()->threadvertIdx.at(g1TID);
-				first_lastNodeG2.first = faultingBlockG2->front()->threadvertIdx.at(g2TID);
 				first_lastNodeG1.second = faultingBlockG1->at(g1Entry->count)->threadvertIdx.at(g1TID);
 
-				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
+				if (!divergenceFound)
 				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
-						<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
-					mark_divergence();
-				}
+					INSLIST *faultingBlockG2 = getDisassemblyBlock(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, &die);
+					first_lastNodeG2.first = faultingBlockG2->front()->threadvertIdx.at(g2TID);
+					
+					if (first_lastNodeG1.first != first_lastNodeG2.first)
+					{
+						cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
+							<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+						mark_divergence();
+						break;
+					}
 
-				if ((g1Entry->count != g2Entry->count) && !divergenceFound)
-				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") exeption in block " << first_lastNodeG1.first << " (0x"
-						<< g1Entry->blockAddr << ") after "<<g1Entry->count << " instructions while Graph 2 executed " << g2Entry->count <<
-						" instructions" << endl;
-					mark_divergence();
+					if (g1Entry->count != g2Entry->count)
+					{
+						cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") exeption in block " << first_lastNodeG1.first << " (0x"
+							<< g1Entry->blockAddr << ") after " << g1Entry->count << " instructions while Graph 2 executed " << g2Entry->count <<
+							" instructions" << endl;
+						mark_divergence();
+						break;
+					}
 				}
 				break;
 			}
 
 			default:
 			{
+				
 				first_lastNodeG1 = firstLastNode(g1Entry->blockAddr, g1Entry->blockID, g1ProcessData, g1TID);
-				first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
-				if ((first_lastNodeG1.first != first_lastNodeG2.first) && !divergenceFound)
-				{
-					cout << "[rgat]Divergence detected: Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
-						<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
-					mark_divergence();
-				}
 
+				if (!divergenceFound)
+				{				
+					first_lastNodeG2 = firstLastNode(g2Entry->blockAddr, g2Entry->blockID, g2ProcessData, g2TID);
+					if (first_lastNodeG1.first != first_lastNodeG2.first)
+					{
+						cout << "[rgat]Divergence detected: Different blocks. Graph 1 (TID" << g1TID << ") executed node " << first_lastNodeG1.first << " (0x"
+							<< g1Entry->blockAddr << ") while Graph 2 executed node " << first_lastNodeG2.first << " (0x" << g2Entry->blockAddr << ")" << endl;
+						mark_divergence();
+					}
+				}
 				break;
 			}
 		} 

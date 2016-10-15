@@ -37,6 +37,7 @@ limitations under the License.
 #define ANIM_ACTIVATED 3
 #define PREVIEW_GRAPH_Y_OFFSET 12
 #define BACKLOG_X_OFFSET 150
+#define SLIDER_MAXVAL 1000.0
 
 class AnimControls {
 public:
