@@ -335,13 +335,13 @@ void thread_graph_data::process_live_animation_updates()
 	if (animUpdates.empty()) return;
 
 	bool activeUnchained = false;
-	while (!animUpdates.empty())
+	int updateLimit = 150;
+	while (!animUpdates.empty() && updateLimit--)
 	{
 
 		obtainMutex(animationListsMutex, 6210);
 		ANIMATIONENTRY entry = animUpdates.front();
 		dropMutex(animationListsMutex);
-
 
 		if (entry.entryType == ANIM_LOOP_LAST)
 		{
@@ -469,6 +469,8 @@ void thread_graph_data::process_live_animation_updates()
 		animUpdates.pop();
 		dropMutex(animationListsMutex);	
 	}
+	if (!updateLimit)
+		cerr << "[rgat]Warning: " << animUpdates.size() << " entry animation backlog" << endl;
 }
 
 

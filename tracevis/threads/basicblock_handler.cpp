@@ -269,7 +269,7 @@ void basicblock_handler::main_loop()
 					instruction->modnum = modnum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
-					if (piddata->modsymsPlain.at(modnum).count(targetaddr))
+					if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr))
 						instruction->hasSymbol = true;
 
 					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) {
