@@ -324,8 +324,8 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				++clash;
 			}
 
-			if (clash > 15)
-				cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
 
 			break;
 		}
@@ -344,8 +344,8 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			if (clash)
 			{
 				a += CALLA_CLASH;
-				if (clash > 15)
-					cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+				//if (clash > 15)
+				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
 			}
 			break;
 		}
@@ -390,8 +390,8 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 				++clash;
 			}
 
-			if (clash > 15)
-				cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
 			break;
 		}
 

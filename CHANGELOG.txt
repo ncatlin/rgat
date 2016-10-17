@@ -65,3 +65,7 @@ Trace divergence generation has been reimplemented, though it is less precise
 Various minor fixes
 
 
+09/10/16 0.3 
+-----------------
+Added debug dlls to distribution to squash warning messages
+Muted obnoxious warning for very high density graphs

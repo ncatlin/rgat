@@ -25,7 +25,7 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.3 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.3.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+Version 0.3.1 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.3.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
 
 Replay is back with a significantly improved interface, including a progress control slider.
 
