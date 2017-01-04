@@ -90,7 +90,7 @@ void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *
 	clientState->spawnedProcess = clientState->glob_piddata_map[PID];
 }
  
-//for each live process we have a thread rendering graph data for previews, heatmaps and conditonals
+//for each live process we have a thread rendering graph data for previews, heatmaps and conditionals
 //+ module data and disassembly
 THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
 {
@@ -126,6 +126,7 @@ THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCE
 	processThreads->BBthread = tBBHandler;
 	processThreads->threads.push_back(tBBHandler);
 
+	//non-graphical
 	if (!clientState->commandlineLaunchPath.empty()) return processThreads;
 
 	//graphics rendering threads for each process here	
@@ -256,7 +257,6 @@ void process_coordinator_thread(VISSTATE *clientState)
 				break;
 			}
 		}
-		
 	}
 
 	//now safe to kill the disassembler threads

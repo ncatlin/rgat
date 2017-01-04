@@ -314,7 +314,8 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	al_draw_text(font, textColour, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());
 }
 
-bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) {
+bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay) 
+{
 
 	*newDisplay = displaySetup();
 	if (!*newDisplay) {

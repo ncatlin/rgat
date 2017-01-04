@@ -26,6 +26,7 @@ Header for the thread that builds a graph for each trace
 #include "OSspecific.h"
 
 //todo move to trace structs
+//waits for the disassembly of instrumented code at the specified address
 bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int attempts)
 {
 	while (!piddata->disassembly.count(address))
@@ -53,7 +54,7 @@ bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 		return false;
 }
 
-//creates a node for a newly excecuted instruction
+//creates a node for a newly executed instruction
 void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats)
 {
 
@@ -100,8 +101,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	updateStats(a, b, bMod);
 	usedCoords[a][b] = true;
 
-	if (thisgraph->node_exists(targVertID))
-		assert(0);
+	assert(!thisgraph->node_exists(targVertID));
 	thisgraph->insert_node(targVertID, thisnode);
 
 	piddata->getDisassemblyWriteLock();
@@ -109,7 +109,8 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	piddata->dropDisassemblyWriteLock();
 }
 
-void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
+//place basic block 'tag' on graph 'repeats' times
+void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 {
 	int numInstructions = tag->insCount;
 	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata, &die);
@@ -170,6 +171,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
 			}
 		}
+
 		//setup conditions for next instruction
 		switch (instruction->itype)
 		{
@@ -199,6 +201,7 @@ void thread_trace_handler::runBB(TAG *tag, int startIndex, int repeats = 1)
 	}
 }
 
+//run a basic block which generates an exception (and therefore doesn't run to completion)
 void thread_trace_handler::run_faulting_BB(TAG *tag)
 {
 	INSLIST *block = getDisassemblyBlock(tag->blockaddr, tag->blockID, piddata, &die);
@@ -278,6 +281,7 @@ void thread_trace_handler::updateStats(int a, int b, unsigned int bMod)
 
 //takes position of a node as pointers
 //performs an action (call,jump,etc), places new position in pointers
+//this is the function that determines how the graph is laid out
 void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address)
 {
 	int a = *pa;
@@ -563,11 +567,11 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 //places args for extern calls on screen and in storage if space
 void thread_trace_handler::process_new_args()
 {
-	//function				caller		args
-	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pcaIt = pendingcallargs.begin();
-	while (pcaIt != pendingcallargs.end())
+	//called function			caller		args
+	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pendingCallArgIt = pendingcallargs.begin();
+	while (pendingCallArgIt != pendingcallargs.end())
 	{
-		MEM_ADDRESS funcad = pcaIt->first;
+		MEM_ADDRESS funcad = pendingCallArgIt->first;
 
 		piddata->getExternlistReadLock();
 		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
@@ -575,7 +579,7 @@ void thread_trace_handler::process_new_args()
 		if (externIt == piddata->externdict.end() ||
 			!externIt->second->thread_callers.count(TID)) {
 			piddata->dropExternlistReadLock();
-			++pcaIt; 
+			++pendingCallArgIt;
 			continue; 
 		}
 
@@ -591,8 +595,8 @@ void thread_trace_handler::process_new_args()
 
 			node_data *targn = thisgraph->safe_get_node(callvsIt->second);
 
-			map <MEM_ADDRESS, vector<ARGLIST>>::iterator callersIt = pcaIt->second.begin();
-			while (callersIt != pcaIt->second.end())//run through each caller to this function
+			map <MEM_ADDRESS, vector<ARGLIST>>::iterator callersIt = pendingCallArgIt->second.begin();
+			while (callersIt != pendingCallArgIt->second.end())//run through each caller to this function
 			{
 				if (callersIt->first != callerAddress) 
 				{ 
@@ -630,7 +634,7 @@ void thread_trace_handler::process_new_args()
 				callersIt->second.clear();
 
 				if (callersIt->second.empty())
-					callersIt = pcaIt->second.erase(callersIt);
+					callersIt = pendingCallArgIt->second.erase(callersIt);
 				else
 					++callersIt;
 
@@ -639,10 +643,10 @@ void thread_trace_handler::process_new_args()
 
 			++callvsIt;
 		}
-		if (pcaIt->second.empty())
-			pcaIt = pendingcallargs.erase(pcaIt);
+		if (pendingCallArgIt->second.empty())
+			pendingCallArgIt = pendingcallargs.erase(pendingCallArgIt);
 		else
-			++pcaIt;
+			++pendingCallArgIt;
 	}
 }
 
@@ -694,7 +698,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 #endif
 	if (thistag->jumpModifier == MOD_INSTRUMENTED)
 	{
-		runBB(thistag, 0, repeats);
+		runBB(thistag, repeats);
 		thisgraph->totalInstructions += thistag->insCount*repeats;
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -788,13 +792,15 @@ INSLIST *thread_trace_handler::find_block_disassembly(MEM_ADDRESS blockaddr, BLO
 	blocklistIt = piddata->blocklist.find(blockaddr);
 	piddata->dropDisassemblyReadLock();
 
-	if (blocklistIt == piddata->blocklist.end()) return 0;
+	//code at address hasn't been disassembled ever
+	if (blocklistIt == piddata->blocklist.end()) return 0; 
 
 	piddata->getDisassemblyReadLock();
 	mutationIt = blocklistIt->second.find(blockID);
 	piddata->dropDisassemblyReadLock();
 
-	if (mutationIt == blocklistIt->second.end()) return 0;
+	//required version of code hasn't been disassembled
+	if (mutationIt == blocklistIt->second.end()) return 0; 
 
 	return mutationIt->second;
 }

@@ -98,7 +98,7 @@ private:
 	void process_new_args();
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
-	void runBB(TAG *tag, int startIndex, int repeats);
+	void runBB(TAG *tag, int repeats);
 	void run_faulting_BB(TAG *tag);
 
 	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);

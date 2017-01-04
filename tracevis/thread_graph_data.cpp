@@ -93,6 +93,7 @@ unsigned int thread_graph_data::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsign
 unsigned long thread_graph_data::get_backlog_total()
 {
 	if (!this->trace_reader) return 0;
+
 	thread_trace_reader *reader = (thread_trace_reader *)trace_reader;
 	pair <unsigned long, unsigned long> sizePair;
 	reader->getBufsState(&sizePair);
@@ -213,26 +214,25 @@ void thread_graph_data::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> 
 	dropEdgeReadLock();
 }
 
+//return symbol text if it exists, otherwise return module path+address
 string thread_graph_data::get_node_sym(NODEINDEX idx, PROCESS_DATA* piddata)
 {
 	node_data *n = safe_get_node(idx);
 	string sym;
 
-	if (!piddata->get_sym(n->nodeMod, n->address, &sym))
-	{
-	
-		string modPath;
-		if (!piddata->get_modpath(n->nodeMod, &modPath))
-			cerr << "[rgat]WARNING: mod " << n->nodeMod << " expected but not found" << endl;
+	if (piddata->get_sym(n->nodeMod, n->address, &sym))
+		return sym;
 
-		stringstream nosym;
-		nosym << basename(modPath) << ":0x" << std::hex << n->address;
-		return nosym.str();
-	}
+	string modPath;
+	if (!piddata->get_modpath(n->nodeMod, &modPath))
+		cerr << "[rgat]WARNING: mod " << n->nodeMod << " expected but not found" << endl;
 
-	return sym;
+	stringstream nosym;
+	nosym << basename(modPath) << ":0x" << std::hex << n->address;
+	return nosym.str();
 }
 
+//why did i do it this way?
 void thread_graph_data::emptyArgQueue()
 {
 	obtainMutex(externGuardMutex, 1019);
@@ -242,8 +242,10 @@ void thread_graph_data::emptyArgQueue()
 
 void thread_graph_data::reset_animation()
 {
+	//deactivate any active nodes/edges
 	clear_active();
 
+	//darken any active drawn nodes
 	if (!nodeList.empty())
 	{
 		set_active_node(0);
@@ -253,7 +255,6 @@ void thread_graph_data::reset_animation()
 
 	assert(fadingAnimEdges.empty() && fadingAnimNodes.empty());
 		
-
 	animInstructionIndex = 0;
 	lastAnimatedNode = 0;
 	animationIndex = 0;
@@ -268,6 +269,7 @@ void thread_graph_data::reset_animation()
 	animBuildingLoop = false;
 }
 
+//fill vertlist with with all verts corresponding to basic block (blockAddr/blockID) on the graph
 bool thread_graph_data::fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist)
 {
 	INSLIST * block = getDisassemblyBlock(blockAddr, blockID, piddata, &terminationFlag);
@@ -298,8 +300,10 @@ bool thread_graph_data::fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIF
 	return true;
 }
 
+//deactivate persistent areas of animation (where we are waiting for them to finish executing)
 void thread_graph_data::remove_unchained_from_animation()
 {
+	//get rid of any nodes/edges waiting to be activated
 	map <NODEINDEX, int>::iterator newNodeIt = newAnimNodeTimes.begin();
 	while (newNodeIt != newAnimNodeTimes.end())
 		if (newNodeIt->second == KEEP_BRIGHT)
@@ -314,6 +318,7 @@ void thread_graph_data::remove_unchained_from_animation()
 		else
 			++newEdgeIt;
 
+	//get rid of any nodes/externals/edges that have already been activated
 	map <unsigned int, int>::iterator nodeIt = activeAnimNodeTimes.begin();
 	for (; nodeIt != activeAnimNodeTimes.end(); ++nodeIt)
 		if (nodeIt->second == KEEP_BRIGHT)
@@ -345,7 +350,8 @@ void thread_graph_data::process_live_animation_updates()
 	if (animUpdates.empty()) return;
 
 	bool activeUnchained = false;
-	int updateLimit = 150;
+
+	int updateLimit = 150; //too many updates at a time damages interactivity
 	while (!animUpdates.empty() && updateLimit--)
 	{
 		obtainMutex(animationListsMutex, 6210);
@@ -477,11 +483,11 @@ void thread_graph_data::process_live_animation_updates()
 
 #define ASSUME_INS_PER_BLOCK 10
 //tries to make animation pause for long enough to represent heavy cpu usage but
-//not too long to make it irritating
+//not too long to make it irritating (still a bit janky with very small traces though)
 //if program is 1m instructions and takes 10s to execute then a 50k block should wait for ~.5s
 unsigned long thread_graph_data::calculate_wait_frames(unsigned int stepSize, unsigned long blockInstructions)
 {
-	//assume 10 instructiosn per step/frame
+	//assume 10 instructions per step/frame
 	unsigned long frames = (totalInstructions/ ASSUME_INS_PER_BLOCK) / stepSize;
 
 	float proportion = (float)blockInstructions / totalInstructions;
@@ -711,6 +717,7 @@ void thread_graph_data::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int 
 	}
 
 }
+
 
 void thread_graph_data::clear_active()
 {

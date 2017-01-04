@@ -24,6 +24,12 @@ Need to migrate all Windows API (and soon Linux) routines here
 
 
 #ifdef WIN32
+
+void renameFile(string originalPath, string targetPath)
+{
+	MoveFileA(originalPath.c_str(), targetPath.c_str());
+}
+
 /*
 a lot of the code checks this for success/failure
 have changed this to not return until success but leaving this here
@@ -31,11 +37,6 @@ in case we want to revert it
 
 prints waitTimeCode in case of failure so use unique time for debugging
 */
-void renameFile(string originalPath, string targetPath)
-{
-	MoveFileA(originalPath.c_str(), targetPath.c_str());
-}
-
 bool obtainMutex(HANDLE mutex, int waitTimeCode)
 {
 	DWORD waitresult;

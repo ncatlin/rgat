@@ -293,6 +293,7 @@ int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *ani
 
 	float adjustedB = n->vcoord.b + float(n->vcoord.bMod * BMODMAG);
 	FCOORD screenc;
+
 	sphereCoord(n->vcoord.a, adjustedB, &screenc, dimensions, 0);
 	
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
@@ -467,12 +468,17 @@ void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 	vertsdata->release_pos_write();
 }
 
-//reads the list of nodes/edges, creates opengl vertex/colour data
-//resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
+
 void render_static_graph(thread_graph_data *graph, VISSTATE *clientState)
 {
-
 	if (!graph) return;
+	render_static_sphere_graph(graph, clientState);
+}
+
+//reads the list of nodes/edges, creates opengl vertex/colour data
+//resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
+void render_static_sphere_graph(thread_graph_data *graph, VISSTATE *clientState)
+{
 	bool doResize = false;
 	if (clientState->rescale)
 	{
@@ -549,6 +555,88 @@ void render_static_graph(thread_graph_data *graph, VISSTATE *clientState)
 	graph->render_new_edges(doResize, &clientState->config->graphColours.lineColours);
 	graph->redraw_anim_edges();
 }
+
+//reads the list of nodes/edges, creates opengl vertex/colour data
+//resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
+void render_static_freeform_graph(thread_graph_data *graph, VISSTATE *clientState)
+{
+	bool doResize = false;
+	if (clientState->rescale)
+	{
+		recalculate_scale(graph->m_scalefactors);
+		recalculate_scale(graph->p_scalefactors);
+		clientState->rescale = false;
+		doResize = true;
+	}
+
+	if (clientState->autoscale)
+	{
+		//doesn't take bmod into account
+		//keeps graph away from the south pole
+		int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+		if (lowestPoint > clientState->config->lowB)
+		{
+			float startB = lowestPoint;
+			while (lowestPoint > clientState->config->lowB)
+			{
+				graph->m_scalefactors->userVEDGESEP *= 0.98;
+				graph->p_scalefactors->userVEDGESEP *= 0.98;
+				recalculate_scale(graph->m_scalefactors);
+				lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+			}
+			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
+
+			recalculate_scale(graph->p_scalefactors);
+			doResize = true;
+			graph->vertResizeIndex = 0;
+		}
+
+		//more straightforward, stops graph from wrapping around the globe
+		int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+		if (widestPoint > clientState->config->farA)
+		{
+			float startA = widestPoint;
+			while (widestPoint > clientState->config->farA)
+			{
+				graph->m_scalefactors->userHEDGESEP *= 0.99;
+				graph->p_scalefactors->userHEDGESEP *= 0.99;
+				recalculate_scale(graph->m_scalefactors);
+				widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+			}
+			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
+			recalculate_scale(graph->p_scalefactors);
+			doResize = true;
+			graph->vertResizeIndex = 0;
+		}
+	}
+
+	if (doResize) graph->previewNeedsResize = true;
+
+	if (doResize || graph->vertResizeIndex > 0)
+	{
+		rescale_nodes(graph, false);
+
+
+		graph->zoomLevel = graph->m_scalefactors->radius;
+		graph->needVBOReload_main = true;
+
+		if (clientState->wireframe_sphere)
+			clientState->remakeWireframe = true;
+	}
+
+	int drawCount = draw_new_nodes(graph, graph->get_mainnodes(), &clientState->config->graphColours.nodeColours);
+	if (drawCount < 0)
+	{
+		cerr << "[rgat]Error: render_main_graph failed drawing nodes" << endl;
+		return;
+	}
+	if (drawCount)
+		graph->needVBOReload_main = true;
+
+	graph->render_new_edges(doResize, &clientState->config->graphColours.lineColours);
+	graph->redraw_anim_edges();
+}
+
 
 //renders edgePerRender edges of graph onto the preview data
 int draw_new_preview_edges(VISSTATE* clientState, thread_graph_data *graph)

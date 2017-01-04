@@ -35,7 +35,7 @@ bool heatmap_renderer::render_graph_heatmap(thread_graph_data *graph, bool verbo
 		//graph never been rendered so we cant get the edge vertex data to colourise it
 		if (!numLineVerts)
 			if (!graph->active && graph != clientState->activeGraph)
-				render_static_graph(graph, clientState); //got final data so may as well force rendering
+				render_static_sphere_graph(graph, clientState); //got final data so may as well force rendering
 			else
 				return false;
 	} 

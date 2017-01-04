@@ -132,7 +132,7 @@ void GRAPH_DISPLAY_DATA::release_col_read()
 #endif
 }
 
-//TODO: this is awful. need to add to vector ert by vert
+//TODO: this is awful. need to add to vector vert by vert
 //when number of verts increases also checks buffer sizes
 //mutexes are bit dodgy, expect them to be held by caller
 void GRAPH_DISPLAY_DATA::set_numVerts(unsigned int num)

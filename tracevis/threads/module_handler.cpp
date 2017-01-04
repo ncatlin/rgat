@@ -102,6 +102,7 @@ void module_handler::main_loop()
 		}
 		else
 		{	
+			//thread created
 			if (buf[0] == 'T' && buf[1] == 'I')
 			{
 				PID_TID TID = 0;
@@ -147,6 +148,7 @@ void module_handler::main_loop()
 				continue;
 			}
 
+			//symbol
 			if (buf[0] == 's' && buf[1] == '!' && bread > 8)
 			{
 				char *next_token = NULL;
@@ -173,6 +175,7 @@ void module_handler::main_loop()
 				continue;
 			}
 
+			//module/dll
 			if (buf[0] == 'm' && buf[1] == 'n' && bread > 8)
 			{
 				char *next_token = NULL;

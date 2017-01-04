@@ -43,6 +43,9 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 void rescale_nodes(thread_graph_data *graph, bool isPreview);
 
 void render_static_graph(thread_graph_data *graph, VISSTATE *clientState);
+void render_static_sphere_graph(thread_graph_data *graph, VISSTATE *clientState);
+void render_static_freeform_graph(thread_graph_data *graph, VISSTATE *clientState);
+
 int render_preview_graph(thread_graph_data *activeGraph, VISSTATE *clientState);
 void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA *pd);
 void display_big_heatmap(VISSTATE *clientState);
@@ -50,6 +53,5 @@ void display_big_conditional(VISSTATE *clientState);
 void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer);
 
 void drawHighlight(VCOORD *coord, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
-void show_extern_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_data *graph);
 void draw_heatmap_key(VISSTATE *clientState);
 void draw_conditional_key(VISSTATE *clientState);
