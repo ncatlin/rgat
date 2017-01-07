@@ -701,7 +701,7 @@ void thread_graph_data::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int 
 		node_data *n = unsafe_get_node(activeExternIt->first);
 		EXTTEXT *extxt = &activeExternIt->second;
 		
-		if (nearOnly && !a_coord_on_screen(n->vcoord.a, left, right, m_scalefactors->HEDGESEP))
+		if (nearOnly && !a_coord_on_screen(n->vcoord.a, left, right, main_scalefactors->HEDGESEP))
 		{
 			dropNodeReadLock(); 
 			continue;
@@ -1133,7 +1133,6 @@ inline void thread_graph_data::dropEdgeWriteLock()
 #else
 	ReleaseSRWLockExclusive(&edgeLock);
 #endif
-	
 }
 
 inline void thread_graph_data::getNodeReadLock()
@@ -1212,19 +1211,19 @@ void thread_graph_data::set_active_node(unsigned int idx)
 }
 
 //IMPORTANT: Must have edge reader lock to call this
-int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
+void thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
 	edge_data *e = &edgeDict.at(ePair);
 
-	if (!e) return 0;
+	if (!e) return;
 
 	MULTIPLIERS *scaling;
 	if (preview)
-		scaling = p_scalefactors;
+		scaling = preview_scalefactors;
 	else
-		scaling = m_scalefactors;
+		scaling = main_scalefactors;
 
 	FCOORD srcc = safe_get_node(ePair.first)->sphereCoordB(scaling, 0);
 	FCOORD targc = safe_get_node(ePair.second)->sphereCoordB(scaling, 0);
@@ -1247,9 +1246,6 @@ int thread_graph_data::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		e->vertSize = vertsDrawn;
 		e->arraypos = arraypos;
 	}
-
-	return 1;
-
 }
 
 VCOORD *thread_graph_data::get_active_node_coord()
@@ -1285,12 +1281,12 @@ thread_graph_data::thread_graph_data(PROCESS_DATA *processdata, unsigned int thr
 	needVBOReload_heatmap = true;
 	needVBOReload_main = true;
 	needVBOReload_preview = true;
-	m_scalefactors = new MULTIPLIERS;
-	p_scalefactors = new MULTIPLIERS;
-	p_scalefactors->HEDGESEP = 0.15;
-	p_scalefactors->VEDGESEP = 0.11;
-	p_scalefactors->radius = 200;
-	p_scalefactors->baseRadius = 200;
+	main_scalefactors = new MULTIPLIERS;
+	preview_scalefactors = new MULTIPLIERS;
+	preview_scalefactors->HEDGESEP = 0.15;
+	preview_scalefactors->VEDGESEP = 0.11;
+	preview_scalefactors->radius = 200;
+	preview_scalefactors->baseRadius = 200;
 }
 
 
@@ -1323,7 +1319,7 @@ void thread_graph_data::display_highlight_lines(vector<node_data *> *nodePtrList
 {
 	int nodeListSize = nodePtrList->size();
 	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
-		drawHighlight(&nodePtrList->at(nodeIdx)->vcoord, m_scalefactors, colour, lengthModifier);
+		drawHighlight(&nodePtrList->at(nodeIdx)->vcoord, main_scalefactors, colour, lengthModifier);
 }
 
 void thread_graph_data::insert_node(NODEINDEX targVertID, node_data node)

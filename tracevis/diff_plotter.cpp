@@ -35,7 +35,7 @@ diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTAT
 		graph2 = g1;
 	}
 	diffgraph = new thread_graph_data(state->glob_piddata_map.at(graph1->pid),0);
-	diffgraph->m_scalefactors = graph1->m_scalefactors;
+	diffgraph->main_scalefactors = graph1->main_scalefactors;
 	diffgraph->needVBOReload_main = true;
 	glGenBuffers(4, diffgraph->graphVBOs);
 	clientState = state;

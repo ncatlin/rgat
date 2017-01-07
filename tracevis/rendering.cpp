@@ -50,7 +50,7 @@ void plot_wireframe(VISSTATE *clientState)
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
 	int ii, pp;
-	long diam = clientState->activeGraph->m_scalefactors->radius;
+	long diam = clientState->activeGraph->main_scalefactors->radius;
 	const int points = WF_POINTSPERLINE;
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
@@ -371,7 +371,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT
 		clientState->logSize = graph->fill_extern_log(clientState->textlog, clientState->logSize);
 
 	//red line indicating last instruction
-	drawHighlight(graph->get_active_node_coord(), graph->m_scalefactors, &clientState->config->activityLineColour, 0);
+	drawHighlight(graph->get_active_node_coord(), graph->main_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//green highlight lines
 	if (clientState->highlightData.highlightState)
@@ -400,7 +400,7 @@ void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT
 //takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
 int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours) {
 	
-	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->p_scalefactors : graph->m_scalefactors;
+	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? graph->preview_scalefactors : graph->main_scalefactors;
 
 	int nodeIdx = 0;
 	int nodeEnd = graph->get_num_nodes();
@@ -428,7 +428,7 @@ int draw_new_nodes(thread_graph_data *graph, GRAPH_DISPLAY_DATA *vertsdata, map<
 //rescale all drawn verts to sphere of new diameter by altering the vertex data
 void rescale_nodes(thread_graph_data *graph, bool isPreview) {
 
-	MULTIPLIERS *scalefactors = isPreview ? graph->p_scalefactors : graph->m_scalefactors;
+	MULTIPLIERS *scalefactors = isPreview ? graph->preview_scalefactors : graph->main_scalefactors;
 
 	GRAPH_DISPLAY_DATA *vertsdata;
 	unsigned long targetIdx, nodeIdx;
@@ -482,8 +482,8 @@ void render_static_sphere_graph(thread_graph_data *graph, VISSTATE *clientState)
 	bool doResize = false;
 	if (clientState->rescale)
 	{
-		recalculate_scale(graph->m_scalefactors);
-		recalculate_scale(graph->p_scalefactors);
+		recalculate_scale(graph->main_scalefactors);
+		recalculate_scale(graph->preview_scalefactors);
 		clientState->rescale = false;
 		doResize = true;
 	}
@@ -492,38 +492,38 @@ void render_static_sphere_graph(thread_graph_data *graph, VISSTATE *clientState)
 	{
 		//doesn't take bmod into account
 		//keeps graph away from the south pole
-		int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+		int lowestPoint = graph->maxB * graph->main_scalefactors->VEDGESEP;
 		if (lowestPoint > clientState->config->lowB)
 		{
 			float startB = lowestPoint;
 			while (lowestPoint > clientState->config->lowB)
 			{
-				graph->m_scalefactors->userVEDGESEP *= 0.98;
-				graph->p_scalefactors->userVEDGESEP *= 0.98;
-				recalculate_scale(graph->m_scalefactors);
-				lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+				graph->main_scalefactors->userVEDGESEP *= 0.98;
+				graph->preview_scalefactors->userVEDGESEP *= 0.98;
+				recalculate_scale(graph->main_scalefactors);
+				lowestPoint = graph->maxB * graph->main_scalefactors->VEDGESEP;
 			}
 			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
-			recalculate_scale(graph->p_scalefactors);
+			recalculate_scale(graph->preview_scalefactors);
 			doResize = true;
 			graph->vertResizeIndex = 0;
 		}
 
 		//more straightforward, stops graph from wrapping around the globe
-		int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+		int widestPoint = graph->maxA * graph->main_scalefactors->HEDGESEP;
 		if (widestPoint > clientState->config->farA)
 		{
 			float startA = widestPoint;
 			while (widestPoint > clientState->config->farA)
 			{
-				graph->m_scalefactors->userHEDGESEP *= 0.99;
-				graph->p_scalefactors->userHEDGESEP *= 0.99;
-				recalculate_scale(graph->m_scalefactors);
-				widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+				graph->main_scalefactors->userHEDGESEP *= 0.99;
+				graph->preview_scalefactors->userHEDGESEP *= 0.99;
+				recalculate_scale(graph->main_scalefactors);
+				widestPoint = graph->maxB * graph->main_scalefactors->HEDGESEP;
 			}
 			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
-			recalculate_scale(graph->p_scalefactors);
+			recalculate_scale(graph->preview_scalefactors);
 			doResize = true;
 			graph->vertResizeIndex = 0;
 		}
@@ -536,7 +536,7 @@ void render_static_sphere_graph(thread_graph_data *graph, VISSTATE *clientState)
 		rescale_nodes(graph, false);
 		
 		
-		graph->zoomLevel = graph->m_scalefactors->radius;
+		graph->zoomLevel = graph->main_scalefactors->radius;
 		graph->needVBOReload_main = true;
 
 		if (clientState->wireframe_sphere)
@@ -563,8 +563,8 @@ void render_static_freeform_graph(thread_graph_data *graph, VISSTATE *clientStat
 	bool doResize = false;
 	if (clientState->rescale)
 	{
-		recalculate_scale(graph->m_scalefactors);
-		recalculate_scale(graph->p_scalefactors);
+		recalculate_scale(graph->main_scalefactors);
+		recalculate_scale(graph->preview_scalefactors);
 		clientState->rescale = false;
 		doResize = true;
 	}
@@ -573,38 +573,38 @@ void render_static_freeform_graph(thread_graph_data *graph, VISSTATE *clientStat
 	{
 		//doesn't take bmod into account
 		//keeps graph away from the south pole
-		int lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+		int lowestPoint = graph->maxB * graph->main_scalefactors->VEDGESEP;
 		if (lowestPoint > clientState->config->lowB)
 		{
 			float startB = lowestPoint;
 			while (lowestPoint > clientState->config->lowB)
 			{
-				graph->m_scalefactors->userVEDGESEP *= 0.98;
-				graph->p_scalefactors->userVEDGESEP *= 0.98;
-				recalculate_scale(graph->m_scalefactors);
-				lowestPoint = graph->maxB * graph->m_scalefactors->VEDGESEP;
+				graph->main_scalefactors->userVEDGESEP *= 0.98;
+				graph->preview_scalefactors->userVEDGESEP *= 0.98;
+				recalculate_scale(graph->main_scalefactors);
+				lowestPoint = graph->maxB * graph->main_scalefactors->VEDGESEP;
 			}
 			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
 
-			recalculate_scale(graph->p_scalefactors);
+			recalculate_scale(graph->preview_scalefactors);
 			doResize = true;
 			graph->vertResizeIndex = 0;
 		}
 
 		//more straightforward, stops graph from wrapping around the globe
-		int widestPoint = graph->maxA * graph->m_scalefactors->HEDGESEP;
+		int widestPoint = graph->maxA * graph->main_scalefactors->HEDGESEP;
 		if (widestPoint > clientState->config->farA)
 		{
 			float startA = widestPoint;
 			while (widestPoint > clientState->config->farA)
 			{
-				graph->m_scalefactors->userHEDGESEP *= 0.99;
-				graph->p_scalefactors->userHEDGESEP *= 0.99;
-				recalculate_scale(graph->m_scalefactors);
-				widestPoint = graph->maxB * graph->m_scalefactors->HEDGESEP;
+				graph->main_scalefactors->userHEDGESEP *= 0.99;
+				graph->preview_scalefactors->userHEDGESEP *= 0.99;
+				recalculate_scale(graph->main_scalefactors);
+				widestPoint = graph->maxB * graph->main_scalefactors->HEDGESEP;
 			}
 			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
-			recalculate_scale(graph->p_scalefactors);
+			recalculate_scale(graph->preview_scalefactors);
 			doResize = true;
 			graph->vertResizeIndex = 0;
 		}
@@ -617,7 +617,7 @@ void render_static_freeform_graph(thread_graph_data *graph, VISSTATE *clientStat
 		rescale_nodes(graph, false);
 
 
-		graph->zoomLevel = graph->m_scalefactors->radius;
+		graph->zoomLevel = graph->main_scalefactors->radius;
 		graph->needVBOReload_main = true;
 
 		if (clientState->wireframe_sphere)
@@ -803,7 +803,7 @@ void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 			if (clientState->modes.nearSide)
 			{
 				if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
-					clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+					clientState->rightcolumn, graph->main_scalefactors->HEDGESEP))
 					continue;
 			}
 
@@ -831,7 +831,7 @@ void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd, thread_graph_dat
 			if (clientState->modes.nearSide)
 			{
 				if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
-					clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+					clientState->rightcolumn, graph->main_scalefactors->HEDGESEP))
 					continue;
 			}
 
@@ -865,7 +865,7 @@ void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, th
 		//implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
 		//bypass by turning instruction display always on
 		if (!show_all_always && !a_coord_on_screen(n->vcoord.a, clientState->leftcolumn,
-			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+			clientState->rightcolumn, graph->main_scalefactors->HEDGESEP))
 			continue;
 
 		if (!n->get_screen_pos(mainverts, pd, &screenCoord)) continue; //in graph but not rendered
@@ -903,7 +903,7 @@ void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, 
 		if (n->external || !n->ins->conditional) continue;
 
 		if (!a_coord_on_screen(n->vcoord.a, clientState->leftcolumn, clientState->rightcolumn,
-			graph->m_scalefactors->HEDGESEP)) continue;
+			graph->main_scalefactors->HEDGESEP)) continue;
 
 		//todo: experiment with performance re:how much of these checks to include
 		DCOORD screenCoord;
@@ -960,7 +960,7 @@ void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 		//should these checks should be done on the midpoint rather than the first node?
 		if (firstNode->external) continue; //don't care about instruction in library call
 		if (!a_coord_on_screen(firstNode->vcoord.a, clientState->leftcolumn,
-			clientState->rightcolumn, graph->m_scalefactors->HEDGESEP))
+			clientState->rightcolumn, graph->main_scalefactors->HEDGESEP))
 			continue;
 
 		edge_data *e = graph->get_edge(*ePair);
@@ -1018,7 +1018,7 @@ void display_graph(VISSTATE *clientState, thread_graph_data *graph, PROJECTDATA 
 	else
 		graph->display_static(clientState->modes.nodes, clientState->modes.edges);
 
-	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->m_scalefactors->radius);
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->main_scalefactors->radius);
 	
 	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd, graph);
@@ -1064,7 +1064,7 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer) {
 	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
-	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->m_scalefactors->radius);
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->radius);
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
@@ -1173,7 +1173,7 @@ void display_big_heatmap(VISSTATE *clientState)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->m_scalefactors->radius);
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->main_scalefactors->radius);
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);

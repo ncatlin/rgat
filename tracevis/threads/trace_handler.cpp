@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Header for the thread that builds a graph for each trace
+The thread that builds a graph for each trace
 */
 #include "stdafx.h"
 #include "trace_handler.h"
@@ -65,9 +65,9 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 	int a = 0, b = 0;
 	int bMod = 0;
 
-	
+
 	if (lastRIPType == FIRST_IN_THREAD)
-	{	
+	{
 		a = 0;
 		b = 0;
 	}
@@ -88,9 +88,7 @@ void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_I
 
 	}
 
-	thisnode.vcoord.a = a;
-	thisnode.vcoord.b = b;
-	thisnode.vcoord.bMod = bMod;// +(mutation * 3);//helps spread out clashing mutations
+	thisnode.vcoord = {a, b, bMod};// +(mutation * 3);//helps spread out clashing mutations
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
 	thisnode.conditional = thisnode.ins->conditional;

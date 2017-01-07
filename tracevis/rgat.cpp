@@ -276,7 +276,7 @@ void change_mode(VISSTATE *clientState, int mode)
 	{
 	case EV_BTN_WIREFRAME:
 		clientState->modes.wireframe = !clientState->modes.wireframe;
-		return;
+		break;
 
 	case EV_BTN_CONDITION:
 		
@@ -286,14 +286,14 @@ void change_mode(VISSTATE *clientState, int mode)
 			clientState->modes.nodes = true;
 			clientState->modes.heatmap = false;
 		}
-		return;
+		break;
 
 	case EV_BTN_HEATMAP:
 
 		clientState->modes.heatmap = !clientState->modes.heatmap;
 		clientState->modes.nodes = !clientState->modes.heatmap;
 		if (clientState->modes.heatmap) clientState->modes.conditional = false;
-		return;
+		break;
 
 	case EV_BTN_PREVIEW:
 		{
@@ -312,23 +312,21 @@ void change_mode(VISSTATE *clientState, int mode)
 				clientState->mainGraphBMP = al_create_bitmap(clientState->displaySize.width, clientState->mainFrameSize.height);
 			}
 
-			return;
+			break;
 		}
 	case EV_BTN_DIFF:
 		clientState->modes.heatmap = false;
 		clientState->modes.conditional = false;
-		return;
+		break;
 
 	case EV_BTN_NODES:
 		clientState->modes.nodes = !clientState->modes.nodes;
-		return;
+		break;
 
 	case EV_BTN_EDGES:
 		clientState->modes.edges = !clientState->modes.edges;
-		return;
-
+		break;
 	}
-
 }
 
 void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffRenderer)
@@ -340,7 +338,7 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 		NODEINDEX nIdx = (*diffRenderer)->get_diff_node();
 		node_data *n = graph1->safe_get_node(nIdx);
 		if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
-			drawHighlight(&n->vcoord, graph1->m_scalefactors, &al_col_orange, 10);
+			drawHighlight(&n->vcoord, graph1->main_scalefactors, &al_col_orange, 10);
 
 		thread_graph_data *diffGraph = (*diffRenderer)->get_diff_graph();
 		display_graph_diff(clientState, *diffRenderer);
@@ -369,14 +367,17 @@ void closeTextLog(VISSTATE *clientState)
 	clientState->logSize = 0;
 }
 
-/*performs actions that need to be done quite often, but not every frame
+/*
+performs actions that need to be done quite often, but not every frame
 this includes checking the locations of the screen edge on the sphere and
-drawing new highlights for things that match the active filter*/
+drawing new highlights for things that match the active filter
+*/
 void performIrregularActions(VISSTATE *clientState)
 {
 	SCREEN_EDGE_PIX TBRG;
 	//update where camera is pointing on sphere, used to choose which node text to draw
 	edge_picking_colours(clientState, &TBRG, true);
+
 	clientState->leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 	clientState->rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 
@@ -589,7 +590,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	{
 		if (!clientState->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
 
-		MULTIPLIERS *mainscale = clientState->activeGraph->m_scalefactors;
+		MULTIPLIERS *mainscale = clientState->activeGraph->main_scalefactors;
 		float diam = mainscale->radius;
 		long maxZoomIn = diam + 5; //prevent zoom into globe
 		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
@@ -724,7 +725,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_NONE;
 			}
 
-			MULTIPLIERS *mainscale = clientState->activeGraph->m_scalefactors;
+			MULTIPLIERS *mainscale = clientState->activeGraph->main_scalefactors;
 			switch (ev->keyboard.keycode)
 			{
 				case ALLEGRO_KEY_ESCAPE:

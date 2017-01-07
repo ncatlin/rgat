@@ -40,7 +40,7 @@ void frame_gl_setup(VISSTATE* clientState)
 	bool zoomedIn = false;
 	if (clientState->activeGraph)
 	{
-		float zmul = zoomFactor(clientState->cameraZoomlevel, clientState->activeGraph->m_scalefactors->radius);
+		float zmul = zoomFactor(clientState->cameraZoomlevel, clientState->activeGraph->main_scalefactors->radius);
 		if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR)
 			zoomedIn = true;
 	}
@@ -50,7 +50,7 @@ void frame_gl_setup(VISSTATE* clientState)
 			clientState->cameraZoomlevel);
 	else
 		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
-			clientState->cameraZoomlevel + clientState->activeGraph->m_scalefactors->radius);
+			clientState->cameraZoomlevel + clientState->activeGraph->main_scalefactors->radius);
 
 
 
@@ -150,7 +150,7 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
 	clientState->col_pick_sphere = spheredata;
 
-	int diam = clientState->activeGraph->m_scalefactors->radius;
+	int diam = clientState->activeGraph->main_scalefactors->radius;
 	int rowi, coli;
 	float tlx, tlz, trx, topy, trz;
 	float basey, brx, brz, blz, blx;

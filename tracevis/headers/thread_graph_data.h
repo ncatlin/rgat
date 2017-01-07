@@ -174,7 +174,7 @@ public:
 	unsigned long getAnimDataSize() { return savedAnimationData.size(); }
 	vector <ANIMATIONENTRY> * getSavedAnimData() { return &savedAnimationData; }
 
-	int render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
+	void render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour = 0, bool preview = false, bool noUpdate = false);
 	
 	bool edge_exists(NODEPAIR edge, edge_data **edged);
@@ -274,8 +274,8 @@ public:
 
 	unsigned long vertResizeIndex = 0;
 
-	MULTIPLIERS *m_scalefactors = NULL;
-	MULTIPLIERS *p_scalefactors = NULL;
+	MULTIPLIERS *main_scalefactors = NULL;
+	MULTIPLIERS *preview_scalefactors = NULL;
 
 
 	bool needVBOReload_main = true;
