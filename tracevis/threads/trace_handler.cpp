@@ -287,6 +287,9 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 	int bMod = *pbMod;
 	int clash = 0;
 
+	printf("positionvert called with a:%d, b:%d, bmod:%d, type:%d\n", a, b, bMod, lastRIPType);
+
+
 	switch (lastRIPType)
 	{
 	/*
@@ -402,6 +405,8 @@ void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRES
 			cerr << "[rgat]ERROR: Unknown Last RIP Type "<< lastRIPType << endl;
 		break;
 	}
+	printf("\t result-> a:%d, b:%d, bmod:%d\n", a, b, bMod);
+
 	*pa = a;
 	*pb = b;
 	*pbMod = bMod;
@@ -542,6 +547,8 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	newTargNode.vcoord.a = lastnodec.a + 2 * lastNode->childexterns + 5;
 	newTargNode.vcoord.b = lastnodec.b + lastNode->childexterns + 5;
 	newTargNode.vcoord.bMod = lastnodec.bMod;
+	printf("position external at-> a:%d, b:%d, bmod:%d, lastriptype:%d\n", newTargNode.vcoord.a, newTargNode.vcoord.b, newTargNode.vcoord.bMod, lastRIPType);
+
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
 	newTargNode.index = targVertID;
