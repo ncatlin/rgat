@@ -19,17 +19,20 @@ Class for the code that plots graph divergence
 */
 #pragma once
 #include "stdafx.h"
-#include "thread_graph_data.h"
+#include "proto_graph.h"
+#include "sphere_graph.h"
 #include "GUIStructs.h"
+
+
 
 class diff_plotter {
 public:
-	thread_graph_data *get_diff_graph() { return diffgraph; }
-	diff_plotter(thread_graph_data *graph1, thread_graph_data *graph2, VISSTATE *state);
+	plotted_graph *get_diff_graph() { return diffgraph; }
+	diff_plotter(plotted_graph *graph1, plotted_graph *graph2, VISSTATE *state);
 	//void display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
 
 	void render();
-	thread_graph_data *get_graph(int idx);
+	plotted_graph *get_graph(int idx);
 	//return first node different between the two graphs
 	NODEINDEX get_diff_node() { return diffNode; }
 
@@ -37,9 +40,9 @@ private:
 	NODEPAIR firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *pd, PID_TID thread);
 	void mark_divergence();
 
-	thread_graph_data *graph1;
-	thread_graph_data *graph2;
-	thread_graph_data *diffgraph;
+	plotted_graph *graph1;
+	plotted_graph *graph2;
+	plotted_graph *diffgraph;
 	VISSTATE *clientState;
 	unsigned long divergenceIdx = 0;
 	NODEINDEX diffNode = 0;

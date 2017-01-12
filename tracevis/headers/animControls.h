@@ -17,6 +17,8 @@ limitations under the License.
 #pragma once
 #include "stdafx.h"
 #include "GUIStructs.h"
+#include "plotted_graph.h"
+
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
 #include "Agui\Widgets\DropDown\DropDown.hpp"
@@ -44,7 +46,7 @@ public:
 	AnimControls(agui::Gui *widgets, VISSTATE *cState, agui::Font *font);
 	void setAnimState(int animState);
 	bool isEnabled() { return enableState; }
-	void update(thread_graph_data *graph);
+	void update(plotted_graph *graph);
 	void notifyAnimFinished();
 	void setScrollbarVisible(bool enabled) { previewVScroll->setVisibility(enabled); }
 	void setScrollbarMax(int val) { previewVScroll->setMaxValue(val);}
@@ -89,7 +91,7 @@ private:
 	int animationState = -1;
 
 	void CreateBufLayout();
-	void displayBacklog(thread_graph_data *graph);
+	void displayBacklog(proto_graph *graph);
 };
 
 class AnimButtonListener : public agui::ActionListener
@@ -121,7 +123,7 @@ public:
 		{
 			clientState->animationUpdate = 0;
 			clientState->modes.animation = false;
-			clientState->activeGraph->terminated = true;
+			((plotted_graph *)clientState->activeGraph)->get_protoGraph()->terminated = true;
 			evt.getSource()->setText("Play");
 			return;
 		}
@@ -214,7 +216,8 @@ public:
 
 		float newVal = source->getValue();
 		float maxVal = source->getMaxValue();
-		clientState->activeGraph->userSelectedAnimPosition = (unsigned long)(clientState->activeGraph->getAnimDataSize()*(newVal / maxVal));
+		plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
+		activeGraph->userSelectedAnimPosition = (unsigned long)(activeGraph->get_protoGraph()->getAnimDataSize()*(newVal / maxVal));
 	}
 
 private:

@@ -59,9 +59,6 @@
     <ClInclude Include="headers\edge_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\thread_graph_data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\node_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -143,6 +140,15 @@
     <ClInclude Include="resource1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\sphere_graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\plotted_graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\proto_graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -161,9 +167,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="b64.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="thread_graph_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="node_data.cpp">
@@ -470,6 +473,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="traceStructs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proto_graph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sphere_graph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plotted_graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

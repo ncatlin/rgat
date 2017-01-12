@@ -22,6 +22,7 @@ misc other UI elements
 #include "GUIConstants.h"
 #include "GUIManagement.h"
 #include "OSspecific.h"
+#include "plotted_graph.h"
 
 RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1, agui::RadioButton *s2)
 {
@@ -56,7 +57,7 @@ void TraceVisGUI::showHideDiffFrame()
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
 }
 
-void TraceVisGUI::updateWidgets(thread_graph_data *graph) 
+void TraceVisGUI::updateWidgets(plotted_graph *graph)
 {
 	const int ticksRemaining = --widgetsUpdateCooldown;
 	if (!graph) return;
@@ -88,17 +89,17 @@ void TraceVisGUI::paintWidgets()
 
 }
 
-void TraceVisGUI::showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y) {
+void TraceVisGUI::showGraphToolTip(proto_graph *graph, PROCESS_DATA *piddata, int x, int y) {
 	if (!graph)
 	{
 		tippy->hide(); 
 		return;
 	}
 
-	if (graph->modPath.empty())	graph->assign_modpath(piddata);
+	if (graph->modulePath.empty())	graph->assign_modpath(piddata);
 
 	stringstream tipText;
-	tipText << "Path: " << graph->modPath << endl;
+	tipText << "Path: " << graph->modulePath << endl;
 	tipText << "Nodes: " << graph->get_num_nodes() << endl;
 	tipText << "Edges: " << graph->get_num_edges() << endl;
 	tipText << "Instructions: " << graph->totalInstructions << endl;
@@ -272,10 +273,11 @@ void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg)
 void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int nodes, int edges)
 {
 	if (!clientState->title->zoom) return;
-	thread_graph_data *graph = (thread_graph_data *)clientState->activeGraph;
+	proto_graph * graph = ((plotted_graph*)clientState->activeGraph)->get_protoGraph();
 	if (!graph) return;
 
-	snprintf(clientState->title->Primitives, PRIMITIVES_STRING_MAX, "[target:%s TID:%d %d Nodes / %d Edges]", basename(graph->modPath).c_str(), graph->tid, nodes, edges);
+	
+	snprintf(clientState->title->Primitives, PRIMITIVES_STRING_MAX, "[target:%s TID:%d %d Nodes / %d Edges]", basename(graph->modulePath).c_str(), graph->get_TID(), nodes, edges);
 	updateTitle(display, clientState->title);
 }
 
@@ -293,7 +295,8 @@ void updateTitle_FPS(ALLEGRO_DISPLAY *display, TITLE *title, int FPS, double FPS
 
 void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
-	if (!clientState->activeGraph->get_num_nodes())
+	proto_graph * graph = ((plotted_graph*)clientState->activeGraph)->get_protoGraph();
+	if (!graph->get_num_nodes())
 		return;
 
 	stringstream infotxt;
@@ -305,10 +308,10 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	else
 		textColour = al_col_red;
 
-	int activeModule = clientState->activeGraph->safe_get_node(0)->nodeMod;
+	int activeModule = graph->safe_get_node(0)->nodeMod;
 	string modPath;
 	piddata->get_modpath(activeModule, &modPath);
-	infotxt << modPath <<" (PID: " << piddata->PID << ")" << " (TID: " << clientState->activeGraph->tid << ")";
+	infotxt << modPath <<" (PID: " << piddata->PID << ")" << " (TID: " << graph->get_TID() << ")";
 
 	al_draw_filled_rectangle(0, 0, clientState->mainFrameSize.width, 32, al_map_rgba(0, 0, 0, 235));
 	al_draw_text(font, textColour, x, y, ALLEGRO_ALIGN_LEFT, infotxt.str().c_str());

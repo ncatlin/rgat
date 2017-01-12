@@ -23,6 +23,7 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 #include "traceStructs.h"
 #include "GUIStructs.h"
 #include "base_thread.h"
+#include "plotted_graph.h"
 
 class maingraph_render_thread : public base_thread
 {
@@ -35,7 +36,7 @@ public:
 
 private:
 	void main_loop();
-	void updateMainRender(thread_graph_data *graph);
-	void performMainGraphRendering(thread_graph_data *graph);
+	//void updateMainRender(plotted_graph *graph);
+	void performMainGraphRendering(plotted_graph *graph);
 };
 

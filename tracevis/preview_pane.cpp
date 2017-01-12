@@ -29,23 +29,24 @@ void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const c
 	al_draw_text(font, textcol, x, y, ALLEGRO_ALIGN_LEFT, label);
 }
 
-void write_tid_text(ALLEGRO_FONT* font, thread_graph_data *graph, int x, int y)
+void write_tid_text(ALLEGRO_FONT* font, plotted_graph *graph, int x, int y)
 {
 	stringstream infotxt;
 	ALLEGRO_COLOR textcol;
+	proto_graph *graphData = graph->get_protoGraph();
 
-	infotxt << "TID:" << graph->tid;
+	infotxt << "TID:" << graphData->get_TID();
 
-	if (graph->active)
+	if (graphData->active)
 	{
 		textcol = al_col_green;
 		infotxt << " (Active)";
 
-		unsigned long backlog = graph->get_backlog_total();
+		unsigned long backlog = graphData->get_backlog_total();
 		if (backlog > 10)
 			infotxt << " Q:" << backlog;
 
-		unsigned long newIn = graph->getBacklogIn();
+		unsigned long newIn = graphData->getBacklogIn();
 		if (newIn)
 			infotxt << " in:" << newIn;
 	}
@@ -58,7 +59,7 @@ void write_tid_text(ALLEGRO_FONT* font, thread_graph_data *graph, int x, int y)
 }
 
 
-void uploadPreviewGraph(thread_graph_data *previewgraph) 
+void uploadPreviewGraph(plotted_graph *previewgraph)
 {
 	GLuint *VBOs = previewgraph->previewVBOs;
 	load_VBO(VBO_NODE_POS, VBOs, previewgraph->previewnodes->pos_size(), previewgraph->previewnodes->readonly_pos());
@@ -89,7 +90,7 @@ void uploadPreviewGraph(thread_graph_data *previewgraph)
 }
 
 
-void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState) 
+void drawGraphBitmap(plotted_graph *previewgraph, VISSTATE *clientState)
 {
 
 	if (!previewgraph->previewBMP)
@@ -105,7 +106,7 @@ void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState)
 
 	al_set_target_bitmap(previewgraph->previewBMP);
 	ALLEGRO_COLOR preview_gcol;
-	if (previewgraph->active)
+	if (previewgraph->get_protoGraph()->active)
 		preview_gcol = clientState->config->preview.activeHighlight;
 	else
 		preview_gcol = clientState->config->preview.inactiveHighlight;
@@ -193,7 +194,7 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <PID_TID, NODEPAIR> *graphPo
 
 	if (!obtainMutex(clientState->pidMapMutex, 1051)) return;
 
-	thread_graph_data *previewGraph = 0;
+	plotted_graph *previewGraph = 0;
 
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	int graphy = -1*PREV_Y_MULTIPLIER*widgets->getScroll();
@@ -207,15 +208,15 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <PID_TID, NODEPAIR> *graphPo
 	glLoadIdentity();
 	glPushMatrix();
 
-	map<PID_TID, void *>::iterator threadit = clientState->activePid->graphs.begin();
-	for (;threadit != clientState->activePid->graphs.end(); ++threadit)
+	map<PID_TID, void *>::iterator threadit = clientState->activePid->plottedGraphs.begin();
+	for (;threadit != clientState->activePid->plottedGraphs.end(); ++threadit)
 	{
-		previewGraph = (thread_graph_data *)threadit->second;
+		previewGraph = (plotted_graph *)threadit->second;
 	
 		if (!previewGraph || !previewGraph->previewnodes->get_numVerts()) continue;
 
 		if (!previewGraph->VBOsGenned) 
-			gen_graph_VBOs(previewGraph);
+			previewGraph->gen_graph_VBOs();
 
 		if (spinPerFrame || previewGraph->needVBOReload_preview)
 			drawGraphBitmap(previewGraph, clientState);

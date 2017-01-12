@@ -22,7 +22,7 @@ Header for the thread that builds a graph for each trace
 #include "traceStructs.h"
 #include "node_data.h"
 #include "edge_data.h"
-#include "thread_graph_data.h"
+#include "proto_graph.h"
 #include "thread_trace_reader.h"
 #include "GUIStructs.h"
 #include "timeline.h"
@@ -66,7 +66,7 @@ struct PENDING_REPEAT {
 class thread_trace_handler : public base_thread
 {
 public:
-	thread_trace_handler(thread_graph_data *graph, unsigned int thisPID, unsigned int thisTID)
+	thread_trace_handler(proto_graph *graph, unsigned int thisPID, unsigned int thisTID)
 		:base_thread(thisPID, thisTID)
 	{
 		thisgraph = graph;
@@ -88,12 +88,9 @@ private:
 	unsigned int targVertID = 0; //new vert we are creating
 
 	char lastRIPType = FIRST_IN_THREAD;
-	vector<pair<MEM_ADDRESS, int>> callStack;
 
-	thread_graph_data *thisgraph;
-	//keep track of which a,b coords are occupied
-	map<int, map<int, bool>> usedCoords;
-
+	proto_graph *thisgraph;
+	
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
@@ -101,11 +98,8 @@ private:
 	void runBB(TAG *tag, int repeats);
 	void run_faulting_BB(TAG *tag);
 
-	void positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address);
-	void updateStats(int a, int b, unsigned int bMod);
-
 	bool set_target_instruction(INS_DATA *instruction);
-	void handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
+
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
 
 	INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);
@@ -137,7 +131,7 @@ private:
 	};
 	vector<NEW_EDGE_BLOCKDATA> pendingEdges;
 
-	bool afterReturn = false;
+	
 	unsigned long loopIterations = 0;
 	unsigned int firstLoopVert = 0;
 	int loopState = NO_LOOP;

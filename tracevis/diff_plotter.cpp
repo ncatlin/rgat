@@ -20,11 +20,12 @@ Class for the code that plots graph divergence
 #include "stdafx.h"
 #include "diff_plotter.h"
 #include "rendering.h"
-#include "thread_graph_data.h"
 
-diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTATE *state)
+
+diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state)
 {
-	if (g1->getAnimDataSize() >= g2->getAnimDataSize())
+
+	if (g1->get_protoGraph()->getAnimDataSize() >= g2->get_protoGraph()->getAnimDataSize())
 	{
 		graph1 = g1;
 		graph2 = g2;
@@ -34,14 +35,16 @@ diff_plotter::diff_plotter(thread_graph_data *g1, thread_graph_data *g2, VISSTAT
 		graph1 = g2;
 		graph2 = g1;
 	}
-	diffgraph = new thread_graph_data(state->glob_piddata_map.at(graph1->pid),0);
+
+	PID_TID g1pid = graph1->get_protoGraph()->get_piddata()->PID;
+	diffgraph = new plotted_graph(state->glob_piddata_map.at(g1pid),0, graph1->get_protoGraph());
 	diffgraph->main_scalefactors = graph1->main_scalefactors;
-	diffgraph->needVBOReload_main = true;
+
 	glGenBuffers(4, diffgraph->graphVBOs);
 	clientState = state;
 }
 
-thread_graph_data *diff_plotter::get_graph(int idx) {
+plotted_graph *diff_plotter::get_graph(int idx) {
 	if (idx == 1) return graph1;
 	return graph2;
 }
@@ -96,18 +99,21 @@ void diff_plotter::render()
 	EDGELIST::iterator edgeSeqItG1;
 	EDGELIST::iterator edgeSeqEndG1;
 	
-	obtainMutex(graph1->animationListsMutex, 9932);
-	obtainMutex(graph2->animationListsMutex, 9932);
-	g1ProcessData = clientState->glob_piddata_map.at(graph1->pid);
-	g2ProcessData = clientState->glob_piddata_map.at(graph2->pid);
-	vector <ANIMATIONENTRY> *graph1Data = graph1->getSavedAnimData();
-	vector <ANIMATIONENTRY> *graph2Data = graph2->getSavedAnimData();
+	proto_graph *g1Proto = graph1->get_protoGraph();
+	proto_graph *g2Proto = graph2->get_protoGraph();
+
+	obtainMutex(g1Proto->animationListsMutex, 9932);
+	obtainMutex(g2Proto->animationListsMutex, 9932);
+	g1ProcessData = clientState->glob_piddata_map.at(g1Proto->get_piddata()->PID);
+	g2ProcessData = clientState->glob_piddata_map.at(g2Proto->get_piddata()->PID);
+	vector <ANIMATIONENTRY> *graph1Data = g1Proto->getSavedAnimData();
+	vector <ANIMATIONENTRY> *graph2Data = g2Proto->getSavedAnimData();
 
 	unsigned long renderIdx = 0;
 	unsigned long renderEnd = graph1Data->size();
 
-	PID_TID g1TID = graph1->tid;
-	PID_TID g2TID = graph2->tid;
+	PID_TID g1TID = g1Proto->get_TID();
+	PID_TID g2TID = g2Proto->get_TID();
 	ANIMATIONENTRY *g1Entry, *g2Entry;
 
 	bool die = false;
@@ -257,7 +263,7 @@ void diff_plotter::render()
 		if (renderIdx > 0)
 		{
 			nextEdge = make_pair(lastNode, first_lastNodeG1.first);
-			if (!graph1->edge_exists(nextEdge, 0))
+			if (!g1Proto->edge_exists(nextEdge, 0))
 			{
 				cerr << "[rgat]ERROR: Divergence renderer tried to colour non-rendered edge " << nextEdge.first << "," << nextEdge.second << endl;
 				break;
@@ -273,7 +279,7 @@ void diff_plotter::render()
 		lastNode = first_lastNodeG1.second;
 	}
 
-	dropMutex(graph1->animationListsMutex);
-	dropMutex(graph2->animationListsMutex);
+	dropMutex(g1Proto->animationListsMutex);
+	dropMutex(g2Proto->animationListsMutex);
 	diffgraph->needVBOReload_main = true;
 }

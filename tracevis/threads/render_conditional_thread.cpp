@@ -21,7 +21,7 @@ Header for the thread that renders graph conditional data
 #include "render_conditional_thread.h"
 #include "traceMisc.h"
 
-bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
+bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 {
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	if (!linedata || !linedata->get_numVerts()) return false;
@@ -41,7 +41,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 		{
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
-			int condStatus = graph->safe_get_node(nodeIdx++)->conditional;
+			int condStatus = graph->get_protoGraph()->safe_get_node(nodeIdx++)->conditional;
 			if (!condStatus)
 			{
 				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
@@ -92,7 +92,7 @@ bool conditional_renderer::render_graph_conditional(thread_graph_data *graph)
 	}
 	if (newDrawn) graph->needVBOReload_conditional = true;
 
-	if (mainLineverts == graph->get_num_nodes())
+	if (mainLineverts == graph->get_protoGraph()->get_num_nodes())
 		return true;
 	else
 		return false;
@@ -126,41 +126,41 @@ void conditional_renderer::main_loop()
 	bothPathsCol[2] = bothPaths->b;
 	bothPathsCol[3] = bothPaths->a;
 
-	while ((!piddata || piddata->graphs.empty()) && !die)
+	while ((!piddata || piddata->plottedGraphs.empty()) && !die)
 	{
 		Sleep(100);
 		continue;
 	}
 
-	map<thread_graph_data *,bool> finishedGraphs;
-	vector<thread_graph_data *> graphlist;
+	map<plotted_graph *,bool> finishedGraphs;
+	vector<plotted_graph *> graphlist;
 	map <PID_TID, void *>::iterator graphit;
 
 	while (!clientState->die)
 	{
 
 		obtainMutex(piddata->graphsListMutex, 9053);
-		for (graphit = piddata->graphs.begin(); graphit != piddata->graphs.end(); ++graphit)
-			graphlist.push_back((thread_graph_data *)graphit->second);
+		for (graphit = piddata->plottedGraphs.begin(); graphit != piddata->plottedGraphs.end(); ++graphit)
+			graphlist.push_back((plotted_graph *)graphit->second);
 		dropMutex(piddata->graphsListMutex);
 		
 		//process terminated, all graphs fully rendered, now can head off to valhalla
 		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
 			break;
 
-		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
+		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end() && !die)
 		{
-			thread_graph_data *graph = *graphlistIt++;
+			plotted_graph *graph = *graphlistIt++;
 
-			if (graph->active)
+			if (graph->get_protoGraph()->active)
 				render_graph_conditional(graph);
 			else if (!finishedGraphs[graph])
 			{
 				bool renderSuccess = render_graph_conditional(graph);
 				//if this fails then the static vert data hasn't been created yet
 				//the heatmap thread should do it, but if that thread is disabled then this will fail
-				if (renderSuccess || !graph->get_num_nodes())
+				if (renderSuccess || !graph->get_protoGraph()->get_num_nodes())
 					finishedGraphs[graph] = true;
 				else
 					finishedGraphs.erase(graph);

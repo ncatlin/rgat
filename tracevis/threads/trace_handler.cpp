@@ -54,58 +54,7 @@ bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 		return false;
 }
 
-//creates a node for a newly executed instruction
-void thread_trace_handler::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats)
-{
 
-	node_data thisnode;
-	thisnode.ins = instruction;
-
-	targVertID = thisgraph->get_num_nodes();
-	int a = 0, b = 0;
-	int bMod = 0;
-
-
-	if (lastRIPType == FIRST_IN_THREAD)
-	{
-		a = 0;
-		b = 0;
-	}
-	else
-	{
-		VCOORD lastnodec = thisgraph->safe_get_node(lastVertID)->vcoord;
-		a = lastnodec.a;
-		b = lastnodec.b;
-		bMod = lastnodec.bMod;
-
-		if (afterReturn)
-		{
-			lastRIPType = AFTERRETURN;
-			afterReturn = false;
-		}
-		//place vert on sphere based on how we got here
-		positionVert(&a, &b, &bMod, thisnode.ins->address);
-
-	}
-
-	thisnode.vcoord = {a, b, bMod};// +(mutation * 3);//helps spread out clashing mutations
-	thisnode.index = targVertID;
-	thisnode.ins = instruction;
-	thisnode.conditional = thisnode.ins->conditional;
-	thisnode.address = instruction->address;
-	thisnode.blockID = blockID;
-	thisnode.executionCount = repeats;
-
-	updateStats(a, b, bMod);
-	usedCoords[a][b] = true;
-
-	assert(!thisgraph->node_exists(targVertID));
-	thisgraph->insert_node(targVertID, thisnode);
-
-	piddata->getDisassemblyWriteLock();
-	instruction->threadvertIdx[TID] = targVertID;
-	piddata->dropDisassemblyWriteLock();
-}
 
 //place basic block 'tag' on graph 'repeats' times
 void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
@@ -126,9 +75,9 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
-			handle_new_instruction(instruction, tag->blockID, repeats);
+			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, repeats);
 		else
-			thisgraph->safe_get_node(targVertID)->executionCount += repeats;
+			thisgraph->handle_previous_instruction(targVertID, repeats);
 
 		if (loopState == BUILDING_LOOP)
 		{
@@ -174,14 +123,8 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 		switch (instruction->itype)
 		{
 			case OPCALL: 
-				{
-					lastRIPType = CALL;
-
-					//let returns find their caller if and only if they have one
-					MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
-					callStack.push_back(make_pair(nextAddress, lastVertID));
-					break;
-				}
+				lastRIPType = CALL;
+				break;
 				
 			case OPJMP:
 				lastRIPType = JUMP;
@@ -218,7 +161,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
-			handle_new_instruction(instruction, tag->blockID, 1);
+			thisgraph->handle_new_instruction(instruction, tag->blockID, 1);
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 
@@ -268,150 +211,9 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 	}
 }
 
-//tracking how big the graph gets
-void thread_trace_handler::updateStats(int a, int b, unsigned int bMod) 
-{
-	//the extra work of 2xabs() happens so rarely that its worth avoiding
-	//the stack allocations of a variable every call
-	if (abs(a) > thisgraph->maxA) thisgraph->maxA = abs(a);
-	if (abs(b) > thisgraph->maxB) thisgraph->maxB = abs(b);
-}
-
-//takes position of a node as pointers
-//performs an action (call,jump,etc), places new position in pointers
-//this is the function that determines how the graph is laid out
-void thread_trace_handler::positionVert(int *pa, int *pb, int *pbMod, MEM_ADDRESS address)
-{
-	int a = *pa;
-	int b = *pb;
-	int bMod = *pbMod;
-	int clash = 0;
-
-	printf("positionvert called with a:%d, b:%d, bmod:%d, type:%d\n", a, b, bMod, lastRIPType);
 
 
-	switch (lastRIPType)
-	{
-	/*
-	The initial post-return node is placed near the caller on the stack.
-	Makes a mess if we place whole block there, so this moves it farther away
-	but it also means sequential instruction edges looking like jumps.
-	Something for consideration
-	*/
-	case AFTERRETURN:
-		a = min(a - 20, -(thisgraph->maxA + 2));
-		b += 7 * BMULT;
-		break;
 
-	//small vertical distance between instructions in a basic block
-	case NONFLOW:
-		{
-			//conditional jumps are assume non-flow control until their target is seen
-			//if it's taken then fall through to jump
-			node_data *lastNode = thisgraph->safe_get_node(lastVertID);
-			if (!lastNode->conditional || address != lastNode->ins->condTakenAddress)
-			{
-				bMod += 1 * BMULT;
-				break;
-			}
-		}
-
-	//long diagonal separation to show distinct basic blocks
-	case JUMP:
-	case EXCEPTION_GENERATOR:
-		{
-			a += JUMPA;
-			b += JUMPB * BMULT;
-
-			while (usedCoords[a][b])
-			{
-				a += JUMPA_CLASH;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
-
-			break;
-		}
-	//long purple line to show possible distinct functional blocks of the program
-	case CALL:
-		{
-			b += CALLB * BMULT;
-
-			while (usedCoords[a][b] == true)
-			{
-				a += CALLA_CLASH;
-				b += CALLB_CLASH * BMULT;
-				++clash;
-			}
-
-			if (clash)
-			{
-				a += CALLA_CLASH;
-				//if (clash > 15)
-				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
-			}
-			break;
-		}
-
-	case RETURN:
-		afterReturn = true;
-		//previous externs handled same as previous returns
-	case EXTERNAL:
-		{
-			//returning to address in call stack?
-			int result = -1;
-			vector<pair<MEM_ADDRESS, int>>::iterator stackIt;
-			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
-				if (stackIt->first == address)
-				{
-					result = stackIt->second;
-					break;
-				}
-
-			//if so, position next node near caller
-			if (result != -1)
-			{
-				VCOORD *caller = &thisgraph->safe_get_node(result)->vcoord;
-				a = caller->a + RETURNA_OFFSET;
-				b = caller->b + RETURNB_OFFSET;
-				bMod = caller->bMod;
-				
-				//may not have returned to the last item in the callstack
-				//delete everything inbetween
-				callStack.resize(stackIt-callStack.begin());
-			}
-			else
-			{
-				a += EXTERNA;
-				b += EXTERNB * BMULT;
-			}
-		
-			while (usedCoords[a][b])
-			{
-				a += JUMPA_CLASH;
-				b += 1;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
-			break;
-		}
-
-	default:
-		if (lastRIPType != FIRST_IN_THREAD)
-			cerr << "[rgat]ERROR: Unknown Last RIP Type "<< lastRIPType << endl;
-		break;
-	}
-	printf("\t result-> a:%d, b:%d, bmod:%d\n", a, b, bMod);
-
-	*pa = a;
-	*pb = b;
-	*pbMod = bMod;
-	return;
-}
 
 //decodes argument and places in processing queue, processes if all decoded for that call
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
@@ -541,13 +343,15 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	node_data newTargNode;
 	newTargNode.nodeMod = module;
 
+	//todo: deal with this somehow now sphere coords have moved to plotter
+	/*
 	VCOORD lastnodec = lastNode->vcoord;
 
 	//if parent calls multiple children, spread them out around caller
 	newTargNode.vcoord.a = lastnodec.a + 2 * lastNode->childexterns + 5;
 	newTargNode.vcoord.b = lastnodec.b + lastNode->childexterns + 5;
 	newTargNode.vcoord.bMod = lastnodec.bMod;
-	printf("position external at-> a:%d, b:%d, bmod:%d, lastriptype:%d\n", newTargNode.vcoord.a, newTargNode.vcoord.b, newTargNode.vcoord.bMod, lastRIPType);
+	*/
 
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
@@ -629,7 +433,6 @@ void thread_trace_handler::process_new_args()
 					ex.argList = *callsIt;
 
 					assert(parentn->index != targn->index);
-					thisgraph->floatingExternsQueue.push(ex);
 					
 					if (targn->funcargs.size() < arg_storage_capacity)
 						targn->funcargs.push_back(*callsIt);
@@ -704,6 +507,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	if (thistag->jumpModifier == MOD_INSTRUMENTED)
 	{
 		runBB(thistag, repeats);
+		//printf("Ran internal BB, lastVID now %d\n", lastVertID);
 		thisgraph->totalInstructions += thistag->insCount*repeats;
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -715,6 +519,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
 		run_external(thistag->blockaddr, repeats, &resultPair);
+		//printf("Ran external BB, lastVID now %d, resultpair %d,%d\n", lastVertID, resultPair.first, resultPair.second);
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
 	}
@@ -970,9 +775,9 @@ void thread_trace_handler::main_loop()
 				dump_loop();
 			}
 			
-			thisgraph->terminated = true;
-			thisgraph->emptyArgQueue();
-			thisgraph->needVBOReload_preview = true;
+			thisgraph->set_terminated();
+			//thisgraph->emptyArgQueue();
+			thisgraph->updated = true;
 			break;
 		}
 

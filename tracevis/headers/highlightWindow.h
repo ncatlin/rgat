@@ -20,6 +20,7 @@ The class for the highlight selection dialog
 
 #pragma once
 #include "GUIStructs.h"
+#include "plotted_graph.h"
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
 #include "Agui\Widgets\DropDown\DropDown.hpp"
@@ -33,7 +34,7 @@ public:
 	HighlightSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
 
 	void refreshData();
-	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, thread_graph_data *graph, PROCESS_DATA* activePid);
+	void updateHighlightNodes(HIGHLIGHT_DATA *highlightData, proto_graph *graph, PROCESS_DATA* activePid);
 	agui::Frame *highlightFrame = NULL;
 	agui::DropDown *symbolDropdown;
 	agui::DropDown *moduleDropdown;
@@ -80,18 +81,20 @@ public:
 			return;
 		}
 
+		plotted_graph * graph = (plotted_graph *)clientState->activeGraph;
+		HIGHLIGHT_DATA *highlightData = &graph->highlightData;
 		switch (id)
 		{
 		case HL_HIGHLIGHT_ADDRESS:
 			{
 				if (!clientState->activePid) break;
 				string address_s = hl_frame->addressText->getText();
-				if (!caught_stoul(address_s, &clientState->highlightData.highlightAddr, 16)) break;
+				if (!caught_stoul(address_s, &highlightData->highlightAddr, 16)) break;
 				hl_frame->highlightFrame->setVisibility(false);
-				if (clientState->activePid->disassembly.count(clientState->highlightData.highlightAddr))
-					clientState->highlightData.highlightState = HL_HIGHLIGHT_ADDRESS;
+				if (clientState->activePid->disassembly.count(highlightData->highlightAddr))
+					highlightData->highlightState = HL_HIGHLIGHT_ADDRESS;
 				else
-					clientState->highlightData.highlightState = 0;
+					highlightData->highlightState = 0;
 				break;
 			}
 		case HL_HIGHLIGHT_SYM:
@@ -99,8 +102,8 @@ public:
 				if (hl_frame->symbolDropdown->getSelectedIndex() < 0) break;
 				hl_frame->highlightFrame->setVisibility(false);
 				
-				clientState->highlightData.highlight_s = hl_frame->symbolDropdown->getText();
-				clientState->highlightData.highlightState = HL_HIGHLIGHT_SYM;
+				highlightData->highlight_s = hl_frame->symbolDropdown->getText();
+				highlightData->highlightState = HL_HIGHLIGHT_SYM;
 				break; 
 			}
 
@@ -108,21 +111,20 @@ public:
 			{
 				if (hl_frame->moduleDropdown->getSelectedIndex() < 0) break;
 				hl_frame->highlightFrame->setVisibility(false);
-				clientState->highlightData.highlightModule = hl_frame->moduleDropdown->getSelectedIndex();
-				clientState->highlightData.highlightState = HL_HIGHLIGHT_MODULE;
+				highlightData->highlightModule = hl_frame->moduleDropdown->getSelectedIndex();
+				highlightData->highlightState = HL_HIGHLIGHT_MODULE;
 				break; 
 			}
 
 		case HL_HIGHLIGHT_EXCEPTIONS:
 			{
 				hl_frame->highlightFrame->setVisibility(false);
-				clientState->highlightData.highlightState = HL_HIGHLIGHT_EXCEPTIONS;
+				highlightData->highlightState = HL_HIGHLIGHT_EXCEPTIONS;
 				break;
 			}
 		}
-		hl_frame->updateHighlightNodes(&clientState->highlightData,
-			clientState->activeGraph,
-			clientState->activePid);
+
+		hl_frame->updateHighlightNodes(highlightData, graph->get_protoGraph(), clientState->activePid);
 	}
 
 private:

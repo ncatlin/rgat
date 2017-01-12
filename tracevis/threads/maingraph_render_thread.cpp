@@ -23,48 +23,38 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 #include "GUIManagement.h"
 #include "rendering.h"
 
-void maingraph_render_thread::updateMainRender(thread_graph_data *graph)
-{
-
-	render_static_graph(graph, clientState);
-
-	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
-		graph->get_mainlines()->get_renderedEdges());
-}
-
-
-void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph)
+void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 {
 	graph->setGraphBusy(true);
-	
+	proto_graph *protoGraph = graph->get_protoGraph();
 	if (
-		(graph->get_mainnodes()->get_numVerts() < graph->get_num_nodes()) ||
-		(graph->get_mainlines()->get_renderedEdges() < graph->get_num_edges()) ||
-		clientState->rescale || clientState->activeGraph->vertResizeIndex)
+		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||
+		(graph->get_mainlines()->get_renderedEdges() < protoGraph->get_num_edges()) ||
+		clientState->rescale || ((plotted_graph *)clientState->activeGraph)->vertResizeIndex)
 	{
-		updateMainRender(graph);
+		graph->updateMainRender(clientState);
 	}
 	
-	if (graph->active)
+	if (protoGraph->active)
 	{
 		if (clientState->modes.animation)
 			graph->render_live_animation(clientState->config->animationFadeRate);
 	}
-	else if (graph->terminated)
+	else if (protoGraph->terminated)
 	{
 		clientState->animationUpdate = 0;
 		clientState->modes.animation = false;
 		graph->reset_animation();
-		graph->terminated = false;
-		if (clientState->highlightData.highlightState)
+		protoGraph->terminated = false;
+		HIGHLIGHT_DATA *highlightData = &graph->highlightData;
+		if (highlightData->highlightState)
 		{
 			TraceVisGUI* gui = (TraceVisGUI*)clientState->widgets;
-			gui->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-				graph, clientState->activePid);
+			gui->highlightWindow->updateHighlightNodes(highlightData, protoGraph, clientState->activePid);
 		}
 	}
 
-	else if (!graph->active && clientState->animationUpdate)
+	else if (!protoGraph->active && clientState->animationUpdate)
 	{
 
 		int animationResult = graph->render_replay_animation(clientState->animationUpdate, clientState->config->animationFadeRate);
@@ -89,12 +79,12 @@ void maingraph_render_thread::performMainGraphRendering(thread_graph_data *graph
 void maingraph_render_thread::main_loop()
 {
 	alive = true;
-	thread_graph_data *activeGraph;
+	plotted_graph *activeGraph;
 	int renderFrequency = clientState->config->renderFrequency;
 
 	while (!clientState->die)
 	{
-		activeGraph = clientState->activeGraph;
+		activeGraph = (plotted_graph *)clientState->activeGraph;
 		if (!activeGraph) {
 			Sleep(5); continue;
 		}

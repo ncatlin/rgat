@@ -43,6 +43,7 @@ Doing agui widget manipulation in other threads will cause deque errors
 #include "timeline.h"
 #include "OSspecific.h"
 #include "clientConfig.h"
+#include "sphere_graph.h"
 
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
@@ -329,18 +330,20 @@ void change_mode(VISSTATE *clientState, int mode)
 	}
 }
 
+
 void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffRenderer)
 {
 	if (clientState->modes.diff == DIFF_STARTED) //diff graph built, display it
 	{
 		
-		thread_graph_data *graph1 = (*diffRenderer)->get_graph(1);
+		plotted_graph *graph1 = (*diffRenderer)->get_graph(1);
+		proto_graph *protoGraph1 = graph1->get_protoGraph();
 		NODEINDEX nIdx = (*diffRenderer)->get_diff_node();
-		node_data *n = graph1->safe_get_node(nIdx);
-		if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
-			drawHighlight(&n->vcoord, graph1->main_scalefactors, &al_col_orange, 10);
+		node_data *n = protoGraph1->safe_get_node(nIdx);
+		//if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
+		//	drawHighlight(&n->vcoord, graph1->main_scalefactors, &al_col_orange, 10);
 
-		thread_graph_data *diffGraph = (*diffRenderer)->get_diff_graph();
+		plotted_graph *diffGraph = (*diffRenderer)->get_diff_graph();
 		display_graph_diff(clientState, *diffRenderer);
 	}
 
@@ -351,14 +354,15 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 		widgets->showHideDiffFrame();
 
-		thread_graph_data *graph1 = widgets->diffWindow->get_graph(1);
-		thread_graph_data *graph2 = widgets->diffWindow->get_graph(2);
+		plotted_graph *graph1 = widgets->diffWindow->get_graph(1);
+		plotted_graph *graph2 = widgets->diffWindow->get_graph(2);
 		*diffRenderer = new diff_plotter(graph1, graph2, clientState);
 		((diff_plotter*)*diffRenderer)->render();
 	}
 
 	//((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
 }
+
 
 void closeTextLog(VISSTATE *clientState)
 {
@@ -381,11 +385,12 @@ void performIrregularActions(VISSTATE *clientState)
 	clientState->leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 	clientState->rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 
-	if (clientState->highlightData.highlightState && clientState->activeGraph->active)
+	plotted_graph * graph = (plotted_graph *)clientState->activeGraph;
+	HIGHLIGHT_DATA *highlightData = &graph->highlightData;
+	if (highlightData->highlightState && graph->get_protoGraph()->active)
 	{
 		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-		widgets->highlightWindow->updateHighlightNodes(&clientState->highlightData,
-			clientState->activeGraph, clientState->activePid);
+		widgets->highlightWindow->updateHighlightNodes(highlightData, graph->get_protoGraph(), clientState->activePid);
 	}
 }
 
@@ -474,7 +479,7 @@ void handleKBDExit()
 static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 {
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
-	clientState->newActiveGraph = target_pid->graphs[TID];
+	clientState->newActiveGraph = target_pid->plottedGraphs[TID];
 
 	if (target_pid != clientState->activePid)
 	{
@@ -482,8 +487,8 @@ static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 		clientState->switchProcess = true;
 	}
 
-	thread_graph_data * graph = (thread_graph_data *)target_pid->graphs[TID];
-	if (graph->modPath.empty())	graph->assign_modpath(target_pid);
+	plotted_graph * graph = (plotted_graph * )target_pid->plottedGraphs[TID];
+	if (graph->get_protoGraph()->modulePath.empty())	graph->get_protoGraph()->assign_modpath(target_pid);
 	graph->reset_animation();
 
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
@@ -590,7 +595,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	{
 		if (!clientState->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
 
-		MULTIPLIERS *mainscale = clientState->activeGraph->main_scalefactors;
+		MULTIPLIERS *mainscale = ((plotted_graph *)clientState->activeGraph)->main_scalefactors;
 		float diam = mainscale->radius;
 		long maxZoomIn = diam + 5; //prevent zoom into globe
 		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
@@ -616,7 +621,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					clientState->cameraZoomlevel = newZoom;
 
 				if (clientState->activeGraph)
-					updateTitle_Zoom(display, clientState->title, (clientState->cameraZoomlevel - clientState->activeGraph->zoomLevel));
+					updateTitle_Zoom(display, clientState->title, (clientState->cameraZoomlevel - ((plotted_graph *)clientState->activeGraph)->zoomLevel));
 			}
 		}
 
@@ -659,9 +664,12 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 						if (PIDIt != clientState->glob_piddata_map.end())
 						{
 							PROCESS_DATA* PID = PIDIt->second;
-							map<PID_TID, void *>::iterator graphit = PID->graphs.find(TID);
-							if (graphit != PID->graphs.end())
-								widgets->showGraphToolTip((thread_graph_data *)graphit->second, PID, ev->mouse.x, ev->mouse.y);
+							map<PID_TID, void *>::iterator graphit = PID->plottedGraphs.find(TID);
+							if (graphit != PID->plottedGraphs.end())
+							{
+								proto_graph *protoGraph = ((plotted_graph *)graphit->second)->get_protoGraph();
+								widgets->showGraphToolTip(protoGraph, PID, ev->mouse.x, ev->mouse.y);
+							}
 						}
 					}
 				}
@@ -725,15 +733,15 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_NONE;
 			}
 
-			MULTIPLIERS *mainscale = clientState->activeGraph->main_scalefactors;
+			MULTIPLIERS *mainscale = ((plotted_graph *)clientState->activeGraph)->main_scalefactors;
 			switch (ev->keyboard.keycode)
 			{
 				case ALLEGRO_KEY_ESCAPE:
 				{
-				
-					if (clientState->highlightData.highlightState)
+					HIGHLIGHT_DATA *highlightData = &((plotted_graph *)clientState->activeGraph)->highlightData;
+					if (highlightData->highlightState)
 					{
-						clientState->highlightData.highlightState = 0;
+						highlightData->highlightState = 0;
 						break;
 					}
 
@@ -893,12 +901,13 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				else
 				{
 					if (!clientState->activeGraph) break;
+					plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
 					stringstream windowName;
-					windowName << "Extern calls [TID: " << clientState->activeGraph->tid << "]";
+					windowName << "Extern calls [TID: " << activeGraph->get_protoGraph()->get_TID() << "]";
 					clientState->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
 					ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientState->textlog);
 					al_register_event_source(clientState->event_queue, logevents);
-					clientState->logSize = clientState->activeGraph->fill_extern_log(clientState->textlog, clientState->logSize);
+					clientState->logSize = activeGraph->get_protoGraph()->fill_extern_log(clientState->textlog, clientState->logSize);
 				}
 				break;
 
@@ -941,8 +950,9 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				if (clientState->activeGraph)
 				{
 					stringstream displayMessage;
-					displayMessage << "[rgat]Starting save of process " << clientState->activeGraph->pid << " to filesystem" << endl;
-					display_only_status_message("Saving process "+to_string(clientState->activeGraph->pid), clientState);
+					PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_protoGraph()->get_piddata()->PID;
+					displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
+					display_only_status_message("Saving process "+to_string(pid), clientState);
 					cout << displayMessage.str();
 					saveTrace(clientState);
 				}
@@ -1017,12 +1027,16 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 //performs cleanup of old active graph, sets up environment to display new one
 void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
-	clientState->activeGraph = (thread_graph_data *)clientState->newActiveGraph;
-	clientState->activeGraph->needVBOReload_active = true;
-	if (!clientState->activeGraph->VBOsGenned)
-		gen_graph_VBOs(clientState->activeGraph);
+	clientState->activeGraph = clientState->newActiveGraph;
+	plotted_graph * activeGraph = (plotted_graph *)clientState->activeGraph;
+	activeGraph->needVBOReload_active = true;
 
-	if (clientState->activeGraph->active)
+	proto_graph *protoGraph = activeGraph->get_protoGraph();
+
+	if (!activeGraph->VBOsGenned)
+		activeGraph->gen_graph_VBOs();
+
+	if (protoGraph->active)
 	{
 		widgets->controlWindow->setAnimState(ANIM_LIVE);
 		clientState->animationUpdate = 1;
@@ -1031,20 +1045,20 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	else
 	{
 		widgets->controlWindow->setAnimState(ANIM_INACTIVE);
-		clientState->activeGraph->reset_animation();
+		activeGraph->reset_animation();
 		clientState->modes.animation = false;
 		clientState->animationUpdate = 1;
-		clientState->activeGraph->set_active_node(0);
+		protoGraph->set_active_node(0);
 	}
 
-	clientState->activeGraph->emptyArgQueue();
-	clientState->activeGraph->assign_modpath(clientState->activePid);
+	//protoGraph->emptyArgQueue();
+	protoGraph->assign_modpath(clientState->activePid);
 
 	clientState->newActiveGraph = 0;
-	if (!externFloatingText->count(clientState->activeGraph->tid))
+	if (!externFloatingText->count(protoGraph->get_TID()))
 	{
 		vector<EXTTEXT> newVec;
-		(*externFloatingText)[clientState->activeGraph->tid] = newVec;
+		(*externFloatingText)[protoGraph->get_TID()] = newVec;
 	}
 
 	if (clientState->textlog) closeTextLog(clientState);
@@ -1242,7 +1256,7 @@ int main(int argc, char **argv)
 		al_clear_to_color(al_col_black);
 
 		//we want to switch to a new process, a new process exists and has graphs to show
-		if (clientState.switchProcess && clientState.spawnedProcess && !clientState.spawnedProcess->graphs.empty())
+		if (clientState.switchProcess && clientState.spawnedProcess && !clientState.spawnedProcess->plottedGraphs.empty())
 		{
 			PROCESS_DATA* activePid = clientState.spawnedProcess;
 			clientState.activeGraph = 0;
@@ -1252,40 +1266,43 @@ int main(int argc, char **argv)
 			widgets->setActivePID(activePid->PID);
 			clientState.activePid = activePid;
 			map<PID_TID, void *>::iterator graphIt;
-			graphIt = activePid->graphs.begin();
+			graphIt = activePid->plottedGraphs.begin();
 
-			for (; graphIt != activePid->graphs.end(); ++graphIt)
+			for (; graphIt != activePid->plottedGraphs.end(); ++graphIt)
 			{
-				thread_graph_data * graph = (thread_graph_data *)graphIt->second;
-				if (!graph->get_num_edges()) continue;
+				plotted_graph *graph = (plotted_graph *)graphIt->second;
+				proto_graph *protoGraph = graph->get_protoGraph();
+
+				if (!protoGraph->get_num_edges()) continue;
 
 				if (!graph->VBOsGenned)
-					gen_graph_VBOs(graph);
+					graph->gen_graph_VBOs();
+
 				clientState.activeGraph = graph;
 				clientState.modes.animation = true;
 				clientState.animationUpdate = 1;
-				if (graph->active)
+				if (protoGraph->active)
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
 				else 
 					widgets->controlWindow->setAnimState(ANIM_INACTIVE);
 				
-				if (!externFloatingText.count(graph->tid))
+				if (!externFloatingText.count(protoGraph->get_TID()))
 				{
 					vector<EXTTEXT> newVec;
-					externFloatingText[graph->tid] = newVec;
+					externFloatingText[protoGraph->get_TID()] = newVec;
 				}
 
 				clientState.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-				plot_wireframe(&clientState);
+				graph->plot_wireframe(&clientState);
 				plot_colourpick_sphere(&clientState);
 
 				widgets->toggleSmoothDrawing(false);
-				graph->assign_modpath(activePid);
+				protoGraph->assign_modpath(activePid);
 				break;
 			}
 
 			//successfully found an active graph in a new process
-			if (graphIt != activePid->graphs.end())
+			if (graphIt != activePid->plottedGraphs.end())
 			{
 				clientState.spawnedProcess = NULL;
 				clientState.switchProcess = false;
@@ -1298,10 +1315,13 @@ int main(int argc, char **argv)
 		if (clientState.newActiveGraph)
 			switchToActiveGraph(&clientState, widgets, &externFloatingText);
 
-		widgets->updateWidgets(clientState.activeGraph);
+		plotted_graph *activeGraph = (plotted_graph *)clientState.activeGraph;
+
+		widgets->updateWidgets(activeGraph);
 		
 		if (clientState.activeGraph)
 		{
+			
 			al_set_target_bitmap(clientState.mainGraphBMP);
 			frame_gl_setup(&clientState);
 
@@ -1318,13 +1338,13 @@ int main(int argc, char **argv)
 			}
 
 			if (clientState.modes.wireframe)
-				maintain_draw_wireframe(&clientState, wireframeStarts, wireframeSizes);
+				activeGraph->maintain_draw_wireframe(&clientState, wireframeStarts, wireframeSizes);
 
 			if (clientState.modes.diff)
 				draw_display_diff(&clientState, PIDFont, &diffRenderer);
 
 			if (!clientState.modes.diff) //not an else for clarity
-				performMainGraphDrawing(&clientState, &externFloatingText);
+				activeGraph->performMainGraphDrawing(&clientState, &externFloatingText);
 
 			frame_gl_teardown();
 
@@ -1381,15 +1401,15 @@ int main(int argc, char **argv)
 					{
 						clientState.activePid = clientState.glob_piddata_map.at(clientState.selectedPID);
 						clientState.graphPositions.clear();
-						map<PID_TID, void *> *pidGraphList = &clientState.activePid->graphs;
+						map<PID_TID, void *> *pidGraphList = &clientState.activePid->plottedGraphs;
 						map<PID_TID, void *>::iterator pidIt;
 						//get first graph with some verts
 						clientState.newActiveGraph = 0;
 						for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)
 						{
 							pair<int, void *> graphPair = *pidIt;
-							thread_graph_data *graph = (thread_graph_data *)graphPair.second;
-							if (graph->get_num_nodes())
+							plotted_graph *graph = (plotted_graph *)graphPair.second;
+							if (graph->get_protoGraph()->get_num_nodes())
 							{
 								clientState.newActiveGraph = graph;
 								break;

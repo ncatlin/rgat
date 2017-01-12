@@ -21,10 +21,11 @@ selection dialog
 
 #include "highlightWindow.h"
 #include "OSspecific.h"
+#include "proto_graph.h"
 
 //highlights all addresses/syms/etc that match filter
 void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData, 
-	thread_graph_data *graph, PROCESS_DATA* activePid)
+	proto_graph *graph, PROCESS_DATA* activePid)
 {
 	highlightData->highlightNodes.clear();
 	if (!highlightData->highlightState || !graph) return;
@@ -35,7 +36,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		{
 			INSLIST insList = activePid->disassembly.at(highlightData->highlightAddr);
 			INSLIST::iterator insListIt = insList.begin();
-			int currentTid = graph->tid;
+			int currentTid = graph->get_TID();
 			for (; insListIt != insList.end(); ++insListIt)
 			{
 				INS_DATA *target = *insListIt;
@@ -92,7 +93,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 //adds new relevant items to dropdown menu
 void HighlightSelectionFrame::refreshData()
 {
-	thread_graph_data *graph = clientState->activeGraph;
+	proto_graph *graph = ((plotted_graph *)clientState->activeGraph)->get_protoGraph();
 	if (!clientState->activePid || !graph) return;
 
 	if (lastSymCount != graph->externList.size())

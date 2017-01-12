@@ -56,7 +56,7 @@ public:
 	bool isPreview() { return preview; }
 
 private:
-	//priority todo: make these reader/writer locks 
+
 #ifdef XP_COMPATIBLE
 	HANDLE posmutex;
 	HANDLE colmutex;

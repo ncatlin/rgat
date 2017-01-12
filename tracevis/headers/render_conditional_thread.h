@@ -21,7 +21,7 @@ Header for the thread that renders graph conditional data
 #include <stdafx.h>
 #include "GUIStructs.h"
 #include "traceStructs.h"
-#include "thread_graph_data.h"
+#include "plotted_graph.h"
 #include "base_thread.h"
 
 class conditional_renderer : public base_thread
@@ -37,10 +37,10 @@ public:
 
 private:
 	void main_loop();
-	thread_graph_data *thisgraph;
+	plotted_graph *thisgraph;
 	int updateDelayMS = 200;
 	
-	bool render_graph_conditional(thread_graph_data *graph);
+	bool render_graph_conditional(plotted_graph *graph);
 
 	float invisibleCol[4];
 	float failOnlyCol[4];

@@ -24,7 +24,7 @@ Header for the preview pane, with previews of each graph in a scrolling vertical
 
 void write_text(ALLEGRO_FONT* font, ALLEGRO_COLOR textcol, int x, int y, const char *label);
 
-void uploadPreviewGraph(thread_graph_data *previewgraph);
-void drawGraphBitmap(thread_graph_data *previewgraph, VISSTATE *clientState);
+void uploadPreviewGraph(plotted_graph *previewgraph);
+void drawGraphBitmap(plotted_graph *previewgraph, VISSTATE *clientState);
 bool find_mouseover_thread(VISSTATE *clientState, int mousex, int mousey, PID_TID *PID, PID_TID* TID);
 void redrawPreviewGraphs(VISSTATE *clientState, map <PID_TID, NODEPAIR> *graphPositions);

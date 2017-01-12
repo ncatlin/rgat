@@ -20,6 +20,7 @@ The class for the divergence/diff selection window
 
 #pragma once
 #include "GUIStructs.h"
+#include "plotted_graph.h"
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
 #include "Agui\Widgets\DropDown\DropDown.hpp"
@@ -71,8 +72,8 @@ public:
 	agui::Button *diffBtn;
 
 	int getSelectedDiff();
-	void setDiffGraph(thread_graph_data *graph);
-	thread_graph_data *get_graph(int idx);
+	void setDiffGraph(plotted_graph *graph);
+	plotted_graph *get_graph(int idx);
 	RadioButtonListener *radiolisten;
 
 	bool isVisible() { return diffFrame->isVisible(); }
@@ -83,8 +84,8 @@ private:
 	agui::Label *graph1Path = 0;
 	agui::Label *graph2Info = 0;
 	agui::Label *graph2Path = 0;
-	thread_graph_data *graph1 = 0;
-	thread_graph_data *graph2 = 0;
+	plotted_graph *graph1 = 0;
+	plotted_graph *graph2 = 0;
 };
 
 class CompareButtonListener : public agui::ActionListener

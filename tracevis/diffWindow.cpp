@@ -98,21 +98,23 @@ DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState
 	diffFrame->add(closeBtn);
 }
 
-thread_graph_data *DiffSelectionFrame::get_graph(int idx)
+plotted_graph *DiffSelectionFrame::get_graph(int idx)
 {
 	if (idx == 1) return graph1;
 	if (idx == 2) return graph2;
 	return 0;
 }
 
-void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
+void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
 	int graphIdx = getSelectedDiff();
 	stringstream graphText;
-	graphText << "[Thread " << std::to_string(graphIdx + 1) << "] PID:" << graph->pid << " TID:" << graph->tid;
+	proto_graph *protograph = graph->get_protoGraph();
+	graphText << "[Thread " << std::to_string(graphIdx + 1) << "] PID:" << protograph->get_piddata()->PID << " TID:" << protograph->get_TID();
+
 
 	stringstream threadSummary;
-	threadSummary << "Edges:" << graph->get_num_edges()
-		<< " Verts:" << graph->get_num_nodes();
+	threadSummary << "Edges:" << protograph->get_num_edges()
+		<< " Verts:" << protograph->get_num_nodes();
 	
 	radiolisten->setIgnoreFlag();
 	if (graphIdx == 0)
@@ -120,7 +122,7 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 		firstDiffLabel->setText(graphText.str());
 		firstDiffLabel->resizeToContents();
 		graph1 = graph;
-		graph1Path->setText(graph->modPath);
+		graph1Path->setText(protograph->modulePath);
 		graph1Info->setText(threadSummary.str());
 		firstDiffLabel->setChecked(false);
 		secondDiffLabel->setChecked(true);
@@ -131,7 +133,7 @@ void DiffSelectionFrame::setDiffGraph(thread_graph_data *graph) {
 		secondDiffLabel->setText(graphText.str());
 		secondDiffLabel->resizeToContents();
 		graph2 = graph;
-		graph2Path->setText(graph->modPath);
+		graph2Path->setText(protograph->modulePath);
 		graph2Info->setText(threadSummary.str());
 		firstDiffLabel->setChecked(true);
 		secondDiffLabel->setChecked(false);

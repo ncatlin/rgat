@@ -20,7 +20,7 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 
 #include <stdafx.h>
 #include "render_preview_thread.h"
-#include "thread_graph_data.h"
+#include "plotted_graph.h"
 #include "traceMisc.h"
 #include "rendering.h"
 
@@ -30,12 +30,12 @@ void preview_renderer::main_loop()
 {
 	alive = true;
 
-	while ((!piddata || piddata->graphs.empty()) && !die)
+	while ((!piddata || piddata->plottedGraphs.empty()) && !die)
 		Sleep(200);
 
 	const int outerDelay = clientState->config->preview.processDelay;
 	const int innerDelay = clientState->config->preview.threadDelay;
-	vector<thread_graph_data *> graphlist;
+	vector<plotted_graph *> graphlist;
 	map <PID_TID, void *>::iterator graphIt;
 
 	int dietimer = -1;
@@ -51,18 +51,20 @@ void preview_renderer::main_loop()
 		//so not important to release this quickly
 
 		obtainMutex(piddata->graphsListMutex, 9011);
-		graphIt = piddata->graphs.begin();
-		for (; graphIt != piddata->graphs.end(); graphIt++)
-			graphlist.push_back((thread_graph_data *)graphIt->second);
+		graphIt = piddata->plottedGraphs.begin();
+		for (; graphIt != piddata->plottedGraphs.end(); graphIt++)
+			graphlist.push_back((plotted_graph *)graphIt->second);
 		dropMutex(piddata->graphsListMutex);
 
-		vector<thread_graph_data *>::iterator graphlistIt = graphlist.begin();
+		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end())
 		{
-			thread_graph_data *graph = *graphlistIt;
-			if ((graph->previewnodes->get_numVerts() < graph->get_num_nodes()) ||
-				(graph->previewlines->get_renderedEdges() < graph->get_num_edges()))
-				render_preview_graph(graph, clientState);
+			//check for trace data that hasn't been rendered yet
+			plotted_graph *graph = *graphlistIt;
+			proto_graph *protoGraph = graph->get_protoGraph();
+			if ((graph->previewnodes->get_numVerts() < protoGraph->get_num_nodes()) ||
+				(graph->previewlines->get_renderedEdges() < protoGraph->get_num_edges()))
+				graph->render_preview_graph(clientState);
 
 			if (die) break;
 			Sleep(innerDelay);

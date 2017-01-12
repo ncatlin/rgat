@@ -26,6 +26,7 @@ misc other UI elements
 #include "highlightWindow.h"
 #include "animControls.h"
 #include "exeWindow.h"
+#include "plotted_graph.h"
 
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
@@ -46,7 +47,7 @@ public:
 	void widgetSetup(string fontpath);
 	agui::Allegro5Input *inputHandler() { return widgetInputHandler; }
 	agui::DropDown *dropdown() { return dropDownWidget; }
-	void updateWidgets(thread_graph_data *graph);
+	void updateWidgets(plotted_graph *graph);
 	void paintWidgets();
 	void setScrollbarVisible(bool enabled) { controlWindow->setScrollbarVisible(enabled); }
 	void doScroll(int z) { controlWindow->doScroll(z); }
@@ -60,7 +61,7 @@ public:
 	void processEvent(ALLEGRO_EVENT *ev)
 		{ widgetInputHandler->processEvent(*ev); widgets->logic();	}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
-	void showGraphToolTip(thread_graph_data *graph, PROCESS_DATA *piddata, int x, int y);
+	void showGraphToolTip(proto_graph *graph, PROCESS_DATA *piddata, int x, int y);
 
 	DiffSelectionFrame *diffWindow = NULL;
 	HighlightSelectionFrame *highlightWindow = NULL;

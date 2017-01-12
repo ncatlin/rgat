@@ -20,12 +20,11 @@ A messy collection of state structures, generally targeted to the visualiser sta
 
 #pragma once
 #include "stdafx.h"
-#include "graph_display_data.h"
 #include "GUIConstants.h"
-#include "traceStructs.h"
-#include "thread_graph_data.h"
 #include "timeline.h"
 #include "clientConfig.h"
+#include "traceStructs.h"
+#include "graph_display_data.h"
 
 #define XOFF 0
 #define YOFF 1
@@ -75,13 +74,6 @@ struct HEIGHTWIDTH {
 	int width;
 };
 
-struct HIGHLIGHT_DATA {
-	int highlightState = 0;
-	string highlight_s;
-	MEM_ADDRESS highlightAddr;
-	int highlightModule = 0;
-	vector<node_data *> highlightNodes;
-};
 
 struct LAUNCHOPTIONS {
 	bool caffine = false;
@@ -130,7 +122,10 @@ public:
 	bool animFinished = false;
 
 	bool mouse_dragging = false;
-	thread_graph_data *mouse_drag_graph = NULL;
+
+	void *mouse_drag_graph = NULL; 
+	void *activeGraph = NULL;
+
 	map <PID_TID, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;
@@ -142,10 +137,11 @@ public:
 	bool previewSpin = true;
 
 	DISPLAYMODES modes;
-	thread_graph_data *activeGraph = NULL;
+	
 	void *newActiveGraph = NULL;
 	bool switchProcess = true;
 	int selectedPID = -1;
+
 	PROCESS_DATA *activePid = NULL;
 	PROCESS_DATA* spawnedProcess = NULL;
 
@@ -163,7 +159,7 @@ public:
 	ALLEGRO_TEXTLOG *textlog = 0;
 	unsigned int logSize = 0;
 
-	HIGHLIGHT_DATA highlightData;
+	
 	clientConfig *config;
 
 	bool die = false;

@@ -25,6 +25,7 @@ Graph/Process Saving/Loading routines
 #include "basicblock_handler.h"
 #include "OSspecific.h"
 #include "GUIManagement.h"
+#include "sphere_graph.h"
 
 #define tag_START '{'
 #define tag_END '}'
@@ -240,12 +241,12 @@ void saveTrace(VISSTATE * clientState)
 	saveProcessData(clientState->activePid, &savefile);
 
 	obtainMutex(clientState->activePid->graphsListMutex, 1012);
-	map <PID_TID, void *>::iterator graphit = clientState->activePid->graphs.begin();
-	for (; graphit != clientState->activePid->graphs.end(); graphit++)
+	map <PID_TID, void *>::iterator graphit = clientState->activePid->plottedGraphs.begin();
+	for (; graphit != clientState->activePid->plottedGraphs.end(); graphit++)
 	{
-		thread_graph_data *graph = (thread_graph_data *)graphit->second;
+		proto_graph *graph = ((plotted_graph *)graphit->second)->get_protoGraph();
 		if (!graph->get_num_nodes()){
-			cout << "[rgat]Ignoring empty graph TID "<< graph->tid << endl;
+			cout << "[rgat]Ignoring empty graph TID "<< graph->get_TID() << endl;
 			continue;
 		}
 		cout << "[rgat]Serialising graph: "<< graphit->first << endl;
@@ -627,20 +628,17 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoul(tidstring, &TID, 10)) return false;
-		thread_graph_data *graph = new thread_graph_data(piddata, TID);
-		
-		graph->tid = TID;
-		graph->pid = piddata->PID;
-		graph->active = false;
+		sphere_graph *graph = new sphere_graph(piddata, TID, 0); //TODO proto
+		graph->get_protoGraph()->active = false;
 
 		display_only_status_message("Loading Graph "+tidstring, clientState);
-
-		if(graph->unserialise(file, &piddata->disassembly))
-			piddata->graphs.emplace(TID, graph);
+		printf("TODO: plotted/proto graph reconstruction\n");
+		if(graph->get_protoGraph()->unserialise(file, &piddata->disassembly))
+			piddata->plottedGraphs.emplace(TID, graph);
 		else 
 			return false;
 
-		graph->assign_modpath(piddata);
+		graph->get_protoGraph()->assign_modpath(piddata);
 
 		cerr << "[rgat]Loaded thread graph "<<TID <<endl;
 		if (file->peek() != '}') 

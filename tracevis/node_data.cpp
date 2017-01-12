@@ -24,16 +24,10 @@ Class describing each node
 #include "GUIConstants.h"
 #include "traceMisc.h"
 
-//take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
-FCOORD node_data::sphereCoordB(MULTIPLIERS *dimensions, float diamModifier) 
-{
-	FCOORD result;
-	float adjB = vcoord.b + float(vcoord.bMod * BMODMAG);
-	sphereCoord(vcoord.a, adjB, &result, dimensions, diamModifier);
-	return result;
-}
+
 
 //this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
+/*
 bool node_data::get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
 {
 	FCOORD graphPos;
@@ -43,14 +37,15 @@ bool node_data::get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOOR
 		pd->model_view, pd->projection, pd->viewport,
 		&screenPos->x, &screenPos->y, &screenPos->z);
 	return true;
-}
+}*/
 
 bool node_data::serialise(ofstream *outfile)
 {
 	*outfile << index << "{";
-	*outfile << vcoord.a << "," <<
-		vcoord.b << "," <<
-		vcoord.bMod << "," <<
+	*outfile << 
+		//vcoord.a << "," 
+		//<<		vcoord.b << "," <<
+		//vcoord.bMod << "," <<
 		conditional << "," << nodeMod << ",";
 	*outfile << address << ",";
 
@@ -102,7 +97,7 @@ int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassemb
 	if (!caught_stoi(value_s, (int *)&index, 10))
 		return -1;
 
-	getline(*file, value_s, ',');
+	/*getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&vcoord.a, 10))
 		return -1;
 
@@ -113,6 +108,7 @@ int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassemb
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&vcoord.bMod, 10))
 		return -1;
+		*/
 
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&conditional, 10))

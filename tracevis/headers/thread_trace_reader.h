@@ -20,12 +20,12 @@ Header for the thread that reads trace information from drgat and buffers it
 #pragma once
 #include "stdafx.h"
 #include "base_thread.h"
-#include "thread_graph_data.h"
+#include "proto_graph.h"
 
 class thread_trace_reader : public base_thread
 {
 public:
-	thread_trace_reader(thread_graph_data *graph, unsigned int thisPID, unsigned int thisTID)
+	thread_trace_reader(proto_graph *graph, unsigned int thisPID, unsigned int thisTID)
 		: base_thread(thisPID, thisTID)
 	{
 		thisgraph = graph;
@@ -50,7 +50,7 @@ private:
 	vector<pair<char *, int>> * get_read_queue();
 	bool pipeClosed = false;
 	unsigned int processedData = 0;
-	thread_graph_data *thisgraph;
+	proto_graph *thisgraph;
 
 	ALLEGRO_EVENT_QUEUE *bench_timer_queue = al_create_event_queue();
 };

@@ -37,17 +37,19 @@ void AnimControls::setAnimState(int newAnimState)
 
 	if (newAnimState == animationState) return;
 
+	plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
+	proto_graph *protoGraph = graph->get_protoGraph();
 	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
 	{
 		//start replay
-		if (!clientState->activeGraph->active)
+		if (!protoGraph->active)
 		{
 			newAnimState = ANIM_REPLAY;
 			clientState->animationUpdate = getSpeed();
 			clientState->modes.animation = true;
 			stringstream logentry;
-			logentry << "Replay of " << clientState->activeGraph->modPath << " PID:" <<
-				clientState->activePid->PID << " TID:" << clientState->activeGraph->tid << " started." << endl;
+			logentry << "Replay of " << protoGraph->modulePath << " PID:" <<
+				clientState->activePid->PID << " TID:" << protoGraph->get_TID() << " started." << endl;
 			al_append_native_text_log(clientState->textlog, logentry.str().c_str());
 		}
 		else
@@ -69,7 +71,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 		clientState->animationUpdate = 0;
 		clientState->modes.animation = false;
-		clientState->activeGraph->terminated = true;
+		protoGraph->terminated = true;
 
 		pauseBtn->setVisibility(false);
 		playBtn->setVisibility(true);
@@ -106,7 +108,7 @@ void AnimControls::setAnimState(int newAnimState)
 		animHSlide->setLocation(scrollX, playBtn->getAbsolutePosition().getY()+2);
 		ignoreSliderChange = true;
 
-		setSlider((int)((float)1000 * clientState->activeGraph->getAnimationPercent()));
+		setSlider((int)((float)1000 * graph->getAnimationPercent()));
 
 		pauseBtn->setVisibility(true);
 		pauseBtn->setText("Pause");
@@ -115,7 +117,7 @@ void AnimControls::setAnimState(int newAnimState)
 
 }
 
-void AnimControls::displayBacklog(thread_graph_data *graph)
+void AnimControls::displayBacklog(proto_graph *graph)
 {
 	pair <unsigned long, unsigned long> sizePair;
 	thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
@@ -147,10 +149,11 @@ void AnimControls::displayBacklog(thread_graph_data *graph)
 	backlogLabel->setText("Backlog: "+to_string(totalBacklog));
 }
 
-void AnimControls::update(thread_graph_data *graph)
+void AnimControls::update(plotted_graph *graph)
 {
-	if (graph->active)
-		displayBacklog(graph);
+	proto_graph *protoGraph = graph->get_protoGraph();
+	if (protoGraph->active)
+		displayBacklog(protoGraph);
 		
 	if (graph->vertResizeIndex)
 	{
@@ -160,12 +163,12 @@ void AnimControls::update(thread_graph_data *graph)
 
 	controlsLayout->setVisibility(true);
 
-	if (!graph->active && animationState == ANIM_LIVE)
+	if (!protoGraph->active && animationState == ANIM_LIVE)
 		setAnimState(ANIM_INACTIVE);
 
 	stringstream stepInfo;
 
-	if (!graph->active)
+	if (!protoGraph->active)
 	{
 
 		/*
@@ -196,16 +199,16 @@ void AnimControls::update(thread_graph_data *graph)
 			}
 		}
 	}
-	if (graph->totalInstructions < 10000)
-		stepInfo << graph->totalInstructions - 1 << " instructions. ";
-	else if (graph->totalInstructions < 1000000)
-		stepInfo << (graph->totalInstructions - 1) / 1000 << "K instructions. ";
+	if (protoGraph->totalInstructions < 10000)
+		stepInfo << protoGraph->totalInstructions - 1 << " instructions. ";
+	else if (protoGraph->totalInstructions < 1000000)
+		stepInfo << (protoGraph->totalInstructions - 1) / 1000 << "K instructions. ";
 	else
-		stepInfo << (graph->totalInstructions - 1) / 1000000 << "M instructions. ";
+		stepInfo << (protoGraph->totalInstructions - 1) / 1000000 << "M instructions. ";
 
 	statusLabel->setText(stepInfo.str());
 
-	if (graph->active)
+	if (protoGraph->active)
 	{
 		if (clientState->modes.animation)
 			pauseBtn->setText("Structure");
@@ -226,7 +229,11 @@ void AnimControls::update(thread_graph_data *graph)
 
 int AnimControls::getSpeed()
 {
-	return (1 << speedSelect->getSelectedIndex());
+	int selectedIndex = speedSelect->getSelectedIndex();
+	//if (selectedIndex == 0)
+	//	return 0;
+	//else
+		return (1 << selectedIndex);
 }
 
 void AnimControls::fitToResize()
@@ -236,6 +243,7 @@ void AnimControls::fitToResize()
 	mouseLayout->setLocation(clientState->displaySize.width - PREVIEW_PANE_WIDTH, 30);
 	controlsLayout->setLocation(15, clientState->displaySize.height - 40);
 	labelsLayout->setLocation(15, clientState->displaySize.height - (CONTROLS_Y - 5));
+	animHSlide->setLocation(ANIM_SCROLL_X, playBtn->getAbsolutePosition().getY() + 2);
 	
 	backlogLayout->setLocation(clientState->mainFrameSize.width - BACKLOG_X_OFFSET,
 		clientState->mainFrameSize.height - 60);
@@ -343,6 +351,7 @@ AnimControls::AnimControls(agui::Gui *widgets, VISSTATE *cstate, agui::Font *fon
 
 	speedSelect = new agui::DropDown;
 	speedSelect->setText("Replay Speed");
+	//speedSelect->addItem("Slow");
 	speedSelect->addItem("0.5x");
 	speedSelect->addItem("1x");
 	speedSelect->addItem("2x");

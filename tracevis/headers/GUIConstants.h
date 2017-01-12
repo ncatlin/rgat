@@ -189,3 +189,6 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define HIGHLIGHT_REFRESH_DELAY_MS 700
 
 #define TARGET_FPS 60
+
+//max length to display in diff summary
+#define MAX_DIFF_PATH_LENGTH 50

@@ -60,6 +60,15 @@ struct CHILDEXTERN
 	CHILDEXTERN *next;
 };
 
+struct EXTERNCALLDATA {
+	NODEPAIR edgeIdx;
+	unsigned int nodeIdx;
+	ARGLIST argList;
+	MEM_ADDRESS callerAddr = 0;
+	string externPath;
+	bool drawFloating = false;
+};
+
 struct INS_DATA 
 {
 	void *bb_ptr;
@@ -112,6 +121,9 @@ struct FUNCARG {
 class PROCESS_DATA 
 {
 public:
+	PROCESS_DATA() {};
+	~PROCESS_DATA() {};
+
 	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym);
 	bool get_modpath(unsigned int modNum, string *path);
 
@@ -129,7 +141,8 @@ public:
 	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
 
 	//graph data for each thread in process, void* because t_g_d header causes build freakout
-	map <PID_TID, void *> graphs;
+	map <PID_TID, void *> protoGraphs;
+	map <PID_TID, void *> plottedGraphs;
 
 	HANDLE graphsListMutex = CreateMutex(NULL, false, NULL);
 #ifdef XP_COMPATIBLE

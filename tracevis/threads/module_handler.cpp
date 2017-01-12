@@ -25,7 +25,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "traceMisc.h"
 #include "trace_handler.h"
 #include "thread_trace_reader.h"
-#include "thread_graph_data.h"
+#include "sphere_graph.h"
 #include "GUIManagement.h"
 #include "b64.h"
 
@@ -111,13 +111,18 @@ void module_handler::main_loop()
 					cerr << "[rgat] Fail to extract thread ID from TI tag:" << buf << endl;
 					continue;
 				}
-				
-				thread_graph_data *graph = new thread_graph_data(piddata, TID);
-				graph->set_max_wait_frames(clientState->config->maxWaitFrames);
 
-				thread_trace_reader *TID_reader = new thread_trace_reader(graph, PID, TID);
+				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
+				sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph);
+				
+				//todo?
+				//graph->set_max_wait_frames(clientState->config->maxWaitFrames); 
+				
+
+				thread_trace_reader *TID_reader = new thread_trace_reader(newProtoGraph, PID, TID);
 				TID_reader->traceBufMax = clientState->config->traceBufMax;
-				graph->setReader(TID_reader);
+				newProtoGraph->setReader(TID_reader);
+
 				threadList.push_back(TID_reader);
 				readerThreadList.push_back(TID_reader);
 				DWORD threadID = 0;
@@ -125,7 +130,7 @@ void module_handler::main_loop()
 					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
 					(LPVOID)TID_reader, 0, &threadID);
 				
-				thread_trace_handler *TID_processor = new thread_trace_handler(graph, PID, TID);
+				thread_trace_handler *TID_processor = new thread_trace_handler(newProtoGraph, PID, TID);
 				TID_processor->piddata = piddata;
 				TID_processor->reader = TID_reader;
 				TID_processor->timelinebuilder = clientState->timelineBuilder;
@@ -134,9 +139,10 @@ void module_handler::main_loop()
 				TID_processor->saveFlag = &clientState->saving;
 
 				if (!obtainMutex(piddata->graphsListMutex, 1010)) break;
-				if (piddata->graphs.count(TID) > 0)
+				if (piddata->protoGraphs.count(TID) > 0)
 					cerr << "[rgat]ERROR: Duplicate thread ID! Tell the dev to stop being awful" << endl;
-				piddata->graphs.insert(make_pair(TID, (void*)graph));
+				piddata->protoGraphs.insert(make_pair(TID, newProtoGraph));
+				piddata->plottedGraphs.insert(make_pair(TID, newPlottedGraph));
 				dropMutex(piddata->graphsListMutex);
 
 				threadList.push_back(TID_processor);

@@ -18,8 +18,9 @@ limitations under the License.
 Most of the OpenGL functions are here
 */
 #include "stdafx.h"
-#include "GUIStructs.h"
+
 #include "rendering.h"
+#include "plotted_graph.h"
 
 //this call is a bit sensitive and will give odd results if called in the wrong place
 void gather_projection_data(PROJECTDATA *pd) 
@@ -37,21 +38,25 @@ void frame_gl_setup(VISSTATE* clientState)
 
 	glLoadIdentity();
 
+	plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
+
 	bool zoomedIn = false;
-	if (clientState->activeGraph)
+	if (activeGraph)
 	{
-		float zmul = zoomFactor(clientState->cameraZoomlevel, clientState->activeGraph->main_scalefactors->radius);
+		float zmul = zoomFactor(clientState->cameraZoomlevel, activeGraph->main_scalefactors->radius);
 		if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR)
 			zoomedIn = true;
+	
+		if (zoomedIn || clientState->modes.nearSide)
+			gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
+				clientState->cameraZoomlevel);
+		else
+			gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
+				clientState->cameraZoomlevel + activeGraph->main_scalefactors->radius);
 	}
-
-	if (zoomedIn || clientState->modes.nearSide)
+	else
 		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
 			clientState->cameraZoomlevel);
-	else
-		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
-			clientState->cameraZoomlevel + clientState->activeGraph->main_scalefactors->radius);
-
 
 
 	glMatrixMode(GL_MODELVIEW);
@@ -68,15 +73,7 @@ void frame_gl_setup(VISSTATE* clientState)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void gen_graph_VBOs(thread_graph_data *graph)
-{
-	glGenBuffers(4, graph->graphVBOs);
-	glGenBuffers(4, graph->previewVBOs);
-	glGenBuffers(1, graph->heatmapEdgeVBO);
-	glGenBuffers(2, graph->conditionalVBOs);
-	glGenBuffers(4, graph->activeVBOs);
-	graph->VBOsGenned = true;
-}
+
 
 void frame_gl_teardown()
 {
@@ -150,7 +147,7 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
 	clientState->col_pick_sphere = spheredata;
 
-	int diam = clientState->activeGraph->main_scalefactors->radius;
+	int diam = ((plotted_graph *)clientState->activeGraph)->main_scalefactors->radius;
 	int rowi, coli;
 	float tlx, tlz, trx, topy, trz;
 	float basey, brx, brz, blz, blx;
