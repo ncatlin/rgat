@@ -115,9 +115,9 @@ void proto_graph::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
 
 	if (targNode->external)
 		newEdge.edgeClass = ILIB;
-	else if (sourceNode->ins->itype = OPCALL)
+	else if (sourceNode->ins->itype == OPCALL)
 		newEdge.edgeClass = ICALL;
-	else if (sourceNode->ins->itype = OPRET)
+	else if (sourceNode->ins->itype == OPRET)
 		newEdge.edgeClass = IRET;
 	else
 		newEdge.edgeClass = IOLD;

@@ -30,33 +30,8 @@ Miscellaneous graphics routines that don't fit into the graph class
 
 #include "diff_plotter.h"
 
-
-
-//wireframe starts/sizes are the opengl vertex array positions/offsets
-//void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
-//void plot_wireframe(VISSTATE *clientState);
-//void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText);
-
-/*
-int add_node(node_data *n, GRAPH_DISPLAY_DATA *vertdata, 
-	GRAPH_DISPLAY_DATA *animvertdata, MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours);
-int draw_new_nodes(plotted_graph *graph, GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours);
-void rescale_nodes(plotted_graph *graph, bool isPreview);
-
-void render_static_graph(plotted_graph *graph, VISSTATE *clientState);
-void render_static_sphere_graph(plotted_graph *graph, VISSTATE *clientState);
-void render_static_freeform_graph(plotted_graph *graph, VISSTATE *clientState);
-
-int render_preview_graph(plotted_graph *activeGraph, VISSTATE *clientState);
-void display_graph(VISSTATE *clientState, plotted_graph *graph, PROJECTDATA *pd);
-void display_big_heatmap(VISSTATE *clientState);
-void display_big_conditional(VISSTATE *clientState);
-
-
-void drawHighlight(VCOORD *coord, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
-*/
-
 void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer);
+
 //takes the vertex data structure vertdata, start and end coordinate, colour, type, scaling factors and places resulting array position in arraypos
 //not a nice call
 int drawCurve(GRAPH_DISPLAY_DATA *vertdata, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, int edgetype, MULTIPLIERS *dimensions, int *arraypos);

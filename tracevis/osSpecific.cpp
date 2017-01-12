@@ -211,5 +211,7 @@ void execute_tracer(string executable, string args, void *clientState_ptr)
 	else
 		cerr << "[rgat]ERROR: Failed to execute target, error: " << GetLastError() << endl;
 
+	CloseHandle(pi.hProcess);
+
 }
 #endif // WIN32

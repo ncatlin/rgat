@@ -127,8 +127,19 @@ void basicblock_handler::main_loop()
 		cerr << "[rgat]WARNING:Long wait for BB handler pipe" << endl;
 	}
 	char *buf= (char *)malloc(BBBUFSIZE);
+	if (!buf)
+	{
+		cerr << "RGAT: FATAL ERROR! Failed to allocate memory for basic block thread" << endl;
+		assert(false);
+	}
+
 	OVERLAPPED ov2 = { 0 };
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+	if (!ov2.hEvent)
+	{
+		cerr << "RGAT: ERROR - Failed to create overlapped event in basic block handler" << endl;
+		assert(false);
+	}
 
 	//string savedbuf;
 	while (!die && !piddata->should_die())

@@ -1070,7 +1070,8 @@ namespace agui
 			passedFocus = true;
 		}
 
-		if(target)
+		if (!target) return false;
+		
 		if(target != focused && target->isFocusable() 
 			&& target->isTabable() && passedFocus && isFocusEnabled())
 		{
@@ -1170,31 +1171,33 @@ namespace agui
 				}
 			}
 
-				if(target)
-					if(target != focused && target->isFocusable() 
-						&& target->isTabable() && passedFocus && isFocusEnabled())
-					{
-						//tabbed panes should not be previously tabbed
-						//to avoid circular dependency
+			if (target)
+			{
+				if (target != focused && target->isFocusable()
+					&& target->isTabable() && passedFocus && isFocusEnabled())
+				{
+					//tabbed panes should not be previously tabbed
+					//to avoid circular dependency
 
-						if(target->isReverseTabable())
-						{
-							target->focus();
-							return true;
-						}
-					
-					}
-
-					if(target->isFocused() && target != focused)
+					if (target->isReverseTabable())
 					{
+						target->focus();
 						return true;
 					}
 
-					if(target == focused)
-					{
-						passedFocus = true;
-					}
-				return false;
+				}
+
+				if (target->isFocused() && target != focused)
+				{
+					return true;
+				}
+
+				if (target == focused)
+				{
+					passedFocus = true;
+				}
+			}
+			return false;
 	}
 
 	void Gui::focusPreviousTabableWidget()

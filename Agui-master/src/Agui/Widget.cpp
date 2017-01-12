@@ -1774,6 +1774,7 @@ namespace agui {
 	void Widget::_recursivePaintChildren( Widget *root, bool enabled, float globalOpacity, Graphics *graphicsContext )
 	{
 		//recursively calls itself to render widgets from back to front
+		if (!root) return;
 
 		if(!root->isVisible())
 		{

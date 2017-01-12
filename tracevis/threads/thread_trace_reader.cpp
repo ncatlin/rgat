@@ -197,11 +197,17 @@ void thread_trace_reader::main_loop()
 		}
 		
 		messageBuffer = (char*)malloc(bytesRead + 1);
-		memcpy(messageBuffer, tagReadBuf, bytesRead + 1);
-
-		add_message(messageBuffer, bytesRead + 1);
-
-		++itemsRead;
+		if (messageBuffer)
+		{
+			memcpy(messageBuffer, tagReadBuf, bytesRead + 1);
+			add_message(messageBuffer, bytesRead + 1);
+			++itemsRead;
+		}
+		else
+		{
+			cerr << "RGAT: WARNING! Failed to allocate " << bytesRead + 1 << " bytes of memory for " <<
+				"trace data. Dropping message." << endl;
+		}
 	}
 	pipeClosed = true;
 	//wait until buffers emptied

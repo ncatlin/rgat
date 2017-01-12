@@ -70,6 +70,12 @@ void module_handler::main_loop()
 
 	OVERLAPPED ov2 = { 0 };
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+	if (!ov2.hEvent)
+	{
+		cerr << "RGAT: ERROR - Failed to create overlapped event in module handler" << endl;
+		assert(false);
+	}
+
 	vector < base_thread *> threadList;
 	vector < thread_trace_reader *> readerThreadList;
 	DWORD res= 0;
