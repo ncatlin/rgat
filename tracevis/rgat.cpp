@@ -1035,7 +1035,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
 	maingraph_render_thread *renderThread = (maingraph_render_thread *)clientState->maingraphRenderThreadPtr;
-	printf("waiting for switch mutex\n");
+
 	renderThread->getMutex();
 
 	clientState->activeGraph = clientState->newActiveGraph;
@@ -1062,7 +1062,6 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 		protoGraph->set_active_node(0);
 	}
 	renderThread->dropMutex();
-	printf("dropped switch mutex\n");
 
 	//protoGraph->emptyArgQueue();
 	protoGraph->assign_modpath(clientState->activePid);

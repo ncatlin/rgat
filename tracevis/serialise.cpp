@@ -633,7 +633,6 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		protograph->active = false;
 
 		display_only_status_message("Loading Graph "+tidstring, clientState);
-		printf("TODO: plotted/proto graph reconstruction\n");
 		if(graph->get_protoGraph()->unserialise(file, &piddata->disassembly))
 			piddata->plottedGraphs.emplace(TID, graph);
 		else 

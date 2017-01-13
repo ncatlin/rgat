@@ -112,6 +112,7 @@ private:
 	VISSTATE *clientState;
 };
 
+//todo: find out how to make keyboard copy and paste work with agui
 class aboutListener : public agui::KeyboardListener
 {
 public:

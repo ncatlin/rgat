@@ -507,7 +507,6 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	if (thistag->jumpModifier == MOD_INSTRUMENTED)
 	{
 		runBB(thistag, repeats);
-		//printf("Ran internal BB, lastVID now %d\n", lastVertID);
 		thisgraph->totalInstructions += thistag->insCount*repeats;
 		thisgraph->set_active_node(lastVertID);
 	}
@@ -519,7 +518,6 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
 		run_external(thistag->blockaddr, repeats, &resultPair);
-		//printf("Ran external BB, lastVID now %d, resultpair %d,%d\n", lastVertID, resultPair.first, resultPair.second);
 		process_new_args();
 		thisgraph->set_active_node(resultPair.second);
 	}

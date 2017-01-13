@@ -35,7 +35,6 @@ proto_graph::proto_graph(PROCESS_DATA *processdata, unsigned int threadID)
 
 proto_graph::~proto_graph()
 {
-	printf("Proto graph destroyed!\n");
 }
 
 //creates a node for a newly executed instruction
