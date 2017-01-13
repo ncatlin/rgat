@@ -799,7 +799,7 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 		stringstream ss;
 		ss << "0x" << std::hex << n->ins->address << ": " << itext;
 		al_draw_text(clientState->standardFont, textcol, screenCoord.x + INS_X_OFF,
-			clientState->mainFrameSize.height - screenCoord.y + 12, ALLEGRO_ALIGN_LEFT,
+			clientState->mainFrameSize.height - screenCoord.y + COND_INSTEXT_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 	}
 }

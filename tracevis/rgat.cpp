@@ -476,8 +476,15 @@ void handleKBDExit()
 	}
 }
 
+//prepares for switch to new graph
 static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 {
+	if (clientState->activePid->PID == PID)
+	{
+		plotted_graph * currentActiveGraph = (plotted_graph *)clientState->activeGraph;
+		if (currentActiveGraph->get_protoGraph()->get_TID() == TID)
+			return; //already active
+	}
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
 	clientState->newActiveGraph = target_pid->plottedGraphs[TID];
 
@@ -1027,6 +1034,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 //performs cleanup of old active graph, sets up environment to display new one
 void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
+	maingraph_render_thread *renderThread = (maingraph_render_thread *)clientState->maingraphRenderThreadPtr;
+	printf("waiting for switch mutex\n");
+	renderThread->getMutex();
+
 	clientState->activeGraph = clientState->newActiveGraph;
 	plotted_graph * activeGraph = (plotted_graph *)clientState->activeGraph;
 	activeGraph->needVBOReload_active = true;
@@ -1050,6 +1061,8 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 		clientState->animationUpdate = 1;
 		protoGraph->set_active_node(0);
 	}
+	renderThread->dropMutex();
+	printf("dropped switch mutex\n");
 
 	//protoGraph->emptyArgQueue();
 	protoGraph->assign_modpath(clientState->activePid);
@@ -1218,6 +1231,7 @@ int main(int argc, char **argv)
 
 	//preload glyphs in cache
 	al_get_text_width(clientState.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
+	al_get_text_width(clientState.messageFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 
 	clientState.cameraZoomlevel = INITIALZOOM;
@@ -1239,6 +1253,7 @@ int main(int argc, char **argv)
 
 	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(0,0);
 	mainRenderThread->clientState = &clientState;
+	clientState.maingraphRenderThreadPtr = mainRenderThread;
 
 	HANDLE hPIDmodThread = CreateThread(
 		NULL, 0, (LPTHREAD_START_ROUTINE)mainRenderThread->ThreadEntry,

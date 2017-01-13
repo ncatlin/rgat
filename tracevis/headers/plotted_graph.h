@@ -20,8 +20,8 @@ struct HIGHLIGHT_DATA {
 };
 
 struct PLOT_TRACK {
-	unsigned int lastVertID;
-	unsigned int lastVertType;
+	unsigned int lastVertID = 0;
+	unsigned int lastVertType = 0;
 };
 
 class plotted_graph

@@ -88,7 +88,11 @@ void maingraph_render_thread::main_loop()
 		if (!activeGraph) {
 			Sleep(5); continue;
 		}
+
+		getMutex();
 		performMainGraphRendering(activeGraph);
+		dropMutex();
+
 		Sleep(renderFrequency);
 	}
 	alive = false;

@@ -68,6 +68,11 @@ private:
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
 
+	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool loadExceptions(ifstream *file);
+	bool loadStats(ifstream *file);
+	bool loadAnimationData(ifstream *file);
+
 protected:
 	
 
@@ -162,9 +167,7 @@ public:
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 
-	bool loadExceptions(ifstream *file);
-	bool loadStats(ifstream *file);
-	bool loadAnimationData(ifstream *file);
+
 
 	unsigned long totalInstructions = 0;
 	int baseModule = -1;

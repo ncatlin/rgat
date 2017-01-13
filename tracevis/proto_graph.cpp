@@ -23,6 +23,7 @@ The final graphs (sphere, linear, etc are built using this data)
 #include "proto_graph.h"
 #include "thread_trace_reader.h"
 #include "GUIConstants.h"
+#include "serialise.h"
 
 
 proto_graph::proto_graph(PROCESS_DATA *processdata, unsigned int threadID)
@@ -293,8 +294,8 @@ void proto_graph::set_active_node(unsigned int idx)
 
 void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 {
-	if (!nodeList.empty()) assert(targVertID == nodeList.back().index + 1);
-
+	if (!nodeList.empty())
+		assert(targVertID == nodeList.back().index + 1);
 
 	if (node.external)
 	{
@@ -378,8 +379,6 @@ bool proto_graph::serialise(ofstream *file)
 
 	//S for stats
 	*file << "S{"
-		//<< maxA << ","
-		//<< maxB << ","
 		<< baseModule << ","
 		<< totalInstructions
 		<< "}S,";
@@ -405,12 +404,41 @@ bool proto_graph::serialise(ofstream *file)
 
 bool proto_graph::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-	//if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed" << endl;  return false; }
-	//if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
+	if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed" << endl;  return false; }
+	if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
 	if (!loadExceptions(file)) { cerr << "[rgat]ERROR:Exceptions load failed" << endl;  return false; }
-	//if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
+	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
 	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
 	return true;
+}
+
+bool proto_graph::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
+{
+
+	if (!verifyTag(file, tag_START, 'N')) {
+		cerr << "[rgat]Bad node data" << endl;
+		return false;
+	}
+	string value_s;
+	while (true)
+	{
+		node_data *n = new node_data;//can't this be done at start?
+		int result = n->unserialise(file, disassembly);
+
+		if (result > 0)
+		{
+			insert_node(n->index, *n);
+			continue;
+		}
+
+		delete n; //can't this be done at end?
+
+		if (!result)
+			return true;
+		else
+			return false;
+
+	}
 }
 
 bool proto_graph::loadStats(ifstream *file)

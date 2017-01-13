@@ -418,7 +418,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		}
 
 		bool hasSym;
-		if (piddata->modsymsPlain.at(insmodnum).count(address))
+		if (piddata->modsymsPlain.count(insmodnum) && piddata->modsymsPlain.at(insmodnum).count(address))
 			hasSym = true;
 		else 
 			hasSym = false;
@@ -628,8 +628,9 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 
 		getline(*file, tidstring, '{');
 		if (!caught_stoul(tidstring, &TID, 10)) return false;
-		sphere_graph *graph = new sphere_graph(piddata, TID, 0); //TODO proto
-		graph->get_protoGraph()->active = false;
+		proto_graph *protograph = new proto_graph(piddata,TID);
+		sphere_graph *graph = new sphere_graph(piddata, TID, protograph);
+		protograph->active = false;
 
 		display_only_status_message("Loading Graph "+tidstring, clientState);
 		printf("TODO: plotted/proto graph reconstruction\n");
@@ -638,7 +639,7 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		else 
 			return false;
 
-		graph->get_protoGraph()->assign_modpath(piddata);
+		protograph->assign_modpath(piddata);
 
 		cerr << "[rgat]Loaded thread graph "<<TID <<endl;
 		if (file->peek() != '}') 

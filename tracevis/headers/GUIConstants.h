@@ -173,6 +173,8 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define INS_X_OFF 5
 #define INS_Y_OFF 1
 
+#define COND_INSTEXT_Y_OFF 6
+
 #define MAX_LIVE_ANIMATION_NODES_PER_FRAME 100
 
 #define HEATMAP_KEY_SQUARESIZE 25

@@ -33,10 +33,13 @@ public:
 
 	
 	VISSTATE *clientState;
+	void getMutex() { WaitForSingleObject(renderingMutex, 0); }
+	void dropMutex() { ReleaseMutex(renderingMutex); }
 
 private:
 	void main_loop();
 	//void updateMainRender(plotted_graph *graph);
 	void performMainGraphRendering(plotted_graph *graph);
+	HANDLE renderingMutex = CreateMutex(NULL, NULL, NULL);
 };
 

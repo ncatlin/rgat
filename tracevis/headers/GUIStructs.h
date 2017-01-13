@@ -125,6 +125,7 @@ public:
 
 	void *mouse_drag_graph = NULL; 
 	void *activeGraph = NULL;
+	void *maingraphRenderThreadPtr;
 
 	map <PID_TID, NODEPAIR> graphPositions;
 

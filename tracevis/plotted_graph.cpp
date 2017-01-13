@@ -598,6 +598,8 @@ int plotted_graph::process_replay_animation_updates(int stepSize)
 			if ((entry.entryType == ANIM_EXEC_EXCEPTION) && (instructionCount == (entry.count + 1))) break;
 		}
 
+		lastMainNode.lastVertID = lastAnimatedNode;
+
 		//also add brighten edge to next unchained block
 		if (entry.entryType == ANIM_UNCHAINED)
 		{
