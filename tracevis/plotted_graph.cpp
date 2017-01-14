@@ -234,18 +234,18 @@ void plotted_graph::reset_animation()
 	animBuildingLoop = false;
 }
 
-/*
-//unused, should it be?
-void thread_graph_data::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
-{
-unsigned int bufIndex = nIdx*COLELEMS + AOFF;
-if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
 
-GLfloat *colarray = &nodesdata->acquire_col_write()->at(0);
-colarray[bufIndex] = alpha;
-nodesdata->release_col_write();
+
+void plotted_graph::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
+{
+	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
+	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
+
+	GLfloat *colarray = &nodesdata->acquire_col_write()->at(0);
+	colarray[bufIndex] = alpha;
+	nodesdata->release_col_write();
 }
-*/
+
 
 
 
@@ -937,7 +937,7 @@ void plotted_graph::render_animation(float fadeRate)
 	maintain_active();
 	darken_fading(fadeRate);
 
-	//set_node_alpha(get_node(latest_active_node_idx)->index, animnodesdata, getPulseAlpha());
+	set_node_alpha(lastAnimatedNode, animnodesdata, getPulseAlpha());
 
 	//live process always at least has pulsing active node
 	needVBOReload_active = true;
@@ -1019,36 +1019,6 @@ void plotted_graph::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata,
 	edgesdata->release_col_write();
 }
 
-/*
-//takes node data generated from trace, converts to opengl point locations/colours placed in vertsdata
-int plotted_graph::draw_new_nodes(GRAPH_DISPLAY_DATA *vertsdata, map<int, ALLEGRO_COLOR> *nodeColours) {
-
-	MULTIPLIERS *scalefactors = vertsdata->isPreview() ? preview_scalefactors : main_scalefactors;
-
-	int nodeIdx = 0;
-	int nodeEnd = internalProtoGraph->get_num_nodes();
-	if (nodeIdx == nodeEnd) return 0;
-	nodeIdx += vertsdata->get_numVerts();
-
-	if (nodeIdx == nodeEnd) return 0;
-	int maxVerts = 50;
-	for (; nodeIdx != nodeEnd; ++nodeIdx)
-	{
-		int retries = 0;
-		while (!add_node(internalProtoGraph->safe_get_node(nodeIdx), lastMainVertID, vertsdata, animnodesdata, scalefactors, nodeColours))
-		{
-			//think mutexes fixes have made this irrelevant
-			Sleep(50);
-			if (retries++ > 25)
-				cerr << "[rgat]MUTEX BLOCKAGE?" << endl;
-		}
-		if (!maxVerts--)break;
-		lastMainVertID = nodeIdx;
-	}
-	return 1;
-}
-*/
-
 //rescale all drawn verts to sphere of new diameter by altering the vertex data
 void plotted_graph::rescale_nodes(bool isPreview)
 {
@@ -1068,7 +1038,7 @@ void plotted_graph::rescale_nodes(bool isPreview)
 	{
 		//only resize 250 nodes per call to stop it hanging
 		nodeIdx = vertResizeIndex;
-		vertResizeIndex += 250;
+		vertResizeIndex += NODES_PER_RESCALE_ITERATION;
 		vertsdata = get_mainnodes();
 		targetIdx = min(vertResizeIndex, vertsdata->get_numVerts());
 		if (targetIdx == vertsdata->get_numVerts()) 

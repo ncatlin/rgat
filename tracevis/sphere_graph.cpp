@@ -20,9 +20,24 @@ Monsterous class that handles the bulk of graph management
 
 #include "stdafx.h"
 #include "sphere_graph.h"
-
 #include "rendering.h"
 #include "serialise.h"
+
+#define BMULT 2
+
+#define JUMPA -6
+#define JUMPB 6
+#define JUMPA_CLASH -15
+#define CALLB 20
+#define CALLA_CLASH -40
+#define CALLB_CLASH -30
+#define EXTERNA -3
+#define EXTERNB 3
+
+//controls placement of the node after a return
+#define RETURNA_OFFSET -4
+#define RETURNB_OFFSET 3
+
 
 //takes position of a node as pointers
 //performs an action (call,jump,etc), places new position in pointers
@@ -49,125 +64,111 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 	switch (lastNode->lastVertType)
 	{
 
-	//small vertical distance between instructions in a basic block	
-	case NONFLOW: 
-	{
-		bMod += 1 * BMULT;
-		break;
-	}
-
-	/*
-	The initial post-return node is placed near the caller on the stack.
-	Makes a mess if we place whole block there, so this moves it farther away
-	but it also means sequential instruction edges look like jumps.
-	Something for consideration
-	*/
-	case AFTERRETURN:
-	{
-		a = min(a - 20, -(maxA + 2));
-		b += 7 * BMULT;
-		break;
-	}
-
-	
-	case JUMP://long diagonal separation to show distinct basic blocks
-	{
-		//check if this is a conditional which fell through (ie: sequential)
-		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-		if (lastNodeData->conditional && address == lastNodeData->ins->condDropAddress)
+		//small vertical distance between instructions in a basic block	
+		case NONFLOW: 
 		{
 			bMod += 1 * BMULT;
 			break;
 		}
-	}
-	
-	case EXCEPTION_GENERATOR: //positioned same as jump
-	{
-		a += JUMPA;
-		b += JUMPB * BMULT;
 
-		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		case JUMP://long diagonal separation to show distinct basic blocks
 		{
-			a += JUMPA_CLASH;
-			++clash;
-		}
-
-		//if (clash > 15)
-		//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
-
-		break;
-	}
-
-	//long purple line to show possible distinct functional blocks of the program
-	case CALL:
-	{
-		//note: b sometimes huge after this?
-		b += CALLB * BMULT;
-
-		while (usedCoords.find(make_pair(a,b)) != usedCoords.end())
-		{
-			a += CALLA_CLASH;
-			b += CALLB_CLASH * BMULT;
-			++clash;
-		}
-
-		if (clash)
-		{
-			a += CALLA_CLASH;
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
-		}
-		break;
-	}
-
-	case RETURN:
-		//previous externs handled same as previous returns
-	case EXTERNAL:
-	{
-		//returning to address in call stack?
-		int result = -1;
-		vector<pair<MEM_ADDRESS, int>>::iterator stackIt;
-		for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
-			if (stackIt->first == address)
+			//check if this is a conditional which fell through (ie: sequential)
+			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+			if (lastNodeData->conditional && address == lastNodeData->ins->condDropAddress)
 			{
-				result = stackIt->second;
+				bMod += 1 * BMULT;
 				break;
 			}
-
-		//if so, position next node near caller
-		if (result != -1)
+			//notice lack of break
+		} 
+	
+		case EXCEPTION_GENERATOR: 
 		{
-			VCOORD *caller = &node_coords.at(result);
-			a = caller->a + RETURNA_OFFSET;
-			b = caller->b + RETURNB_OFFSET;
-			bMod = caller->bMod;
+			a += JUMPA;
+			b += JUMPB * BMULT;
 
-			//may not have returned to the last item in the callstack
-			//delete everything inbetween
-			callStack.resize(stackIt - callStack.begin());
-		}
-		else
-		{
-			a += EXTERNA;
-			b += EXTERNB * BMULT;
-		}
+			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+			{
+				a += JUMPA_CLASH;
+				++clash;
+			}
 
-		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-		{
-			a += JUMPA_CLASH;
-			b += 1;
-			++clash;
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+			break;
 		}
 
-		//if (clash > 15)
-		//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
-		break;
-	}
+		//long purple line to show possible distinct functional blocks of the program
+		case CALL:
+		{
+			//note: b sometimes huge after this?
+			b += CALLB * BMULT;
 
-	default:
-		if (lastNode->lastVertType != FIRST_IN_THREAD)
-			cerr << "[rgat]ERROR: Unknown Last RIP Type " << lastNode->lastVertType << endl;
-		break;
+			while (usedCoords.find(make_pair(a,b)) != usedCoords.end())
+			{
+				a += CALLA_CLASH;
+				b += CALLB_CLASH * BMULT;
+				++clash;
+			}
+
+			if (clash)
+			{
+				a += CALLA_CLASH;
+				//if (clash > 15)
+				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+			}
+			break;
+		}
+
+		case RETURN:
+			//previous externs handled same as previous returns
+		case EXTERNAL:
+		{
+			//returning to address in call stack?
+			int result = -1;
+			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
+			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
+				if (stackIt->first == address)
+				{
+					result = stackIt->second;
+					break;
+				}
+
+			//if so, position next node near caller
+			if (result != -1)
+			{
+				VCOORD *caller = &node_coords.at(result);
+				a = caller->a + RETURNA_OFFSET;
+				b = caller->b + RETURNB_OFFSET;
+				bMod = caller->bMod;
+
+				//may not have returned to the last item in the callstack
+				//delete everything inbetween
+				callStack.resize(stackIt - callStack.begin());
+			}
+			else
+			{
+				a += EXTERNA;
+				b += EXTERNB * BMULT;
+			}
+
+			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+			{
+				a += JUMPA_CLASH;
+				b += 1;
+				++clash;
+			}
+
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
+			break;
+		}
+
+		default:
+			if (lastNode->lastVertType != FIRST_IN_THREAD)
+				cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
+			break;
 	}
 
 	position->a = a;
@@ -180,8 +181,9 @@ void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int l
 {
 	DCOORD nodepos;
 
-	map <NODEINDEX, EXTTEXT> displayNodeList;
+	vector <pair<NODEINDEX, EXTTEXT>> displayNodeList;
 
+	//make labels rise up screen, delete those that reach top
 	obtainMutex(internalProtoGraph->externGuardMutex, 7676);
 	map <NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
 	for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
@@ -201,24 +203,24 @@ void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int l
 					continue;
 			}
 		}
-		displayNodeList[activeExternIt->first] = activeExternIt->second;
+		displayNodeList.push_back(make_pair(activeExternIt->first, activeExternIt->second));;
 	}
 	dropMutex(internalProtoGraph->externGuardMutex);
 
-	activeExternIt = displayNodeList.begin();
+	vector <pair<NODEINDEX, EXTTEXT>>::iterator displayNodeListIt = displayNodeList.begin();
 
-	for (; activeExternIt != displayNodeList.end(); ++activeExternIt)
+	for (; displayNodeListIt != displayNodeList.end(); ++displayNodeListIt)
 	{
 		internalProtoGraph->getNodeReadLock();
-		VCOORD *coord = get_node_coord(activeExternIt->first);
+		VCOORD *coord = get_node_coord(displayNodeListIt->first);
 		internalProtoGraph->dropNodeReadLock();
 
-		EXTTEXT *extxt = &activeExternIt->second;
+		EXTTEXT *extxt = &displayNodeListIt->second;
 
 		if (nearOnly && !a_coord_on_screen(coord->a, left, right, main_scalefactors->HEDGESEP))
 			continue;
 
-		if (!get_screen_pos(activeExternIt->first, mainnodesdata, pd, &nodepos))
+		if (!get_screen_pos(displayNodeListIt->first, mainnodesdata, pd, &nodepos))
 			continue;
 
 		al_draw_text(font, al_col_green, nodepos.x, height - nodepos.y - extxt->yOffset,

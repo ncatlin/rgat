@@ -42,8 +42,7 @@ Constants used to interpret and plot the trace data
 #define EXTERNAL 4
 #define EXCEPTION_GENERATOR 5
 #define NOSYM 8
-#define AFTERRETURN 9
-#define FIRST_IN_THREAD 10
+#define FIRST_IN_THREAD 99
 
 #define MOD_UNKNOWN 0 
 #define MOD_INSTRUMENTED 1	//plot this
@@ -54,21 +53,6 @@ Constants used to interpret and plot the trace data
 #define CONDFELLTHROUGH 2
 #define CONDTAKEN 4
 #define CONDCOMPLETE (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
-
-#define BMULT 2
-
-#define JUMPA -6
-#define JUMPB 6
-#define JUMPA_CLASH -15
-#define CALLB 20
-#define CALLA_CLASH -40
-#define CALLB_CLASH -30
-#define EXTERNA -3
-#define EXTERNB 3
-
-//controls placement of the node after a return
-#define RETURNA_OFFSET -4
-#define RETURNB_OFFSET 3
 
 #define ARG_NOTB64 '0'
 #define ARG_BASE64 '1'

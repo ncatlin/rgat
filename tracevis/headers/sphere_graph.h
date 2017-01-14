@@ -58,7 +58,7 @@ private:
 	bool get_screen_pos(unsigned int nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 
 	vector<VCOORD> node_coords;
-	vector<pair<MEM_ADDRESS, int>> callStack;
+	vector<pair<MEM_ADDRESS, unsigned int>> callStack;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;

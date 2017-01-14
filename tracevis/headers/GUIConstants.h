@@ -194,3 +194,5 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 
 //max length to display in diff summary
 #define MAX_DIFF_PATH_LENGTH 50
+
+#define NODES_PER_RESCALE_ITERATION 250
