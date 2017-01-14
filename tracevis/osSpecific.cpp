@@ -45,8 +45,6 @@ bool obtainMutex(HANDLE mutex, int waitTimeCode)
 		if (waitresult != WAIT_TIMEOUT) return true;
 		cout << "WARNING! Mutex wait failed after " << std::dec << waitTimeCode << " ms: " << waitresult <<  endl;
 	} while (true);
-
-	return false;
 }
 
 bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
@@ -57,8 +55,6 @@ bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
 		if (waitresult != WAIT_TIMEOUT) return true;
 		cout << "WARNING! Mutex wait failed after " << std::dec << waitTimeCode << " ms: " << waitresult << endl;
 	} while (true);
-
-	return false;
 }
 
 void dropMutex(HANDLE mutex) {
@@ -118,46 +114,60 @@ bool getSavePath(string saveDir, string filename, string *result, PID_TID PID)
 }
 
 //get execution string of dr executable + client dll
-bool get_dr_path(VISSTATE *clientState, string *path)
+bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
 {
 	string DRPath = clientState->config->DRDir;
-#ifdef X86_32
-	DRPath.append("bin32\\drrun.exe");
-#elif X86_64
-	DRPath.append("bin64\\drrun.exe");
-#endif
+	if (is64Bits)
+		DRPath.append("bin64\\drrun.exe");
+	else
+		DRPath.append("bin32\\drrun.exe");
+
 	if (!fileExists(DRPath.c_str()))
 	{
 		cerr << "[rgat] ERROR: Failed to find DynamoRIO executable at " << DRPath << " listed in config file" << endl;
 
 		string modPathDR = getModulePath();
-		modPathDR.append("\\DynamoRIO\\bin32\\drrun.exe");
+		if (is64Bits)
+			modPathDR.append("\\DynamoRIO\\bin64\\drrun.exe");
+		else
+			modPathDR.append("\\DynamoRIO\\bin32\\drrun.exe");
+
 		if ((modPathDR != DRPath) && fileExists(modPathDR))
 		{
 			DRPath = modPathDR;
-			cerr << "[rgat] Found DynamoRIO executable at " << DRPath << ", continuing..." << endl;
+			cout << "[rgat] Found DynamoRIO executable at " << DRPath << ", continuing..." << endl;
 		}
 		else
 		{
-			cerr << "[rgat]ERROR: Failed to find DynamoRIO executable at " << modPathDR << endl;
+			cerr << "[rgat]ERROR: Also failed to find DynamoRIO executable at default " << modPathDR << endl;
 			return false;
 		}
 	}
 
-	string DRGATpath = clientState->config->clientPath + "drgat.dll";
+	string DRGATpath;
+	if (is64Bits)
+		DRGATpath = clientState->config->clientPath + "drgat64.dll";
+	else
+		DRGATpath = clientState->config->clientPath + "drgat.dll";
+
 	if (!fileExists(DRGATpath.c_str()))
 	{
-		cerr << "Unable to find drgat.dll at " << DRGATpath << " listed in config file" << endl;
+		cerr << "Unable to find drgat dll at " << DRGATpath << " listed in config file" << endl;
 		string drgatPath2 = getModulePath();
-		drgatPath2.append("\\drgat.dll");
+
+		if (is64Bits)
+			drgatPath2.append("\\drgat64.dll");
+		else
+			drgatPath2.append("\\drgat.dll");
+
 		if ((drgatPath2 != DRGATpath) && fileExists(drgatPath2))
 		{
 			DRGATpath = drgatPath2;
-			cerr << "[rgat] Succeeded in finding drgat.dll at " << drgatPath2 << endl;
+			cerr << "[rgat] Succeeded in finding drgat dll at " << drgatPath2 << endl;
 		}
 		else
 		{
-			cerr << "[rgat] Failed to find drgat.dll " << drgatPath2 << endl;
+			cerr << "[rgat] Failed to find drgat dll in default path " << drgatPath2 << endl;
 			return false;
 		}
 	}
@@ -188,13 +198,32 @@ string get_options(VISSTATE *clientState)
 	return optstring.str();
 }
 
-void execute_tracer(string executable, string args, void *clientState_ptr) 
+char check_excecutable_type(string executable)
+{
+	DWORD theType;
+	if (!GetBinaryTypeA(executable.c_str(), &theType))
+		return BINARY_NOT_EXECUTABLE;
+
+	switch (theType)
+	{
+	case SCS_32BIT_BINARY:
+		return BINARY_32_BIT;
+	case SCS_64BIT_BINARY:
+		return BINARY_64_BIT;
+	default:
+		return BINARY_OTHER;
+	}
+}
+
+void execute_tracer(string executable, string args, void *clientState_ptr, bool is64Bits)
 {
 	if (executable.empty()) return;
 
 	VISSTATE *clientState = (VISSTATE *)clientState_ptr;
 	string runpath;
-	if (!get_dr_path(clientState, &runpath)) return;
+	
+	if (!get_dr_path(clientState, &runpath, is64Bits)) return;
+
 	runpath.append(get_options(clientState));
 	runpath = runpath + " -- \"" + executable + "\" "+args;
 

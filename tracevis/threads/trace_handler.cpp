@@ -178,19 +178,19 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 					newEdge.edgeClass = alreadyExecuted ? IOLD : INEW;
 				else
 				{
-					if (lastRIPType == RETURN)
-						newEdge.edgeClass = IRET;
+					if (alreadyExecuted)
+						newEdge.edgeClass = IOLD;
 					else
-						if (lastRIPType == EXCEPTION_GENERATOR)
-							newEdge.edgeClass = IEXCEPT;
+						if (lastRIPType == RETURN)
+							newEdge.edgeClass = IRET;
 						else
-							if (alreadyExecuted)
-								newEdge.edgeClass = IOLD;
-							else
-								if (lastRIPType == CALL)
-									newEdge.edgeClass = ICALL;
+							if (lastRIPType == EXCEPTION_GENERATOR)
+								newEdge.edgeClass = IEXCEPT;
 								else
-									newEdge.edgeClass = INEW;
+									if (lastRIPType == CALL)
+										newEdge.edgeClass = ICALL;
+									else
+										newEdge.edgeClass = INEW;
 
 				}
 				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
@@ -342,17 +342,6 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	//make new external/library call node
 	node_data newTargNode;
 	newTargNode.nodeMod = module;
-
-	//todo: deal with this somehow now sphere coords have moved to plotter
-	/*
-	VCOORD lastnodec = lastNode->vcoord;
-
-	//if parent calls multiple children, spread them out around caller
-	newTargNode.vcoord.a = lastnodec.a + 2 * lastNode->childexterns + 5;
-	newTargNode.vcoord.b = lastnodec.b + lastNode->childexterns + 5;
-	newTargNode.vcoord.bMod = lastnodec.bMod;
-	*/
-
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
 	newTargNode.index = targVertID;
@@ -421,10 +410,8 @@ void thread_trace_handler::process_new_args()
 				piddata->get_modpath(piddata->externdict.at(funcad)->modnum, &externPath);
 				piddata->dropExternlistReadLock();
 
-				
 				while (callsIt != callsvector.end())//run through each call made by caller
 				{
-
 					EXTERNCALLDATA ex;
 					ex.edgeIdx = make_pair(parentn->index, targn->index);
 					ex.nodeIdx = targn->index;
@@ -576,7 +563,6 @@ void thread_trace_handler::dump_loop()
 			animUpdate.callCount = callCounter[make_pair(thistag->blockaddr, thistag->blockID)]++;
 
 		thisgraph->push_anim_update(animUpdate);
-
 	}
 
 	ANIMATIONENTRY animUpdate;
@@ -586,8 +572,6 @@ void thread_trace_handler::dump_loop()
 	loopCache.clear();
 	loopIterations = 0;
 	loopState = NO_LOOP;
-
-
 }
 
 //todo: move this to piddata class

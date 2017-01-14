@@ -25,7 +25,6 @@ Monsterous class that handles the bulk of graph management
 #include "graph_display_data.h"
 #include "plotted_graph.h"
 #include "traceMisc.h"
-#include "OSspecific.h"
 
 class sphere_graph : public plotted_graph
 {
@@ -40,7 +39,7 @@ public:
 	void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
 	void render_static_graph(VISSTATE *clientState);
-	void drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
+	void drawHighlight(NODEINDEX nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
 
@@ -49,23 +48,23 @@ protected:
 		MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours);
 	void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 	void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata);
-	FCOORD nodeIndexToXYZ(unsigned int index, MULTIPLIERS *dimensions, float diamModifier);
+	FCOORD nodeIndexToXYZ(NODEINDEX index, MULTIPLIERS *dimensions, float diamModifier);
 
 private:
 	void write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd);
 	void display_graph(VISSTATE *clientState, PROJECTDATA *pd);
-	void positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_TRACK *lastNode, bool external);
-	bool get_screen_pos(unsigned int nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
+	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
+	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 
 	vector<VCOORD> node_coords;
-	vector<pair<MEM_ADDRESS, unsigned int>> callStack;
+	vector<pair<MEM_ADDRESS, NODEINDEX>> callStack;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	//<index, final (still active) node>
-	map <unsigned int, bool> activeNodeMap;
+	map <NODEINDEX, bool> activeNodeMap;
 
-	VCOORD *get_node_coord(unsigned int idx) {
+	VCOORD *get_node_coord(NODEINDEX idx) {
 		if (idx >= node_coords.size()) return 0;
 		return &node_coords.at(idx); //mutex?
 	}

@@ -1112,8 +1112,11 @@ int main(int argc, char **argv)
 			NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
 			(LPVOID)&clientState, 0, 0);
 
-		execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState);
-		
+		char exeType = check_excecutable_type(clientState.commandlineLaunchPath);
+		if (exeType == BINARY_32_BIT)
+			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, false);
+		else if (exeType == BINARY_64_BIT)
+			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, true);
 		
 		int newTIDs,activeTIDs = 0;
 		int newPIDs,activePIDs = 0;

@@ -39,10 +39,10 @@ Monsterous class that handles the bulk of graph management
 #define RETURNB_OFFSET 3
 
 
-//takes position of a node as pointers
-//performs an action (call,jump,etc), places new position in pointers
+
+//performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 //this is the function that determines how the graph is laid out
-void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_TRACK *lastNode, bool external)
+void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
 	
 	VCOORD *oldPosition = get_node_coord(lastNode->lastVertID);
@@ -52,7 +52,7 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 	int clash = 0;
 
 	VCOORD *position = (VCOORD *)positionStruct;
-	if (external)
+	if (n->external)
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		position->a = a + 2 * lastNodeData->childexterns + 5;
@@ -75,7 +75,7 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 		{
 			//check if this is a conditional which fell through (ie: sequential)
 			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-			if (lastNodeData->conditional && address == lastNodeData->ins->condDropAddress)
+			if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 			{
 				bMod += 1 * BMULT;
 				break;
@@ -129,7 +129,7 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 			int result = -1;
 			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
 			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
-				if (stackIt->first == address)
+				if (stackIt->first == n->address)
 				{
 					result = stackIt->second;
 					break;
@@ -375,7 +375,7 @@ void sphere_graph::plot_wireframe(VISSTATE *clientState)
 }
 
 //draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
-void sphere_graph::drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+void sphere_graph::drawHighlight(NODEINDEX nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	FCOORD nodeCoordxyz;
 	VCOORD *nodeCoordSphere = get_node_coord(nodeIndex);
@@ -387,7 +387,7 @@ void sphere_graph::drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALL
 }
 
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
-FCOORD sphere_graph::nodeIndexToXYZ(unsigned int index, MULTIPLIERS *dimensions, float diamModifier)
+FCOORD sphere_graph::nodeIndexToXYZ(NODEINDEX index, MULTIPLIERS *dimensions, float diamModifier)
 {
 	VCOORD *nodeCoordSphere = get_node_coord(index);
 	float adjB = nodeCoordSphere->b + float(nodeCoordSphere->bMod * BMODMAG);
@@ -458,7 +458,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 		}
 		else
 		{
-			positionVert(&nodePos, n->address, lastNode, n->external);
+			positionVert(&nodePos, n, lastNode);
 			node_coords.push_back(nodePos);
 			vcoord = &nodePos;
 		}
@@ -627,12 +627,12 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
-	unsigned int numVerts = internalProtoGraph->get_num_nodes();
+	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 	stringstream ss;
 	DCOORD screenCoord;
 	string itext("?");
-	for (unsigned int i = 0; i < numVerts; ++i)
+	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(i);
 		if (n->external) continue;
@@ -678,8 +678,8 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 
 	if (!showExterns && !showDbgSymbols) return;
 
-	vector<unsigned int> externListCopy;
-	vector<unsigned int> internListCopy;
+	vector<NODEINDEX> externListCopy;
+	vector<NODEINDEX> internListCopy;
 
 	if (showExterns)
 	{
@@ -687,7 +687,7 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 		externListCopy = internalProtoGraph->externList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
-		vector<unsigned int>::iterator externCallIt = externListCopy.begin();
+		vector<NODEINDEX>::iterator externCallIt = externListCopy.begin();
 		for (; externCallIt != externListCopy.end(); ++externCallIt)
 		{
 			node_data *n = internalProtoGraph->safe_get_node(*externCallIt);
@@ -716,7 +716,7 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			internListCopy = internalProtoGraph->internList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
-		vector<unsigned int>::iterator internSymIt = internListCopy.begin();
+		vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
 		for (; internSymIt != internListCopy.end(); ++internSymIt)
 		{
 			node_data *n = internalProtoGraph->safe_get_node(*internSymIt);
@@ -746,9 +746,9 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
-	unsigned int numVerts = vertsdata->get_numVerts();
+	NODEINDEX numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
-	for (unsigned int i = 0; i < numVerts; ++i)
+	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(i);
 		VCOORD *nodeCoord = get_node_coord(i);
@@ -867,7 +867,7 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 
 //this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
 //takes a node index and returns the x/y on the screen
-bool sphere_graph::get_screen_pos(unsigned int nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
+bool sphere_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
 {
 	FCOORD graphPos;
 	if (!vdata->get_coord(nodeIndex, &graphPos)) return false;

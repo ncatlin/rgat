@@ -246,11 +246,8 @@ void plotted_graph::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesd
 	nodesdata->release_col_write();
 }
 
-
-
-
-//fill vertlist with with all verts corresponding to basic block (blockAddr/blockID) on the graph
-bool plotted_graph::fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist)
+//fill nodelist with with all nodes corresponding to basic block (blockAddr/blockID) on the graph
+bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *nodelist)
 {
 	PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
 	INSLIST * block = getDisassemblyBlock(blockAddr, blockID, piddata, &internalProtoGraph->terminationFlag);
@@ -263,7 +260,7 @@ bool plotted_graph::fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 		for (; callvsIt != callvs.end(); ++callvsIt) //run through each function with a new arg
 		{
 			if (callvsIt->first == lastAnimatedNode)
-				vertlist->push_back(callvsIt->second);
+				nodelist->push_back(callvsIt->second);
 		}
 		piddata->dropExternlistReadLock();
 		return true;
@@ -276,7 +273,7 @@ bool plotted_graph::fill_block_vertlist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 		unordered_map<PID_TID, NODEINDEX>::iterator vertIt = activeIns->threadvertIdx.find(tid);
 		if (vertIt == activeIns->threadvertIdx.end())
 			return false;
-		vertlist->push_back(vertIt->second);
+		nodelist->push_back(vertIt->second);
 	}
 	return true;
 }
@@ -370,7 +367,7 @@ void plotted_graph::process_live_animation_updates()
 
 		//break if block not rendered yet
 		vector <NODEINDEX> nodeIDList;
-		if (!fill_block_vertlist(entry.blockAddr, entry.blockID, &nodeIDList))
+		if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
 		{
 			//expect to get an incomplete block with exception or animation attempt before static rendering
 			if ((entry.entryType != ANIM_EXEC_EXCEPTION) ||
@@ -549,10 +546,10 @@ int plotted_graph::process_replay_animation_updates(int stepSize)
 
 		vector <NODEINDEX> nodeIDList;
 
-		if (!fill_block_vertlist(entry.blockAddr, entry.blockID, &nodeIDList) && entry.entryType != ANIM_EXEC_EXCEPTION)
+		if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList) && entry.entryType != ANIM_EXEC_EXCEPTION)
 		{
-			Sleep(1);
-			while (!fill_block_vertlist(entry.blockAddr, entry.blockID, &nodeIDList))
+			Sleep(5);
+			while (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
 			{
 				Sleep(5);
 				cout << "[rgat] Waiting for vertlist block 0x" << hex << entry.blockAddr << endl;

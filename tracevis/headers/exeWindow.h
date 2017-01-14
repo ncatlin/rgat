@@ -167,7 +167,13 @@ public:
 			cerr << "[rgat]Executable " << path << " not found. Try again." << endl;
 			return;
 		}
-		execute_tracer(path,exe_wind->getArgs(), clientState);
+
+		char exeType = check_excecutable_type(path);
+		if (exeType == BINARY_32_BIT)
+			execute_tracer(path,exe_wind->getArgs(), clientState, false);
+		else if (exeType == BINARY_64_BIT)
+			execute_tracer(path, exe_wind->getArgs(), clientState, true);
+
 		exe_wind->hide();
 	}
 

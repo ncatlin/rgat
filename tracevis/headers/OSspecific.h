@@ -22,12 +22,18 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 #include <stdafx.h>
 #include "traceStructs.h"
 
+#define BINARY_NOT_EXECUTABLE 0
+#define BINARY_32_BIT 1
+#define BINARY_64_BIT 2
+#define BINARY_OTHER 3
+
 string getModulePath();
 string basename(string path);
 bool fileExists(string path);
 void renameFile(string originalPath, string targetPath);
-void execute_tracer(string executable, string args, void *clientState_ptr);
+void execute_tracer(string executable, string args, void *clientState_ptr, bool bits64);
 bool getSavePath(string saveDir, string filename, string *result, PID_TID PID);
+char check_excecutable_type(string executable);
 
 //in: mutex to wait on, waitTimeCode ms to wait per warning
 bool obtainMutex(HANDLE mutex, int waitTimeCode);
