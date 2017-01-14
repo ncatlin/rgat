@@ -36,8 +36,7 @@ diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state
 		graph2 = g1;
 	}
 
-	PID_TID g1pid = graph1->get_protoGraph()->get_piddata()->PID;
-	diffgraph = new plotted_graph(state->glob_piddata_map.at(g1pid),0, graph1->get_protoGraph());
+	diffgraph = new plotted_graph(graph1->get_protoGraph());
 	diffgraph->main_scalefactors = graph1->main_scalefactors;
 
 	glGenBuffers(4, diffgraph->graphVBOs);

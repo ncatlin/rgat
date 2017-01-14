@@ -24,31 +24,12 @@ Class describing each node
 #include "GUIConstants.h"
 #include "traceMisc.h"
 
-
-
-//this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
-/*
-bool node_data::get_screen_pos(GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
-{
-	FCOORD graphPos;
-	if (!vdata->get_coord(index, &graphPos)) return false;
-
-	gluProject(graphPos.x, graphPos.y, graphPos.z,
-		pd->model_view, pd->projection, pd->viewport,
-		&screenPos->x, &screenPos->y, &screenPos->z);
-	return true;
-}*/
-
 bool node_data::serialise(ofstream *outfile)
 {
 	*outfile << index << "{";
-	*outfile << 
-		//vcoord.a << "," 
-		//<<		vcoord.b << "," <<
-		//vcoord.bMod << "," <<
-		conditional << "," << nodeMod << ",";
+	*outfile << conditional << ",";
+	*outfile << nodeMod << ",";
 	*outfile << address << ",";
-
 	*outfile << executionCount << ",";
 
 	set<unsigned int>::iterator adjacentIt = incomingNeighbours.begin();
@@ -96,19 +77,6 @@ int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassemb
 
 	if (!caught_stoi(value_s, (int *)&index, 10))
 		return -1;
-
-	/*getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, (int *)&vcoord.a, 10))
-		return -1;
-
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, (int *)&vcoord.b, 10))
-		return -1;
-
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, (int *)&vcoord.bMod, 10))
-		return -1;
-		*/
 
 	getline(*file, value_s, ',');
 	if (!caught_stoi(value_s, (int *)&conditional, 10))

@@ -482,7 +482,7 @@ static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 	if (clientState->activePid->PID == PID)
 	{
 		plotted_graph * currentActiveGraph = (plotted_graph *)clientState->activeGraph;
-		if (currentActiveGraph->get_protoGraph()->get_TID() == TID)
+		if (currentActiveGraph->get_tid() == TID)
 			return; //already active
 	}
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
@@ -957,7 +957,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				if (clientState->activeGraph)
 				{
 					stringstream displayMessage;
-					PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_protoGraph()->get_piddata()->PID;
+					PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_pid();
 					displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
 					display_only_status_message("Saving process "+to_string(pid), clientState);
 					cout << displayMessage.str();

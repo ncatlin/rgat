@@ -287,7 +287,6 @@ void proto_graph::set_active_node(unsigned int idx)
 	if (nodeList.size() <= idx) return;
 	getNodeWriteLock();
 	latest_active_node_idx = idx;
-	//latest_active_node_coord = unsafe_get_node(idx)->vcoord;
 	dropNodeWriteLock();
 }
 

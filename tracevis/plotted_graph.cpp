@@ -5,11 +5,10 @@
 #include "GUIManagement.h"
 
 
-plotted_graph::plotted_graph(PROCESS_DATA *processdata, unsigned int threadID, proto_graph *protoGraph)
+plotted_graph::plotted_graph(proto_graph *protoGraph)
 {
-		//piddata = processdata;
-		pid = processdata->PID;
-		tid = threadID;
+		pid = protoGraph->get_piddata()->PID;
+		tid = protoGraph->get_TID();
 
 		mainnodesdata = new GRAPH_DISPLAY_DATA();
 		mainlinedata = new GRAPH_DISPLAY_DATA();
@@ -72,8 +71,8 @@ void plotted_graph::setGraphBusy(bool set)
 //display live or animated graph with active areas on faded areas
 void plotted_graph::display_active(bool showNodes, bool showEdges)
 {
-	GRAPH_DISPLAY_DATA *nodesdata = get_activenodes();
-	GRAPH_DISPLAY_DATA *linedata = get_activelines();
+	GRAPH_DISPLAY_DATA *nodesdata = animnodesdata;
+	GRAPH_DISPLAY_DATA *linedata = animlinedata;
 
 	//reload buffers if needed and not being written
 	if (needVBOReload_active && !isGraphBusy())
@@ -1062,7 +1061,7 @@ void plotted_graph::rescale_nodes(bool isPreview)
 	if (isPreview)
 	{
 		nodeIdx = 0;
-		vertsdata = get_previewnodes();
+		vertsdata = previewnodes;
 		targetIdx = vertsdata->get_numVerts();
 	}
 	else
@@ -1082,8 +1081,7 @@ void plotted_graph::rescale_nodes(bool isPreview)
 
 	for (; nodeIdx != targetIdx; ++nodeIdx)
 	{
-		//node_graphic_data *n = get_node_coords(nodeIdx);
-		FCOORD newCoord = nodeCoordB(scalefactors, 0, nodeIdx);
+		FCOORD newCoord = nodeIndexToXYZ(nodeIdx, scalefactors, 0);
 
 		const int arrayIndex = nodeIdx * POSELEMS;
 		vpos[arrayIndex + XOFF] = newCoord.x;

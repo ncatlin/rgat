@@ -121,9 +121,7 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 	}
 
 	case RETURN:
-		afterReturn = true;
 		//previous externs handled same as previous returns
-
 	case EXTERNAL:
 	{
 		//returning to address in call stack?
@@ -177,17 +175,8 @@ void sphere_graph::positionVert(void *positionStruct, MEM_ADDRESS address, PLOT_
 	position->bMod = bMod;
 }
 
-VCOORD *sphere_graph::get_active_node_coord()
-{
-	if (internalProtoGraph->nodeList.empty()) 
-		return NULL;
-	else
-		return &latest_active_node_coord;
-}
-
-
-//not part of maintain_active because al_draw_text has to be called from the opengl context holding thread
-void sphere_graph::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
+//function names as they are executed
+void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
 {
 	DCOORD nodepos;
 
@@ -227,14 +216,10 @@ void sphere_graph::draw_externTexts(ALLEGRO_FONT *font, bool nearOnly, int left,
 		EXTTEXT *extxt = &activeExternIt->second;
 
 		if (nearOnly && !a_coord_on_screen(coord->a, left, right, main_scalefactors->HEDGESEP))
-		{
 			continue;
-		}
 
 		if (!get_screen_pos(activeExternIt->first, mainnodesdata, pd, &nodepos))
-		{
 			continue;
-		}
 
 		al_draw_text(font, al_col_green, nodepos.x, height - nodepos.y - extxt->yOffset,
 			0, extxt->displayString.c_str());
@@ -400,11 +385,12 @@ void sphere_graph::drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALL
 }
 
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
-FCOORD sphere_graph::nodeCoordB(MULTIPLIERS *dimensions, float diamModifier, unsigned int index)
+FCOORD sphere_graph::nodeIndexToXYZ(unsigned int index, MULTIPLIERS *dimensions, float diamModifier)
 {
 	VCOORD *nodeCoordSphere = get_node_coord(index);
-	FCOORD result;
 	float adjB = nodeCoordSphere->b + float(nodeCoordSphere->bMod * BMODMAG);
+
+	FCOORD result;
 	sphereCoord(nodeCoordSphere->a, adjB, &result, dimensions, diamModifier);
 	return result;
 }
@@ -426,8 +412,8 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map
 	else
 		scaling = main_scalefactors;
 
-	FCOORD srcc = nodeCoordB(scaling, 0, ePair.first);
-	FCOORD targc = nodeCoordB(scaling, 0, ePair.second);
+	FCOORD srcc = nodeIndexToXYZ(ePair.first, scaling, 0);
+	FCOORD targc = nodeIndexToXYZ(ePair.second, scaling, 0);
 
 	int arraypos = 0;
 	ALLEGRO_COLOR *edgeColour;
@@ -569,7 +555,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 
 void sphere_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
 {
-	if (pid != clientState->activePid->PID) return;
+	if (get_pid() != clientState->activePid->PID) return;
 
 	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < internalProtoGraph->loggedCalls.size())
@@ -598,7 +584,7 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	display_graph(clientState, &pd);
-	draw_externTexts(clientState->standardFont, clientState->modes.nearSide,
+	write_rising_externs(clientState->standardFont, clientState->modes.nearSide,
 		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd);
 }
 
@@ -692,8 +678,6 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 
 	vector<unsigned int> externListCopy;
 	vector<unsigned int> internListCopy;
-
-
 
 	if (showExterns)
 	{
@@ -879,15 +863,8 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 	}
 }
 
-FCOORD sphere_graph::sphereToScreenCoord(VCOORD vcoord, MULTIPLIERS *dimensions, float diamModifier)
-{
-	FCOORD result;
-	float adjB = vcoord.b + float(vcoord.bMod * BMODMAG);
-	sphereCoord(vcoord.a, adjB, &result, dimensions, diamModifier);
-	return result;
-}
-
 //this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
+//takes a node index and returns the x/y on the screen
 bool sphere_graph::get_screen_pos(unsigned int nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
 {
 	FCOORD graphPos;
