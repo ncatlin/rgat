@@ -633,7 +633,11 @@ int plotted_graph::process_replay_animation_updates(int stepSize)
 				linkingPair = make_pair(lastAnimatedNode, nextNode);
 			}
 
-			assert(internalProtoGraph->edge_exists(linkingPair, 0));
+			if (!internalProtoGraph->edge_exists(linkingPair, 0))
+			{
+				cerr << "[rgat]Warning: Skipped bad edge " << linkingPair.first << "," << linkingPair.second << endl;
+				return 0;
+			}
 			newAnimEdgeTimes[linkingPair] = brightTime;
 		}
 	}
