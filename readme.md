@@ -25,15 +25,15 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.3.1 is [here](https://github.com/ncatlin/rgat/raw/master/rgat-0.3.zip) for Windows x86 targets only, at the moment. Most of the file size is the included minimal DynamoRIO distribution.
+Version 0.4 is here: [zip](https://github.com/ncatlin/rgat/raw/master/rgat-0.4.zip)/[7z](https://github.com/ncatlin/rgat/raw/master/rgat-0.4.7z) for Windows x86 and **now x86-64 targets**.
 
-Replay is back with a significantly improved interface, including a progress control slider.
+It probably doesn't make much practical different at the moment but the graph building and rendering code has been firmly logically seperated. This means new layouts (ie: not the sphere) are coming.
 
-Graph divergence is also back, but less precise.
+There is also a debug logging option when starting instrumentation, to make reporting instrumentation crashes possible.
 
 See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for further details. 
 
-For the next version I plan to add support 64 bit executables.
+Next on the agenda: Generally improving the layout of the nodes and text. Possibly linux support.
 
 ## Download/Installation
 
