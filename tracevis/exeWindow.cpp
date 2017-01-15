@@ -27,7 +27,12 @@ The class for the executable launching dialog
 #define EXETEXT_X 60
 #define EXETEXT_Y 50
 #define OPTS_X 40
+#define OPTS_Y 120
 #define FEATURES_X 220
+#define CHECKBOX_WIDTH 20
+#define CHECKBOX_HEIGHT 20
+#define CHECKBOX_Y_PADDING 5
+
 exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 {
 	clientState = state;
@@ -39,7 +44,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	widgets->add(exeFrame);
 
 	agui::Label *title = new agui::Label;
-	title->setText("Trace target selection");
+	title->setText("Select target executable");
 	title->resizeToContents();
 	title->setLocation(10, 10);
 	exeFrame->add(title);
@@ -96,12 +101,12 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	agui::Label *opts = new agui::Label;
 	opts->setText("Options");
 	opts->resizeToContents();
-	opts->setLocation(OPTS_X, 120);
+	opts->setLocation(OPTS_X, OPTS_Y);
 	exeFrame->add(opts);
 
 	agui::Dimension CBSize;
-	CBSize.setHeight(20);
-	CBSize.setWidth(20);
+	CBSize.setHeight(CHECKBOX_HEIGHT);
+	CBSize.setWidth(CHECKBOX_WIDTH);
 
 	CBlisten *boxlistener = new CBlisten(state, this);
 
@@ -109,7 +114,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	pauseCB->setText("Pause on start");
 	pauseCB->setCheckBoxSize(CBSize);
 	pauseCB->resizeToContents();
-	pauseCB->setLocation(OPTS_X +15, 140);
+	pauseCB->setLocation(OPTS_X +15, OPTS_Y+CHECKBOX_HEIGHT);
 	pauseCB->setToolTipText("Pauses execution at program start with a message box. Allows attaching a debugger to the target.");
 	pauseCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(pauseCB);
@@ -118,7 +123,7 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	debugLogCB->setText("Debug logging");
 	debugLogCB->setCheckBoxSize(CBSize);
 	debugLogCB->resizeToContents();
-	debugLogCB->setLocation(OPTS_X + 15, 160);
+	debugLogCB->setLocation(OPTS_X + 15, OPTS_Y + 2*CHECKBOX_HEIGHT + CHECKBOX_Y_PADDING);
 	debugLogCB->setToolTipText("Generates a logfile for debugging drgat's instrumentation. Useful for reporting bugs!");
 	debugLogCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(debugLogCB);
@@ -137,14 +142,14 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	agui::Label *features = new agui::Label;
 	features->setText("Feature creep");
 	features->resizeToContents();
-	features->setLocation(FEATURES_X, 120);
+	features->setLocation(FEATURES_X, OPTS_Y);
 	exeFrame->add(features);
 
 	hideSleepCB = new agui::CheckBox;
 	hideSleepCB->setText("Anti-Sleep");
 	hideSleepCB->setCheckBoxSize(CBSize);
 	hideSleepCB->resizeToContents();
-	hideSleepCB->setLocation(FEATURES_X + 15, 140);
+	hideSleepCB->setLocation(FEATURES_X + 15, OPTS_Y + CHECKBOX_HEIGHT);
 	hideSleepCB->setToolTipText("[Experimental] Change sleep() calls to reduce pauses and timer results to hide slowdown");
 	hideSleepCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(hideSleepCB);

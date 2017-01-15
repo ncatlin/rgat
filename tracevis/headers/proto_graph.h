@@ -161,20 +161,16 @@ public:
 	unsigned long traceBufferSize = 0;
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
-
-	//void removeEntryFromQueue();
-
 	bool serialise(ofstream *file);
 	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
-
-
 
 	unsigned long totalInstructions = 0;
 	int baseModule = -1;
 	string modulePath;
 
+	NODEINDEX lastNode = 0;
 	//used by heatmap solver
-	unsigned int finalNodeID = 0;
+	NODEINDEX finalNodeID = 0;
 
 	vector <string> loggedCalls;
 

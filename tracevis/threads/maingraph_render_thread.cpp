@@ -39,6 +39,8 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	{
 		if (clientState->modes.animation)
 			graph->render_live_animation(clientState->config->animationFadeRate);
+		else
+			graph->set_last_active_node();
 	}
 	else if (protoGraph->terminated)
 	{
@@ -56,7 +58,6 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 
 	else if (!protoGraph->active && clientState->animationUpdate)
 	{
-
 		int animationResult = graph->render_replay_animation(clientState->animationUpdate, clientState->config->animationFadeRate);
 
 		if (clientState->modes.animation)

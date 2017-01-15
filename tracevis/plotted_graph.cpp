@@ -957,6 +957,13 @@ void plotted_graph::render_live_animation(float fadeRate)
 	render_animation(fadeRate);
 }
 
+//makes the active highlight line point to the last instruction executed
+void plotted_graph::set_last_active_node()
+{
+	if (internalProtoGraph->lastNode < mainnodesdata->get_numVerts())
+		lastAnimatedNode = internalProtoGraph->lastNode;
+}
+
 
 int plotted_graph::render_replay_animation(int stepSize, float fadeRate)
 {

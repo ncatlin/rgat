@@ -175,6 +175,13 @@ void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
 {
 	writetag(file, tag_START, tag_PROCESSDATA);
 
+	if (piddata->bitwidth == CS_MODE_32)
+		*file << "3";
+	else if (piddata->bitwidth == CS_MODE_64)
+		*file << "6";
+	else
+		cerr << "[rgat] Proto-graph has invalid bitwidth marker " << piddata->bitwidth << endl;
+
 	saveModulePaths(piddata, file);
 	*file << " ";
 
@@ -316,13 +323,33 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 }
 
 //load process data not specific to threads
-bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
+bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** piddataPtr, PID_TID PID)
 {
 	
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
 		cerr << "[rgat]Corrupt save (process data start)" << endl;
 		return false;
 	}
+
+	char bitWidthChar;
+	*file >> bitWidthChar;
+	printf("File bitwidth: %c\n", bitWidthChar);
+
+	cs_mode disassemblyMode;
+	if (bitWidthChar == '3')
+	{
+		*piddataPtr = new PROCESS_DATA(32);
+		disassemblyMode = CS_MODE_32;
+	}
+	else if (bitWidthChar == '6')
+	{
+		*piddataPtr = new PROCESS_DATA(64);
+		disassemblyMode = CS_MODE_64;
+	}
+	else
+		return false;
+
+	PROCESS_DATA* piddata = *piddataPtr;
 
 	//paths
 	if (!verifyTag(file, tag_START, tag_PATH)) {
@@ -384,13 +411,13 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	display_only_status_message("Loading Disassembly", clientState);
 	cout << "[rgat]Loading instruction disassembly" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
-		cerr << "[rgat]Corrupt save (process- disassembly data start)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- disassembly data start)" << endl;
 		return false;
 	}
 
 	csh hCapstone;
-	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)	{
-		cerr << "[rgat]Couldn't open capstone instance" << endl;
+	if (cs_open(CS_ARCH_X86, disassemblyMode, &hCapstone) != CS_ERR_OK)	{
+		cerr << "[rgat]ERROR: Couldn't open Capstone instance" << endl;
 		return false;
 	}
 
@@ -404,17 +431,17 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 
 		getline(*file, mutations_s, ',');
 		if (!caught_stoi(mutations_s, &mutations, 10)) {
-			cerr << "[rgat]mutations stoi failed with "<< mutations_s <<endl; return false;
+			cerr << "[rgat]ERROR: mutations stoi failed with "<< mutations_s <<endl; return false;
 		}
 
 		getline(*file, address_s, ',');
 		if (!caught_stoull(address_s, &address, 10)) {
-			cerr << "[rgat]address stol failed with " << address_s << endl; return false;
+			cerr << "[rgat]ERROR: address stol failed with " << address_s << endl; return false;
 		}
 
 		getline(*file, modnum_s, ',');
 		if (!caught_stoi(modnum_s, &insmodnum, 10)) {
-			cerr << "[rgat]modnum stoi failed with " << modnum_s << endl; return false;
+			cerr << "[rgat]ERROR: modnum stoi failed with " << modnum_s << endl; return false;
 		}
 
 		bool hasSym;
@@ -456,7 +483,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	cs_close(&hCapstone);
 
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		cerr << "[rgat]Corrupt save (process- disas data end)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- disas data end)" << endl;
 		return false;
 	}
 	file->seekg(1, ios::cur);
@@ -465,7 +492,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	display_only_status_message("Loading Basic Blocks", clientState);
 	cout << "[rgat]Loading basic block mapping" << endl;
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
-		cerr << "[rgat]Corrupt save (process- basic block data start)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- basic block data start)" << endl;
 		return false;
 	}
 
@@ -526,13 +553,13 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 	}
 
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		cerr << "[rgat]Corrupt save (process- basic block data end)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- basic block data end)" << endl;
 		return false;
 	}
 	file->seekg(1, ios::cur);
 
 	if (!verifyTag(file, tag_START, tag_EXTERND)) {
-		cerr << "[rgat]Corrupt save (process- extern data start)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- extern data start)" << endl;
 		return false;
 	}
 
@@ -601,12 +628,12 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 
 
 	if (!verifyTag(file, tag_END, tag_EXTERND)) {
-		cerr << "[rgat]Corrupt save (process- extern data end)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process- extern data end)" << endl;
 		return false;
 	}
 
 	if (!verifyTag(file, tag_END, tag_PROCESSDATA)) {
-		cerr << "[rgat]Corrupt save (process data end)" << endl;
+		cerr << "[rgat]ERROR: Corrupt save (process data end)" << endl;
 		return false;
 	}
 

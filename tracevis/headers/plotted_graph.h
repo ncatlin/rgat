@@ -54,6 +54,7 @@ public:
 	int render_preview_graph(VISSTATE *clientState);
 	float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph->savedAnimationData.size()); }
 	void render_live_animation(float fadeRate);
+	void set_last_active_node();
 
 	GLuint graphVBOs[4] = { 0,0,0,0 };
 
@@ -169,10 +170,7 @@ private:
 
 	map <pair<NODEINDEX, unsigned int>, int> newExternTimes;
 
-
-
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
-
 
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;

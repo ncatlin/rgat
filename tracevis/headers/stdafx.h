@@ -7,6 +7,7 @@
 #define WINDOWS
 #define X86_32
 
+//uses slow mutexes instead of fast read/write locks
 //#define XP_COMPATIBLE
 
 //not implemented yet
@@ -22,9 +23,9 @@
 #endif
 
 #define RGAT_VERSION_MAJ 0
-#define RGAT_VERSION_MIN 3
-#define RGAT_VERSION_FEATURE 1
-#define RGAT_VERSION_DESCRIPTION "Preview/Unstable"
+#define RGAT_VERSION_MIN 4
+#define RGAT_VERSION_FEATURE 0
+#define RGAT_VERSION_DESCRIPTION "Messy"
 
 using namespace std;
 #include <cstdlib>
@@ -52,7 +53,6 @@ using namespace std;
 
 #include <GL/glu.h>
 #include <GL/gl.h>
-
 
 #define COLELEMS 4
 #define POSELEMS 3

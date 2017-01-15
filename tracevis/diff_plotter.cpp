@@ -120,9 +120,9 @@ void diff_plotter::render()
 	GRAPH_DISPLAY_DATA *linedata = diffgraph->get_mainlines();
 	NODEPAIR first_lastNodeG1, first_lastNodeG2;
 
-	matchingEdgeColour = &al_col_green;
-	divergingEdgeColour = &al_col_red;
-	divergingEdgeColour->a *= 0.3;
+	matchingEdgeColour = al_col_green;
+	divergingEdgeColour = al_col_red;
+	divergingEdgeColour.a *= 0.3;
 
 	edgeColour = matchingEdgeColour;
 
@@ -267,11 +267,11 @@ void diff_plotter::render()
 				cerr << "[rgat]ERROR: Divergence renderer tried to colour non-rendered edge " << nextEdge.first << "," << nextEdge.second << endl;
 				break;
 			}
-			graph1->render_edge(nextEdge, linedata, NULL, edgeColour, false, true);
+			graph1->render_edge(nextEdge, linedata, NULL, &edgeColour, false, true);
 
 			//draw block internal edges
 			for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
-				graph1->render_edge(make_pair(i,i+1), linedata, NULL, edgeColour, false, true);
+				graph1->render_edge(make_pair(i,i+1), linedata, NULL, &edgeColour, false, true);
 
 		}
 

@@ -49,9 +49,9 @@ private:
 	NODEINDEX lastNode = 0;
 	bool divergenceFound = false;
 
-	ALLEGRO_COLOR *edgeColour;
-	ALLEGRO_COLOR *matchingEdgeColour;
-	ALLEGRO_COLOR *divergingEdgeColour;
+	ALLEGRO_COLOR edgeColour;
+	ALLEGRO_COLOR matchingEdgeColour;
+	ALLEGRO_COLOR divergingEdgeColour;
 
 	PROCESS_DATA *g1ProcessData, *g2ProcessData;
 	unsigned long animIndex = 0;

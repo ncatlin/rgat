@@ -487,24 +487,27 @@ void handleKBDExit()
 //prepares for switch to new graph
 static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 {
-	if (clientState->activePid->PID == PID)
-	{
-		plotted_graph * currentActiveGraph = (plotted_graph *)clientState->activeGraph;
-		if (currentActiveGraph->get_tid() == TID)
-			return; //already active
-	}
+	
+	
 	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
-	clientState->newActiveGraph = target_pid->plottedGraphs[TID];
+	plotted_graph * graph = (plotted_graph *)target_pid->plottedGraphs[TID];
 
-	if (target_pid != clientState->activePid)
+
+	bool currentGraph = (clientState->activeGraph == graph) ? true : false;
+
+	if (!currentGraph)
 	{
-		clientState->spawnedProcess = target_pid;
-		clientState->switchProcess = true;
-	}
+		clientState->newActiveGraph = target_pid->plottedGraphs[TID];
 
-	plotted_graph * graph = (plotted_graph * )target_pid->plottedGraphs[TID];
-	if (graph->get_protoGraph()->modulePath.empty())	graph->get_protoGraph()->assign_modpath(target_pid);
-	graph->reset_animation();
+		if (target_pid != clientState->activePid)
+		{
+			clientState->spawnedProcess = target_pid;
+			clientState->switchProcess = true;
+		}
+
+		if (graph->get_protoGraph()->modulePath.empty())	graph->get_protoGraph()->assign_modpath(target_pid);
+		graph->reset_animation();
+	}
 
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->diffWindow->setDiffGraph(graph);
@@ -555,9 +558,8 @@ bool loadTrace(VISSTATE *clientState, string filename)
 		cout << "[rgat]Loading saved PID: " << PID << endl;
 	loadfile.seekg(1, ios::cur);
 
-	PROCESS_DATA *newpiddata = new PROCESS_DATA(9999); //todo load+save bitwidth
-	newpiddata->PID = PID;
-	if (!loadProcessData(clientState, &loadfile, newpiddata))
+	PROCESS_DATA *newpiddata;
+	if (!loadProcessData(clientState, &loadfile, &newpiddata, PID))
 	{
 		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
@@ -910,6 +912,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			case EV_BTN_DIFF:
 				widgets->showHideDiffFrame();
 				break;
+
 			case EV_BTN_EXTERNLOG:
 				if (clientState->textlog)
 					closeTextLog(clientState);

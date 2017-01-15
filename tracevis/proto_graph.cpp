@@ -60,12 +60,14 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	instruction->threadvertIdx[tid] = targVertID;
 	piddata->dropDisassemblyWriteLock();
 
+	lastNode = targVertID;
 	return targVertID;
 }
 
 void proto_graph::handle_previous_instruction(unsigned int newTargVertID, unsigned long repeats)
 {
 	safe_get_node(newTargVertID)->executionCount += repeats;
+	lastNode = newTargVertID;
 }
 
 
