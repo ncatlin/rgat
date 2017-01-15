@@ -87,7 +87,7 @@ int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassemb
 		return -1;
 
 	getline(*file, value_s, ',');
-	if (!caught_stoul(value_s, &address, 10))
+	if (!caught_stoull(value_s, &address, 10))
 		return -1;
 
 	getline(*file, value_s, ',');

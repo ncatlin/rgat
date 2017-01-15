@@ -35,13 +35,14 @@ Constants used to interpret and plot the trace data
 #define OPRET 2
 #define OPCALL 3
 
-#define NONFLOW 0
-#define JUMP 1
-#define CALL 2
-#define RETURN 3
-#define EXTERNAL 4
-#define EXCEPTION_GENERATOR 5
-#define NOSYM 8
+#define BAD 0
+#define NONFLOW 1
+#define JUMP 2
+#define CALL 3
+#define RETURN 4
+#define EXTERNAL 5
+#define EXCEPTION_GENERATOR 6
+#define NOSYM 7
 #define FIRST_IN_THREAD 99
 
 #define MOD_UNKNOWN 0 
@@ -62,7 +63,7 @@ typedef pair<NODEINDEX, NODEINDEX> NODEPAIR;
 typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
-typedef unsigned long MEM_ADDRESS;
+typedef UINT64 MEM_ADDRESS;
 typedef DWORD PID_TID;
 
 //random number generated when the block was first seen in cache

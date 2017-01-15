@@ -121,7 +121,7 @@ struct FUNCARG {
 class PROCESS_DATA 
 {
 public:
-	PROCESS_DATA() {};
+	PROCESS_DATA(int binaryBitWidth) { bitwidth = binaryBitWidth; }
 	~PROCESS_DATA() {};
 
 	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym);
@@ -175,6 +175,7 @@ public:
 
 	map <int,int> activeMods;
 	map <MEM_ADDRESS, BB_DATA *> externdict;
+	int bitwidth;
 
 private:
 	bool running = true;

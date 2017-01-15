@@ -46,6 +46,8 @@ private:
 	agui::Button *attachIDBtn;
 
 	agui::CheckBox *pauseCB;
+	agui::CheckBox *debugLogCB;
+
 	agui::CheckBox *basicCB;
 	agui::CheckBox *debugCB;
 	agui::CheckBox *hideVMCB;
@@ -100,6 +102,8 @@ public:
 			clientState->launchopts.caffine = state;
 		else if (thisNeedsAnIDField == "Pause on start")
 			clientState->launchopts.pause = state;
+		else if (thisNeedsAnIDField == "Debug logging")
+			clientState->launchopts.debugLogging = state;
 		//else if (thisNeedsAnIDField == "Debugger mode")
 		//	clientState->launchopts.debugMode = state; 
 		else

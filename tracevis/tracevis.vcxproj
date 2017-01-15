@@ -119,10 +119,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\nia\Documents\tracevis\tracevis\Agui-master\include;C:\Users\nia\Documents\tracevis\tracevis\tracevis\headers;C:\Users\nia\Documents\tracevis\tracevis\packages\Allegro.5.2.0.0\build\native\include;C:\Users\nia\Documents\tracevis\tracevis\capstone\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Program Files\Common Files\Freeglut\lib;C:\Users\nia\Documents\tracevis\tracevis\capstone;C:\allegro\bin;C:\allegro\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

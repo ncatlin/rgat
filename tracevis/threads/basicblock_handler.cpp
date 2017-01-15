@@ -29,7 +29,7 @@ disassembles it using Capstone and makes it available to the graph renderer
 #pragma comment(lib, "legacy_stdio_definitions.lib") //capstone uses _sprintf
 #pragma comment(lib, "capstone.lib")
 
-size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long insaddr)
+size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr)
 {
 	cs_insn *insn;
 	unsigned int pairs = 0;
@@ -75,7 +75,7 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long in
 		if (insdata->mnemonic[0] == 'j')
 		{
 			insdata->conditional = true;
-			insdata->condTakenAddress = std::stoul(insdata->op_str, 0, 16);
+			insdata->condTakenAddress = std::stoull(insdata->op_str, 0, 16);
 			insdata->condDropAddress = insaddr + insdata->numbytes;
 		}
 	}
@@ -106,7 +106,7 @@ void basicblock_handler::main_loop()
 	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
 	csh hCapstone;
-	if (cs_open(CS_ARCH_X86, CS_MODE_32, &hCapstone) != CS_ERR_OK)
+	if (cs_open(CS_ARCH_X86, bitwidth, &hCapstone) != CS_ERR_OK)
 	{
 		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << PID << endl;
 		alive = false;
@@ -189,7 +189,7 @@ void basicblock_handler::main_loop()
 
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
 			MEM_ADDRESS targetaddr;
-			if (!caught_stoul(string(start_s), &targetaddr, 16)) {
+			if (!caught_stoull(string(start_s), &targetaddr, 16)) {
 				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);
 			}

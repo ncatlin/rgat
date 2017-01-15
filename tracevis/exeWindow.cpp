@@ -110,10 +110,19 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	pauseCB->setCheckBoxSize(CBSize);
 	pauseCB->resizeToContents();
 	pauseCB->setLocation(OPTS_X +15, 140);
-	pauseCB->setToolTipText("Pauses execution at program start with a message box to allow debugger attaching");
+	pauseCB->setToolTipText("Pauses execution at program start with a message box. Allows attaching a debugger to the target.");
 	pauseCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(pauseCB);
 	
+	debugLogCB = new agui::CheckBox;
+	debugLogCB->setText("Debug logging");
+	debugLogCB->setCheckBoxSize(CBSize);
+	debugLogCB->resizeToContents();
+	debugLogCB->setLocation(OPTS_X + 15, 160);
+	debugLogCB->setToolTipText("Generates a logfile for debugging drgat's instrumentation. Useful for reporting bugs!");
+	debugLogCB->addCheckBoxListener(boxlistener);
+	exeFrame->add(debugLogCB);
+
 	/*
 	debugCB = new agui::CheckBox;
 	debugCB->setText("Debugger mode");
@@ -124,7 +133,6 @@ exeWindow::exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font)
 	debugCB->addCheckBoxListener(boxlistener);
 	exeFrame->add(debugCB);
 	*/
-
 
 	agui::Label *features = new agui::Label;
 	features->setText("Feature creep");

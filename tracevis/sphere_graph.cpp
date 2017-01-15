@@ -404,7 +404,8 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map
 {
 
 	unsigned long nodeCoordQty = node_coords.size();
-	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty) return false;
+	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty) 
+		return false;
 
 	edge_data *e = &internalProtoGraph->edgeDict.at(ePair);
 	
@@ -443,7 +444,7 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map
 int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
 {
-	
+	//printf("in add node! node %d\n", n->index);
 	VCOORD * vcoord;
 	if (n->index >= node_coords.size())
 	{
@@ -564,7 +565,12 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, 
 		clientState->logSize = internalProtoGraph->fill_extern_log(clientState->textlog, clientState->logSize);
 
 	//line marking last instruction
-	drawHighlight(lastMainNode.lastVertID, main_scalefactors, &clientState->config->activityLineColour, 0);
+	if (currentUnchainedBlocks.empty())
+		drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
+	else
+	{
+		drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
+	}
 
 	//highlight lines
 	if (highlightData.highlightState)
@@ -638,6 +644,7 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 		if (n->external) continue;
 
 		VCOORD *nodeCoord = get_node_coord(i);
+		if (!nodeCoord) continue; //usually happens with block interrupted by exception
 
 		//this check removes the bulk of the instructions at a low performance cost, including those
 		//on screen but on the other side of the sphere

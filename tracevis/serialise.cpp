@@ -305,7 +305,7 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 	{
 		getline(*blob, symAddress_s, ',');
 		if (symAddress_s == "}") return 1;
-		if (!caught_stoul(symAddress_s, &symAddress, 10))		{
+		if (!caught_stoull(symAddress_s, &symAddress, 10))		{
 			cerr << "[rgat]extractmodsyms: bad address: " << symAddress_s << endl;
 			return -1;
 		}
@@ -408,7 +408,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		}
 
 		getline(*file, address_s, ',');
-		if (!caught_stoul(address_s, &address, 10)) {
+		if (!caught_stoull(address_s, &address, 10)) {
 			cerr << "[rgat]address stol failed with " << address_s << endl; return false;
 		}
 
@@ -482,7 +482,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		//address of block
 		MEM_ADDRESS blockaddress;
 		getline(*file, blockaddress_s, ',');
-		if (!caught_stoul(blockaddress_s, &blockaddress, 10))
+		if (!caught_stoull(blockaddress_s, &blockaddress, 10))
 			return false;
 
 		map<MEM_ADDRESS, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
@@ -507,7 +507,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 			{
 				MEM_ADDRESS insAddr;
 				getline(*file, insAddr_s, ',');
-				if (!caught_stoul(insAddr_s, &insAddr, 10))
+				if (!caught_stoull(insAddr_s, &insAddr, 10))
 					return false;
 
 				unsigned int mutationIndex;
@@ -546,7 +546,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddat
 		//number of blockIDs recorded for address
 		
 		getline(*file, data_s, ',');
-		if (!caught_stoul(data_s, &externAddr, 10))
+		if (!caught_stoull(data_s, &externAddr, 10))
 			return false;
 		
 		if (piddata->externdict.count(externAddr))

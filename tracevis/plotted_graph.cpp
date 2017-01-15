@@ -177,26 +177,30 @@ int plotted_graph::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *line
 
 	for (; edgeIt != end; ++edgeIt)
 	{
-		if (!render_edge(*edgeIt, lines, lineColoursArr, 0, false, false))
-		{
-			internalProtoGraph->dropEdgeReadLock();
-			return edgesDrawn;
-		}
-		++edgesDrawn;
-
-		//todo: check if already added!
 		if (edgeIt->first >= mainnodesdata->get_numVerts())
 		{
-			node_data *n = internalProtoGraph->safe_get_node(edgeIt->first);
+			node_data *n;
+			n = internalProtoGraph->safe_get_node(edgeIt->first);
 			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors, nodeColours);
 		}
 
 		if (edgeIt->second >= mainnodesdata->get_numVerts())
 		{
+			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
+			if (e->edgeClass == IEXCEPT)
+				lastPreviewNode.lastVertType = EXCEPTION_GENERATOR;
+
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
 			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors, nodeColours);
 		}
 
+		if (!render_edge(*edgeIt, lines, lineColoursArr, 0, false, false))
+		{
+			internalProtoGraph->dropEdgeReadLock();
+			return edgesDrawn;
+		}
+
+		++edgesDrawn;
 
 		extend_faded_edges();
 		lines->inc_edgesRendered();
@@ -348,7 +352,9 @@ void plotted_graph::process_live_animation_updates()
 		if (entry.entryType == ANIM_UNCHAINED_DONE)
 		{
 			currentUnchainedBlocks.clear();
-			NODEINDEX firstChainedNode = getDisassemblyBlock(entry.blockAddr, entry.blockID, internalProtoGraph->get_piddata(), &internalProtoGraph->terminationFlag)->back()->threadvertIdx.at(tid);
+			NODEINDEX firstChainedNode = getDisassemblyBlock(entry.blockAddr, 
+				entry.blockID, internalProtoGraph->get_piddata(), 
+				&internalProtoGraph->terminationFlag)->back()->threadvertIdx.at(tid);
 			lastAnimatedNode = firstChainedNode;
 
 			removeEntryFromQueue();
@@ -984,9 +990,12 @@ void plotted_graph::reset_mainlines()
 
 void plotted_graph::display_highlight_lines(vector<node_data *> *nodePtrList, ALLEGRO_COLOR *colour, int lengthModifier)
 {
-	int nodeListSize = nodePtrList->size();
-	for (int nodeIdx = 0; nodeIdx != nodeListSize; ++nodeIdx)
-		drawHighlight(nodeIdx, main_scalefactors, colour, lengthModifier);
+	vector<node_data *>::iterator nodeIt = nodePtrList->begin();
+	for (; nodeIt != nodePtrList->end(); ++nodeIt)
+	{
+		node_data *n = *nodeIt;
+		drawHighlight(n->index , main_scalefactors, colour, lengthModifier);
+	}
 }
 
 plotted_graph::~plotted_graph()
@@ -1061,7 +1070,7 @@ void plotted_graph::rescale_nodes(bool isPreview)
 
 
 //renders edgePerRender edges of graph onto the preview data
-int plotted_graph::draw_new_preview_edges(VISSTATE* clientState)
+int plotted_graph::render_new_preview_edges(VISSTATE* clientState)
 {
 	//draw edges
 	EDGELIST::iterator edgeIt, edgeEnd;
@@ -1085,6 +1094,10 @@ int plotted_graph::draw_new_preview_edges(VISSTATE* clientState)
 
 		if (edgeIt->second >= previewnodes->get_numVerts())
 		{
+			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
+			if (e->edgeClass == IEXCEPT)
+				lastPreviewNode.lastVertType = EXCEPTION_GENERATOR;
+
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
 			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors, &clientState->config->graphColours.nodeColours);
 		}
@@ -1232,22 +1245,11 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 
 	}
 
-	if (!draw_new_preview_edges(clientState))
+	if (!render_new_preview_edges(clientState))
 	{
 		cerr << "ERROR: Failed drawing new edges in render_preview_graph! " << endl;
-		assert(0);
+		//assert(0);
 	}
-
-	/*
-	int vresult = draw_new_nodes(previewnodes, &clientState->config->graphColours.nodeColours);
-	if (vresult == -1)
-	{
-		cerr << "ERROR: Failed drawing new nodes in render_preview_graph! returned: " << vresult << endl;
-		assert(0);
-	}
-	*/
-
-
 	return 1;
 }
 

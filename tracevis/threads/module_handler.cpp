@@ -54,7 +54,7 @@ void module_handler::main_loop()
 	while (!die)
 	{
 		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
-		cerr << "[rgat]WARNING: Long wait for module handler pipe" << endl;
+		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << pipename << endl;
 	}
 	piddata->set_running(true);
 
@@ -112,7 +112,7 @@ void module_handler::main_loop()
 			if (buf[0] == 'T' && buf[1] == 'I')
 			{
 				PID_TID TID = 0;
-				if (!extract_pid_tid(buf, string("TI"), &TID))
+				if (!extract_tid(buf, string("TI"), &TID))
 				{
 					cerr << "[rgat] Fail to extract thread ID from TI tag:" << buf << endl;
 					continue;
@@ -173,7 +173,7 @@ void module_handler::main_loop()
 
 				char *offset_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS address;
-				sscanf_s(offset_s, "%x", &address);
+				sscanf_s(offset_s, "%llx", &address);
 
 				if(!piddata->modBounds.count(modnum)) 
 					cerr << "[rgat]Warning: sym before module. handle me"<<endl; //fail if sym came before module
@@ -216,11 +216,11 @@ void module_handler::main_loop()
 				//todo: safe stol? if this is safe whytf have i implented safe stol
 				char *startaddr_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS startaddr = 0;
-				sscanf_s(startaddr_s, "%lx", &startaddr);
+				sscanf_s(startaddr_s, "%llx", &startaddr);
 
 				char *endaddr_s = strtok_s(next_token, "@", &next_token);
 				MEM_ADDRESS endaddr = 0;
-				sscanf_s(endaddr_s, "%lx", &endaddr);
+				sscanf_s(endaddr_s, "%llx", &endaddr);
 
 
 				char *skipped_s = strtok_s(next_token, "@", &next_token);

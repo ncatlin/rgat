@@ -117,8 +117,10 @@ protected:
 
 	proto_graph *internalProtoGraph;
 	PLOT_TRACK lastMainNode;
+	NODEINDEX lastAnimatedNode = 0;
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
+	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 
 private:
 	virtual void positionVert(void *positionStruct, MEM_ADDRESS address) {};
@@ -133,7 +135,7 @@ private:
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 	bool isGraphBusy();
-	int draw_new_preview_edges(VISSTATE* clientState);
+	int render_new_preview_edges(VISSTATE* clientState);
 	void extend_faded_edges();
 	void reset_mainlines();
 	void render_animation(float fadeRate);
@@ -167,11 +169,11 @@ private:
 
 	map <pair<NODEINDEX, unsigned int>, int> newExternTimes;
 
-	vector <ANIMATIONENTRY> currentUnchainedBlocks;
+
 
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
 
-	NODEINDEX lastAnimatedNode = 0;
+
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;
 	unsigned int maxWaitFrames = 0;

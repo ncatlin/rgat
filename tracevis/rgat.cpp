@@ -93,10 +93,10 @@ void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *
  
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditionals
 //+ module data and disassembly
-THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState)
+THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState, cs_mode bitWidth)
 {
 	THREAD_POINTERS *processThreads = new THREAD_POINTERS;
-	PROCESS_DATA *piddata = new PROCESS_DATA;
+	PROCESS_DATA *piddata = new PROCESS_DATA(bitWidth);
 	piddata->PID = PID;
 	if (clientState->switchProcess)
 		clientState->spawnedProcess = piddata;
@@ -118,7 +118,7 @@ THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCE
 	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
-	basicblock_handler *tBBHandler = new basicblock_handler(PID, 0);
+	basicblock_handler *tBBHandler = new basicblock_handler(PID, 0, bitWidth);
 	tBBHandler->clientState = clientState;
 	tBBHandler->piddata = piddata;
 
@@ -214,10 +214,11 @@ void process_coordinator_thread(VISSTATE *clientState)
 		buf[bread] = 0;
 
 		PID_TID PID = 0;
-		if (extract_pid_tid(buf, string("PID"), &PID))
+		cs_mode bitWidth = extract_pid_bitwidth(buf, string("PID"), &PID);
+		if (bitWidth)
 		{
 			clientState->timelineBuilder->notify_new_pid(PID);
-			THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState);
+			THREAD_POINTERS *threads = launch_new_process_threads(PID, &clientState->glob_piddata_map, clientState->pidMapMutex, clientState, bitWidth);
 			threadsList.push_back(threads);
 			continue;
 		}
@@ -412,6 +413,12 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 			continue;
 		}
 
+		if (arg == "-y")
+		{
+			clientState->launchopts.debugLogging = true;
+			continue;
+		}
+
 		if (arg == "-l")
 		{
 			if (idx + 1 < argc)
@@ -443,6 +450,7 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 			cout << "-l target Execute target without arguments" << endl;
 			cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
 			cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
+			cout << "-y Generate an instrumentation log for debugging drgat and reporting crashes" << endl;
 			return false;
 		}
 		else
@@ -547,7 +555,7 @@ bool loadTrace(VISSTATE *clientState, string filename)
 		cout << "[rgat]Loading saved PID: " << PID << endl;
 	loadfile.seekg(1, ios::cur);
 
-	PROCESS_DATA *newpiddata = new PROCESS_DATA;
+	PROCESS_DATA *newpiddata = new PROCESS_DATA(9999); //todo load+save bitwidth
 	newpiddata->PID = PID;
 	if (!loadProcessData(clientState, &loadfile, newpiddata))
 	{

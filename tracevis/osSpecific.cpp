@@ -116,22 +116,21 @@ bool getSavePath(string saveDir, string filename, string *result, PID_TID PID)
 //get execution string of dr executable + client dll
 bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
 {
-	string DRPath = clientState->config->DRDir;
+	string DRPathDir = clientState->config->DRDir;
+	string DRPathEnd;
 	if (is64Bits)
-		DRPath.append("bin64\\drrun.exe");
+		DRPathEnd.append("bin64\\drrun");
 	else
-		DRPath.append("bin32\\drrun.exe");
+		DRPathEnd.append("bin32\\drrun");
 
+	DRPathEnd.append(".exe");
+
+	string DRPath = DRPathDir + DRPathEnd;
 	if (!fileExists(DRPath.c_str()))
 	{
 		cerr << "[rgat] ERROR: Failed to find DynamoRIO executable at " << DRPath << " listed in config file" << endl;
 
-		string modPathDR = getModulePath();
-		if (is64Bits)
-			modPathDR.append("\\DynamoRIO\\bin64\\drrun.exe");
-		else
-			modPathDR.append("\\DynamoRIO\\bin32\\drrun.exe");
-
+		string modPathDR = getModulePath() + "\\DynamoRIO\\" + DRPathEnd;
 		if ((modPathDR != DRPath) && fileExists(modPathDR))
 		{
 			DRPath = modPathDR;
@@ -146,9 +145,14 @@ bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
 
 	string DRGATpath;
 	if (is64Bits)
-		DRGATpath = clientState->config->clientPath + "drgat64.dll";
+		DRGATpath = clientState->config->clientPath + "drgat64";
 	else
-		DRGATpath = clientState->config->clientPath + "drgat.dll";
+		DRGATpath = clientState->config->clientPath + "drgat";
+
+	if (clientState->launchopts.debugLogging)
+		DRGATpath = DRGATpath + "-debug";
+	DRGATpath = DRGATpath + ".dll";
+
 
 	if (!fileExists(DRGATpath.c_str()))
 	{
@@ -156,9 +160,12 @@ bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
 		string drgatPath2 = getModulePath();
 
 		if (is64Bits)
-			drgatPath2.append("\\drgat64.dll");
+			drgatPath2.append("\\drgat64");
 		else
-			drgatPath2.append("\\drgat.dll");
+			drgatPath2.append("\\drgat");
+		if (clientState->launchopts.debugLogging)
+			drgatPath2 = drgatPath2 + "-debug";
+		drgatPath2 = drgatPath2 + ".dll";
 
 		if ((drgatPath2 != DRGATpath) && fileExists(drgatPath2))
 		{

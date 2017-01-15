@@ -93,6 +93,7 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 //adds new relevant items to dropdown menu
 void HighlightSelectionFrame::refreshData()
 {
+	if (!clientState->activeGraph) return;
 	proto_graph *graph = ((plotted_graph *)clientState->activeGraph)->get_protoGraph();
 	if (!clientState->activePid || !graph) return;
 

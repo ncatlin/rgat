@@ -72,14 +72,27 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 		if (*dieFlag) return 0;
 	}
 
+	INSLIST *resultPtr;
 	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
+
 	while (true)
 	{
 		piddata->getDisassemblyReadLock();
+		if (blockID == 0 && !blockIt->second.empty())
+		{
+			resultPtr = blockIt->second.begin()->second;
+			piddata->dropDisassemblyReadLock();
+			break;
+		}
+
 		mutationIt = blockIt->second.find(blockID);
 		piddata->dropDisassemblyReadLock();
 
-		if (mutationIt != blockIt->second.end()) break;
+		if (mutationIt != blockIt->second.end())
+		{
+			resultPtr = mutationIt->second;
+			break;
+		}
 
 		if (iterations++ > 20)
 			cerr << "[rgat]Warning... long wait for blockID "<< std::hex << blockID <<"of address 0x" << blockaddr << endl;
@@ -87,35 +100,55 @@ INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID,
 		if (*dieFlag) return 0;
 	}
 
-	return mutationIt->second;
+	return resultPtr;
 }
 
-//takes MARKER1234 buf, marker and target int
-//if MARKER matches marker, converts 1234 to integer and places
-//in target
-int extract_pid_tid(char *char_buf, string marker, PID_TID *target)
+//takes "MARKERBXXXX" char buf
+//if "MARKER" matches marker, converts XXXX to integer and places in pid
+//returns bitwidth or 0 for failure
+cs_mode extract_pid_bitwidth(char *char_buf, string marker, PID_TID *pid)
 {
 	string pipeinput(char_buf);
+	if (pipeinput.substr(0, marker.length()) != marker) return (cs_mode)0;
 
-	if (pipeinput.substr(0, marker.length()) == marker)
-	{
-		std::string::size_type sz = 0;
-		string x = pipeinput.substr(marker.length(), pipeinput.length());
-		try {
-			*target = std::stoul(x, &sz);
-		}
-		catch (const std::exception& e) {
-			sz = 0;
-		}
-
-		if (sz == 0)
-			return 0;
-		else
-			return 1;
-	}
+	cs_mode bitWidth;
+	char bitWidthChar = pipeinput.at(marker.length());
+	if (bitWidthChar == '3')
+		bitWidth = CS_MODE_32;
+	else if (bitWidthChar == '6')
+		bitWidth = CS_MODE_64;
 	else
-		return 0;
+		return (cs_mode)NULL;
 
+	std::string::size_type sz = 0;
+	string pidstring = pipeinput.substr(marker.length()+1, pipeinput.length());
+	try {
+		*pid = std::stoul(pidstring, &sz);
+	}
+	catch (const std::exception& e) {
+		sz = 0;
+	}
+
+	if (sz == 0) return (cs_mode)0;
+	else return bitWidth;
+}
+
+int extract_tid(char *char_buf, string marker, PID_TID *tid)
+{
+	string pipeinput(char_buf);
+	if (pipeinput.substr(0, marker.length()) != marker) return 0;
+
+	std::string::size_type sz = 0;
+	string x = pipeinput.substr(marker.length(), pipeinput.length());
+	try {
+		*tid = std::stoul(x, &sz);
+	}
+	catch (const std::exception& e) {
+		sz = 0;
+	}
+
+	if (sz == 0) return 0;
+	else return 1;
 }
 
 int caught_stoi(string s, int *result, int base) 
@@ -148,6 +181,19 @@ int caught_stoul(string s, unsigned long *result, int base) {
 
 	try {
 		*result = std::stoul(s,0,base);
+	}
+	catch (std::exception const & e) {
+
+		return 0;
+	}
+	return 1;
+}
+
+int caught_stoull(string s, unsigned long long *result, int base) {
+	if (s.empty()) return 0;
+
+	try {
+		*result = std::stoull(s, 0, base);
 	}
 	catch (std::exception const & e) {
 

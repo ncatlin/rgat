@@ -24,10 +24,12 @@ Misc disassembly and conversion functions
 INSLIST * getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *piddata, bool *dieFlag);
 
 //input: char buffer containing it, number ends, target pointer to fill
-int extract_pid_tid(char *char_buf, string marker, PID_TID *target);
+cs_mode extract_pid_bitwidth(char *char_buf, string marker, PID_TID *pid);
+int extract_tid(char *char_buf, string marker, PID_TID *tid);
 
 int caught_stoi(string s, int *result, int base);
 int caught_stoi(string s, unsigned int *result, int base);
 int caught_stoul(string s, unsigned long *result, int base);
+int caught_stoull(string s, unsigned long long *result, int base);
 
 string generate_funcArg_string(string sym, ARGLIST *args);

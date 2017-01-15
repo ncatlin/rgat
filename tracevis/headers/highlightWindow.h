@@ -89,7 +89,7 @@ public:
 			{
 				if (!clientState->activePid) break;
 				string address_s = hl_frame->addressText->getText();
-				if (!caught_stoul(address_s, &highlightData->highlightAddr, 16)) break;
+				if (!caught_stoull(address_s, &highlightData->highlightAddr, 16)) break;
 				hl_frame->highlightFrame->setVisibility(false);
 				if (clientState->activePid->disassembly.count(highlightData->highlightAddr))
 					highlightData->highlightState = HL_HIGHLIGHT_ADDRESS;

@@ -80,6 +80,7 @@ struct LAUNCHOPTIONS {
 	bool pause = false;
 	bool basic = false;
 	bool debugMode = false;
+	bool debugLogging = false;
 };
 
 class VISSTATE {

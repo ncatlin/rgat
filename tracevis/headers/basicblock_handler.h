@@ -22,17 +22,21 @@ Header for the thread that processes basic block data
 #include "GUIStructs.h"
 #include "base_thread.h"
 
-size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, long insaddr);
+size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr);
 
 class basicblock_handler : public base_thread
 {
 public:
-	basicblock_handler(unsigned int thisPID, unsigned int thisTID)
-		:base_thread(thisPID, thisTID) {};
+	basicblock_handler(unsigned int thisPID, unsigned int thisTID, cs_mode binaryBitwidth)
+		:base_thread(thisPID, thisTID) {
+		bitwidth = binaryBitwidth;
+	};
 	PROCESS_DATA *piddata = 0;
 	VISSTATE *clientState;
 	wstring pipename;
+	int get_bitwidth() { return bitwidth; }
 
 private:
+	cs_mode bitwidth;
 	void main_loop();
 };

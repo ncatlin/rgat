@@ -161,7 +161,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
-			thisgraph->handle_new_instruction(instruction, tag->blockID, 1);
+			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, 1);
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 
@@ -211,10 +211,6 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 	}
 }
 
-
-
-
-
 //decodes argument and places in processing queue, processes if all decoded for that call
 void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	MEM_ADDRESS funcpc, returnpc;
@@ -226,13 +222,13 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 	}
 
 	string funcpc_s = string(strtok_s(entry, ",", &entry));
-	if (!caught_stoul(funcpc_s, &funcpc, 16)) {
+	if (!caught_stoull(funcpc_s, &funcpc, 16)) {
 		cerr << "[rgat]ERROR: Trace corruption. handle_arg funcpc address ERROR:" << funcpc_s << endl;
 		assert(0);
 	}
 
 	string retaddr_s = string(strtok_s(entry, ",", &entry));
-	if (!caught_stoul(retaddr_s, &returnpc, 16)) {
+	if (!caught_stoull(retaddr_s, &returnpc, 16)) {
 		cerr << "[rgat]ERROR:Trace corruption. handle_arg returnpc address ERROR: " << retaddr_s << endl;
 		assert(0);
 	}
@@ -777,13 +773,18 @@ void thread_trace_handler::main_loop()
 			char *entry = strtok_s(next_token, "@", &next_token);
 			if (!entry) break;
 
-			//cout << "TID"<<TID<<" Processing entry: ["<<entry<<"]";
+			//cout << "TID"<<TID<<" Processing entry: ["<<entry<<"]"<<endl;
 
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
 				TAG thistag;
-				thistag.blockaddr = stoul(strtok_s(entry + 1, ",", &entry), 0, 16);
-				MEM_ADDRESS nextBlock = stoul(strtok_s(entry, ",", &entry), 0, 16);
+				MEM_ADDRESS nextBlock;
+
+				//if (thisgraph->get_piddata()->bitwidth == 32)
+
+				thistag.blockaddr = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
+				nextBlock = stoull(strtok_s(entry, ",", &entry), 0, 16);
+
 				unsigned long long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
 				thistag.insCount = id_count & 0xffffffff;
 				thistag.blockID = id_count >> 32;
@@ -897,7 +898,7 @@ void thread_trace_handler::main_loop()
 				BLOCK_IDENTIFIER sourceID;
 
 				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoul(block_ip_s, &sourceAddr, 16)) {
+				if (!caught_stoull(block_ip_s, &sourceAddr, 16)) {
 					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
@@ -926,7 +927,7 @@ void thread_trace_handler::main_loop()
 
 				TAG thistag;
 				string target_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(target_ip_s, &thistag.blockaddr, 16)) {
+				if (!caught_stoull(target_ip_s, &thistag.blockaddr, 16)) {
 					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
@@ -952,7 +953,7 @@ void thread_trace_handler::main_loop()
 			{
 				MEM_ADDRESS blockAddr;
 				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoul(block_ip_s, &blockAddr, 16)) {
+				if (!caught_stoull(block_ip_s, &blockAddr, 16)) {
 					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
@@ -966,7 +967,7 @@ void thread_trace_handler::main_loop()
 
 				MEM_ADDRESS targAddr;
 				block_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(block_ip_s, &targAddr, 16)) {
+				if (!caught_stoull(block_ip_s, &targAddr, 16)) {
 					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
@@ -995,7 +996,7 @@ void thread_trace_handler::main_loop()
 				newRepeat.totalExecs = 0;
 
 				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoul(block_ip_s, &newRepeat.blockaddr, 16)) {
+				if (!caught_stoull(block_ip_s, &newRepeat.blockaddr, 16)) {
 					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
 					assert(0);
 				}
@@ -1017,7 +1018,7 @@ void thread_trace_handler::main_loop()
 					if (entry[0] == 0) break;
 					MEM_ADDRESS targ;
 					string targ_s = string(strtok_s(entry, ",", &entry));
-					if (!caught_stoul(targ_s, &targ, 16)) {
+					if (!caught_stoull(targ_s, &targ, 16)) {
 						cerr << "[rgat]ERROR: BX handling addr STOL: " << targ_s << endl;
 						assert(0);
 					}
@@ -1050,13 +1051,13 @@ void thread_trace_handler::main_loop()
 				NEW_EDGE_BLOCKDATA edgeNotification;
 
 				string s_ip_s = string(strtok_s(entry + 4, ",", &entry));
-				if (!caught_stoul(s_ip_s, &edgeNotification.sourceAddr, 16)) assert(0);
+				if (!caught_stoull(s_ip_s, &edgeNotification.sourceAddr, 16)) assert(0);
 
 				string s_ID_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stoul(s_ID_s, &edgeNotification.sourceID, 16)) assert(0);
 
 				string t_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(t_ip_s, &edgeNotification.targAddr, 16)) assert(0);
+				if (!caught_stoull(t_ip_s, &edgeNotification.targAddr, 16)) assert(0);
 
 				string t_ID_s = string(strtok_s(entry, ",", &entry));
 				if (!caught_stoul(t_ID_s, &edgeNotification.targID, 16)) assert(0);
@@ -1069,7 +1070,7 @@ void thread_trace_handler::main_loop()
 			{
 				MEM_ADDRESS e_ip;
 				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
-				if (!caught_stoul(e_ip_s, &e_ip, 16)) {
+				if (!caught_stoull(e_ip_s, &e_ip, 16)) {
 
 					assert(0);
 				}
@@ -1090,8 +1091,6 @@ void thread_trace_handler::main_loop()
 
 				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
 					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address 0x" <<hex<< e_ip << endl;
-
-				cout << "last node was " << lastVertID << " at addr 0x" <<hex<< thisgraph->safe_get_node(lastVertID)->address << endl;
 
 				piddata->getDisassemblyReadLock();
 				//problem here: no way of knowing which mutation of the faulting instruction was executed
@@ -1162,7 +1161,7 @@ void thread_trace_handler::main_loop()
 			cerr << "\t Block Addr: 0x" << hex << repeatIt->blockaddr << endl;
 			cerr << "\t Targeted unavailable blocks: ";
 
-			vector<pair<unsigned long, unsigned long>>::iterator targIt = repeatIt->targBlocks.begin();
+			vector<pair<MEM_ADDRESS, unsigned long>>::iterator targIt = repeatIt->targBlocks.begin();
 			for (; targIt != repeatIt->targBlocks.end(); ++targIt)
 				cerr << "[0x" << targIt->first << "] " << endl;
 			cerr << endl;

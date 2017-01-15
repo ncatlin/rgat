@@ -66,7 +66,6 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 void proto_graph::handle_previous_instruction(unsigned int newTargVertID, unsigned long repeats)
 {
 	safe_get_node(newTargVertID)->executionCount += repeats;
-	// = newTargVertID;
 }
 
 
@@ -330,6 +329,8 @@ unsigned int proto_graph::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int
 
 void proto_graph::push_anim_update(ANIMATIONENTRY entry)
 {
+	if (entry.targetAddr == 0x7ff61cea22ee)
+		printf("mush");
 	obtainMutex(animationListsMutex, 2412);
 	animUpdates.push(entry);
 	savedAnimationData.push_back(entry);
@@ -480,7 +481,7 @@ bool proto_graph::loadAnimationData(ifstream *file)
 		entry.entryType = entryTypeI;
 
 		getline(*file, sourceAddr_s, ',');
-		if (!caught_stoul(sourceAddr_s, &entry.blockAddr, 10))
+		if (!caught_stoull(sourceAddr_s, &entry.blockAddr, 10))
 			break;
 		getline(*file, sourceID_s, ',');
 		if (!caught_stoul(sourceID_s, &entry.blockID, 10))
@@ -491,7 +492,7 @@ bool proto_graph::loadAnimationData(ifstream *file)
 			break;
 
 		getline(*file, targAddr_s, ',');
-		if (!caught_stoul(targAddr_s, &entry.targetAddr, 10))
+		if (!caught_stoull(targAddr_s, &entry.targetAddr, 10))
 			break;
 		getline(*file, targID_s, ',');
 		if (!caught_stoul(targID_s, &entry.targetID, 10))

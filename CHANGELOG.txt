@@ -65,7 +65,13 @@ Trace divergence generation has been reimplemented, though it is less precise
 Various minor fixes
 
 
-09/10/16 0.3 
+09/10/16 0.3.1 
 -----------------
-Added debug dlls to distribution to squash warning messages
+Added dynamorio debug dlls to distribution to squash warning messages
 Muted obnoxious warning for very high density graphs
+
+??/??/17 0.4 [PREVIOUS SAVES OBSOLETE]
+-----------------
+Support for 64 bit windows targets
+Code improvements including logical seperation of graph generation and positioning, allowing different shapes of visualisation
+Added a debug logging option to make tracing/reporting bugs easier.
