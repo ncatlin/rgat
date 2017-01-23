@@ -136,9 +136,10 @@ public:
 	//char pipeprefix[20];
 
 	float previewYAngle = -30;
-	bool previewSpin = true;
+	//bool previewSpin = true;
 
 	DISPLAYMODES modes;
+	bool dialogOpen = false;
 	
 	void *newActiveGraph = NULL;
 	bool switchProcess = true;

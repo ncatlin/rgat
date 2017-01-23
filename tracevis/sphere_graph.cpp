@@ -46,6 +46,13 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 {
 	
 	VCOORD *oldPosition = get_node_coord(lastNode->lastVertID);
+	while (!oldPosition)
+	{
+		Sleep(5);
+		oldPosition = get_node_coord(lastNode->lastVertID);
+		cerr << "Waiting for node " << lastNode->lastVertID;
+	}
+
 	int a = oldPosition->a;
 	int b = oldPosition->b;
 	int bMod = oldPosition->bMod;

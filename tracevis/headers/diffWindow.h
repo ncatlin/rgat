@@ -99,6 +99,7 @@ public:
 		if (evt.getSource()->getText() == "X")
 		{
 			diffWindow->setVisible(false);
+			clientState->dialogOpen = false;
 			return;
 		}
 		clientState->modes.diff = DIFF_SELECTED;

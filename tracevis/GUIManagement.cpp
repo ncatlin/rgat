@@ -33,9 +33,14 @@ RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1,
 
 void TraceVisGUI::showHideHighlightFrame() 
 {
-	highlightWindow->highlightFrame->setVisibility(!highlightWindow->highlightFrame->isVisible());
-	if (highlightWindow->highlightFrame->isVisible())
+	bool frameIsVisible = highlightWindow->highlightFrame->isVisible();
+	highlightWindow->highlightFrame->setVisibility(!frameIsVisible);
+	frameIsVisible = highlightWindow->highlightFrame->isVisible();
+	
+	if (frameIsVisible)
 		highlightWindow->refreshData();
+
+	clientState->dialogOpen = frameIsVisible;
 }
 
 void TraceVisGUI::addPID(PID_TID PID)
@@ -55,6 +60,7 @@ void TraceVisGUI::setActivePID(PID_TID PID)
 void TraceVisGUI::showHideDiffFrame() 
 {
 	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
+	clientState->dialogOpen = diffWindow->diffFrame->isVisible();
 }
 
 void TraceVisGUI::updateWidgets(plotted_graph *graph)

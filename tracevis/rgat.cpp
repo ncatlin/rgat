@@ -701,7 +701,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	{
 		case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
 		{
-			if (mouse_in_maingraphpane(clientState, ev->mouse.x, ev->mouse.y))
+			if (!clientState->dialogOpen && mouse_in_maingraphpane(clientState, ev->mouse.x, ev->mouse.y))
 				clientState->mouse_dragging = true;
 			else 
 				if (mouse_in_previewpane(clientState, ev->mouse.x))
@@ -728,6 +728,13 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				widgets->exeSelector->hide();
 				widgets->highlightWindow->highlightFrame->setVisibility(false);
 				widgets->diffWindow->diffFrame->setVisibility(false);
+				clientState->dialogOpen = false;
+			}
+
+			if (clientState->dialogOpen) 
+			{
+				widgets->processEvent(ev);
+				return EV_NONE;
 			}
 
 			//clipboard/select
@@ -991,7 +998,9 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
 					"Choose saved trace to open", "*.rgat;*.*;",
 					ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+				clientState->dialogOpen = true;
 				al_show_native_file_dialog(clientState->maindisplay, fileDialog);
+				clientState->dialogOpen = false;
 
 				const char* result = al_get_native_file_dialog_path(fileDialog, 0);
 				al_destroy_native_file_dialog(fileDialog);
@@ -1431,6 +1440,7 @@ int main(int argc, char **argv)
 						clientState.graphPositions.clear();
 						map<PID_TID, void *> *pidGraphList = &clientState.activePid->plottedGraphs;
 						map<PID_TID, void *>::iterator pidIt;
+
 						//get first graph with some verts
 						clientState.newActiveGraph = 0;
 						for (pidIt = pidGraphList->begin();  pidIt != pidGraphList->end(); ++pidIt)
