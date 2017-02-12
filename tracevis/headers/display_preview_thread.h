@@ -7,7 +7,7 @@
 class preview_display_thread
 {
 public:
-	thread_start_data startData;
+	//thread_start_data startData;
 	static void __stdcall ThreadEntry(void* pUserData);
 	VISSTATE *clientState;
 	int mousex = 0;

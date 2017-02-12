@@ -5,22 +5,17 @@
 
 #pragma once
 #define WINDOWS
+//#define LINUX 1
+
 #define X86_32
+//#define X86_64
 
 //uses slow mutexes instead of fast read/write locks
 //#define XP_COMPATIBLE
 
-//not implemented yet
-//#define LINUX
-//#define X86_64
-
-#include "targetver.h"
-
 #include <stdio.h>
 #include <tchar.h>
-#ifdef WINDOWS
-#include <shlwapi.h>
-#endif
+
 
 #define RGAT_VERSION_MAJ 0
 #define RGAT_VERSION_MIN 4
@@ -43,7 +38,9 @@ using namespace std;
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_opengl.h>
+#ifdef WINDOWS
 #include <allegro5/allegro_windows.h>
+#endif 
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>

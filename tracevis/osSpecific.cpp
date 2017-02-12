@@ -23,7 +23,7 @@ Need to migrate all Windows API (and soon Linux) routines here
 #include "GUIStructs.h"
 
 
-#ifdef WIN32
+#ifdef WINDOWS
 
 void renameFile(string originalPath, string targetPath)
 {
@@ -256,4 +256,101 @@ void rgat_create_thread(void *threadEntry, void *arg)
 	DWORD suppressWarningThreadID;
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadEntry, (LPVOID)arg, 0, &suppressWarningThreadID);
 }
+
+
 #endif // WIN32
+
+#ifdef LINUX
+void renameFile(string originalPath, string targetPath)
+{
+	cout << "implement me" << endl;
+}
+
+/*
+a lot of the code checks this for success/failure
+have changed this to not return until success but leaving this here
+in case we want to revert it
+
+prints waitTimeCode in case of failure so use unique time for debugging
+*/
+bool obtainMutex(HANDLE mutex, int waitTimeCode)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+void dropMutex(HANDLE mutex) {
+	cout << "implement me" << endl;
+}
+
+string time_string()
+{
+	cout << "implement me" << endl;
+	return string("");
+}
+
+bool fileExists(string path)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+//gets path rgat executable is located in
+string getModulePath()
+{
+	cout << "implement me" << endl;
+	return string("");
+}
+
+//get filename from path
+//http://stackoverflow.com/a/8520815
+string basename(string path)
+{
+	cout << "implement me" << endl;
+	return string("");
+}
+
+//returns path for saving files, tries to create if it doesn't exist
+bool getSavePath(string saveDir, string filename, string *result, PID_TID PID)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+//get execution string of dr executable + client dll
+bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+string get_options(VISSTATE *clientState)
+{
+	cout << "implement me" << endl;
+	return false;
+}
+
+char check_excecutable_type(string executable)
+{
+	cout << "implement me" << endl;
+	return 0;
+}
+
+void execute_tracer(string executable, string args, void *clientState_ptr, bool is64Bits)
+{
+	cout << "implement me" << endl;
+}
+
+void rgat_create_thread(void *threadEntry, void *arg)
+{
+	cout << "implement me" << endl;
+}
+
+
+#endif // LINUX

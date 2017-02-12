@@ -149,6 +149,9 @@
     <ClInclude Include="headers\proto_graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\processLaunching.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -482,6 +485,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="plotted_graph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="processLaunching.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
