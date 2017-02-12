@@ -46,11 +46,17 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 {
 	
 	VCOORD *oldPosition = get_node_coord(lastNode->lastVertID);
-	while (!oldPosition)
+	if (!oldPosition)
 	{
-		Sleep(5);
-		oldPosition = get_node_coord(lastNode->lastVertID);
 		cerr << "Waiting for node " << lastNode->lastVertID;
+		int waitPeriod = 5;
+		int iterations = 1;
+		do
+		{
+			Sleep(waitPeriod);
+			waitPeriod += (150 * iterations++);
+			oldPosition = get_node_coord(lastNode->lastVertID);
+		} while (!oldPosition);
 	}
 
 	int a = oldPosition->a;
@@ -707,12 +713,13 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			node_data *n = internalProtoGraph->safe_get_node(*externCallIt);
 			assert(n->external);
 
-			VCOORD *nodeCoord = get_node_coord(*externCallIt);
 			DCOORD screenCoord;
 			if (!get_screen_pos(*externCallIt, mainverts, pd, &screenCoord)) continue;
 
 			if (clientState->modes.nearSide)
 			{
+				VCOORD *nodeCoord = get_node_coord(*externCallIt);
+				assert(nodeCoord);
 				if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
 					clientState->rightcolumn, main_scalefactors->HEDGESEP))
 					continue;
@@ -736,13 +743,13 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			node_data *n = internalProtoGraph->safe_get_node(*internSymIt);
 			assert(!n->external);
 
-			VCOORD *nodeCoord = get_node_coord(*internSymIt);
-
 			DCOORD screenCoord;
 			if (!get_screen_pos(*internSymIt, mainverts, pd, &screenCoord)) continue;
 
 			if (clientState->modes.nearSide)
 			{
+				VCOORD *nodeCoord = get_node_coord(*internSymIt);
+				assert(nodeCoord);
 				if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
 					clientState->rightcolumn, main_scalefactors->HEDGESEP))
 					continue;
@@ -765,10 +772,11 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(i);
-		VCOORD *nodeCoord = get_node_coord(i);
-
+		
 		if (n->external || !n->ins->conditional) continue;
 
+		VCOORD *nodeCoord = get_node_coord(i);
+		if (!nodeCoord) continue;
 		if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn, clientState->rightcolumn,
 			main_scalefactors->HEDGESEP)) continue;
 
@@ -828,6 +836,7 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 		if (firstNode->external) continue; //don't care about instruction in library call
 
 		VCOORD *firstNodeCoord = get_node_coord(ePair->first);
+		if (!firstNodeCoord) continue;
 		if (!a_coord_on_screen(firstNodeCoord->a, clientState->leftcolumn,
 			clientState->rightcolumn, graph->main_scalefactors->HEDGESEP))
 			continue;

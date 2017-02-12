@@ -131,10 +131,7 @@ void module_handler::main_loop()
 
 				threadList.push_back(TID_reader);
 				readerThreadList.push_back(TID_reader);
-				DWORD threadID = 0;
-				HANDLE hOutThread = CreateThread(
-					NULL, 0, (LPTHREAD_START_ROUTINE)TID_reader->ThreadEntry,
-					(LPVOID)TID_reader, 0, &threadID);
+				rgat_create_thread(TID_reader->ThreadEntry, TID_reader);
 				
 				thread_trace_handler *TID_processor = new thread_trace_handler(newProtoGraph, PID, TID);
 				TID_processor->piddata = piddata;
@@ -153,10 +150,7 @@ void module_handler::main_loop()
 
 				threadList.push_back(TID_processor);
 				clientState->timelineBuilder->notify_new_tid(PID, TID);
-				hOutThread = CreateThread(
-					NULL, 0, (LPTHREAD_START_ROUTINE)TID_processor->ThreadEntry,
-					(LPVOID)TID_processor, 0, &threadID);
-
+				rgat_create_thread(TID_processor->ThreadEntry, TID_processor);
 				continue;
 			}
 

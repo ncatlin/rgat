@@ -250,4 +250,10 @@ void execute_tracer(string executable, string args, void *clientState_ptr, bool 
 	CloseHandle(pi.hProcess);
 
 }
+
+void rgat_create_thread(void *threadEntry, void *arg)
+{
+	DWORD suppressWarningThreadID;
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadEntry, (LPVOID)arg, 0, &suppressWarningThreadID);
+}
 #endif // WIN32

@@ -21,6 +21,7 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 #pragma once
 #include <stdafx.h>
 #include "traceStructs.h"
+#include "base_thread.h"
 
 #define BINARY_NOT_EXECUTABLE 0
 #define BINARY_32_BIT 1
@@ -38,3 +39,5 @@ char check_excecutable_type(string executable);
 //in: mutex to wait on, waitTimeCode ms to wait per warning
 bool obtainMutex(HANDLE mutex, int waitTimeCode);
 void dropMutex(HANDLE mutex);
+
+void rgat_create_thread(void *threadEntry, void *arg);

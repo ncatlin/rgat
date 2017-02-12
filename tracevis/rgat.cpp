@@ -62,31 +62,21 @@ bool kbdInterrupt = false;
 //for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
 void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *clientState)
 {
-	DWORD threadID;
 	preview_renderer *previews_thread = new preview_renderer(PID,0);
 	previews_thread->clientState = clientState;
 	previews_thread->piddata = piddata;
-
-	HANDLE hOutThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)previews_thread->ThreadEntry,
-		(LPVOID)previews_thread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)previews_thread->ThreadEntry, previews_thread);
 
 	heatmap_renderer *heatmap_thread = new heatmap_renderer(PID, 0);
 	heatmap_thread->clientState = clientState;
 	heatmap_thread->piddata = piddata;
-
-	HANDLE hHeatThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry,
-		(LPVOID)heatmap_thread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry, heatmap_thread);
 
 	conditional_renderer *conditional_thread = new conditional_renderer(PID, 0);
 	conditional_thread->clientState = clientState;
 	conditional_thread->piddata = piddata;
-
 	Sleep(200);
-	HANDLE hConditionThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry,
-		(LPVOID)conditional_thread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry, conditional_thread);
 
 	clientState->spawnedProcess = clientState->glob_piddata_map[PID];
 }
@@ -105,15 +95,12 @@ THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCE
 	glob_piddata_map->insert_or_assign(PID, piddata);
 	dropMutex(pidmutex);
 
-	DWORD threadID;
-
 	//spawns trace threads + handles module data for process
 	module_handler *tPIDThread = new module_handler(PID, 0);
 	tPIDThread->clientState = clientState;
 	tPIDThread->piddata = piddata;
 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry,
-		(LPVOID)tPIDThread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry, tPIDThread);
 	processThreads->modThread = tPIDThread;
 	processThreads->threads.push_back(tPIDThread);
 
@@ -122,8 +109,7 @@ THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCE
 	tBBHandler->clientState = clientState;
 	tBBHandler->piddata = piddata;
 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tBBHandler->ThreadEntry,
-		(LPVOID)tBBHandler, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)tBBHandler->ThreadEntry, tBBHandler);
 	processThreads->BBthread = tBBHandler;
 	processThreads->threads.push_back(tBBHandler);
 
@@ -135,28 +121,25 @@ THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCE
 	tPrevThread->clientState = clientState;
 	tPrevThread->piddata = piddata;
 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry,
-		(LPVOID)tPrevThread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry, tPrevThread);
 
 	heatmap_renderer *tHeatThread = new heatmap_renderer(PID, 0);
 	tHeatThread->clientState = clientState;
 	tHeatThread->piddata = piddata;
 	tHeatThread->setUpdateDelay(clientState->config->heatmap.delay);
 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry,
-		(LPVOID)tHeatThread, 0, &threadID);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry, tHeatThread);
+
 	processThreads->heatmapThread = tHeatThread;
 	processThreads->threads.push_back(tHeatThread);
 
+	
 	conditional_renderer *tCondThread = new conditional_renderer(PID, 0);
 	tCondThread->clientState = clientState;
 	tCondThread->piddata = piddata;
 	tCondThread->setUpdateDelay(clientState->config->conditional.delay);
-
 	Sleep(200);
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry,
-		(LPVOID)tCondThread, 0, &threadID);
-
+	rgat_create_thread((LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry, tCondThread);
 	processThreads->conditionalThread = tCondThread;
 	processThreads->threads.push_back(tCondThread);
 
@@ -1128,9 +1111,7 @@ int main(int argc, char **argv)
 
 		handleKBDExit();
 
-		HANDLE hProcessCoordinator = CreateThread(
-			NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
-			(LPVOID)&clientState, 0, 0);
+		rgat_create_thread(process_coordinator_thread, &clientState);
 
 		char exeType = check_excecutable_type(clientState.commandlineLaunchPath);
 		if (exeType == BINARY_32_BIT)
@@ -1269,17 +1250,13 @@ int main(int argc, char **argv)
 	//new sym/arg strings currently being displayed on the graph
 	map <PID_TID, vector<EXTTEXT>> externFloatingText;
 
-	HANDLE hProcessCoordinator = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)process_coordinator_thread,
-		(LPVOID)&clientState, 0, 0);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)process_coordinator_thread, &clientState);
 
 	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(0,0);
 	mainRenderThread->clientState = &clientState;
 	clientState.maingraphRenderThreadPtr = mainRenderThread;
 
-	HANDLE hPIDmodThread = CreateThread(
-		NULL, 0, (LPTHREAD_START_ROUTINE)mainRenderThread->ThreadEntry,
-		(LPVOID)mainRenderThread, 0, 0);
+	rgat_create_thread((LPTHREAD_START_ROUTINE)mainRenderThread->ThreadEntry, mainRenderThread);
 	
 	ALLEGRO_COLOR mainBackground = clientState.config->mainBackground;
 	ALLEGRO_COLOR conditionalBackground = clientState.config->conditional.background;
