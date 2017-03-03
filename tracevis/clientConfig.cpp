@@ -191,18 +191,19 @@ bool clientConfig::loadHeatmap()
 bool clientConfig::loadColours()
 {
 	int errorCount = 0;
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA"), &graphColours.lineColours[ICALL], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA"), &graphColours.lineColours[IOLD], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.lineColours[IRET], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA"), &graphColours.lineColours[ILIB], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA"), &graphColours.lineColours[INEW], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA"), &graphColours.lineColours[IEXCEPT], &errorCount);
+	graphColours.resize(eENLAST);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA"), &graphColours.at(eEdgeCall), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA"), &graphColours.at(eEdgeOld), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA"), &graphColours.at(eEdgeReturn), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA"), &graphColours.at(eEdgeLib), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA"), &graphColours.at(eEdgeNew), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA"), &graphColours.at(eEdgeException), &errorCount);
 
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA"), &graphColours.nodeColours[NONFLOW], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA"), &graphColours.nodeColours[JUMP], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA"), &graphColours.nodeColours[CALL], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_RET_RGBA"), &graphColours.nodeColours[RETURN], &errorCount);
-	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA"), &graphColours.nodeColours[EXTERNAL], &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA"), &graphColours.at(eNodeNonFlow), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA"), &graphColours.at(eNodeJump), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA"), &graphColours.at(eNodeCall), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_RET_RGBA"), &graphColours.at(eNodeReturn), &errorCount);
+	charstr_to_col(al_get_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA"), &graphColours.at(eNodeExternal), &errorCount);
 	return (errorCount == 0);
 }
 
@@ -343,35 +344,35 @@ void clientConfig::loadHeatmapDefaults()
 void clientConfig::saveColours()
 {
 	al_add_config_section(alConfig, "MainGraph");
-	al_set_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA", col_to_charstr(graphColours.lineColours[ICALL]));
-	al_set_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA", col_to_charstr(graphColours.lineColours[IOLD]));
-	al_set_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA", col_to_charstr(graphColours.lineColours[IRET]));
-	al_set_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA", col_to_charstr(graphColours.lineColours[ILIB]));
-	al_set_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA", col_to_charstr(graphColours.lineColours[INEW]));
-	al_set_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA", col_to_charstr(graphColours.lineColours[IEXCEPT]));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_CALL_RGBA", col_to_charstr(graphColours.at(eEdgeCall)));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_OLD_RGBA", col_to_charstr(graphColours.at(eEdgeOld)));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_RET_RGBA", col_to_charstr(graphColours.at(eEdgeReturn)));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_LIB_RGBA", col_to_charstr(graphColours.at(eEdgeLib)));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_NEW_RGBA", col_to_charstr(graphColours.at(eEdgeNew)));
+	al_set_config_value(alConfig, "MainGraph", "EDGE_EXCEPT_RGBA", col_to_charstr(graphColours.at(eEdgeException)));
 
-	al_set_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA", col_to_charstr(graphColours.nodeColours[NONFLOW]));
-	al_set_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA", col_to_charstr(graphColours.nodeColours[JUMP]));
-	al_set_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA", col_to_charstr(graphColours.nodeColours[CALL]));
-	al_set_config_value(alConfig, "MainGraph", "NODE_RET_RGBA", col_to_charstr(graphColours.nodeColours[RETURN]));
-	al_set_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA", col_to_charstr(graphColours.nodeColours[EXTERNAL]));
+	al_set_config_value(alConfig, "MainGraph", "NODE_NONFLOW_RGBA", col_to_charstr(graphColours.at(eNodeNonFlow)));
+	al_set_config_value(alConfig, "MainGraph", "NODE_JUMP_RGBA", col_to_charstr(graphColours.at(eNodeJump)));
+	al_set_config_value(alConfig, "MainGraph", "NODE_CALL_RGBA", col_to_charstr(graphColours.at(eNodeCall)));
+	al_set_config_value(alConfig, "MainGraph", "NODE_RET_RGBA", col_to_charstr(graphColours.at(eNodeReturn)));
+	al_set_config_value(alConfig, "MainGraph", "NODE_EXTERNAL_RGBA", col_to_charstr(graphColours.at(eNodeExternal)));
 }
 
 void clientConfig::loadDefaultColours()
 {
+	graphColours.resize(eENLAST);
+	graphColours.at(eEdgeCall) = DEFAULT_EDGE_CALL;
+	graphColours.at(eEdgeOld) = DEFAULT_EDGE_OLD;
+	graphColours.at(eEdgeReturn) = DEFAULT_EDGE_RET;
+	graphColours.at(eEdgeLib) = DEFAULT_EDGE_LIB;
+	graphColours.at(eEdgeNew) = DEFAULT_EDGE_NEW;
+	graphColours.at(eEdgeException) = DEFAULT_EDGE_EXCEPT;
 
-	graphColours.lineColours[ICALL] = DEFAULT_EDGE_CALL;
-	graphColours.lineColours[IOLD] = DEFAULT_EDGE_OLD;
-	graphColours.lineColours[IRET] = DEFAULT_EDGE_RET;
-	graphColours.lineColours[ILIB] = DEFAULT_EDGE_LIB;
-	graphColours.lineColours[INEW] = DEFAULT_EDGE_NEW;
-	graphColours.lineColours[IEXCEPT] = DEFAULT_EDGE_EXCEPT;
-
-	graphColours.nodeColours[NONFLOW] = DEFAULT_NODE_STD;
-	graphColours.nodeColours[JUMP] = DEFAULT_NODE_JUMP;
-	graphColours.nodeColours[CALL] = DEFAULT_NODE_CALL;
-	graphColours.nodeColours[RETURN] = DEFAULT_NODE_RET;
-	graphColours.nodeColours[EXTERNAL] = DEFAULT_NODE_EXT;
+	graphColours.at(eNodeNonFlow) = DEFAULT_NODE_STD;
+	graphColours.at(eNodeJump) = DEFAULT_NODE_JUMP;
+	graphColours.at(eNodeCall) = DEFAULT_NODE_CALL;
+	graphColours.at(eNodeReturn) = DEFAULT_NODE_RET;
+	graphColours.at(eNodeExternal) = DEFAULT_NODE_EXT;
 }
 
 void clientConfig::saveToFile()

@@ -205,20 +205,20 @@ string get_options(VISSTATE *clientState)
 	return optstring.str();
 }
 
-char check_excecutable_type(string executable)
+eExeCheckResult check_excecutable_type(string executable)
 {
 	DWORD theType;
 	if (!GetBinaryTypeA(executable.c_str(), &theType))
-		return BINARY_NOT_EXECUTABLE;
+		return eNotExecutable;
 
 	switch (theType)
 	{
 	case SCS_32BIT_BINARY:
-		return BINARY_32_BIT;
+		return eBinary32Bit;
 	case SCS_64BIT_BINARY:
-		return BINARY_64_BIT;
+		return eBinary64Bit;
 	default:
-		return BINARY_OTHER;
+		return eBinaryOther;
 	}
 }
 

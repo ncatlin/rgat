@@ -119,7 +119,7 @@ void module_handler::main_loop()
 				}
 
 				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
-				sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph);
+				sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
 				
 				//todo?
 				//graph->set_max_wait_frames(clientState->config->maxWaitFrames); 

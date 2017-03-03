@@ -60,10 +60,7 @@ public:
 		ALLEGRO_COLOR activeHighlight;
 	} preview;
 
-	struct {
-		map<int, ALLEGRO_COLOR> lineColours;
-		map<int, ALLEGRO_COLOR> nodeColours;
-	} graphColours;
+	vector <ALLEGRO_COLOR> graphColours;
 
 	ALLEGRO_CONFIG *alConfig;
 	ALLEGRO_COLOR mainBackground;

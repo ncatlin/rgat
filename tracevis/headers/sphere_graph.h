@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 /*
-Monsterous class that handles the bulk of graph management 
+Describes the position of each vertex in the sphere
+performs functions that are specific to the sphere shape
 */
 
 #pragma once
@@ -26,11 +27,33 @@ Monsterous class that handles the bulk of graph management
 #include "plotted_graph.h"
 #include "traceMisc.h"
 
+//A: Longitude. How many units along the side of the sphere a node is placed
+//B: Latitude. How many units up or down the side of the sphere a node is placed
+#define BMULT 2
+
+#define JUMPA -6
+#define JUMPB 6
+#define JUMPA_CLASH -15
+#define CALLB 20
+
+//how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
+#define CALLA_CLASH -40
+#define CALLB_CLASH -30
+
+//placement of external nodes, relative to the first caller
+#define EXTERNA -3
+#define EXTERNB 3
+
+//controls placement of the node after a return
+#define RETURNA_OFFSET -4
+#define RETURNB_OFFSET 3
+
 class sphere_graph : public plotted_graph
 {
 
 public:
-	sphere_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph): plotted_graph(protoGraph) {};
+	sphere_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
+		: plotted_graph(protoGraph, coloursPtr) {};
 	~sphere_graph() {};
 
 	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
@@ -40,12 +63,11 @@ public:
 	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
 	void render_static_graph(VISSTATE *clientState);
 	void drawHighlight(NODEINDEX nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier);
-	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
-		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
+	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
-		MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours);
+		MULTIPLIERS *dimensions);
 	void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 	void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata);
 	FCOORD nodeIndexToXYZ(NODEINDEX index, MULTIPLIERS *dimensions, float diamModifier);

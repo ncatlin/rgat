@@ -19,6 +19,7 @@ Class describing each edge
 */
 #pragma once
 #include "stdafx.h"
+#include "traceConstants.h"
 
 class edge_data
 {
@@ -30,7 +31,7 @@ public:
 	bool serialise(ofstream *file, int source, int target);
 
 	//type of edge (call,extern,etc)
-	char edgeClass = 0;  
+	eEdgeNodeType edgeClass;  
 
 	//number of times executed, temporary variable used by heatmap solver
 	unsigned long chainedWeight = 0;

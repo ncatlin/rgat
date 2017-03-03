@@ -95,7 +95,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	for (dt = 1; dt < segments + 1; ++dt)
 	{
 
-		if ((edgeType == IOLD) || (edgeType == IRET)) {
+		if ((edgeType == eEdgeOld) || (edgeType == eEdgeReturn)) {
 			fadeA = fadeArray[dt - 1];
 			if (fadeA > 1) fadeA = 1;
 		}
@@ -157,7 +157,7 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 
 	switch (edgeType)
 	{
-		case INEW:
+		case eEdgeNew:
 		{
 			//todo: make this number much smaller for previews
 			curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
@@ -165,8 +165,8 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			break;
 		}
 
-		case IRET:
-		case IOLD:
+		case eEdgeOld:
+		case eEdgeReturn:
 		{
 			curvePoints = LONGCURVEPTS;
 
@@ -186,9 +186,9 @@ int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 			break;
 		}
 
-		case ICALL:
-		case ILIB: 
-		case IEXCEPT:
+		case eEdgeCall:
+		case eEdgeLib: 
+		case eEdgeException:
 		{
 			curvePoints = LONGCURVEPTS;
 			bezierC = middleC;

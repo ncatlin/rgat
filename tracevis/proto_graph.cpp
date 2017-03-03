@@ -115,13 +115,13 @@ void proto_graph::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
 	edge_data newEdge;
 
 	if (targNode->external)
-		newEdge.edgeClass = ILIB;
+		newEdge.edgeClass = eEdgeLib;
 	else if (sourceNode->ins->itype == OPCALL)
-		newEdge.edgeClass = ICALL;
+		newEdge.edgeClass = eEdgeCall;
 	else if (sourceNode->ins->itype == OPRET)
-		newEdge.edgeClass = IRET;
+		newEdge.edgeClass = eEdgeReturn;
 	else
-		newEdge.edgeClass = IOLD;
+		newEdge.edgeClass = eEdgeOld;
 
 	add_edge(newEdge, sourceNode, targNode);
 
@@ -161,7 +161,7 @@ edge_data *proto_graph::get_edge_create(node_data *source, node_data *target)
 		return &edgeDIt->second;
 
 	edge_data edgeData;
-	edgeData.edgeClass = INEW; //TODO!
+	edgeData.edgeClass = eEdgeNew;
 	edgeData.chainedWeight = 0;
 	add_edge(edgeData, source, target);
 
@@ -331,8 +331,6 @@ unsigned int proto_graph::fill_extern_log(ALLEGRO_TEXTLOG *textlog, unsigned int
 
 void proto_graph::push_anim_update(ANIMATIONENTRY entry)
 {
-	if (entry.targetAddr == 0x7ff61cea22ee)
-		printf("mush");
 	obtainMutex(animationListsMutex, 2412);
 	animUpdates.push(entry);
 	savedAnimationData.push_back(entry);
@@ -548,7 +546,7 @@ bool proto_graph::loadEdgeDict(ifstream *file)
 		getline(*file, target_s, ',');
 		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
 		getline(*file, edgeclass_s, '@');
-		edge->edgeClass = edgeclass_s.c_str()[0];
+		edge->edgeClass = (eEdgeNodeType)edgeclass_s.c_str()[0];
 		NODEPAIR stpair = make_pair(source, target);
 		add_edge(*edge, safe_get_node(source), safe_get_node(target));
 	}

@@ -87,7 +87,7 @@ private:
 	unsigned int lastVertID = 0; //the vert that led to new instruction
 	unsigned int targVertID = 0; //new vert we are creating
 
-	char lastRIPType = FIRST_IN_THREAD;
+	eEdgeNodeType lastNodeType = eFIRST_IN_THREAD;
 
 	proto_graph *thisgraph;
 	
@@ -97,6 +97,7 @@ private:
 
 	void runBB(TAG *tag, int repeats);
 	void run_faulting_BB(TAG *tag);
+	void BB_addNewEdge(bool alreadyExecuted, int instructionIndex);
 
 	bool set_target_instruction(INS_DATA *instruction);
 

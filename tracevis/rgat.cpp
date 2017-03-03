@@ -45,7 +45,7 @@ Doing agui widget manipulation in other threads will cause deque errors
 
 bool kbdInterrupt = false;
 
-void change_mode(VISSTATE *clientState, int mode)
+void change_mode(VISSTATE *clientState, eUIEventCode mode)
 {
 	switch (mode)
 	{
@@ -677,7 +677,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			case EV_BTN_HEATMAP:
 			case EV_BTN_NODES:
 			case EV_BTN_EDGES:
-				change_mode(clientState, ev->user.data1);
+				change_mode(clientState, (eUIEventCode)ev->user.data1);
 				break;
 
 			case EV_BTN_HIGHLIGHT:
@@ -898,10 +898,10 @@ int main(int argc, char **argv)
 
 		rgat_create_thread(process_coordinator_thread, &clientState);
 
-		char exeType = check_excecutable_type(clientState.commandlineLaunchPath);
-		if (exeType == BINARY_32_BIT)
+		eExeCheckResult exeType = check_excecutable_type(clientState.commandlineLaunchPath);
+		if (exeType == eBinary32Bit)
 			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, false);
-		else if (exeType == BINARY_64_BIT)
+		else if (exeType == eBinary64Bit)
 			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, true);
 		
 		int newTIDs,activeTIDs = 0;

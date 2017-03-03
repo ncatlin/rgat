@@ -36,7 +36,7 @@ diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state
 		graph2 = g1;
 	}
 
-	diffgraph = new plotted_graph(graph1->get_protoGraph());
+	diffgraph = new plotted_graph(graph1->get_protoGraph(), &state->config->graphColours);
 	diffgraph->main_scalefactors = graph1->main_scalefactors;
 
 	glGenBuffers(4, diffgraph->graphVBOs);
@@ -267,11 +267,11 @@ void diff_plotter::render()
 				cerr << "[rgat]ERROR: Divergence renderer tried to colour non-rendered edge " << nextEdge.first << "," << nextEdge.second << endl;
 				break;
 			}
-			graph1->render_edge(nextEdge, linedata, NULL, &edgeColour, false, true);
+			graph1->render_edge(nextEdge, linedata, &edgeColour, false, true);
 
 			//draw block internal edges
 			for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
-				graph1->render_edge(make_pair(i,i+1), linedata, NULL, &edgeColour, false, true);
+				graph1->render_edge(make_pair(i,i+1), linedata, &edgeColour, false, true);
 
 		}
 

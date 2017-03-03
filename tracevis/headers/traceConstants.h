@@ -35,15 +35,8 @@ Constants used to interpret and plot the trace data
 #define OPRET 2
 #define OPCALL 3
 
-#define BAD 0
-#define NONFLOW 1
-#define JUMP 2
-#define CALL 3
-#define RETURN 4
-#define EXTERNAL 5
-#define EXCEPTION_GENERATOR 6
-#define NOSYM 7
-#define FIRST_IN_THREAD 99
+enum eEdgeNodeType { eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
+	eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99};
 
 #define MOD_UNKNOWN 0 
 #define MOD_INSTRUMENTED 1	//plot this

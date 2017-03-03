@@ -15,30 +15,13 @@ limitations under the License.
 */
 
 /*
-Monsterous class that handles the bulk of graph management
+Creates a sphere layout for a plotted graph
 */
 
 #include "stdafx.h"
 #include "sphere_graph.h"
 #include "rendering.h"
 #include "serialise.h"
-
-#define BMULT 2
-
-#define JUMPA -6
-#define JUMPB 6
-#define JUMPA_CLASH -15
-#define CALLB 20
-#define CALLA_CLASH -40
-#define CALLB_CLASH -30
-#define EXTERNA -3
-#define EXTERNB 3
-
-//controls placement of the node after a return
-#define RETURNA_OFFSET -4
-#define RETURNB_OFFSET 3
-
-
 
 //performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 //this is the function that determines how the graph is laid out
@@ -78,13 +61,13 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 	{
 
 		//small vertical distance between instructions in a basic block	
-		case NONFLOW: 
+		case eNodeNonFlow: 
 		{
 			bMod += 1 * BMULT;
 			break;
 		}
 
-		case JUMP://long diagonal separation to show distinct basic blocks
+		case eNodeJump://long diagonal separation to show distinct basic blocks
 		{
 			//check if this is a conditional which fell through (ie: sequential)
 			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
@@ -96,7 +79,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			//notice lack of break
 		} 
 	
-		case EXCEPTION_GENERATOR: 
+		case eNodeException: 
 		{
 			a += JUMPA;
 			b += JUMPB * BMULT;
@@ -113,7 +96,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 		}
 
 		//long purple line to show possible distinct functional blocks of the program
-		case CALL:
+		case eNodeCall:
 		{
 			//note: b sometimes huge after this?
 			b += CALLB * BMULT;
@@ -134,9 +117,9 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			break;
 		}
 
-		case RETURN:
+		case eNodeReturn:
 			//previous externs handled same as previous returns
-		case EXTERNAL:
+		case eNodeExternal:
 		{
 			//returning to address in call stack?
 			int result = -1;
@@ -179,7 +162,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 		}
 
 		default:
-			if (lastNode->lastVertType != FIRST_IN_THREAD)
+			if (lastNode->lastVertType != eFIRST_IN_THREAD)
 				cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
 			break;
 	}
@@ -311,7 +294,7 @@ void sphere_graph::render_static_graph(VISSTATE *clientState)
 			clientState->remakeWireframe = true;
 	}
 
-	int drawCount = render_new_edges(doResize, &clientState->config->graphColours.lineColours, &clientState->config->graphColours.nodeColours);
+	int drawCount = render_new_edges(doResize);
 	if (drawCount)
 		needVBOReload_main = true;
 
@@ -412,7 +395,7 @@ FCOORD sphere_graph::nodeIndexToXYZ(NODEINDEX index, MULTIPLIERS *dimensions, fl
 
 
 //IMPORTANT: Must have edge reader lock to call this
-bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
+bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
@@ -435,10 +418,7 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map
 	ALLEGRO_COLOR *edgeColour;
 	if (forceColour) edgeColour = forceColour;
 	else
-	{
-		assert((size_t)e->edgeClass < lineColours->size());
-		edgeColour = &lineColours->at(e->edgeClass);
-	}
+		edgeColour = &graphColours->at(e->edgeClass);
 
 	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,
 		edgeColour, e->edgeClass, scaling, &arraypos);
@@ -455,7 +435,7 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map
 
 //converts a single node into node vertex data
 int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
-	MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours)
+	MULTIPLIERS *dimensions)
 {
 	//printf("in add node! node %d\n", n->index);
 	VCOORD * vcoord;
@@ -497,32 +477,29 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 
 	ALLEGRO_COLOR *active_col = 0;
 	if (n->external)
-		lastNode->lastVertType = EXTERNAL;
+		lastNode->lastVertType = eNodeExternal;
 	else 
 	{
 		switch (n->ins->itype)
 		{
 		case OPUNDEF:
 		{
-			if (n->conditional)
-				lastNode->lastVertType = JUMP;
-			else
-				lastNode->lastVertType = NONFLOW;
+			lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
 			break;
 		}
 		case OPJMP:
 		{
-			lastNode->lastVertType = JUMP;
+			lastNode->lastVertType = eNodeJump;
 			break; 
 		}
 		case OPRET: 
 		{
-			lastNode->lastVertType = RETURN;
+			lastNode->lastVertType = eNodeReturn;
 			break; 
 		}
 		case OPCALL:
 		{
-			lastNode->lastVertType = CALL;
+			lastNode->lastVertType = eNodeCall;
 
 			//let returns find their caller if and only if they have one
 			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
@@ -538,7 +515,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 		}
 	}
 
-	active_col = &nodeColours->at(lastNode->lastVertType);
+	active_col = &graphColours->at(lastNode->lastVertType);
 	lastNode->lastVertID = n->index;
 
 	mainNcol->push_back(active_col->r);
@@ -578,12 +555,8 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, 
 		clientState->logSize = internalProtoGraph->fill_extern_log(clientState->textlog, clientState->logSize);
 
 	//line marking last instruction
-	if (currentUnchainedBlocks.empty())
-		drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
-	else
-	{
-		drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
-	}
+	//<there may be a need to do something different depending on currentUnchainedBlocks.empty() or not>
+	drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
 
 	//highlight lines
 	if (highlightData.highlightState)

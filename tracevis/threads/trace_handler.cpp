@@ -54,7 +54,45 @@ bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 		return false;
 }
 
+inline void thread_trace_handler::BB_addNewEdge(bool alreadyExecuted, int instructionIndex)
+{
+	NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 
+	//only need to do this for bb index 0
+	if (!thisgraph->edge_exists(edgeIDPair, 0))
+	{
+		if (lastNodeType != eFIRST_IN_THREAD)
+		{
+			edge_data newEdge;
+			newEdge.chainedWeight = 0;
+
+			if (instructionIndex > 0)
+				newEdge.edgeClass = alreadyExecuted ? eEdgeOld : eEdgeNew;
+			else
+			{
+				if (alreadyExecuted)
+					newEdge.edgeClass = eEdgeOld;
+				else
+					switch (lastNodeType)
+					{
+					case eNodeReturn:
+						newEdge.edgeClass = eEdgeReturn;
+						break;
+					case eNodeException:
+						newEdge.edgeClass = eEdgeException;
+						break;
+					case eNodeCall:
+						newEdge.edgeClass = eEdgeCall;
+						break;
+					default:
+						newEdge.edgeClass = eEdgeNew;
+						break;
+					}
+			}
+			thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
+		}
+	}
+}
 
 //place basic block 'tag' on graph 'repeats' times
 void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
@@ -66,7 +104,7 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
-		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
+		if (lastNodeType != eFIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
 		{
 			cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
 			assert(0);
@@ -85,57 +123,25 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 			loopState = LOOP_PROGRESS;
 		}
 
-		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
-		edge_data *oldEdge;
-
-		//only need to do this for bb index 0
-		if (!thisgraph->edge_exists(edgeIDPair, &oldEdge))
-		{
-			if (lastRIPType != FIRST_IN_THREAD)
-			{
-				edge_data newEdge;
-				newEdge.chainedWeight = 0;
-
-				if (instructionIndex > 0)
-					newEdge.edgeClass = alreadyExecuted ? IOLD : INEW;
-				else
-				{
-					if (lastRIPType == RETURN)
-						newEdge.edgeClass = IRET;
-					else
-						if (lastRIPType == EXCEPTION_GENERATOR)
-							newEdge.edgeClass = IEXCEPT;
-						else
-							if (alreadyExecuted)
-								newEdge.edgeClass = IOLD;
-							else
-								if (lastRIPType == CALL)
-									newEdge.edgeClass = ICALL;
-								else
-									newEdge.edgeClass = INEW;
-
-				}
-				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
-			}
-		}
+		BB_addNewEdge(alreadyExecuted, instructionIndex);
 
 		//setup conditions for next instruction
 		switch (instruction->itype)
 		{
 			case OPCALL: 
-				lastRIPType = CALL;
+				lastNodeType = eNodeCall;
 				break;
 				
 			case OPJMP:
-				lastRIPType = JUMP;
+				lastNodeType = eNodeJump;
 				break;
 
 			case OPRET:
-				lastRIPType = RETURN;
+				lastNodeType = eNodeReturn;
 				break;
 
 			default:
-				lastRIPType = NONFLOW;
+				lastNodeType = eNodeNonFlow;
 				break;
 		}
 		lastVertID = targVertID;
@@ -152,7 +158,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
-		if (lastRIPType != FIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
+		if (lastNodeType != eFIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
 		{
 			cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
 			assert(0);
@@ -165,43 +171,14 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 
-		MEM_ADDRESS nextAddress = instruction->address + instruction->numbytes;
-		NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
-
-		if (!thisgraph->edge_exists(edgeIDPair, 0))
-			if (lastRIPType != FIRST_IN_THREAD)
-			{
-				edge_data newEdge;
-				newEdge.chainedWeight = 0;
-
-				if (instructionIndex > 0)
-					newEdge.edgeClass = alreadyExecuted ? IOLD : INEW;
-				else
-				{
-					if (alreadyExecuted)
-						newEdge.edgeClass = IOLD;
-					else
-						if (lastRIPType == RETURN)
-							newEdge.edgeClass = IRET;
-						else
-							if (lastRIPType == EXCEPTION_GENERATOR)
-								newEdge.edgeClass = IEXCEPT;
-								else
-									if (lastRIPType == CALL)
-										newEdge.edgeClass = ICALL;
-									else
-										newEdge.edgeClass = INEW;
-
-				}
-				thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
-			}
+		BB_addNewEdge(alreadyExecuted, instructionIndex);
 
 		//setup conditions for next instruction
 		if (instructionIndex < tag->insCount)
-			lastRIPType = NONFLOW;
+			lastNodeType = eNodeNonFlow;
 		else
 		{
-			lastRIPType = EXCEPTION_GENERATOR;
+			lastNodeType = eNodeException;
 			obtainMutex(thisgraph->highlightsMutex, 4531);
 			thisgraph->exceptionSet.insert(thisgraph->exceptionSet.end(),targVertID);
 			dropMutex(thisgraph->highlightsMutex);
@@ -351,9 +328,9 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 
 	edge_data newEdge;
 	newEdge.chainedWeight = 0;
-	newEdge.edgeClass = ILIB;
+	newEdge.edgeClass = eEdgeLib;
 	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
-	lastRIPType = EXTERNAL;
+	lastNodeType = eNodeExternal;
 	lastVertID = targVertID;
 	return true;
 }

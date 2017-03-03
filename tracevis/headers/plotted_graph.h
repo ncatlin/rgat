@@ -1,3 +1,24 @@
+/*
+Copyright 2016 Nia Catlin
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/*
+Generic rendered graph, constructs a (graphical) graph from a control flow graph
+Requires inheriting to give it a layout (eg: sphere_graph)
+*/
+
 #pragma once
 #include <stdafx.h>
 #include "proto_graph.h"
@@ -21,13 +42,13 @@ struct HIGHLIGHT_DATA {
 
 struct PLOT_TRACK {
 	unsigned int lastVertID = 0;
-	unsigned int lastVertType = 0;
+	eEdgeNodeType lastVertType = eNodeNonFlow;
 };
 
 class plotted_graph
 {
 public:
-	plotted_graph(proto_graph *protoGraph);
+	plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *graphColoursPtr);
 	~plotted_graph();
 
 	virtual void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) {};
@@ -37,7 +58,7 @@ public:
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
 	virtual void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText) {};
 
-	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, map<int, ALLEGRO_COLOR> *lineColours,
+	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {
 		return false;
 	};
@@ -103,7 +124,7 @@ protected:
 	void rescale_nodes(bool isPreview);
 	void display_big_conditional(VISSTATE *clientState);
 	void display_big_heatmap(VISSTATE *clientState);
-	int render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr, map<int, ALLEGRO_COLOR> *nodeColours);
+	int render_new_edges(bool doResize);
 	void redraw_anim_edges();
 
 	//for keeping track of graph dimensions
@@ -122,6 +143,7 @@ protected:
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
+	vector<ALLEGRO_COLOR> *graphColours;
 
 private:
 	virtual void positionVert(void *positionStruct, MEM_ADDRESS address) {};
@@ -130,7 +152,7 @@ private:
 	virtual FCOORD nodeIndexToXYZ(unsigned int index, MULTIPLIERS *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
 	virtual void drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
-		MULTIPLIERS *dimensions, map<int, ALLEGRO_COLOR> *nodeColours) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
+		MULTIPLIERS *dimensions) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
 	virtual void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) { cerr << "Warning: Virtual draw_edge_heat_text called\n" << endl; };
 	virtual void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata) { cerr << "Warning: Virtual draw_condition_ins_text called\n" << endl; };
 
@@ -172,6 +194,7 @@ private:
 
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
 
+
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;
 	unsigned int maxWaitFrames = 0;
@@ -180,6 +203,7 @@ private:
 	//which BB we are pointing to in the sequence list
 	unsigned long animationIndex = 0;
 
+	//have tried vector<pair<nodeindex,int>> but it's slower
 	map <NODEINDEX, int> newAnimNodeTimes;
 	map <unsigned int, int> activeAnimNodeTimes;
 	set <unsigned int> fadingAnimNodes;

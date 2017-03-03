@@ -5,7 +5,7 @@
 #include "GUIManagement.h"
 
 
-plotted_graph::plotted_graph(proto_graph *protoGraph)
+plotted_graph::plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *graphColoursPtr)
 {
 		pid = protoGraph->get_piddata()->PID;
 		tid = protoGraph->get_TID();
@@ -36,6 +36,7 @@ plotted_graph::plotted_graph(proto_graph *protoGraph)
 		preview_scalefactors->baseRadius = 200;
 
 		internalProtoGraph = protoGraph;
+		graphColours = graphColoursPtr;
 }
 
 
@@ -152,7 +153,7 @@ void plotted_graph::extend_faded_edges()
 }
 
 //create edges in opengl buffers
-int plotted_graph::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *lineColoursArr, map<int, ALLEGRO_COLOR> *nodeColours)
+int plotted_graph::render_new_edges(bool doResize)
 {
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
@@ -181,20 +182,20 @@ int plotted_graph::render_new_edges(bool doResize, map<int, ALLEGRO_COLOR> *line
 		{
 			node_data *n;
 			n = internalProtoGraph->safe_get_node(edgeIt->first);
-			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors, nodeColours);
+			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 		}
 
 		if (edgeIt->second >= mainnodesdata->get_numVerts())
 		{
 			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
-			if (e->edgeClass == IEXCEPT)
-				lastPreviewNode.lastVertType = EXCEPTION_GENERATOR;
+			if (e->edgeClass == eEdgeException)
+				lastPreviewNode.lastVertType = eNodeException;
 
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
-			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors, nodeColours);
+			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 		}
 
-		if (!render_edge(*edgeIt, lines, lineColoursArr, 0, false, false))
+		if (!render_edge(*edgeIt, lines, 0, false, false))
 		{
 			internalProtoGraph->dropEdgeReadLock();
 			return edgesDrawn;
@@ -401,12 +402,9 @@ void plotted_graph::process_live_animation_updates()
 				!(entry.entryType == ANIM_UNCHAINED && nodeIt == nodeIDList.begin()))
 			{
 				NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
-				if (!internalProtoGraph->edge_exists(edge, 0))
-				{
-					cerr << "[rgat]ERROR: Tried to animate non-existing edge: " << lastAnimatedNode << "," << nodeIdx << " at entry " << entriesProcessed << endl;
-					assert(0);
-				}
-				newAnimEdgeTimes[edge] = brightTime;
+				if (internalProtoGraph->edge_exists(edge, 0))
+					newAnimEdgeTimes[edge] = brightTime;
+				//this fails if we go from structure->activity mode but no harm in ignoring
 			}
 			lastAnimatedNode = nodeIdx;
 
@@ -1093,27 +1091,27 @@ int plotted_graph::render_new_preview_edges(VISSTATE* clientState)
 		needVBOReload_preview = true;
 
 	int remainingEdges = clientState->config->preview.edgesPerRender;
-	map<int, ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours.lineColours;
+	vector<ALLEGRO_COLOR> *lineColours = &clientState->config->graphColours;
 
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		if (edgeIt->first >= previewnodes->get_numVerts())
 		{
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->first);
-			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors, &clientState->config->graphColours.nodeColours);
+			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors);
 		}
 
 		if (edgeIt->second >= previewnodes->get_numVerts())
 		{
 			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
-			if (e->edgeClass == IEXCEPT)
-				lastPreviewNode.lastVertType = EXCEPTION_GENERATOR;
+			if (e->edgeClass == eEdgeException)
+				lastPreviewNode.lastVertType = eNodeException;
 
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
-			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors, &clientState->config->graphColours.nodeColours);
+			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors);
 		}
 
-		if (!render_edge(*edgeIt, previewlines, lineColours, 0, true, false))
+		if (!render_edge(*edgeIt, previewlines, 0, true, false))
 		{
 			internalProtoGraph->stop_edgeL_iteration();
 			return 0;
