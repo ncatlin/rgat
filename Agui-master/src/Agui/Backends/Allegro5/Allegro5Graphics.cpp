@@ -173,20 +173,20 @@ namespace agui {
 	}
 
 	void Allegro5Graphics::drawCircle( const Point &center,
-												 float radius, 
+												 float size, 
 												 const Color &color )
 	{
 		al_draw_circle(center.getX() + getOffset().getX(),center.getY() + getOffset().getY(),
-			radius,getColor(color),1);
+			size,getColor(color),1);
 	}
 
 	void Allegro5Graphics::drawFilledCircle( const Point &center,
-													   float radius,
+													   float size,
 													   const Color &color )
 	{
 		al_draw_filled_circle(center.getX() + getOffset().getX(),
 	center.getY() + getOffset().getY(),
-			radius,getColor(color));
+			size,getColor(color));
 	}
 
 	void Allegro5Graphics::drawLine( const Point &start,

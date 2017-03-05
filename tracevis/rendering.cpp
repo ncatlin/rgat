@@ -137,87 +137,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	return curvePoints + 2;
 }
 
-//connect two nodes with an edge of automatic number of vertices
-int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC, 
-	ALLEGRO_COLOR *colour, int edgeType, MULTIPLIERS *dimensions, int *arraypos)
-{
-	float r, b, g, a;
-	r = colour->r;
-	b = colour->b;
-	g = colour->g;
-	a = colour->a;
 
-	//describe the normal
-	FCOORD middleC;
-	midpoint(startC, endC, &middleC);
-	float eLen = linedist(startC, endC);
-
-	FCOORD bezierC;
-	int curvePoints;
-
-	switch (edgeType)
-	{
-		case eEdgeNew:
-		{
-			//todo: make this number much smaller for previews
-			curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
-			bezierC = middleC;
-			break;
-		}
-
-		case eEdgeOld:
-		case eEdgeReturn:
-		{
-			curvePoints = LONGCURVEPTS;
-
-			if (eLen < 2) 
-				bezierC = middleC;
-			else
-			{
-				float oldMidA, oldMidB;
-				FCOORD bezierC2;
-				sphereAB(&middleC, &oldMidA, &oldMidB, dimensions);
-				sphereCoord(oldMidA, oldMidB, &bezierC, dimensions, -(eLen / 2));
-
-				//i dont know why this problem happens or why this fixes it
-				if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
-					bezierC.x = -bezierC.x;
-			}
-			break;
-		}
-
-		case eEdgeCall:
-		case eEdgeLib: 
-		case eEdgeException:
-		{
-			curvePoints = LONGCURVEPTS;
-			bezierC = middleC;
-			break;
-		}
-
-		default:
-			cerr << "[rgat]Error: Drawcurve unknown edgeType " << edgeType << endl;
-			return 0;
-	}
-
-	switch(curvePoints)
-	{
-		case LONGCURVEPTS:
-		{
-			int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
-			return vertsdrawn;
-		}
-
-		case 1:
-			drawShortLinePoints(startC, endC, colour, linedata, arraypos);
-			return 2;
-
-		default:
-			cerr << "[rgat]Error: Drawcurve unknown curvePoints " << curvePoints << endl;
-	}
-
-	return curvePoints;
-}
 
 
 
@@ -326,7 +246,7 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer)
 	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
-	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->radius);
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->size);
 	/*
 	PROJECTDATA pd;
 	bool pdgathered = false;

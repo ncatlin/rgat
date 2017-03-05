@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Sphere coordinate processing functions
+Graph layout coordinate processing functions
 */
 #include "stdafx.h"
 #include "GUIStructs.h"
@@ -26,8 +26,9 @@ Sphere coordinate processing functions
 //returns number in the repeating range 0.0-1.0-0.0, oscillating with the clock
 float getPulseAlpha()
 {
-	int millisecond = ((int)(clock() / 100)) % 10;
-	int countUp = ((int)(clock() / 1000) % 10) % 2;
+	clock_t clockVal = clock();
+	int millisecond = ((int)(clockVal / 100)) % 10;
+	int countUp = ((int)(clockVal / 1000) % 10) % 2;
 
 	float pulseAlpha;
 	if (countUp)
@@ -44,61 +45,24 @@ float zoomFactor(long cameraZoom, long sphereSize)
 	return ((cameraZoom - sphereSize) / 1000) - 1;
 }
 
-//propagates changes to the sphere size to the separation between coordinates
-void recalculate_scale(MULTIPLIERS *mults)
+//modifies separation between nodes based on the sphere size modifier 
+void recalculate_sphere_scale(GRAPH_SCALE *mults)
 {
-	mults->radius = mults->baseRadius * mults->userDiamModifier;
+	mults->size = mults->baseSize * mults->userSizeModifier;
 
 	float HSCALE = 3;
-	float HMULTIPLIER = float(mults->radius / HSCALE);
+	float HMULTIPLIER = float(mults->size / HSCALE);
 	float HRANGE = float(360 * HSCALE);
-	mults->HEDGESEP = float((360 / HRANGE) * (HMULTIPLIER / mults->radius)) + (mults->userHEDGESEP-1);
+	mults->AEDGESEP = float((360 / HRANGE) * (HMULTIPLIER / mults->size)) + (mults->userAEDGESEP-1);
 
 	float VSCALE = 3;
-	float VMULTIPLIER = float(mults->radius / VSCALE);
+	float VMULTIPLIER = float(mults->size / VSCALE);
 	float VRANGE = float(360 * VSCALE);
-	mults->VEDGESEP = float((360 / VRANGE) * (VMULTIPLIER / mults->radius)) + (mults->userVEDGESEP-1);
-
+	mults->BEDGESEP = float((360 / VRANGE) * (VMULTIPLIER / mults->size)) + (mults->userBEDGESEP-1);
 }
 
-//take longitude a, latitude b, output coord in space
-//diamModifier allows specifying different sphere sizes
-void sphereCoord(int ia, float b, FCOORD *c, MULTIPLIERS *dimensions, float diamModifier) {
 
-	float a = ia*dimensions->HEDGESEP;
-	b *= dimensions->VEDGESEP;
-	b += BAdj; //offset start down on sphere
 
-	float sinb = sin((b*M_PI) / 180);
-	float r = (dimensions->radius + diamModifier);// +0.1 to make sure we are above lines
-
-	//think this order is right, still dont get why numbers are fucked
-	c->x = r * sinb * cos((a*M_PI) / 180);
-	c->y = r * cos((b*M_PI) / 180);
-	c->z = r * sinb * sin((a*M_PI) / 180);
-}
-
-//take coord in space, convert back to a/b
-void sphereAB(FCOORD *c, float *a, float *b, MULTIPLIERS *mults)
-{
-	float acosb = acos(c->y / (mults->radius + 0.099));
-	float tb = DEGREESMUL*acosb;  //acos is a bit imprecise / wrong...
-
-	float ta = DEGREESMUL * (asin((c->z / (mults->radius + 0.1)) / sin(acosb)));
-	tb -= BAdj;
-	*a = ta / mults->HEDGESEP;
-	*b = tb / mults->VEDGESEP;
-}
-
-//double version
-void sphereAB(DCOORD *c, float *a, float *b, MULTIPLIERS *mults)
-{
-	FCOORD FFF;
-	FFF.x = c->x;
-	FFF.y = c->y;
-	FFF.z = c->z;
-	sphereAB(&FFF, a, b, mults);
-}
 
 //distance between two points
 float linedist(FCOORD *c1, FCOORD *c2)
@@ -119,14 +83,16 @@ float linedist(DCOORD *lineStart, FCOORD *lineEnd)
 }
 
 //middle of line c1->c2 placed in c3
-void midpoint(FCOORD *lineStart, FCOORD *lineEnd, FCOORD *midPointCoord) {
+void midpoint(FCOORD *lineStart, FCOORD *lineEnd, FCOORD *midPointCoord) 
+{
 	midPointCoord->x = (lineStart->x + lineEnd->x) / 2;
 	midPointCoord->y = (lineStart->y + lineEnd->y) / 2;
 	midPointCoord->z = (lineStart->z + lineEnd->z) / 2;
 }
 
 //double version
-void midpoint(DCOORD *lineStart, DCOORD *lineEnd, DCOORD *midPointCoord) {
+void midpoint(DCOORD *lineStart, DCOORD *lineEnd, DCOORD *midPointCoord) 
+{
 	midPointCoord->x = (lineStart->x + lineEnd->x) / 2;
 	midPointCoord->y = (lineStart->y + lineEnd->y) / 2;
 	midPointCoord->z = (lineStart->z + lineEnd->z) / 2;
@@ -143,47 +109,13 @@ void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int t
 	resultC->z = ((1 - t) * (1 - t) * startC->z + 2 * (1 - t) * t * bezierC->z + t * t * endC->z);
 }
 
-/*
-input: an 'a' coordinate, left and right columns of screen, horiz separation
-return: if coord is within those columns
-only as accurate as the inaccurate mystery constant
 
-TODO: come up with a way of deriving row 'b' from a given coordinate
-then we can improve performance even more by looking at the top and bottom rows
-instead of getting everything in the column
-
-Graph tends to not have much per column though so this isn't a desperate requirement
-*/
-bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
-{
-	/* the idea here is to calculate the column of the given coordinate
-	   dunno how though!
-	   FIX ME - to fix text display
-	*/
-									//bad bad bad bad bad bad bad... but close. gets worse the wider the graph is
-	int coordcolumn = floor(-a / (COLOUR_PICKING_MYSTERY_CONSTANTA / hedgesep));
-	coordcolumn = coordcolumn % ADIVISIONS;
-
-	if (leftcol > rightcol)
-	{
-		int shifter = ADIVISIONS - leftcol;
-		leftcol = 0;
-		rightcol += shifter;
-		coordcolumn += shifter;
-	}
-
-	//this code is horrendous and doesn't fix it and ugh
-	int stupidHack = 1;
-	if ((coordcolumn >= leftcol) && (coordcolumn <= (rightcol+stupidHack))) return true;
-	else return false;
-}
 
 //returns if the coord is present on the screen
-bool is_on_screen(DCOORD * screenCoord, void *clientState)
+bool is_on_screen(DCOORD * screenCoord, int screenWidth, int screenHeight)
 {
-	VISSTATE *castclientState = (VISSTATE *) clientState; //compiler goes berserk if the header has GUIstructs
-	if (screenCoord->x < castclientState->mainFrameSize.width &&
-		screenCoord->y < castclientState->mainFrameSize.height &&
+	if (screenCoord->x < screenWidth &&
+		screenCoord->y < screenHeight &&
 		screenCoord->x > 0 && screenCoord->y > 0 
 		)
 		return true;

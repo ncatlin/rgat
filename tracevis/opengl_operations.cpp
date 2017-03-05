@@ -43,7 +43,7 @@ void frame_gl_setup(VISSTATE* clientState)
 	bool zoomedIn = false;
 	if (activeGraph)
 	{
-		float zmul = zoomFactor(clientState->cameraZoomlevel, activeGraph->main_scalefactors->radius);
+		float zmul = zoomFactor(clientState->cameraZoomlevel, activeGraph->main_scalefactors->size);
 		if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR)
 			zoomedIn = true;
 	
@@ -52,7 +52,7 @@ void frame_gl_setup(VISSTATE* clientState)
 				clientState->cameraZoomlevel);
 		else
 			gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500, 
-				clientState->cameraZoomlevel + activeGraph->main_scalefactors->radius);
+				clientState->cameraZoomlevel + activeGraph->main_scalefactors->size);
 	}
 	else
 		gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 500,
@@ -62,7 +62,7 @@ void frame_gl_setup(VISSTATE* clientState)
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 
-	rotate_to_user_view(clientState);
+	activeGraph->orient_to_user_view(clientState->view_shift_x, clientState->view_shift_y, clientState->cameraZoomlevel);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
@@ -147,7 +147,7 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	spheredata = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
 	clientState->col_pick_sphere = spheredata;
 
-	int diam = ((plotted_graph *)clientState->activeGraph)->main_scalefactors->radius;
+	int diam = ((plotted_graph *)clientState->activeGraph)->main_scalefactors->size;
 	int rowi, coli;
 	float tlx, tlz, trx, topy, trz;
 	float basey, brx, brz, blz, blx;
@@ -215,11 +215,11 @@ void plot_colourpick_sphere(VISSTATE *clientState)
 	spheredata->release_pos_write();
 }
 
-void rotate_to_user_view(VISSTATE *clientState)
+void rotate_sphere_to_user_view(VISSTATE *clientState)
 {
 	glTranslatef(0, 0, -clientState->cameraZoomlevel);
-	glRotatef(-clientState->yturn, 1, 0, 0);
-	glRotatef(-clientState->xturn, 0, 1, 0);
+	glRotatef(-clientState->view_shift_y, 1, 0, 0);
+	glRotatef(-clientState->view_shift_x, 0, 1, 0);
 }
 
 //draw a colourful gradiented sphere on the screen
@@ -238,7 +238,7 @@ void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doC
 		clientState->cameraZoomlevel);
 	glLoadIdentity();
 
-	rotate_to_user_view(clientState);
+	rotate_sphere_to_user_view(clientState);
 
 	glBindBuffer(GL_ARRAY_BUFFER, clientState->colSphereVBOs[0]);
 	glVertexPointer(3, GL_FLOAT, 0, 0);

@@ -28,9 +28,6 @@ Doing agui widget manipulation in other threads will cause deque errors
 #include "b64.h"
 #include "clientConfig.h"
 #include "processLaunching.h"
-#include "OSspecific.h"
-#include "traceStructs.h"
-#include "traceMisc.h"
 #include "maingraph_render_thread.h"
 #include "GUIManagement.h"
 #include "rendering.h"
@@ -39,6 +36,7 @@ Doing agui widget manipulation in other threads will cause deque errors
 #include "diff_plotter.h"
 #include "timeline.h"
 #include "sphere_graph.h"
+#include "tree_graph.h"
 
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
@@ -50,7 +48,10 @@ void change_mode(VISSTATE *clientState, eUIEventCode mode)
 	switch (mode)
 	{
 	case EV_BTN_WIREFRAME:
-		clientState->modes.wireframe = !clientState->modes.wireframe;
+		if (!((plotted_graph *)clientState->activeGraph)->supports_wireframe())
+			clientState->modes.wireframe = false;
+		else
+			clientState->modes.wireframe = !clientState->modes.wireframe;
 		break;
 
 	case EV_BTN_CONDITION:
@@ -115,7 +116,7 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 		NODEINDEX nIdx = (*diffRenderer)->get_diff_node();
 		node_data *n = protoGraph1->safe_get_node(nIdx);
 		//if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
-		//	drawHighlight(&n->vcoord, graph1->main_scalefactors, &al_col_orange, 10);
+		//	drawHighlight(&n->SPHERECOORD, graph1->main_scalefactors, &al_col_orange, 10);
 
 		plotted_graph *diffGraph = (*diffRenderer)->get_diff_graph();
 		display_graph_diff(clientState, *diffRenderer);
@@ -381,14 +382,14 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
 		if (!clientState->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
+		plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
 
-		MULTIPLIERS *mainscale = ((plotted_graph *)clientState->activeGraph)->main_scalefactors;
-		float diam = mainscale->radius;
-		long maxZoomIn = diam + 5; //prevent zoom into globe
-		long slowRotateThresholdLow = diam + 8000;  // move very slow beyond this much zoom in 
-		long slowRotateThresholdHigh = diam + 54650;// move very slow beyond this much zoom out
+		long graphSize = ((plotted_graph *)clientState->activeGraph)->get_graph_size();
+		long maxZoomIn = graphSize + 5; //prevent zoom into globe
+		long slowRotateThresholdLow = graphSize + 8000;  // move very slow beyond this much zoom in 
+		long slowRotateThresholdHigh = graphSize + 54650;// move very slow beyond this much zoom out
 
-		float zoomdiff = abs(mainscale->radius - clientState->cameraZoomlevel);
+		float zoomdiff = abs(graphSize - clientState->cameraZoomlevel);
 
 		if (ev->mouse.dz)
 		{
@@ -434,8 +435,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					if (dy != 0) dy *= (slowdown * slowdownfactor);
 				}
 
-				clientState->xturn -= dx;
-				clientState->yturn -= dy;
+				clientState->view_shift_x -= dx;
+				clientState->view_shift_y -= dy;
 			}
 			else
 			{
@@ -527,7 +528,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_NONE;
 			}
 
-			MULTIPLIERS *mainscale = ((plotted_graph *)clientState->activeGraph)->main_scalefactors;
 			switch (ev->keyboard.keycode)
 			{
 				case ALLEGRO_KEY_ESCAPE:
@@ -586,28 +586,28 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 				//stretch and shrink the graph
 				case ALLEGRO_KEY_LEFT:
-					mainscale->userHEDGESEP -= 0.05;
+					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.05);
 					clientState->rescale = true;
 					break;
 				case ALLEGRO_KEY_RIGHT:
-					mainscale->userHEDGESEP += 0.05;
+					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.05);
 					clientState->rescale = true;
 					break;
 				case ALLEGRO_KEY_DOWN:
-					mainscale->userVEDGESEP += 0.01;
+					((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.05);
 					clientState->rescale = true;
 					break;
 				case ALLEGRO_KEY_UP:
-					mainscale->userVEDGESEP -= 0.01;
+					((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.01);
 					clientState->rescale = true;
 					break;
 
 				case ALLEGRO_KEY_PAD_4:
-					mainscale->userHEDGESEP -= 0.005;
+					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.005);
 					clientState->rescale = true;
 					break;
 				case ALLEGRO_KEY_PAD_6:
-					mainscale->userHEDGESEP += 0.005;
+					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.005);
 					clientState->rescale = true;
 					break;
 
@@ -626,11 +626,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_PAD_PLUS:
-					mainscale->userDiamModifier += 0.05;
+					((plotted_graph *)clientState->activeGraph)->adjust_size(0.05);
 					clientState->rescale = true;
 					break;
 				case ALLEGRO_KEY_PAD_MINUS:
-					mainscale->userDiamModifier -= 0.05;
+					((plotted_graph *)clientState->activeGraph)->adjust_size(-0.05);
 					clientState->rescale = true;
 					break;
 
@@ -830,6 +830,12 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	plotted_graph * activeGraph = (plotted_graph *)clientState->activeGraph;
 	activeGraph->needVBOReload_active = true;
 
+	clientState->cameraZoomlevel = activeGraph->get_zoom();
+	pair <long, long> startShift = activeGraph->getStartShift();
+	clientState->view_shift_x = startShift.first;
+	clientState->view_shift_y = startShift.second;
+
+
 	proto_graph *protoGraph = activeGraph->get_protoGraph();
 
 	if (!activeGraph->VBOsGenned)
@@ -1022,7 +1028,7 @@ int main(int argc, char **argv)
 	al_get_text_width(clientState.messageFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 
-	clientState.cameraZoomlevel = INITIALZOOM;
+	//clientState.cameraZoomlevel = INITIALZOOM;
 	clientState.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState.displaySize.height - 50);
 	initial_gl_setup(&clientState);
 
@@ -1080,6 +1086,11 @@ int main(int argc, char **argv)
 				clientState.activeGraph = graph;
 				clientState.modes.animation = true;
 				clientState.animationUpdate = 1;
+				clientState.cameraZoomlevel = graph->get_zoom();
+				pair <long, long> startShift = graph->getStartShift();
+				clientState.view_shift_x = startShift.first;
+				clientState.view_shift_y = startShift.second;
+
 				if (protoGraph->active)
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
 				else 
@@ -1092,7 +1103,10 @@ int main(int argc, char **argv)
 				}
 
 				clientState.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-				graph->plot_wireframe(&clientState);
+				if (graph->supports_wireframe())
+					graph->plot_wireframe(&clientState);
+				else
+					clientState.modes.wireframe = false;
 				plot_colourpick_sphere(&clientState);
 
 				widgets->toggleSmoothDrawing(false);
@@ -1136,7 +1150,7 @@ int main(int argc, char **argv)
 				performIrregularActions(&clientState);
 			}
 
-			if (clientState.modes.wireframe)
+			if (clientState.modes.wireframe && activeGraph->supports_wireframe())
 				activeGraph->maintain_draw_wireframe(&clientState, wireframeStarts, wireframeSizes);
 
 			if (clientState.modes.diff)

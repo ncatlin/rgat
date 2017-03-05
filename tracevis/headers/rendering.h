@@ -32,9 +32,9 @@ Miscellaneous graphics routines that don't fit into the graph class
 
 void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer);
 
-//takes the vertex data structure vertdata, start and end coordinate, colour, type, scaling factors and places resulting array position in arraypos
-//not a nice call
-int drawCurve(GRAPH_DISPLAY_DATA *vertdata, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, int edgetype, MULTIPLIERS *dimensions, int *arraypos);
+int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
+	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos);
+void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos);
 
 void draw_heatmap_key(VISSTATE *clientState);
 void draw_conditional_key(VISSTATE *clientState);

@@ -28,21 +28,20 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *gra
 		needVBOReload_main = true;
 		needVBOReload_preview = true;
 
-		main_scalefactors = new MULTIPLIERS;
-		preview_scalefactors = new MULTIPLIERS;
-		preview_scalefactors->HEDGESEP = 0.15;
-		preview_scalefactors->VEDGESEP = 0.11;
-		preview_scalefactors->radius = 200;
-		preview_scalefactors->baseRadius = 200;
+		main_scalefactors = new GRAPH_SCALE;
+		preview_scalefactors = new GRAPH_SCALE;
 
 		internalProtoGraph = protoGraph;
 		graphColours = graphColoursPtr;
+
+#ifdef XP_COMPATIBLE
+		nodeCoordMutex = CreateMutex(NULL, FALSE, NULL);
+#endif
 }
 
 
-
 //tracking how big the graph gets
-void plotted_graph::updateStats(int a, int b, unsigned int bMod)
+void plotted_graph::updateStats(int a, int b, int c)
 {
 	//the extra work of 2xabs() happens so rarely that its worth avoiding
 	//the stack allocations of a variable every call
@@ -67,6 +66,42 @@ void plotted_graph::setGraphBusy(bool set)
 		assert(res != WAIT_TIMEOUT);
 	}
 	else ReleaseMutex(graphwritingMutex);
+}
+
+void plotted_graph::acquire_nodecoord_read()
+{
+#ifdef XP_COMPATIBLE
+	obtainMutex(nodeCoordMutex, 1107);
+#else
+	AcquireSRWLockShared(&nodeCoordLock);
+#endif
+}
+
+void plotted_graph::acquire_nodecoord_write()
+{
+#ifdef XP_COMPATIBLE
+	obtainMutex(nodeCoordMutex, 1107);
+#else
+	AcquireSRWLockExclusive(&nodeCoordLock);
+#endif
+}
+
+void plotted_graph::release_nodecoord_read()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(nodeCoordMutex, 1107);
+#else
+	ReleaseSRWLockShared(&nodeCoordLock);
+#endif
+}
+
+void plotted_graph::release_nodecoord_write()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(nodeCoordMutex, 1107);
+#else
+	ReleaseSRWLockExclusive(&nodeCoordLock);
+#endif
 }
 
 //display live or animated graph with active areas on faded areas
@@ -268,6 +303,7 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 				nodelist->push_back(callvsIt->second);
 		}
 		piddata->dropExternlistReadLock();
+		//todo: BUG! heap corruption can happen after here
 		return true;
 	}
 
@@ -1038,7 +1074,7 @@ void plotted_graph::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata,
 void plotted_graph::rescale_nodes(bool isPreview)
 {
 
-	MULTIPLIERS *scalefactors = isPreview ? preview_scalefactors : main_scalefactors;
+	GRAPH_SCALE *scalefactors = isPreview ? preview_scalefactors : main_scalefactors;
 
 	GRAPH_DISPLAY_DATA *vertsdata;
 	unsigned long targetIdx, nodeIdx;
@@ -1168,7 +1204,7 @@ void plotted_graph::display_big_heatmap(VISSTATE *clientState)
 		glDrawArrays(GL_LINES, 0, graph->heatmaplines->get_numVerts());
 	}
 
-	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->main_scalefactors->radius);
+	float zmul = zoomFactor(clientState->cameraZoomlevel, graph->main_scalefactors->size);
 
 	PROJECTDATA pd;
 	gather_projection_data(&pd);

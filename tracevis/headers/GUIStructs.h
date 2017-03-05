@@ -106,8 +106,8 @@ public:
 
 	TITLE *title;
 	long cameraZoomlevel = 0;
-	float xturn = 135;
-	float yturn = -25;
+	float view_shift_x = 0;
+	float view_shift_y = 0;
 	HEIGHTWIDTH displaySize;
 	HEIGHTWIDTH mainFrameSize;
 	bool rescale = false;

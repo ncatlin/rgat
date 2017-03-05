@@ -57,12 +57,23 @@ public:
 	virtual void plot_wireframe(VISSTATE *clientState) {};
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
 	virtual void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText) {};
+	virtual void orient_to_user_view(int xshift, int yshift, long zoom) {};
 
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {
 		return false;
 	};
 
+	virtual unsigned int get_graph_size() { return 0; };
+	virtual void adjust_A_edgeSep(float delta) {};
+	virtual void adjust_B_edgeSep(float delta) {};
+	virtual void adjust_size(float delta) {};
+	long get_zoom() { return defaultZoom; };
+	pair <long, long> getStartShift() { return defaultViewShift; };
+
+	//virtual int get_max_zoomIn() { return maxZoomIn; };
+
+	bool supports_wireframe() { return doesSupportWireframe; }
 	void updateMainRender(VISSTATE *clientState);
 	void setGraphBusy(bool set);
 	proto_graph * get_protoGraph() { return internalProtoGraph; }
@@ -96,8 +107,8 @@ public:
 	bool needVBOReload_conditional = true;
 
 	ALLEGRO_BITMAP *previewBMP = NULL;
-	MULTIPLIERS *main_scalefactors = NULL;
-	MULTIPLIERS *preview_scalefactors = NULL;
+	GRAPH_SCALE *main_scalefactors = NULL;
+	GRAPH_SCALE *preview_scalefactors = NULL;
 	GLuint previewVBOs[4] = { 0,0,0,0 };
 
 	HIGHLIGHT_DATA highlightData;
@@ -116,6 +127,12 @@ public:
 
 protected:
 
+#ifdef XP_COMPATIBLE
+	HANDLE nodeCoordMutex;
+#else
+	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
+#endif
+
 	bool previewNeedsResize = false;
 
 	void display_highlight_lines(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
@@ -127,9 +144,14 @@ protected:
 	int render_new_edges(bool doResize);
 	void redraw_anim_edges();
 
+	void acquire_nodecoord_read();
+	void acquire_nodecoord_write();
+	void release_nodecoord_read();
+	void release_nodecoord_write();
+
 	//for keeping track of graph dimensions
 	//this will likely need to be genericised to width/height/depth or something
-	virtual void updateStats(int a, int b, unsigned int bMod);
+	virtual void updateStats(int a, int b, int c);
 	int maxA = 0, maxB = 0;
 
 	//PID_TID  tid, pid;
@@ -143,18 +165,23 @@ protected:
 	GRAPH_DISPLAY_DATA *mainnodesdata = 0;
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
-	vector<ALLEGRO_COLOR> *graphColours;
+	vector <ALLEGRO_COLOR> *graphColours;
+
+	bool doesSupportWireframe;
+	pair <long, long> defaultViewShift;
+	long defaultZoom;
 
 private:
 	virtual void positionVert(void *positionStruct, MEM_ADDRESS address) {};
 	virtual void display_graph(VISSTATE *clientState, PROJECTDATA *pd) {};
 
-	virtual FCOORD nodeIndexToXYZ(unsigned int index, MULTIPLIERS *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
-	virtual void drawHighlight(unsigned int nodeIndex, MULTIPLIERS *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
+	virtual FCOORD nodeIndexToXYZ(unsigned int index, GRAPH_SCALE *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
+	virtual void drawHighlight(unsigned int nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
-		MULTIPLIERS *dimensions) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
+		GRAPH_SCALE *dimensions) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
 	virtual void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) { cerr << "Warning: Virtual draw_edge_heat_text called\n" << endl; };
 	virtual void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata) { cerr << "Warning: Virtual draw_condition_ins_text called\n" << endl; };
+
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 	bool isGraphBusy();

@@ -26,6 +26,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "trace_handler.h"
 #include "thread_trace_reader.h"
 #include "sphere_graph.h"
+#include "tree_graph.h"
 #include "GUIManagement.h"
 #include "b64.h"
 
@@ -119,8 +120,11 @@ void module_handler::main_loop()
 				}
 
 				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
-				sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
-				
+				//sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+
+				tree_graph *newPlottedGraph = new tree_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+				newPlottedGraph->initialiseDefaultDimensions();
+
 				//todo?
 				//graph->set_max_wait_frames(clientState->config->maxWaitFrames); 
 				

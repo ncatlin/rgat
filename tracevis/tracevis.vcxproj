@@ -207,6 +207,7 @@
     <ClInclude Include="headers\thread_trace_reader.h" />
     <ClInclude Include="headers\timeline.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="headers\tree_graph.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Agui-master\src\Agui\ActionEvent.cpp" />
@@ -326,6 +327,7 @@
     </ClCompile>
     <ClCompile Include="rgat.cpp" />
     <ClCompile Include="traceStructs.cpp" />
+    <ClCompile Include="tree_graph.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
