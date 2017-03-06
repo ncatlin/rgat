@@ -26,6 +26,8 @@ A messy collection of state structures, generally targeted to the visualiser sta
 #include "traceStructs.h"
 #include "graph_display_data.h"
 
+enum graphLayouts { eSphereLayout, eTreeLayout, eLayoutInvalid};
+
 #define XOFF 0
 #define YOFF 1
 #define ZOFF 2
@@ -115,6 +117,8 @@ public:
 
 	int leftcolumn = 0;
 	int rightcolumn = 0;
+
+	graphLayouts currentLayout = eSphereLayout;
 
 	void *widgets = 0;
 	int animationUpdate = 0;

@@ -747,7 +747,7 @@ void tree_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 		{
 			DCOORD screenCoord;
 			if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -766,42 +766,37 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 	stringstream ss;
 	DCOORD screenCoord;
 	string itext("?");
+
+	int textcount = 0;
 	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(i);
 		if (n->external) continue;
 
 		TREECOORD *nodeCoord = get_node_coord(i);
+
 		if (!nodeCoord) continue; //usually happens with block interrupted by exception
-
-								  //this check removes the bulk of the instructions at a low performance cost, including those
-								  //on screen but on the other side of the sphere
-								  //implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
-								  //bypass by turning instruction display always on
-		//if (!show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-		//	clientState->rightcolumn, main_scalefactors->AEDGESEP))
-		//	continue;
-
-
 		if (!get_screen_pos(i, mainverts, pd, &screenCoord)) continue; //in graph but not rendered
-		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
+		if (!is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height)) continue;
 
-		if (!show_all_always)
+		if (show_all_always)
+			itext = n->ins->ins_text;
+		else
 		{
-			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
+			if (clientState->cameraZoomlevel < 2000 && clientState->modes.show_ins_text == INSTEXT_AUTO)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
 		}
-		if (n->index == 7)
-			cout << "position of node 7: " << screenCoord.x << "," << screenCoord.y << endl;
+			
+		textcount++;
 		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address << ":" << itext;
 		al_draw_text(clientState->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 		ss.str("");
 	}
+	cout << "drew " << textcount << " texts" << endl;
 }
 
 //show functions/args for externs in active graph
@@ -832,16 +827,7 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			DCOORD screenCoord;
 			if (!get_screen_pos(*externCallIt, mainverts, pd, &screenCoord)) continue;
 
-			if (clientState->modes.nearSide)
-			{
-				TREECOORD *nodeCoord = get_node_coord(*externCallIt);
-				assert(nodeCoord);
-				//if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-				//	clientState->rightcolumn, main_scalefactors->AEDGESEP))
-				//	continue;
-			}
-
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -862,7 +848,7 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			DCOORD screenCoord;
 			if (!get_screen_pos(*internSymIt, mainverts, pd, &screenCoord)) continue;
 
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}

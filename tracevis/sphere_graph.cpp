@@ -215,7 +215,6 @@ SPHERECOORD * sphere_graph::get_node_coord(NODEINDEX idx)
 		release_nodecoord_read();
 		return result;
 	}
-
 	return 0;
 }
 
@@ -822,7 +821,7 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 		{
 			DCOORD screenCoord;
 			if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -915,7 +914,7 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 					continue;
 			}
 
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -945,7 +944,7 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 					continue;
 			}
 
-			if (is_on_screen(&screenCoord, clientState->displaySize.width, clientState->displaySize.height))
+			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
 				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}

@@ -362,6 +362,22 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	return true;
 }
 
+#define LAYOUT_ICONS_X_END LAYOUT_ICONS_X2 + LAYOUT_ICONS_W
+#define LAYOUT_ICONS_Y_END LAYOUT_ICONS_Y + LAYOUT_ICONS_H
+graphLayouts layout_selection_click(int mousex, int mousey)
+{
+	if (mousey > LAYOUT_ICONS_Y_END || mousex > LAYOUT_ICONS_X_END || mousex < LAYOUT_ICONS_X1 || mousey < LAYOUT_ICONS_Y)
+		return eLayoutInvalid;
+
+	if (mousex >= LAYOUT_ICONS_X1 && mousex <= (LAYOUT_ICONS_X1 + LAYOUT_ICONS_W))
+		return eSphereLayout;
+
+	if (mousex >= LAYOUT_ICONS_X2 && mousex <= (LAYOUT_ICONS_X2 + LAYOUT_ICONS_W))
+		return eTreeLayout;
+
+	return eLayoutInvalid;
+}
+
 static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 {
 	ALLEGRO_DISPLAY *display = clientState->maindisplay;
@@ -472,9 +488,17 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	{
 		case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
 		{
+			graphLayouts clickedLayout = layout_selection_click(ev->mouse.x, ev->mouse.y);
+			if (clickedLayout != eLayoutInvalid)
+			{
+				clientState->currentLayout = clickedLayout;
+				widgets->setLayoutIcon();
+				return EV_MOUSE;
+			}
+
 			if (!clientState->dialogOpen && mouse_in_maingraphpane(clientState, ev->mouse.x, ev->mouse.y))
 				clientState->mouse_dragging = true;
-			else 
+			else
 				if (mouse_in_previewpane(clientState, ev->mouse.x))
 				{
 					if (widgets->dropdownDropped()) return EV_MOUSE;
@@ -482,6 +506,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
 						set_active_graph(clientState, PID, TID);
 				}
+
 			return EV_MOUSE;
 		}
 
@@ -1006,9 +1031,11 @@ int main(int argc, char **argv)
 		cerr << "[rgat]ERROR: Failed to init allegro font addon. Exiting..." << endl;
 		return -1;
 	}
-	
+
+	string resourcePath = getModulePath();
+	string fontfile = "VeraSe.ttf";
 	stringstream fontPath_ss;
-	fontPath_ss << getModulePath() << "\\" << "VeraSe.ttf";
+	fontPath_ss << resourcePath << "\\" << fontfile;
 	string fontPath = fontPath_ss.str();
 	clientState.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
 	clientState.messageFont = al_load_ttf_font(fontPath.c_str(), 15, 0);
@@ -1020,7 +1047,7 @@ int main(int argc, char **argv)
 
 	TraceVisGUI* widgets = new TraceVisGUI(&clientState);
 	clientState.widgets = (void *)widgets;
-	widgets->widgetSetup(fontPath);
+	widgets->widgetSetup(resourcePath, fontfile);
 	widgets->toggleSmoothDrawing(true);
 
 	//preload glyphs in cache

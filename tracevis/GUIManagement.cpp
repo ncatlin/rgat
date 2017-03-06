@@ -93,6 +93,41 @@ void TraceVisGUI::paintWidgets()
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	widgets->render();
 
+	al_draw_tinted_bitmap(sphereIcon, al_map_rgba(255, 255, 255, 255),  LAYOUT_ICONS_X1, LAYOUT_ICONS_Y, 0);
+	al_draw_tinted_bitmap(treeIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X2, LAYOUT_ICONS_Y, 0);
+}
+
+void TraceVisGUI::setLayoutIcon()
+{
+	ALLEGRO_BITMAP *oldbmp = al_get_target_bitmap();
+
+	al_set_target_bitmap(sphereIcon);
+	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
+	if (clientState->currentLayout == eSphereLayout)
+	{
+		al_draw_tinted_bitmap(sphereIconBase, al_map_rgba(255, 255, 255, 255), 0, 0, 0);
+		al_draw_rectangle(1, 1, 47, 47, al_col_white, 2);
+		al_draw_rectangle(3, 3, 45, 45, al_col_black, 2);
+	}
+	else
+	{
+		al_draw_tinted_bitmap(sphereIconBase, al_map_rgba(255, 255, 255, 100), 0, 0, 0);
+	}
+
+	al_set_target_bitmap(treeIcon);
+	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
+	if (clientState->currentLayout == eTreeLayout)
+	{
+		al_draw_tinted_bitmap(treeIconBase, al_map_rgba(255, 255, 255, 255), 0, 0, 0);
+		al_draw_rectangle(1, 1, 47, 47, al_col_white, 2);
+		al_draw_rectangle(3, 3, 45, 45, al_col_black, 2);
+	}
+	else
+	{
+		al_draw_tinted_bitmap(treeIconBase, al_map_rgba(255, 255, 255, 100), 0, 0, 0);
+	}
+
+	al_set_target_bitmap(oldbmp);
 }
 
 void TraceVisGUI::showGraphToolTip(proto_graph *graph, PROCESS_DATA *piddata, int x, int y) {
@@ -124,7 +159,7 @@ void TraceVisGUI::fitToResize()
 	widgets->resizeToDisplay();
 }
 
-void TraceVisGUI::widgetSetup(string fontpath) {
+void TraceVisGUI::widgetSetup(string resourcepath, string fontfile) {
 
 	agui::Font::setFontLoader(new agui::Allegro5FontLoader);
 	//Instance the input handler
@@ -132,7 +167,8 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	widgetGraphicsHandler = new agui::Allegro5Graphics();
 	widgets = new agui::Gui();
 
-	agui::Font *defaultFont = agui::Font::load(fontpath.c_str(), 14);
+	string fontPath = string(resourcepath) + "\\" + fontfile;
+	agui::Font *defaultFont = agui::Font::load(fontPath.c_str(), 14);
 
 	agui::Widget::setGlobalFont(defaultFont);
 	widgets->setGraphics(widgetGraphicsHandler);
@@ -221,7 +257,51 @@ void TraceVisGUI::widgetSetup(string fontpath) {
 	aboutLayout->resizeToContents();
 	aboutBox->resizeToContents();
 	widgets->add(aboutBox);
+
+	sphereIconBase = al_create_bitmap(48, 48);
+	treeIconBase = al_create_bitmap(48, 48);
+	sphereIcon = al_create_bitmap(48, 48);
+	treeIcon = al_create_bitmap(48, 48);
+
+	al_init_image_addon();
+
+	stringstream iconsPath;
+	iconsPath << resourcepath << "\\layoutIcons.png";
+	ALLEGRO_BITMAP *iconsBmp = al_load_bitmap(iconsPath.str().c_str());
+
+	if (iconsBmp)
+	{
+		al_set_target_bitmap(sphereIconBase);
+		al_draw_bitmap_region(iconsBmp, 0, 0, 48, 48, 0, 0, 0);
+		al_set_target_bitmap(treeIconBase);
+		al_draw_bitmap_region(iconsBmp, 48, 0, 48, 48, 0, 0, 0);
+	}
+	else
+	{
+		ALLEGRO_FONT *ifont = al_load_ttf_font(fontPath.c_str(), 14, 0);
+
+		if (ifont)
+		{
+			al_set_target_bitmap(sphereIconBase);
+			al_draw_text(ifont, al_col_white, 20, 20, 0, "O");
+
+			al_set_target_bitmap(treeIconBase);
+			al_draw_text(ifont, al_col_white, 20, 20, 0, "^");
+		}
+		else
+		{
+			al_set_target_bitmap(sphereIconBase);
+			al_clear_to_color(al_col_red);
+
+			al_set_target_bitmap(treeIconBase);
+			al_clear_to_color(al_col_green);
+		}
+	}
+	setLayoutIcon();
+
 }
+
+
 
 ALLEGRO_DISPLAY* displaySetup() 
 {

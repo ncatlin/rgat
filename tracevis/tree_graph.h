@@ -77,5 +77,6 @@ private:
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
+
 };
 

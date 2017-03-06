@@ -38,13 +38,14 @@ misc other UI elements
 #include "Agui\Widgets\TextField\TextField.hpp"
 #include "Agui\Widgets\ToolTip\ToolTip.hpp"
 #include "Agui\Widgets\ScrollBar\VScrollBar.hpp"
+#include "Agui\Widgets\ImageWidget\ImageWidget.hpp"
 
 #define WIDGET_UPDATE_GAP 10
 class TraceVisGUI {
 
 public:
 	TraceVisGUI(VISSTATE *cstate) { clientState = cstate; }
-	void widgetSetup(string fontpath);
+	void widgetSetup(string resourcepath, string fontfile);
 	agui::Allegro5Input *inputHandler() { return widgetInputHandler; }
 	agui::DropDown *dropdown() { return dropDownWidget; }
 	void updateWidgets(plotted_graph *graph);
@@ -62,6 +63,7 @@ public:
 		{ widgetInputHandler->processEvent(*ev); widgets->logic();	}
 	bool dropdownDropped() { return dropDownWidget->isDropDownShowing(); }
 	void showGraphToolTip(proto_graph *graph, PROCESS_DATA *piddata, int x, int y);
+	void setLayoutIcon();
 
 	DiffSelectionFrame *diffWindow = NULL;
 	HighlightSelectionFrame *highlightWindow = NULL;
@@ -89,6 +91,8 @@ private:
 	agui::Label *pidCountLabel;
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
+
+	ALLEGRO_BITMAP *sphereIcon, *sphereIconBase, *treeIcon, *treeIconBase;
 
 	int widgetsUpdateCooldown = 1;
 	bool smoothDrawing = false;
