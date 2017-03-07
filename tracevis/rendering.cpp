@@ -21,7 +21,8 @@ Miscellaneous graphics routines that don't fit into the graph class
 #include "stdafx.h"
 #include "rendering.h"
 #include "OSspecific.h"
-#include "plotted_graph.h"
+#include "tree_graph.h"
+#include "sphere_graph.h"
 
 //plot wireframe/colpick sphere in memory if they dont exist
 //+draw wireframe
@@ -221,7 +222,7 @@ void draw_internal_symbol(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD scre
 }
 
 //displays the divergence of two selected graphs, defined in diffrenderer
-void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer)
+void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_data *divergeNode)
 {
 	plotted_graph *graph1 = diffRenderer->get_graph(1);
 	plotted_graph *diffgraph = diffRenderer->get_diff_graph();
@@ -245,6 +246,10 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer)
 
 	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
+
+	//TODO: Figure out why virtual func is being called
+	if (divergeNode)
+		diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
 
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->size);
 	/*

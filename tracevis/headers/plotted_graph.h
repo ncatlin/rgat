@@ -65,6 +65,7 @@ public:
 	virtual void adjust_A_edgeSep(float delta) {};
 	virtual void adjust_B_edgeSep(float delta) {};
 	virtual void adjust_size(float delta) {};
+	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 
 	void updateMainRender(VISSTATE *clientState);
 	bool setGraphBusy(bool set);
@@ -102,6 +103,9 @@ public:
 	bool needVBOReload_heatmap = true;
 	bool needVBOReload_conditional = true;
 
+	map <int, int> dbgRefs;
+
+
 	ALLEGRO_BITMAP *previewBMP = NULL;
 	GRAPH_SCALE *main_scalefactors = NULL;
 	GRAPH_SCALE *preview_scalefactors = NULL;
@@ -120,8 +124,8 @@ public:
 	bool VBOsGenned = false;
 	long long userSelectedAnimPosition = -1;
 
-	bool increase_thread_references(int i);
-	void decrease_thread_references(int i);
+	bool increase_thread_references(int i = 0);
+	void decrease_thread_references(int i = 0);
 
 protected:
 
@@ -179,7 +183,7 @@ private:
 	virtual void display_graph(VISSTATE *clientState, PROJECTDATA *pd) {};
 
 	virtual FCOORD nodeIndexToXYZ(unsigned int index, GRAPH_SCALE *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
-	virtual void drawHighlight(unsigned int nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
+
 	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
 	virtual void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) { cerr << "Warning: Virtual draw_edge_heat_text called\n" << endl; };
@@ -202,6 +206,9 @@ private:
 	void brighten_new_active();
 	void maintain_active();
 	void darken_fading(float fadeRate);
+	void darken_nodes(float fadeRate);
+	void darken_edges(float fadeRate);
+
 	void remove_unchained_from_animation();
 	unsigned long calculate_wait_frames(unsigned int stepSize, unsigned long executions);
 	void clear_active();

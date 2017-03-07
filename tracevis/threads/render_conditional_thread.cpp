@@ -143,7 +143,7 @@ void conditional_renderer::main_loop()
 		for (graphIt = piddata->plottedGraphs.begin(); graphIt != piddata->plottedGraphs.end(); ++graphIt)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references(333))
+			if (g->increase_thread_references(6626))
 				graphlist.push_back(g);
 		}
 		dropMutex(piddata->graphsListMutex);
@@ -173,7 +173,7 @@ void conditional_renderer::main_loop()
 		}
 
 		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
-			((plotted_graph *)*graphlistIt)->decrease_thread_references(333);
+			((plotted_graph *)*graphlistIt)->decrease_thread_references(6626);
 		graphlist.clear();
 
 		int waitForNextIt = 0;

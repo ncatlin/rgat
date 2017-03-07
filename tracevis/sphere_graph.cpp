@@ -719,6 +719,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 
 			//let returns find their caller if and only if they have one
 			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
+			//todo: crash here, looks like callstack needs a guard
 			callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
 			break;
 		}

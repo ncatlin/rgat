@@ -153,7 +153,7 @@ void handle_resize(VISSTATE *clientState);
 void display_only_status_message(string msg, VISSTATE *clientState);
 bool controlSetup();
 ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display);
-void cleanup_for_exit(ALLEGRO_DISPLAY *display);
+void cleanup_for_exit(VISSTATE *clientState);
 graphLayouts layout_selection_click(int mousex, int mousey);
 void resize_display(VISSTATE *clientState, int w, int h);
 void toggle_externtext_mode(VISSTATE *clientState);

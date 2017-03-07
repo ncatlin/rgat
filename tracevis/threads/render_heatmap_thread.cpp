@@ -394,7 +394,7 @@ void heatmap_renderer::main_loop()
 		for (; graphIt != piddata->plottedGraphs.end(); ++graphIt)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references(333))
+			if (g->increase_thread_references(767))
 				graphlist.push_back(g);
 		}
 		dropMutex(piddata->graphsListMutex);
@@ -405,7 +405,7 @@ void heatmap_renderer::main_loop()
 			vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 			for (;graphlistIt != graphlist.end(); graphlistIt++)
 			{
-				((plotted_graph *)*graphlistIt)->decrease_thread_references(343);
+				((plotted_graph *)*graphlistIt)->decrease_thread_references(767);
 			}
 			break;
 		}
@@ -431,7 +431,7 @@ void heatmap_renderer::main_loop()
 		}
 		
 		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
-			((plotted_graph *)*graphlistIt)->decrease_thread_references(343);
+			((plotted_graph *)*graphlistIt)->decrease_thread_references(767);
 		graphlist.clear();
 
 		int waitForNextIt = 0;

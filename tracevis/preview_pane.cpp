@@ -72,12 +72,12 @@ void uploadPreviewGraph(plotted_graph *previewgraph)
 	vector<float> *lineVector = 0;
 	
 	lineVector = previewgraph->previewlines->acquire_pos_read(25);
-	if (previewgraph->previewlines->get_numVerts() == 0)
+	if (previewgraph->previewlines->get_numVerts() == 0 || lineVector->empty())
 	{
 		previewgraph->previewlines->release_pos_read();
 		return;
 	}
-	assert(!lineVector->empty());
+
 	load_VBO(VBO_LINE_POS, VBOs, posbufsize, &lineVector->at(0));
 	previewgraph->previewlines->release_pos_read();
 

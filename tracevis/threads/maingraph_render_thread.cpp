@@ -92,14 +92,13 @@ void maingraph_render_thread::main_loop()
 			activeGraph = (plotted_graph *)clientState->activeGraph;
 			Sleep(5); continue;
 		}
-		cout << "Mainrenderer waiting on graph ..." << activeGraph;
-		activeGraph->increase_thread_references(65);
-		cout << "Obtained!" << endl;
+
+		activeGraph->increase_thread_references(111);
 		getMutex();
 		performMainGraphRendering(activeGraph);
 		dropMutex();
 
-		activeGraph->decrease_thread_references(65);
+		activeGraph->decrease_thread_references(111);
 		activeGraph = 0;
 
 		Sleep(renderFrequency);

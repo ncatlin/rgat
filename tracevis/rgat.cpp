@@ -45,124 +45,10 @@ bool kbdInterrupt = false;
 
 void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets);
 
-void change_mode(VISSTATE *clientState, eUIEventCode mode)
-{
-	switch (mode)
-	{
-	case EV_BTN_WIREFRAME:
-			clientState->modes.wireframe = !clientState->modes.wireframe;
-		break;
-
-	case EV_BTN_CONDITION:
-		
-		clientState->modes.conditional = !clientState->modes.conditional;
-		if (clientState->modes.conditional)
-		{
-			clientState->modes.nodes = true;
-			clientState->modes.heatmap = false;
-			clientState->backgroundColour = clientState->config->conditional.background;
-		}
-		else
-			clientState->backgroundColour = clientState->config->mainBackground;
-
-		break;
-
-	case EV_BTN_HEATMAP:
-
-		clientState->modes.heatmap = !clientState->modes.heatmap;
-		clientState->modes.nodes = !clientState->modes.heatmap;
-		if (clientState->modes.heatmap) clientState->modes.conditional = false;
-		break;
-
-	case EV_BTN_PREVIEW:
-		{
-			al_destroy_bitmap(clientState->mainGraphBMP);
-			clientState->modes.preview = !clientState->modes.preview;
-
-			TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-			if (clientState->modes.preview)
-			{
-				widgets->setScrollbarVisible(true);
-				clientState->mainGraphBMP = al_create_bitmap(clientState->mainFrameSize.width, clientState->mainFrameSize.height);
-			}
-			else
-			{
-				widgets->setScrollbarVisible(false);
-				clientState->mainGraphBMP = al_create_bitmap(clientState->displaySize.width, clientState->mainFrameSize.height);
-			}
-
-			break;
-		}
-	case EV_BTN_DIFF:
-		clientState->modes.heatmap = false;
-		clientState->modes.conditional = false;
-		break;
-
-	case EV_BTN_NODES:
-		clientState->modes.nodes = !clientState->modes.nodes;
-		break;
-
-	case EV_BTN_EDGES:
-		clientState->modes.edges = !clientState->modes.edges;
-		break;
-	}
-}
 
 
-void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter **diffRenderer)
-{
-	if (clientState->modes.diff == DIFF_STARTED) //diff graph built, display it
-	{
-		
-		plotted_graph *graph1 = (*diffRenderer)->get_graph(1);
-		proto_graph *protoGraph1 = graph1->get_protoGraph();
-		NODEINDEX nIdx = (*diffRenderer)->get_diff_node();
-		node_data *n = protoGraph1->safe_get_node(nIdx);
-		//if (n) //highlight has to be drawn before the graph or the text rendering will destroy it
-		//	drawHighlight(&n->SPHERECOORD, graph1->main_scalefactors, &al_col_orange, 10);
 
-		plotted_graph *diffGraph = (*diffRenderer)->get_diff_graph();
-		display_graph_diff(clientState, *diffRenderer);
-	}
 
-	else if (clientState->modes.diff == DIFF_SELECTED)//diff button clicked, build the graph first
-	{
-		change_mode(clientState, EV_BTN_DIFF);
-		clientState->modes.diff = DIFF_STARTED;
-		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-		widgets->showHideDiffFrame();
-
-		plotted_graph *graph1 = widgets->diffWindow->get_graph(1);
-		plotted_graph *graph2 = widgets->diffWindow->get_graph(2);
-		*diffRenderer = new diff_plotter(graph1, graph2, clientState);
-		((diff_plotter*)*diffRenderer)->render();
-	}
-
-	//((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
-}
-
-/*
-performs actions that need to be done quite often, but not every frame
-this includes checking the locations of the screen edge on the sphere and
-drawing new highlights for things that match the active filter
-*/
-void performIrregularActions(VISSTATE *clientState)
-{
-	SCREEN_EDGE_PIX TBRG;
-	//update where camera is pointing on sphere, used to choose which node text to draw
-	edge_picking_colours(clientState, &TBRG, true);
-
-	clientState->leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
-	clientState->rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
-
-	plotted_graph * graph = (plotted_graph *)clientState->activeGraph;
-	HIGHLIGHT_DATA *highlightData = &graph->highlightData;
-	if (highlightData->highlightState && graph->get_protoGraph()->active)
-	{
-		TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-		widgets->highlightWindow->updateHighlightNodes(highlightData, graph->get_protoGraph(), clientState->activePid);
-	}
-}
 
 bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 {
@@ -461,18 +347,18 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			graphLayouts clickedLayout = layout_selection_click(ev->mouse.x, ev->mouse.y);
 			if (clickedLayout != eLayoutInvalid)
 			{
-				clientState->currentLayout = clickedLayout;
-				widgets->setLayoutIcon();
-
 				plotted_graph *oldActiveGraph = (plotted_graph *)clientState->activeGraph;
+				if (!oldActiveGraph) 
+					return EV_MOUSE;
 
 				if (clickedLayout != oldActiveGraph->getLayout())
 				{
+					clientState->currentLayout = clickedLayout;
+					widgets->setLayoutIcon();
+
 					proto_graph *active_proto_graph = oldActiveGraph->get_protoGraph();
 					PROCESS_DATA *piddata = active_proto_graph->get_piddata();
 					PID_TID graphThread = oldActiveGraph->get_tid();
-
-					
 
 					plotted_graph *newPlottedGraph = 0;
 					switch (clientState->currentLayout)
@@ -496,10 +382,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					newPlottedGraph->initialiseDefaultDimensions();
 					piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
 					clientState->newActiveGraph = newPlottedGraph;
-					cout << "switching to new graph " << newPlottedGraph << endl;
 					switchToActiveGraph(clientState, widgets);
 
-					cout << "Deleting old graph " << oldActiveGraph << endl;
 					delete oldActiveGraph;
 				}
 
@@ -582,11 +466,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				}
 
 				case ALLEGRO_KEY_Y:
-					change_mode(clientState, EV_BTN_WIREFRAME);
+					clientState->change_mode(EV_BTN_WIREFRAME);
 					break;
 
 				case ALLEGRO_KEY_K:
-					change_mode(clientState, EV_BTN_HEATMAP);
+					clientState->change_mode(EV_BTN_HEATMAP);
 					break;
 
 				case ALLEGRO_KEY_M:
@@ -598,11 +482,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_J:
-					change_mode(clientState, EV_BTN_CONDITION);
+					clientState->change_mode(EV_BTN_CONDITION);
 					break;
 
 				case ALLEGRO_KEY_E:
-					change_mode(clientState, EV_BTN_EDGES);
+					clientState->change_mode(EV_BTN_EDGES);
 					break;
 
 				//stretch and shrink the graph
@@ -685,7 +569,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			case EV_BTN_HEATMAP:
 			case EV_BTN_NODES:
 			case EV_BTN_EDGES:
-				change_mode(clientState, (eUIEventCode)ev->user.data1);
+				clientState->change_mode((eUIEventCode)ev->user.data1);
 				break;
 
 			case EV_BTN_HIGHLIGHT:
@@ -874,6 +758,8 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 	if (clientState->textlog) closeTextLog(clientState);
 }
 
+
+
 int main(int argc, char **argv)
 {
 
@@ -955,6 +841,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
+
 	clientState.gen_wireframe_buffers();
 	clientState.event_queue = newQueue;
 	clientState.maindisplay = newDisplay;
@@ -975,14 +862,6 @@ int main(int argc, char **argv)
 
 	bool buildComplete = false;
 
-	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
-	GLint *wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	GLint *wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	for (int i = 0; i < WIREFRAMELOOPS; ++i)
-	{
-		wireframeStarts[i] = i*WF_POINTSPERLINE;
-		wireframeSizes[i] = WF_POINTSPERLINE;
-	}
 
 	//setup frame limiter/fps clock
 	double fps, fps_max, frame_start_time;
@@ -995,8 +874,8 @@ int main(int argc, char **argv)
 
 	//edge_picking_colours() is a hefty call, but doesn't need calling often
 	ALLEGRO_TIMER *updatetimer = al_create_timer(40.0 / TARGET_FPS);
-	ALLEGRO_EVENT_QUEUE *low_frequency_timer_queue = al_create_event_queue();
-	al_register_event_source(low_frequency_timer_queue, al_get_timer_event_source(updatetimer));
+	clientState.low_frequency_timer_queue = al_create_event_queue();
+	al_register_event_source(clientState.low_frequency_timer_queue, al_get_timer_event_source(updatetimer));
 	al_start_timer(updatetimer);
 
 	if (!frametimer || !updatetimer)
@@ -1018,7 +897,8 @@ int main(int argc, char **argv)
 	string fontPath = fontPath_ss.str();
 	clientState.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
 	clientState.messageFont = al_load_ttf_font(fontPath.c_str(), 15, 0);
-	ALLEGRO_FONT *PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
+	clientState.PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);
+
 	if (!clientState.standardFont) {
 		cerr << "[rgat]ERROR: Could not load font file "<< fontPath << endl;
 		return -1;
@@ -1032,17 +912,16 @@ int main(int argc, char **argv)
 	//preload glyphs in cache
 	al_get_text_width(clientState.standardFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 	al_get_text_width(clientState.messageFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
-	al_get_text_width(PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
+	al_get_text_width(clientState.PIDFont, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890()=-+_,.><?/");
 
 	//clientState.cameraZoomlevel = INITIALZOOM;
 	clientState.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState.displaySize.height - 50);
 	initial_gl_setup(&clientState);
 
-	//for rendering graph diff
-	diff_plotter *diffRenderer;
+
 
 	ALLEGRO_EVENT ev;
-	int previewRenderFrame = 0;
+	
 	map <PID_TID, NODEPAIR> graphPositions;
 
 
@@ -1127,65 +1006,10 @@ int main(int argc, char **argv)
 			dropMutex(clientState.pidMapMutex);
 		}
 
-		////active graph changed
-		//if (clientState.newActiveGraph)
-		//	switchToActiveGraph(&clientState, widgets, &externFloatingText);
 
-		plotted_graph *activeGraph = (plotted_graph *)clientState.activeGraph;
-
-		widgets->updateWidgets(activeGraph);
+		widgets->updateWidgets((plotted_graph *)clientState.activeGraph);
 		
-		if (clientState.activeGraph)
-		{
-			
-			al_set_target_bitmap(clientState.mainGraphBMP);
-			frame_gl_setup(&clientState);
-
-			al_clear_to_color(clientState.backgroundColour);
-
-			//set to true if displaying the colour picking sphere
-			if (!al_is_event_queue_empty(low_frequency_timer_queue)) 
-			{
-				al_flush_event_queue(low_frequency_timer_queue);
-				performIrregularActions(&clientState);
-			}
-
-			if (clientState.modes.wireframe)
-				activeGraph->maintain_draw_wireframe(&clientState, wireframeStarts, wireframeSizes);
-
-			if (clientState.modes.diff)
-				draw_display_diff(&clientState, PIDFont, &diffRenderer);
-
-			if (!clientState.modes.diff) //not an else for clarity
-				activeGraph->performMainGraphDrawing(&clientState);
-
-			frame_gl_teardown();
-
-			if (clientState.animFinished)
-			{
-				clientState.animFinished = false;
-				TraceVisGUI* widgets = (TraceVisGUI*)clientState.widgets;
-				widgets->controlWindow->notifyAnimFinished();
-			}
-			
-			
-			al_set_target_backbuffer(clientState.maindisplay);
-			if (clientState.modes.preview)
-			{
-				if (previewRenderFrame++ % (TARGET_FPS / clientState.config->preview.FPS))
-				{
-					//update and draw preview graphs onto the previewpane bitmap
-					redrawPreviewGraphs(&clientState, &graphPositions);
-					previewRenderFrame = 0;
-				}
-				//draw previews on the screen
-				al_draw_bitmap(clientState.previewPaneBMP, clientState.mainFrameSize.width, MAIN_FRAME_Y, 0);
-			}
-			//draw the main big graph bitmap on the screen
-			al_draw_bitmap(clientState.mainGraphBMP, 0, 0, 0);
-
-			display_activeGraph_summary(20, 10, PIDFont, &clientState);
-		}
+		clientState.displayActiveGraph();
 
 		//clientState.discard_activeGraph_ptr();
 		//cout << "graph marked out of use" << endl;
@@ -1228,6 +1052,7 @@ int main(int argc, char **argv)
 							if (graph->get_protoGraph()->get_num_nodes())
 							{
 								clientState.newActiveGraph = graph;
+								switchToActiveGraph(&clientState, widgets);
 								break;
 							}
 						}			
@@ -1254,10 +1079,9 @@ int main(int argc, char **argv)
 		updateTitle_FPS(clientState.maindisplay, clientState.title, fps, fps_max);
 	}
 
-	free(wireframeStarts);
-	free(wireframeSizes);
 
-	cleanup_for_exit(clientState.maindisplay);
+
+	cleanup_for_exit(&clientState);
 	return 0;
 }
 

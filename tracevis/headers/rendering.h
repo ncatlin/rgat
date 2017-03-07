@@ -30,7 +30,7 @@ Miscellaneous graphics routines that don't fit into the graph class
 
 #include "diff_plotter.h"
 
-void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer);
+void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_data* divergeNode);
 
 int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
 	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos);

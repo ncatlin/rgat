@@ -469,9 +469,11 @@ bool controlSetup() {
 	return true;
 }
 
-void cleanup_for_exit(ALLEGRO_DISPLAY *display) 
+void cleanup_for_exit(VISSTATE *cstate) 
 {
-	al_destroy_display(display);
+	free(cstate->wireframeStarts);
+	free(cstate->wireframeSizes);
+	al_destroy_display(cstate->maindisplay);
 }
 
 ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display) 

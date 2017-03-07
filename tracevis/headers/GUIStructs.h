@@ -94,6 +94,7 @@ public:
 	{
 		glGenBuffers(2, colSphereVBOs);
 		glGenBuffers(2, wireframeVBOs);
+		initWireframeBufs();
 	}
 
 #ifdef XP_COMPATIBLE
@@ -102,17 +103,12 @@ public:
 	SRWLOCK graphPtrLock = SRWLOCK_INIT;
 #endif
 
-	ALLEGRO_DISPLAY *maindisplay = 0;
-	ALLEGRO_BITMAP *mainGraphBMP = 0;
-	ALLEGRO_BITMAP *previewPaneBMP = 0;
-	ALLEGRO_BITMAP *GUIBMP = 0;
-	ALLEGRO_FONT *standardFont;
-	ALLEGRO_FONT *messageFont;
-	ALLEGRO_EVENT_QUEUE *event_queue = 0;
-
-	LAUNCHOPTIONS launchopts;
-
 	void set_activeGraph(void *graph);
+	void displayActiveGraph();
+	void performIrregularActions();
+	void change_mode(eUIEventCode mode);
+	void draw_display_diff(ALLEGRO_FONT *font, void *diffRenderer);
+	void initWireframeBufs();
 
 	//cache to avoid lock every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
@@ -120,6 +116,23 @@ public:
 		activeGraphSize = size;
 	}
 	long activeGraphSize = 0;
+
+	ALLEGRO_DISPLAY *maindisplay = 0;
+	ALLEGRO_BITMAP *mainGraphBMP = 0;
+	ALLEGRO_BITMAP *previewPaneBMP = 0;
+	ALLEGRO_BITMAP *GUIBMP = 0;
+
+	ALLEGRO_FONT *standardFont;
+	ALLEGRO_FONT *messageFont;
+	ALLEGRO_FONT *PIDFont = 0;
+
+	ALLEGRO_COLOR backgroundColour;
+
+	ALLEGRO_EVENT_QUEUE *event_queue = 0;
+	ALLEGRO_EVENT_QUEUE *low_frequency_timer_queue = 0;
+
+	LAUNCHOPTIONS launchopts;
+
 
 	TITLE *title;
 	long cameraZoomlevel = 0;
@@ -147,7 +160,8 @@ public:
 	void *activeGraph = NULL;
 	void *maingraphRenderThreadPtr;
 
-	ALLEGRO_COLOR backgroundColour;
+	//for rendering graph diff
+	void *diffRenderer;
 
 	map <PID_TID, NODEPAIR> graphPositions;
 
@@ -190,6 +204,11 @@ public:
 
 	bool die = false;
 	bool saving = false;
+
+	int previewRenderFrame = 0;
+
+	GLint *wireframeStarts;
+	GLint *wireframeSizes;
 };
 
 //screen top bottom red green
