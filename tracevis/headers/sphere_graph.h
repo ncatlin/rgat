@@ -32,7 +32,9 @@ class sphere_graph : public plotted_graph
 
 public:
 	sphere_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
-		: plotted_graph(protoGraph, coloursPtr) {};
+		: plotted_graph(protoGraph, coloursPtr) {
+		layout = eSphereLayout;
+	};
 	~sphere_graph() {};
 
 	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);

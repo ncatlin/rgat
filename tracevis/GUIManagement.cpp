@@ -31,6 +31,22 @@ RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1,
 	clientState = state; 
 }
 
+#define LAYOUT_ICONS_X_END LAYOUT_ICONS_X2 + LAYOUT_ICONS_W
+#define LAYOUT_ICONS_Y_END LAYOUT_ICONS_Y + LAYOUT_ICONS_H
+graphLayouts layout_selection_click(int mousex, int mousey)
+{
+	if (mousey > LAYOUT_ICONS_Y_END || mousex > LAYOUT_ICONS_X_END || mousex < LAYOUT_ICONS_X1 || mousey < LAYOUT_ICONS_Y)
+		return eLayoutInvalid;
+
+	if (mousex >= LAYOUT_ICONS_X1 && mousex <= (LAYOUT_ICONS_X1 + LAYOUT_ICONS_W))
+		return eSphereLayout;
+
+	if (mousex >= LAYOUT_ICONS_X2 && mousex <= (LAYOUT_ICONS_X2 + LAYOUT_ICONS_W))
+		return eTreeLayout;
+
+	return eLayoutInvalid;
+}
+
 void TraceVisGUI::showHideHighlightFrame() 
 {
 	bool frameIsVisible = highlightWindow->highlightFrame->isVisible();
@@ -525,4 +541,84 @@ void display_only_status_message(string msg, VISSTATE *clientState)
 	al_set_target_backbuffer(clientState->maindisplay);
 	al_draw_bitmap(clientState->GUIBMP, 0, 0, 0);
 	al_flip_display();
+}
+
+void resize_display(VISSTATE *clientState, int w, int h)
+{
+	ALLEGRO_DISPLAY *display = clientState->maindisplay;
+
+	clientState->displaySize.height = h;
+	clientState->displaySize.width = w;
+
+	clientState->mainFrameSize.height = h - BASE_CONTROLS_HEIGHT;
+	clientState->mainFrameSize.width = w - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
+
+	al_acknowledge_resize(display);
+	handle_resize(clientState);
+}
+
+void toggle_externtext_mode(VISSTATE *clientState)
+{
+	clientState->modes.show_extern_text++;
+	if (clientState->modes.show_extern_text > EXTERNTEXT_LAST)
+		clientState->modes.show_extern_text = EXTERNTEXT_FIRST;
+
+	switch (clientState->modes.show_extern_text)
+	{
+	case EXTERNTEXT_NONE:
+		cout << "[rgat]Extern labels off" << endl;
+		break;
+	case EXTERNTEXT_SYMS:
+		cout << "[rgat]Extern syms shown" << endl;
+		break;
+	case EXTERNTEXT_ALL:
+		cout << "[rgat]Extern paths and syms shown" << endl;
+		break;
+	}
+}
+
+void toggle_instext_mode(VISSTATE *clientState)
+{
+	clientState->modes.show_ins_text++;
+	if (clientState->modes.show_ins_text > INSTEXT_LAST)
+		clientState->modes.show_ins_text = INSTEXT_FIRST;
+
+	switch (clientState->modes.show_ins_text) 
+	{
+	case INSTEXT_NONE:
+		cout << "[rgat]Instruction text off" << endl;
+		break;
+	case INSTEXT_AUTO:
+		cout << "[rgat]Instruction text auto" << endl;
+		break;
+	case INSTEXT_ALL_ALWAYS:
+		cout << "[rgat]Instruction text always on" << endl;
+		break;
+	}
+}
+
+void closeTextLog(VISSTATE *clientState)
+{
+	al_close_native_text_log(clientState->textlog);
+	clientState->textlog = 0;
+	clientState->logSize = 0;
+}
+
+void toggleExternLog(VISSTATE *clientState)
+{
+	if (clientState->textlog)
+	{
+		closeTextLog(clientState);
+		return;
+	}
+	
+	if (!clientState->activeGraph) return;
+
+	plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
+	stringstream windowName;
+	windowName << "Extern calls [TID: " << activeGraph->get_protoGraph()->get_TID() << "]";
+	clientState->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
+	ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientState->textlog);
+	al_register_event_source(clientState->event_queue, logevents);
+	clientState->logSize = activeGraph->get_protoGraph()->fill_extern_log(clientState->textlog, clientState->logSize);
 }

@@ -51,6 +51,7 @@ public:
 	plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *graphColoursPtr);
 	~plotted_graph();
 
+	virtual void initialiseDefaultDimensions() {};
 	virtual void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) {};
 	virtual void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd) {};
 	virtual void render_static_graph(VISSTATE *clientState) {};
@@ -58,35 +59,30 @@ public:
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
 	virtual void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText) {};
 	virtual void orient_to_user_view(int xshift, int yshift, long zoom) {};
-
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
-		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {
-		return false;
-	};
-
+		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {	return false;};
 	virtual unsigned int get_graph_size() { return 0; };
 	virtual void adjust_A_edgeSep(float delta) {};
 	virtual void adjust_B_edgeSep(float delta) {};
 	virtual void adjust_size(float delta) {};
-	long get_zoom() { return defaultZoom; };
-	pair <long, long> getStartShift() { return defaultViewShift; };
 
-	//virtual int get_max_zoomIn() { return maxZoomIn; };
-
-	bool supports_wireframe() { return doesSupportWireframe; }
 	void updateMainRender(VISSTATE *clientState);
 	void setGraphBusy(bool set);
-	proto_graph * get_protoGraph() { return internalProtoGraph; }
 	void reset_animation();
-	PID_TID get_pid() { return pid; }
-	PID_TID get_tid() { return tid; }
-
 	void gen_graph_VBOs();
 	int render_replay_animation(int stepSize, float fadeRate);
 	int render_preview_graph(VISSTATE *clientState);
 	float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph->savedAnimationData.size()); }
 	void render_live_animation(float fadeRate);
 	void set_last_active_node();
+
+	proto_graph * get_protoGraph() { return internalProtoGraph; }
+	bool isWireframeSupported() { return wireframeSupported; }
+	long get_zoom() { return defaultZoom; };
+	pair <long, long> getStartShift() { return defaultViewShift; };
+	PID_TID get_pid() { return pid; }
+	PID_TID get_tid() { return tid; }
+	graphLayouts getLayout() { return layout; }
 
 	GLuint graphVBOs[4] = { 0,0,0,0 };
 
@@ -156,8 +152,10 @@ protected:
 
 	//PID_TID  tid, pid;
 
+protected:
 	//keep track of which a,b coords are occupied
 	std::map<pair<int, int>, bool> usedCoords;
+
 
 	proto_graph *internalProtoGraph;
 	PLOT_TRACK lastMainNode;
@@ -167,9 +165,10 @@ protected:
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 	vector <ALLEGRO_COLOR> *graphColours;
 
-	bool doesSupportWireframe;
+	bool wireframeSupported;
 	pair <long, long> defaultViewShift;
 	long defaultZoom;
+	graphLayouts layout;
 
 private:
 	virtual void positionVert(void *positionStruct, MEM_ADDRESS address) {};
@@ -216,11 +215,8 @@ private:
 	GLuint conditionalVBOs[2] = { 0 };
 	PID_TID pid, tid;
 	PLOT_TRACK lastPreviewNode;
-
 	map <pair<NODEINDEX, unsigned int>, int> newExternTimes;
-
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
-
 
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;

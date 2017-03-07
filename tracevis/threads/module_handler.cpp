@@ -120,9 +120,26 @@ void module_handler::main_loop()
 				}
 
 				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
-				//sphere_graph *newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
-
-				tree_graph *newPlottedGraph = new tree_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+				plotted_graph *newPlottedGraph;
+				switch (clientState->currentLayout)
+				{
+					case eSphereLayout:
+					{
+						newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+						break;
+					}
+					case eTreeLayout:
+					{
+						newPlottedGraph = new tree_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+						
+						break;
+					}
+					default:
+					{	
+						cout << "Bad graph layout: " << clientState->currentLayout << endl;
+						assert(0); 
+					}
+				}
 				newPlottedGraph->initialiseDefaultDimensions();
 
 				//todo?

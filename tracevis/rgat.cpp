@@ -48,9 +48,6 @@ void change_mode(VISSTATE *clientState, eUIEventCode mode)
 	switch (mode)
 	{
 	case EV_BTN_WIREFRAME:
-		if (!((plotted_graph *)clientState->activeGraph)->supports_wireframe())
-			clientState->modes.wireframe = false;
-		else
 			clientState->modes.wireframe = !clientState->modes.wireframe;
 		break;
 
@@ -61,7 +58,11 @@ void change_mode(VISSTATE *clientState, eUIEventCode mode)
 		{
 			clientState->modes.nodes = true;
 			clientState->modes.heatmap = false;
+			clientState->backgroundColour = clientState->config->conditional.background;
 		}
+		else
+			clientState->backgroundColour = clientState->config->mainBackground;
+
 		break;
 
 	case EV_BTN_HEATMAP:
@@ -136,14 +137,6 @@ void draw_display_diff(VISSTATE *clientState, ALLEGRO_FONT *font, diff_plotter *
 	}
 
 	//((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
-}
-
-
-void closeTextLog(VISSTATE *clientState)
-{
-	al_close_native_text_log(clientState->textlog);
-	clientState->textlog = 0;
-	clientState->logSize = 0;
 }
 
 /*
@@ -362,21 +355,7 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	return true;
 }
 
-#define LAYOUT_ICONS_X_END LAYOUT_ICONS_X2 + LAYOUT_ICONS_W
-#define LAYOUT_ICONS_Y_END LAYOUT_ICONS_Y + LAYOUT_ICONS_H
-graphLayouts layout_selection_click(int mousex, int mousey)
-{
-	if (mousey > LAYOUT_ICONS_Y_END || mousex > LAYOUT_ICONS_X_END || mousex < LAYOUT_ICONS_X1 || mousey < LAYOUT_ICONS_Y)
-		return eLayoutInvalid;
 
-	if (mousex >= LAYOUT_ICONS_X1 && mousex <= (LAYOUT_ICONS_X1 + LAYOUT_ICONS_W))
-		return eSphereLayout;
-
-	if (mousex >= LAYOUT_ICONS_X2 && mousex <= (LAYOUT_ICONS_X2 + LAYOUT_ICONS_W))
-		return eTreeLayout;
-
-	return eLayoutInvalid;
-}
 
 static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 {
@@ -385,13 +364,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 	if (ev->type == ALLEGRO_EVENT_DISPLAY_RESIZE)
 	{
-		clientState->displaySize.height = ev->display.height;
-		clientState->mainFrameSize.height = ev->display.height - BASE_CONTROLS_HEIGHT;
-		clientState->mainFrameSize.width = ev->display.width - (PREVIEW_PANE_WIDTH + PREV_SCROLLBAR_WIDTH);
-		clientState->displaySize.width = ev->display.width;
-		al_acknowledge_resize(display);
-		handle_resize(clientState);
-
+		resize_display(clientState, ev->display.width, ev->display.height);
 		return EV_NONE;
 	}
 
@@ -580,21 +553,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_M:
-					clientState->modes.show_extern_text++;
-					if (clientState->modes.show_extern_text > EXTERNTEXT_LAST)
-						clientState->modes.show_extern_text = EXTERNTEXT_FIRST;
-					switch (clientState->modes.show_extern_text) 
-					{
-						case EXTERNTEXT_NONE:
-							cout << "[rgat]Extern labels off" << endl;
-							break;
-						case EXTERNTEXT_SYMS:
-							cout << "[rgat]Extern syms shown" << endl;
-							break;
-						case EXTERNTEXT_ALL:
-							cout << "[rgat]Extern paths and syms shown" << endl;
-							break;
-					}
+					toggle_externtext_mode(clientState);
 					break;
 
 				case ALLEGRO_KEY_N:
@@ -664,21 +623,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					break;
 
 				case ALLEGRO_KEY_T:
-					clientState->modes.show_ins_text++;
-					if (clientState->modes.show_ins_text > INSTEXT_LAST)
-						clientState->modes.show_ins_text = INSTEXT_FIRST;
-
-					switch (clientState->modes.show_ins_text) {
-					case INSTEXT_NONE:
-						cout << "[rgat]Instruction text off" << endl;
-						break;
-					case INSTEXT_AUTO:
-						cout << "[rgat]Instruction text auto" << endl;
-						break;
-					case INSTEXT_ALL_ALWAYS:
-						cout << "[rgat]Instruction text always on" << endl;
-						break;
-					}
+					toggle_instext_mode(clientState);
 					break;
 				}
 
@@ -694,7 +639,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				widgets->exeSelector->show();
 				break;
 
-			case EV_BTN_QUIT: return EV_BTN_QUIT;
+			case EV_BTN_QUIT: 
+				return EV_BTN_QUIT;
 
 			case EV_BTN_WIREFRAME:
 			case EV_BTN_PREVIEW:
@@ -714,19 +660,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				break;
 
 			case EV_BTN_EXTERNLOG:
-				if (clientState->textlog)
-					closeTextLog(clientState);
-				else
-				{
-					if (!clientState->activeGraph) break;
-					plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
-					stringstream windowName;
-					windowName << "Extern calls [TID: " << activeGraph->get_protoGraph()->get_TID() << "]";
-					clientState->textlog = al_open_native_text_log(windowName.str().c_str(), 0);
-					ALLEGRO_EVENT_SOURCE* logevents = (ALLEGRO_EVENT_SOURCE*)al_get_native_text_log_event_source(clientState->textlog);
-					al_register_event_source(clientState->event_queue, logevents);
-					clientState->logSize = activeGraph->get_protoGraph()->fill_extern_log(clientState->textlog, clientState->logSize);
-				}
+				toggleExternLog(clientState);
 				break;
 
 			case EV_BTN_DBGSYM:
@@ -736,9 +670,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			case EV_BTN_EXT_TEXT_NONE:
 				clientState->modes.show_extern_text = EXTERNTEXT_NONE;
 				break;
+
 			case EV_BTN_EXT_TEXT_SYMS:
 				clientState->modes.show_extern_text = EXTERNTEXT_SYMS;
 				break;
+
 			case EV_BTN_EXT_TEXT_PATH:
 				clientState->modes.show_extern_text = EXTERNTEXT_ALL;
 				break;
@@ -746,9 +682,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			case EV_BTN_INS_TEXT_NONE:
 				clientState->modes.show_ins_text = INSTEXT_NONE;
 				break;
+
 			case EV_BTN_INS_TEXT_AUTO:
 				clientState->modes.show_ins_text = INSTEXT_AUTO;
 				break;
+
 			case EV_BTN_INS_TEXT_ALWA:
 				clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
 				break;
@@ -860,8 +798,9 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	clientState->view_shift_x = startShift.first;
 	clientState->view_shift_y = startShift.second;
 
-
 	proto_graph *protoGraph = activeGraph->get_protoGraph();
+	clientState->currentLayout = activeGraph->getLayout();
+	widgets->setLayoutIcon();
 
 	if (!activeGraph->VBOsGenned)
 		activeGraph->gen_graph_VBOs();
@@ -1075,9 +1014,6 @@ int main(int argc, char **argv)
 	clientState.maingraphRenderThreadPtr = mainRenderThread;
 
 	rgat_create_thread(mainRenderThread->ThreadEntry, mainRenderThread);
-	
-	ALLEGRO_COLOR mainBackground = clientState.config->mainBackground;
-	ALLEGRO_COLOR conditionalBackground = clientState.config->conditional.background;
 
 	bool running = true;
 	while (running)
@@ -1130,10 +1066,9 @@ int main(int argc, char **argv)
 				}
 
 				clientState.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-				if (graph->supports_wireframe())
+				if (clientState.modes.wireframe)
 					graph->plot_wireframe(&clientState);
-				else
-					clientState.modes.wireframe = false;
+
 				plot_colourpick_sphere(&clientState);
 
 				widgets->toggleSmoothDrawing(false);
@@ -1165,10 +1100,7 @@ int main(int argc, char **argv)
 			al_set_target_bitmap(clientState.mainGraphBMP);
 			frame_gl_setup(&clientState);
 
-			if (clientState.modes.conditional)
-				al_clear_to_color(conditionalBackground);
-			else
-				al_clear_to_color(mainBackground);
+			al_clear_to_color(clientState.backgroundColour);
 
 			//set to true if displaying the colour picking sphere
 			if (!al_is_event_queue_empty(low_frequency_timer_queue)) 
@@ -1177,7 +1109,7 @@ int main(int argc, char **argv)
 				performIrregularActions(&clientState);
 			}
 
-			if (clientState.modes.wireframe && activeGraph->supports_wireframe())
+			if (clientState.modes.wireframe)
 				activeGraph->maintain_draw_wireframe(&clientState, wireframeStarts, wireframeSizes);
 
 			if (clientState.modes.diff)

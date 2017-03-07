@@ -132,6 +132,8 @@ public:
 	void *activeGraph = NULL;
 	void *maingraphRenderThreadPtr;
 
+	ALLEGRO_COLOR backgroundColour;
+
 	map <PID_TID, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;

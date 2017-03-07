@@ -45,7 +45,7 @@ Creates a sphere layout for a plotted graph
 
 void sphere_graph::initialiseDefaultDimensions()
 {
-	doesSupportWireframe = true;
+	wireframeSupported = true;
 	preview_scalefactors->AEDGESEP = 0.15;
 	preview_scalefactors->BEDGESEP = 0.11;
 	preview_scalefactors->size = 200;

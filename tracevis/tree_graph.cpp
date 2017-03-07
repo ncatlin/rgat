@@ -47,7 +47,7 @@ Creates a sphere layout for a plotted graph
 void tree_graph::initialiseDefaultDimensions()
 {
 
-	doesSupportWireframe = false;
+	wireframeSupported = false;
 	preview_scalefactors->AEDGESEP = 0.15;
 	preview_scalefactors->BEDGESEP = 0.15;
 	preview_scalefactors->size = 20;
@@ -386,18 +386,6 @@ void tree_graph::render_static_graph(VISSTATE *clientState)
 		needVBOReload_main = true;
 
 	redraw_anim_edges();
-}
-
-
-void tree_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
-{
-	cout << "err" << endl;
-}
-
-//must be called by main opengl context thread
-void tree_graph::plot_wireframe(VISSTATE *clientState)
-{
-	cout << "err" << endl;
 }
 
 //draws a line from the center of the sphere to nodepos. adds lengthModifier to the end

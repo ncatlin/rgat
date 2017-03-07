@@ -34,7 +34,9 @@ class tree_graph : public plotted_graph
 
 public:
 	tree_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
-		: plotted_graph(protoGraph, coloursPtr) {};
+		: plotted_graph(protoGraph, coloursPtr) {
+		layout = eTreeLayout;
+	};
 	~tree_graph() {};
 
 	void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText);
@@ -43,12 +45,13 @@ public:
 	void render_static_graph(VISSTATE *clientState);
 	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
-
-	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
-	void plot_wireframe(VISSTATE *clientState) ;
-	unsigned int get_graph_size() { return 10; };
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
+
+	unsigned int get_graph_size() { return 10; };
+
+	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) { return; }
+	void plot_wireframe(VISSTATE *clientState) { return; }
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,

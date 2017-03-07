@@ -206,7 +206,7 @@ bool ensureDirExists(string dirname, VISSTATE *clientState)
 	return true;
 }
 
-//this saves the process data of activePid and all of its graphs
+//saves the process data of activePid and all of its graphs
 void saveTrace(VISSTATE * clientState)
 {	
 	clientState->saving = true;
