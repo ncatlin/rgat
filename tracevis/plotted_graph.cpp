@@ -39,6 +39,16 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *gra
 #endif
 }
 
+plotted_graph::~plotted_graph()
+{
+	
+	setGraphBusy(true);
+	cout << "in destructor, graph set busy. deleting" << endl;
+	dying = true;
+	delete animlinedata;
+	delete animnodesdata;
+}
+
 
 //tracking how big the graph gets
 void plotted_graph::updateStats(int a, int b, int c)
@@ -57,15 +67,25 @@ bool plotted_graph::isGraphBusy()
 	return busy;
 }
 
-void plotted_graph::setGraphBusy(bool set)
+bool plotted_graph::setGraphBusy(bool set)
 {
+	if (dying)
+		return false;
+
 	if (set) {
 		DWORD res = WaitForSingleObject(graphwritingMutex, 1000);
+		if (dying)
+		{
+			ReleaseMutex(graphwritingMutex);
+			return false;
+		}
+
 		if (res == WAIT_TIMEOUT)
 			cerr << "[rgat]Timeout waiting for release of graph " << tid << endl;
 		assert(res != WAIT_TIMEOUT);
 	}
 	else ReleaseMutex(graphwritingMutex);
+	return true;
 }
 
 void plotted_graph::acquire_nodecoord_read()
@@ -113,7 +133,8 @@ void plotted_graph::display_active(bool showNodes, bool showEdges)
 	//reload buffers if needed and not being written
 	if (needVBOReload_active && !isGraphBusy())
 	{
-		setGraphBusy(true);
+		if (!setGraphBusy(true))
+			return;
 		load_VBO(VBO_NODE_POS, activeVBOs, mainnodesdata->pos_size(), mainnodesdata->readonly_pos());
 		load_VBO(VBO_NODE_COL, activeVBOs, animnodesdata->col_size(), animnodesdata->readonly_col());
 
@@ -143,7 +164,8 @@ void plotted_graph::display_static(bool showNodes, bool showEdges)
 {
 	if (needVBOReload_main && !isGraphBusy())
 	{
-		setGraphBusy(true);
+		if (!setGraphBusy(true))
+			return;
 		//lock for reading?
 		loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
@@ -1043,11 +1065,6 @@ void plotted_graph::display_highlight_lines(vector<node_data *> *nodePtrList, AL
 	}
 }
 
-plotted_graph::~plotted_graph()
-{
-	delete animlinedata;
-	delete animnodesdata;
-}
 
 //unused, should it be?
 void plotted_graph::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)

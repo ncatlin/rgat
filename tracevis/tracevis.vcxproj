@@ -290,6 +290,7 @@
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\ToolTip\ToolTip.cpp" />
     <ClCompile Include="animControls.cpp" />
     <ClCompile Include="b64.cpp" />
+    <ClCompile Include="GUIStructs.cpp" />
     <ClCompile Include="plotted_graph.cpp" />
     <ClCompile Include="processLaunching.cpp" />
     <ClCompile Include="proto_graph.cpp" />

@@ -67,7 +67,7 @@ public:
 	virtual void adjust_size(float delta) {};
 
 	void updateMainRender(VISSTATE *clientState);
-	void setGraphBusy(bool set);
+	bool setGraphBusy(bool set);
 	void reset_animation();
 	void gen_graph_VBOs();
 	int render_replay_animation(int stepSize, float fadeRate);
@@ -236,5 +236,6 @@ private:
 	set <NODEPAIR> fadingAnimEdges;
 
 	bool animBuildingLoop = false;
+	bool dying = false;
 };
 

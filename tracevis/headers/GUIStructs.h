@@ -96,6 +96,18 @@ public:
 		glGenBuffers(2, wireframeVBOs);
 	}
 
+	void allow_graph_references(bool state) { returnGraphPonters = state; }
+	void * obtain_activeGraph_ptr();
+	void discard_activeGraph_ptr();
+
+	int activeGraphReferences = 0;
+	bool returnGraphPonters = true;
+#ifdef XP_COMPATIBLE
+	HANDLE graphPtrMutex = CreateMutex(NULL, FALSE, NULL);
+#else
+	SRWLOCK graphPtrLock = SRWLOCK_INIT;
+#endif
+
 	ALLEGRO_DISPLAY *maindisplay = 0;
 	ALLEGRO_BITMAP *mainGraphBMP = 0;
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
@@ -105,6 +117,13 @@ public:
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	LAUNCHOPTIONS launchopts;
+
+	//cache to avoid lock every time we move mouse
+	long get_activegraph_size() { return activeGraphSize; }
+	void set_activegraph_size(long size) {
+		activeGraphSize = size;
+	}
+	long activeGraphSize = 0;
 
 	TITLE *title;
 	long cameraZoomlevel = 0;

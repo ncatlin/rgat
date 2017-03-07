@@ -356,7 +356,6 @@ bool loadTrace(VISSTATE *clientState, string filename)
 }
 
 
-
 static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 {
 	ALLEGRO_DISPLAY *display = clientState->maindisplay;
@@ -371,9 +370,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
 		if (!clientState->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
-		plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
+		long graphSize = clientState->get_activegraph_size();
 
-		long graphSize = ((plotted_graph *)clientState->activeGraph)->get_graph_size();
 		long maxZoomIn = graphSize + 5; //prevent zoom into globe
 		long slowRotateThresholdLow = graphSize + 8000;  // move very slow beyond this much zoom in 
 		long slowRotateThresholdHigh = graphSize + 54650;// move very slow beyond this much zoom out
@@ -396,9 +394,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
 				if (newZoom >= maxZoomIn)
 					clientState->cameraZoomlevel = newZoom;
-
-				if (clientState->activeGraph)
-					updateTitle_Zoom(display, clientState->title, (clientState->cameraZoomlevel - ((plotted_graph *)clientState->activeGraph)->zoomLevel));
 			}
 		}
 
@@ -466,6 +461,45 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			{
 				clientState->currentLayout = clickedLayout;
 				widgets->setLayoutIcon();
+
+				plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
+				
+
+				if (clickedLayout != activeGraph->getLayout())
+				{
+					proto_graph *active_proto_graph = activeGraph->get_protoGraph();
+					PROCESS_DATA *piddata = active_proto_graph->get_piddata();
+					PID_TID graphThread = activeGraph->get_tid();
+
+					clientState->allow_graph_references(false);
+					delete activeGraph;
+
+					plotted_graph *newPlottedGraph = 0;
+					switch (clientState->currentLayout)
+					{
+						case eSphereLayout:
+						{
+							newPlottedGraph = new sphere_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
+							break;
+						}
+						case eTreeLayout:
+						{
+							newPlottedGraph = new tree_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
+							break;
+						}
+						default:
+						{
+							cout << "Bad graph layout: " << clientState->currentLayout << endl;
+							assert(0);
+						}
+					}
+					newPlottedGraph->initialiseDefaultDimensions();
+					piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
+					clientState->newActiveGraph = newPlottedGraph;
+					clientState->allow_graph_references(true);
+
+				}
+
 				return EV_MOUSE;
 			}
 
@@ -824,6 +858,8 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	//protoGraph->emptyArgQueue();
 	protoGraph->assign_modpath(clientState->activePid);
 
+	clientState->set_activegraph_size(activeGraph->get_graph_size());
+
 	clientState->newActiveGraph = 0;
 	if (!externFloatingText->count(protoGraph->get_TID()))
 	{
@@ -1053,6 +1089,7 @@ int main(int argc, char **argv)
 				pair <long, long> startShift = graph->getStartShift();
 				clientState.view_shift_x = startShift.first;
 				clientState.view_shift_y = startShift.second;
+				clientState.set_activegraph_size(graph->get_graph_size());
 
 				if (protoGraph->active)
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
@@ -1086,11 +1123,20 @@ int main(int argc, char **argv)
 			dropMutex(clientState.pidMapMutex);
 		}
 
-		//active graph changed
+		////active graph changed
 		if (clientState.newActiveGraph)
 			switchToActiveGraph(&clientState, widgets, &externFloatingText);
 
-		plotted_graph *activeGraph = (plotted_graph *)clientState.activeGraph;
+		plotted_graph *activeGraph = (plotted_graph *)clientState.obtain_activeGraph_ptr();
+		cout << "graph marked in use" << endl;
+
+		//active graph changed
+		if (clientState.newActiveGraph)
+		{
+			clientState.discard_activeGraph_ptr();
+			continue;
+		}
+
 
 		widgets->updateWidgets(activeGraph);
 		
@@ -1143,9 +1189,11 @@ int main(int argc, char **argv)
 			//draw the main big graph bitmap on the screen
 			al_draw_bitmap(clientState.mainGraphBMP, 0, 0, 0);
 
-			if (clientState.activeGraph)
-				display_activeGraph_summary(20, 10, PIDFont, &clientState);
+			display_activeGraph_summary(20, 10, PIDFont, &clientState);
 		}
+
+		clientState.discard_activeGraph_ptr();
+		cout << "graph marked out of use" << endl;
 
 		//draw the GUI controls, labels, etc onto the screen
 		widgets->paintWidgets();
