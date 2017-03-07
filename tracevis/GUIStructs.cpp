@@ -21,26 +21,13 @@ Client state functions
 #include "GUIStructs.h"
 #include "plotted_graph.h"
 
-void* VISSTATE::obtain_activeGraph_ptr()
+void VISSTATE::set_activeGraph(void *graph)
 {
-	while (!returnGraphPonters)
-		Sleep(1);
-	
-#ifdef XP_COMPATIBLE
-	obtainMutex(graphPtrMutex, 0);
-#else
-	AcquireSRWLockShared(&graphPtrLock);
-#endif
-
-	return activeGraph;
-}
-
-void VISSTATE::discard_activeGraph_ptr()
-{
-#ifdef XP_COMPATIBLE
-	dropMutex(graphPtrMutex, 0);
-#else
-	ReleaseSRWLockShared(&graphPtrLock);
-#endif
-	
+	if (activeGraph)
+	{
+		plotted_graph *oldGraph = (plotted_graph *)activeGraph;
+		oldGraph->decrease_thread_references(162);
+	}
+	((plotted_graph *)graph)->increase_thread_references(1120);
+	activeGraph = graph;
 }

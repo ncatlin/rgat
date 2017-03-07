@@ -375,6 +375,7 @@ void updateTitle_dbg(ALLEGRO_DISPLAY *display, TITLE *title, char *msg)
 void updateTitle_NumPrimitives(ALLEGRO_DISPLAY *display, VISSTATE *clientState, int nodes, int edges)
 {
 	if (!clientState->title->zoom) return;
+	if (!clientState->activeGraph) return;
 	proto_graph * graph = ((plotted_graph*)clientState->activeGraph)->get_protoGraph();
 	if (!graph) return;
 

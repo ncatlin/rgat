@@ -36,18 +36,58 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *gra
 
 #ifdef XP_COMPATIBLE
 		nodeCoordMutex = CreateMutex(NULL, FALSE, NULL);
+		threadReferenceMutex = CreateMutex(NULL, FALSE, NULL);
 #endif
 }
 
 plotted_graph::~plotted_graph()
 {
-	
-	setGraphBusy(true);
-	cout << "in destructor, graph set busy. deleting" << endl;
 	dying = true;
+	setGraphBusy(true);
+
+#ifdef XP_COMPATIBLE
+	while (threadRefs) Sleep(10);
+	obtainMutex(threadReferenceMutex);
+#else
+	cout << "in destructor, getting exclusive mutex......";
+	AcquireSRWLockExclusive(&threadReferenceLock);
+	cout << "done, destroying graph " << this << endl;
+#endif
+
+	
+	
 	delete animlinedata;
 	delete animnodesdata;
+	
+#ifdef XP_COMPATIBLE
+	CloseHandle(nodeCoordMutex);
+	CloseHandle(threadReferenceMutex);
+#endif
 }
+
+bool plotted_graph::increase_thread_references(int i)
+{
+	if (dying) return false;
+#ifdef XP_COMPATIBLE
+	//todo xp
+#else
+	cout << i << "thread shared aquiring...";
+	AcquireSRWLockShared(&threadReferenceLock);
+	cout << "done"<<endl;
+#endif
+	
+}
+
+void plotted_graph::decrease_thread_references(int i)
+{
+#ifdef XP_COMPATIBLE
+	//todo xp
+#else
+	cout << i << "thread shared releasing"<<endl;
+	ReleaseSRWLockShared(&threadReferenceLock);
+#endif
+}
+
 
 
 //tracking how big the graph gets
@@ -804,6 +844,13 @@ void plotted_graph::redraw_anim_edges()
 //remove from darkening list if it hits minimum alpha limit
 void plotted_graph::darken_fading(float fadeRate)
 {
+	/* when switching graph layouts of a big graph it can take
+	   a long time for rerendering of all the edges in the protograph.
+	   we can end up with a protograph with far more edges than the rendered edges
+	   so have to check that we are operating within bounds */
+	if (!animnodesdata->get_numVerts())
+		return;
+
 	//darken fading verts
 	//more nodes makes it take longer, possibly increase faderate on large fadinganimnodes.size()'s
 	set<unsigned int>::iterator alphaPosIt = fadingAnimNodes.begin();
@@ -826,6 +873,10 @@ void plotted_graph::darken_fading(float fadeRate)
 		else
 			++alphaPosIt;
 	}
+	
+	unsigned long numLineVerts = animlinedata->get_numVerts();
+	if (!numLineVerts)
+		return;
 
 	//darken fading edges
 	set<NODEPAIR>::iterator edgeIDIt = fadingAnimEdges.begin();
@@ -846,6 +897,12 @@ void plotted_graph::darken_fading(float fadeRate)
 		EDGEMAP::iterator edgeIt = internalProtoGraph->edgeDict.find(nodePair);
 		unsigned int arrayPos = edgeIt->second.arraypos;
 		unsigned int colArrIndex = arrayPos + AOFF;
+		if (colArrIndex > numLineVerts)
+		{
+			animlinedata->release_col_write();
+			return;
+		}
+
 		float currentAlpha = ecol[colArrIndex];
 		currentAlpha = fmax(ANIM_INACTIVE_EDGE_ALPHA, currentAlpha - fadeRate);
 		ecol[colArrIndex] = currentAlpha;

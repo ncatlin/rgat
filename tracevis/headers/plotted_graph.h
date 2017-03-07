@@ -57,7 +57,7 @@ public:
 	virtual void render_static_graph(VISSTATE *clientState) {};
 	virtual void plot_wireframe(VISSTATE *clientState) {};
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
-	virtual void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText) {};
+	virtual void performMainGraphDrawing(VISSTATE *clientState) {};
 	virtual void orient_to_user_view(int xshift, int yshift, long zoom) {};
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {	return false;};
@@ -120,13 +120,17 @@ public:
 	bool VBOsGenned = false;
 	long long userSelectedAnimPosition = -1;
 
+	bool increase_thread_references(int i);
+	void decrease_thread_references(int i);
 
 protected:
 
 #ifdef XP_COMPATIBLE
 	HANDLE nodeCoordMutex;
+	HANDLE threadReferenceMutex;
 #else
 	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
+	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
 #endif
 
 	bool previewNeedsResize = false;

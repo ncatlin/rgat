@@ -43,6 +43,8 @@ Doing agui widget manipulation in other threads will cause deque errors
 
 bool kbdInterrupt = false;
 
+void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets);
+
 void change_mode(VISSTATE *clientState, eUIEventCode mode)
 {
 	switch (mode)
@@ -462,17 +464,15 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				clientState->currentLayout = clickedLayout;
 				widgets->setLayoutIcon();
 
-				plotted_graph *activeGraph = (plotted_graph *)clientState->activeGraph;
-				
+				plotted_graph *oldActiveGraph = (plotted_graph *)clientState->activeGraph;
 
-				if (clickedLayout != activeGraph->getLayout())
+				if (clickedLayout != oldActiveGraph->getLayout())
 				{
-					proto_graph *active_proto_graph = activeGraph->get_protoGraph();
+					proto_graph *active_proto_graph = oldActiveGraph->get_protoGraph();
 					PROCESS_DATA *piddata = active_proto_graph->get_piddata();
-					PID_TID graphThread = activeGraph->get_tid();
+					PID_TID graphThread = oldActiveGraph->get_tid();
 
-					clientState->allow_graph_references(false);
-					delete activeGraph;
+					
 
 					plotted_graph *newPlottedGraph = 0;
 					switch (clientState->currentLayout)
@@ -496,8 +496,11 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					newPlottedGraph->initialiseDefaultDimensions();
 					piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
 					clientState->newActiveGraph = newPlottedGraph;
-					clientState->allow_graph_references(true);
+					cout << "switching to new graph " << newPlottedGraph << endl;
+					switchToActiveGraph(clientState, widgets);
 
+					cout << "Deleting old graph " << oldActiveGraph << endl;
+					delete oldActiveGraph;
 				}
 
 				return EV_MOUSE;
@@ -817,27 +820,28 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 }
 
 //performs cleanup of old active graph, sets up environment to display new one
-void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
+void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 {
 	maingraph_render_thread *renderThread = (maingraph_render_thread *)clientState->maingraphRenderThreadPtr;
 
 	renderThread->getMutex();
 
-	clientState->activeGraph = clientState->newActiveGraph;
-	plotted_graph * activeGraph = (plotted_graph *)clientState->activeGraph;
-	activeGraph->needVBOReload_active = true;
+	clientState->set_activeGraph((plotted_graph *)clientState->newActiveGraph);
 
-	clientState->cameraZoomlevel = activeGraph->get_zoom();
-	pair <long, long> startShift = activeGraph->getStartShift();
+	plotted_graph * newGraph = (plotted_graph *)clientState->activeGraph;
+	newGraph->needVBOReload_active = true;
+
+	clientState->cameraZoomlevel = newGraph->get_zoom();
+	pair <long, long> startShift = newGraph->getStartShift();
 	clientState->view_shift_x = startShift.first;
 	clientState->view_shift_y = startShift.second;
 
-	proto_graph *protoGraph = activeGraph->get_protoGraph();
-	clientState->currentLayout = activeGraph->getLayout();
+	proto_graph *protoGraph = newGraph->get_protoGraph();
+	clientState->currentLayout = newGraph->getLayout();
 	widgets->setLayoutIcon();
 
-	if (!activeGraph->VBOsGenned)
-		activeGraph->gen_graph_VBOs();
+	if (!newGraph->VBOsGenned)
+		newGraph->gen_graph_VBOs();
 
 	if (protoGraph->active)
 	{
@@ -848,7 +852,7 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	else
 	{
 		widgets->controlWindow->setAnimState(ANIM_INACTIVE);
-		activeGraph->reset_animation();
+		newGraph->reset_animation();
 		clientState->modes.animation = false;
 		clientState->animationUpdate = 1;
 		protoGraph->set_active_node(0);
@@ -858,13 +862,13 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets, map <PID_T
 	//protoGraph->emptyArgQueue();
 	protoGraph->assign_modpath(clientState->activePid);
 
-	clientState->set_activegraph_size(activeGraph->get_graph_size());
+	clientState->set_activegraph_size(newGraph->get_graph_size());
 
 	clientState->newActiveGraph = 0;
-	if (!externFloatingText->count(protoGraph->get_TID()))
+	if (!clientState->externFloatingText.count(protoGraph->get_TID()))
 	{
 		vector<EXTTEXT> newVec;
-		(*externFloatingText)[protoGraph->get_TID()] = newVec;
+		(clientState->externFloatingText)[protoGraph->get_TID()] = newVec;
 	}
 
 	if (clientState->textlog) closeTextLog(clientState);
@@ -1040,8 +1044,7 @@ int main(int argc, char **argv)
 	ALLEGRO_EVENT ev;
 	int previewRenderFrame = 0;
 	map <PID_TID, NODEPAIR> graphPositions;
-	//new sym/arg strings currently being displayed on the graph
-	map <PID_TID, vector<EXTTEXT>> externFloatingText;
+
 
 	rgat_create_thread((void *)process_coordinator_thread, &clientState);
 
@@ -1063,7 +1066,6 @@ int main(int argc, char **argv)
 		if (clientState.switchProcess && clientState.spawnedProcess && !clientState.spawnedProcess->plottedGraphs.empty())
 		{
 			PROCESS_DATA* activePid = clientState.spawnedProcess;
-			clientState.activeGraph = 0;
 
 			if (!obtainMutex(clientState.pidMapMutex, 1040)) return 0;
 			
@@ -1082,7 +1084,8 @@ int main(int argc, char **argv)
 				if (!graph->VBOsGenned)
 					graph->gen_graph_VBOs();
 
-				clientState.activeGraph = graph;
+				clientState.set_activeGraph(graph);
+
 				clientState.modes.animation = true;
 				clientState.animationUpdate = 1;
 				clientState.cameraZoomlevel = graph->get_zoom();
@@ -1091,15 +1094,16 @@ int main(int argc, char **argv)
 				clientState.view_shift_y = startShift.second;
 				clientState.set_activegraph_size(graph->get_graph_size());
 
+
 				if (protoGraph->active)
 					widgets->controlWindow->setAnimState(ANIM_LIVE);
 				else 
 					widgets->controlWindow->setAnimState(ANIM_INACTIVE);
 				
-				if (!externFloatingText.count(protoGraph->get_TID()))
+				if (!clientState.externFloatingText.count(protoGraph->get_TID()))
 				{
 					vector<EXTTEXT> newVec;
-					externFloatingText[protoGraph->get_TID()] = newVec;
+					clientState.externFloatingText[protoGraph->get_TID()] = newVec;
 				}
 
 				clientState.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
@@ -1124,19 +1128,10 @@ int main(int argc, char **argv)
 		}
 
 		////active graph changed
-		if (clientState.newActiveGraph)
-			switchToActiveGraph(&clientState, widgets, &externFloatingText);
+		//if (clientState.newActiveGraph)
+		//	switchToActiveGraph(&clientState, widgets, &externFloatingText);
 
-		plotted_graph *activeGraph = (plotted_graph *)clientState.obtain_activeGraph_ptr();
-		cout << "graph marked in use" << endl;
-
-		//active graph changed
-		if (clientState.newActiveGraph)
-		{
-			clientState.discard_activeGraph_ptr();
-			continue;
-		}
-
+		plotted_graph *activeGraph = (plotted_graph *)clientState.activeGraph;
 
 		widgets->updateWidgets(activeGraph);
 		
@@ -1162,7 +1157,7 @@ int main(int argc, char **argv)
 				draw_display_diff(&clientState, PIDFont, &diffRenderer);
 
 			if (!clientState.modes.diff) //not an else for clarity
-				activeGraph->performMainGraphDrawing(&clientState, &externFloatingText);
+				activeGraph->performMainGraphDrawing(&clientState);
 
 			frame_gl_teardown();
 
@@ -1192,8 +1187,8 @@ int main(int argc, char **argv)
 			display_activeGraph_summary(20, 10, PIDFont, &clientState);
 		}
 
-		clientState.discard_activeGraph_ptr();
-		cout << "graph marked out of use" << endl;
+		//clientState.discard_activeGraph_ptr();
+		//cout << "graph marked out of use" << endl;
 
 		//draw the GUI controls, labels, etc onto the screen
 		widgets->paintWidgets();

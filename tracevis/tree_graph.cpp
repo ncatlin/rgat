@@ -659,7 +659,7 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 
 void tree_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 {
-	cout << "Orienting graph. camzoom: " << zoom << " sizE: " << main_scalefactors->size << endl;
+	//cout << "Orienting graph. camzoom: " << zoom << " sizE: " << main_scalefactors->size << endl;
 	glTranslatef(0, 0, -zoom);
 
 	float zoomShiftMod;
@@ -669,13 +669,13 @@ void tree_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 	else
 		zoomShiftMod = 250;
 
-	cout << "zoommod: " << zoomShiftMod << " shifting x by " << -xshift * zoomShiftMod << " y bt: " << yshift * zoomShiftMod << endl;
+	//cout << "zoommod: " << zoomShiftMod << " shifting x by " << -xshift * zoomShiftMod << " y bt: " << yshift * zoomShiftMod << endl;
 	glTranslatef( -xshift * zoomShiftMod, 0, 0);
 	glTranslatef(0, yshift * zoomShiftMod, 0);
 
 }
 
-void tree_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
+void tree_graph::performMainGraphDrawing(VISSTATE *clientState)
 {
 	if (get_pid() != clientState->activePid->PID) return;
 
@@ -708,7 +708,8 @@ void tree_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, ve
 	gather_projection_data(&pd);
 	display_graph(clientState, &pd);
 	write_rising_externs(clientState->standardFont, clientState->modes.nearSide,
-		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd, clientState->displaySize.width, clientState->displaySize.height);
+		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd, 
+		clientState->displaySize.width, clientState->displaySize.height);
 }
 
 //standard animated or static display of the active graph
@@ -749,7 +750,7 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
-	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
+	NODEINDEX numVerts = node_coords.size();
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 	stringstream ss;
 	DCOORD screenCoord;
@@ -784,7 +785,6 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 			ss.str().c_str());
 		ss.str("");
 	}
-	cout << "drew " << textcount << " texts" << endl;
 }
 
 //show functions/args for externs in active graph

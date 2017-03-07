@@ -134,14 +134,18 @@ void conditional_renderer::main_loop()
 
 	map<plotted_graph *,bool> finishedGraphs;
 	vector<plotted_graph *> graphlist;
-	map <PID_TID, void *>::iterator graphit;
+	map <PID_TID, void *>::iterator graphIt;
 
 	while (!clientState->die)
 	{
 
 		obtainMutex(piddata->graphsListMutex, 9053);
-		for (graphit = piddata->plottedGraphs.begin(); graphit != piddata->plottedGraphs.end(); ++graphit)
-			graphlist.push_back((plotted_graph *)graphit->second);
+		for (graphIt = piddata->plottedGraphs.begin(); graphIt != piddata->plottedGraphs.end(); ++graphIt)
+		{
+			plotted_graph *g = (plotted_graph *)graphIt->second;
+			if (g->increase_thread_references(333))
+				graphlist.push_back(g);
+		}
 		dropMutex(piddata->graphsListMutex);
 		
 		//process terminated, all graphs fully rendered, now can head off to valhalla
@@ -165,10 +169,13 @@ void conditional_renderer::main_loop()
 				else
 					finishedGraphs.erase(graph);
 			}
-
 			Sleep(20);
 		}
+
+		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
+			((plotted_graph *)*graphlistIt)->decrease_thread_references(333);
 		graphlist.clear();
+
 		int waitForNextIt = 0;
 		while (waitForNextIt < updateDelayMS && !die)
 		{

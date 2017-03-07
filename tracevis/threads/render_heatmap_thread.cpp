@@ -390,14 +390,25 @@ void heatmap_renderer::main_loop()
 		obtainMutex(piddata->graphsListMutex, 1054);
 
 		vector<plotted_graph *> graphlist;
-		map <PID_TID, void *>::iterator graphit = piddata->plottedGraphs.begin();
-		for (; graphit != piddata->plottedGraphs.end(); ++graphit)
-			graphlist.push_back((plotted_graph *)graphit->second);
+		map <PID_TID, void *>::iterator graphIt = piddata->plottedGraphs.begin();
+		for (; graphIt != piddata->plottedGraphs.end(); ++graphIt)
+		{
+			plotted_graph *g = (plotted_graph *)graphIt->second;
+			if (g->increase_thread_references(333))
+				graphlist.push_back(g);
+		}
 		dropMutex(piddata->graphsListMutex);
 
 		//process terminated, all graphs fully rendered, now can head off to valhalla
-		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size())) 
-				break; 
+		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
+		{
+			vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
+			for (;graphlistIt != graphlist.end(); graphlistIt++)
+			{
+				((plotted_graph *)*graphlistIt)->decrease_thread_references(343);
+			}
+			break;
+		}
 
 		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 		while (graphlistIt != graphlist.end() && !die)
@@ -416,10 +427,13 @@ void heatmap_renderer::main_loop()
 					finishedGraphs[graph] = true;
 					render_graph_heatmap(graph, true);
 				}
-
 			Sleep(20); //pause between graphs so other things don't struggle for mutex time
 		}
 		
+		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
+			((plotted_graph *)*graphlistIt)->decrease_thread_references(343);
+		graphlist.clear();
+
 		int waitForNextIt = 0;
 		while (waitForNextIt < updateDelayMS && !die)
 		{

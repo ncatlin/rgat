@@ -39,7 +39,7 @@ public:
 	};
 	~tree_graph() {};
 
-	void performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText);
+	void performMainGraphDrawing(VISSTATE *clientState);
 	void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
 	void render_static_graph(VISSTATE *clientState);
@@ -79,6 +79,7 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 
+	TREECOORD *get_node_coord(NODEINDEX idx);
 
 };
 

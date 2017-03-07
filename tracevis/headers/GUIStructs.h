@@ -96,12 +96,6 @@ public:
 		glGenBuffers(2, wireframeVBOs);
 	}
 
-	void allow_graph_references(bool state) { returnGraphPonters = state; }
-	void * obtain_activeGraph_ptr();
-	void discard_activeGraph_ptr();
-
-	int activeGraphReferences = 0;
-	bool returnGraphPonters = true;
 #ifdef XP_COMPATIBLE
 	HANDLE graphPtrMutex = CreateMutex(NULL, FALSE, NULL);
 #else
@@ -117,6 +111,8 @@ public:
 	ALLEGRO_EVENT_QUEUE *event_queue = 0;
 
 	LAUNCHOPTIONS launchopts;
+
+	void set_activeGraph(void *graph);
 
 	//cache to avoid lock every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
@@ -187,7 +183,9 @@ public:
 	ALLEGRO_TEXTLOG *textlog = 0;
 	unsigned int logSize = 0;
 
-	
+	//new sym/arg strings currently being displayed on the graph
+	map <PID_TID, vector<EXTTEXT>> externFloatingText;
+
 	clientConfig *config;
 
 	bool die = false;

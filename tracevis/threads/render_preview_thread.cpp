@@ -53,7 +53,11 @@ void preview_renderer::main_loop()
 		obtainMutex(piddata->graphsListMutex, 9011);
 		graphIt = piddata->plottedGraphs.begin();
 		for (; graphIt != piddata->plottedGraphs.end(); graphIt++)
-			graphlist.push_back((plotted_graph *)graphIt->second);
+		{
+			plotted_graph *g = (plotted_graph *)graphIt->second;
+			if (g->increase_thread_references(222))
+				graphlist.push_back(g);
+		}
 		dropMutex(piddata->graphsListMutex);
 
 		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
@@ -65,11 +69,15 @@ void preview_renderer::main_loop()
 			if ((graph->previewnodes->get_numVerts() < protoGraph->get_num_nodes()) ||
 				(graph->previewlines->get_renderedEdges() < protoGraph->get_num_edges()))
 				graph->render_preview_graph(clientState);
-
+			
 			if (die) break;
 			Sleep(innerDelay);
 			++graphlistIt;
 		}
+		
+		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
+			((plotted_graph *)*graphlistIt)->decrease_thread_references(222);
+
 		graphlist.clear();
 
 		int waitForNextIt = 0;

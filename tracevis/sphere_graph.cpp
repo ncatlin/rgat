@@ -762,7 +762,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 	return 1;
 }
 
-void sphere_graph::performMainGraphDrawing(VISSTATE *clientState, map <PID_TID, vector<EXTTEXT>> *externFloatingText)
+void sphere_graph::performMainGraphDrawing(VISSTATE *clientState)
 {
 	if (get_pid() != clientState->activePid->PID) return;
 

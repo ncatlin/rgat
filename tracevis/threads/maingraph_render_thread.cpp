@@ -81,19 +81,26 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 void maingraph_render_thread::main_loop()
 {
 	alive = true;
-	plotted_graph *activeGraph;
+	plotted_graph *activeGraph = 0;
 	int renderFrequency = clientState->config->renderFrequency;
 
 	while (!clientState->die)
 	{
+		
 		activeGraph = (plotted_graph *)clientState->activeGraph;
-		if (!activeGraph) {
+		while (!activeGraph) {
+			activeGraph = (plotted_graph *)clientState->activeGraph;
 			Sleep(5); continue;
 		}
-
+		cout << "Mainrenderer waiting on graph ..." << activeGraph;
+		activeGraph->increase_thread_references(65);
+		cout << "Obtained!" << endl;
 		getMutex();
 		performMainGraphRendering(activeGraph);
 		dropMutex();
+
+		activeGraph->decrease_thread_references(65);
+		activeGraph = 0;
 
 		Sleep(renderFrequency);
 	}
