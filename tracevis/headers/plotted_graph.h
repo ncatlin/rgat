@@ -126,6 +126,7 @@ public:
 
 	bool increase_thread_references(int i = 0);
 	void decrease_thread_references(int i = 0);
+	void display_highlight_lines(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 
 protected:
 
@@ -139,7 +140,7 @@ protected:
 
 	bool previewNeedsResize = false;
 
-	void display_highlight_lines(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
+	
 	void display_active(bool showNodes, bool showEdges);
 	void display_static(bool showNodes, bool showEdges);
 	void rescale_nodes(bool isPreview);

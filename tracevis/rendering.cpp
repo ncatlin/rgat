@@ -247,9 +247,22 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 	if (clientState->modes.edges)
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
-	//TODO: Figure out why virtual func is being called
 	if (divergeNode)
-		diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
+	{
+		switch (diffgraph->getLayout())
+		{
+		case eSphereLayout:
+			//todo: figure out why not displayed
+			diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
+			break;
+		case eTreeLayout:
+			diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
+			break;
+		default:
+			cout << "bad layout?";
+			break;
+		}
+	}
 
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->size);
 	/*
