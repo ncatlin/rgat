@@ -657,6 +657,8 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 		if (!caught_stoul(tidstring, &TID, 10)) return false;
 		proto_graph *protograph = new proto_graph(piddata,TID);
 		sphere_graph *graph = new sphere_graph(piddata, TID, protograph, &clientState->config->graphColours);
+		graph->initialiseDefaultDimensions();
+
 		protograph->active = false;
 
 		display_only_status_message("Loading Graph "+tidstring, clientState);

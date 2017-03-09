@@ -29,9 +29,9 @@ void VISSTATE::set_activeGraph(void *graph)
 	if (activeGraph)
 	{
 		plotted_graph *oldGraph = (plotted_graph *)activeGraph;
-		oldGraph->decrease_thread_references(444);
+		oldGraph->decrease_thread_references();
 	}
-	((plotted_graph *)graph)->increase_thread_references(444);
+	((plotted_graph *)graph)->increase_thread_references();
 	activeGraph = graph;
 }
 

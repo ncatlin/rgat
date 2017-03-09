@@ -549,12 +549,6 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	GRAPH_SCALE *dimensions)
 {
-	/*printf("in add node! node %d ",n->index);
-	if (!n->external)
-		printf(" %s\n", n->ins->ins_text.c_str());
-	else
-		printf("[extern] \n");*/
-
 	TREECOORD * nodeCoord;
 	if (n->index >= node_coords.size())
 	{
@@ -811,7 +805,6 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 	if (!showExterns && !showDbgSymbols) return;
 
 	vector<NODEINDEX> externListCopy;
-	vector<NODEINDEX> internListCopy;
 
 	if (showExterns)
 	{
@@ -832,6 +825,8 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
+
+	vector<NODEINDEX> internListCopy;
 
 	if (showDbgSymbols)
 	{

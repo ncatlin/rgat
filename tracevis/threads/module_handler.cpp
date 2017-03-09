@@ -120,7 +120,7 @@ void module_handler::main_loop()
 				}
 
 				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
-				plotted_graph *newPlottedGraph;
+				plotted_graph *newPlottedGraph = 0;
 				switch (clientState->currentLayout)
 				{
 					case eSphereLayout:

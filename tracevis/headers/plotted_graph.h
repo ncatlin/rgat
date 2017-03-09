@@ -104,9 +104,6 @@ public:
 	bool needVBOReload_heatmap = true;
 	bool needVBOReload_conditional = true;
 
-	map <int, int> dbgRefs;
-
-
 	ALLEGRO_BITMAP *previewBMP = NULL;
 	GRAPH_SCALE *main_scalefactors = NULL;
 	GRAPH_SCALE *preview_scalefactors = NULL;
@@ -125,8 +122,8 @@ public:
 	bool VBOsGenned = false;
 	long long userSelectedAnimPosition = -1;
 
-	bool increase_thread_references(int i = 0);
-	void decrease_thread_references(int i = 0);
+	bool increase_thread_references();
+	void decrease_thread_references();
 	void display_highlight_lines(vector<node_data *> *nodeList, ALLEGRO_COLOR *colour, int lengthModifier);
 
 protected:

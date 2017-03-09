@@ -34,7 +34,7 @@ bool edge_data::serialise(ofstream *file, int source, int target)
 {
 	*file << source << "," <<
 		target << "," <<
-		edgeClass << "@";
+		(char)edgeClass << "@";
 
 	return true;
 }

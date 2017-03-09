@@ -55,7 +55,7 @@ void preview_renderer::main_loop()
 		for (; graphIt != piddata->plottedGraphs.end(); graphIt++)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references(261))
+			if (g->increase_thread_references())
 				graphlist.push_back(g);
 		}
 		dropMutex(piddata->graphsListMutex);
@@ -76,7 +76,7 @@ void preview_renderer::main_loop()
 		}
 		
 		for (graphlistIt = graphlist.begin(); graphlistIt != graphlist.end(); graphlistIt++)
-			((plotted_graph *)*graphlistIt)->decrease_thread_references(261);
+			((plotted_graph *)*graphlistIt)->decrease_thread_references();
 
 		graphlist.clear();
 

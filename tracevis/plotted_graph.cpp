@@ -51,14 +51,7 @@ plotted_graph::~plotted_graph()
 	while (threadRefs) Sleep(10);
 	obtainMutex(threadReferenceMutex);
 #else
-	cout << "in destructor, getting exclusive mutex to graph "<<this<< "......";
-	map <int, int>::iterator dbgRefslist = dbgRefs.begin();
-	for (; dbgRefslist != dbgRefs.end(); dbgRefslist++)
-		if (dbgRefslist->second != 0)
-			cout << "remainign lock: " << dbgRefslist->first << ":" << dbgRefslist->second << endl;
-
 	AcquireSRWLockExclusive(&threadReferenceLock);
-	cout << "done, destroying graph " << this << endl;
 #endif
 
 	
@@ -72,7 +65,7 @@ plotted_graph::~plotted_graph()
 #endif
 }
 
-bool plotted_graph::increase_thread_references(int i)
+bool plotted_graph::increase_thread_references()
 {
 	if (dying) return false;
 #ifdef XP_COMPATIBLE
@@ -80,19 +73,17 @@ bool plotted_graph::increase_thread_references(int i)
 #else
 	AcquireSRWLockShared(&threadReferenceLock);
 #endif
-	if (i) dbgRefs[i]++;
 	return true;
 	
 }
 
-void plotted_graph::decrease_thread_references(int i)
+void plotted_graph::decrease_thread_references()
 {
 #ifdef XP_COMPATIBLE
 	//todo xp
 #else
 	ReleaseSRWLockShared(&threadReferenceLock);
 #endif
-	if (i) dbgRefs[i]--;
 }
 
 

@@ -546,7 +546,7 @@ bool proto_graph::loadEdgeDict(ifstream *file)
 		getline(*file, target_s, ',');
 		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
 		getline(*file, edgeclass_s, '@');
-		edge->edgeClass = (eEdgeNodeType)edgeclass_s.c_str()[0];
+		edge->edgeClass = (eEdgeNodeType)(char)edgeclass_s.c_str()[0];
 		NODEPAIR stpair = make_pair(source, target);
 		add_edge(*edge, safe_get_node(source), safe_get_node(target));
 	}

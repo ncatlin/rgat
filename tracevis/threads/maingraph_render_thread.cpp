@@ -93,12 +93,12 @@ void maingraph_render_thread::main_loop()
 			Sleep(5); continue;
 		}
 
-		activeGraph->increase_thread_references(111);
+		activeGraph->increase_thread_references();
 		getMutex();
 		performMainGraphRendering(activeGraph);
 		dropMutex();
 
-		activeGraph->decrease_thread_references(111);
+		activeGraph->decrease_thread_references();
 		activeGraph = 0;
 
 		Sleep(renderFrequency);
