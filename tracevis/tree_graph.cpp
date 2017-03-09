@@ -400,6 +400,19 @@ void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_
 	drawHighlightLine(nodeCoordxyz, colour);
 }
 
+//draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
+void tree_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+{
+	FCOORD nodeCoordxyz;
+	if (!nodeCoord) return;
+
+	TREECOORD *treeNodeCoord = (TREECOORD *)nodeCoord;
+	//float adjB = treeNodeCoord->b + float(sphereNodeCoord->bMod * BMODMAG);
+	//sphereCoord(sphereNodeCoord->a, adjB, &nodeCoordxyz, scale, lengthModifier);
+	//drawHighlightLine(nodeCoordxyz, colour);
+}
+
+
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
 FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
 {

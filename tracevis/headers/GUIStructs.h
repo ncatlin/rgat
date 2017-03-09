@@ -107,7 +107,7 @@ public:
 	void displayActiveGraph();
 	void performIrregularActions();
 	void change_mode(eUIEventCode mode);
-	void draw_display_diff(ALLEGRO_FONT *font, void *diffRenderer);
+	void draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer);
 	void initWireframeBufs();
 
 	//cache to avoid lock every time we move mouse

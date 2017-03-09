@@ -66,6 +66,7 @@ public:
 	virtual void adjust_B_edgeSep(float delta) {};
 	virtual void adjust_size(float delta) {};
 	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
+	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 
 	void updateMainRender(VISSTATE *clientState);
 	bool setGraphBusy(bool set);

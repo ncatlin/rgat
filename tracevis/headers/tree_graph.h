@@ -44,6 +44,7 @@ public:
 	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
 	void render_static_graph(VISSTATE *clientState);
 	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
+	void drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
@@ -52,6 +53,7 @@ public:
 
 	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) { return; }
 	void plot_wireframe(VISSTATE *clientState) { return; }
+	TREECOORD *get_node_coord(NODEINDEX idx);
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -78,8 +80,6 @@ private:
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
-
-	TREECOORD *get_node_coord(NODEINDEX idx);
-
+	
 };
 

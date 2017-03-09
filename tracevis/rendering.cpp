@@ -252,12 +252,18 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		switch (diffgraph->getLayout())
 		{
 		case eSphereLayout:
-			//todo: figure out why not displayed
-			diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
-			break;
+		{	
+			SPHERECOORD *divergeCoord = ((sphere_graph *)graph1)->get_node_coord(divergeNode->index);
+			diffgraph->drawHighlight((void *)divergeCoord, diffgraph->main_scalefactors, &al_col_orange, 10);
+			break; 
+		}
 		case eTreeLayout:
-			diffgraph->drawHighlight(divergeNode->index, diffgraph->main_scalefactors, &al_col_orange, 10);
-			break;
+		{
+			TREECOORD *divergeCoord = ((tree_graph *)graph1)->get_node_coord(divergeNode->index);
+			diffgraph->drawHighlight((void *)divergeNode, diffgraph->main_scalefactors, &al_col_orange, 10);
+			break; 
+		}
+
 		default:
 			cout << "bad layout?";
 			break;

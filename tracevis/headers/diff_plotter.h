@@ -29,12 +29,13 @@ class diff_plotter {
 public:
 	plotted_graph *get_diff_graph() { return diffgraph; }
 	diff_plotter(plotted_graph *graph1, plotted_graph *graph2, VISSTATE *state);
-	//void display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
+	void display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
 
 	void render();
 	plotted_graph *get_graph(int idx);
 	//return first node different between the two graphs
 	NODEINDEX get_diff_node() { return diffNode; }
+	bool wasDivergenceFound() {	return divergenceFound;	}
 
 private:
 	NODEPAIR firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *pd, PID_TID thread);
@@ -47,8 +48,7 @@ private:
 	unsigned long divergenceIdx = 0;
 	NODEINDEX diffNode = 0;
 	NODEINDEX lastNode = 0;
-	bool divergenceFound = false;
-
+	
 	ALLEGRO_COLOR edgeColour;
 	ALLEGRO_COLOR matchingEdgeColour;
 	ALLEGRO_COLOR divergingEdgeColour;
@@ -58,6 +58,7 @@ private:
 	unsigned int blockIdx = 0;
 
 	bool doneFlag = false;
+	bool divergenceFound = false;
 
 	unordered_map <NODEPAIR, bool> matchingEdgeList;
 };

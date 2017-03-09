@@ -30,10 +30,8 @@ void VISSTATE::set_activeGraph(void *graph)
 	{
 		plotted_graph *oldGraph = (plotted_graph *)activeGraph;
 		oldGraph->decrease_thread_references(444);
-		cout << "Decreased 444 refs to " << oldGraph << endl;
 	}
 	((plotted_graph *)graph)->increase_thread_references(444);
-	cout << "Increased 444 refs to " << graph << endl;
 	activeGraph = graph;
 }
 
@@ -101,21 +99,20 @@ void VISSTATE::change_mode(eUIEventCode mode)
 }
 
 
-void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void *diffRenderer)
+void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 {
-	diff_plotter **diffRenderPtrPtr = (diff_plotter **)diffRenderer;
+	diff_plotter *diffRendererPtr = *(diff_plotter **)diffRenderer;
 
 	if (modes.diff == DIFF_STARTED) //diff graph built, display it
 	{
-		plotted_graph *graph1 = (*diffRenderPtrPtr)->get_graph(1);
+		plotted_graph *graph1 = diffRendererPtr->get_graph(1);
 		proto_graph *protoGraph1 = graph1->get_protoGraph();
 
-		NODEINDEX diffNIdx = (*diffRenderPtrPtr)->get_diff_node();
-		node_data *diffnode = protoGraph1->safe_get_node(diffNIdx);
-
-		plotted_graph *diffGraph = (*diffRenderPtrPtr)->get_diff_graph();
+		node_data *diffnode = 0;
+		if (diffRendererPtr->wasDivergenceFound())
+			diffnode = protoGraph1->safe_get_node(diffRendererPtr->get_diff_node());
 		
-		display_graph_diff(this, *diffRenderPtrPtr, diffnode);
+		display_graph_diff(this, diffRendererPtr, diffnode);
 	}
 
 	else if (modes.diff == DIFF_SELECTED)//diff button clicked, build the graph first
@@ -127,11 +124,14 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void *diffRenderer)
 
 		plotted_graph *graph1 = mywidgets->diffWindow->get_graph(1);
 		plotted_graph *graph2 = mywidgets->diffWindow->get_graph(2);
+
+		diff_plotter **diffRenderPtrPtr = (diff_plotter **)diffRenderer;
 		*diffRenderPtrPtr = new diff_plotter(graph1, graph2, this);
 		((diff_plotter*)*diffRenderPtrPtr)->render();
+		diffRendererPtr = *(diff_plotter **)diffRenderer;
 	}
 
-	//((diff_plotter*)*diffRenderer)->display_diff_summary(20, 40, font, clientState);
+	diffRendererPtr->display_diff_summary(20, LAYOUT_ICONS_Y + LAYOUT_ICONS_H, font, this);
 }
 
 

@@ -55,22 +55,37 @@ plotted_graph *diff_plotter::get_graph(int idx) {
 	return graph2;
 }
 
-/*
+
 void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
 {
 	stringstream infotxt1, infotxt2, infotxt3;
 
-	unsigned long maxBBs = max(graph1->bbsequence.size(), graph2->bbsequence.size());
-	infotxt1 << "Green (PID: " << graph2->pid << " TID: " << graph2->tid <<
-		") Path: " << graph2->modPath << " (" << animIndex << " common block executions)";
-	infotxt2 << "Red+Green (PID:" << graph1->pid << " TID:" << graph1->tid <<
-		") Path: " << graph1->modPath << " (" << maxBBs - divergenceIdx << " blocks executed)";
+	string modPath1, modPath2;
+	graph2->get_protoGraph()->get_piddata()->get_modpath(0, &modPath1);
+	graph2->get_protoGraph()->get_piddata()->get_modpath(0, &modPath2);
+
+	infotxt1 << "Green (PID: " << graph2->get_pid() << " TID: " << graph2->get_tid() <<
+		") Path: " << modPath1 << endl;
+	infotxt2 << "Red+Green (PID:" << graph1->get_pid() << " TID:" << graph1->get_tid() <<
+		") Path: " << modPath2 << endl;
 
 	int textVSep = font->height + 5;
-	al_draw_text(font, al_col_white, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
-	al_draw_text(font, al_col_white, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
+
+
+
+	if (divergenceFound)
+	{
+		al_draw_text(font, al_col_orange, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
+		al_draw_text(font, al_col_orange, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
+		al_draw_text(font, al_col_orange, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "Divergence found");
+	}
+	else
+	{
+		al_draw_text(font, al_col_green, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
+		al_draw_text(font, al_col_green, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
+		al_draw_text(font, al_col_green, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "No divergence found");
+	}
 }
-*/
 
 void diff_plotter::mark_divergence()
 {

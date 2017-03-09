@@ -591,6 +591,18 @@ void sphere_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGR
 	drawHighlightLine(nodeCoordxyz, colour);
 }
 
+//draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
+void sphere_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+{
+	FCOORD nodeCoordxyz;
+	if (!nodeCoord) return;
+
+	SPHERECOORD *sphereNodeCoord = (SPHERECOORD *)nodeCoord;
+	float adjB = sphereNodeCoord->b + float(sphereNodeCoord->bMod * BMODMAG);
+	sphereCoord(sphereNodeCoord->a, adjB, &nodeCoordxyz, scale, lengthModifier);
+	drawHighlightLine(nodeCoordxyz, colour);
+}
+
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
 FCOORD sphere_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
 {
