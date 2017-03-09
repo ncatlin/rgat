@@ -75,3 +75,10 @@ Muted obnoxious warning for very high density graphs
 Support for 64 bit windows targets
 Code improvements including logical seperation of graph generation and positioning, allowing different graph layouts
 Added a debug logging option to make tracing/reporting bugs easier.
+
+09/03/17 0.4.1 [PREVIOUS SAVES OBSOLETE]
+-----------------
+Added framework for switching between graph layouts
+Added prototype tree graph. Not much use at the moment but demonstrates multiple layout concept for graph that does not need to rescale
+A couple of crash fixes
+Misc code improvements

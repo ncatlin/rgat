@@ -263,3 +263,5 @@ tracelog*
 /tracevis/drgat/msvcp140.dll
 /tracevis/drgat/drgat.dll
 /rgatTesting
+rgat*.7z
+rgat*.zip

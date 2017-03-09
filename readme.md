@@ -25,15 +25,13 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.4 is here: [zip](https://github.com/ncatlin/rgat/raw/master/rgat-0.4.zip)/[7z](https://github.com/ncatlin/rgat/raw/master/rgat-0.4.7z) for Windows x86 and **now x86-64 targets**.
+Version 0.4.1 is here: [zip](https://github.com/ncatlin/rgat-builds/raw/master/rgat-0.4.1.zip)/[7z](https://github.com/ncatlin/rgat-builds/raw/master/rgat-0.4.1.7z) for Windows x86 and x64 targets.
 
-It probably doesn't make much practical different at the moment but the graph building and rendering code has been firmly logically seperated. This means new layouts (ie: not the sphere) are coming.
+This updated fixes some crashes, improves some code and adds a layout switcher with a prototype tree graph. When laid out sensibly it should provide a layout that does not require constant rescaling with large graphs.
 
-There is also a debug logging option when starting instrumentation, to make reporting instrumentation crashes possible.
+See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for version history.
 
-See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for further details. 
-
-Next on the agenda: Generally improving the layout of the nodes and text. Possibly linux support.
+Next in 0.4.* is JSON save files and improvements to the tree graph. 
 
 ## Download/Installation
 
