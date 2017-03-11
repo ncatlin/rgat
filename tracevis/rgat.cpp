@@ -656,8 +656,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 				const char* result = al_get_native_file_dialog_path(fileDialog, 0);
 				al_destroy_native_file_dialog(fileDialog);
-
 				if (!result) return EV_NONE;
+
 				string path(result);
 				if (!fileExists(path)) return EV_NONE;
 

@@ -350,54 +350,68 @@ unsigned long proto_graph::get_backlog_total()
 	return sizePair.first + sizePair.second;
 }
 
-bool proto_graph::serialise(ofstream *file)
+bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 {
-	*file << "TID" << tid << "{";
+	using namespace rapidjson;
 
-	*file << "N{";
+	writer.StartObject();
+
+	writer.Key("ThreadID");
+	writer.Int64(tid);
+
+	writer.Key("Nodes");
+	writer.StartArray();
 	vector<node_data>::iterator vertit = nodeList.begin();
 	for (; vertit != nodeList.end(); ++vertit)
-		vertit->serialise(file);
-	*file << "}N,";
+		vertit->serialise(writer);
+	writer.EndArray();
 
-	*file << "D{";
+	writer.Key("Edges");
+	writer.StartArray();
 	EDGELIST::iterator edgeLIt = edgeList.begin();
 	for (; edgeLIt != edgeList.end(); ++edgeLIt)
 	{
 		edge_data *e = get_edge(*edgeLIt);
 		assert(e);
-		e->serialise(file, edgeLIt->first, edgeLIt->second);
+		e->serialise(writer, edgeLIt->first, edgeLIt->second);
 	}
-	*file << "}D,";
+	writer.EndArray();
 
-	*file << "X{";
+	writer.Key("Exceptions");
+	writer.StartArray();
 	set<unsigned int>::iterator exceptit = exceptionSet.begin();
 	for (; exceptit != exceptionSet.end(); ++exceptit)
-		*file << *exceptit << ",";
-	*file << "}X,";
+		writer.Int(*exceptit);
+	writer.EndArray();
 
-	//S for stats
-	*file << "S{"
-		<< baseModule << ","
-		<< totalInstructions
-		<< "}S,";
+	writer.Key("Module");
+	writer.Uint64(baseModule);
 
-	*file << "A{";
+	writer.Key("TotalInstructions");
+	writer.Uint64(totalInstructions);
+
+	writer.Key("ReplayData");
+	writer.StartArray();
 	obtainMutex(animationListsMutex, 1030);
 	for (unsigned long i = 0; i < savedAnimationData.size(); ++i)
 	{
+		writer.StartArray();
 		ANIMATIONENTRY entry = savedAnimationData.at(i);
 
-		*file << (unsigned int)entry.entryType << ","
-			<< entry.blockAddr << "," << entry.blockID << ","
-			<< entry.count << ","
-			<< entry.targetAddr << "," << entry.targetID << ","
-			<< entry.callCount << ",";
+		writer.Uint((unsigned int)entry.entryType);
+		writer.Uint64(entry.blockAddr);
+		writer.Uint64(entry.blockID);
+		writer.Uint64(entry.count);
+		writer.Uint64(entry.targetAddr);
+		writer.Uint64(entry.targetID);
+		writer.Uint64(entry.callCount);
+
+		writer.EndArray();
 	}
 	dropMutex(animationListsMutex);
-	*file << "}A,";
+	writer.EndArray();
 
-	*file << "}";
+	writer.EndObject(); //end thread object
 	return true;
 }
 
@@ -413,11 +427,11 @@ bool proto_graph::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disass
 
 bool proto_graph::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-
+	/*
 	if (!verifyTag(file, tag_START, 'N')) {
 		cerr << "[rgat]Bad node data" << endl;
 		return false;
-	}
+	}*/
 	string value_s;
 	while (true)
 	{

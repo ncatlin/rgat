@@ -161,7 +161,7 @@ public:
 	unsigned long traceBufferSize = 0;
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
-	bool serialise(ofstream *file);
+	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 
 	unsigned long totalInstructions = 0;

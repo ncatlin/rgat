@@ -26,6 +26,12 @@ Graph/Process Saving/Loading routines
 #include "traceMisc.h"
 #include "basicblock_handler.h"
 
+
+#include <rapidjson\document.h>
+#include <rapidjson\filewritestream.h>
+#include <rapidjson\writer.h>
+#include <boost\filesystem.hpp>
+
 #define tag_START '{'
 #define tag_END '}'
 #define tag_PROCESSDATA 41
@@ -33,10 +39,10 @@ Graph/Process Saving/Loading routines
 #define tag_SYM 43
 #define tag_DISAS 44
 
-void writetag(ofstream *file, char tag, int id = 0);
-void saveProcessData(PROCESS_DATA *piddata, ofstream *file);
+
+void saveProcessData(PROCESS_DATA *piddata, rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 void saveTrace(VISSTATE * clientState);
-bool verifyTag(ifstream *file, char tag, int id = 0);
+
 
 int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag);
 

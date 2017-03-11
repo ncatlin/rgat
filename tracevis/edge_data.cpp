@@ -30,11 +30,13 @@ edge_data::~edge_data()
 {
 }
 
-bool edge_data::serialise(ofstream *file, int source, int target)
+bool edge_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, int source, int target)
 {
-	*file << source << "," <<
-		target << "," <<
-		(char)edgeClass << "@";
+	writer.StartArray();
+	writer.Uint(source);
+	writer.Uint(target);
+	writer.Uint((char)edgeClass);
+	writer.EndArray();
 
 	return true;
 }

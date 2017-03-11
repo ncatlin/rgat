@@ -18,14 +18,12 @@ limitations under the License.
 Graph/Process Saving/Loading routines
 */
 #include "stdafx.h"
-#include "traceStructs.h"
-#include "b64.h"
-#include "GUIStructs.h"
-#include "traceMisc.h"
-#include "basicblock_handler.h"
+#include "serialise.h"
 #include "OSspecific.h"
 #include "GUIManagement.h"
 #include "sphere_graph.h"
+
+using namespace rapidjson;
 
 #define tag_START '{'
 #define tag_END '}'
@@ -36,168 +34,247 @@ Graph/Process Saving/Loading routines
 #define tag_EXTERND 45
 
 
-void writetag(ofstream *file, char tag, int id = 0) {
-	char tagbuf[2];
-	if (!id)
-	{
-		tagbuf[0] = tag;
-		file->write(tagbuf, 1);
-	}
-	else
-	{
-		if (tag == tag_START)
-		{
-			tagbuf[0] = id;
-			tagbuf[1] = tag;
-		}
-		else
-		{
-			tagbuf[0] = tag;
-			tagbuf[1] = id;
-		}
-		file->write(tagbuf, 2);
-	}
-}
-
-void saveModulePaths(PROCESS_DATA *piddata, ofstream *file)
+void saveModulePaths(PROCESS_DATA *piddata, Writer<rapidjson::FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_PATH);
+	writer.Key("ModulePaths");
+	writer.StartArray();
 
 	map <int, string>::iterator pathIt = piddata->modpaths.begin();
 	for (; pathIt != piddata->modpaths.end(); pathIt++)
 	{
 		const unsigned char* cus_pathstring = reinterpret_cast<const unsigned char*>(pathIt->second.c_str());
-		*file << pathIt->first << "," << base64_encode(cus_pathstring, pathIt->second.size()) << " ";
+		writer.StartObject();
+		writer.Key("ID");
+		writer.Int(pathIt->first);
+		writer.Key("B64");
+		writer.String(base64_encode(cus_pathstring, pathIt->second.size()).c_str());
+		writer.EndObject();
 	}
-	writetag(file, tag_END, tag_PATH);
+
+	writer.EndArray();
 }
 
 //big, but worth doing in case environments differ
-void saveModuleSymbols(PROCESS_DATA *piddata, ofstream *file)
+void saveModuleSymbols(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_SYM);
-	*file << " ";
+	writer.Key("ModuleSymbols");
+	writer.StartArray();
+
 	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = piddata->modsymsPlain.begin();
 	for (; modSymIt != piddata->modsymsPlain.end(); ++modSymIt)
 	{
-		*file << modSymIt->first;
-		writetag(file, tag_START);
+		writer.StartObject();
+
+		writer.Key("ModuleID");
+		writer.Int(modSymIt->first);
+
+		writer.Key("Symbols");
+		writer.StartArray();
 		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
 		for (; symIt != modSymIt->second.end(); symIt++)
-			*file << symIt->first << "," << base64_encode((unsigned char*)symIt->second.c_str(),symIt->second.size()) << "@";
+		{
+			writer.StartObject();
+			writer.Key("ID");
+			writer.Int(modSymIt->first);
 
-		writetag(file, tag_END);
-		*file << " ";
+			writer.Key("B64");
+			writer.String(base64_encode((unsigned char*)symIt->second.c_str(), symIt->second.size()).c_str());
+			writer.EndObject();
+		}
+		writer.EndArray();
+
+		writer.EndObject();
 	}
-	writetag(file, tag_END, tag_SYM);
+
+	writer.EndArray();
 }
 
-void saveDisassembly(PROCESS_DATA *piddata, ofstream *file)
+void saveDisassembly(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_DISAS);
+	writer.Key("Disassembly");
+	writer.StartArray();
 
 	map <MEM_ADDRESS, INSLIST>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); ++disasIt)
 	{
-		*file << disasIt->second.size() << ","; //number of mutations at this address
-		*file << disasIt->first << ",";  //address
-		*file << disasIt->second.front()->modnum << ","; //module number (same for all mutations (i really hope))
+		writer.StartObject();
+		writer.Key("A"); //address
+		writer.Int64(disasIt->first);
 		
+		writer.Key("M");//module number (same for all mutations (i hope))
+		writer.Int(disasIt->second.front()->modnum);
+		
+		writer.Key("D"); //disassembly data for each mutation
+		writer.StartArray();
 		INSLIST::iterator mutationIt = disasIt->second.begin();
 		for (; mutationIt != disasIt->second.end(); ++mutationIt)
 		{
 			INS_DATA *ins = *mutationIt;
-			//for each mutation write opcodes, number of threads executing it
-			*file << ins->opcodes << "," << ins->threadvertIdx.size() << ",";
+			writer.StartObject();
+
+			writer.Key("O");	//opcodes string
+			writer.String(ins->opcodes.c_str());
+
+			writer.Key("T");	//threads containing it
+			writer.StartArray();
 			unordered_map<PID_TID, NODEINDEX>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
-				//write thread ID, vert index of node in thread
-				*file << threadVertIt->first << "," << threadVertIt->second << ",";
+				writer.StartObject();
+
+				writer.Key("T");	//thread ID
+				writer.Int64(threadVertIt->first); //could make file smaller by doing a lookup table.
+	
+				writer.Key("I");	//node index of opcode in thread
+				writer.Int(threadVertIt->second);
+
+				writer.EndObject();
 			}
+			writer.EndArray(); //end array of indexes for this mutation
+
+			writer.EndObject(); //end object for this mutation
 		}
+		writer.EndArray(); //end array of mutations for this address
+
+		writer.EndObject(); //end object for this address
+
 	}
-	writetag(file, tag_END, tag_DISAS);
+	writer.EndArray(); // end array of disassembly data for trace
 }
 
-void saveExternDict(PROCESS_DATA *piddata, ofstream *file)
+void saveExternDict(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_EXTERND);
+	writer.Key("Externs");
+	writer.StartArray();
 
 	map <MEM_ADDRESS, BB_DATA *>::iterator externIt = piddata->externdict.begin();
 	for (; externIt != piddata->externdict.end(); ++externIt)
 	{
-		*file << externIt->first << ","; //extern address
-		*file << externIt->second->modnum << ","; 
-		*file << externIt->second->hasSymbol << ",";
+		writer.StartObject();
 
-		*file << externIt->second->thread_callers.size() << ",";
-		map<DWORD, EDGELIST>::iterator threadCallIt = externIt->second->thread_callers.begin();
-		for (; threadCallIt != externIt->second->thread_callers.end(); ++threadCallIt)
+		writer.Key("A");	//address
+		writer.Int64(externIt->first); 
+
+		writer.Key("M");	//module number
+		writer.Int(externIt->second->modnum);
+
+		writer.Key("S");	//has symbol?
+		writer.Bool(externIt->second->hasSymbol);
+
+		//todo: should this object even be written if empty?
+		if (!externIt->second->thread_callers.empty())
 		{
-			*file << threadCallIt->first << "," << threadCallIt->second.size() << ",";
-			EDGELIST::iterator edgeIt = threadCallIt->second.begin();
-			for (; edgeIt != threadCallIt->second.end(); ++edgeIt)
-				*file << edgeIt->first << "," << edgeIt->second << ",";
+			writer.Key("C");	//thread callers
+			writer.StartArray();
+			map<DWORD, EDGELIST>::iterator threadCallIt = externIt->second->thread_callers.begin();
+			for (; threadCallIt != externIt->second->thread_callers.end(); ++threadCallIt)
+			{
+				writer.StartObject();
+
+				writer.Key("T");	//thread id
+				writer.Uint64(threadCallIt->first);
+
+				writer.Key("E");	//edges
+				writer.StartArray();
+				EDGELIST::iterator edgeIt = threadCallIt->second.begin();
+				for (; edgeIt != threadCallIt->second.end(); ++edgeIt)
+				{
+					writer.StartArray();
+					//source, target
+					writer.Int(edgeIt->first);
+					writer.Int(edgeIt->second);
+
+					writer.EndArray();
+				}
+				writer.EndArray(); //end edge array
+
+				writer.EndObject(); //end thread callers object for this thread
+			}
+			writer.EndArray(); //end thread callers array for this address
 		}
+		writer.EndObject(); //end object for this extern entry
 	}
-	writetag(file, tag_END, tag_EXTERND);
+
+	writer.EndArray(); //end externs array
 }
 
-void saveBlockData(PROCESS_DATA *piddata, ofstream *file)
+void saveBlockData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_DISAS);
+	writer.Key("BasicBlocks");
+	writer.StartArray();
 
 	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt = piddata->blocklist.begin();
 	for (; blockIt != piddata->blocklist.end(); ++blockIt)
 	{
-		*file << blockIt->second.size() << ","; //number of blocks at this address
-		*file << blockIt->first << ",";  //block address
+		writer.StartObject();
 
+		writer.Key("A");	//block address
+		writer.Uint64(blockIt->first);
+
+		writer.Key("I");	//instructions
+		writer.StartArray();
 		map<BLOCK_IDENTIFIER, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
 		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
 		{
+			writer.StartArray();
+
 			INSLIST *blockInstructions = blockIDIt->second;
-			*file << blockIDIt->first << "," << blockInstructions->size() << ",";
+
+			writer.Uint64(blockIDIt->first); //block ID
+
+			writer.StartArray(); //mutations for each instruction
+
 			INSLIST::iterator blockInsIt = blockInstructions->begin();
 			for (; blockInsIt != blockInstructions->end(); ++blockInsIt)
 			{
 				//write instruction address+mutation loader can look them up in disassembly
 				INS_DATA* ins = *blockInsIt;
-				*file << ins->address << "," << ins->mutationIndex << ",";
+
+				writer.StartArray();
+
+				writer.Uint64(ins->address);
+				writer.Uint64(ins->mutationIndex);
+				
+				writer.EndArray();
 			}
+			
+			writer.EndArray(); //end mutations array for this instruction
+
+			writer.EndArray(); //end this instruction
 		}
+
+		writer.EndArray();	//end instructions array for this address
+
+		writer.EndObject(); //end basic block object for this address
 	}
-	writetag(file, tag_END, tag_DISAS);
+
+	writer.EndArray(); //end array of basic blocks
 }
 
-void saveProcessData(PROCESS_DATA *piddata, ofstream *file)
+void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writetag(file, tag_START, tag_PROCESSDATA);
+	writer.Key("ProcessData");
+	writer.StartObject();
 
+	writer.Key("BitWidth");
 	if (piddata->bitwidth == CS_MODE_32)
-		*file << "3";
+		writer.Uint(32);
 	else if (piddata->bitwidth == CS_MODE_64)
-		*file << "6";
+		writer.Uint(64);
 	else
 		cerr << "[rgat] Proto-graph has invalid bitwidth marker " << piddata->bitwidth << endl;
 
-	saveModulePaths(piddata, file);
-	*file << " ";
+	saveModulePaths(piddata, writer);
 
-	saveModuleSymbols(piddata, file);
-	*file << " ";
+	saveModuleSymbols(piddata, writer);
 
-	saveDisassembly(piddata, file);
-	*file << " ";
+	saveDisassembly(piddata, writer);
 	
-	saveBlockData(piddata, file);
-	*file << " ";
+	saveBlockData(piddata, writer);
 
-	saveExternDict(piddata, file);
+	saveExternDict(piddata, writer);
 
-
-	writetag(file, tag_END, tag_PROCESSDATA);
+	writer.EndObject();
 }
 
 //if dir doesn't exist in config defined path, create
@@ -234,18 +311,31 @@ void saveTrace(VISSTATE * clientState)
 	cout << "[rgat]Saving process " <<dec<< clientState->activePid->PID <<" to " << path << endl;
 
 
-	ofstream savefile;
-	savefile << std::dec;
-	savefile.open(path.c_str(), std::ofstream::binary);
-	if (!savefile.is_open())
+
+	FILE *savefile;
+	if ((fopen_s(&savefile, path.c_str(), "wb") != 0))// non-Windows use "w"?
 	{
 		cerr << "[rgat]Failed to open " << path << "for save" << endl;
 		clientState->saving = false;
 		return;
 	}
 
-	savefile << "PID " << clientState->activePid->PID << " ";
-	saveProcessData(clientState->activePid, &savefile);
+
+	using namespace boost::filesystem;
+
+	char buffer[65536];
+	rapidjson::FileWriteStream outstream(savefile, buffer, sizeof(buffer));
+	rapidjson::Writer<rapidjson::FileWriteStream> writer{ outstream };
+
+	writer.StartObject();
+
+	writer.Key("PID");
+	writer.Uint64(clientState->activePid->PID);
+
+	saveProcessData(clientState->activePid, writer);
+
+	writer.Key("Threads");
+	writer.StartArray();
 
 	obtainMutex(clientState->activePid->graphsListMutex, 1012);
 	map <PID_TID, void *>::iterator graphit = clientState->activePid->plottedGraphs.begin();
@@ -257,30 +347,17 @@ void saveTrace(VISSTATE * clientState)
 			continue;
 		}
 		cout << "[rgat]Serialising graph: "<< graphit->first << endl;
-		graph->serialise(&savefile);
+		graph->serialise(writer);
 	}
 	dropMutex(clientState->activePid->graphsListMutex);
 
-	savefile.close();
+	writer.EndArray(); //end threads array
+
+	writer.EndObject();
+
+	fclose(savefile);
 	clientState->saving = false;
 	cout<<"[rgat]Save complete"<<endl;
-}
-
-bool verifyTag(ifstream *file, char tag, int id = 0) {
-	char tagbuf[2];
-	if (!id)
-	{
-		file->read(tagbuf, 1);
-		return tagbuf[0] == tag;
-	}
-	else
-	{
-		file->read(tagbuf, 2);
-		if (tag == tag_START)
-			return (tagbuf[0] == id && tagbuf[1] == tag);
-		else
-			return (tagbuf[1] == id && tagbuf[0] == tag);
-	}
 }
 
 int extractb64path(ifstream *file, unsigned int *modNum, string *modpath, string endTag)
@@ -325,11 +402,11 @@ int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
 //load process data not specific to threads
 bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** piddataPtr, PID_TID PID)
 {
-	
+	/*
 	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
 		cerr << "[rgat]Corrupt save (process data start)" << endl;
 		return false;
-	}
+	}*/
 
 	char bitWidthChar;
 	*file >> bitWidthChar;
@@ -352,10 +429,11 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 	PROCESS_DATA* piddata = *piddataPtr;
 
 	//paths
+	/*
 	if (!verifyTag(file, tag_START, tag_PATH)) {
 		cerr << "[rgat]Corrupt save (process- path data start)" << endl;
 		return false;
-	}
+	}*/
 
 	display_only_status_message("Loading Modules", clientState);
 	cout << "[rgat]Loading Module Paths" << endl;
@@ -384,10 +462,11 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 	//syms
 	display_only_status_message("Loading Symbols", clientState);
 	cout << "[rgat]Loading Module Symbols" << endl;
+	/*
 	if (!verifyTag(file, tag_START, tag_SYM)) {
 		cerr<< "[rgat]Corrupt save (process- sym data start)" << endl;
 		return false;
-	}
+	}*/
 
 	endTagStr += tag_END;
 	endTagStr += tag_SYM;
@@ -410,11 +489,12 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 	//disassembly
 	display_only_status_message("Loading Disassembly", clientState);
 	cout << "[rgat]Loading instruction disassembly" << endl;
+	/*
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- disassembly data start)" << endl;
 		return false;
 	}
-
+	*/
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, disassemblyMode, &hCapstone) != CS_ERR_OK)	{
 		cerr << "[rgat]ERROR: Couldn't open Capstone instance" << endl;
@@ -481,20 +561,21 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 		piddata->disassembly.insert(make_pair(address, mutationVector));
 	}
 	cs_close(&hCapstone);
-
+	/*
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- disas data end)" << endl;
 		return false;
-	}
+	}*/
 	file->seekg(1, ios::cur);
 
 	//basic blocks
 	display_only_status_message("Loading Basic Blocks", clientState);
 	cout << "[rgat]Loading basic block mapping" << endl;
+	/*
 	if (!verifyTag(file, tag_START, tag_DISAS)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- basic block data start)" << endl;
 		return false;
-	}
+	}*/
 
 	string numblocks_s, blockaddress_s, blockID_s, numinstructions_s, mutationIndex_s, insAddr_s;
 	while (true)
@@ -551,17 +632,17 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 			}
 		}
 	}
-
+	/*
 	if (!verifyTag(file, tag_END, tag_DISAS)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- basic block data end)" << endl;
 		return false;
-	}
+	}*/
 	file->seekg(1, ios::cur);
-
+	/*
 	if (!verifyTag(file, tag_START, tag_EXTERND)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- extern data start)" << endl;
 		return false;
-	}
+	}*/
 
 	string data_s;
 	MEM_ADDRESS externAddr;
@@ -626,7 +707,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 		piddata->externdict[externAddr] = externEntry;
 	}
 
-
+	/*
 	if (!verifyTag(file, tag_END, tag_EXTERND)) {
 		cerr << "[rgat]ERROR: Corrupt save (process- extern data end)" << endl;
 		return false;
@@ -636,7 +717,7 @@ bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** pidda
 		cerr << "[rgat]ERROR: Corrupt save (process data end)" << endl;
 		return false;
 	}
-
+	*/
 	return true;
 }
 

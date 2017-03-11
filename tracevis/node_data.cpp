@@ -24,45 +24,56 @@ Class describing each node
 #include "GUIConstants.h"
 #include "traceMisc.h"
 
-bool node_data::serialise(ofstream *outfile)
+
+bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 {
-	*outfile << index << "{";
-	*outfile << conditional << ",";
-	*outfile << nodeMod << ",";
-	*outfile << address << ",";
-	*outfile << executionCount << ",";
+	writer.StartArray();
 
+	writer.Uint(index);
+	writer.Uint(conditional);
+	writer.Uint(nodeMod);
+	writer.Uint64(address);
+	writer.Uint64(executionCount);
+
+	writer.StartArray();
 	set<unsigned int>::iterator adjacentIt = incomingNeighbours.begin();
-	*outfile << incomingNeighbours.size() << ",";
 	for (; adjacentIt != incomingNeighbours.end(); ++adjacentIt)
-		*outfile << *adjacentIt << ",";
+		writer.Uint(*adjacentIt);
+	writer.EndArray();
 
+	writer.StartArray();
 	adjacentIt = outgoingNeighbours.begin();
-	*outfile << outgoingNeighbours.size() << ",";
 	for (; adjacentIt != outgoingNeighbours.end(); ++adjacentIt)
-		*outfile << *adjacentIt << ",";
+		writer.Uint(*adjacentIt);
+	writer.EndArray();
 
-	*outfile << external << ",";
+	writer.Bool(external);
 
 	if (!external)
-		*outfile << ins->mutationIndex;
+		writer.Uint(ins->mutationIndex);
 	else
 	{
-		*outfile << funcargs.size() << ","; //number of calls
+		writer.StartArray(); //function calls
 		vector<ARGLIST>::iterator callIt = funcargs.begin();
 		ARGLIST::iterator argIt;
 		for (; callIt != funcargs.end(); callIt++)
 		{
-			*outfile << callIt->size() << ",";
+			writer.StartArray(); //arguments
 			for (argIt = callIt->begin(); argIt != callIt->end(); argIt++)
 			{
 				string argstring = argIt->second;
 				const unsigned char* cus_argstring = reinterpret_cast<const unsigned char*>(argstring.c_str());
-				*outfile << argIt->first << "," << base64_encode(cus_argstring, argstring.size()) << ",";
+
+				writer.StartArray(); //arg index, contents
+				writer.Uint(argIt->first);
+				writer.String(base64_encode(cus_argstring, argstring.size()).c_str());
+				writer.EndArray();
 			}
+			writer.EndArray(); //end lsit of args for this call
 		}
+		writer.EndArray(); //end list of calls for this node
 	}
-	*outfile << "}";
+	writer.EndArray(); //end node
 
 	return true;
 }

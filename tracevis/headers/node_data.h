@@ -24,13 +24,17 @@ Class describing each node
 #include "traceConstants.h"
 #include "mathStructs.h"
 
+#include <rapidjson\document.h>
+#include <rapidjson\filewritestream.h>
+#include <rapidjson\writer.h>
+
 class node_data
 {
 public:
 	node_data() {};
 	~node_data() {};
 
-	bool serialise(ofstream *file);
+	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 	//takes a file with a pointer next to a node entry, loads it into the node
 	int unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
 

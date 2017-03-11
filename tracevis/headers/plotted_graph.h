@@ -247,5 +247,6 @@ private:
 
 	bool animBuildingLoop = false;
 	bool dying = false;
+	int threadReferences = 0;
 };
 

@@ -73,17 +73,20 @@ bool plotted_graph::increase_thread_references()
 #else
 	AcquireSRWLockShared(&threadReferenceLock);
 #endif
+	++threadReferences;
 	return true;
 	
 }
 
 void plotted_graph::decrease_thread_references()
 {
+	if (threadReferences < 1) return;
 #ifdef XP_COMPATIBLE
 	//todo xp
 #else
 	ReleaseSRWLockShared(&threadReferenceLock);
 #endif
+	--threadReferences;
 }
 
 

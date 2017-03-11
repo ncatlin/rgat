@@ -21,6 +21,10 @@ Class describing each edge
 #include "stdafx.h"
 #include "traceConstants.h"
 
+#include <rapidjson\document.h>
+#include <rapidjson\filewritestream.h>
+#include <rapidjson\writer.h>
+
 class edge_data
 {
 public:
@@ -28,7 +32,7 @@ public:
 	~edge_data();
 	//write to provided file. This class doesn't actually contain the source
 	//and the target of the edge, so pass those along too
-	bool serialise(ofstream *file, int source, int target);
+	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, int source, int target);
 
 	//type of edge (call,extern,etc)
 	eEdgeNodeType edgeClass;  
