@@ -30,6 +30,8 @@ Graph/Process Saving/Loading routines
 #include <rapidjson\document.h>
 #include <rapidjson\filewritestream.h>
 #include <rapidjson\writer.h>
+#include <rapidjson\filereadstream.h>
+#include <rapidjson\reader.h>
 #include <boost\filesystem.hpp>
 
 #define tag_START '{'
@@ -47,8 +49,9 @@ void saveTrace(VISSTATE * clientState);
 int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag);
 
 int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata);
-bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** piddataPtr, PID_TID PID);
-bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata);
+bool loadProcessData(VISSTATE *clientState, rapidjson::Document& saveJSON, PROCESS_DATA** piddataPtr, PID_TID PID);
+bool loadProcessGraphs(VISSTATE *clientState, rapidjson::Document& saveJSON, PROCESS_DATA* piddata);
+
 
 //save every graph in activePid
 void saveAll(VISSTATE *clientState);

@@ -73,13 +73,10 @@ void saveModuleSymbols(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
 		for (; symIt != modSymIt->second.end(); symIt++)
 		{
-			writer.StartObject();
-			writer.Key("ID");
-			writer.Int(modSymIt->first);
-
-			writer.Key("B64");
-			writer.String(base64_encode((unsigned char*)symIt->second.c_str(), symIt->second.size()).c_str());
-			writer.EndObject();
+			writer.StartArray();
+			writer.Uint64(modSymIt->first); //symbol address
+			writer.String(base64_encode((unsigned char*)symIt->second.c_str(), symIt->second.size()).c_str()); //symbol string
+			writer.EndArray();
 		}
 		writer.EndArray();
 
@@ -97,46 +94,40 @@ void saveDisassembly(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	map <MEM_ADDRESS, INSLIST>::iterator disasIt = piddata->disassembly.begin();
 	for (; disasIt != piddata->disassembly.end(); ++disasIt)
 	{
-		writer.StartObject();
-		writer.Key("A"); //address
-		writer.Int64(disasIt->first);
-		
-		writer.Key("M");//module number (same for all mutations (i hope))
-		writer.Int(disasIt->second.front()->modnum);
-		
-		writer.Key("D"); //disassembly data for each mutation
 		writer.StartArray();
+
+		writer.Int64(disasIt->first); //address
+
+		writer.Int(disasIt->second.front()->modnum); //module
+		
+		writer.StartArray(); //opcode data for each mutation found at address
 		INSLIST::iterator mutationIt = disasIt->second.begin();
 		for (; mutationIt != disasIt->second.end(); ++mutationIt)
 		{
 			INS_DATA *ins = *mutationIt;
-			writer.StartObject();
+			writer.StartArray();
 
-			writer.Key("O");	//opcodes string
 			writer.String(ins->opcodes.c_str());
 
-			writer.Key("T");	//threads containing it
+			//threads containing it
 			writer.StartArray();
 			unordered_map<PID_TID, NODEINDEX>::iterator threadVertIt = ins->threadvertIdx.begin();
 			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
 			{
-				writer.StartObject();
+				writer.StartArray();
 
-				writer.Key("T");	//thread ID
 				writer.Int64(threadVertIt->first); //could make file smaller by doing a lookup table.
-	
-				writer.Key("I");	//node index of opcode in thread
-				writer.Int(threadVertIt->second);
+				writer.Uint(threadVertIt->second);
 
-				writer.EndObject();
+				writer.EndArray();
 			}
 			writer.EndArray(); //end array of indexes for this mutation
 
-			writer.EndObject(); //end object for this mutation
+			writer.EndArray(); //end mutation
 		}
 		writer.EndArray(); //end array of mutations for this address
 
-		writer.EndObject(); //end object for this address
+		writer.EndArray(); //end address
 
 	}
 	writer.EndArray(); // end array of disassembly data for trace
@@ -169,12 +160,12 @@ void saveExternDict(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 			map<DWORD, EDGELIST>::iterator threadCallIt = externIt->second->thread_callers.begin();
 			for (; threadCallIt != externIt->second->thread_callers.end(); ++threadCallIt)
 			{
-				writer.StartObject();
+				writer.StartArray();
 
-				writer.Key("T");	//thread id
+				//thread id
 				writer.Uint64(threadCallIt->first);
 
-				writer.Key("E");	//edges
+				//edges
 				writer.StartArray();
 				EDGELIST::iterator edgeIt = threadCallIt->second.begin();
 				for (; edgeIt != threadCallIt->second.end(); ++edgeIt)
@@ -188,7 +179,7 @@ void saveExternDict(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 				}
 				writer.EndArray(); //end edge array
 
-				writer.EndObject(); //end thread callers object for this thread
+				writer.EndArray(); //end thread callers object for this thread
 			}
 			writer.EndArray(); //end thread callers array for this address
 		}
@@ -206,12 +197,12 @@ void saveBlockData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt = piddata->blocklist.begin();
 	for (; blockIt != piddata->blocklist.end(); ++blockIt)
 	{
-		writer.StartObject();
+		writer.StartArray();
 
-		writer.Key("A");	//block address
+		//block address
 		writer.Uint64(blockIt->first);
 
-		writer.Key("I");	//instructions
+		//instructions 
 		writer.StartArray();
 		map<BLOCK_IDENTIFIER, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
 		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
@@ -245,7 +236,7 @@ void saveBlockData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 
 		writer.EndArray();	//end instructions array for this address
 
-		writer.EndObject(); //end basic block object for this address
+		writer.EndArray(); //end basic block object for this address
 	}
 
 	writer.EndArray(); //end array of basic blocks
@@ -360,370 +351,450 @@ void saveTrace(VISSTATE * clientState)
 	cout<<"[rgat]Save complete"<<endl;
 }
 
-int extractb64path(ifstream *file, unsigned int *modNum, string *modpath, string endTag)
+bool loadModulePaths(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& processData)
 {
-	string modblob;
-	*file >> modblob;
-	if (modblob == endTag) {
-		file->seekg(1, ios::cur);
-		return 0;
-	}
-	if (modblob.size() > 1024) return -1;
+	display_only_status_message("Loading Modules", clientState);
+	cout << "[rgat]Loading Module Paths" << endl;
 
-	stringstream ss(modblob);
-	string modnum_s, b64path;
-	getline(ss, modnum_s, ',');
-	getline(ss, b64path, ' ');
-	if (!caught_stoi(modnum_s, modNum, 10)) return -1;
-	*modpath = base64_decode(b64path);
-	return 1;
-}
+	Value::ConstMemberIterator procDataIt = processData.FindMember("ModulePaths");
+	if (procDataIt == processData.MemberEnd())
+		return false;
 
-//take a {} enclosed blob of , separated b64 encoded symbols
-//insert into respective piddata
-int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata)
-{
-	string symAddress_s, b64Sym;
-	MEM_ADDRESS symAddress;
-	while (true)
+	const Value& modPathArray = procDataIt->value;
+
+	stringstream pathLoadMsg;
+	pathLoadMsg << "Loading path of " << modPathArray.Capacity() << " modules";
+
+	cout << "[rgat]" << pathLoadMsg.str() << endl;
+	display_only_status_message(pathLoadMsg.str(), clientState);
+
+	Value::ConstValueIterator modPathIt = modPathArray.Begin();
+	for (; modPathIt != procDataIt->value.End(); modPathIt++)
 	{
-		getline(*blob, symAddress_s, ',');
-		if (symAddress_s == "}") return 1;
-		if (!caught_stoull(symAddress_s, &symAddress, 10))		{
-			cerr << "[rgat]extractmodsyms: bad address: " << symAddress_s << endl;
-			return -1;
+		Value::ConstMemberIterator pathDataIt = modPathIt->FindMember("ID");
+		if (pathDataIt == modPathIt->MemberEnd())
+		{
+			cout << "[rgat]ERROR: Module Paths load failed: No module ID" << endl;
+			return false;
+		}
+		int moduleID = pathDataIt->value.GetInt();
+
+		pathDataIt = modPathIt->FindMember("B64");
+		if (pathDataIt == modPathIt->MemberEnd())
+		{
+			cout << "[rgat]ERROR: Module Paths load failed: No path string" << endl;
+			return false;
 		}
 
-		getline(*blob, b64Sym, '@');
-		piddata->modsymsPlain[modnum][symAddress] = base64_decode(b64Sym);
+		string b64path = pathDataIt->value.GetString();
+		string plainpath = base64_decode(b64path);
+
+		piddata->modpaths.emplace(moduleID, plainpath);
 	}
+}
+
+bool unpackModuleSymbolArray(const Value& modSymArray, int moduleID, PROCESS_DATA *piddata)
+{
+	Value::ConstValueIterator modSymArrIt = modSymArray.Begin();
+	for (; modSymArrIt != modSymArray.End(); modSymArrIt++)
+	{
+		const Value& symbolsArray = *modSymArrIt;
+		if (symbolsArray.Capacity() != 2)
+		{
+			cout << "[rgat]ERROR: Symbols load failed: bad symbol entry in module" << moduleID << endl;
+			return false;
+		}
+
+		MEM_ADDRESS symAddress = symbolsArray[0].GetUint64();
+
+		string sym64 = symbolsArray[1].GetString();
+		string symPlain = base64_decode(sym64);
+
+		piddata->modsymsPlain[moduleID][symAddress] = symPlain;
+	}
+}
+
+bool loadSymbols(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& processData)
+{
+	Value::ConstMemberIterator symbolsIt = processData.FindMember("ModuleSymbols");
+	if (symbolsIt == processData.MemberEnd())
+		return false;
+
+	const Value& symbolsArray = symbolsIt->value;
+
+	stringstream symLoadMsg;
+	symLoadMsg << "Loading " << symbolsArray.Capacity() << " symbols";
+
+	cout << "[rgat]" << symLoadMsg.str() << endl;
+	display_only_status_message(symLoadMsg.str(), clientState);
+
+	Value::ConstValueIterator modSymsIt = symbolsArray.Begin();
+	for (; modSymsIt != symbolsArray.End(); modSymsIt++)
+	{
+		Value::ConstMemberIterator symDataIt = modSymsIt->FindMember("ModuleID");
+		if (symDataIt == modSymsIt->MemberEnd())
+		{
+			cout << "[rgat]ERROR: Symbols load failed: No module ID" << endl;
+			return false;
+		}
+
+		int moduleID = symDataIt->value.GetInt();
+
+		symDataIt = modSymsIt->FindMember("Symbols");
+		if (symDataIt == modSymsIt->MemberEnd())
+		{
+			cout << "[rgat]ERROR: Symbols load failed: No symbols array for module " << moduleID << endl;
+			return false;
+		}
+		const Value& modSymArray = symDataIt->value;
+
+		unpackModuleSymbolArray(modSymArray, moduleID, piddata);
+	}
+}
+
+struct ADDR_DATA
+{
+	MEM_ADDRESS address;
+	int moduleID;
+	bool hasSym;
+};
+
+bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *addressdata, INSLIST *mutationVector, csh hCapstone)
+{
+	
+	Value::ConstValueIterator opcodesEntryIt = opcodesData.Begin();
+	for (; opcodesEntryIt != opcodesData.End(); opcodesEntryIt++)
+	{
+		const Value& opcodesEntry = *opcodesEntryIt;
+		if (opcodesEntry.Capacity() != 2)
+		{
+			cerr << "[rgat] Bad mutation entry" << endl;
+			return false;
+		}
+
+		string opcodesString = opcodesEntry[0].GetString();
+		
+		INS_DATA *ins = new INS_DATA; //failed load is mem leak
+		ins->modnum = addressdata->moduleID;
+		ins->hasSymbol = addressdata->hasSym;
+
+		disassemble_ins(hCapstone, opcodesString, ins, addressdata->address);
+
+		const Value& threadNodes = opcodesEntry[1];
+		Value::ConstValueIterator threadNodesIt = threadNodes.Begin();
+		for (; threadNodesIt != threadNodes.End(); threadNodesIt++)
+		{
+			const Value& threadNodesEntry = *threadNodesIt;
+			if (threadNodesEntry.Capacity() != 2)
+			{
+				cerr << "[rgat] Bad thread nodes entry" << endl;
+				return false;
+			}
+
+			PID_TID excutingThread = threadNodesEntry[0].GetUint64();
+			unsigned int GraphVertID = threadNodesEntry[1].GetInt();
+			ins->threadvertIdx.emplace(excutingThread, GraphVertID);
+		}
+
+		mutationVector->push_back(ins);
+	}
+	return true;
+}
+
+bool unpackAddress(PROCESS_DATA *piddata, const Value& addressMutations, csh hCapstone)
+{
+	INSLIST mutationVector;
+
+	if (addressMutations.Capacity() != 3)
+	{
+		cerr << "[rgat] Bad address entry" << endl;
+		return false;
+	}
+
+	ADDR_DATA addressStruct;
+	addressStruct.address = addressMutations[0].GetUint64();
+	addressStruct.moduleID = addressMutations[1].GetInt();
+	const Value& mutationData = addressMutations[2];
+
+
+	if (piddata->modsymsPlain.count(addressStruct.moduleID) && piddata->modsymsPlain.at(addressStruct.moduleID).count(addressStruct.address))
+		addressStruct.hasSym = true;
+	else
+		addressStruct.hasSym = false;
+
+	if (!unpackOpcodes(piddata, mutationData, &addressStruct, &mutationVector, hCapstone))
+	{
+		cerr << "Failed to unpack opcodes" << endl;
+		return false;
+	}
+
+	piddata->disassembly.insert(make_pair(addressStruct.address, mutationVector));
+	return true;
+}
+
+bool loadDisassembly(VISSTATE *clientState, PROCESS_DATA *piddata, cs_mode disassemblyMode, const Value& processData)
+{
+	Value::ConstMemberIterator procDataIt = processData.FindMember("Disassembly");
+	if (procDataIt == processData.MemberEnd())
+		return false;
+	const Value& disassemblyArray = procDataIt->value;
+
+	stringstream disasLoadMsg;
+	disasLoadMsg << "Loading disassembly for " << disassemblyArray.Capacity() << " addresses";
+
+	cout << "[rgat]" << disasLoadMsg.str() << endl;
+	display_only_status_message(disasLoadMsg.str(), clientState);
+
+
+	display_only_status_message("Loading Disassembly", clientState);
+
+	csh hCapstone;
+	cs_err capOpenResult = cs_open(CS_ARCH_X86, disassemblyMode, &hCapstone);
+	if (capOpenResult != CS_ERR_OK) 
+	{
+		cerr << "[rgat]ERROR: Failed to open Capstone instance: " << capOpenResult << endl;
+		return false;
+	}
+
+	Value::ConstValueIterator disassemblyIt = disassemblyArray.Begin();
+	for (; disassemblyIt != disassemblyArray.End(); disassemblyIt++)
+	{
+		if (!unpackAddress(piddata, *disassemblyIt, hCapstone))
+		{
+			cerr << "[rgat]Error: Failed to unpack mutations" << endl;
+			cs_close(&hCapstone);
+			return false;
+		}
+	}
+
+	cs_close(&hCapstone);
+	return true;
+}
+
+bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockInstructions)
+{
+	if (blockInstructions.Capacity() != 2)
+	{
+		cerr << "[rgat]Error: Failed to unpack basic block instructions (bad entry)" << endl;
+		return false;
+	}
+
+	MEM_ADDRESS blockaddress = blockInstructions[0].GetUint64();
+	const Value& blockVariationsArray = blockInstructions[1];
+
+	Value::ConstValueIterator blockVariationIt = blockVariationsArray.Begin();
+	for (; blockVariationIt != blockVariationsArray.End(); blockVariationIt++)
+	{
+		const Value& blockVariation = *blockVariationIt;
+
+		BLOCK_IDENTIFIER blockID = blockVariation[0].GetUint64();
+		INSLIST *blockInsList = new INSLIST;
+
+		piddata->blocklist[blockaddress][blockID] = blockInsList;
+
+		const Value& blockVariationInstructions = blockVariation[1];
+		Value::ConstValueIterator instructionsIt = blockVariationInstructions.Begin();
+		for (; instructionsIt != blockVariationInstructions.End(); instructionsIt++)
+		{
+			const Value& instructionEntry = *instructionsIt;
+			MEM_ADDRESS instructionAddr = instructionEntry[0].GetUint64();
+			unsigned int mutationIdx = instructionEntry[1].GetUint();
+
+			INS_DATA* disassembledIns = piddata->disassembly.at(instructionAddr).at(mutationIdx);
+			piddata->blocklist[blockaddress][blockID]->push_back(disassembledIns);
+		}
+
+	}
+
+}
+
+//tie the disassembled instructions together into basic blocks
+bool loadBasicBlocks(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& processData)
+{
+
+	Value::ConstMemberIterator procDataIt = processData.FindMember("BasicBlocks");
+	if (procDataIt == processData.MemberEnd())
+		return false;
+	const Value& basicBlockArray = procDataIt->value;
+
+	stringstream BBLoadMsg;
+	BBLoadMsg << "Loading " << basicBlockArray.Capacity() << " basic blocks";
+
+	cout << "[rgat]" << BBLoadMsg.str() << endl;
+	display_only_status_message(BBLoadMsg.str(), clientState);
+
+
+	Value::ConstValueIterator basicBlockIt = basicBlockArray.Begin();
+	for (; basicBlockIt != basicBlockArray.End(); basicBlockIt++)
+	{
+		if (!unpackBasicBlock(piddata, *basicBlockIt))
+			return false;
+	}
+}
+
+
+
+bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
+{
+	
+	Value::ConstMemberIterator externIt = externEntry.FindMember("A");
+	if (externIt == externEntry.MemberEnd())
+	{
+		cerr << "Error, address not found in extern entry" << endl;
+		return false;
+	}
+	MEM_ADDRESS externAddr = externIt->value.GetUint64();
+	
+	BB_DATA *BBEntry = new BB_DATA;
+
+	externIt = externEntry.FindMember("M");
+	if (externIt == externEntry.MemberEnd())
+	{
+		cerr << "Error, module ID not found in extern entry" << endl;
+		delete BBEntry;
+		return false;
+	}
+	BBEntry->modnum = externIt->value.GetUint();
+
+	externIt = externEntry.FindMember("S");
+	if (externIt == externEntry.MemberEnd())
+	{
+		cerr << "Error, symbol presence not recorded in extern entry" << endl;
+		delete BBEntry;
+		return false;
+	}
+	BBEntry->hasSymbol = externIt->value.GetBool();
+
+	externIt = externEntry.FindMember("C");
+	if (externIt != externEntry.MemberEnd())
+	{
+		const Value& callerArray = externIt->value;
+		Value::ConstValueIterator callerArrayIt = callerArray.Begin();
+		for (; callerArrayIt != callerArray.End(); callerArrayIt++)
+		{
+			EDGELIST threadExternCalls;
+			const Value& callingThreadEntry = *callerArrayIt;
+			PID_TID threadID = callingThreadEntry[0].GetUint64();
+			const Value& callingThreadEdges = callingThreadEntry[1];
+
+			Value::ConstValueIterator callerEdgesIt = callingThreadEdges.Begin();
+			for (; callerEdgesIt != callingThreadEdges.End(); callerEdgesIt++)
+			{
+				const Value& Edge = *callerEdgesIt;
+				unsigned int source = Edge[0].GetUint();
+				unsigned int target = Edge[1].GetUint();
+				threadExternCalls.push_back(make_pair(source, target));
+			}
+
+			BBEntry->thread_callers[threadID] = threadExternCalls;
+		}	
+	}
+
+	piddata->externdict[externAddr] = BBEntry;
+	return true;
+}
+
+//calls to dll functions
+bool loadExterns(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& processData)
+{
+	Value::ConstMemberIterator procDataIt = processData.FindMember("Externs");
+	if (procDataIt == processData.MemberEnd())
+		return false;
+	const Value& externsArray = procDataIt->value;
+
+	stringstream externLoadMsg;
+	externLoadMsg << "Loading " << externsArray.Capacity() << " externs";
+
+	cout << "[rgat]" << externLoadMsg.str() << endl;
+	display_only_status_message(externLoadMsg.str(), clientState);
+
+	Value::ConstValueIterator externIt = externsArray.Begin();
+	for (; externIt != externsArray.End(); externIt++)
+	{
+		if (!unpackExtern(piddata, *externIt))
+			return false;
+	}
+	return true;
 }
 
 //load process data not specific to threads
-bool loadProcessData(VISSTATE *clientState, ifstream *file, PROCESS_DATA** piddataPtr, PID_TID PID)
+bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** piddataPtr, PID_TID PID)
 {
-	/*
-	if (!verifyTag(file, tag_START, tag_PROCESSDATA)) {
-		cerr << "[rgat]Corrupt save (process data start)" << endl;
+	Value::ConstMemberIterator memberIt = saveJSON.FindMember("ProcessData");
+	if (memberIt == saveJSON.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
-	}*/
+	}
 
-	char bitWidthChar;
-	*file >> bitWidthChar;
-	printf("File bitwidth: %c\n", bitWidthChar);
+	const Value& procData = memberIt->value;
+
+	Value::ConstMemberIterator procDataIt = procData.FindMember("BitWidth");
+	if (procDataIt == procData.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Failed to find bitwidth" << endl;
+		return false;
+	}
+
+	int bitWidth = procDataIt->value.GetInt();
+	cout << "Executable bitwidth: " << bitWidth << endl;
 
 	cs_mode disassemblyMode;
-	if (bitWidthChar == '3')
+	switch (bitWidth)
 	{
+	case 32:
 		*piddataPtr = new PROCESS_DATA(32);
 		disassemblyMode = CS_MODE_32;
-	}
-	else if (bitWidthChar == '6')
-	{
+		break;
+
+	case 64:
 		*piddataPtr = new PROCESS_DATA(64);
 		disassemblyMode = CS_MODE_64;
-	}
-	else
+		break;
+
+	default:
 		return false;
+	}
 
 	PROCESS_DATA* piddata = *piddataPtr;
 
-	//paths
-	/*
-	if (!verifyTag(file, tag_START, tag_PATH)) {
-		cerr << "[rgat]Corrupt save (process- path data start)" << endl;
-		return false;
-	}*/
-
-	display_only_status_message("Loading Modules", clientState);
-	cout << "[rgat]Loading Module Paths" << endl;
-	string pathstring("");
-	string endTagStr;
-	endTagStr += tag_END;
-	endTagStr += tag_PATH;
-
-	int result, count = 0;
-	unsigned int modnum;
-	string content;
-	while (true)
+	if(!loadModulePaths(clientState, piddata, procData))
 	{
-		result = extractb64path(file, &modnum, &content, endTagStr);
-		if (result < 0) 
-			return false;
-		else 
-			if (result == 0) break;
-		else 
-			piddata->modpaths.emplace(modnum, content);
-		if (count++ > 255) 
-			return false;
-	}
-	endTagStr.clear();
-
-	//syms
-	display_only_status_message("Loading Symbols", clientState);
-	cout << "[rgat]Loading Module Symbols" << endl;
-	/*
-	if (!verifyTag(file, tag_START, tag_SYM)) {
-		cerr<< "[rgat]Corrupt save (process- sym data start)" << endl;
+		cerr << "[rgat]ERROR: Failed to load module paths" << endl;
 		return false;
-	}*/
+	}
 
-	endTagStr += tag_END;
-	endTagStr += tag_SYM;
-	string modSymsBlob_s, modNum_s;
-	while (true)
+	if (!loadSymbols(clientState, piddata, procData))
 	{
-		
-		*file >> modSymsBlob_s;
-		if (modSymsBlob_s == endTagStr) break;
-
-		stringstream mss(modSymsBlob_s);
-		getline(mss, modNum_s, '{');
-		if (!caught_stoi(modNum_s, &modnum, 10)) return false;
-
-		result = extractmodsyms(&mss, modnum, piddata);
-		if ((result < 0) || (count++ > 255)) return false;
-	}
-	file->seekg(1, ios::cur);
-
-	//disassembly
-	display_only_status_message("Loading Disassembly", clientState);
-	cout << "[rgat]Loading instruction disassembly" << endl;
-	/*
-	if (!verifyTag(file, tag_START, tag_DISAS)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- disassembly data start)" << endl;
-		return false;
-	}
-	*/
-	csh hCapstone;
-	if (cs_open(CS_ARCH_X86, disassemblyMode, &hCapstone) != CS_ERR_OK)	{
-		cerr << "[rgat]ERROR: Couldn't open Capstone instance" << endl;
+		cerr << "[rgat]ERROR: Failed to load symbols" << endl;
 		return false;
 	}
 
-	string mutations_s, opcodes, address_s, modnum_s, threadVertSize_s, callerTID_s, calledNode_s;
-	int mutations, insmodnum;
-	while (true)
+	if (!loadDisassembly(clientState, piddata, disassemblyMode, procData))
 	{
-		
-		MEM_ADDRESS address;
-		if (file->peek() == '}') break;
-
-		getline(*file, mutations_s, ',');
-		if (!caught_stoi(mutations_s, &mutations, 10)) {
-			cerr << "[rgat]ERROR: mutations stoi failed with "<< mutations_s <<endl; return false;
-		}
-
-		getline(*file, address_s, ',');
-		if (!caught_stoull(address_s, &address, 10)) {
-			cerr << "[rgat]ERROR: address stol failed with " << address_s << endl; return false;
-		}
-
-		getline(*file, modnum_s, ',');
-		if (!caught_stoi(modnum_s, &insmodnum, 10)) {
-			cerr << "[rgat]ERROR: modnum stoi failed with " << modnum_s << endl; return false;
-		}
-
-		bool hasSym;
-		if (piddata->modsymsPlain.count(insmodnum) && piddata->modsymsPlain.at(insmodnum).count(address))
-			hasSym = true;
-		else 
-			hasSym = false;
-
-		INSLIST mutationVector;
-		for (int midx = 0; midx < mutations; midx++)
-		{
-			INS_DATA *ins = new INS_DATA; //failed load is mem leak
-			ins->modnum = insmodnum;
-			ins->hasSymbol = hasSym;
-
-			getline(*file, opcodes, ',');
-			disassemble_ins(hCapstone, opcodes, ins, address);
-			mutationVector.push_back(ins);
-
-			int threadVertSize;
-			getline(*file, threadVertSize_s, ',');
-			if (!caught_stoi(threadVertSize_s, &threadVertSize, 10)) 
-				return false;
-
-			for (int tvIdx = 0; tvIdx < threadVertSize; ++tvIdx)
-			{
-				int callTID, calledNode;
-				getline(*file, callerTID_s, ',');
-				if (!caught_stoi(callerTID_s, &callTID, 10)) 
-					return false;
-				getline(*file, calledNode_s, ',');
-				if (!caught_stoi(calledNode_s, &calledNode, 10)) 
-					return false;
-				ins->threadvertIdx.emplace(callTID, calledNode);
-			}	
-		}
-		piddata->disassembly.insert(make_pair(address, mutationVector));
+		cerr << "[rgat]ERROR: Disassembly reconstruction failed" << endl;
+		return false;
 	}
-	cs_close(&hCapstone);
-	/*
-	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- disas data end)" << endl;
-		return false;
-	}*/
-	file->seekg(1, ios::cur);
 
-	//basic blocks
-	display_only_status_message("Loading Basic Blocks", clientState);
-	cout << "[rgat]Loading basic block mapping" << endl;
-	/*
-	if (!verifyTag(file, tag_START, tag_DISAS)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- basic block data start)" << endl;
-		return false;
-	}*/
-
-	string numblocks_s, blockaddress_s, blockID_s, numinstructions_s, mutationIndex_s, insAddr_s;
-	while (true)
+	if (!loadBasicBlocks(clientState, piddata, procData))
 	{
-		if (file->peek() == '}') break;
-		//number of blockIDs recorded for address
-		unsigned int numblocks;
-		getline(*file, numblocks_s, ',');
-		if (!caught_stoi(numblocks_s, &numblocks, 10))
-			return false;
-
-		//address of block
-		MEM_ADDRESS blockaddress;
-		getline(*file, blockaddress_s, ',');
-		if (!caught_stoull(blockaddress_s, &blockaddress, 10))
-			return false;
-
-		map<MEM_ADDRESS, INSLIST>::iterator disasLookupIt = piddata->disassembly.find(blockaddress);
-		if (disasLookupIt == piddata->disassembly.end())
-			return false;
-
-
-		for (unsigned int blocki = 0; blocki < numblocks; ++blocki)
-		{
-			BLOCK_IDENTIFIER blockID;
-			getline(*file, blockID_s, ',');
-			if (!caught_stoul(blockID_s, &blockID, 10))
-				return false;
-
-			unsigned int numinstructions;
-			getline(*file, numinstructions_s, ',');
-			if (!caught_stoi(numinstructions_s, &numinstructions, 10))
-				return false;
-
-			piddata->blocklist[blockaddress][blockID] = new INSLIST;
-			for (unsigned int insi = 0; insi < numinstructions; ++insi)
-			{
-				MEM_ADDRESS insAddr;
-				getline(*file, insAddr_s, ',');
-				if (!caught_stoull(insAddr_s, &insAddr, 10))
-					return false;
-
-				unsigned int mutationIndex;
-				getline(*file, mutationIndex_s, ',');
-				if (!caught_stoi(mutationIndex_s, &mutationIndex, 10))
-					return false;
-
-				INSLIST *allInsMutations = &disasLookupIt->second;
-				if (mutationIndex >= allInsMutations->size())
-					return false;
-
-				INS_DATA* disassembledIns = piddata->disassembly.at(insAddr).at(mutationIndex);
-				piddata->blocklist[blockaddress][blockID]->push_back(disassembledIns);
-			}
-		}
+		cerr << "[rgat]ERROR: Basic block reconstruction failed" << endl;
+		return false;
 	}
-	/*
-	if (!verifyTag(file, tag_END, tag_DISAS)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- basic block data end)" << endl;
-		return false;
-	}*/
-	file->seekg(1, ios::cur);
-	/*
-	if (!verifyTag(file, tag_START, tag_EXTERND)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- extern data start)" << endl;
-		return false;
-	}*/
 
-	string data_s;
-	MEM_ADDRESS externAddr;
-	BB_DATA *externEntry;
-	
-	while (true)
+	if (!loadExterns(clientState, piddata, procData))
 	{
-		if (file->peek() == '}') break;
-		//number of blockIDs recorded for address
-		
-		getline(*file, data_s, ',');
-		if (!caught_stoull(data_s, &externAddr, 10))
-			return false;
-		
-		if (piddata->externdict.count(externAddr))
-			return false;
-
-		externEntry = new BB_DATA;
-
-		getline(*file, data_s, ',');
-		if (!caught_stoi(data_s, &externEntry->modnum, 10))
-			return false;
-
-		int hasSymI;
-		getline(*file, data_s, ',');
-		if (!caught_stoi(data_s, &hasSymI, 10))
-			return false;
-		externEntry->hasSymbol = hasSymI;
-
-		unsigned int threadsCalling;
-		getline(*file, data_s, ',');
-		if (!caught_stoi(data_s, &threadsCalling, 10))
-			return false;
-
-		for (unsigned int tIdx = 0; tIdx < threadsCalling; ++tIdx)
-		{
-			PID_TID externThreadID;
-			getline(*file, data_s, ',');
-			if (!caught_stoul(data_s, &externThreadID, 10))
-				return false;
-
-			unsigned int numEdges;
-			getline(*file, data_s, ',');
-			if (!caught_stoi(data_s, &numEdges, 10))
-				return false;
-
-			EDGELIST externCalls;
-			for (unsigned int eIdx = 0; eIdx < numEdges; ++eIdx)
-			{
-				NODEINDEX source, targ;
-				getline(*file, data_s, ',');
-				if (!caught_stoi(data_s, &source, 10))
-					return false;
-				getline(*file, data_s, ',');
-				if (!caught_stoi(data_s, &targ, 10))
-					return false;
-
-				externCalls.push_back(make_pair(source, targ));
-			}
-			externEntry->thread_callers[externThreadID] = externCalls;
-		}
-		piddata->externdict[externAddr] = externEntry;
-	}
-
-	/*
-	if (!verifyTag(file, tag_END, tag_EXTERND)) {
-		cerr << "[rgat]ERROR: Corrupt save (process- extern data end)" << endl;
+		cerr << "[rgat]ERROR: Extern call loading failed" << endl;
 		return false;
 	}
 
-	if (!verifyTag(file, tag_END, tag_PROCESSDATA)) {
-		cerr << "[rgat]ERROR: Corrupt save (process data end)" << endl;
-		return false;
-	}
-	*/
 	return true;
 }
 
 //load each graph saved for the process
-bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* piddata)
+bool loadProcessGraphs(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA* piddata)
 {
+	/*
 	char tagbuf[3]; 
 	PID_TID TID; 
 	string tidstring;
@@ -759,6 +830,7 @@ bool loadProcessGraphs(VISSTATE *clientState, ifstream *file, PROCESS_DATA* pidd
 			break;
 
 	}
+	*/
 	return true;
 }
 

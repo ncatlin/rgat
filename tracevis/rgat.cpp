@@ -188,30 +188,34 @@ static bool mouse_in_maingraphpane(VISSTATE* clientState, int mousex, int mousey
 
 bool loadTrace(VISSTATE *clientState, string filename)
 {
-	ifstream loadfile;
-	loadfile.open(filename, std::ifstream::binary);
+
+	FILE* pFile;
+	fopen_s(&pFile, filename.c_str(), "rb");
+	char buffer[65536];
+	rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
+	rapidjson::Document saveJSON;
+	saveJSON.ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
+
 	//load process data
 	string s1;
 
 	display_only_status_message("Loading save file...", clientState);
 
-	loadfile >> s1;
-	if (s1 != "PID") {
-		cout << "[rgat]ERROR: Corrupt save, start = " << s1 << endl;
+	
+	rapidjson::Value::ConstMemberIterator PIDIt = saveJSON.FindMember("PID");
+	if (PIDIt == saveJSON.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
 	}
+	PID_TID PID = PIDIt->value.GetUint64();
 
-	string PID_s;
-	int PID;
-	loadfile >> PID_s;
-	if (!caught_stoi(PID_s, &PID, 10)) return false;
 	if (clientState->glob_piddata_map.count(PID)) { cout << "[rgat]PID " << PID << " already loaded! Close rgat and reload" << endl; return false; }
 	else
 		cout << "[rgat]Loading saved PID: " << PID << endl;
-	loadfile.seekg(1, ios::cur);
 
 	PROCESS_DATA *newpiddata;
-	if (!loadProcessData(clientState, &loadfile, &newpiddata, PID))
+	if (!loadProcessData(clientState, saveJSON, &newpiddata, PID))
 	{
 		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
@@ -220,14 +224,14 @@ bool loadTrace(VISSTATE *clientState, string filename)
 	
 	cout << "[rgat]Loaded process data. Loading graphs..." << endl;
 
-	if (!loadProcessGraphs(clientState, &loadfile, newpiddata))
+	if (!loadProcessGraphs(clientState, saveJSON, newpiddata))
 	{
 		cout << "[rgat]Process Graph load failed" << endl;
 		return false;
 	}
 
 	cout << "[rgat]Loading completed successfully" << endl;
-	loadfile.close();
+	fclose(pFile);
 
 	if (!obtainMutex(clientState->pidMapMutex, 1039))
 	{
