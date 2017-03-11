@@ -244,7 +244,6 @@ void saveBlockData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 
 void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writer.Key("ProcessData");
 	writer.StartObject();
 
 	writer.Key("BitWidth");
@@ -323,6 +322,7 @@ void saveTrace(VISSTATE * clientState)
 	writer.Key("PID");
 	writer.Uint64(clientState->activePid->PID);
 
+	writer.Key("ProcessData");
 	saveProcessData(clientState->activePid, writer);
 
 	writer.Key("Threads");
@@ -391,6 +391,7 @@ bool loadModulePaths(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& 
 
 		piddata->modpaths.emplace(moduleID, plainpath);
 	}
+	return true;
 }
 
 bool unpackModuleSymbolArray(const Value& modSymArray, int moduleID, PROCESS_DATA *piddata)
@@ -412,6 +413,7 @@ bool unpackModuleSymbolArray(const Value& modSymArray, int moduleID, PROCESS_DAT
 
 		piddata->modsymsPlain[moduleID][symAddress] = symPlain;
 	}
+	return true;
 }
 
 bool loadSymbols(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& processData)
@@ -450,6 +452,7 @@ bool loadSymbols(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& proc
 
 		unpackModuleSymbolArray(modSymArray, moduleID, piddata);
 	}
+	return true;
 }
 
 struct ADDR_DATA
@@ -603,9 +606,8 @@ bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockInstructions)
 			INS_DATA* disassembledIns = piddata->disassembly.at(instructionAddr).at(mutationIdx);
 			piddata->blocklist[blockaddress][blockID]->push_back(disassembledIns);
 		}
-
 	}
-
+	return true;
 }
 
 //tie the disassembled instructions together into basic blocks
@@ -630,6 +632,8 @@ bool loadBasicBlocks(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& 
 		if (!unpackBasicBlock(piddata, *basicBlockIt))
 			return false;
 	}
+
+	return true;
 }
 
 
@@ -791,46 +795,58 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 	return true;
 }
 
+
+bool loadGraph(VISSTATE *clientState, PROCESS_DATA* piddata, const Value& graphData)
+{
+	Value::ConstMemberIterator memberIt = graphData.FindMember("ThreadID");
+	if (memberIt == graphData.MemberEnd())
+	{
+		cerr << "[rgat] Error: Failed to find thread ID for graph" << endl;
+		return false;
+	}
+	PID_TID graphTID = memberIt->value.GetUint64();
+	string tidstring = to_string(graphTID);
+
+	display_only_status_message("Loading Graph " + tidstring, clientState);
+
+	proto_graph *protograph = new proto_graph(piddata, graphTID);
+	sphere_graph *graph = new sphere_graph(piddata, graphTID, protograph, &clientState->config->graphColours);
+	if (graph->get_protoGraph()->unserialise(graphData, &piddata->disassembly))
+		piddata->plottedGraphs.emplace(graphTID, graph);
+	else
+		return false;
+
+	graph->initialiseDefaultDimensions();
+	protograph->active = false;
+	protograph->assign_modpath(piddata);
+	return true;
+}
+
 //load each graph saved for the process
 bool loadProcessGraphs(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA* piddata)
 {
-	/*
-	char tagbuf[3]; 
-	PID_TID TID; 
-	string tidstring;
+	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("Threads");
+	if (procDataIt == saveJSON.MemberEnd())
+		return false;
 
-	cerr << "[rgat]Loading thread graphs..." << endl;
-	while (true)
+	const Value& graphArray = procDataIt->value;
+
+	stringstream graphLoadMsg;
+	graphLoadMsg << "Loading " << graphArray.Capacity() << " thread graphs";
+
+	cout << "[rgat]" << graphLoadMsg.str() << endl;
+	display_only_status_message(graphLoadMsg.str(), clientState);
+
+	Value::ConstValueIterator graphArrayIt = graphArray.Begin();
+	for (; graphArrayIt != graphArray.End(); graphArrayIt++)
 	{
-		file->read(tagbuf, 3);
-		if (strncmp(tagbuf, "TID", 3)) return false;
-
-		getline(*file, tidstring, '{');
-		if (!caught_stoul(tidstring, &TID, 10)) return false;
-		proto_graph *protograph = new proto_graph(piddata,TID);
-		sphere_graph *graph = new sphere_graph(piddata, TID, protograph, &clientState->config->graphColours);
-		graph->initialiseDefaultDimensions();
-
-		protograph->active = false;
-
-		display_only_status_message("Loading Graph "+tidstring, clientState);
-		if(graph->get_protoGraph()->unserialise(file, &piddata->disassembly))
-			piddata->plottedGraphs.emplace(TID, graph);
-		else 
+		if (!loadGraph(clientState, piddata, *graphArrayIt))
+		{
+			cerr << "[rgat] Failed to load graph" << endl;
 			return false;
-
-		protograph->assign_modpath(piddata);
-
-		cerr << "[rgat]Loaded thread graph "<<TID <<endl;
-		if (file->peek() != '}') 
-			return false;
-		file->seekg(1, ios::cur);
-
-		if (file->peek() != 'T')
-			break;
-
+		}
 	}
-	*/
+	
 	return true;
 }
 

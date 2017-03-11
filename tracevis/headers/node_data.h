@@ -36,7 +36,7 @@ public:
 
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 	//takes a file with a pointer next to a node entry, loads it into the node
-	int unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
+	int unserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly);
 
 	NODEINDEX index = 0;
 	

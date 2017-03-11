@@ -79,107 +79,62 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 }
 
 
-int node_data::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
+int node_data::unserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-	string value_s;
+	using namespace rapidjson;
 
-	getline(*file, value_s, '{');
-	if (value_s == "}N,D") return 0;
+	index = nodeData[0].GetUint();
+	conditional = nodeData[1].GetUint();
+	nodeMod = nodeData[2].GetUint();
+	address = nodeData[3].GetUint64();
+	executionCount = nodeData[4].GetUint64();
 
-	if (!caught_stoi(value_s, (int *)&index, 10))
-		return -1;
+	//execution comes from these nodes to this node
+	const Value& incomingEdges = nodeData[5];
+	Value::ConstValueIterator incomingIt = incomingEdges.Begin();
+	for (; incomingIt != incomingEdges.End(); incomingIt++)
+		incomingNeighbours.insert(incomingIt->GetUint());
 
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, (int *)&conditional, 10))
-		return -1;
+	//execution goes from this node to these nodes
+	const Value& outgoingEdges = nodeData[6];
+	Value::ConstValueIterator outgoingIt = outgoingEdges.Begin();
+	for (; outgoingIt != outgoingEdges.End(); outgoingIt++)
+		outgoingNeighbours.insert(outgoingIt->GetUint());
 
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &nodeMod, 10))
-		return -1;
+	external = nodeData[7].GetBool();
 
-	getline(*file, value_s, ',');
-	if (!caught_stoull(value_s, &address, 10))
-		return -1;
-
-	getline(*file, value_s, ',');
-	if (!caught_stoul(value_s, &executionCount, 10))
-		return -1;
-
-	unsigned int adjacentQty;
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &adjacentQty, 10))
-		return -1;
-
-	for (unsigned int i = 0; i < adjacentQty; ++i)
+	if (!external)
 	{
-		unsigned int adjacentIndex;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, &adjacentIndex, 10))
-			return -1;
-		incomingNeighbours.insert(adjacentIndex);
-	}
-
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &adjacentQty, 10))
-		return -1;
-
-	for (unsigned int i = 0; i < adjacentQty; ++i)
-	{
-		unsigned int adjacentIndex;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, &adjacentIndex, 10))
-			return -1;
-		outgoingNeighbours.insert(adjacentIndex);
-	}
-
-	getline(*file, value_s, ',');
-	if (value_s.at(0) == '0')
-	{
-		external = false;
-
-		getline(*file, value_s, '}');
-		if (!caught_stoi(value_s, (int *)&blockID, 10))
-			return -1;
-
+		blockID = nodeData[8].GetInt(); //todo: one is blockID other is mutation index. No problems noticed but check this.
 		map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(address);
 		if ((addressIt == disassembly->end()) || (blockID >= addressIt->second.size()))
-			return -1;
-
-		ins = addressIt->second.at(blockID);
-		return 1;
-	}
-
-	external = true;
-
-	int numCalls;
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, &numCalls, 10))
-		return -1;
-
-	vector <ARGLIST> funcCalls;
-	for (int i = 0; i < numCalls; ++i)
-	{
-		int argidx, numArgs = 0;
-		getline(*file, value_s, ',');
-		if (!caught_stoi(value_s, &numArgs, 10))
-			return -1;
-		ARGLIST callArgs;
-
-		for (int i = 0; i < numArgs; ++i)
 		{
-			getline(*file, value_s, ',');
-			if (!caught_stoi(value_s, &argidx, 10))
-				return -1;
-			getline(*file, value_s, ',');
-			string decodedarg = base64_decode(value_s);
-			callArgs.push_back(make_pair(argidx, decodedarg));
+			cerr << "[rgat] Error. Failed to find address " << address << " in disassembly for node " << index << endl;
+			return false;
 		}
-		if (!callArgs.empty())
-			funcCalls.push_back(callArgs);
+		ins = addressIt->second.at(blockID);
+		return true;
 	}
-	if (!funcCalls.empty())
-		funcargs = funcCalls;
 
-	file->seekg(1, ios::cur);
-	return 1;
+	const Value& functionCalls = nodeData[8];
+	Value::ConstValueIterator funcCallsIt = functionCalls.Begin();
+	for (; funcCallsIt != functionCalls.End(); funcCallsIt++)
+	{
+		ARGLIST callArgs;
+		const Value& callArgumentsArray = *funcCallsIt;
+		Value::ConstValueIterator argsIt = callArgumentsArray.Begin();
+		for (; argsIt != callArgumentsArray.End(); argsIt++)
+		{
+			const Value& callArgumentsEntry = *argsIt;
+
+			int argIndex = callArgumentsEntry[0].GetUint();
+			string b64Arg = callArgumentsEntry[1].GetString();
+			string plainArgString = base64_decode(b64Arg);
+
+			callArgs.push_back(make_pair(argIndex, plainArgString));
+		}
+		funcargs.push_back(callArgs);
+	}
+
+	return true;
 }

@@ -24,6 +24,12 @@ The final graphs (sphere, linear, etc are built using this data)
 #include <traceMisc.h>
 #include "node_data.h"
 
+#include <rapidjson\document.h>
+#include <rapidjson\filewritestream.h>
+#include <rapidjson\writer.h>
+#include <rapidjson\filereadstream.h>
+#include <rapidjson\reader.h>
+
 #define ANIMATION_ENDED -1
 #define ANIMATION_WIDTH 8
 
@@ -68,10 +74,10 @@ private:
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
 
-	bool loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
-	bool loadExceptions(ifstream *file);
-	bool loadStats(ifstream *file);
-	bool loadAnimationData(ifstream *file);
+	bool loadNodes(const rapidjson::Value& nodesArray, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool loadExceptions(const rapidjson::Value& exceptionsArray);
+	bool loadStats(const rapidjson::Value& graphData);
+	bool loadAnimationData(const rapidjson::Value& replayArray);
 
 protected:
 	
@@ -126,7 +132,7 @@ public:
 	node_data *unsafe_get_node(unsigned int index);
 	node_data *safe_get_node(unsigned int index);
 
-	bool loadEdgeDict(ifstream *file);
+	bool loadEdgeDict(const rapidjson::Value& edgeArray);
 	
 	HANDLE highlightsMutex = CreateMutex(NULL, FALSE, NULL); //todo comment this or rename
 	HANDLE animationListsMutex = CreateMutex(NULL, FALSE, NULL);
@@ -162,7 +168,7 @@ public:
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-	bool unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool unserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly);
 
 	unsigned long totalInstructions = 0;
 	int baseModule = -1;

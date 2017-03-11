@@ -25,6 +25,7 @@ The final graphs (sphere, linear, etc are built using this data)
 #include "GUIConstants.h"
 #include "serialise.h"
 
+using namespace rapidjson;
 
 proto_graph::proto_graph(PROCESS_DATA *processdata, unsigned int threadID)
 {
@@ -352,7 +353,7 @@ unsigned long proto_graph::get_backlog_total()
 
 bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 {
-	using namespace rapidjson;
+	
 
 	writer.StartObject();
 
@@ -381,11 +382,11 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	writer.StartArray();
 	set<unsigned int>::iterator exceptit = exceptionSet.begin();
 	for (; exceptit != exceptionSet.end(); ++exceptit)
-		writer.Int(*exceptit);
+		writer.Uint(*exceptit);
 	writer.EndArray();
 
 	writer.Key("Module");
-	writer.Uint64(baseModule);
+	writer.Uint(baseModule);
 
 	writer.Key("TotalInstructions");
 	writer.Uint64(totalInstructions);
@@ -415,156 +416,130 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	return true;
 }
 
-bool proto_graph::unserialise(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
+bool proto_graph::unserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-	if (!loadNodes(file, disassembly)) { cerr << "[rgat]ERROR:Node load failed" << endl;  return false; }
-	if (!loadEdgeDict(file)) { cerr << "[rgat]ERROR:EdgeD load failed" << endl; return false; }
-	if (!loadExceptions(file)) { cerr << "[rgat]ERROR:Exceptions load failed" << endl;  return false; }
-	if (!loadStats(file)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
-	if (!loadAnimationData(file)) { cerr << "[rgat]ERROR:Animation load failed" << endl;  return false; }
+	Value::ConstMemberIterator graphDataIt = graphData.FindMember("Nodes");
+	if (graphDataIt == graphData.MemberEnd())
+	{
+		cerr << "[rgat] Error: Failed to find nodes data" << endl;
+		return false;
+	}
+	if (!loadNodes(graphDataIt->value, disassembly)) { cerr << "[rgat]ERROR: Failed to load nodes" << endl;  return false; }
+
+	graphDataIt = graphData.FindMember("Edges");
+	if (graphDataIt == graphData.MemberEnd())
+	{
+		cerr << "[rgat] Error: Failed to find nodes data" << endl;
+		return false;
+	}
+	if (!loadEdgeDict(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load edge dict" << endl; return false; }
+
+	graphDataIt = graphData.FindMember("Exceptions");
+	if (graphDataIt == graphData.MemberEnd())
+	{
+		cerr << "[rgat] Error: Failed to find exceptions data" << endl;
+		return false;
+	}
+	if (!loadExceptions(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load exceptions set" << endl;  return false; }
+
+	graphDataIt = graphData.FindMember("ReplayData");
+	if (graphDataIt == graphData.MemberEnd())
+	{
+		cerr << "[rgat] Error: Failed to find replay data" << endl;
+		return false;
+	}
+	if (!loadAnimationData(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load replay data" << endl;  return false; }
+
+	if (!loadStats(graphData)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
+
+
 	return true;
 }
 
-bool proto_graph::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
+bool proto_graph::loadNodes(const Value& nodesArray, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
-	/*
-	if (!verifyTag(file, tag_START, 'N')) {
-		cerr << "[rgat]Bad node data" << endl;
-		return false;
-	}*/
-	string value_s;
-	while (true)
+	Value::ConstValueIterator nodesIt = nodesArray.Begin();
+	for (; nodesIt != nodesArray.End(); nodesIt++)
 	{
 		node_data *n = new node_data;//can't this be done at start?
-		int result = n->unserialise(file, disassembly);
-
-		if (result > 0)
+		if (!n->unserialise(*nodesIt, disassembly))
 		{
-			insert_node(n->index, *n);
-			continue;
+			cerr << "Failed to unserialise node" << endl;
+			delete n;
+			return false;
 		}
 
-		delete n; //can't this be done at end?
-
-		if (!result)
-			return true;
-		else
-			return false;
-
+		insert_node(n->index, *n);
+		delete n;
 	}
 }
 
-bool proto_graph::loadStats(ifstream *file)
+bool proto_graph::loadStats(const Value& graphData)
 {
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'S') return false;
+	 
+	Value::ConstMemberIterator statsIt = graphData.FindMember("Module");
+	if (statsIt == graphData.MemberEnd()) return false;
+	baseModule = statsIt->value.GetUint();
 
-	string value_s;
-	//getline(*file, value_s, ',');
-	//if (!caught_stoi(value_s, &maxA, 10)) return false;
-	//getline(*file, value_s, ',');
-	//if (!caught_stoi(value_s, &maxB, 10)) return false;
-	getline(*file, value_s, ',');
-	if (!caught_stoi(value_s, (int *)&baseModule, 10)) return false;
-	getline(*file, value_s, '}');
-	if (!caught_stoul(value_s, (unsigned long*)&totalInstructions, 10)) return false;
+	statsIt = graphData.FindMember("TotalInstructions");
+	if (statsIt == graphData.MemberEnd()) return false;
+	totalInstructions = statsIt->value.GetUint64();
 
-	getline(*file, endtag, ',');
-	if (endtag.c_str()[0] != 'S') return false;
 	return true;
 }
 
-bool proto_graph::loadAnimationData(ifstream *file)
+bool proto_graph::loadAnimationData(const Value& replayArray)
 {
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'A') return false;
-
-	string type_s, sourceAddr_s, sourceID_s, targAddr_s, targID_s, count_s;
-	ANIMATIONENTRY entry;
-	while (true)
+	Value::ConstValueIterator entryIt = replayArray.Begin();
+	for (; entryIt != replayArray.End(); entryIt++)
 	{
-		getline(*file, type_s, ',');
-		if (type_s == "}A")
-			return true;
+		const Value& replayEntry = *entryIt;
 
-		int entryTypeI;
-		if (!caught_stoi(type_s, &entryTypeI, 10))
-			break;
-		entry.entryType = entryTypeI;
+		ANIMATIONENTRY entry; //could probably do this directly on the heap
+		entry.entryType = replayEntry[0].GetUint();
+		entry.blockAddr = replayEntry[1].GetUint64();
+		entry.blockID = replayEntry[2].GetUint64();
+		entry.count = replayEntry[3].GetUint64();
+		entry.targetAddr = replayEntry[4].GetUint64();
+		entry.targetID = replayEntry[5].GetUint64();
+		entry.callCount = replayEntry[6].GetUint64();
 
-		getline(*file, sourceAddr_s, ',');
-		if (!caught_stoull(sourceAddr_s, &entry.blockAddr, 10))
-			break;
-		getline(*file, sourceID_s, ',');
-		if (!caught_stoul(sourceID_s, &entry.blockID, 10))
-			break;
-
-		getline(*file, count_s, ',');
-		if (!caught_stoul(count_s, &entry.count, 10))
-			break;
-
-		getline(*file, targAddr_s, ',');
-		if (!caught_stoull(targAddr_s, &entry.targetAddr, 10))
-			break;
-		getline(*file, targID_s, ',');
-		if (!caught_stoul(targID_s, &entry.targetID, 10))
-			break;
-
-		getline(*file, targID_s, ',');
-		if (!caught_stoul(targID_s, &entry.callCount, 10))
-			break;
 		savedAnimationData.push_back(entry);
 	}
-	return false;
+	
+	return true;
 }
 
-bool proto_graph::loadExceptions(ifstream *file)
+bool proto_graph::loadExceptions(const Value& exceptionsArrays)
 {
-	string endtag;
-	getline(*file, endtag, '{');
-	if (endtag.c_str()[0] != 'X') return false;
+	Value::ConstValueIterator exceptIt = exceptionsArrays.Begin();
 
-	unsigned int index;
-	string index_s;
+	for (; exceptIt != exceptionsArrays.End(); exceptIt++)
+		exceptionSet.insert(exceptionSet.end(), exceptIt->GetUint());
 
-	while (true) {
-		getline(*file, index_s, ',');
-		if (!caught_stoi(index_s, (int *)&index, 10))
-		{
-			if (index_s == string("}X")) return true;
-			return false;
-		}
-		exceptionSet.insert(exceptionSet.end(), index);
-	}
+	return true;
 }
 
 
-bool proto_graph::loadEdgeDict(ifstream *file)
+bool proto_graph::loadEdgeDict(const Value& edgeArray)
 {
-	string index_s, source_s, target_s, edgeclass_s;
-	int source, target;
-	while (true)
+	Value::ConstValueIterator edgeIt = edgeArray.Begin();
+
+	for (; edgeIt != edgeArray.End(); edgeIt++)
 	{
-		edge_data *edge = new edge_data;
+		const Value& edgeData = *edgeIt;
 
-		getline(*file, source_s, ',');
-		if (!caught_stoi(source_s, (int *)&source, 10))
-		{
-			if (source_s == string("}D"))
-				return true;
-			else
-				return false;
-		}
-		getline(*file, target_s, ',');
-		if (!caught_stoi(target_s, (int *)&target, 10)) return false;
-		getline(*file, edgeclass_s, '@');
-		edge->edgeClass = (eEdgeNodeType)(char)edgeclass_s.c_str()[0];
+		unsigned int source = edgeData[0].GetUint();
+		unsigned int target = edgeData[1].GetUint();
+		unsigned int edgeClass = edgeData[2].GetUint();
+
+		edge_data *edge = new edge_data;
+		edge->edgeClass = (eEdgeNodeType)edgeClass;
+
 		NODEPAIR stpair = make_pair(source, target);
 		add_edge(*edge, safe_get_node(source), safe_get_node(target));
 	}
-	return false;
+	return true;
 }
 
 //return symbol text if it exists, otherwise return module path+address
