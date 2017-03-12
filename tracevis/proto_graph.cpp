@@ -416,7 +416,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	return true;
 }
 
-bool proto_graph::unserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly)
+bool proto_graph::deserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
 	Value::ConstMemberIterator graphDataIt = graphData.FindMember("Nodes");
 	if (graphDataIt == graphData.MemberEnd())
@@ -429,7 +429,7 @@ bool proto_graph::unserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST>
 	graphDataIt = graphData.FindMember("Edges");
 	if (graphDataIt == graphData.MemberEnd())
 	{
-		cerr << "[rgat] Error: Failed to find nodes data" << endl;
+		cerr << "[rgat] Error: Failed to find edge data" << endl;
 		return false;
 	}
 	if (!loadEdgeDict(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load edge dict" << endl; return false; }
@@ -450,7 +450,7 @@ bool proto_graph::unserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST>
 	}
 	if (!loadAnimationData(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load replay data" << endl;  return false; }
 
-	if (!loadStats(graphData)) { cerr << "[rgat]ERROR:Stats load failed" << endl;  return false; }
+	if (!loadStats(graphData)) { cerr << "[rgat]ERROR: Failed to load graph stats" << endl;  return false; }
 
 
 	return true;
@@ -462,7 +462,7 @@ bool proto_graph::loadNodes(const Value& nodesArray, map <MEM_ADDRESS, INSLIST> 
 	for (; nodesIt != nodesArray.End(); nodesIt++)
 	{
 		node_data *n = new node_data;//can't this be done at start?
-		if (!n->unserialise(*nodesIt, disassembly))
+		if (!n->deserialise(*nodesIt, disassembly))
 		{
 			cerr << "Failed to unserialise node" << endl;
 			delete n;

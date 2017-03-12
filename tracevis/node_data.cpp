@@ -79,7 +79,7 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 }
 
 
-int node_data::unserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly)
+int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly)
 {
 	using namespace rapidjson;
 

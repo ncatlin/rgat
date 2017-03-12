@@ -265,15 +265,10 @@ void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	writer.StartObject();
 
 	saveMetaData(piddata, writer);
-
 	saveModulePaths(piddata, writer);
-
 	saveModuleSymbols(piddata, writer);
-
 	saveDisassembly(piddata, writer);
-	
 	saveBlockData(piddata, writer);
-
 	saveExternDict(piddata, writer);
 
 	writer.EndObject();
@@ -321,9 +316,6 @@ void saveTrace(VISSTATE * clientState)
 		clientState->saving = false;
 		return;
 	}
-
-
-	using namespace boost::filesystem;
 
 	char buffer[65536];
 	rapidjson::FileWriteStream outstream(savefile, buffer, sizeof(buffer));
@@ -862,7 +854,7 @@ bool loadGraph(VISSTATE *clientState, PROCESS_DATA* piddata, const Value& graphD
 
 	proto_graph *protograph = new proto_graph(piddata, graphTID);
 	sphere_graph *graph = new sphere_graph(piddata, graphTID, protograph, &clientState->config->graphColours);
-	if (graph->get_protoGraph()->unserialise(graphData, &piddata->disassembly))
+	if (graph->get_protoGraph()->deserialise(graphData, &piddata->disassembly))
 		piddata->plottedGraphs.emplace(graphTID, graph);
 	else
 		return false;

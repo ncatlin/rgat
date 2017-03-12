@@ -199,10 +199,21 @@ private:
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	//node+edge col+pos
 	bool fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
+	void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
+	void brighten_node_list(ANIMATIONENTRY *entry, int brightTime, vector <NODEINDEX> *nodeIDList);
+
 
 	void process_live_animation_updates();
+	void process_live_update();
+	void end_unchained(ANIMATIONENTRY *entry);
 	int process_replay_animation_updates(int stepSize);
+	void process_replay_update(int stepSize);
+
+	void brighten_new_active_nodes();
+	void brighten_new_active_extern_nodes();
+	void brighten_new_active_edges();
 	void brighten_new_active();
+
 	void maintain_active();
 	void darken_fading(float fadeRate);
 	void darken_nodes(float fadeRate);
@@ -231,7 +242,6 @@ private:
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;
 	unsigned int maxWaitFrames = 0;
-	unsigned long entriesProcessed = 0;
 
 	//which BB we are pointing to in the sequence list
 	unsigned long animationIndex = 0;

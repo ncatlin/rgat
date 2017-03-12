@@ -45,13 +45,8 @@ Graph/Process Saving/Loading routines
 void saveProcessData(PROCESS_DATA *piddata, rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 void saveTrace(VISSTATE * clientState);
 
-
-int extractb64path(ifstream *file, unsigned long *modNum, string *modpath, string endTag);
-
-int extractmodsyms(stringstream *blob, int modnum, PROCESS_DATA* piddata);
 bool loadProcessData(VISSTATE *clientState, rapidjson::Document& saveJSON, PROCESS_DATA** piddataPtr, PID_TID PID);
 bool loadProcessGraphs(VISSTATE *clientState, rapidjson::Document& saveJSON, PROCESS_DATA* piddata);
-
 
 //save every graph in activePid
 void saveAll(VISSTATE *clientState);

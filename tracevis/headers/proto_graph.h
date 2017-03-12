@@ -168,7 +168,7 @@ public:
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-	bool unserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool deserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly);
 
 	unsigned long totalInstructions = 0;
 	int baseModule = -1;

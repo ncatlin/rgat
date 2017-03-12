@@ -841,6 +841,7 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 }
 
 //iterate through all the nodes, draw instruction text for the ones in view
+//TODO: in animation mode don't show text for inactive nodes
 void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
 

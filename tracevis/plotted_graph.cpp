@@ -326,7 +326,6 @@ void plotted_graph::reset_animation()
 	animInstructionIndex = 0;
 	lastAnimatedNode = 0;
 	animationIndex = 0;
-	entriesProcessed = 0;
 
 	newAnimEdgeTimes.clear();
 	newAnimNodeTimes.clear();
@@ -419,137 +418,160 @@ void plotted_graph::remove_unchained_from_animation()
 			edgeIt->second = 0;
 }
 
+void plotted_graph::end_unchained(ANIMATIONENTRY *entry)
+{
+	currentUnchainedBlocks.clear();
+	INSLIST* firstChainedBlock = getDisassemblyBlock(entry->blockAddr, entry->blockID,
+		internalProtoGraph->get_piddata(), &internalProtoGraph->terminationFlag);
+	NODEINDEX firstChainedNode = firstChainedBlock->back()->threadvertIdx.at(tid);
 
+	lastAnimatedNode = firstChainedNode;
+}
+
+void plotted_graph::brighten_node_list(ANIMATIONENTRY *entry, int brightTime, vector <NODEINDEX> *nodeIDList)
+{
+	int instructionCount = 0;
+	vector <NODEINDEX>::iterator nodeIt = nodeIDList->begin();
+
+	for (; nodeIt != nodeIDList->end(); ++nodeIt)
+	{
+		NODEINDEX nodeIdx = *nodeIt;
+		newAnimNodeTimes[nodeIdx] = brightTime;
+
+		if (internalProtoGraph->safe_get_node(nodeIdx)->external)
+		{
+			if (brightTime == KEEP_BRIGHT)
+				newExternTimes[make_pair(nodeIdx, entry->callCount)] = KEEP_BRIGHT;
+			else
+				newExternTimes[make_pair(nodeIdx, entry->callCount)] = EXTERN_LIFETIME_FRAMES;
+		}
+
+		if ((animationIndex != 0) && //cant draw edge to first node in animation
+									 //edge to unchained area is not part of unchained area
+			!(entry->entryType == ANIM_UNCHAINED && nodeIt == nodeIDList->begin()))
+		{
+			NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
+			if (userSelectedAnimPosition == -1)
+			{
+				assert(internalProtoGraph->edge_exists(edge, 0));
+				newAnimEdgeTimes[edge] = brightTime;
+			}
+			else
+			{
+				if (internalProtoGraph->edge_exists(edge, 0))
+					newAnimEdgeTimes[edge] = brightTime;
+			}
+		}
+		lastAnimatedNode = nodeIdx;
+
+		++instructionCount;
+		if ((entry->entryType == ANIM_EXEC_EXCEPTION) && (instructionCount == (entry->count + 1))) break;
+	}
+}
+
+void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime)
+{
+		PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
+		NODEINDEX nextNode;
+		NODEPAIR linkingPair;
+		if (piddata->externdict.count(entry->targetAddr))
+		{
+			EDGELIST callers = piddata->externdict.at(entry->targetAddr)->thread_callers.at(tid);
+			EDGELIST::iterator callIt = callers.begin();
+			for (; callIt != callers.end(); ++callIt)
+			{
+				if (callIt->first == lastAnimatedNode)
+				{
+					nextNode = callIt->second;
+					linkingPair = make_pair(lastAnimatedNode, nextNode);
+					break;
+				}
+			}
+			if (callIt == callers.end())
+			{
+				cerr << "[rgat]Error: Caller for " << hex << entry->targetAddr << " not found" << endl;
+				assert(0);
+			}
+		}
+		else
+		{
+			INSLIST* nextBlock = getDisassemblyBlock(entry->targetAddr, entry->targetID, piddata, &internalProtoGraph->terminationFlag);
+			INS_DATA* nextIns = nextBlock->front();
+			nextNode = nextIns->threadvertIdx.at(tid);
+			linkingPair = make_pair(lastAnimatedNode, nextNode);
+		}
+
+
+		if (!internalProtoGraph->edge_exists(linkingPair, 0))
+			return;
+
+		newAnimEdgeTimes[linkingPair] = brightTime;
+}
+
+void plotted_graph::process_live_update()
+{
+	obtainMutex(internalProtoGraph->animationListsMutex, 6210);
+	ANIMATIONENTRY entry = internalProtoGraph->animUpdates.front();
+	dropMutex(internalProtoGraph->animationListsMutex);
+
+	if (entry.entryType == ANIM_LOOP_LAST)
+	{
+		removeEntryFromQueue();
+		return;
+	}
+
+	if (entry.entryType == ANIM_UNCHAINED_RESULTS)
+	{
+		remove_unchained_from_animation();
+
+		removeEntryFromQueue();
+		return;
+	}
+
+	NODEINDEX backupLastAnimNode = lastAnimatedNode;
+	if (entry.entryType == ANIM_UNCHAINED_DONE)
+	{
+		end_unchained(&entry);
+		removeEntryFromQueue();
+		return;
+	}
+
+	int brightTime;
+	if (entry.entryType == ANIM_UNCHAINED)
+	{
+		currentUnchainedBlocks.push_back(entry);
+		brightTime = KEEP_BRIGHT;
+	}
+	else
+		brightTime = 0;
+
+	//break if block not rendered yet
+	vector <NODEINDEX> nodeIDList;
+	if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
+	{
+		//expect to get an incomplete block with exception or animation attempt before static rendering
+		if ((entry.entryType != ANIM_EXEC_EXCEPTION) ||	(nodeIDList.size() < entry.count)) 
+			return;
+	}
+
+	//add all the nodes+edges in the block to the brightening list
+	brighten_node_list(&entry, brightTime, &nodeIDList);
+
+	//also add brighten edge to next unchained block
+	if (entry.entryType == ANIM_UNCHAINED)
+		brighten_next_block_edge(&entry, brightTime);
+
+	removeEntryFromQueue();
+}
 
 void plotted_graph::process_live_animation_updates()
 {
 	if (internalProtoGraph->animUpdates.empty()) return;
 
-	bool activeUnchained = false;
-
 	int updateLimit = 150; //too many updates at a time damages interactivity
 	while (!internalProtoGraph->animUpdates.empty() && updateLimit--)
 	{
-		obtainMutex(internalProtoGraph->animationListsMutex, 6210);
-		ANIMATIONENTRY entry = internalProtoGraph->animUpdates.front();
-		dropMutex(internalProtoGraph->animationListsMutex);
-
-		if (entry.entryType == ANIM_LOOP_LAST)
-		{
-			removeEntryFromQueue();
-			continue;
-		}
-
-		if (entry.entryType == ANIM_UNCHAINED_RESULTS)
-		{
-			remove_unchained_from_animation();
-
-			removeEntryFromQueue();
-			continue;
-		}
-
-		NODEINDEX backupLastAnimNode = lastAnimatedNode;
-		if (entry.entryType == ANIM_UNCHAINED_DONE)
-		{
-			currentUnchainedBlocks.clear();
-			NODEINDEX firstChainedNode = getDisassemblyBlock(entry.blockAddr, 
-				entry.blockID, internalProtoGraph->get_piddata(), 
-				&internalProtoGraph->terminationFlag)->back()->threadvertIdx.at(tid);
-			lastAnimatedNode = firstChainedNode;
-
-			removeEntryFromQueue();
-			continue;
-		}
-
-		int brightTime;
-		if (entry.entryType == ANIM_UNCHAINED)
-		{
-			currentUnchainedBlocks.push_back(entry);
-			brightTime = KEEP_BRIGHT;
-			activeUnchained = true;
-		}
-		else
-			brightTime = 0;
-
-		//break if block not rendered yet
-		vector <NODEINDEX> nodeIDList;
-		if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
-		{
-			//expect to get an incomplete block with exception or animation attempt before static rendering
-			if ((entry.entryType != ANIM_EXEC_EXCEPTION) ||
-				(nodeIDList.size() < entry.count)) break;
-		}
-
-		//add all the nodes+edges in the block to the brightening list
-		int instructionCount = 0;
-		vector <NODEINDEX>::iterator nodeIt = nodeIDList.begin();
-		for (; nodeIt != nodeIDList.end(); ++nodeIt)
-		{
-			NODEINDEX nodeIdx = *nodeIt;
-			newAnimNodeTimes[nodeIdx] = brightTime;
-
-			if (internalProtoGraph->safe_get_node(nodeIdx)->external)
-			{
-				if (brightTime == KEEP_BRIGHT)
-					newExternTimes[make_pair(nodeIdx, entry.callCount)] = KEEP_BRIGHT;
-				else
-					newExternTimes[make_pair(nodeIdx, entry.callCount)] = EXTERN_LIFETIME_FRAMES;
-			}
-
-			if (entriesProcessed && //cant draw edge to first node in animation
-									//edge to unchained area is not part of unchained area
-				!(entry.entryType == ANIM_UNCHAINED && nodeIt == nodeIDList.begin()))
-			{
-				NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
-				if (internalProtoGraph->edge_exists(edge, 0))
-					newAnimEdgeTimes[edge] = brightTime;
-				//this fails if we go from structure->activity mode but no harm in ignoring
-			}
-			lastAnimatedNode = nodeIdx;
-
-			++instructionCount;
-			if ((entry.entryType == ANIM_EXEC_EXCEPTION) && (instructionCount == (entry.count + 1))) break;
-		}
-
-		//also add brighten edge to next unchained block
-		if (entry.entryType == ANIM_UNCHAINED)
-		{
-			PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
-			NODEINDEX nextNode;
-			NODEPAIR linkingPair;
-			if (piddata->externdict.count(entry.targetAddr))
-			{
-				EDGELIST callers = piddata->externdict.at(entry.targetAddr)->thread_callers.at(tid);
-				EDGELIST::iterator callIt = callers.begin();
-				for (; callIt != callers.end(); ++callIt)
-					if (callIt->first == lastAnimatedNode)
-					{
-						nextNode = callIt->second;
-						linkingPair = make_pair(lastAnimatedNode, nextNode);
-						break;
-					}
-				if (callIt == callers.end())
-				{
-					cerr << "[rgat]Error: Caller for " << hex << entry.targetAddr << " not found" << endl;
-					assert(0);
-				}
-			}
-			else
-			{
-				INSLIST* nextBlock = getDisassemblyBlock(entry.targetAddr, entry.targetID, piddata, &internalProtoGraph->terminationFlag);
-				INS_DATA* nextIns = nextBlock->front();
-				nextNode = nextIns->threadvertIdx.at(tid);
-				linkingPair = make_pair(lastAnimatedNode, nextNode);
-			}
-
-
-			if (!internalProtoGraph->edge_exists(linkingPair, 0))
-				break;
-
-			newAnimEdgeTimes[linkingPair] = brightTime;
-		}
-
-		removeEntryFromQueue();
+		process_live_update();
 	}
 
 	if (!updateLimit)
@@ -571,6 +593,93 @@ unsigned long plotted_graph::calculate_wait_frames(unsigned int stepSize, unsign
 	return waitFrames;
 }
 
+void plotted_graph::process_replay_update(int stepSize)
+{
+	ANIMATIONENTRY entry = internalProtoGraph->savedAnimationData.at(animationIndex);
+
+	//unchained area finished, stop highlighting it
+	if (entry.entryType == ANIM_UNCHAINED_RESULTS)
+	{
+		PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
+		INSLIST *block = getDisassemblyBlock(entry.blockAddr, entry.blockID, piddata, &internalProtoGraph->terminationFlag);
+		unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count*block->size());
+
+		unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
+		if (unchainedWaitFrames > maxWait)
+			unchainedWaitFrames = maxWait;
+		return;
+	}
+
+	//all consecutive unchained areas finished, wait until animation paused appropriate frames
+	if (entry.entryType == ANIM_UNCHAINED_DONE)
+	{
+		if (unchainedWaitFrames-- > 1) return;
+
+		remove_unchained_from_animation();
+		end_unchained(&entry);
+		return;
+	}
+
+	if (entry.entryType == ANIM_LOOP_LAST)
+	{
+		if (unchainedWaitFrames-- > 1) return;
+
+		remove_unchained_from_animation();
+		currentUnchainedBlocks.clear();
+		animBuildingLoop = false;
+		return;
+	}
+
+	int brightTime;
+	if (entry.entryType == ANIM_UNCHAINED || animBuildingLoop)
+	{
+		currentUnchainedBlocks.push_back(entry);
+		brightTime = KEEP_BRIGHT;
+	}
+	else
+		brightTime = 20;
+
+	if (entry.entryType == ANIM_LOOP)
+	{
+		PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
+		INSLIST *block = getDisassemblyBlock(entry.blockAddr, entry.blockID, piddata, &internalProtoGraph->terminationFlag);
+
+		if (!block)
+			unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count); //external
+		else
+			unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count*block->size());
+
+		unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
+		if (unchainedWaitFrames > maxWait)
+			unchainedWaitFrames = maxWait;
+
+		animBuildingLoop = true;
+	}
+
+	vector <NODEINDEX> nodeIDList;
+
+	if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList) && entry.entryType != ANIM_EXEC_EXCEPTION)
+	{
+		Sleep(5);
+		while (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
+		{
+			Sleep(5);
+			cout << "[rgat] Waiting for vertlist block 0x" << hex << entry.blockAddr << endl;
+		}
+	}
+
+	//add all the nodes+edges in the block to the brightening list
+	brighten_node_list(&entry, brightTime, &nodeIDList);
+
+	lastMainNode.lastVertID = lastAnimatedNode;
+
+	//brighten edge to next unchained block
+	if (entry.entryType == ANIM_UNCHAINED)
+	{
+		brighten_next_block_edge(&entry, brightTime);
+	}
+}
+
 int plotted_graph::process_replay_animation_updates(int stepSize)
 {
 	if (internalProtoGraph->savedAnimationData.empty()) return ANIMATION_ENDED;
@@ -579,176 +688,19 @@ int plotted_graph::process_replay_animation_updates(int stepSize)
 	if (targetAnimIndex >= internalProtoGraph->savedAnimationData.size())
 		targetAnimIndex = internalProtoGraph->savedAnimationData.size() - 1;
 
-	PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
+	
 	for (; animationIndex < targetAnimIndex; ++animationIndex)
 	{
-		ANIMATIONENTRY entry = internalProtoGraph->savedAnimationData.at(animationIndex);
-
-		//unchained area finished, stop highlighting it
-		if (entry.entryType == ANIM_UNCHAINED_RESULTS)
-		{
-
-			INSLIST *block = getDisassemblyBlock(entry.blockAddr, entry.blockID, piddata, &internalProtoGraph->terminationFlag);
-			unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count*block->size());
-
-			unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
-			if (unchainedWaitFrames > maxWait)
-				unchainedWaitFrames = maxWait;
-			continue;
-		}
-
-		//all consecutive unchained areas finished, wait until animation paused appropriate frames
-		if (entry.entryType == ANIM_UNCHAINED_DONE)
-		{
-			if (unchainedWaitFrames-- > 1) break;
-
-			remove_unchained_from_animation();
-			currentUnchainedBlocks.clear();
-			INSLIST* firstChainedBlock = getDisassemblyBlock(entry.blockAddr, entry.blockID,
-				internalProtoGraph->get_piddata(), &internalProtoGraph->terminationFlag);
-			NODEINDEX firstChainedNode = firstChainedBlock->back()->threadvertIdx.at(tid);
-
-			lastAnimatedNode = firstChainedNode;
-			continue;
-		}
-
-		if (entry.entryType == ANIM_LOOP_LAST)
-		{
-			if (unchainedWaitFrames-- > 1) break;
-
-			remove_unchained_from_animation();
-			currentUnchainedBlocks.clear();
-			animBuildingLoop = false;
-			continue;
-		}
-
-		int brightTime;
-		if (entry.entryType == ANIM_UNCHAINED || animBuildingLoop)
-		{
-			currentUnchainedBlocks.push_back(entry);
-			brightTime = KEEP_BRIGHT;
-		}
-		else
-			brightTime = 20;
-
-		if (entry.entryType == ANIM_LOOP)
-		{
-			INSLIST *block = getDisassemblyBlock(entry.blockAddr, entry.blockID, piddata, &internalProtoGraph->terminationFlag);
-
-			if (!block)
-				unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count); //external
-			else
-				unchainedWaitFrames += calculate_wait_frames(stepSize, entry.count*block->size());
-
-			unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
-			if (unchainedWaitFrames > maxWait)
-				unchainedWaitFrames = maxWait;
-
-			animBuildingLoop = true;
-		}
-
-		vector <NODEINDEX> nodeIDList;
-
-		if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList) && entry.entryType != ANIM_EXEC_EXCEPTION)
-		{
-			Sleep(5);
-			while (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
-			{
-				Sleep(5);
-				cout << "[rgat] Waiting for vertlist block 0x" << hex << entry.blockAddr << endl;
-			}
-		}
-
-		//add all the nodes+edges in the block to the brightening list
-		int instructionCount = 0;
-		vector <NODEINDEX>::iterator nodeIt = nodeIDList.begin();
-
-		for (; nodeIt != nodeIDList.end(); ++nodeIt)
-		{
-			NODEINDEX nodeIdx = *nodeIt;
-			newAnimNodeTimes[nodeIdx] = brightTime;
-
-			if (internalProtoGraph->safe_get_node(nodeIdx)->external)
-			{
-				if (brightTime == KEEP_BRIGHT)
-					newExternTimes[make_pair(nodeIdx, entry.callCount)] = KEEP_BRIGHT;
-				else
-					newExternTimes[make_pair(nodeIdx, entry.callCount)] = EXTERN_LIFETIME_FRAMES;
-			}
-			if ((animationIndex != 0) && //cant draw edge to first node in animation
-										 //edge to unchained area is not part of unchained area
-				!(entry.entryType == ANIM_UNCHAINED && nodeIt == nodeIDList.begin()))
-			{
-				NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
-				if (userSelectedAnimPosition == -1)
-				{
-					assert(internalProtoGraph->edge_exists(edge, 0));
-					newAnimEdgeTimes[edge] = brightTime;
-				}
-				else
-				{
-					if (internalProtoGraph->edge_exists(edge, 0))
-						newAnimEdgeTimes[edge] = brightTime;
-				}
-			}
-			lastAnimatedNode = nodeIdx;
-
-			++instructionCount;
-			if ((entry.entryType == ANIM_EXEC_EXCEPTION) && (instructionCount == (entry.count + 1))) break;
-		}
-
-		lastMainNode.lastVertID = lastAnimatedNode;
-
-		//also add brighten edge to next unchained block
-		if (entry.entryType == ANIM_UNCHAINED)
-		{
-			NODEINDEX nextNode;
-			NODEPAIR linkingPair;
-			PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
-			if (piddata->externdict.count(entry.targetAddr))
-			{
-				EDGELIST callers = piddata->externdict.at(entry.targetAddr)->thread_callers.at(tid);
-				EDGELIST::iterator callIt = callers.begin();
-				for (; callIt != callers.end(); ++callIt)
-					if (callIt->first == lastAnimatedNode)
-					{
-						nextNode = callIt->second;
-						linkingPair = make_pair(lastAnimatedNode, nextNode);
-						break;
-					}
-				if (callIt == callers.end())
-				{
-					cerr << "[rgat]Error: Caller for " << hex << entry.targetAddr << " not found" << endl;
-					assert(0);
-				}
-			}
-			else
-			{
-				INSLIST* nextBlock = getDisassemblyBlock(entry.targetAddr, entry.targetID, piddata, &internalProtoGraph->terminationFlag);
-				INS_DATA* nextIns = nextBlock->front();
-				nextNode = nextIns->threadvertIdx.at(tid);
-				linkingPair = make_pair(lastAnimatedNode, nextNode);
-			}
-
-			if (!internalProtoGraph->edge_exists(linkingPair, 0))
-			{
-				cerr << "[rgat]Warning: Skipped bad edge " << linkingPair.first << "," << linkingPair.second << endl;
-				return 0;
-			}
-			newAnimEdgeTimes[linkingPair] = brightTime;
-		}
+		process_replay_update(stepSize);
 	}
 
 	internalProtoGraph->set_active_node(lastAnimatedNode);
 
 	if (animationIndex >= internalProtoGraph->savedAnimationData.size() - 1)
 		return ANIMATION_ENDED;
-	else return 0;
-
+	else 
+		return 0;
 }
-
-
-
 
 void plotted_graph::clear_active()
 {
@@ -943,11 +895,9 @@ void plotted_graph::darken_fading(float fadeRate)
 		darken_edges(fadeRate);
 }
 
-void plotted_graph::brighten_new_active()
-{
-	if (!animnodesdata->col_size()) return;
 
-	//brighten any new verts
+void plotted_graph::brighten_new_active_nodes()
+{
 	map<NODEINDEX, int>::iterator vertIDIt = newAnimNodeTimes.begin();
 	while (vertIDIt != newAnimNodeTimes.end())
 	{
@@ -981,7 +931,10 @@ void plotted_graph::brighten_new_active()
 
 		vertIDIt = newAnimNodeTimes.erase(vertIDIt);
 	}
+}
 
+void plotted_graph::brighten_new_active_extern_nodes()
+{
 	PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
 	map <NODEINDEX, EXTTEXT> newEntries;
 	map <pair<NODEINDEX, unsigned int>, int>::iterator externTimeIt = newExternTimes.begin();
@@ -1031,8 +984,11 @@ void plotted_graph::brighten_new_active()
 	for (; entryIt != newEntries.end(); ++entryIt)
 		activeExternTimes[entryIt->first] = entryIt->second;
 	dropMutex(internalProtoGraph->externGuardMutex);
+}
 
-	//brighten any new edges
+
+void plotted_graph::brighten_new_active_edges()
+{
 	map<NODEPAIR, int>::iterator edgeIDIt = newAnimEdgeTimes.begin();
 	while (edgeIDIt != newAnimEdgeTimes.end())
 	{
@@ -1060,6 +1016,15 @@ void plotted_graph::brighten_new_active()
 
 		edgeIDIt = newAnimEdgeTimes.erase(edgeIDIt);
 	}
+}
+
+void plotted_graph::brighten_new_active()
+{
+	if (!animnodesdata->col_size()) return;
+
+	brighten_new_active_nodes();
+	brighten_new_active_extern_nodes();
+	brighten_new_active_edges();
 }
 
 
@@ -1134,8 +1099,6 @@ void plotted_graph::display_highlight_lines(vector<node_data *> *nodePtrList, AL
 	}
 }
 
-
-//unused, should it be?
 void plotted_graph::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha)
 {
 	if (!edgesdata->get_numVerts()) return;
@@ -1248,7 +1211,6 @@ int plotted_graph::render_new_preview_edges(VISSTATE* clientState)
 
 void plotted_graph::removeEntryFromQueue()
 {
-	++entriesProcessed;
 	obtainMutex(internalProtoGraph->animationListsMutex, 6211);
 	internalProtoGraph->animUpdates.pop();
 	dropMutex(internalProtoGraph->animationListsMutex);
@@ -1373,7 +1335,6 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 		rescale_nodes(true);
 		previewlines->reset();
 		previewNeedsResize = false;
-
 	}
 
 	if (!render_new_preview_edges(clientState))
@@ -1402,36 +1363,5 @@ void plotted_graph::gen_graph_VBOs()
 	glGenBuffers(4, activeVBOs);
 	VBOsGenned = true;
 }
-
-/*
-bool thread_graph_data::loadNodes(ifstream *file, map <MEM_ADDRESS, INSLIST> *disassembly)
-{
-
-if (!verifyTag(file, tag_START, 'N')) {
-cerr << "[rgat]Bad node data" << endl;
-return false;
-}
-string value_s;
-while (true)
-{
-node_data *n = new node_data;
-int result = n->unserialise(file, disassembly);
-
-if (result > 0)
-{
-insert_node(n->index, *n);
-continue;
-}
-
-delete n;
-
-if (!result)
-return true;
-else
-return false;
-
-}
-}
-*/
 
 

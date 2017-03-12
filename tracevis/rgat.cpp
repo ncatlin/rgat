@@ -45,11 +45,6 @@ bool kbdInterrupt = false;
 
 void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets);
 
-
-
-
-
-
 bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 {
 	for (int idx = 1; idx < argc; idx++)
@@ -248,6 +243,344 @@ bool loadTrace(VISSTATE *clientState, string filename)
 }
 
 
+void handle_mouse_zoom(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets, long maxZoomIn)
+{
+	if (mouse_in_previewpane(clientState, ev->mouse.x))
+		widgets->doScroll(ev->mouse.dz);
+	else
+	{
+		//adjust speed of zoom depending on how close we are
+		int zoomfactor;
+		if (clientState->cameraZoomlevel > 40000)
+			zoomfactor = -5000;
+		else
+			zoomfactor = -1000;
+
+		float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
+		if (newZoom >= maxZoomIn)
+			clientState->cameraZoomlevel = newZoom;
+	}
+}
+
+void handle_mouse_drag(ALLEGRO_EVENT *ev, VISSTATE *clientState, float zoomdiff)
+{
+	float dx = ev->mouse.dx;
+	float dy = ev->mouse.dy;
+	dx = min(1, max(dx, -1));
+	dy = min(1, max(dy, -1));
+
+	float slowdownfactor = 0.035; //reduce movement this much for every 1000 pixels zoomed in
+	float slowdown = zoomdiff / 1000;
+
+	// here we control drag speed at various zoom levels
+	// todo when we have insturctions to look at
+	if (slowdown > 0)
+	{
+		if (dx != 0) dx *= (slowdown * slowdownfactor);
+		if (dy != 0) dy *= (slowdown * slowdownfactor);
+	}
+
+	clientState->view_shift_x -= dx;
+	clientState->view_shift_y -= dy;
+}
+
+void handle_mouse_move(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
+{
+	if (!mouse_in_previewpane(clientState, ev->mouse.x))
+	{
+		widgets->toggleSmoothDrawing(false);
+		return;
+	}
+
+	widgets->toggleSmoothDrawing(true); //redraw every frame so preview tooltip moves smoothly
+	PID_TID PID, TID;
+	if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
+	{
+		map<PID_TID, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
+		if (PIDIt != clientState->glob_piddata_map.end())
+		{
+			PROCESS_DATA* PID = PIDIt->second;
+			map<PID_TID, void *>::iterator graphit = PID->plottedGraphs.find(TID);
+			if (graphit != PID->plottedGraphs.end())
+			{
+				proto_graph *protoGraph = ((plotted_graph *)graphit->second)->get_protoGraph();
+				widgets->showGraphToolTip(protoGraph, PID, ev->mouse.x, ev->mouse.y);
+			}
+		}
+	}
+}
+
+void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayouts clickedLayout, plotted_graph *oldActiveGraph)
+{
+	clientState->currentLayout = clickedLayout;
+	widgets->setLayoutIcon();
+
+	proto_graph *active_proto_graph = oldActiveGraph->get_protoGraph();
+	PROCESS_DATA *piddata = active_proto_graph->get_piddata();
+	PID_TID graphThread = oldActiveGraph->get_tid();
+
+	plotted_graph *newPlottedGraph = 0;
+	switch (clientState->currentLayout)
+	{
+	case eSphereLayout:
+	{
+		newPlottedGraph = new sphere_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
+		break;
+	}
+	case eTreeLayout:
+	{
+		newPlottedGraph = new tree_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
+		break;
+	}
+	default:
+	{
+		cout << "Bad graph layout: " << clientState->currentLayout << endl;
+		assert(0);
+	}
+	}
+	newPlottedGraph->initialiseDefaultDimensions();
+	piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
+	clientState->newActiveGraph = newPlottedGraph;
+	switchToActiveGraph(clientState, widgets);
+
+	delete oldActiveGraph;
+}
+
+void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState)
+{
+	switch (ev->keyboard.keycode)
+	{
+	case ALLEGRO_KEY_ESCAPE:
+	{
+		HIGHLIGHT_DATA *highlightData = &((plotted_graph *)clientState->activeGraph)->highlightData;
+		if (highlightData->highlightState)
+		{
+			highlightData->highlightState = 0;
+			break;
+		}
+
+		if (clientState->modes.diff)
+		{
+			clientState->modes.diff = 0;
+			break;
+		}
+
+		break;
+	}
+
+	case ALLEGRO_KEY_Y:
+		clientState->change_mode(EV_BTN_WIREFRAME);
+		break;
+
+	case ALLEGRO_KEY_K:
+		clientState->change_mode(EV_BTN_HEATMAP);
+		break;
+
+	case ALLEGRO_KEY_M:
+		toggle_externtext_mode(clientState);
+		break;
+
+	case ALLEGRO_KEY_N:
+		clientState->modes.nearSide = !clientState->modes.nearSide;
+		break;
+
+	case ALLEGRO_KEY_J:
+		clientState->change_mode(EV_BTN_CONDITION);
+		break;
+
+	case ALLEGRO_KEY_E:
+		clientState->change_mode(EV_BTN_EDGES);
+		break;
+
+		//stretch and shrink the graph
+	case ALLEGRO_KEY_LEFT:
+		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.05);
+		clientState->rescale = true;
+		break;
+	case ALLEGRO_KEY_RIGHT:
+		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.05);
+		clientState->rescale = true;
+		break;
+	case ALLEGRO_KEY_DOWN:
+		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.05);
+		clientState->rescale = true;
+		break;
+	case ALLEGRO_KEY_UP:
+		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.01);
+		clientState->rescale = true;
+		break;
+
+	case ALLEGRO_KEY_PAD_4:
+		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.005);
+		clientState->rescale = true;
+		break;
+	case ALLEGRO_KEY_PAD_6:
+		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.005);
+		clientState->rescale = true;
+		break;
+
+		//fine zoon control
+	case ALLEGRO_KEY_PAD_7:
+		clientState->cameraZoomlevel += 100;
+		break;
+	case ALLEGRO_KEY_PAD_1:
+		clientState->cameraZoomlevel -= 100;
+		break;
+	case ALLEGRO_KEY_PAD_8:
+		clientState->cameraZoomlevel += 10;
+		break;
+	case ALLEGRO_KEY_PAD_2:
+		clientState->cameraZoomlevel -= 10;
+		break;
+
+	case ALLEGRO_KEY_PAD_PLUS:
+		((plotted_graph *)clientState->activeGraph)->adjust_size(0.05);
+		clientState->rescale = true;
+		break;
+	case ALLEGRO_KEY_PAD_MINUS:
+		((plotted_graph *)clientState->activeGraph)->adjust_size(-0.05);
+		clientState->rescale = true;
+		break;
+
+	case ALLEGRO_KEY_I:
+		clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
+		break;
+
+	case ALLEGRO_KEY_T:
+		toggle_instext_mode(clientState);
+		break;
+	}
+}
+
+int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
+{
+	switch (ev->user.data1)
+	{
+	case EV_BTN_RUN:
+		widgets->exeSelector->show();
+		break;
+
+	case EV_BTN_QUIT:
+		return EV_BTN_QUIT;
+
+	case EV_BTN_WIREFRAME:
+	case EV_BTN_PREVIEW:
+	case EV_BTN_CONDITION:
+	case EV_BTN_HEATMAP:
+	case EV_BTN_NODES:
+	case EV_BTN_EDGES:
+		clientState->change_mode((eUIEventCode)ev->user.data1);
+		break;
+
+	case EV_BTN_HIGHLIGHT:
+		widgets->showHideHighlightFrame();
+		break;
+
+	case EV_BTN_DIFF:
+		widgets->showHideDiffFrame();
+		break;
+
+	case EV_BTN_EXTERNLOG:
+		toggleExternLog(clientState);
+		break;
+
+	case EV_BTN_DBGSYM:
+		clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
+		break;
+
+	case EV_BTN_EXT_TEXT_NONE:
+		clientState->modes.show_extern_text = EXTERNTEXT_NONE;
+		break;
+
+	case EV_BTN_EXT_TEXT_SYMS:
+		clientState->modes.show_extern_text = EXTERNTEXT_SYMS;
+		break;
+
+	case EV_BTN_EXT_TEXT_PATH:
+		clientState->modes.show_extern_text = EXTERNTEXT_ALL;
+		break;
+
+	case EV_BTN_INS_TEXT_NONE:
+		clientState->modes.show_ins_text = INSTEXT_NONE;
+		break;
+
+	case EV_BTN_INS_TEXT_AUTO:
+		clientState->modes.show_ins_text = INSTEXT_AUTO;
+		break;
+
+	case EV_BTN_INS_TEXT_ALWA:
+		clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
+		break;
+
+	case EV_BTN_AUTOSCALE:
+		clientState->autoscale = !clientState->autoscale;
+		cout << "[rgat]Autoscale ";
+		if (clientState->autoscale) cout << "On." << endl;
+		else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
+		break;
+
+	case EV_BTN_NEARSIDE:
+		clientState->modes.nearSide = !clientState->modes.nearSide;
+		break;
+
+	case EV_BTN_SAVE:
+		if (clientState->activeGraph)
+		{
+			stringstream displayMessage;
+			PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_pid();
+			displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
+			display_only_status_message("Saving process " + to_string(pid), clientState);
+			cout << displayMessage.str();
+			saveTrace(clientState);
+		}
+		break;
+
+	case EV_BTN_LOAD:
+	{
+
+		if (!fileExists(clientState->config->saveDir))
+		{
+			string newSavePath = getModulePath() + "\\saves\\";
+			clientState->config->updateSavePath(newSavePath);
+		}
+
+		widgets->exeSelector->hide();
+		ALLEGRO_FILECHOOSER *fileDialog;
+		//bug: sometimes uses current directory
+		fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
+			"Choose saved trace to open", "*.rgat;*.*;",
+			ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+		clientState->dialogOpen = true;
+		al_show_native_file_dialog(clientState->maindisplay, fileDialog);
+		clientState->dialogOpen = false;
+
+		const char* result = al_get_native_file_dialog_path(fileDialog, 0);
+		al_destroy_native_file_dialog(fileDialog);
+		if (!result) return EV_NONE;
+
+		string path(result);
+		if (!fileExists(path)) return EV_NONE;
+
+		loadTrace(clientState, path);
+		clientState->modes.animation = false;
+		break;
+	}
+
+	case EV_BTN_ABOUT:
+	{
+		widgets->aboutBox->setLocation(200, 200);
+		widgets->aboutBox->setVisibility(!widgets->aboutBox->isVisible());
+		break;
+	}
+
+	default:
+		cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1;
+		break;
+	}
+
+	return EV_NONE;
+}
+
 static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 {
 	ALLEGRO_DISPLAY *display = clientState->maindisplay;
@@ -271,73 +604,19 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		float zoomdiff = abs(graphSize - clientState->cameraZoomlevel);
 
 		if (ev->mouse.dz)
-		{
-			if (mouse_in_previewpane(clientState, ev->mouse.x))
-				widgets->doScroll(ev->mouse.dz);
-			else
-			{
-				//adjust speed of zoom depending on how close we are
-				int zoomfactor;
-				if (clientState->cameraZoomlevel > 40000)
-					zoomfactor = -5000;
-				else
-					zoomfactor = -1000;
+			handle_mouse_zoom(ev, clientState, widgets, maxZoomIn);
 
-				float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
-				if (newZoom >= maxZoomIn)
-					clientState->cameraZoomlevel = newZoom;
-			}
-		}
 
 		if (ev->mouse.dx || ev->mouse.dy) 
 		{
 			ALLEGRO_MOUSE_STATE state;
 			al_get_mouse_state(&state);
+			
 			if (clientState->mouse_dragging)
-			{
-				float dx = ev->mouse.dx;
-				float dy = ev->mouse.dy;
-				dx = min(1, max(dx, -1));
-				dy = min(1, max(dy, -1));
-
-				float slowdownfactor = 0.035; //reduce movement this much for every 1000 pixels zoomed in
-				float slowdown = zoomdiff / 1000;
-
-				// here we control drag speed at various zoom levels
-				// todo when we have insturctions to look at
-				if (slowdown > 0)
-				{
-					if (dx != 0) dx *= (slowdown * slowdownfactor);
-					if (dy != 0) dy *= (slowdown * slowdownfactor);
-				}
-
-				clientState->view_shift_x -= dx;
-				clientState->view_shift_y -= dy;
-			}
+				handle_mouse_drag(ev, clientState, zoomdiff);
 			else
-			{
-				if (!mouse_in_previewpane(clientState, ev->mouse.x))
-					widgets->toggleSmoothDrawing(false);
-				else
-				{
-					widgets->toggleSmoothDrawing(true); //redraw every frame so preview tooltip moves smoothly
-					PID_TID PID, TID;
-					if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
-					{
-						map<PID_TID, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
-						if (PIDIt != clientState->glob_piddata_map.end())
-						{
-							PROCESS_DATA* PID = PIDIt->second;
-							map<PID_TID, void *>::iterator graphit = PID->plottedGraphs.find(TID);
-							if (graphit != PID->plottedGraphs.end())
-							{
-								proto_graph *protoGraph = ((plotted_graph *)graphit->second)->get_protoGraph();
-								widgets->showGraphToolTip(protoGraph, PID, ev->mouse.x, ev->mouse.y);
-							}
-						}
-					}
-				}
-			}
+				handle_mouse_move(ev, clientState, widgets);
+
 			updateTitle_Mouse(display, clientState->title, ev->mouse.x, ev->mouse.y);
 		}
 
@@ -357,38 +636,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 				if (clickedLayout != oldActiveGraph->getLayout())
 				{
-					clientState->currentLayout = clickedLayout;
-					widgets->setLayoutIcon();
-
-					proto_graph *active_proto_graph = oldActiveGraph->get_protoGraph();
-					PROCESS_DATA *piddata = active_proto_graph->get_piddata();
-					PID_TID graphThread = oldActiveGraph->get_tid();
-
-					plotted_graph *newPlottedGraph = 0;
-					switch (clientState->currentLayout)
-					{
-						case eSphereLayout:
-						{
-							newPlottedGraph = new sphere_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
-							break;
-						}
-						case eTreeLayout:
-						{
-							newPlottedGraph = new tree_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
-							break;
-						}
-						default:
-						{
-							cout << "Bad graph layout: " << clientState->currentLayout << endl;
-							assert(0);
-						}
-					}
-					newPlottedGraph->initialiseDefaultDimensions();
-					piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
-					clientState->newActiveGraph = newPlottedGraph;
-					switchToActiveGraph(clientState, widgets);
-
-					delete oldActiveGraph;
+					change_active_layout(clientState, widgets, clickedLayout, oldActiveGraph);
 				}
 
 				return EV_MOUSE;
@@ -417,6 +665,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		case ALLEGRO_EVENT_KEY_CHAR:
 		{
 			bool closed = false;
+			//close any open cruft on screen
 			if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
 			{
 				widgets->exeSelector->hide();
@@ -451,237 +700,16 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_NONE;
 			}
 
-			switch (ev->keyboard.keycode)
-			{
-				case ALLEGRO_KEY_ESCAPE:
-				{
-					HIGHLIGHT_DATA *highlightData = &((plotted_graph *)clientState->activeGraph)->highlightData;
-					if (highlightData->highlightState)
-					{
-						highlightData->highlightState = 0;
-						break;
-					}
+			handleKeypress(ev, clientState);
 
-					if (clientState->modes.diff)
-					{
-						clientState->modes.diff = 0;
-						break;
-					}
-				}
-
-				case ALLEGRO_KEY_Y:
-					clientState->change_mode(EV_BTN_WIREFRAME);
-					break;
-
-				case ALLEGRO_KEY_K:
-					clientState->change_mode(EV_BTN_HEATMAP);
-					break;
-
-				case ALLEGRO_KEY_M:
-					toggle_externtext_mode(clientState);
-					break;
-
-				case ALLEGRO_KEY_N:
-					clientState->modes.nearSide = !clientState->modes.nearSide;
-					break;
-
-				case ALLEGRO_KEY_J:
-					clientState->change_mode(EV_BTN_CONDITION);
-					break;
-
-				case ALLEGRO_KEY_E:
-					clientState->change_mode(EV_BTN_EDGES);
-					break;
-
-				//stretch and shrink the graph
-				case ALLEGRO_KEY_LEFT:
-					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.05);
-					clientState->rescale = true;
-					break;
-				case ALLEGRO_KEY_RIGHT:
-					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.05);
-					clientState->rescale = true;
-					break;
-				case ALLEGRO_KEY_DOWN:
-					((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.05);
-					clientState->rescale = true;
-					break;
-				case ALLEGRO_KEY_UP:
-					((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.01);
-					clientState->rescale = true;
-					break;
-
-				case ALLEGRO_KEY_PAD_4:
-					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.005);
-					clientState->rescale = true;
-					break;
-				case ALLEGRO_KEY_PAD_6:
-					((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.005);
-					clientState->rescale = true;
-					break;
-
-				//fine zoon control
-				case ALLEGRO_KEY_PAD_7:
-					clientState->cameraZoomlevel += 100;
-					break;
-				case ALLEGRO_KEY_PAD_1:
-					clientState->cameraZoomlevel -= 100;
-					break;
-				case ALLEGRO_KEY_PAD_8:
-					clientState->cameraZoomlevel += 10;
-					break;
-				case ALLEGRO_KEY_PAD_2:
-					clientState->cameraZoomlevel -= 10;
-					break;
-
-				case ALLEGRO_KEY_PAD_PLUS:
-					((plotted_graph *)clientState->activeGraph)->adjust_size(0.05);
-					clientState->rescale = true;
-					break;
-				case ALLEGRO_KEY_PAD_MINUS:
-					((plotted_graph *)clientState->activeGraph)->adjust_size(-0.05);
-					clientState->rescale = true;
-					break;
-
-				case ALLEGRO_KEY_I:
-					clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
-					break;
-
-				case ALLEGRO_KEY_T:
-					toggle_instext_mode(clientState);
-					break;
-				}
-
-				widgets->processEvent(ev);
-				return EV_NONE;
+			widgets->processEvent(ev);
+			return EV_NONE;
 		}
 
 		case ALLEGRO_EVENT_MENU_CLICK:
 		{
-			switch (ev->user.data1)
-			{
-			case EV_BTN_RUN:
-				widgets->exeSelector->show();
-				break;
-
-			case EV_BTN_QUIT: 
-				return EV_BTN_QUIT;
-
-			case EV_BTN_WIREFRAME:
-			case EV_BTN_PREVIEW:
-			case EV_BTN_CONDITION:
-			case EV_BTN_HEATMAP:
-			case EV_BTN_NODES:
-			case EV_BTN_EDGES:
-				clientState->change_mode((eUIEventCode)ev->user.data1);
-				break;
-
-			case EV_BTN_HIGHLIGHT:
-				widgets->showHideHighlightFrame();
-				break;
-
-			case EV_BTN_DIFF:
-				widgets->showHideDiffFrame();
-				break;
-
-			case EV_BTN_EXTERNLOG:
-				toggleExternLog(clientState);
-				break;
-
-			case EV_BTN_DBGSYM:
-				clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
-				break;
-
-			case EV_BTN_EXT_TEXT_NONE:
-				clientState->modes.show_extern_text = EXTERNTEXT_NONE;
-				break;
-
-			case EV_BTN_EXT_TEXT_SYMS:
-				clientState->modes.show_extern_text = EXTERNTEXT_SYMS;
-				break;
-
-			case EV_BTN_EXT_TEXT_PATH:
-				clientState->modes.show_extern_text = EXTERNTEXT_ALL;
-				break;
-
-			case EV_BTN_INS_TEXT_NONE:
-				clientState->modes.show_ins_text = INSTEXT_NONE;
-				break;
-
-			case EV_BTN_INS_TEXT_AUTO:
-				clientState->modes.show_ins_text = INSTEXT_AUTO;
-				break;
-
-			case EV_BTN_INS_TEXT_ALWA:
-				clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
-				break;
-
-			case EV_BTN_AUTOSCALE:
-				clientState->autoscale = !clientState->autoscale;
-				cout << "[rgat]Autoscale ";
-					if (clientState->autoscale) cout << "On." << endl;
-					else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
-				break;
-
-			case EV_BTN_NEARSIDE:
-				clientState->modes.nearSide = !clientState->modes.nearSide;
-				break;
-
-			case EV_BTN_SAVE:
-				if (clientState->activeGraph)
-				{
-					stringstream displayMessage;
-					PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_pid();
-					displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
-					display_only_status_message("Saving process "+to_string(pid), clientState);
-					cout << displayMessage.str();
-					saveTrace(clientState);
-				}
-				break;
-
-			case EV_BTN_LOAD:
-			{
-
-				if (!fileExists(clientState->config->saveDir))
-				{
-					string newSavePath = getModulePath() + "\\saves\\";
-					clientState->config->updateSavePath(newSavePath);
-				}
-
-				widgets->exeSelector->hide();
-				ALLEGRO_FILECHOOSER *fileDialog;
-				//bug: sometimes uses current directory
-				fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
-					"Choose saved trace to open", "*.rgat;*.*;",
-					ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-				clientState->dialogOpen = true;
-				al_show_native_file_dialog(clientState->maindisplay, fileDialog);
-				clientState->dialogOpen = false;
-
-				const char* result = al_get_native_file_dialog_path(fileDialog, 0);
-				al_destroy_native_file_dialog(fileDialog);
-				if (!result) return EV_NONE;
-
-				string path(result);
-				if (!fileExists(path)) return EV_NONE;
-
-				loadTrace(clientState, path);
-				clientState->modes.animation = false;
-				break;
-			}
-
-			case EV_BTN_ABOUT:
-			{
-				widgets->aboutBox->setLocation(200, 200);
-				widgets->aboutBox->setVisibility(!widgets->aboutBox->isVisible());
-				break;
-			}
-
-			default:
-				cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1;
-				break;
-			}
-			return EV_NONE;
+			int returncode = handle_menu_click(ev, clientState, widgets);
+			return returncode;
 		}
 
 		case ALLEGRO_EVENT_DISPLAY_CLOSE:
