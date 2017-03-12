@@ -242,10 +242,8 @@ void saveBlockData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	writer.EndArray(); //end array of basic blocks
 }
 
-void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
+void saveMetaData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
-	writer.StartObject();
-
 	writer.Key("BitWidth");
 	if (piddata->bitwidth == CS_MODE_32)
 		writer.Uint(32);
@@ -253,6 +251,20 @@ void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 		writer.Uint(64);
 	else
 		cerr << "[rgat] Proto-graph has invalid bitwidth marker " << piddata->bitwidth << endl;
+
+	writer.Key("RGATVersionMaj");
+	writer.Uint(RGAT_VERSION_MAJ);
+	writer.Key("RGATVersionMin");
+	writer.Uint(RGAT_VERSION_MIN);
+	writer.Key("RGATVersionFeature");
+	writer.Uint(RGAT_VERSION_FEATURE);
+}
+
+void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
+{
+	writer.StartObject();
+
+	saveMetaData(piddata, writer);
 
 	saveModulePaths(piddata, writer);
 
@@ -721,6 +733,41 @@ bool loadExterns(VISSTATE *clientState, PROCESS_DATA *piddata, const Value& proc
 	return true;
 }
 
+bool getSaveRGATVersion(const Value& procData, unsigned int *versionMaj, unsigned int* versionMin, unsigned int* versionFeature)
+{
+	Value::ConstMemberIterator memberIt = procData.FindMember("RGATVersionMaj");
+	if (memberIt == procData.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Failed to find major version of save file" << endl;
+		return false;
+	}
+	*versionMaj = memberIt->value.GetUint();
+
+	memberIt = procData.FindMember("RGATVersionMin");
+	if (memberIt == procData.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Failed to find minor version of save file" << endl;
+		return false;
+	}
+	*versionMin = memberIt->value.GetUint();
+
+	memberIt = procData.FindMember("RGATVersionFeature");
+	if (memberIt == procData.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Failed to find feature version of save file" << endl;
+		return false;
+	}
+	*versionFeature = memberIt->value.GetUint();
+
+	if (*versionMaj > RGAT_VERSION_MAJ ||
+		(*versionMaj == RGAT_VERSION_MAJ && *versionMin > RGAT_VERSION_MIN) ||
+		(*versionMaj == RGAT_VERSION_MAJ && *versionMin == RGAT_VERSION_MIN && *versionFeature == RGAT_VERSION_FEATURE))
+		cout << "[rgat]Warning: This file was created by a newer version of rgat" << endl;
+
+
+	return true;
+}
+
 //load process data not specific to threads
 bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** piddataPtr, PID_TID PID)
 {
@@ -732,6 +779,10 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 	}
 
 	const Value& procData = memberIt->value;
+
+	unsigned int versionMaj, versionMin, versionFeature;
+	getSaveRGATVersion(procData, &versionMaj, &versionMin, &versionFeature);
+	cout << "Loading save by RGAT version " << versionMaj << "." << versionMin << "." << versionFeature << endl;
 
 	Value::ConstMemberIterator procDataIt = procData.FindMember("BitWidth");
 	if (procDataIt == procData.MemberEnd())
