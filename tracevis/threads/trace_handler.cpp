@@ -570,39 +570,39 @@ INSLIST *thread_trace_handler::find_block_disassembly(MEM_ADDRESS blockaddr, BLO
 	return mutationIt->second;
 }
 
+void thread_trace_handler::satisfy_pending_edges()
+{
+	vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
+	while (pendIt != pendingEdges.end())
+	{
+		INSLIST *source = find_block_disassembly(pendIt->sourceAddr, pendIt->sourceID);
+		if (!source) {
+			++pendIt;
+			continue;
+		}
+
+		INSLIST *targ = find_block_disassembly(pendIt->targAddr, pendIt->targID);
+		if (!targ) {
+			++pendIt;
+			continue;
+		}
+
+		thisgraph->insert_edge_between_BBs(source, targ);
+		pendIt = pendingEdges.erase(pendIt);
+
+		//not sure what causes these to happen but haven't seen any get satisfied
+		cout << "Satisfied an edge request!" << endl;
+	}
+}
 //peforms non-sequence critical graph updates
 //update nodes with cached execution counts and new edges from unchained runs
 //also updates graph with delayed edge notifications
 bool thread_trace_handler::assign_blockrepeats()
 {
-
 	lastRepeatUpdate = GetTickCount64();
 
 	if (!pendingEdges.empty())
-	{
-		
-		vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
-		while (pendIt != pendingEdges.end())
-		{
-			INSLIST *source = find_block_disassembly(pendIt->sourceAddr, pendIt->sourceID);
-			if (!source) {
-				++pendIt;
-				continue;
-			}
-
-			INSLIST *targ = find_block_disassembly(pendIt->targAddr, pendIt->targID);
-			if (!targ) {
-				++pendIt;
-				continue;
-			}
-
-			thisgraph->insert_edge_between_BBs(source, targ);
-			pendIt = pendingEdges.erase(pendIt);
-
-			//not sure what causes these to happen but haven't seen any get satisfied
-			cout << "Satisfied an edge request!" << endl;
-		}
-	}
+		satisfy_pending_edges();
 
 	if (blockRepeatQueue.empty()) return true;
 
@@ -691,6 +691,350 @@ bool thread_trace_handler::assign_blockrepeats()
 	return blockRepeatQueue.empty();
 }
 
+void thread_trace_handler::add_unchained_update(char *entry)
+{
+	MEM_ADDRESS blockAddr;
+	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
+	if (!caught_stoull(block_ip_s, &blockAddr, 16)) {
+		cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	BLOCK_IDENTIFIER blockId;
+	string block_id_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(block_id_s, &blockId, 16)) {
+		cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	MEM_ADDRESS targAddr;
+	block_ip_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoull(block_ip_s, &targAddr, 16)) {
+		cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	BLOCK_IDENTIFIER targId;
+	block_id_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(block_id_s, &targId, 16)) {
+		cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	ANIMATIONENTRY animUpdate;
+	animUpdate.entryType = ANIM_UNCHAINED;
+	animUpdate.blockAddr = blockAddr;
+	animUpdate.blockID = blockId;
+	animUpdate.targetAddr = targAddr;
+	animUpdate.targetID = targId;
+	thisgraph->push_anim_update(animUpdate);
+}
+
+void thread_trace_handler::add_satisfy_update(char *entry)
+{
+	NEW_EDGE_BLOCKDATA edgeNotification;
+
+	string s_ip_s = string(strtok_s(entry + 4, ",", &entry));
+	if (!caught_stoull(s_ip_s, &edgeNotification.sourceAddr, 16)) assert(0);
+
+	string s_ID_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(s_ID_s, &edgeNotification.sourceID, 16)) assert(0);
+
+	string t_ip_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoull(t_ip_s, &edgeNotification.targAddr, 16)) assert(0);
+
+	string t_ID_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(t_ID_s, &edgeNotification.targID, 16)) assert(0);
+
+	pendingEdges.push_back(edgeNotification);
+}
+
+void thread_trace_handler::add_exception_update(char *entry)
+{
+	MEM_ADDRESS e_ip;
+	string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
+	if (!caught_stoull(e_ip_s, &e_ip, 16)) {
+
+		assert(0);
+	}
+
+	DWORD e_code;
+	string e_code_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(e_code_s, &e_code, 16)) {
+		cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
+		assert(0);
+	}
+
+	DWORD e_flags;
+	string e_flags_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(e_flags_s, &e_flags, 16)) {
+		cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
+		assert(0);
+	}
+
+	cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
+	<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address 0x" << hex << e_ip << endl;
+
+	piddata->getDisassemblyReadLock();
+	//problem here: no way of knowing which mutation of the faulting instruction was executed
+	//going to have to assume it's the most recent mutation
+	if (!piddata->disassembly.count(e_ip))
+	{
+		piddata->dropDisassemblyReadLock();
+		Sleep(100);
+		piddata->getDisassemblyReadLock();
+		if (!piddata->disassembly.count(e_ip))
+		{
+			piddata->dropDisassemblyReadLock();
+			cerr << "[rgat]Exception address 0x" << hex << e_ip << " not found in disassembly" << endl;
+			return;
+		}
+	}
+	INS_DATA *exceptingins = piddata->disassembly.at(e_ip).back();
+	//problem here: no way of knowing which mutation of the faulting block was executed
+	//going to have to assume it's the most recent mutation
+	pair<MEM_ADDRESS, BLOCK_IDENTIFIER> *faultingBB = &exceptingins->blockIDs.back();
+	piddata->dropDisassemblyReadLock();
+
+	INSLIST *interruptedBlock = getDisassemblyBlock(faultingBB->first, faultingBB->second, piddata, &die);
+	INSLIST::iterator blockIt = interruptedBlock->begin();
+	int instructionsUntilFault = 0;
+	for (; blockIt != interruptedBlock->end(); ++blockIt)
+	{
+
+		if (((INS_DATA *)*blockIt)->address == e_ip) break;
+		++instructionsUntilFault;
+	}
+
+
+	TAG interruptedBlockTag;
+	interruptedBlockTag.blockaddr = faultingBB->first;
+	interruptedBlockTag.insCount = instructionsUntilFault;
+	interruptedBlockTag.blockID = faultingBB->second;
+	interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED;
+	handle_exception_tag(&interruptedBlockTag);
+
+	ANIMATIONENTRY animUpdate;
+	animUpdate.entryType = ANIM_EXEC_EXCEPTION;
+	animUpdate.blockAddr = interruptedBlockTag.blockaddr;
+	animUpdate.blockID = interruptedBlockTag.blockID;
+	animUpdate.count = instructionsUntilFault;
+	thisgraph->push_anim_update(animUpdate);
+}
+
+void thread_trace_handler::add_exec_count_update(char *entry)
+{
+	BLOCKREPEAT newRepeat;
+	newRepeat.totalExecs = 0;
+
+	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
+	if (!caught_stoull(block_ip_s, &newRepeat.blockaddr, 16)) {
+		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	unsigned long long id_count;
+	string b_id_s = string(strtok_s(entry, ",", &entry));
+	id_count = stoll(b_id_s, 0, 16);
+	newRepeat.insCount = id_count & 0xffffffff;
+	newRepeat.blockID = id_count >> 32;
+
+	string executions_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoul(executions_s, &newRepeat.totalExecs, 16)) {
+		cerr << "[rgat]ERROR: BX handling execcount STOL: " << executions_s << endl;
+		assert(0);
+	}
+
+	while (true)
+	{
+		if (entry[0] == 0) break;
+		MEM_ADDRESS targ;
+		string targ_s = string(strtok_s(entry, ",", &entry));
+		if (!caught_stoull(targ_s, &targ, 16)) {
+			cerr << "[rgat]ERROR: BX handling addr STOL: " << targ_s << endl;
+			assert(0);
+		}
+
+		//not happy to be using ulong and casting it to BLOCK_IDENTIFIER
+		//std:stoi is throwing out of range on <=0xffffffff though?
+		unsigned long blockID;
+		string BID_s = string(strtok_s(entry, ",", &entry));
+		if (!caught_stoul(BID_s, &blockID, 16)) {
+			cerr << "[rgat]ERROR: BX handling count STOI: " << BID_s << endl;
+			assert(0);
+		}
+		newRepeat.targBlocks.push_back(make_pair(targ, (BLOCK_IDENTIFIER)blockID));
+	}
+
+	blockRepeatQueue.push_back(newRepeat);
+
+	ANIMATIONENTRY animUpdate;
+	animUpdate.entryType = ANIM_UNCHAINED_RESULTS;
+	animUpdate.blockAddr = newRepeat.blockaddr;
+	animUpdate.blockID = newRepeat.blockID;
+	animUpdate.count = newRepeat.totalExecs;
+	thisgraph->push_anim_update(animUpdate);
+}
+
+void thread_trace_handler::add_unlinking_update(char *entry)
+{
+	MEM_ADDRESS sourceAddr;
+	BLOCK_IDENTIFIER sourceID;
+
+	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
+	if (!caught_stoull(block_ip_s, &sourceAddr, 16)) {
+		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	unsigned long long id_count;
+	string b_id_s = string(strtok_s(entry, ",", &entry));
+	id_count = stoll(b_id_s, 0, 16);
+	sourceID = id_count >> 32;
+
+	INSLIST* lastBB = find_block_disassembly(sourceAddr, sourceID);
+	if (!lastBB) {
+		Sleep(50);
+		if (die || thisgraph->terminated) return;
+		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
+		assert(0);
+	}
+	INS_DATA* lastIns = lastBB->back();
+
+	unordered_map<PID_TID, NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
+	if (vertIt == lastIns->threadvertIdx.end()) {
+		Sleep(50);
+		if (die || thisgraph->terminated) return;
+		cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
+		assert(0);
+	}
+
+	TAG thistag;
+	string target_ip_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoull(target_ip_s, &thistag.blockaddr, 16)) {
+		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
+		assert(0);
+	}
+
+	b_id_s = string(strtok_s(entry, ",", &entry));
+	id_count = stoll(b_id_s, 0, 16);
+	thistag.insCount = id_count & 0xffffffff;
+	thistag.blockID = id_count >> 32;
+	thistag.jumpModifier = 1;
+	handle_tag(&thistag);
+
+	ANIMATIONENTRY animUpdate;
+	animUpdate.blockAddr = thistag.blockaddr;
+	animUpdate.blockID = thistag.blockID;
+	animUpdate.entryType = ANIM_UNCHAINED_DONE;
+	thisgraph->push_anim_update(animUpdate);
+}
+
+void thread_trace_handler::process_trace_tag(char *entry)
+{
+	TAG thistag;
+	MEM_ADDRESS nextBlock;
+
+	//if (thisgraph->get_piddata()->bitwidth == 32)
+
+	thistag.blockaddr = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
+	nextBlock = stoull(strtok_s(entry, ",", &entry), 0, 16);
+
+	unsigned long long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
+	thistag.insCount = id_count & 0xffffffff;
+	thistag.blockID = id_count >> 32;
+
+	thistag.jumpModifier = MOD_INSTRUMENTED;
+	if (loopState == BUILDING_LOOP)
+		loopCache.push_back(thistag);
+	else
+	{
+		handle_tag(&thistag);
+
+		ANIMATIONENTRY animUpdate;
+		animUpdate.blockAddr = thistag.blockaddr;
+		animUpdate.blockID = thistag.blockID;
+		animUpdate.entryType = ANIM_EXEC_TAG;
+		thisgraph->push_anim_update(animUpdate);
+	}
+
+	//fallen through/failed conditional jump
+	if (nextBlock == 0) return;
+
+	int modType = find_containing_module(nextBlock);
+	if (modType == MOD_INSTRUMENTED) return;
+
+	//modType could be known unknown here
+	//in case of unknown, this waits until we know. hopefully rare.
+	int attempts = 1;
+	while (!die)
+	{
+		//this is most likely to be called and looping is rare - usually
+		if (piddata->get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
+		{
+			modType = MOD_UNINSTRUMENTED;
+			break;
+		}
+		if (find_internal_at_address(nextBlock, attempts))
+		{
+			modType = MOD_INSTRUMENTED;
+			break;
+		}
+
+		if (attempts++ >= 10)
+		{
+			cerr << "[rgat] (tid:" << TID << " pid:" << PID << ")Warning: Failing to find address " <<
+				std::hex << nextBlock << " in instrumented or external code. Block tag(addr: " <<
+				thistag.blockaddr << " insQty: " << thistag.insCount << "id: " <<
+				thistag.blockID << " modtype: " << modType << endl;
+			Sleep(60);
+		}
+	}
+
+	if (modType == MOD_INSTRUMENTED) return;
+
+	thistag.blockaddr = nextBlock;
+	thistag.jumpModifier = MOD_UNINSTRUMENTED;
+	thistag.insCount = 0;
+
+	if (loopState == BUILDING_LOOP)
+		loopCache.push_back(thistag);
+	else
+	{
+		handle_tag(&thistag);
+
+		ANIMATIONENTRY animUpdate;
+		animUpdate.blockAddr = thistag.blockaddr;
+		animUpdate.blockID = thistag.blockID;
+		animUpdate.entryType = ANIM_EXEC_TAG;
+		animUpdate.callCount = callCounter[make_pair(thistag.blockaddr, thistag.blockID)]++;
+		thisgraph->push_anim_update(animUpdate);
+	}
+
+}
+
+void thread_trace_handler::process_loop_marker(char *entry)
+{
+	if (entry[1] == LOOP_START_MARKER)
+	{
+		loopState = BUILDING_LOOP;
+		string repeats_s = string(strtok_s(entry + 2, ",", &entry));
+		if (!caught_stoul(repeats_s, &loopIterations, 10))
+			cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
+
+		return;
+	}
+
+	else if (entry[1] == LOOP_END_MARKER)
+	{
+		dump_loop();
+		return;
+	}
+
+	cerr << "[rgat] ERROR: Fell through bad loop tag?" << entry << endl;
+	assert(0);
+}
+
 //build graph for a thread as the trace data arrives from the reader thread
 void thread_trace_handler::main_loop()
 {
@@ -713,7 +1057,8 @@ void thread_trace_handler::main_loop()
 		}
 
 		thisgraph->traceBufferSize = reader->get_message(&msgbuf, &bytesRead);
-		if (!bytesRead) {
+		if (!bytesRead) 
+		{
 			assign_blockrepeats();
 			Sleep(5);
 			continue;
@@ -736,12 +1081,10 @@ void thread_trace_handler::main_loop()
 			break;
 		}
 
-		while (*saveFlag && !die) Sleep(20); //writing while saving == corrupt save
+		while (*saveFlag && !die) 
+			Sleep(20); //writing while saving == corrupt save
 
 		++itemsDone;
-
-		string mush;
-		string DELEMElastentry2;
 
 		char *next_token = msgbuf;
 		while (!die)
@@ -754,108 +1097,14 @@ void thread_trace_handler::main_loop()
 
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
-				TAG thistag;
-				MEM_ADDRESS nextBlock;
-
-				//if (thisgraph->get_piddata()->bitwidth == 32)
-
-				thistag.blockaddr = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
-				nextBlock = stoull(strtok_s(entry, ",", &entry), 0, 16);
-
-				unsigned long long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
-				thistag.insCount = id_count & 0xffffffff;
-				thistag.blockID = id_count >> 32;
-
-				thistag.jumpModifier = MOD_INSTRUMENTED;
-				if (loopState == BUILDING_LOOP)
-					loopCache.push_back(thistag);
-				else
-				{
-					handle_tag(&thistag);
-
-					ANIMATIONENTRY animUpdate;
-					animUpdate.blockAddr = thistag.blockaddr;
-					animUpdate.blockID = thistag.blockID;
-					animUpdate.entryType = ANIM_EXEC_TAG;
-					thisgraph->push_anim_update(animUpdate);
-				}
-
-				//fallen through/failed conditional jump
-				if (nextBlock == 0) continue;
-
-				int modType = find_containing_module(nextBlock);
-				if (modType == MOD_INSTRUMENTED) continue;
-
-				//modType could be known unknown here
-				//in case of unknown, this waits until we know. hopefully rare.
-				int attempts = 1;
-				while (!die)
-				{
-					//this is most likely to be called and looping is rare - usually
-					if (piddata->get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
-					{
-						modType = MOD_UNINSTRUMENTED;
-						break;
-					}
-					if (find_internal_at_address(nextBlock, attempts))
-					{
-						modType = MOD_INSTRUMENTED;
-						break;
-					}
-
-					if (attempts++ >= 10)
-					{
-						cerr << "[rgat] (tid:"<<TID<<" pid:"<<PID<<")Warning: Failing to find address " << 
-							std::hex << nextBlock <<" in instrumented or external code. Block tag(addr: " <<
-							thistag.blockaddr <<" insQty: " << thistag.insCount << "id: " <<
-							thistag.blockID << " modtype: " << modType << endl;
-						Sleep(60);
-					}
-				} 
-
-				if (modType == MOD_INSTRUMENTED) continue;
-				
-				thistag.blockaddr = nextBlock;
-				thistag.jumpModifier = MOD_UNINSTRUMENTED;
-				thistag.insCount = 0;
-
-				if (loopState == BUILDING_LOOP)
-					loopCache.push_back(thistag);
-				else
-				{
-					handle_tag(&thistag);
-
-					ANIMATIONENTRY animUpdate;
-					animUpdate.blockAddr = thistag.blockaddr;
-					animUpdate.blockID = thistag.blockID;
-					animUpdate.entryType = ANIM_EXEC_TAG;
-					animUpdate.callCount = callCounter[make_pair(thistag.blockaddr, thistag.blockID)]++;
-					thisgraph->push_anim_update(animUpdate);
-				}
-
+				process_trace_tag(entry);
 				continue;
 			}
 
 			if (entry[0] == LOOP_MARKER)
 			{	
-				if (entry[1] == LOOP_START_MARKER)
-				{
-					loopState = BUILDING_LOOP;
-					string repeats_s = string(strtok_s(entry+2, ",", &entry));
-					if (!caught_stoul(repeats_s, &loopIterations, 10))
-						cerr << "[rgat]ERROR: Loop start STOL " << repeats_s << endl;
-
-					continue;
-				}
-
-				else if (entry[1] == LOOP_END_MARKER) 
-				{
-					dump_loop();
-					continue;
-				}
-
-				cerr << "[rgat] ERROR: Fell through bad loop tag?" << entry << endl;
-				assert(0);
+				process_loop_marker(entry);
+				continue;
 			}
 
 			string enter_s = string(entry);
@@ -871,257 +1120,39 @@ void thread_trace_handler::main_loop()
 			//need to change lastVertID
 			if (enter_s.substr(0, 2) == "UL")
 			{
-				MEM_ADDRESS sourceAddr;
-				BLOCK_IDENTIFIER sourceID;
-
-				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoull(block_ip_s, &sourceAddr, 16)) {
-					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				unsigned long long id_count;
-				string b_id_s = string(strtok_s(entry, ",", &entry));
-				id_count = stoll(b_id_s, 0, 16);
-				sourceID = id_count >> 32;
-
-				INSLIST* lastBB = find_block_disassembly(sourceAddr, sourceID);
-				if(!lastBB)	{
-					Sleep(50);
-					if (die || thisgraph->terminated) break;
-					cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
-					assert(0);
-				}
-				INS_DATA* lastIns = lastBB->back();
-
-				unordered_map<PID_TID,NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
-				if (vertIt == lastIns->threadvertIdx.end()) {
-					Sleep(50);
-					if (die || thisgraph->terminated) break;
-					cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
-					assert(0);
-				}
-
-				TAG thistag;
-				string target_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoull(target_ip_s, &thistag.blockaddr, 16)) {
-					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				b_id_s = string(strtok_s(entry, ",", &entry));
-				id_count = stoll(b_id_s, 0, 16);
-				thistag.insCount = id_count & 0xffffffff;
-				thistag.blockID = id_count >> 32;
-				thistag.jumpModifier = 1;
-				handle_tag(&thistag);
-
-				ANIMATIONENTRY animUpdate;
-				animUpdate.blockAddr = thistag.blockaddr;
-				animUpdate.blockID = thistag.blockID;
-				animUpdate.entryType = ANIM_UNCHAINED_DONE;
-				thisgraph->push_anim_update(animUpdate);
-
+				add_unlinking_update(entry);
 				continue;
 			}
 
 			//block unchaining notification
 			if (enter_s.substr(0, 2) == "UC")
 			{
-				MEM_ADDRESS blockAddr;
-				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoull(block_ip_s, &blockAddr, 16)) {
-					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				BLOCK_IDENTIFIER blockId;
-				string block_id_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(block_id_s, &blockId, 16)) {
-					cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				MEM_ADDRESS targAddr;
-				block_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoull(block_ip_s, &targAddr, 16)) {
-					cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				BLOCK_IDENTIFIER targId;
-				block_id_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(block_id_s, &targId, 16)) {
-					cerr << "[rgat]ERROR: UC handling ID STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				ANIMATIONENTRY animUpdate;
-				animUpdate.entryType = ANIM_UNCHAINED;
-				animUpdate.blockAddr = blockAddr;
-				animUpdate.blockID = blockId;
-				animUpdate.targetAddr = targAddr;
-				animUpdate.targetID = targId;
-				thisgraph->push_anim_update(animUpdate);
+				add_unchained_update(entry);
 				continue;
 			}
 
 			//block execution count + targets after end of unchained execution
 			if (enter_s.substr(0, 2) == "BX")
 			{
-				BLOCKREPEAT newRepeat;
-				newRepeat.totalExecs = 0;
-
-				string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
-				if (!caught_stoull(block_ip_s, &newRepeat.blockaddr, 16)) {
-					cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
-					assert(0);
-				}
-
-				unsigned long long id_count;
-				string b_id_s = string(strtok_s(entry, ",", &entry));
-				id_count = stoll(b_id_s, 0, 16);
-				newRepeat.insCount = id_count & 0xffffffff;
-				newRepeat.blockID = id_count >> 32;
-
-				string executions_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(executions_s, &newRepeat.totalExecs, 16)) {
-					cerr << "[rgat]ERROR: BX handling execcount STOL: " << executions_s << endl;
-					assert(0);
-				}
-
-				while (true)
-				{
-					if (entry[0] == 0) break;
-					MEM_ADDRESS targ;
-					string targ_s = string(strtok_s(entry, ",", &entry));
-					if (!caught_stoull(targ_s, &targ, 16)) {
-						cerr << "[rgat]ERROR: BX handling addr STOL: " << targ_s << endl;
-						assert(0);
-					}
-
-					//not happy to be using ulong and casting it to BLOCK_IDENTIFIER
-					//std:stoi is throwing out of range on <=0xffffffff though?
-					unsigned long blockID;
-					string BID_s = string(strtok_s(entry, ",", &entry));
-					if (!caught_stoul(BID_s, &blockID, 16)) {
-						cerr << "[rgat]ERROR: BX handling count STOI: " << BID_s << endl;
-						assert(0);
-					}
-					newRepeat.targBlocks.push_back(make_pair(targ, (BLOCK_IDENTIFIER)blockID));
-				}
-
-				blockRepeatQueue.push_back(newRepeat);
-
-				ANIMATIONENTRY animUpdate;
-				animUpdate.entryType = ANIM_UNCHAINED_RESULTS;
-				animUpdate.blockAddr = newRepeat.blockaddr;
-				animUpdate.blockID = newRepeat.blockID;
-				animUpdate.count = newRepeat.totalExecs;
-				thisgraph->push_anim_update(animUpdate);
-
+				add_exec_count_update(entry);
 				continue;
 			}
 
 			if (enter_s.substr(0, 3) == "SAT")
 			{
-				NEW_EDGE_BLOCKDATA edgeNotification;
-
-				string s_ip_s = string(strtok_s(entry + 4, ",", &entry));
-				if (!caught_stoull(s_ip_s, &edgeNotification.sourceAddr, 16)) assert(0);
-
-				string s_ID_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(s_ID_s, &edgeNotification.sourceID, 16)) assert(0);
-
-				string t_ip_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoull(t_ip_s, &edgeNotification.targAddr, 16)) assert(0);
-
-				string t_ID_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(t_ID_s, &edgeNotification.targID, 16)) assert(0);
-
-				pendingEdges.push_back(edgeNotification);
+				add_satisfy_update(entry);
 				continue;
 			}
 
 			if (enter_s.substr(0, 3) == "EXC")
 			{
-				MEM_ADDRESS e_ip;
-				string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
-				if (!caught_stoull(e_ip_s, &e_ip, 16)) {
-
-					assert(0);
-				}
-
-				DWORD e_code;
-				string e_code_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(e_code_s, &e_code, 16)) {
-					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
-					assert(0);
-				}
-
-				DWORD e_flags;
-				string e_flags_s = string(strtok_s(entry, ",", &entry));
-				if (!caught_stoul(e_flags_s, &e_flags, 16)) {
-					cerr << "[rgat]ERROR: Exception handling STOL: " << e_code_s << endl;
-					assert(0);
-				}
-
-				cout << "[rgat]Exception detected in PID: " << PID << " TID: " << TID
-					<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address 0x" <<hex<< e_ip << endl;
-
-				piddata->getDisassemblyReadLock();
-				//problem here: no way of knowing which mutation of the faulting instruction was executed
-				//going to have to assume it's the most recent mutation
-				if (!piddata->disassembly.count(e_ip))
-				{
-					piddata->dropDisassemblyReadLock();
-					Sleep(100);
-					piddata->getDisassemblyReadLock();
-					if (!piddata->disassembly.count(e_ip))
-					{
-						piddata->dropDisassemblyReadLock();
-						cerr << "[rgat]Exception address 0x" <<hex<< e_ip << " not found in disassembly" << endl;
-						continue;
-					}
-				}
-				INS_DATA *exceptingins = piddata->disassembly.at(e_ip).back();
-				//problem here: no way of knowing which mutation of the faulting block was executed
-				//going to have to assume it's the most recent mutation
-				pair<MEM_ADDRESS, BLOCK_IDENTIFIER> *faultingBB = &exceptingins->blockIDs.back();
-				piddata->dropDisassemblyReadLock();
-
-				INSLIST *interruptedBlock = getDisassemblyBlock(faultingBB->first, faultingBB->second, piddata, &die);
-				INSLIST::iterator blockIt = interruptedBlock->begin();
-				int instructionsUntilFault = 0;
-				for (; blockIt != interruptedBlock->end(); ++blockIt)
-				{
-					
-					if (((INS_DATA *)*blockIt)->address == e_ip) break;
-					++instructionsUntilFault;
-				}
-
-
-				TAG interruptedBlockTag;
-				interruptedBlockTag.blockaddr = faultingBB->first;
-				interruptedBlockTag.insCount = instructionsUntilFault;
-				interruptedBlockTag.blockID = faultingBB->second;
-				interruptedBlockTag.jumpModifier = MOD_INSTRUMENTED;
-				handle_exception_tag(&interruptedBlockTag);
-
-				ANIMATIONENTRY animUpdate;
-				animUpdate.entryType = ANIM_EXEC_EXCEPTION;
-				animUpdate.blockAddr = interruptedBlockTag.blockaddr;
-				animUpdate.blockID = interruptedBlockTag.blockID;
-				animUpdate.count = instructionsUntilFault;
-				thisgraph->push_anim_update(animUpdate);
-
+				add_exception_update(entry);
 				continue;
 			}
 
 			cerr << "[rgat]ERROR: Trace handler TID " <<dec<< TID << " unhandled line " << 
 				msgbuf << " ("<<bytesRead<<" bytes)"<<endl;
 			assert(0);
-			if (next_token >= msgbuf + bytesRead) break;
 		}
 	}
 

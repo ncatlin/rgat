@@ -790,7 +790,51 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 	if (clientState->textlog) closeTextLog(clientState);
 }
 
+int start_nongraphical_mode(VISSTATE *clientState)
+{
+	handleKBDExit();
 
+	rgat_create_thread(process_coordinator_thread, clientState);
+
+	eExeCheckResult exeType = check_excecutable_type(clientState->commandlineLaunchPath);
+	if (exeType == eBinary32Bit)
+		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, &clientState, false);
+	else if (exeType == eBinary64Bit)
+		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, &clientState, true);
+
+	int newTIDs, activeTIDs = 0;
+	int newPIDs, activePIDs = 0;
+
+	while (true)
+	{
+		newTIDs = clientState->timelineBuilder->numLiveThreads();
+		newPIDs = clientState->timelineBuilder->numLiveProcesses();
+		if (activeTIDs != newTIDs || activePIDs != newPIDs)
+		{
+			activeTIDs = newTIDs;
+			activePIDs = newPIDs;
+			cout << "[rgat]Tracking " << activeTIDs << " threads in " << activePIDs << " processes" << endl;
+			if (!activeTIDs && !activePIDs)
+			{
+				cout << "[rgat]All processes terminated. Saving...\n" << endl;
+				saveAll(clientState);
+				cout << "[rgat]Saving complete. Exiting." << endl;
+				return 1;
+			}
+		}
+
+		if (kbdInterrupt)
+		{
+			cout << "[rgat]Keyboard interrupt detected, saving..." << endl;
+			saveAll(clientState);
+			cout << "[rgat]Saving complete. Exiting." << endl;
+			clientState->die = true;
+			Sleep(500);
+			return 1;
+		}
+
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -816,54 +860,12 @@ int main(int argc, char **argv)
 
 	clientState.timelineBuilder = new timeline;
 
-	//first deal with any command line arguments
-	//if they exist, we go into non-graphical mode
+	//if command line arguments exist, we go into non-graphical mode
 	if (argc > 1)
 	{
-		if(!process_rgat_args(argc, argv, &clientState)) return 0;
-
-		handleKBDExit();
-
-		rgat_create_thread(process_coordinator_thread, &clientState);
-
-		eExeCheckResult exeType = check_excecutable_type(clientState.commandlineLaunchPath);
-		if (exeType == eBinary32Bit)
-			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, false);
-		else if (exeType == eBinary64Bit)
-			execute_tracer(clientState.commandlineLaunchPath, clientState.commandlineLaunchArgs, &clientState, true);
-		
-		int newTIDs,activeTIDs = 0;
-		int newPIDs,activePIDs = 0;
-
-		while (true)
-		{
-			newTIDs = clientState.timelineBuilder->numLiveThreads();
-			newPIDs = clientState.timelineBuilder->numLiveProcesses();
-			if (activeTIDs != newTIDs || activePIDs != newPIDs)
-			{
-				activeTIDs = newTIDs;
-				activePIDs = newPIDs;
-				cout << "[rgat]Tracking " << activeTIDs << " threads in " << activePIDs << " processes" << endl;
-				if (!activeTIDs && !activePIDs)
-				{
-					cout << "[rgat]All processes terminated. Saving...\n" << endl;
-					saveAll(&clientState);
-					cout << "[rgat]Saving complete. Exiting." << endl;
-					return 1;
-				}
-			}
-
-			if (kbdInterrupt)
-			{
-				cout << "[rgat]Keyboard interrupt detected, saving..."<<endl;
-				saveAll(&clientState);
-				cout << "[rgat]Saving complete. Exiting." << endl;
-				clientState.die = true;
-				Sleep(500);
-				return 1;
-			}
-
-		}
+		if (!process_rgat_args(argc, argv, &clientState)) return 0;
+		int retcode = start_nongraphical_mode(&clientState);
+		return retcode;
 	}
 
 	ALLEGRO_DISPLAY *newDisplay = 0;

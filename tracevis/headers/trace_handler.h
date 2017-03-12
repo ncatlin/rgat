@@ -83,14 +83,6 @@ private:
 	void main_loop();
 
 
-	//important state variables!
-	unsigned int lastVertID = 0; //the vert that led to new instruction
-	unsigned int targVertID = 0; //new vert we are creating
-
-	eEdgeNodeType lastNodeType = eFIRST_IN_THREAD;
-
-	proto_graph *thisgraph;
-	
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
@@ -98,6 +90,15 @@ private:
 	void runBB(TAG *tag, int repeats);
 	void run_faulting_BB(TAG *tag);
 	void BB_addNewEdge(bool alreadyExecuted, int instructionIndex);
+
+	void process_trace_tag(char *entry);
+	void process_loop_marker(char *entry);
+	void satisfy_pending_edges();
+	void add_unchained_update(char *entry);
+	void add_satisfy_update(char *entry);
+	void add_exception_update(char *entry);
+	void add_exec_count_update(char *entry);
+	void add_unlinking_update(char *entry);
 
 	bool set_target_instruction(INS_DATA *instruction);
 
@@ -111,6 +112,16 @@ private:
 	int find_containing_module(MEM_ADDRESS address);
 	void dump_loop();
 	bool assign_blockrepeats();
+
+
+	//important state variables!
+	unsigned int lastVertID = 0; //the vert that led to new instruction
+	unsigned int targVertID = 0; //new vert we are creating
+
+	eEdgeNodeType lastNodeType = eFIRST_IN_THREAD;
+
+	proto_graph *thisgraph;
+
 
 	vector <BLOCKREPEAT> blockRepeatQueue;
 	DWORD64 lastRepeatUpdate = GetTickCount64();
