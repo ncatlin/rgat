@@ -123,6 +123,7 @@ void AnimControls::displayBacklog(proto_graph *graph)
 	thread_trace_reader *reader = (thread_trace_reader*)graph->getReader();
 	bool processingBuf1 = reader->getBufsState(&sizePair);
 	unsigned long totalBacklog = sizePair.first + sizePair.second;
+	if (totalBacklog == 1) totalBacklog = 0; //prevent flicker
 
 	bool showBacklog = graph->active || totalBacklog;
 	backlogLayout->setVisibility(showBacklog);

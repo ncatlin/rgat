@@ -47,6 +47,11 @@ private:
 	int updateDelayMS = 200;
 	plotted_graph *thisgraph;
 	bool render_graph_heatmap(plotted_graph *graph, bool verbose = false);
+	unsigned int initialise_solver(proto_graph *protoGraph, bool verbose, vector<pair<NODEPAIR, edge_data *>> *unfinishedEdgeList, vector<edge_data *> *finishedEdgeList, map <NODEINDEX, bool> *errorNodes);
+	inline unsigned int count_remaining_other_input(proto_graph *protoGraph, node_data *targnode, NODEINDEX ignoreNode);
+	inline unsigned int count_remaining_other_output(proto_graph *protoGraph, node_data *sourcenode, NODEINDEX ignoreNode);
+	unsigned int heatmap_solver(proto_graph *protoGraph, bool lastRun, vector<pair<NODEPAIR, edge_data *>> *unfinishedEdgeList, vector<edge_data *> *finishedEdgeList, map <NODEINDEX, bool> *errorNodes);
+	void build_colour_mapping(vector<edge_data *> *finishedEdgeList, std::set<unsigned long> *heatValues, map<unsigned long, COLSTRUCT> *heatColours);
 	vector<COLSTRUCT> colourRange;
 
 };

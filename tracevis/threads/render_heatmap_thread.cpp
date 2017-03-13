@@ -15,17 +15,19 @@ limitations under the License.
 */
 
 /*
-The thread that performs low (ie:periodic) performance rendering of all graphs for the preview pane
+Bodies for the thread that periodically recalculates/renders the graph heat map
 */
 #include <stdafx.h>
 #include "render_heatmap_thread.h"
 #include "traceMisc.h"
 #include "rendering.h"
 
-bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
+//basic checks to ensure there are edges to render
+//returns the graphs protograph if yet, null pointer otherwise
+proto_graph * check_graph_ready(plotted_graph *graph, VISSTATE* clientState)
 {
 	proto_graph *protoGraph = graph->get_protoGraph();
-	if (!protoGraph->get_num_edges()) return false;
+	if (!protoGraph->get_num_edges()) return NULL;
 
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	unsigned int numLineVerts;
@@ -38,22 +40,22 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 			if (!protoGraph->active && graph != clientState->activeGraph)
 				graph->render_static_graph(clientState); //got final data so may as well force rendering
 			else
-				return false;
-	} 
-	else return false; 
+				return NULL;
+	}
+	else
+		return NULL;
 
+	return protoGraph;
+}
+
+//initialises counters, solves the trivial edges, returns number of errors
+unsigned int heatmap_renderer::initialise_solver(proto_graph *protoGraph, bool lastRun, vector<pair<NODEPAIR, edge_data *>> *unfinishedEdgeList, 
+	vector<edge_data *> *finishedEdgeList, map <NODEINDEX, bool> *errorNodes)
+{
 	DWORD this_run_marker = GetTickCount();
-
-	map <NODEINDEX,bool> errorNodes;
-
-	//build set of all heat values
-	std::set<unsigned long> heatValues;
 	EDGEMAP::iterator edgeDit, edgeDEnd;
-
-	vector<pair<NODEPAIR,edge_data *>> unfinishedEdgeList;
-	vector<edge_data *> finishedEdgeList;
-
 	unsigned int solverErrors = 0;
+	
 	protoGraph->start_edgeD_iteration(&edgeDit, &edgeDEnd);
 	for (; edgeDit != edgeDEnd; ++edgeDit)
 	{
@@ -61,13 +63,14 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 		node_data *tnode = protoGraph->safe_get_node(edgeDit->first.second);
 		edge_data *edge = &edgeDit->second;
 
-		//initialise temporary counters
+		//initialise indegree and outdegree counters for both nodes in edge
 		if (snode->heat_run_marker != this_run_marker)
 		{
 			snode->chain_remaining_in = snode->executionCount;
 			snode->chain_remaining_out = snode->executionCount;
 			snode->heat_run_marker = this_run_marker;
 		}
+
 		if (tnode->heat_run_marker != this_run_marker)
 		{
 			tnode->chain_remaining_in = tnode->executionCount;
@@ -75,150 +78,199 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 			tnode->heat_run_marker = this_run_marker;
 		}
 
-		//the easiest edges to work out are the most numerous
-		//this node is only followed by 1 node therefore edge weight is this nodes executions
+		//first we solve the easy and most numerous edges - connecting nodes with indegree <= 1 and outdegree <= 1
+
+		//source node of this edge has outdegree 1 therefore edge weight is that nodes execution count
 		if (snode->outgoingNeighbours.size() == 1)
 		{
 			edge->chainedWeight = snode->executionCount;
-			snode->chain_remaining_out = 0;
+			
 			//does instruction execute more times than the only instruction that follows it?
 			if (snode->executionCount > tnode->chain_remaining_in)
 			{
 				//ignore if the instruction was the last in the thread and the difference is 1
 				if ((snode->index != protoGraph->finalNodeID) && (snode->executionCount != (tnode->chain_remaining_in + 1)))
-				{
+				{				
 					++solverErrors;
-					if (verbose && errorNodes.count(snode->index) == 0)
+					
+					if (lastRun && errorNodes->count(snode->index) == 0) //only change the node execution count when its done running
 					{
-						cerr << "[rgat]Heat solver warning 1: (TID" << dec << protoGraph->get_TID() << "): Sourcenode:" << snode->index <<
-							" (only 1 target) has " << snode->executionCount << " output but targnode " << tnode->index <<
-							" only needs " << tnode->chain_remaining_in << endl;
-						errorNodes[snode->index] = true;
+						cout << "solver error 1 at s " << snode->index << " t " << tnode->index << endl;
+						//we estimate that the unresolved executions flow to this external node
+						if (tnode->external)
+						{
+							snode->chain_remaining_out -= tnode->chain_remaining_in;
+							tnode->executionCount += snode->chain_remaining_out;
+							//edge->chainedWeight += snode->chain_remaining_out;
+							tnode->unreliableCount = true;
+							solverErrors--;
+						}
+						else
+						{
+							cerr << "[rgat]Heat solver warning 1: (TID" << dec << protoGraph->get_TID() << "): Sourcenode:" << snode->index <<
+								" (only 1 target) has " << snode->executionCount << " output but targnode " << tnode->index <<
+								" only needs " << tnode->chain_remaining_in << endl;
+							errorNodes->emplace(make_pair(snode->index, true));
+						}
+						
 					}
 				}
 			}
+			snode->chain_remaining_out = 0;
 			tnode->chain_remaining_in -= snode->executionCount;
-			finishedEdgeList.push_back(edge);
+			finishedEdgeList->push_back(edge);
 		}
-		else if (tnode->incomingNeighbours.size() == 1)
+		else //target node of this edge has indegree 1 therefore edge weight is that nodes execution count
+			if (tnode->incomingNeighbours.size() == 1)
 		{
-			//this node only follows one other node therefore edge weight is its executions
 			edge->chainedWeight = tnode->executionCount;
-			tnode->chain_remaining_in = 0;
+			
 			//this instruction executed more than the only instruction that leads to it?
 			if (tnode->executionCount > snode->chain_remaining_out)
 			{
 				++solverErrors;
-				if (verbose && errorNodes.count(tnode->index) == 0)
+				if (lastRun && errorNodes->count(tnode->index) == 0)
 				{
+
+					cout << "solver error 2 at s " << snode->index << " t " << tnode->index << endl;
+					//we estimate that the unresolved out journeys are to this external
+					if (snode->external)
+					{
+						/*
+						tnode->chain_remaining_in -= snode->chain_remaining_out;
+						cout << "increasing node " << snode->index << " executions from " << snode->executionCount;
+						snode->executionCount += tnode->chain_remaining_in;
+						cout << " to " << snode->executionCount << endl;
+						edge->chainedWeight += tnode->chain_remaining_in;
+						snode->unreliableCount = true;
+						solverErrors--;
+						*/
+					}
+
+
 					cerr << "[rgat]Heat solver warning 2: (TID" << dec << protoGraph->get_TID() << "): Targnode:" << tnode->index
-						<< " (only only 1 caller) needs " << tnode->executionCount <<	" in but sourcenode (" 
+						<< " (only only 1 caller) needs " << tnode->executionCount << " in but sourcenode ("
 						<< snode->index << ") only provides " << snode->chain_remaining_out << " out" << endl;
-					errorNodes[tnode->index] = true;
+					errorNodes->emplace(make_pair(tnode->index, true));
 				}
 			}
+			tnode->chain_remaining_in = 0;
 			snode->chain_remaining_out -= tnode->executionCount;
-			finishedEdgeList.push_back(edge);
+			finishedEdgeList->push_back(edge);
 		}
 		else
 		{
 			edge->chainedWeight = 0;
-			unfinishedEdgeList.push_back(make_pair(edgeDit->first, &edgeDit->second));
+			unfinishedEdgeList->push_back(make_pair(edgeDit->first, &edgeDit->second));
 		}
 	}
 	protoGraph->stop_edgeD_iteration();
+	return solverErrors;
+}
+
+unsigned int heatmap_renderer::count_remaining_other_input(proto_graph *protoGraph, node_data *targnode, NODEINDEX ignoreNode)
+{
+	unsigned int otherNeighboursOut = 0;
+	set<unsigned int>::iterator targincomingIt = targnode->incomingNeighbours.begin();
+	for (; targincomingIt != targnode->incomingNeighbours.end(); targincomingIt++)
+	{
+		unsigned int idx = *targincomingIt;
+		if (idx == ignoreNode) continue;
+		node_data *otherNeighbour = protoGraph->unsafe_get_node(idx);
+		otherNeighboursOut += otherNeighbour->chain_remaining_out;
+	}
+	return otherNeighboursOut;
+}
+
+unsigned int heatmap_renderer::count_remaining_other_output(proto_graph *protoGraph, node_data *sourcenode, NODEINDEX ignoreNode)
+{
+	unsigned int otherNeighboursIn = 0;
+	set<unsigned int>::iterator sourceoutgoingIt = sourcenode->outgoingNeighbours.begin();
+	for (; sourceoutgoingIt != sourcenode->outgoingNeighbours.end(); sourceoutgoingIt++)
+	{
+		unsigned int idx = *sourceoutgoingIt;
+		if (idx == ignoreNode) continue;
+		node_data *neib = protoGraph->unsafe_get_node(idx);
+		otherNeighboursIn += neib->chain_remaining_in;
+	}
+	return otherNeighboursIn;
+}
+
+unsigned int heatmap_renderer::heatmap_solver(proto_graph *protoGraph, bool lastRun, vector<pair<NODEPAIR, edge_data *>> *unfinishedEdgeList, 
+	vector<edge_data *> *finishedEdgeList, map <NODEINDEX, bool> *errorNodes)
+{
+	unsigned int solverErrors = 0;
 
 	//this won't work until nodes have correct values
-	//it's a great way of detecting errors in a compelete graph but in a running graph there are always going
+	//it's a great way of detecting errors in a complete graph but in a running graph there are always going
 	//to be discrepancies. still want to have a vaguely accurate heatmap in realtime though
 	int attemptLimit = 5;
 	vector<pair<NODEPAIR, edge_data *>>::iterator unfinishedIt;
-	while (!unfinishedEdgeList.empty() && attemptLimit--)
+
+	while (!unfinishedEdgeList->empty() && attemptLimit--)
 	{
-		unfinishedIt = unfinishedEdgeList.begin();
-		for (; unfinishedIt != unfinishedEdgeList.end(); ++unfinishedIt)
+		unfinishedIt = unfinishedEdgeList->begin();
+		for (; unfinishedIt != unfinishedEdgeList->end(); ++unfinishedIt)
 		{
 			unsigned int srcNodeIdx = unfinishedIt->first.first;
 			unsigned int targNodeIdx = unfinishedIt->first.second;
-			
-
-			//see if targets other inputs have remaining output
-			unsigned long targOtherNeighboursOut = 0;
 
 			protoGraph->acquireNodeReadLock();
 			node_data *tnode = protoGraph->unsafe_get_node(targNodeIdx);
 			node_data *snode = protoGraph->unsafe_get_node(srcNodeIdx);
 
-			set<unsigned int>::iterator targincomingIt = tnode->incomingNeighbours.begin();
-			for (; targincomingIt != tnode->incomingNeighbours.end(); targincomingIt++)
-			{
-				unsigned int idx = *targincomingIt;
-				if (idx == srcNodeIdx) continue; 
-				node_data *neib = protoGraph->unsafe_get_node(idx);
-				targOtherNeighboursOut += neib->chain_remaining_out;
-			}
-			
-			//no? only source node giving input. complete edge and subtract from source output 
+			//first see if edge's target node has other neighbours with input to give
+			unsigned long targOtherNeighboursOut = count_remaining_other_input(protoGraph, tnode, srcNodeIdx);
+
+			//no? then this is the only source node sending output into target node. 
 			if (targOtherNeighboursOut == 0)
 			{
 				//only node with executions remaining has less executions than this node?
-				if (tnode->chain_remaining_in > snode->chain_remaining_out)
-				{
-					++solverErrors;
-					if (verbose && errorNodes.count(tnode->index) == 0)
-					{
-						cerr << "[rgat]Heat solver warning 3: (TID" << dec << protoGraph->get_TID() << "): Targnode  " << tnode->index <<
-							" has only one adjacent providing output, but needs more (" << tnode->chain_remaining_in << ") than snode (" 
-							<< snode->index <<") provides (" << snode->chain_remaining_out << ")" << endl;
-						errorNodes[tnode->index] = true;
-					}
-				}
-				else
+				if (tnode->chain_remaining_in <= snode->chain_remaining_out)
 				{
 					edge_data *edge = unfinishedIt->second;
 					edge->chainedWeight = tnode->chain_remaining_in;
 					tnode->chain_remaining_in = 0;
 					snode->chain_remaining_out -= edge->chainedWeight;
 
-					finishedEdgeList.push_back(edge);
-					unfinishedIt = unfinishedEdgeList.erase(unfinishedIt);
+					finishedEdgeList->push_back(edge);
+					unfinishedIt = unfinishedEdgeList->erase(unfinishedIt);
 					attemptLimit++;
 
 					protoGraph->releaseNodeReadLock();
 					break;
 				}
+				else
+				{
+					++solverErrors;
+					if (lastRun && errorNodes->count(tnode->index) == 0)
+					{
+						cerr << "[rgat]Heat solver warning 3: (TID" << dec << protoGraph->get_TID() << "): Targnode  " << tnode->index <<
+							" has only one adjacent providing output, but needs more (" << tnode->chain_remaining_in << ") than snode ("
+							<< snode->index << ") provides (" << snode->chain_remaining_out << ")" << endl;
+						errorNodes->emplace(make_pair(tnode->index, true));
+					}
+				}
 			}
 
-			protoGraph->releaseNodeReadLock();
-
-			//see if other source outputs need input
-			unsigned long sourceOtherNeighboursIn = 0;
-
-			protoGraph->acquireNodeReadLock();
-			set<unsigned int>::iterator sourceoutgoingIt = snode->outgoingNeighbours.begin();
-			for (; sourceoutgoingIt != snode->outgoingNeighbours.end(); sourceoutgoingIt++)
-			{
-				unsigned int idx = *sourceoutgoingIt;
-				if (idx == tnode->index) continue;
-				node_data *neib = protoGraph->unsafe_get_node(idx);
-				sourceOtherNeighboursIn += neib->chain_remaining_in;
-			}
+			//see if sources other targets need input
+			unsigned long sourceOtherNeighboursIn = count_remaining_other_output(protoGraph, snode, targNodeIdx);
 
 			protoGraph->releaseNodeReadLock();
 
 			//no? only targ edge taking input. complete edge and subtract from targ input 
 			if (sourceOtherNeighboursIn == 0)
 			{
-				//only remaining folllower node executed less than this node did
+				//only remaining follower node executed less than this node did
 				if (snode->chain_remaining_out > tnode->chain_remaining_in)
 				{
 					++solverErrors;
-					if (verbose && errorNodes.count(snode->index) == 0)
+					if (lastRun && errorNodes->count(snode->index) == 0)
 					{
 						cerr << "[rgat]Heat solver warning 4: (TID" << dec << protoGraph->get_TID() << ") : Sourcenode " << snode->index
-							<< " has one adjacent taking input, but has more (" << snode->chain_remaining_out << ") than the targnode (" 
-							<< tnode->index << ") needs (" << tnode->chain_remaining_in << ")" << endl;	
-						errorNodes[snode->index] = true;
+							<< " has one adjacent taking input, but has more (" << snode->chain_remaining_out << ") than the targnode ("
+							<< tnode->index << ") needs (" << tnode->chain_remaining_in << ")" << endl;
+						errorNodes->emplace(make_pair(snode->index, true));
 					}
 				}
 				else
@@ -228,61 +280,102 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 					snode->chain_remaining_out = 0;
 					tnode->chain_remaining_in -= edge->chainedWeight;
 
-					finishedEdgeList.push_back(edge);
-					unfinishedIt = unfinishedEdgeList.erase(unfinishedIt);
+					finishedEdgeList->push_back(edge);
+					unfinishedIt = unfinishedEdgeList->erase(unfinishedIt);
 					++attemptLimit;
 					break;
 				}
-			}	
+			}
 		}
 	}
+	return solverErrors;
+}
 
-
-	if (verbose)
-	{
-		if (!unfinishedEdgeList.empty() || solverErrors)
-			cout << "[rgat]Heatmap Failure for thread " << dec << protoGraph->get_TID() << ": Ending solver with "<<
-			unfinishedEdgeList.size() << " unsolved / " << dec << solverErrors <<" errors. Trace may have inaccuracies (eg: due to unexpected termination)." << endl;
-		else
-			cout << "[rgat]Heatmap Success for thread " << dec << protoGraph->get_TID() << ": Ending solver with "<< finishedEdgeList.size() <<" solved edges. Trace likely accurate."<<endl;
-	}
-
+void heatmap_renderer::build_colour_mapping(vector<edge_data *> *finishedEdgeList, std::set<unsigned long> *heatValues, map<unsigned long, COLSTRUCT> *heatColours)
+{
 	//build set of all heat values
 	vector<edge_data *>::iterator finishedEdgeIt;
-	for (finishedEdgeIt = finishedEdgeList.begin(); finishedEdgeIt != finishedEdgeList.end(); ++finishedEdgeIt)
-		heatValues.insert(((edge_data *)*finishedEdgeIt)->chainedWeight);
+	for (finishedEdgeIt = finishedEdgeList->begin(); finishedEdgeIt != finishedEdgeList->end(); ++finishedEdgeIt)
+	heatValues->insert(((edge_data *)*finishedEdgeIt)->chainedWeight);
 
-	int heatrange = heatValues.size();
+	int heatrange = heatValues->size();
 
 	//create map of distances of each value in set
 	map<unsigned long, int> heatDistances;
 	set<unsigned long>::iterator setit;
 	int distance = 0;
-	for (setit = heatValues.begin(); setit != heatValues.end(); ++setit)
-		heatDistances[*setit] = distance++;
-	graph->heatExtremes = make_pair(*heatValues.begin(),*heatValues.rbegin());
+	for (setit = heatValues->begin(); setit != heatValues->end(); ++setit)
+	heatDistances[*setit] = distance++;
+
 
 	int maxDist = heatDistances.size();
 	map<unsigned long, int>::iterator distit = heatDistances.begin();
-	map<unsigned long, COLSTRUCT> heatColours;
 	
+
 	//create blue->red value for each numerical 'heat'
 	int numColours = colourRange.size();
-	heatColours[heatDistances.begin()->first] = *colourRange.begin();
+	heatColours->emplace(make_pair(heatDistances.begin()->first, *colourRange.begin()));
 	if (maxDist > 1)
 	{
 		for (std::advance(distit, 1); distit != heatDistances.end(); distit++)
 		{
 			float distratio = (float)distit->second / (float)maxDist;
-			int colourIndex = min(numColours-1, floor(numColours*distratio));
-			heatColours[distit->first] = colourRange.at(colourIndex);
+			int colourIndex = min(numColours - 1, floor(numColours*distratio));
+			heatColours->emplace(make_pair(distit->first, colourRange.at(colourIndex)));
 		}
 	}
 
 	unsigned long lastColour = heatDistances.rbegin()->first;
-	if (heatColours.size() > 1)
-		heatColours[lastColour] = *colourRange.rbegin();
-	
+	if (heatColours->size() > 1)
+		heatColours->emplace(make_pair(lastColour,*colourRange.rbegin()));
+}
+
+bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
+{
+
+	proto_graph *protoGraph = check_graph_ready(graph, clientState);
+	if (!protoGraph) 
+		return false;
+
+	map <NODEINDEX, bool> errorNodes;
+	vector<pair<NODEPAIR, edge_data *>> unfinishedEdgeList;
+	vector<edge_data *> finishedEdgeList;
+
+	unsigned int solverErrors = initialise_solver(protoGraph, lastRun, &unfinishedEdgeList, &finishedEdgeList, &errorNodes);
+	solverErrors += heatmap_solver(protoGraph, lastRun, &unfinishedEdgeList, &finishedEdgeList, &errorNodes);
+
+	if (lastRun)
+	{
+		if (!unfinishedEdgeList.empty() || solverErrors)
+		{
+			cout << "-----Heatmap complete-----" << endl;
+
+			vector<pair<NODEPAIR, edge_data *>>::iterator unfinishedIt = unfinishedEdgeList.begin();
+			for (; unfinishedIt != unfinishedEdgeList.end(); unfinishedIt++)
+			{
+				NODEINDEX src = unfinishedIt->first.first;
+				node_data *srcnode = protoGraph->unsafe_get_node(src);
+				NODEINDEX targ = unfinishedIt->first.second;
+				node_data *targnode = protoGraph->unsafe_get_node(targ);
+
+				cout << "Unsolved edge: " << src << "," << targ << endl;
+				cout << "\t source n " << src << " remaining out: " << srcnode->chain_remaining_out << endl;
+				cout << "\t targ n " << targ << " remaining in: " << targnode->chain_remaining_in << endl;
+			}
+
+			cout << "[rgat]Heatmap for for thread " << dec << protoGraph->get_TID() << " partially incomplete: Ending solver with " <<
+				unfinishedEdgeList.size() << " unsolved / " << dec << solverErrors <<
+				" errors. Trace may have errors (eg: due to ungraceful trace termination) or a cycle in the graph that confused the solver." << endl;
+		}
+
+	}
+
+	std::set<unsigned long> heatValues;
+	map<unsigned long, COLSTRUCT> heatColours;
+
+	build_colour_mapping(&finishedEdgeList, &heatValues, &heatColours);
+	graph->heatExtremes = make_pair(*heatValues.begin(), *heatValues.rbegin());
+
 	graph->heatmaplines->reset();
 
 	//finally build a colours buffer using the heat/colour map entry for each edge weight
@@ -291,11 +384,11 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
 	EDGELIST* edgelist = graph->get_protoGraph()->edgeLptr();
 
-	COLSTRUCT debuggingUnfin;
-	debuggingUnfin.a = 1;
-	debuggingUnfin.b = 0;
-	debuggingUnfin.g = 1;
-	debuggingUnfin.r = 0;
+	COLSTRUCT badHeatColour;
+	badHeatColour.a = 1;
+	badHeatColour.b = 0;
+	badHeatColour.g = 1;
+	badHeatColour.r = 0;
 
 	//draw the heatmap
 	for (; edgeindex < edgeEnd; ++edgeindex)
@@ -311,31 +404,11 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool verbose)
 		//map<unsigned long, COLSTRUCT>::iterator foundHeatColour = heatColours.find(edge->weight);
 		map<unsigned long, COLSTRUCT>::iterator foundHeatColour = heatColours.find(edge->chainedWeight);
 
-		//this edge has a new value since we recalculated the heats, this finds the nearest
-		if (foundHeatColour == heatColours.end())
-		{
-			//just make them green, not as big of an issue with new trace format
-			edgeColour = &debuggingUnfin;
-			/*
-			unsigned long searchWeight = edge->weight;
-			map<unsigned long, COLSTRUCT>::iterator previousHeatColour = foundHeatColour;
-			for (foundHeatColour = heatColours.begin(); foundHeatColour != heatColours.end(); ++foundHeatColour)
-			{
-				if (foundHeatColour->first > searchWeight && previousHeatColour->first < searchWeight)
-				{
-					edgeColour = &foundHeatColour->second;
-					break;
-				}
-				previousHeatColour = foundHeatColour;
-			}
-			if (foundHeatColour == heatColours.end())
-				edgeColour = &heatColours.rbegin()->second;
-			//record it so any others with this weight are found
-			heatColours[searchWeight] = *edgeColour;
-			*/
-		}
-		else
+		//this edge has an unreliable value due to a solver failure (likely a cycle or an ungraceful drgat termination)
+		if (foundHeatColour != heatColours.end())
 			edgeColour = &foundHeatColour->second;
+		else
+			edgeColour = &badHeatColour;
 
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a};
 

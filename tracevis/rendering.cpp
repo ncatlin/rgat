@@ -154,6 +154,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 	clientState->activePid->get_modpath(n->nodeMod, &modPath);
 
 	stringstream argstring;
+	argstring << "(" << n->index << ")";
 	if (clientState->modes.show_extern_text == EXTERNTEXT_ALL)
 		argstring << modPath << ":";
 
@@ -202,7 +203,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 		}
 	dropMutex(protoGraph->externGuardMutex);
 	
-	al_draw_text(font, al_col_light_green, screenCoord.x + INS_X_OFF,
+	al_draw_text(font, al_col_light_green, screenCoord.x + INS_X_OFF + 10,
 		clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 		argstring.str().c_str());
 

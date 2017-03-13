@@ -75,6 +75,8 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 	}
 	writer.EndArray(); //end node
 
+	writer.Bool(unreliableCount);
+
 	return true;
 }
 
@@ -113,28 +115,31 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 			return false;
 		}
 		ins = addressIt->second.at(blockID);
-		return true;
 	}
-
-	const Value& functionCalls = nodeData[8];
-	Value::ConstValueIterator funcCallsIt = functionCalls.Begin();
-	for (; funcCallsIt != functionCalls.End(); funcCallsIt++)
+	else
 	{
-		ARGLIST callArgs;
-		const Value& callArgumentsArray = *funcCallsIt;
-		Value::ConstValueIterator argsIt = callArgumentsArray.Begin();
-		for (; argsIt != callArgumentsArray.End(); argsIt++)
+		const Value& functionCalls = nodeData[8];
+		Value::ConstValueIterator funcCallsIt = functionCalls.Begin();
+		for (; funcCallsIt != functionCalls.End(); funcCallsIt++)
 		{
-			const Value& callArgumentsEntry = *argsIt;
+			ARGLIST callArgs;
+			const Value& callArgumentsArray = *funcCallsIt;
+			Value::ConstValueIterator argsIt = callArgumentsArray.Begin();
+			for (; argsIt != callArgumentsArray.End(); argsIt++)
+			{
+				const Value& callArgumentsEntry = *argsIt;
 
-			int argIndex = callArgumentsEntry[0].GetUint();
-			string b64Arg = callArgumentsEntry[1].GetString();
-			string plainArgString = base64_decode(b64Arg);
+				int argIndex = callArgumentsEntry[0].GetUint();
+				string b64Arg = callArgumentsEntry[1].GetString();
+				string plainArgString = base64_decode(b64Arg);
 
-			callArgs.push_back(make_pair(argIndex, plainArgString));
+				callArgs.push_back(make_pair(argIndex, plainArgString));
+			}
+			funcargs.push_back(callArgs);
 		}
-		funcargs.push_back(callArgs);
 	}
+
+	unreliableCount = nodeData[9].GetBool();
 
 	return true;
 }

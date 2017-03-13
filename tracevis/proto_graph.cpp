@@ -47,6 +47,10 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 
 	int targVertID = get_num_nodes();
 
+
+	if (targVertID == 16)
+		cout << " f ";
+
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
 	thisnode.conditional = thisnode.ins->conditional;
@@ -61,7 +65,7 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	instruction->threadvertIdx[tid] = targVertID;
 	piddata->dropDisassemblyWriteLock();
 
-	lastNode = targVertID;
+	lastNode = targVertID; //obsolete
 	return targVertID;
 }
 
@@ -74,6 +78,7 @@ void proto_graph::handle_previous_instruction(unsigned int newTargVertID, unsign
 
 void proto_graph::add_edge(edge_data e, node_data *source, node_data *target)
 {
+
 	NODEPAIR edgePair;
 	edgePair.first = source->index;
 	edgePair.second = target->index;
@@ -472,6 +477,8 @@ bool proto_graph::loadNodes(const Value& nodesArray, map <MEM_ADDRESS, INSLIST> 
 		insert_node(n->index, *n);
 		delete n;
 	}
+
+	return true;
 }
 
 bool proto_graph::loadStats(const Value& graphData)

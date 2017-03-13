@@ -966,6 +966,7 @@ void tree_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDA
 	{
 		node_data *n = *nodesIt;
 		DCOORD screenCoordN;
+		if (n->executionCount == 1) continue;
 		if (!get_screen_pos(n->index, vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
 
 		al_draw_text(clientState->standardFont, al_col_white, screenCoordN.x + INS_X_OFF,

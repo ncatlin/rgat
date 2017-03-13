@@ -52,6 +52,7 @@ public:
 
 	void adjust_A_edgeSep(float delta) { main_scalefactors->userAEDGESEP += delta; };
 	void adjust_B_edgeSep(float delta) { main_scalefactors->userBEDGESEP += delta; };
+	void reset_edgeSep() { main_scalefactors->userBEDGESEP = main_scalefactors->userAEDGESEP = 1; };
 	void adjust_size(float delta) { main_scalefactors->userSizeModifier += delta; };
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();

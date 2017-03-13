@@ -43,6 +43,7 @@ public:
 	int conditional = 0;
 	INS_DATA* ins = NULL;
 	bool external = false;
+	bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
 	int nodeMod;
 
 	BLOCK_IDENTIFIER blockID;
@@ -56,6 +57,7 @@ public:
 	NODEINDEX parentIdx = 0;
 
 	unsigned long executionCount = 0;
+
 	unsigned long chain_remaining_in = 0;
 	unsigned long chain_remaining_out = 0;
 	DWORD heat_run_marker;

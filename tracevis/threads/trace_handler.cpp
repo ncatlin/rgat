@@ -54,44 +54,48 @@ bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 		return false;
 }
 
-inline void thread_trace_handler::BB_addNewEdge(bool alreadyExecuted, int instructionIndex)
+inline void thread_trace_handler::BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats)
 {
 	NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 
 	//only need to do this for bb index 0
-	if (!thisgraph->edge_exists(edgeIDPair, 0))
+	edge_data *e;
+	if (thisgraph->edge_exists(edgeIDPair, &e))
 	{
-		if (lastNodeType != eFIRST_IN_THREAD)
-		{
-			edge_data newEdge;
-			newEdge.chainedWeight = 0;
-
-			if (instructionIndex > 0)
-				newEdge.edgeClass = alreadyExecuted ? eEdgeOld : eEdgeNew;
-			else
-			{
-				if (alreadyExecuted)
-					newEdge.edgeClass = eEdgeOld;
-				else
-					switch (lastNodeType)
-					{
-					case eNodeReturn:
-						newEdge.edgeClass = eEdgeReturn;
-						break;
-					case eNodeException:
-						newEdge.edgeClass = eEdgeException;
-						break;
-					case eNodeCall:
-						newEdge.edgeClass = eEdgeCall;
-						break;
-					default:
-						newEdge.edgeClass = eEdgeNew;
-						break;
-					}
-			}
-			thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
-		}
+		//cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
+		return;
 	}
+
+	if (lastNodeType == eFIRST_IN_THREAD) return;
+
+	edge_data newEdge;
+	newEdge.chainedWeight = 0;
+
+	if (instructionIndex > 0)
+		newEdge.edgeClass = alreadyExecuted ? eEdgeOld : eEdgeNew;
+	else
+	{
+		if (alreadyExecuted)
+			newEdge.edgeClass = eEdgeOld;
+		else
+			switch (lastNodeType)
+			{
+			case eNodeReturn:
+				newEdge.edgeClass = eEdgeReturn;
+				break;
+			case eNodeException:
+				newEdge.edgeClass = eEdgeException;
+				break;
+			case eNodeCall:
+				newEdge.edgeClass = eEdgeCall;
+				break;
+			default:
+				newEdge.edgeClass = eEdgeNew;
+				break;
+			}
+	}
+	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
+	//cout << "added internal edge from " << lastVertID << "->" << targVertID << endl;
 }
 
 //place basic block 'tag' on graph 'repeats' times
@@ -110,12 +114,21 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 			assert(0);
 		}
 
+
+
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
+		{
 			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, repeats);
+		}
 		else
+		{
 			thisgraph->handle_previous_instruction(targVertID, repeats);
+		}
+
+		if (lastVertID == 6 && targVertID == 8)
+			cout << " f ";
 
 		if (loopState == BUILDING_LOOP)
 		{
@@ -123,7 +136,7 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 			loopState = LOOP_PROGRESS;
 		}
 
-		BB_addNewEdge(alreadyExecuted, instructionIndex);
+		BB_addNewEdge(alreadyExecuted, instructionIndex, repeats);
 
 		//setup conditions for next instruction
 		switch (instruction->itype)
@@ -171,7 +184,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 
-		BB_addNewEdge(alreadyExecuted, instructionIndex);
+		BB_addNewEdge(alreadyExecuted, instructionIndex, 1);
 
 		//setup conditions for next instruction
 		if (instructionIndex < tag->insCount)
@@ -287,6 +300,8 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 			if (vecit->first != lastVertID) continue;
 
 			//this instruction in this thread has already called it
+			//cout << "repeated external edge from " << lastVertID << "->" << targVertID << endl;
+
 			targVertID = vecit->second;
 			node_data *targNode = thisgraph->safe_get_node(targVertID);
 			targNode->executionCount += repeats;
@@ -330,6 +345,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	newEdge.chainedWeight = 0;
 	newEdge.edgeClass = eEdgeLib;
 	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
+	//cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
 	lastNodeType = eNodeExternal;
 	lastVertID = targVertID;
 	return true;
@@ -594,6 +610,7 @@ void thread_trace_handler::satisfy_pending_edges()
 		cout << "Satisfied an edge request!" << endl;
 	}
 }
+
 //peforms non-sequence critical graph updates
 //update nodes with cached execution counts and new edges from unchained runs
 //also updates graph with delayed edge notifications
@@ -631,7 +648,6 @@ bool thread_trace_handler::assign_blockrepeats()
 			for (; blockIt != repeatIt->blockInslist->end(); ++blockIt)
 			{
 				INS_DATA *ins = *blockIt;
-				
 				n = thisgraph->safe_get_node(ins->threadvertIdx.at(TID));
 				n->executionCount += repeatIt->totalExecs;
 				thisgraph->totalInstructions += repeatIt->totalExecs;
@@ -880,14 +896,13 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 {
 	MEM_ADDRESS sourceAddr;
 	BLOCK_IDENTIFIER sourceID;
+	unsigned long long id_count;
 
 	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
 	if (!caught_stoull(block_ip_s, &sourceAddr, 16)) {
 		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
 		assert(0);
 	}
-
-	unsigned long long id_count;
 	string b_id_s = string(strtok_s(entry, ",", &entry));
 	id_count = stoll(b_id_s, 0, 16);
 	sourceID = id_count >> 32;
@@ -908,6 +923,7 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 		cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
 		assert(0);
 	}
+	lastVertID = vertIt->second;
 
 	TAG thistag;
 	string target_ip_s = string(strtok_s(entry, ",", &entry));
@@ -922,6 +938,42 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 	thistag.blockID = id_count >> 32;
 	thistag.jumpModifier = 1;
 	handle_tag(&thistag);
+
+	string targ2_s = string(entry);
+	MEM_ADDRESS targ2;
+	if (!caught_stoull(targ2_s, &targ2, 16)) {
+		cerr << "[rgat]ERROR: BX handling addr STOL: " << targ2_s << endl;
+		assert(0);
+	}
+
+	if (find_containing_module(targ2) == MOD_UNINSTRUMENTED)
+	{
+		BB_DATA* foundExtern;
+		assert(piddata->get_extern_at_address(targ2, &foundExtern, 3));
+
+		bool targetFound = false;
+		map <PID_TID, EDGELIST>::iterator callerIt = foundExtern->thread_callers.find(TID);
+		if (callerIt == foundExtern->thread_callers.end())
+			cerr << "[rgat] Error: Target not found for call to " << targ2 << " (no thread callers)" << endl;
+		else
+		{
+			int num = foundExtern->thread_callers.at(TID).size();
+			for (int i = 0; i < num; i++)
+			{
+				NODEPAIR edge = foundExtern->thread_callers.at(TID).at(i);
+				if (edge.first == targVertID)
+				{
+					targetFound = true;
+					lastVertID = foundExtern->thread_callers.at(TID).at(0).second;
+					node_data *lastnode = thisgraph->safe_get_node(lastVertID);
+					++lastnode->executionCount;
+					break;
+				}
+			}
+			if (!targetFound)
+				cerr << "Error: Target not found for call to " << targ2 << endl;
+		}
+	}
 
 	ANIMATIONENTRY animUpdate;
 	animUpdate.blockAddr = thistag.blockaddr;
@@ -1117,7 +1169,6 @@ void thread_trace_handler::main_loop()
 			}
 
 			//unchained ended - link last unchained block to new block
-			//need to change lastVertID
 			if (enter_s.substr(0, 2) == "UL")
 			{
 				add_unlinking_update(entry);

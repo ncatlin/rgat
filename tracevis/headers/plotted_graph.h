@@ -64,6 +64,7 @@ public:
 	virtual unsigned int get_graph_size() { return 0; };
 	virtual void adjust_A_edgeSep(float delta) {};
 	virtual void adjust_B_edgeSep(float delta) {};
+	virtual void reset_edgeSep() {};
 	virtual void adjust_size(float delta) {};
 	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };

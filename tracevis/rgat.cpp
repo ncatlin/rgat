@@ -126,10 +126,13 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 	return TRUE;
 }
 
+
 void handleKBDExit()
 {
-	if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
-		cerr << "[rgat]ERROR: Could not set control handler" << endl;
+	//todo: os specific
+	if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) 
+	{
+		cerr << "[rgat]ERROR: Could not set console control handler" << endl;
 		return;
 	}
 }
@@ -172,12 +175,12 @@ static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 		mousex > clientState->mainFrameSize.width);
 }
 
-static bool mouse_in_maingraphpane(VISSTATE* clientState, int mousex, int mousey)
+static bool mouse_in_maingraphpane(HEIGHTWIDTH *frameSize, int mousex, int mousey)
 {
 	return (mousex > 0 &&
-			mousex < clientState->mainFrameSize.width &&
+			mousex < frameSize->width &&
 			mousey > 0 &&
-			mousey < clientState->mainFrameSize.height);
+			mousey < frameSize->height);
 }
 
 
@@ -488,6 +491,10 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 		clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
 		break;
 
+	case EV_BTN_EXT_TEXT_MENU:
+		cout << "TODO: bring up text selection menu " << endl;
+		break;
+
 	case EV_BTN_EXT_TEXT_NONE:
 		clientState->modes.show_extern_text = EXTERNTEXT_NONE;
 		break;
@@ -510,6 +517,10 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 
 	case EV_BTN_INS_TEXT_ALWA:
 		clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
+		break;
+
+	case EV_BTN_RESETSCALE:
+		((plotted_graph *)clientState->activeGraph)->reset_edgeSep();
 		break;
 
 	case EV_BTN_AUTOSCALE:
@@ -642,7 +653,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_MOUSE;
 			}
 
-			if (!clientState->dialogOpen && mouse_in_maingraphpane(clientState, ev->mouse.x, ev->mouse.y))
+			if (!clientState->dialogOpen && mouse_in_maingraphpane(&clientState->mainFrameSize, ev->mouse.x, ev->mouse.y))
 				clientState->mouse_dragging = true;
 			else
 				if (mouse_in_previewpane(clientState, ev->mouse.x))

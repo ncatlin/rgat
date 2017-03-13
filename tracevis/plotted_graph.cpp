@@ -497,7 +497,10 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 		{
 			INSLIST* nextBlock = getDisassemblyBlock(entry->targetAddr, entry->targetID, piddata, &internalProtoGraph->terminationFlag);
 			INS_DATA* nextIns = nextBlock->front();
-			nextNode = nextIns->threadvertIdx.at(tid);
+			unordered_map<PID_TID, NODEINDEX>::iterator threadVIt = nextIns->threadvertIdx.find(tid);
+			if (threadVIt == nextIns->threadvertIdx.end())
+				return;
+			nextNode = threadVIt->second;
 			linkingPair = make_pair(lastAnimatedNode, nextNode);
 		}
 

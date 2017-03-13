@@ -511,10 +511,12 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "Show Edges [e]", EV_BTN_EDGES, 0, NULL },
 		{ "Show &Wireframe [y]", EV_BTN_WIREFRAME, 0, NULL },
 		{ "Toggle Autoscale", EV_BTN_AUTOSCALE, 0, NULL },
+		{ "Reset Scale", EV_BTN_RESETSCALE, 0, NULL },
 		{ "View sphere nearside only [n]", EV_BTN_NEARSIDE, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("Text", 3),
+		{ "Customise", EV_BTN_EXT_TEXT_MENU, 0, NULL },
 		{ "Disable extern labels [m]", EV_BTN_EXT_TEXT_NONE, 0, NULL },
 		{ "Show extern symbols [m]", EV_BTN_EXT_TEXT_SYMS, 0, NULL },
 		{ "Show symbols and paths [m]", EV_BTN_EXT_TEXT_PATH, 0, NULL },

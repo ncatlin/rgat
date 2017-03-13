@@ -883,7 +883,8 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 				itext = n->ins->mnemonic;
 		}
 
-		ss << std::dec << n->index << "-0x" << std::hex << n->ins->address << ":" << itext;
+		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << itext;
+
 		al_draw_text(clientState->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
@@ -1027,7 +1028,9 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 
 	set <node_data *> displayNodes;
 
+	
 	EDGELIST *edgelist = internalProtoGraph->edgeLptr();
+	//assert(edgelistEnd <= edgelist->size());
 	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
 	{
 		NODEPAIR *ePair = &edgelist->at(edgelistIdx);
@@ -1065,7 +1068,6 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 		displayNodes.insert(firstNode);
 		displayNodes.insert(internalProtoGraph->safe_get_node(ePair->second));
 
-		//int edgeWeight = e->weight;
 		unsigned long edgeWeight = e->chainedWeight;
 		if (edgeWeight < 2) continue;
 
@@ -1073,17 +1075,25 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			weightString.c_str());
+		
 	}
 
 	set <node_data *>::iterator nodesIt = displayNodes.begin();
 	for (; nodesIt != displayNodes.end(); ++nodesIt)
 	{
 		node_data *n = *nodesIt;
-		//sphere_node_data *nd = get_node_graphicdata(n->index);
+		if (n->executionCount == 1) continue;
+
 		DCOORD screenCoordN;
 		if (!get_screen_pos(n->index, vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
 
-		al_draw_text(clientState->standardFont, al_col_white, screenCoordN.x + INS_X_OFF,
+		ALLEGRO_COLOR *textcol;
+		if (!n->unreliableCount)
+			textcol = &al_col_white;
+		else
+			textcol = &al_col_cyan;
+
+		al_draw_text(clientState->standardFont, *textcol, screenCoordN.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			to_string(n->executionCount).c_str());
 	}
