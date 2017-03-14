@@ -405,11 +405,11 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_DOWN:
-		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.05);
+		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.02);
 		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_UP:
-		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.01);
+		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.02);
 		clientState->rescale = true;
 		break;
 
@@ -521,6 +521,7 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 
 	case EV_BTN_RESETSCALE:
 		((plotted_graph *)clientState->activeGraph)->reset_edgeSep();
+		clientState->rescale = true;
 		break;
 
 	case EV_BTN_AUTOSCALE:

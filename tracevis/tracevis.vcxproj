@@ -209,6 +209,7 @@
     <ClInclude Include="headers\timeline.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="headers\tree_graph.h" />
+    <ClInclude Include="headers\textDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Agui-master\src\Agui\ActionEvent.cpp" />
@@ -294,6 +295,7 @@
     <ClCompile Include="plotted_graph.cpp" />
     <ClCompile Include="processLaunching.cpp" />
     <ClCompile Include="proto_graph.cpp" />
+    <ClCompile Include="textDialog.cpp" />
     <ClCompile Include="threads\base_thread.cpp" />
     <ClCompile Include="clientConfig.cpp" />
     <ClCompile Include="diffWindow.cpp" />

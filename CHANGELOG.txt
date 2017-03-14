@@ -85,6 +85,9 @@ Misc code improvements
 
 09/03/17 0.4.2 [PREVIOUS SAVES OBSOLETE]
 -----------------
-Save files are now in JSON format. Future updates should be less likely to obsolete saves.
-Reimplemented heatmap generation
+Save files are now in JSON format. Future updates should be less likely to obsolete saves
+Fixed an error where externs were causing false edges to be created
+The heatmap solver now handles some extern edge/node count inaccuracies. Unreliable extern execution counts marked in cyan on the heatmap
 Added an option to reset user graph scaling
+Client debug logging is now more verbose
+Stopped the backlog counter flickering between 0 and 1 

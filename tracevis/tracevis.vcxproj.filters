@@ -155,6 +155,9 @@
     <ClInclude Include="headers\tree_graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\textDialog.h">
+      <Filter>Header Files\interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -498,6 +501,9 @@
     </ClCompile>
     <ClCompile Include="GUIStructs.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="textDialog.cpp">
+      <Filter>Source Files\interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
