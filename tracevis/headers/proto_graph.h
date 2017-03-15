@@ -120,9 +120,9 @@ public:
 	vector <ANIMATIONENTRY> * getSavedAnimData() { return &savedAnimationData; }
 
 	//list of all external nodes
-	vector<unsigned int> externList;
+	vector<unsigned int> externalSymbolList;
 	//list of all internal nodes with symbols
-	vector<unsigned int> internList;
+	vector<unsigned int> internalSymbolList;
 
 	//these are called a lot. make sure as efficient as possible
 	inline edge_data *get_edge(NODEPAIR edge);

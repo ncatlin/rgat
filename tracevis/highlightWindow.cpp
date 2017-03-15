@@ -51,8 +51,8 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		case HL_HIGHLIGHT_SYM:
 		{
 			obtainMutex(graph->highlightsMutex, 1361);
-			vector<unsigned int>::iterator externIt = graph->externList.begin();
-			for (; externIt != graph->externList.end(); ++externIt)
+			vector<unsigned int>::iterator externIt = graph->externalSymbolList.begin();
+			for (; externIt != graph->externalSymbolList.end(); ++externIt)
 			{
 				if (highlightData->highlight_s == graph->get_node_sym(*externIt, activePid))
 					highlightData->highlightNodes.push_back(graph->safe_get_node(*externIt));
@@ -64,8 +64,8 @@ void HighlightSelectionFrame::updateHighlightNodes(HIGHLIGHT_DATA *highlightData
 		case HL_HIGHLIGHT_MODULE:
 		{
 			obtainMutex(graph->highlightsMutex, 1362);
-			vector<unsigned int>::iterator externIt = graph->externList.begin();
-			for (; externIt != graph->externList.end(); ++externIt)
+			vector<unsigned int>::iterator externIt = graph->externalSymbolList.begin();
+			for (; externIt != graph->externalSymbolList.end(); ++externIt)
 			{
 				node_data *externNode = graph->safe_get_node(*externIt);
 				if (highlightData->highlightModule == externNode->nodeMod)
@@ -97,11 +97,11 @@ void HighlightSelectionFrame::refreshData()
 	proto_graph *graph = ((plotted_graph *)clientState->activeGraph)->get_protoGraph();
 	if (!clientState->activePid || !graph) return;
 
-	if (lastSymCount != graph->externList.size())
+	if (lastSymCount != graph->externalSymbolList.size())
 	{
 		//add all the used symbols to symbol list
 		obtainMutex(graph->highlightsMutex, 1009);
-		vector<unsigned int> externListCopy = graph->externList;
+		vector<unsigned int> externListCopy = graph->externalSymbolList;
 		dropMutex(graph->highlightsMutex);
 
 		vector<unsigned int>::iterator externIt = externListCopy.begin();

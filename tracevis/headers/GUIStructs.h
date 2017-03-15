@@ -27,6 +27,9 @@ A messy collection of state structures, generally targeted to the visualiser sta
 #include "graph_display_data.h"
 
 enum graphLayouts { eSphereLayout, eTreeLayout, eLayoutInvalid};
+enum instructionTextDisplayState { eInsTextOff, eInsTextAuto, eInsTextForced };
+enum symbolTextDisplayState { eSymboltextOff, eSymboltextSymbols, eSymboltextPaths, eSymboltextInternal, eSymboltextExternal, eSymboltextAll };
+enum heatTextDisplayState { eHeatNodes, eHeatEdges, eHeatNone };
 
 #define XOFF 0
 #define YOFF 1
@@ -65,9 +68,11 @@ struct DISPLAYMODES {
 	bool heatmap = false;
 	bool conditional = false;
 	bool nearSide = false;
-	bool show_dbg_symbol_text = true;
-	int show_ins_text = INSTEXT_AUTO;
-	int show_extern_text = EXTERNTEXT_SYMS;
+	
+	instructionTextDisplayState show_ins_text = eInsTextAuto;
+	symbolTextDisplayState show_symbol_verbosity = eSymboltextSymbols;
+	symbolTextDisplayState show_symbol_location = eSymboltextAll;
+	heatTextDisplayState show_heat_location = eHeatNodes;
 	int diff = 0;
 };
 

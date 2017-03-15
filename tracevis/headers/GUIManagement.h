@@ -27,6 +27,7 @@ misc other UI elements
 #include "animControls.h"
 #include "exeWindow.h"
 #include "plotted_graph.h"
+#include "textDialog.h"
 
 #include <Agui/Agui.hpp>
 #include <Agui/Backends/Allegro5/Allegro5.hpp>
@@ -70,6 +71,7 @@ public:
 	AnimControls *controlWindow = NULL;
 	exeWindow *exeSelector = NULL;
 	agui::Frame *aboutBox = NULL;
+	textDialog *textConfigBox = NULL;
 	void fitToResize();
 
 	//redrawing every widget is awfully slow
@@ -79,7 +81,7 @@ public:
 		smoothDrawing = activated; 
 	}
 	bool isSmoothDrawing() { return smoothDrawing; }
-	bool isHighlightVisible() { return highlightWindow->highlightFrame->isVisible(); }
+	bool isDialogVisible() { return highlightWindow->highlightFrame->isVisible() || textConfigBox->textFrame->isVisible(); }
 
 private:
 	unsigned int processCount = 0;
@@ -156,7 +158,6 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display);
 void cleanup_for_exit(VISSTATE *clientState);
 graphLayouts layout_selection_click(int mousex, int mousey);
 void resize_display(VISSTATE *clientState, int w, int h);
-void toggle_externtext_mode(VISSTATE *clientState);
 void toggle_instext_mode(VISSTATE *clientState);
 void closeTextLog(VISSTATE *clientState);
 void toggleExternLog(VISSTATE *clientState);

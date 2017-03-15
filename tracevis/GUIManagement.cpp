@@ -274,6 +274,8 @@ void TraceVisGUI::widgetSetup(string resourcepath, string fontfile) {
 	aboutBox->resizeToContents();
 	widgets->add(aboutBox);
 
+	textConfigBox = new textDialog(widgets, clientState, defaultFont);
+
 	sphereIconBase = al_create_bitmap(48, 48);
 	treeIconBase = al_create_bitmap(48, 48);
 	sphereIcon = al_create_bitmap(48, 48);
@@ -515,16 +517,7 @@ ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display)
 		{ "View sphere nearside only [n]", EV_BTN_NEARSIDE, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
-		ALLEGRO_START_OF_MENU("Text", 3),
-		{ "Customise", EV_BTN_EXT_TEXT_MENU, 0, NULL },
-		{ "Disable extern labels [m]", EV_BTN_EXT_TEXT_NONE, 0, NULL },
-		{ "Show extern symbols [m]", EV_BTN_EXT_TEXT_SYMS, 0, NULL },
-		{ "Show symbols and paths [m]", EV_BTN_EXT_TEXT_PATH, 0, NULL },
-		{ "Show internal/debug symbols [i]", EV_BTN_DBGSYM, 0, NULL },
-		{ "Disable instruction labels [t]", EV_BTN_INS_TEXT_NONE, 0, NULL },
-		{ "Auto instruction display [t]", EV_BTN_INS_TEXT_AUTO, 0, NULL },
-		{ "Always show instructions [t]", EV_BTN_INS_TEXT_ALWA, 0, NULL },
-		ALLEGRO_END_OF_MENU,
+		{ "&Text [t]", EV_BTN_EXT_TEXT_MENU, 0, NULL },
 
 		{ "&About", EV_BTN_ABOUT, 0, NULL },
 		ALLEGRO_END_OF_MENU
@@ -560,46 +553,6 @@ void resize_display(VISSTATE *clientState, int w, int h)
 
 	al_acknowledge_resize(display);
 	handle_resize(clientState);
-}
-
-void toggle_externtext_mode(VISSTATE *clientState)
-{
-	clientState->modes.show_extern_text++;
-	if (clientState->modes.show_extern_text > EXTERNTEXT_LAST)
-		clientState->modes.show_extern_text = EXTERNTEXT_FIRST;
-
-	switch (clientState->modes.show_extern_text)
-	{
-	case EXTERNTEXT_NONE:
-		cout << "[rgat]Extern labels off" << endl;
-		break;
-	case EXTERNTEXT_SYMS:
-		cout << "[rgat]Extern syms shown" << endl;
-		break;
-	case EXTERNTEXT_ALL:
-		cout << "[rgat]Extern paths and syms shown" << endl;
-		break;
-	}
-}
-
-void toggle_instext_mode(VISSTATE *clientState)
-{
-	clientState->modes.show_ins_text++;
-	if (clientState->modes.show_ins_text > INSTEXT_LAST)
-		clientState->modes.show_ins_text = INSTEXT_FIRST;
-
-	switch (clientState->modes.show_ins_text) 
-	{
-	case INSTEXT_NONE:
-		cout << "[rgat]Instruction text off" << endl;
-		break;
-	case INSTEXT_AUTO:
-		cout << "[rgat]Instruction text auto" << endl;
-		break;
-	case INSTEXT_ALL_ALWAYS:
-		cout << "[rgat]Instruction text always on" << endl;
-		break;
-	}
 }
 
 void closeTextLog(VISSTATE *clientState)

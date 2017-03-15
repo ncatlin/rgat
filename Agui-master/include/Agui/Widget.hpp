@@ -111,7 +111,7 @@ namespace agui {
 		bool layoutWidget;
 		float globalOpacity;
         bool causesLocationChange;
-
+		int widgetID = -1;
 
 		std::vector<MouseListener*> mouseListeners;
 		std::vector<KeyboardListener*> keyboardListeners;
@@ -1255,6 +1255,9 @@ namespace agui {
 
 	virtual void setGlobalOpacity(float o);
 	virtual float getGlobalOpacity() const;
+
+	int getWidgetID() { return widgetID; }
+	void setWidgetID(int id) { widgetID = id; }
 	};
 }
 

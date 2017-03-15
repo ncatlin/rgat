@@ -349,12 +349,13 @@ void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayo
 	delete oldActiveGraph;
 }
 
-void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState)
+void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
 {
 	switch (ev->keyboard.keycode)
 	{
 	case ALLEGRO_KEY_ESCAPE:
 	{
+		if (!clientState->activeGraph) break;
 		HIGHLIGHT_DATA *highlightData = &((plotted_graph *)clientState->activeGraph)->highlightData;
 		if (highlightData->highlightState)
 		{
@@ -379,16 +380,16 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		clientState->change_mode(EV_BTN_HEATMAP);
 		break;
 
-	case ALLEGRO_KEY_M:
-		toggle_externtext_mode(clientState);
-		break;
-
 	case ALLEGRO_KEY_N:
 		clientState->modes.nearSide = !clientState->modes.nearSide;
 		break;
 
 	case ALLEGRO_KEY_J:
 		clientState->change_mode(EV_BTN_CONDITION);
+		break;
+
+	case ALLEGRO_KEY_T:
+		widgets->textConfigBox->toggle();
 		break;
 
 	case ALLEGRO_KEY_E:
@@ -444,15 +445,9 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 		((plotted_graph *)clientState->activeGraph)->adjust_size(-0.05);
 		clientState->rescale = true;
 		break;
-
-	case ALLEGRO_KEY_I:
-		clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
-		break;
-
-	case ALLEGRO_KEY_T:
-		toggle_instext_mode(clientState);
-		break;
 	}
+
+	widgets->processEvent(ev);
 }
 
 int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
@@ -487,36 +482,8 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 		toggleExternLog(clientState);
 		break;
 
-	case EV_BTN_DBGSYM:
-		clientState->modes.show_dbg_symbol_text = !clientState->modes.show_dbg_symbol_text;
-		break;
-
 	case EV_BTN_EXT_TEXT_MENU:
-		cout << "TODO: bring up text selection menu " << endl;
-		break;
-
-	case EV_BTN_EXT_TEXT_NONE:
-		clientState->modes.show_extern_text = EXTERNTEXT_NONE;
-		break;
-
-	case EV_BTN_EXT_TEXT_SYMS:
-		clientState->modes.show_extern_text = EXTERNTEXT_SYMS;
-		break;
-
-	case EV_BTN_EXT_TEXT_PATH:
-		clientState->modes.show_extern_text = EXTERNTEXT_ALL;
-		break;
-
-	case EV_BTN_INS_TEXT_NONE:
-		clientState->modes.show_ins_text = INSTEXT_NONE;
-		break;
-
-	case EV_BTN_INS_TEXT_AUTO:
-		clientState->modes.show_ins_text = INSTEXT_AUTO;
-		break;
-
-	case EV_BTN_INS_TEXT_ALWA:
-		clientState->modes.show_ins_text = INSTEXT_ALL_ALWAYS;
+		widgets->textConfigBox->toggle();
 		break;
 
 	case EV_BTN_RESETSCALE:
@@ -606,7 +573,8 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
-		if (!clientState->activeGraph || widgets->isHighlightVisible()) return EV_MOUSE;
+		if (!clientState->activeGraph)  return EV_MOUSE;
+		//if (widgets->isDialogVisible()) return EV_MOUSE;
 		long graphSize = clientState->get_activegraph_size();
 
 		long maxZoomIn = graphSize + 5; //prevent zoom into globe
@@ -708,13 +676,14 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 			if (!clientState->activeGraph)
 			{
+				handleKeypress(ev, clientState, widgets);
 				widgets->processEvent(ev);
 				return EV_NONE;
 			}
 
-			handleKeypress(ev, clientState);
+			handleKeypress(ev, clientState, widgets);
 
-			widgets->processEvent(ev);
+			
 			return EV_NONE;
 		}
 

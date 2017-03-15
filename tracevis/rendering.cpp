@@ -147,7 +147,7 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoord, node_data *n)
 {
 	proto_graph * protoGraph = ((plotted_graph *)clientState->activeGraph)->get_protoGraph();
-	if (protoGraph->externList.empty()) return;
+	if (protoGraph->externalSymbolList.empty()) return;
 
 
 	string modPath;
@@ -155,7 +155,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 
 	stringstream argstring;
 	argstring << "(" << n->index << ")";
-	if (clientState->modes.show_extern_text == EXTERNTEXT_ALL)
+	if (clientState->modes.show_symbol_verbosity == eSymboltextPaths)
 		argstring << modPath << ":";
 
 	int numCalls = n->calls;

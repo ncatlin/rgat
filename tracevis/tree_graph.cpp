@@ -756,7 +756,7 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
 	NODEINDEX numVerts = node_coords.size();
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 	stringstream ss;
@@ -779,7 +779,7 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 			itext = n->ins->ins_text;
 		else
 		{
-			if (clientState->cameraZoomlevel < 2000 && clientState->modes.show_ins_text == INSTEXT_AUTO)
+			if (clientState->cameraZoomlevel < 2000 && clientState->modes.show_ins_text == eInsTextAuto)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
@@ -794,13 +794,14 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 	}
 }
 
+//TODO, merge with proto graph
 //show functions/args for externs in active graph
 void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 {
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 
-	bool showExterns = (clientState->modes.show_extern_text != EXTERNTEXT_NONE);
-	bool showDbgSymbols = clientState->modes.show_dbg_symbol_text;
+	bool showExterns = (clientState->modes.show_symbol_location != eSymboltextOff);
+	bool showDbgSymbols = false;//clientState->modes.show_dbg_symbol_text;
 
 	if (!showExterns && !showDbgSymbols) return;
 
@@ -809,7 +810,7 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 	if (showExterns)
 	{
 		obtainMutex(internalProtoGraph->highlightsMutex, 1052);
-		externListCopy = internalProtoGraph->externList;
+		externListCopy = internalProtoGraph->externalSymbolList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
 		vector<NODEINDEX>::iterator externCallIt = externListCopy.begin();
@@ -832,7 +833,7 @@ void tree_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 	{
 		obtainMutex(internalProtoGraph->highlightsMutex, 1053);
 		if (showDbgSymbols)
-			internListCopy = internalProtoGraph->internList;
+			internListCopy = internalProtoGraph->internalSymbolList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
 		vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
@@ -855,7 +856,7 @@ void tree_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJE
 {
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
 	NODEINDEX numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (NODEINDEX i = 0; i < numVerts; ++i)
@@ -884,7 +885,7 @@ void tree_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJE
 
 		string itext;
 		if (!show_all_always) {
-			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;

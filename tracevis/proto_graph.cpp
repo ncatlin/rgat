@@ -305,13 +305,13 @@ void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 	if (node.external)
 	{
 		obtainMutex(highlightsMutex, 5271);
-		externList.push_back(node.index);
+		externalSymbolList.push_back(node.index);
 		dropMutex(highlightsMutex);
 	}
 	else if (node.ins->hasSymbol)
 	{
 		obtainMutex(highlightsMutex, 5272);
-		internList.push_back(node.index);
+		internalSymbolList.push_back(node.index);
 		dropMutex(highlightsMutex);
 	}
 

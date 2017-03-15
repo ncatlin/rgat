@@ -58,26 +58,6 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define BASE_CONTROLS_HEIGHT 80
 #define TOP_SUMMARY_HEIGHT 40
 
-#define INSTEXT_FIRST 0
-//show no instruction text
-#define INSTEXT_NONE INSTEXT_FIRST
-//show instruction text selected by distance
-#define INSTEXT_AUTO 1
-//show all instruction text
-#define INSTEXT_ALL_ALWAYS 2
-#define INSTEXT_LAST INSTEXT_ALL_ALWAYS
-
-#define EXTERNTEXT_FIRST 0
-//show no external labels
-#define EXTERNTEXT_NONE EXTERNTEXT_FIRST
-//show symbols
-#define EXTERNTEXT_SYMS 1
-//show path and symbols
-#define EXTERNTEXT_ALL 2
-#define EXTERNTEXT_LAST EXTERNTEXT_ALL
-
-
-
 #define WF_POINTSPERLINE 64
 #define WIREFRAMELOOPS 18 //meant to be alterable but stuff breaks if you change this. don't.
 #define WFPOSBUFSIZE WIREFRAMELOOPS * WF_POINTSPERLINE * POSELEMS * sizeof(GLfloat)

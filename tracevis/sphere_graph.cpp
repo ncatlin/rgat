@@ -821,7 +821,7 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 
 	float zmul = zoomFactor(clientState->cameraZoomlevel, main_scalefactors->size);
 
-	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && internalProtoGraph->get_num_nodes() > 2)
+	if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR && internalProtoGraph->get_num_nodes() > 2)
 		draw_instruction_text(clientState, zmul, pd);
 
 	//if zoomed in, show all extern/internal labels
@@ -844,11 +844,12 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 //TODO: in animation mode don't show text for inactive nodes
 void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
+	if (clientState->modes.show_ins_text == eInsTextOff) return;
 
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
 	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 	stringstream ss;
@@ -875,13 +876,16 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
 		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
 
-		if (!show_all_always)
+		if (show_all_always)
+			itext = n->ins->ins_text;
+		else
 		{
-			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
 		}
+			
 
 		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << itext;
 
@@ -895,20 +899,17 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 //show functions/args for externs in active graph
 void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 {
+	if (clientState->modes.show_symbol_verbosity == eSymboltextOff) return;
+
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
-
-	bool showExterns = (clientState->modes.show_extern_text != EXTERNTEXT_NONE);
-	bool showDbgSymbols = clientState->modes.show_dbg_symbol_text;
-
-	if (!showExterns && !showDbgSymbols) return;
-
+	
 	vector<NODEINDEX> externListCopy;
 	vector<NODEINDEX> internListCopy;
 
-	if (showExterns)
+	if (clientState->modes.show_symbol_location != eSymboltextInternal )
 	{
 		obtainMutex(internalProtoGraph->highlightsMutex, 1052);
-		externListCopy = internalProtoGraph->externList;
+		externListCopy = internalProtoGraph->externalSymbolList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
 		vector<NODEINDEX>::iterator externCallIt = externListCopy.begin();
@@ -934,11 +935,10 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 		}
 	}
 
-	if (showDbgSymbols)
+	if (clientState->modes.show_symbol_location != eSymboltextExternal)
 	{
 		obtainMutex(internalProtoGraph->highlightsMutex, 1053);
-		if (showDbgSymbols)
-			internListCopy = internalProtoGraph->internList;
+		internListCopy = internalProtoGraph->internalSymbolList;
 		dropMutex(internalProtoGraph->highlightsMutex);
 
 		vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
@@ -968,9 +968,11 @@ void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 //only draws text for instructions with unsatisfied conditions
 void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
 {
+	if (clientState->modes.show_ins_text == eInsTextOff) return;
+
 	//iterate through nodes looking for ones that map to screen coords
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientState->modes.show_ins_text == INSTEXT_ALL_ALWAYS);
+	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
 	NODEINDEX numVerts = vertsdata->get_numVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
 	for (NODEINDEX i = 0; i < numVerts; ++i)
@@ -999,7 +1001,7 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 
 		string itext;
 		if (!show_all_always) {
-			if (zdist < 5 && clientState->modes.show_ins_text == INSTEXT_AUTO)
+			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
 				itext = n->ins->ins_text;
 			else
 				itext = n->ins->mnemonic;
@@ -1017,6 +1019,8 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 //draw number of times each edge has been executed in middle of edge
 void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
 {
+	if (clientState->modes.show_heat_location == eHeatNone) return;
+
 	plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
@@ -1028,7 +1032,6 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 
 	set <node_data *> displayNodes;
 
-	
 	EDGELIST *edgelist = internalProtoGraph->edgeLptr();
 	//assert(edgelistEnd <= edgelist->size());
 	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
@@ -1065,37 +1068,46 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
 		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
 
-		displayNodes.insert(firstNode);
-		displayNodes.insert(internalProtoGraph->safe_get_node(ePair->second));
 
-		unsigned long edgeWeight = e->chainedWeight;
-		if (edgeWeight < 2) continue;
+		if (clientState->modes.show_heat_location == eHeatEdges)
+		{
+			unsigned long edgeWeight = e->chainedWeight;
+			if (edgeWeight < 2) continue;
 
-		string weightString = to_string(edgeWeight);
-		al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
-			clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			weightString.c_str());
+			string weightString = to_string(edgeWeight);
+			al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
+				clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+				weightString.c_str());
+		}
+		else
+		{
+			displayNodes.insert(firstNode);
+			displayNodes.insert(internalProtoGraph->safe_get_node(ePair->second));
+		}
 		
 	}
 
-	set <node_data *>::iterator nodesIt = displayNodes.begin();
-	for (; nodesIt != displayNodes.end(); ++nodesIt)
+	if (clientState->modes.show_heat_location == eHeatNodes)
 	{
-		node_data *n = *nodesIt;
-		if (n->executionCount == 1) continue;
+		set <node_data *>::iterator nodesIt = displayNodes.begin();
+		for (; nodesIt != displayNodes.end(); ++nodesIt)
+		{
+			node_data *n = *nodesIt;
+			if (n->executionCount == 1) continue;
 
-		DCOORD screenCoordN;
-		if (!get_screen_pos(n->index, vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
+			DCOORD screenCoordN;
+			if (!get_screen_pos(n->index, vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
 
-		ALLEGRO_COLOR *textcol;
-		if (!n->unreliableCount)
-			textcol = &al_col_white;
-		else
-			textcol = &al_col_cyan;
+			ALLEGRO_COLOR *textcol;
+			if (!n->unreliableCount)
+				textcol = &al_col_white;
+			else
+				textcol = &al_col_cyan;
 
-		al_draw_text(clientState->standardFont, *textcol, screenCoordN.x + INS_X_OFF,
-			clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			to_string(n->executionCount).c_str());
+			al_draw_text(clientState->standardFont, *textcol, screenCoordN.x + INS_X_OFF,
+				clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+				to_string(n->executionCount).c_str());
+		}
 	}
 }
 

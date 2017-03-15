@@ -90,4 +90,5 @@ Fixed an error where externs were causing false edges to be created
 The heatmap solver now handles some extern edge/node count inaccuracies. Unreliable extern execution counts marked in cyan on the heatmap
 Added an option to reset user graph scaling
 Client debug logging is now more verbose
-Stopped the backlog counter flickering between 0 and 1 
+Stopped the backlog counter flickering between 0 and 1
+Tweaked user sphere scaling speed (via arrow keys) to be smoother 

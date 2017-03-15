@@ -28,6 +28,8 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	if(!graph->setGraphBusy(true))
 		return;
 	proto_graph *protoGraph = graph->get_protoGraph();
+	if (!protoGraph) return;
+
 	if (
 		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < protoGraph->get_num_edges()) ||
@@ -93,12 +95,13 @@ void maingraph_render_thread::main_loop()
 			Sleep(5); continue;
 		}
 
-		activeGraph->increase_thread_references();
+		bool gotref = activeGraph->increase_thread_references();
+
 		getMutex();
 		performMainGraphRendering(activeGraph);
 		dropMutex();
 
-		activeGraph->decrease_thread_references();
+		if (gotref) activeGraph->decrease_thread_references();
 		activeGraph = 0;
 
 		Sleep(renderFrequency);
