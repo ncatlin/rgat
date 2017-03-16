@@ -265,8 +265,9 @@ void textDialog::createFontSlider(agui::Font *font, int X, int Y)
 	labelPtrs.push_back(summaryLabel);
 
 	fontSlider = new agui::Slider;
-	fontSlider->setMinValue(6);
+	fontSlider->setMinValue(3);
 	fontSlider->setMaxValue(25);
+	fontSlider->setValue(clientState->getInstructionFontSize());
 	fontSlider->setLocation(X + 85, Y);
 	fontSlider->setSize(160, 20);
 	textFrame->add(fontSlider);
