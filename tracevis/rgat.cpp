@@ -455,7 +455,7 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 	switch (ev->user.data1)
 	{
 	case EV_BTN_RUN:
-		widgets->exeSelector->show();
+		widgets->exeSelector->toggle();
 		break;
 
 	case EV_BTN_QUIT:
@@ -529,9 +529,10 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 		fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
 			"Choose saved trace to open", "*.rgat;*.*;",
 			ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-		clientState->dialogOpen = true;
+
+		clientState->openFrames.push_back((agui::Frame *) 0);
 		al_show_native_file_dialog(clientState->maindisplay, fileDialog);
-		clientState->dialogOpen = false;
+		clientState->openFrames.clear();
 
 		const char* result = al_get_native_file_dialog_path(fileDialog, 0);
 		al_destroy_native_file_dialog(fileDialog);
@@ -548,7 +549,10 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 	case EV_BTN_ABOUT:
 	{
 		widgets->aboutBox->setLocation(200, 200);
-		widgets->aboutBox->setVisibility(!widgets->aboutBox->isVisible());
+		if (widgets->aboutBox->isVisible())
+			clientState->closeFrame(widgets->aboutBox);
+		else
+			clientState->openFrame(widgets->aboutBox);
 		break;
 	}
 
@@ -622,7 +626,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 				return EV_MOUSE;
 			}
 
-			if (!clientState->dialogOpen && mouse_in_maingraphpane(&clientState->mainFrameSize, ev->mouse.x, ev->mouse.y))
+			if (clientState->mouseInDialog(ev->mouse.x, ev->mouse.y))
+				return EV_MOUSE;
+
+			if (mouse_in_maingraphpane(&clientState->mainFrameSize, ev->mouse.x, ev->mouse.y))
 				clientState->mouse_dragging = true;
 			else
 				if (mouse_in_previewpane(clientState, ev->mouse.x))
@@ -648,13 +655,15 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			//close any open cruft on screen
 			if (ev->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
 			{
-				widgets->exeSelector->hide();
-				widgets->highlightWindow->highlightFrame->setVisibility(false);
-				widgets->diffWindow->diffFrame->setVisibility(false);
-				clientState->dialogOpen = false;
+				vector<agui::Frame *>::iterator frameIt = clientState->openFrames.begin();
+				for (; frameIt != clientState->openFrames.end(); frameIt++)
+					((agui::Frame *)*frameIt)->setVisibility(false);
+				clientState->openFrames.clear();
 			}
 
-			if (clientState->dialogOpen) 
+			//frames accepting keyboard input get it instead of the wider UI
+			if (widgets->highlightWindow->highlightFrame->isVisible() ||
+				widgets->exeSelector->exeFrame->isVisible())
 			{
 				widgets->processEvent(ev);
 				return EV_NONE;

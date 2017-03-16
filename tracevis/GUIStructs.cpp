@@ -229,3 +229,30 @@ void VISSTATE::setInstructionFontSize(int ptSize)
 
 	instructionFont = al_load_ttf_font(instructionFontpath.c_str(), ptSize, 0);
 }
+
+bool VISSTATE::mouseInDialog(int mousex, int mousey)
+{
+	vector<agui::Frame *>::iterator frameIt = openFrames.begin();
+	for (; frameIt != openFrames.end(); frameIt++)
+	{
+		agui::Frame * frame = *frameIt;
+		agui::Rectangle framePos = frame->getAbsoluteRectangle();
+		if (mousex >= framePos.getLeft() && mousex <= framePos.getRight() && mousey >= framePos.getTop() && mousey <= framePos.getBottom())
+			return true;
+	}
+	return false;
+}
+
+void VISSTATE::closeFrame(agui::Frame *frame)
+{
+	if (!frame->isVisible()) return;
+	frame->setVisibility(false);
+	openFrames.erase(std::remove(openFrames.begin(), openFrames.end(), frame), openFrames.end());
+}
+
+void VISSTATE::openFrame(agui::Frame *frame)
+{
+	if (frame->isVisible()) return;
+	frame->setVisibility(true);
+	openFrames.push_back(frame);
+}

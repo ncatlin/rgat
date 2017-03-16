@@ -26,7 +26,6 @@ The class for the divergence/diff selection window
 #include "Agui\Widgets\DropDown\DropDown.hpp"
 #include "Agui\Widgets\Label\Label.hpp"
 #include "Agui\Widgets\RadioButton\RadioButton.hpp"
-#include "Agui\Widgets\Frame\Frame.hpp"
 #include "OSspecific.h"
 
 #define DIFF_INFOLABEL_X_OFFSET 25
@@ -62,7 +61,7 @@ private:
 class DiffSelectionFrame 
 {
 public:
-	DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font);
+	DiffSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
 	agui::RadioButton *firstDiffLabel;
 	agui::RadioButton *secondDiffLabel;
 	//todo make class for this
@@ -77,7 +76,7 @@ public:
 	RadioButtonListener *radiolisten;
 
 	bool isVisible() { return diffFrame->isVisible(); }
-	void setVisible(bool val) { diffFrame->setVisibility(val); }
+	void setVisible(bool val);
 
 private:
 	agui::Label *graph1Info = 0;
@@ -86,6 +85,7 @@ private:
 	agui::Label *graph2Path = 0;
 	plotted_graph *graph1 = 0;
 	plotted_graph *graph2 = 0;
+	VISSTATE *clientState;
 };
 
 class CompareButtonListener : public agui::ActionListener
@@ -98,8 +98,7 @@ public:
 	{
 		if (evt.getSource()->getText() == "X")
 		{
-			diffWindow->setVisible(false);
-			clientState->dialogOpen = false;
+			clientState->closeFrame(diffWindow->diffFrame);
 			return;
 		}
 		clientState->modes.diff = DIFF_SELECTED;

@@ -33,9 +33,43 @@ The class for the executable launching dialog
 
 class exeWindow
 {
-private:
+public:
+
+
+	exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
+	~exeWindow();
+
+	void toggle() 
+	{ 
+		if (exeFrame->isVisible())
+			hide();
+		else
+			show();
+	}
+
+	void show() 
+	{
+		if (exeFrame->isVisible()) return;
+		int frameX = clientState->displaySize.width / 2 - exeFrame->getSize().getWidth() / 2;
+		int frameY = clientState->displaySize.height / 2 - exeFrame->getSize().getHeight() / 2;
+		exeFrame->setLocation(frameX, frameY);
+		clientState->openFrame(exeFrame);
+	}
+
+	void hide() { clientState->closeFrame(exeFrame);}
+
+	void setPath(string path) { 
+		target = path; 
+		filePathTxt->setText(path.c_str()); 
+	}
+	string getPath() { return target; }
+	string getArgs() {	return fileArgsTxt->getText(); }
+	//make me work!
+	void pasteArgs() { fileArgsTxt->paste(); }
+
 	agui::Frame *exeFrame;
 
+private:
 	agui::TextField *filePathTxt;
 	agui::TextField *fileArgsTxt;
 	agui::Button *filePathBtn;
@@ -58,35 +92,6 @@ private:
 	PID_TID PID = -1;
 	VISSTATE *clientState;
 	agui::Gui *guiWidgets;
-
-public:
-	exeWindow(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
-	void show() 
-	{ 
-		if (exeFrame->isVisible())
-		{
-			exeFrame->setVisibility(false);
-			clientState->dialogOpen = false;
-		}
-		else
-		{
-			int frameX = clientState->displaySize.width / 2 - exeFrame->getSize().getWidth() / 2;
-			int frameY = clientState->displaySize.height / 2 - exeFrame->getSize().getHeight() / 2;
-			exeFrame->setLocation(frameX, frameY);
-			exeFrame->setVisibility(true);
-			clientState->dialogOpen = true;
-		}
-	}
-	void hide() { exeFrame->setVisibility(false); clientState->dialogOpen = false;	}
-	~exeWindow();
-	void setPath(string path) { 
-		target = path; 
-		filePathTxt->setText(path.c_str()); 
-	}
-	string getPath() { return target; }
-	string getArgs() {	return fileArgsTxt->getText(); }
-	void pasteArgs() { fileArgsTxt->paste(); }
-
 };
 
 class CBlisten : public agui::CheckBoxListener

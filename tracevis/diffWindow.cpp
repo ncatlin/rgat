@@ -26,8 +26,10 @@ int DiffSelectionFrame::getSelectedDiff()
 	return 0;
 }
 
-DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *clientState, agui::Font *font) 
+DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font) 
 {
+	clientState = state;
+
 	int paneHeight = 400;
 	diffFrame = new agui::Frame;
 	diffFrame->setSize(480, paneHeight);
@@ -152,4 +154,18 @@ void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
 	diffBtn->setEnabled(false);
 	diffBtn->setBackColor(agui::Color(128, 128, 128));
 	return;
+}
+
+void DiffSelectionFrame::setVisible(bool val)
+{
+	if (val && !isVisible())
+	{
+		diffFrame->setVisibility(true);
+		clientState->openFrames.push_back(diffFrame);
+	}
+	else if (!val && isVisible())
+	{
+		clientState->closeFrame(diffFrame);
+	}
+
 }

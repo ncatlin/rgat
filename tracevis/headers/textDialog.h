@@ -51,7 +51,7 @@ public:
 	void createRadios_symLocation(agui::Font *font, int X, int Y, TextRadioListener *radiolisten);
 	void createHeatTextRadios(agui::Font *font, int X, int Y, TextRadioListener *radiolisten);
 	void createFontSlider(agui::Font *font, int X, int Y);
-	void toggle() { textFrame->isVisible() ? textFrame->hide() : textFrame->show(); }
+	void toggle() { textFrame->isVisible() ? clientState->closeFrame(textFrame) : clientState->openFrame(textFrame); }
 
 	agui::Frame *textFrame = NULL;
 	VISSTATE *clientState;
@@ -88,8 +88,7 @@ public:
 	{
 		if (evt.getSource()->getText() == "X")
 		{
-			txt_frame->textFrame->setVisibility(false);
-			clientState->dialogOpen = false;
+			clientState->closeFrame(txt_frame->textFrame);
 			return;
 		}
 	}

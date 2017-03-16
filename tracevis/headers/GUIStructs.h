@@ -119,6 +119,9 @@ public:
 	void setFontPath(string path) { instructionFontpath = path; }
 	void setInstructionFontSize(int ptSize);
 	int getInstructionFontSize() { return instructionFontSize; }
+	bool mouseInDialog(int mousex, int mousey);
+	void closeFrame(agui::Frame *);
+	void openFrame(agui::Frame *);
 
 	//cache to avoid lock every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
@@ -185,7 +188,7 @@ public:
 	//bool previewSpin = true;
 
 	DISPLAYMODES modes;
-	bool dialogOpen = false;
+	vector <agui::Frame *> openFrames;
 	
 	void *newActiveGraph = NULL;
 	bool switchProcess = true;

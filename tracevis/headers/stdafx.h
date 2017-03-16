@@ -45,6 +45,7 @@ using namespace std;
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_native_dialog.h>
+#include "Agui\Widgets\Frame\Frame.hpp"
 
 #include <capstone.h>
 

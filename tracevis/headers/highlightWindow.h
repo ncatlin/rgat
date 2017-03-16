@@ -77,8 +77,7 @@ public:
 	{
 		if (evt.getSource()->getText() == "X")
 		{
-			hl_frame->highlightFrame->setVisibility(false);
-			clientState->dialogOpen = false;
+			clientState->closeFrame(hl_frame->highlightFrame);
 			return;
 		}
 
@@ -91,8 +90,6 @@ public:
 				if (!clientState->activePid) break;
 				string address_s = hl_frame->addressText->getText();
 				if (!caught_stoull(address_s, &highlightData->highlightAddr, 16)) break;
-				hl_frame->highlightFrame->setVisibility(false);
-				clientState->dialogOpen = false;
 				if (clientState->activePid->disassembly.count(highlightData->highlightAddr))
 					highlightData->highlightState = HL_HIGHLIGHT_ADDRESS;
 				else
@@ -102,8 +99,6 @@ public:
 		case HL_HIGHLIGHT_SYM:
 			{
 				if (hl_frame->symbolDropdown->getSelectedIndex() < 0) break;
-				hl_frame->highlightFrame->setVisibility(false);
-				clientState->dialogOpen = false;
 				highlightData->highlight_s = hl_frame->symbolDropdown->getText();
 				highlightData->highlightState = HL_HIGHLIGHT_SYM;
 				break; 
@@ -112,8 +107,6 @@ public:
 		case HL_HIGHLIGHT_MODULE:
 			{
 				if (hl_frame->moduleDropdown->getSelectedIndex() < 0) break;
-				hl_frame->highlightFrame->setVisibility(false);
-				clientState->dialogOpen = false;
 				highlightData->highlightModule = hl_frame->moduleDropdown->getSelectedIndex();
 				highlightData->highlightState = HL_HIGHLIGHT_MODULE;
 				break; 
@@ -121,12 +114,11 @@ public:
 
 		case HL_HIGHLIGHT_EXCEPTIONS:
 			{
-				hl_frame->highlightFrame->setVisibility(false);
 				highlightData->highlightState = HL_HIGHLIGHT_EXCEPTIONS;
 				break;
 			}
 		}
-		
+		clientState->closeFrame(hl_frame->highlightFrame);
 		hl_frame->updateHighlightNodes(highlightData, graph->get_protoGraph(), clientState->activePid);
 	}
 

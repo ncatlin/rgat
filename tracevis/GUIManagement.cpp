@@ -50,13 +50,14 @@ graphLayouts layout_selection_click(int mousex, int mousey)
 void TraceVisGUI::showHideHighlightFrame() 
 {
 	bool frameIsVisible = highlightWindow->highlightFrame->isVisible();
-	highlightWindow->highlightFrame->setVisibility(!frameIsVisible);
-	frameIsVisible = highlightWindow->highlightFrame->isVisible();
-	
+	if (frameIsVisible)
+		clientState->closeFrame(highlightWindow->highlightFrame);
+	else
+		clientState->openFrame(highlightWindow->highlightFrame);
+	frameIsVisible = !frameIsVisible;
+
 	if (frameIsVisible)
 		highlightWindow->refreshData();
-
-	clientState->dialogOpen = frameIsVisible;
 }
 
 void TraceVisGUI::addPID(PID_TID PID)
@@ -75,8 +76,10 @@ void TraceVisGUI::setActivePID(PID_TID PID)
 
 void TraceVisGUI::showHideDiffFrame() 
 {
-	diffWindow->diffFrame->setVisibility(!diffWindow->diffFrame->isVisible());
-	clientState->dialogOpen = diffWindow->diffFrame->isVisible();
+	if (diffWindow->diffFrame->isVisible())
+		clientState->closeFrame(diffWindow->diffFrame);
+	else
+		clientState->openFrame(diffWindow->diffFrame);
 }
 
 void TraceVisGUI::updateWidgets(plotted_graph *graph)
