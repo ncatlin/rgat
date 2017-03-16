@@ -155,17 +155,3 @@ void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
 	diffBtn->setBackColor(agui::Color(128, 128, 128));
 	return;
 }
-
-void DiffSelectionFrame::setVisible(bool val)
-{
-	if (val && !isVisible())
-	{
-		diffFrame->setVisibility(true);
-		clientState->openFrames.push_back(diffFrame);
-	}
-	else if (!val && isVisible())
-	{
-		clientState->closeFrame(diffFrame);
-	}
-
-}

@@ -147,7 +147,6 @@ public:
 
 	LAUNCHOPTIONS launchopts;
 
-
 	TITLE *title;
 	long cameraZoomlevel = 0;
 	float view_shift_x = 0;
@@ -160,23 +159,18 @@ public:
 	int leftcolumn = 0;
 	int rightcolumn = 0;
 
-	graphLayouts currentLayout = eSphereLayout;
-
 	void *widgets = 0;
 	int animationUpdate = 0;
-
-	int userSelectedAnimPos = 0;
 	bool animFinished = false;
 
 	bool mouse_dragging = false;
-
-	void *mouse_drag_graph = NULL; 
 	void *activeGraph = NULL;
 	void *maingraphRenderThreadPtr;
 
 	//for rendering graph diff
 	void *diffRenderer;
 
+	graphLayouts currentLayout = eSphereLayout;
 	map <PID_TID, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;
@@ -200,10 +194,6 @@ public:
 	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
 	GLuint colSphereVBOs[2];
 	
-	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
-	GLuint wireframeVBOs[2];
-	bool remakeWireframe = false;
-	
 	map<PID_TID, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
@@ -220,6 +210,10 @@ public:
 	bool saving = false;
 
 	int previewRenderFrame = 0;
+
+	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
+	GLuint wireframeVBOs[2];
+	bool remakeWireframe = false;
 
 	GLint *wireframeStarts;
 	GLint *wireframeSizes;

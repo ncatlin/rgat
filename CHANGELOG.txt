@@ -94,3 +94,4 @@ Client debug logging is now more verbose
 Ignoring backlog sizes of 1 to reduce flickering
 Reimplemented unwieldly text toggling options as a menu [t]
 Added a graph text font side slider
+improved dialog handling of mouse and keyboard input

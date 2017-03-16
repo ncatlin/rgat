@@ -64,19 +64,15 @@ public:
 	DiffSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
 	agui::RadioButton *firstDiffLabel;
 	agui::RadioButton *secondDiffLabel;
-	//todo make class for this
+
 	agui::Frame *diffFrame = NULL;
 	agui::Font *diffFont;
-
 	agui::Button *diffBtn;
 
 	int getSelectedDiff();
 	void setDiffGraph(plotted_graph *graph);
 	plotted_graph *get_graph(int idx);
 	RadioButtonListener *radiolisten;
-
-	bool isVisible() { return diffFrame->isVisible(); }
-	void setVisible(bool val);
 
 private:
 	agui::Label *graph1Info = 0;
