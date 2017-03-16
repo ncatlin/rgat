@@ -39,6 +39,8 @@ enum heatTextDisplayState { eHeatNodes, eHeatEdges, eHeatNone };
 #define BOFF 2
 #define AOFF 3
 
+#define DEFAULT_INSTRUCTION_FONT_SIZE 12
+
 struct DIFFIDS {
 	PID_TID pid1 = -1;
 	PID_TID pid2 = -1;
@@ -114,6 +116,9 @@ public:
 	void change_mode(eUIEventCode mode);
 	void draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer);
 	void initWireframeBufs();
+	void setFontPath(string path) { instructionFontpath = path; }
+	void setInstructionFontSize(int ptSize);
+	int getInstructionFontSize() { return instructionFontSize; }
 
 	//cache to avoid lock every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
@@ -127,8 +132,9 @@ public:
 	ALLEGRO_BITMAP *previewPaneBMP = 0;
 	ALLEGRO_BITMAP *GUIBMP = 0;
 
-	ALLEGRO_FONT *standardFont;
-	ALLEGRO_FONT *messageFont;
+	ALLEGRO_FONT *instructionFont = 0;
+	ALLEGRO_FONT *standardFont = 0;
+	ALLEGRO_FONT *messageFont = 0;
 	ALLEGRO_FONT *PIDFont = 0;
 
 	ALLEGRO_COLOR backgroundColour;
@@ -214,6 +220,10 @@ public:
 
 	GLint *wireframeStarts;
 	GLint *wireframeSizes;
+
+private:
+	string instructionFontpath;
+	int instructionFontSize = DEFAULT_INSTRUCTION_FONT_SIZE;
 };
 
 //screen top bottom red green

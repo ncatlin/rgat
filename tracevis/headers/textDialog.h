@@ -109,11 +109,11 @@ public:
 	void valueChanged(agui::Slider* source, int value)
 	{
 
-		float newVal = source->getValue();
+		int newVal = int(source->getValue());
 		cout << "changed font size to " << newVal << endl;
-		string newValstr = to_string(int(floor(newVal)));
+		string newValstr = to_string(newVal);
 		txtBox->setText(newValstr);
-		float maxVal = source->getMaxValue();
+		clientState->setInstructionFontSize(newVal);
 	}
 
 private:

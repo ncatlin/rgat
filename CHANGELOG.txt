@@ -88,7 +88,9 @@ Misc code improvements
 Save files are now in JSON format. Future updates should be less likely to obsolete saves
 Fixed an error where externs were causing false edges to be created
 The heatmap solver now handles some extern edge/node count inaccuracies. Unreliable extern execution counts marked in cyan on the heatmap
+Tweaked user sphere scaling speed (via arrow keys) to be smoother 
 Added an option to reset user graph scaling
 Client debug logging is now more verbose
-Stopped the backlog counter flickering between 0 and 1
-Tweaked user sphere scaling speed (via arrow keys) to be smoother 
+Ignoring backlog sizes of 1 to reduce flickering
+Reimplemented unwieldly text toggling options as a menu [t]
+Added a graph text font side slider

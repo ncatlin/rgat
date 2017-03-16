@@ -889,7 +889,7 @@ void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJE
 
 		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << itext;
 
-		al_draw_text(clientState->standardFont, al_col_white, screenCoord.x + INS_X_OFF,
+		al_draw_text(clientState->instructionFont, al_col_white, screenCoord.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 		ss.str("");
@@ -1010,7 +1010,7 @@ void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PRO
 
 		stringstream ss;
 		ss << "0x" << std::hex << n->ins->address << ": " << itext;
-		al_draw_text(clientState->standardFont, textcol, screenCoord.x + INS_X_OFF,
+		al_draw_text(clientState->instructionFont, textcol, screenCoord.x + INS_X_OFF,
 			clientState->mainFrameSize.height - screenCoord.y + COND_INSTEXT_Y_OFF, ALLEGRO_ALIGN_LEFT,
 			ss.str().c_str());
 	}
@@ -1075,7 +1075,7 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 			if (edgeWeight < 2) continue;
 
 			string weightString = to_string(edgeWeight);
-			al_draw_text(clientState->standardFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
+			al_draw_text(clientState->instructionFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
 				clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 				weightString.c_str());
 		}
@@ -1104,7 +1104,7 @@ void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECT
 			else
 				textcol = &al_col_cyan;
 
-			al_draw_text(clientState->standardFont, *textcol, screenCoordN.x + INS_X_OFF,
+			al_draw_text(clientState->instructionFont, *textcol, screenCoordN.x + INS_X_OFF,
 				clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
 				to_string(n->executionCount).c_str());
 		}

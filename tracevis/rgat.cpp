@@ -910,6 +910,8 @@ int main(int argc, char **argv)
 	stringstream fontPath_ss;
 	fontPath_ss << resourcePath << "\\" << fontfile;
 	string fontPath = fontPath_ss.str();
+	clientState.setFontPath(fontPath);
+	clientState.setInstructionFontSize(DEFAULT_INSTRUCTION_FONT_SIZE);
 	clientState.standardFont = al_load_ttf_font(fontPath.c_str(), 12, 0);
 	clientState.messageFont = al_load_ttf_font(fontPath.c_str(), 15, 0);
 	clientState.PIDFont = al_load_ttf_font(fontPath.c_str(), 14, 0);

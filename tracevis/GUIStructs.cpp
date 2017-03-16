@@ -221,3 +221,11 @@ void VISSTATE::displayActiveGraph()
 
 	display_activeGraph_summary(20, 10, PIDFont, this);
 }
+
+void VISSTATE::setInstructionFontSize(int ptSize)
+{
+	if (instructionFont)
+		al_destroy_font(instructionFont);
+
+	instructionFont = al_load_ttf_font(instructionFontpath.c_str(), ptSize, 0);
+}
