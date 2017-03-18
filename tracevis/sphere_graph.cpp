@@ -146,11 +146,6 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 				//if (clash > 15)
 				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
 			}
-
-			//if code arrives to next instruction after a return then arrange as a function
-			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-			callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-			cout << "placed addresss after call (" << hex << nextAddress << " in callstack" << endl;
 			break;
 		}
 
@@ -718,32 +713,29 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 	{
 		switch (n->ins->itype)
 		{
-		case OPUNDEF:
-		{
-			lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
-			break;
-		}
-		case OPJMP:
-		{
-			lastNode->lastVertType = eNodeJump;
-			break; 
-		}
-		case OPRET: 
-		{
-			lastNode->lastVertType = eNodeReturn;
-			break; 
-		}
-		case OPCALL:
-		{
-			lastNode->lastVertType = eNodeCall;
-			break;
-		}
-			//case ISYS: //todo: never used - intended for syscalls
-			//	active_col = &al_col_grey;
-			//	break;
-		default:
-			cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
-			assert(0);
+			case eInsUndefined:
+				lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
+				break;
+
+			case eInsJump:
+				lastNode->lastVertType = eNodeJump;
+				break; 
+
+			case eInsReturn: 
+				lastNode->lastVertType = eNodeReturn;
+				break; 
+
+			case eInsCall:
+			{
+				lastNode->lastVertType = eNodeCall;
+				//if code arrives to next instruction after a return then arrange as a function
+				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
+				callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+				break;
+			}
+			default:
+				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
+				assert(0);
 		}
 	}
 

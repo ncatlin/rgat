@@ -141,15 +141,15 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 		//setup conditions for next instruction
 		switch (instruction->itype)
 		{
-			case OPCALL: 
+			case eInsCall: 
 				lastNodeType = eNodeCall;
 				break;
 				
-			case OPJMP:
+			case eInsJump:
 				lastNodeType = eNodeJump;
 				break;
 
-			case OPRET:
+			case eInsReturn:
 				lastNodeType = eNodeReturn;
 				break;
 

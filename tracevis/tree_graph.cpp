@@ -597,22 +597,22 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 	{
 		switch (n->ins->itype)
 		{
-			case OPUNDEF:
+			case eInsUndefined:
 			{
 				lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
 				break;
 			}
-			case OPJMP:
+			case eInsJump:
 			{
 				lastNode->lastVertType = eNodeJump;
 				break;
 			}
-			case OPRET:
+			case eInsReturn:
 			{
 				lastNode->lastVertType = eNodeReturn;
 				break;
 			}
-			case OPCALL:
+			case eInsCall:
 			{
 				lastNode->lastVertType = eNodeCall;
 

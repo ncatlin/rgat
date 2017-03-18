@@ -63,14 +63,14 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 	insdata->address  = insaddr;
 
 	if (insdata->mnemonic == "call")
-		insdata->itype = OPCALL;
+		insdata->itype = eInsCall;
 	else if (insdata->mnemonic == "ret") //todo: iret
-		insdata->itype = OPRET;
+		insdata->itype = eInsReturn;
 	else if (insdata->mnemonic == "jmp")
-		insdata->itype = OPJMP;
+		insdata->itype = eInsJump;
 	else
 	{
-		insdata->itype = OPUNDEF;
+		insdata->itype = eInsUndefined;
 		//assume all j+ instructions asside from jmp are conditional
 		if (insdata->mnemonic[0] == 'j')
 		{

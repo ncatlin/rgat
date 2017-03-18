@@ -30,11 +30,7 @@ Constants used to interpret and plot the trace data
 
 #define MUTEXWAITPERIOD 6000
 
-#define OPUNDEF 0
-#define OPJMP 1
-#define OPRET 2
-#define OPCALL 3
-
+enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
 enum eEdgeNodeType { eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
 	eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99};
 

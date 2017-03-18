@@ -81,7 +81,7 @@ struct INS_DATA
 	2.construct at disassemble time and improve render speed
 	*/
 	string ins_text; 
-	char itype;
+	eNodeType itype;
 	bool conditional = false;
 	bool dataEx = false;
 	bool hasSymbol = false;
