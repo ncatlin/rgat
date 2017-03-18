@@ -146,6 +146,11 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 				//if (clash > 15)
 				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
 			}
+
+			//if code arrives to next instruction after a return then arrange as a function
+			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
+			callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+			cout << "placed addresss after call (" << hex << nextAddress << " in callstack" << endl;
 			break;
 		}
 
@@ -155,7 +160,9 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 		{
 			//returning to address in call stack?
 			int result = -1;
+
 			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
+			cout << "last node was ret/ext, searching for subsequent addresss (" << hex << n->address << " in callstack" << endl;
 			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
 				if (stackIt->first == n->address)
 				{
@@ -166,6 +173,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			//if so, position next node near caller
 			if (result != -1)
 			{
+				cout << "Found a return for node " << n->index << ". caller was " << result << endl;
 				SPHERECOORD *caller = get_node_coord(result);
 				assert(caller);
 				a = caller->a + RETURNA_OFFSET;
@@ -728,11 +736,6 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 		case OPCALL:
 		{
 			lastNode->lastVertType = eNodeCall;
-
-			//let returns find their caller if and only if they have one
-			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-			//todo: crash here, looks like callstack needs a guard
-			callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
 			break;
 		}
 			//case ISYS: //todo: never used - intended for syscalls

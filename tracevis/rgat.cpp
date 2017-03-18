@@ -161,9 +161,7 @@ static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
 
 	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
 	widgets->diffWindow->setDiffGraph(graph);
-
-	if (clientState->modes.diff)
-		clientState->modes.diff = 0;
+	clientState->modes.diffView = eDiffInactive;
 
 	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
 		graph->get_mainlines()->get_renderedEdges());
@@ -184,85 +182,27 @@ static bool mouse_in_maingraphpane(HEIGHTWIDTH *frameSize, int mousex, int mouse
 }
 
 
-bool loadTrace(VISSTATE *clientState, string filename)
-{
-
-	FILE* pFile;
-	fopen_s(&pFile, filename.c_str(), "rb");
-	char buffer[65536];
-	rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
-	rapidjson::Document saveJSON;
-	saveJSON.ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
-
-	//load process data
-	string s1;
-
-	display_only_status_message("Loading save file...", clientState);
-
-	
-	rapidjson::Value::ConstMemberIterator PIDIt = saveJSON.FindMember("PID");
-	if (PIDIt == saveJSON.MemberEnd())
-	{
-		cout << "[rgat]ERROR: Process data load failed" << endl;
-		return false;
-	}
-	PID_TID PID = PIDIt->value.GetUint64();
-
-	if (clientState->glob_piddata_map.count(PID)) { cout << "[rgat]PID " << PID << " already loaded! Close rgat and reload" << endl; return false; }
-	else
-		cout << "[rgat]Loading saved PID: " << PID << endl;
-
-	PROCESS_DATA *newpiddata;
-	if (!loadProcessData(clientState, saveJSON, &newpiddata, PID))
-	{
-		cout << "[rgat]ERROR: Process data load failed" << endl;
-		return false;
-	}
-
-	
-	cout << "[rgat]Loaded process data. Loading graphs..." << endl;
-
-	if (!loadProcessGraphs(clientState, saveJSON, newpiddata))
-	{
-		cout << "[rgat]Process Graph load failed" << endl;
-		return false;
-	}
-
-	cout << "[rgat]Loading completed successfully" << endl;
-	fclose(pFile);
-
-	if (!obtainMutex(clientState->pidMapMutex, 1039))
-	{
-		cerr << "[rgat]ERROR: Failed to obtain pidMapMutex in load" << endl;
-		return false;
-	}
-	clientState->glob_piddata_map[PID] = newpiddata;
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->addPID(PID);
-	dropMutex(clientState->pidMapMutex);
-
-	launch_saved_process_threads(PID, newpiddata, clientState);
-	return true;
-}
 
 
 void handle_mouse_zoom(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets, long maxZoomIn)
 {
 	if (mouse_in_previewpane(clientState, ev->mouse.x))
-		widgets->doScroll(ev->mouse.dz);
-	else
 	{
-		//adjust speed of zoom depending on how close we are
-		int zoomfactor;
-		if (clientState->cameraZoomlevel > 40000)
-			zoomfactor = -5000;
-		else
-			zoomfactor = -1000;
-
-		float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
-		if (newZoom >= maxZoomIn)
-			clientState->cameraZoomlevel = newZoom;
+		widgets->doScroll(ev->mouse.dz);
+		return;
 	}
+
+	//adjust speed of zoom depending on how close camera is to graph
+	int zoomfactor;
+	if (clientState->cameraZoomlevel > 40000)
+		zoomfactor = -5000;
+	else
+		zoomfactor = -1000;
+
+	float newZoom = clientState->cameraZoomlevel + zoomfactor * ev->mouse.dz;
+	if (newZoom >= maxZoomIn)
+		clientState->cameraZoomlevel = newZoom;
+
 }
 
 void handle_mouse_drag(ALLEGRO_EVENT *ev, VISSTATE *clientState, float zoomdiff)
@@ -297,21 +237,23 @@ void handle_mouse_move(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wi
 
 	widgets->toggleSmoothDrawing(true); //redraw every frame so preview tooltip moves smoothly
 	PID_TID PID, TID;
-	if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
-	{
-		map<PID_TID, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
-		if (PIDIt != clientState->glob_piddata_map.end())
-		{
-			PROCESS_DATA* PID = PIDIt->second;
-			map<PID_TID, void *>::iterator graphit = PID->plottedGraphs.find(TID);
-			if (graphit != PID->plottedGraphs.end())
-			{
-				proto_graph *protoGraph = ((plotted_graph *)graphit->second)->get_protoGraph();
-				widgets->showGraphToolTip(protoGraph, PID, ev->mouse.x, ev->mouse.y);
-			}
-		}
-	}
+	if (!find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
+		return;
+
+	map<PID_TID, PROCESS_DATA*>::iterator PIDIt = clientState->glob_piddata_map.find(PID);
+	if (PIDIt == clientState->glob_piddata_map.end())
+		return;
+
+	PROCESS_DATA* pidData = PIDIt->second;
+	map<PID_TID, void *>::iterator graphit = pidData->plottedGraphs.find(TID);
+	if (graphit == pidData->plottedGraphs.end())
+		return;
+
+	proto_graph *protoGraph = ((plotted_graph *)graphit->second)->get_protoGraph();
+	widgets->showGraphToolTip(protoGraph, pidData, ev->mouse.x, ev->mouse.y);
 }
+
+
 
 void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayouts clickedLayout, plotted_graph *oldActiveGraph)
 {
@@ -363,12 +305,7 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widge
 			break;
 		}
 
-		if (clientState->modes.diff)
-		{
-			clientState->modes.diff = 0;
-			break;
-		}
-
+		clientState->modes.diffView = eDiffInactive;
 		break;
 	}
 
@@ -450,6 +387,7 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widge
 	widgets->processEvent(ev);
 }
 
+
 int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
 {
 	switch (ev->user.data1)
@@ -503,48 +441,12 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 		break;
 
 	case EV_BTN_SAVE:
-		if (clientState->activeGraph)
-		{
-			stringstream displayMessage;
-			PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_pid();
-			displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
-			display_only_status_message("Saving process " + to_string(pid), clientState);
-			cout << displayMessage.str();
-			saveTrace(clientState);
-		}
+		saveTraces(clientState);
 		break;
 
 	case EV_BTN_LOAD:
-	{
-
-		if (!fileExists(clientState->config->saveDir))
-		{
-			string newSavePath = getModulePath() + "\\saves\\";
-			clientState->config->updateSavePath(newSavePath);
-		}
-
-		widgets->exeSelector->hide();
-		ALLEGRO_FILECHOOSER *fileDialog;
-		//bug: sometimes uses current directory
-		fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
-			"Choose saved trace to open", "*.rgat;*.*;",
-			ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-
-		clientState->openFrames.push_back((agui::Frame *) 0);
-		al_show_native_file_dialog(clientState->maindisplay, fileDialog);
-		clientState->openFrames.clear();
-
-		const char* result = al_get_native_file_dialog_path(fileDialog, 0);
-		al_destroy_native_file_dialog(fileDialog);
-		if (!result) return EV_NONE;
-
-		string path(result);
-		if (!fileExists(path)) return EV_NONE;
-
-		loadTrace(clientState, path);
-		clientState->modes.animation = false;
+		openSavedTrace(clientState, widgets);
 		break;
-	}
 
 	case EV_BTN_ABOUT:
 	{
@@ -557,7 +459,7 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 	}
 
 	default:
-		cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1;
+		cout << "[rgat]Warning: Unhandled menu event " << ev->user.data1 << endl;
 		break;
 	}
 
@@ -577,6 +479,10 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 	if (ev->type == ALLEGRO_EVENT_MOUSE_AXES)
 	{
+		//redraw every frame so frame can be dragged smoothly
+		if (!clientState->openFrames.empty() && clientState->mouseInDialog(ev->mouse.x, ev->mouse.y))
+			widgets->toggleSmoothDrawing(true);
+
 		if (!clientState->activeGraph)  return EV_MOUSE;
 		//if (widgets->isDialogVisible()) return EV_MOUSE;
 		long graphSize = clientState->get_activegraph_size();
@@ -831,20 +737,22 @@ int main(int argc, char **argv)
 
 	if (fileExists("\\\\.\\pipe\\BootstrapPipe"))
 	{
-		cerr << "[rgat]Already running [Existing BootstrapPipe found]. Exiting..." << endl;
+		cerr << "[rgat]Error: rgat already running [Existing BootstrapPipe found]. Exiting..." << endl;
 		return -1;
 	}
 
 	VISSTATE clientState;
 	if (!al_init())
 	{
-		cerr << "[rgat]ERROR:Failed to initialise Allegro! Try using nongraphical mode -e from command line" << endl;
+		cerr << "[rgat]ERROR:Failed to initialise Allegro! Error: "<< al_get_errno() 
+			 << ". Try using nongraphical mode [-e] from the command line" << endl;
 		return NULL;
 	}
 
 	//for linux this will want to be user home directory
 	//windows probably wants it in AppData
-	string configPath = getModulePath() + "\\rgat.cfg";
+	string modulePath = getModulePath();
+	string configPath = modulePath + "\\rgat.cfg";
 	clientState.config = new clientConfig(configPath);
 	clientConfig *config = clientState.config;
 
@@ -864,7 +772,6 @@ int main(int argc, char **argv)
 		cout << "[rgat]GUI init failed - Use nongraphical mode from command line" << endl;
 		return 0;
 	}
-	
 
 	clientState.gen_wireframe_buffers();
 	clientState.event_queue = newQueue;
@@ -908,16 +815,10 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (!al_init_font_addon() || !al_init_ttf_addon())
-	{
-		cerr << "[rgat]ERROR: Failed to init allegro font addon. Exiting..." << endl;
-		return -1;
-	}
 
-	string resourcePath = getModulePath();
 	string fontfile = "VeraSe.ttf";
 	stringstream fontPath_ss;
-	fontPath_ss << resourcePath << "\\" << fontfile;
+	fontPath_ss << modulePath << "\\" << fontfile;
 	string fontPath = fontPath_ss.str();
 	clientState.setFontPath(fontPath);
 	clientState.setInstructionFontSize(DEFAULT_INSTRUCTION_FONT_SIZE);
@@ -932,7 +833,7 @@ int main(int argc, char **argv)
 
 	TraceVisGUI* widgets = new TraceVisGUI(&clientState);
 	clientState.widgets = (void *)widgets;
-	widgets->widgetSetup(resourcePath, fontfile);
+	widgets->widgetSetup(modulePath, fontfile);
 	widgets->toggleSmoothDrawing(true);
 
 	//preload glyphs in cache
@@ -944,12 +845,8 @@ int main(int argc, char **argv)
 	clientState.previewPaneBMP = al_create_bitmap(PREVIEW_PANE_WIDTH, clientState.displaySize.height - 50);
 	initial_gl_setup(&clientState);
 
-
-
 	ALLEGRO_EVENT ev;
-	
 	map <PID_TID, NODEPAIR> graphPositions;
-
 
 	rgat_create_thread((void *)process_coordinator_thread, &clientState);
 

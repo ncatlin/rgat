@@ -97,7 +97,7 @@ public:
 			clientState->closeFrame(diffWindow->diffFrame);
 			return;
 		}
-		clientState->modes.diff = DIFF_SELECTED;
+		clientState->modes.diffView = eDiffSelected;
 	}
 
 private:

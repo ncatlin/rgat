@@ -19,3 +19,5 @@ struct THREAD_POINTERS {
 THREAD_POINTERS *launch_new_process_threads(PID_TID PID, std::map<PID_TID, PROCESS_DATA *> *glob_piddata_map, HANDLE pidmutex, VISSTATE *clientState, cs_mode bitWidth);
 void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *clientState);
 void process_coordinator_thread(VISSTATE *clientState);
+void openSavedTrace(VISSTATE *clientState, void *widgets);
+void saveTraces(VISSTATE *clientState);

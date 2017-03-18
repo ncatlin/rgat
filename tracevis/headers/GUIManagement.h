@@ -76,9 +76,9 @@ public:
 
 	//redrawing every widget is awfully slow
 	//activating this makes it happen every frame
-	void toggleSmoothDrawing(bool activated) { 
-		if (activated && dropdownDropped()) return;
-		smoothDrawing = activated; 
+	void toggleSmoothDrawing(bool enabled) { 
+		if (enabled && dropdownDropped()) return;
+		smoothDrawing = enabled;
 	}
 	bool isSmoothDrawing() { return smoothDrawing; }
 	bool isDialogVisible() { return highlightWindow->highlightFrame->isVisible() || textConfigBox->textFrame->isVisible(); }

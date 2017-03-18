@@ -70,12 +70,12 @@ struct DISPLAYMODES {
 	bool heatmap = false;
 	bool conditional = false;
 	bool nearSide = false;
-	
+	enum eDiffMode diffView = eDiffInactive;
+
 	instructionTextDisplayState show_ins_text = eInsTextAuto;
 	symbolTextDisplayState show_symbol_verbosity = eSymboltextSymbols;
 	symbolTextDisplayState show_symbol_location = eSymboltextAll;
 	heatTextDisplayState show_heat_location = eHeatNodes;
-	int diff = 0;
 };
 
 struct HEIGHTWIDTH {

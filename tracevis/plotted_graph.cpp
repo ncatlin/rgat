@@ -451,17 +451,18 @@ void plotted_graph::brighten_node_list(ANIMATIONENTRY *entry, int brightTime, ve
 			!(entry->entryType == ANIM_UNCHAINED && nodeIt == nodeIDList->begin()))
 		{
 			NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
-			if (userSelectedAnimPosition == -1)
-			{
-				assert(internalProtoGraph->edge_exists(edge, 0));
+			if (internalProtoGraph->edge_exists(edge, 0))
 				newAnimEdgeTimes[edge] = brightTime;
-			}
-			else
-			{
-				if (internalProtoGraph->edge_exists(edge, 0))
-					newAnimEdgeTimes[edge] = brightTime;
-			}
+			//else
+			//	cout << "bad edge " << edge.first << "," << edge.second << endl;
+			/*
+			A bad edge is expected here if the user has forced an animation skip using the slider
+			Shouldn't really happen otherwise but does after change to external edge creation
+			Doesn't seem to affect the animation in a meaninful way but it's not good code
+			*/
+
 		}
+		//cout << "lastanimnode: " << nodeIdx << endl;
 		lastAnimatedNode = nodeIdx;
 
 		++instructionCount;

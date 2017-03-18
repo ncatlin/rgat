@@ -1,6 +1,8 @@
 #pragma once 
 #include <stdafx.h>
 #include "processLaunching.h"
+#include "GUIManagement.h"
+#include "serialise.h"
 
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditionals
 //+ module data and disassembly
@@ -205,4 +207,109 @@ void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *
 	rgat_create_thread((LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry, conditional_thread);
 
 	clientState->spawnedProcess = clientState->glob_piddata_map[PID];
+}
+
+
+bool loadTrace(VISSTATE *clientState, string filename)
+{
+
+	FILE* pFile;
+	fopen_s(&pFile, filename.c_str(), "rb");
+	char buffer[65536];
+	rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
+	rapidjson::Document saveJSON;
+	saveJSON.ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
+
+	//load process data
+	string s1;
+
+	display_only_status_message("Loading save file...", clientState);
+
+
+	rapidjson::Value::ConstMemberIterator PIDIt = saveJSON.FindMember("PID");
+	if (PIDIt == saveJSON.MemberEnd())
+	{
+		cout << "[rgat]ERROR: Process data load failed" << endl;
+		return false;
+	}
+	PID_TID PID = PIDIt->value.GetUint64();
+
+	if (clientState->glob_piddata_map.count(PID)) { cout << "[rgat]PID " << PID << " already loaded! Close rgat and reload" << endl; return false; }
+	else
+		cout << "[rgat]Loading saved PID: " << PID << endl;
+
+	PROCESS_DATA *newpiddata;
+	if (!loadProcessData(clientState, saveJSON, &newpiddata, PID))
+	{
+		cout << "[rgat]ERROR: Process data load failed" << endl;
+		return false;
+	}
+
+
+	cout << "[rgat]Loaded process data. Loading graphs..." << endl;
+
+	if (!loadProcessGraphs(clientState, saveJSON, newpiddata))
+	{
+		cout << "[rgat]Process Graph load failed" << endl;
+		return false;
+	}
+
+	cout << "[rgat]Loading completed successfully" << endl;
+	fclose(pFile);
+
+	if (!obtainMutex(clientState->pidMapMutex, 1039))
+	{
+		cerr << "[rgat]ERROR: Failed to obtain pidMapMutex in load" << endl;
+		return false;
+	}
+	clientState->glob_piddata_map[PID] = newpiddata;
+	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
+	widgets->addPID(PID);
+	dropMutex(clientState->pidMapMutex);
+
+	launch_saved_process_threads(PID, newpiddata, clientState);
+	return true;
+}
+
+void openSavedTrace(VISSTATE *clientState, void *widgets)
+{
+	((TraceVisGUI *)widgets)->exeSelector->hide();
+
+	if (!fileExists(clientState->config->saveDir))
+	{
+		string newSavePath = getModulePath() + "\\saves\\";
+		clientState->config->updateSavePath(newSavePath);
+	}
+	
+	ALLEGRO_FILECHOOSER *fileDialog;
+	//bug: sometimes uses current directory
+	fileDialog = al_create_native_file_dialog(clientState->config->saveDir.c_str(),
+		"Choose saved trace to open", "*.rgat;*.*;",
+		ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+
+	clientState->openFrames.push_back((agui::Frame *) 0);
+	al_show_native_file_dialog(clientState->maindisplay, fileDialog);
+	clientState->openFrames.clear();
+
+	const char* result = al_get_native_file_dialog_path(fileDialog, 0);
+	al_destroy_native_file_dialog(fileDialog);
+	if (!result) return;
+
+	string path(result);
+	if (!fileExists(path)) return;
+
+	loadTrace(clientState, path);
+	clientState->modes.animation = false;
+}
+
+void saveTraces(VISSTATE *clientState)
+{
+	if (!clientState->activeGraph) return;
+
+	stringstream displayMessage;
+	PID_TID pid = ((plotted_graph *)clientState->activeGraph)->get_pid();
+	displayMessage << "[rgat]Starting save of process " << pid << " to filesystem" << endl;
+	display_only_status_message("Saving process " + to_string(pid), clientState);
+	cout << displayMessage.str();
+	saveTrace(clientState);
 }

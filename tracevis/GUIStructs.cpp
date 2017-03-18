@@ -103,7 +103,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 {
 	diff_plotter *diffRendererPtr = *(diff_plotter **)diffRenderer;
 
-	if (modes.diff == DIFF_STARTED) //diff graph built, display it
+	if (modes.diffView == eDiffRendered) //diff graph built, display it
 	{
 		plotted_graph *graph1 = diffRendererPtr->get_graph(1);
 		proto_graph *protoGraph1 = graph1->get_protoGraph();
@@ -115,10 +115,11 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 		display_graph_diff(this, diffRendererPtr, diffnode);
 	}
 
-	else if (modes.diff == DIFF_SELECTED)//diff button clicked, build the graph first
+	else if (modes.diffView == eDiffSelected)//diff button clicked, build the graph first
 	{
 		change_mode(EV_BTN_DIFF);
-		modes.diff = DIFF_STARTED;
+
+		modes.diffView = eDiffRendered;
 		TraceVisGUI *mywidgets = (TraceVisGUI *)widgets;
 		mywidgets->showHideDiffFrame();
 
@@ -189,11 +190,10 @@ void VISSTATE::displayActiveGraph()
 	if (modes.wireframe)
 		thisActiveGraph->maintain_draw_wireframe(this, wireframeStarts, wireframeSizes);
 
-	if (modes.diff)
-		draw_display_diff(PIDFont, &diffRenderer);
-
-	if (!modes.diff) //not an else for clarity
+	if (modes.diffView == eDiffInactive)
 		thisActiveGraph->performMainGraphDrawing(this);
+	else
+		draw_display_diff(PIDFont, &diffRenderer);
 
 	frame_gl_teardown();
 

@@ -111,8 +111,7 @@ public:
 		string btntext = evt.getSource()->getText();
 		if (btntext == "Stop" || btntext == "Play")
 		{
-			if (clientState->modes.diff)
-				clientState->modes.diff = false;
+			clientState->modes.diffView = eDiffInactive;
 			if (currentState == ANIM_LIVE || currentState == ANIM_REPLAY)
 				controls->setAnimState(ANIM_INACTIVE);
 			else

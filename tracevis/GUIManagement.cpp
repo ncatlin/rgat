@@ -439,6 +439,12 @@ bool GUI_init(ALLEGRO_EVENT_QUEUE ** evq, ALLEGRO_DISPLAY **newDisplay)
 		return false;
 	}
 
+	if (!al_init_font_addon() || !al_init_ttf_addon())
+	{
+		cerr << "[rgat]ERROR: Failed to init allegro font addon. Exiting..." << endl;
+		return -1;
+	}
+
 	*evq = al_create_event_queue();
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_mouse_event_source());
 	al_register_event_source(*evq, (ALLEGRO_EVENT_SOURCE*)al_get_keyboard_event_source());

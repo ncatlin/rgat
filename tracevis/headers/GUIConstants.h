@@ -77,8 +77,7 @@ enum eUIEventCode { EV_NONE = 0, EV_MOUSE, EV_KEYBOARD, EV_EXIT, EV_BTN_STEPPING
 	EV_BTN_RESETSCALE,	EV_BTN_ABOUT, EV_BTN_DBGSYM, EV_BTN_NEARSIDE, EV_BTN_EXT_TEXT_MENU
 }; 
 
-#define DIFF_SELECTED 1
-#define DIFF_STARTED 2
+enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 
 #define STARTWWIDTH 1600
 #define STARTWHEIGHT 800
