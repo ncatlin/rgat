@@ -25,6 +25,8 @@ Creates a sphere layout for a plotted graph
 //A: Longitude. How many units along the side of the sphere a node is placed
 //B: Latitude. How many units up or down the side of the sphere a node is placed
 #define BMULT 2
+#define BMODMAG 1
+#define BAdj 35
 
 #define JUMPA -6
 #define JUMPB 6

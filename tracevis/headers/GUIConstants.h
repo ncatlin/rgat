@@ -88,9 +88,6 @@ enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 #define DEFAULTPOINTSIZE 5
 #define PREVIEW_POINT_SIZE 5
 
-#define BMODMAG  0.55
-#define BAdj 35
-
 #define EXTERN_VISIBLE_ZOOM_FACTOR 25
 #define INSTEXT_VISIBLE_ZOOMFACTOR 7
 

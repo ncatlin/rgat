@@ -31,8 +31,8 @@ struct DCOORD {
 };
 
 struct SPHERECOORD {
-	int a; //accross/latitude
-	int b; //down/longitude
+	float a; //accross/latitude
+	float b; //down/longitude
 	int bMod; //small modifications to longitude
 };
 

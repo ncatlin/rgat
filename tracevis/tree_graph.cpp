@@ -25,6 +25,7 @@ Creates a sphere layout for a plotted graph
 //A: Horizontal separation 
 //B: Vertical separation
 #define BMULT 30
+#define BAdj 35
 
 #define JUMPA 400
 #define JUMPB 60

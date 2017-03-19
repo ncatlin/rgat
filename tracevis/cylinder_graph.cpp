@@ -22,38 +22,33 @@ Creates a sphere layout for a plotted graph
 #include "cylinder_graph.h"
 #include "rendering.h"
 
+
 //A: Longitude. How many units along the side of the sphere a node is placed
 //B: Latitude. How many units up or down the side of the sphere a node is placed
-#define BMULT 2
 
-#define JUMPA 6
-#define JUMPB -6
+#define B_PX_OFFSET_FROM_TOP 35
+#define PIX_PER_B_COORD -120
+#define PIX_PER_B_MOD -30
+
+
+
+#define JUMPA 3
+#define JUMPB 3
 #define JUMPA_CLASH 15
-#define CALLB -20
+#define CALLB 3
 
 //how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
-#define CALLA_CLASH -40
-#define CALLB_CLASH -30
+#define CALLA_CLASH 12
+#define CALLB_CLASH -12
 
 //placement of external nodes, relative to the first caller
-#define EXTERNA -3
-#define EXTERNB -3
+#define EXTERNA -0.5
+#define EXTERNB 0.5
 
 //controls placement of the node after a return
-#define RETURNA_OFFSET 4
-#define RETURNB_OFFSET -3
+#define RETURNA_OFFSET -7
+#define RETURNB_OFFSET 5
 
-void cylinder_graph::initialiseDefaultDimensions()
-{
-	wireframeSupported = true;
-	preview_scalefactors->AEDGESEP = 1;
-	preview_scalefactors->BEDGESEP = 1;
-	preview_scalefactors->size = 200;
-	preview_scalefactors->baseSize = 200;
-
-	defaultViewShift = make_pair(135, -25);
-	defaultZoom = 80000;
-}
 
 //performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 //this is the function that determines how the graph is laid out
@@ -83,8 +78,8 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	if (n->external)
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-		position->a = a + 2 * lastNodeData->childexterns + 5;
-		position->b = b + lastNodeData->childexterns + 5;
+		position->a = a + EXTERNA - 1 * lastNodeData->childexterns;
+		position->b = b + EXTERNB + lastNodeData->childexterns;
 		position->bMod = bMod;
 		return;
 	}
@@ -95,7 +90,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		//small vertical distance between instructions in a basic block	
 	case eNodeNonFlow:
 	{
-		bMod += 1 * BMULT;
+		bMod += 1;
 		break;
 	}
 
@@ -105,7 +100,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
-			bMod += 1 * BMULT;
+			bMod += 1;
 			break;
 		}
 		//notice lack of break
@@ -114,7 +109,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	case eNodeException:
 	{
 		a += JUMPA;
-		b += JUMPB * BMULT;
+		b += JUMPB;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
@@ -131,12 +126,12 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	case eNodeCall:
 	{
 		//note: b sometimes huge after this?
-		b += CALLB * BMULT;
+		b += CALLB;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			a += CALLA_CLASH;
-			b += CALLB_CLASH * BMULT;
+			b += CALLB_CLASH;
 			++clash;
 		}
 
@@ -179,8 +174,8 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		}
 		else
 		{
-			a += EXTERNA;
-			b += EXTERNB * BMULT;
+			a += RETURNA_OFFSET;
+			b += RETURNB_OFFSET;
 		}
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
@@ -207,6 +202,27 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	position->bMod = bMod;
 }
 
+void cylinder_graph::initialise()
+{
+	layout = eCylinderLayout;
+};
+
+void cylinder_graph::initialiseDefaultDimensions()
+{
+	wireframeSupported = true;
+	preview_scalefactors->AEDGESEP = 1;
+	preview_scalefactors->BEDGESEP = 1;
+	preview_scalefactors->size = 400;
+	preview_scalefactors->baseSize = 400;
+
+	main_scalefactors->size = 7000;
+	main_scalefactors->baseSize = 7000;
+
+	defaultViewShift = make_pair(135, -25);
+	defaultZoom = 80000;
+}
+
+
 SPHERECOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 {
 	if (idx < node_coords.size())
@@ -230,17 +246,25 @@ bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 
 //take longitude a, latitude b, output coord in space
 //diamModifier allows specifying different sphere sizes
-void cylinder_graph::cylinderCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
+void cylinder_graph::cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
+{
+	return cylinderCoord(sc->a, sc->b, sc->bMod, c, dimensions, diamModifier);
+}
+
+void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
 
-	float a = ia;
-	b += BAdj; //offset start down on sphere
+	float fa = a;
+	float fb = 0;
+	fb += B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
+	fb += b * PIX_PER_B_COORD;
+	fb += bmod * PIX_PER_B_MOD;
 
-	//float sinb = sin((b*M_PI) / 180);
+			   //float sinb = sin((b*M_PI) / 180);
 	float r = (dimensions->size + diamModifier);// +0.1 to make sure we are above lines
 
 	c->x = r *  cos((a*M_PI) / 180);
-	c->y = b;
+	c->y = fb;
 	c->z = r *  sin((a*M_PI) / 180);
 }
 
@@ -252,9 +276,9 @@ void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mult
 	float tb = c->y;  //acos is a bit imprecise / wrong...
 
 	float ta = DEGREESMUL * (asin((c->z / r + 0.1)));
-	tb -= BAdj;
+	tb -= B_PX_OFFSET_FROM_TOP;
 	*a = ta;
-	*b = tb;
+	*b = (tb / PIX_PER_B_COORD);
 }
 
 //double version
@@ -307,7 +331,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 			float oldMidA, oldMidB;
 			FCOORD bezierC2;
 			cylinderAB(&middleC, &oldMidA, &oldMidB, dimensions);
-			cylinderCoord(oldMidA, oldMidB, &bezierC, dimensions, -(eLen / 2));
+			cylinderCoord(oldMidA, oldMidB, 0, &bezierC, dimensions, -(eLen / 2));
 
 			//i dont know why this problem happens or why this fixes it
 			if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
@@ -352,7 +376,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 void cylinder_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 {
 	glTranslatef(0, 0, -zoom);
-	glTranslatef(0, -yshift, 0);
+	glTranslatef(0, yshift * 60, 0);
 	glRotatef(-xshift, 0, 1, 0);
 }
 
@@ -543,8 +567,7 @@ void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLE
 	SPHERECOORD *nodeCoordSphere = get_node_coord(nodeIndex);
 	if (!nodeCoordSphere) return;
 
-	float adjB = nodeCoordSphere->b + float(nodeCoordSphere->bMod * BMODMAG);
-	cylinderCoord(nodeCoordSphere->a, adjB, &nodeCoordxyz, scale, lengthModifier);
+	cylinderCoord(nodeCoordSphere, &nodeCoordxyz, scale, lengthModifier);
 	drawHighlightLine(nodeCoordxyz, colour);
 }
 
@@ -554,9 +577,7 @@ void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO
 	FCOORD nodeCoordxyz;
 	if (!nodeCoord) return;
 
-	SPHERECOORD *sphereNodeCoord = (SPHERECOORD *)nodeCoord;
-	float adjB = sphereNodeCoord->b + float(sphereNodeCoord->bMod * BMODMAG);
-	cylinderCoord(sphereNodeCoord->a, adjB, &nodeCoordxyz, scale, lengthModifier);
+	cylinderCoord((SPHERECOORD *)nodeCoord,  &nodeCoordxyz, scale, lengthModifier);
 	drawHighlightLine(nodeCoordxyz, colour);
 }
 
@@ -564,10 +585,9 @@ void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO
 FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
 {
 	SPHERECOORD *nodeCoordSphere = get_node_coord(index);
-	float adjB = nodeCoordSphere->b + float(nodeCoordSphere->bMod * BMODMAG);
 
 	FCOORD result;
-	cylinderCoord(nodeCoordSphere->a, adjB, &result, dimensions, diamModifier);
+	cylinderCoord(nodeCoordSphere, &result, dimensions, diamModifier);
 	return result;
 }
 
@@ -648,10 +668,9 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 	else
 		spherecoord = get_node_coord(n->index);
 
-	float adjustedB = spherecoord->b + float(spherecoord->bMod * BMODMAG);
 	FCOORD screenc;
 
-	cylinderCoord(spherecoord->a, adjustedB, &screenc, dimensions, 0);
+	cylinderCoord(spherecoord, &screenc, dimensions, 0);
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
 	vector<GLfloat> *mainNcol = vertdata->acquire_col_write();

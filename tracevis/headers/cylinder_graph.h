@@ -35,7 +35,7 @@ class cylinder_graph : public plotted_graph
 public:
 	cylinder_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
 		: plotted_graph(protoGraph, coloursPtr) {
-		layout = eCylinderLayout;
+		initialise();
 	};
 	~cylinder_graph() {
 		free(wireframeStarts);
@@ -63,6 +63,7 @@ protected:
 	FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier);
 
 private:
+	void initialise();
 	void write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int height, PROJECTDATA *pd);
 	void display_graph(VISSTATE *clientState, PROJECTDATA *pd);
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
@@ -79,7 +80,8 @@ private:
 	map <NODEINDEX, bool> activeNodeMap;
 
 
-	void cylinderCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
+	void cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
+	void cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
 	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 
