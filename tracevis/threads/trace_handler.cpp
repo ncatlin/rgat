@@ -926,6 +926,9 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 	lastVertID = vertIt->second;
 
 	TAG thistag;
+
+
+	//wtf is this then?
 	string target_ip_s = string(strtok_s(entry, ",", &entry));
 	if (!caught_stoull(target_ip_s, &thistag.blockaddr, 16)) {
 		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ip_s << endl;
@@ -953,9 +956,8 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 
 		bool targetFound = false;
 		map <PID_TID, EDGELIST>::iterator callerIt = foundExtern->thread_callers.find(TID);
-		if (callerIt == foundExtern->thread_callers.end())
-			cerr << "[rgat] Error: Target not found for call to " << targ2 << " (no thread callers)" << endl;
-		else
+
+		if (callerIt != foundExtern->thread_callers.end())
 		{
 			int num = foundExtern->thread_callers.at(TID).size();
 			for (int i = 0; i < num; i++)
@@ -971,7 +973,23 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 				}
 			}
 			if (!targetFound)
-				cerr << "Error: Target not found for call to " << targ2 << endl;
+				cerr << "[rgat]Error: Target not found for call to " << targ2 << endl;
+		}
+		else
+		{
+			/*
+			i've only seen this fail when unlinking happens at the end of a program. eg:
+				int main()
+				{
+					for (many iterations){ do a thing; }
+					return 0;  <- targ2 points to address outside program... can't draw an edge to it
+				}
+			which is not a problem.
+			could come up with a way to only warn if the thread continues but it will be messy
+			*/
+			cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: " 
+				 << piddata->modpaths.at(foundExtern->modnum) <<" Addr: " << std::hex << targ2 << ")" << endl;
+			cerr << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
 		}
 	}
 
@@ -986,8 +1004,6 @@ void thread_trace_handler::process_trace_tag(char *entry)
 {
 	TAG thistag;
 	MEM_ADDRESS nextBlock;
-
-	//if (thisgraph->get_piddata()->bitwidth == 32)
 
 	thistag.blockaddr = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
 	nextBlock = stoull(strtok_s(entry, ",", &entry), 0, 16);

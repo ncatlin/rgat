@@ -658,7 +658,7 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 	externIt = externEntry.FindMember("M");
 	if (externIt == externEntry.MemberEnd())
 	{
-		cerr << "Error, module ID not found in extern entry" << endl;
+		cerr << "[rgat]Error: module ID not found in extern entry" << endl;
 		delete BBEntry;
 		return false;
 	}
@@ -667,7 +667,7 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 	externIt = externEntry.FindMember("S");
 	if (externIt == externEntry.MemberEnd())
 	{
-		cerr << "Error, symbol presence not recorded in extern entry" << endl;
+		cerr << "[rgat]Error: symbol presence not recorded in extern entry" << endl;
 		delete BBEntry;
 		return false;
 	}
@@ -774,7 +774,7 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 
 	unsigned int versionMaj, versionMin, versionFeature;
 	getSaveRGATVersion(procData, &versionMaj, &versionMin, &versionFeature);
-	cout << "Loading save by RGAT version " << versionMaj << "." << versionMin << "." << versionFeature << endl;
+	cout << "[rgat]Loading save by RGAT version " << versionMaj << "." << versionMin << "." << versionFeature << endl;
 
 	Value::ConstMemberIterator procDataIt = procData.FindMember("BitWidth");
 	if (procDataIt == procData.MemberEnd())
@@ -784,7 +784,7 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 	}
 
 	int bitWidth = procDataIt->value.GetInt();
-	cout << "Executable bitwidth: " << bitWidth << endl;
+	cout << "[rgat]Executable bitwidth: " << bitWidth << endl;
 
 	cs_mode disassemblyMode;
 	switch (bitWidth)
@@ -850,7 +850,7 @@ bool loadGraph(VISSTATE *clientState, PROCESS_DATA* piddata, const Value& graphD
 	PID_TID graphTID = memberIt->value.GetUint64();
 	string tidstring = to_string(graphTID);
 
-	display_only_status_message("Loading Graph " + tidstring, clientState);
+	display_only_status_message("Loading Graph thread ID: " + tidstring, clientState);
 
 	proto_graph *protograph = new proto_graph(piddata, graphTID);
 	sphere_graph *graph = new sphere_graph(piddata, graphTID, protograph, &clientState->config->graphColours);

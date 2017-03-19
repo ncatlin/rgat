@@ -1393,7 +1393,7 @@ void plotted_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJ
 		node_data *n = internalProtoGraph->safe_get_node(i);
 
 		if (n->external) continue;
-		if (!get_node_screen_pos(i, &screenCoord, &screenInfo)) continue;
+		if (!get_visible_node_pos(i, &screenCoord, &screenInfo)) continue;
 
 		if (screenInfo.show_all_always)
 			displayText = n->ins->ins_text;
@@ -1444,7 +1444,7 @@ void plotted_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			assert(n->external);
 
 			DCOORD screenCoord;
-			if (get_node_screen_pos(n->index, &screenCoord, &screenInfo))
+			if (get_visible_node_pos(n->index, &screenCoord, &screenInfo))
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -1462,7 +1462,7 @@ void plotted_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 			assert(!n->external);
 
 			DCOORD screenCoord;
-			if (get_node_screen_pos(n->index, &screenCoord, &screenInfo))
+			if (get_visible_node_pos(n->index, &screenCoord, &screenInfo))
 				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
@@ -1493,7 +1493,7 @@ void plotted_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PR
 		if (n->external || !n->ins->conditional) continue;
 
 		
-		if (!get_node_screen_pos(n->index, &screenCoord, &screenInfo)) continue;
+		if (!get_visible_node_pos(n->index, &screenCoord, &screenInfo)) continue;
 
 		const int vectNodePos = n->index*COLELEMS;
 		ALLEGRO_COLOR textcol;
@@ -1554,18 +1554,18 @@ void plotted_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJEC
 		if (firstNode->external) continue; //don't care about instruction in library call
 
 		DCOORD screenCoordA;
-		if (!get_node_screen_pos(ePair->first, &screenCoordA, &screenInfo)) continue;
+		if (!get_visible_node_pos(ePair->first, &screenCoordA, &screenInfo)) continue;
 	
 		edge_data *e = internalProtoGraph->get_edge(*ePair);
 		if (!e) {
-			cerr << "[rgat]WARNING: Heatmap edge skip" << endl;
+			cerr << "[rgat]Warning: Heatmap bad edge skip: "<< ePair->first << "," << ePair->second << endl;
 			continue;
 		}
 
 		if (ePair->second >= internalProtoGraph->get_num_nodes()) continue;
 		DCOORD screenCoordB;
 
-		if (!get_node_screen_pos(ePair->first, &screenCoordB, &screenInfo)) continue;
+		if (!get_visible_node_pos(ePair->first, &screenCoordB, &screenInfo)) continue;
 
 
 		DCOORD screenCoordMid;
@@ -1573,7 +1573,6 @@ void plotted_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJEC
 
 		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
 		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
-
 
 		if (clientState->modes.show_heat_location == eHeatEdges)
 		{
@@ -1602,14 +1601,11 @@ void plotted_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJEC
 			if (n->executionCount == 1) continue;
 
 			DCOORD screenCoordN;
-			if (!get_node_screen_pos(n->index, &screenCoordN, &screenInfo)) continue;
+			if (!get_visible_node_pos(n->index, &screenCoordN, &screenInfo)) continue;
 
 
 			ALLEGRO_COLOR *textcol;
-			if (!n->unreliableCount)
-				textcol = &al_col_white;
-			else
-				textcol = &al_col_cyan;
+			textcol = n->unreliableCount ? &al_col_cyan : &al_col_white;
 
 			al_draw_text(clientState->instructionFont, *textcol, screenCoordN.x + INS_X_OFF,
 				clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,

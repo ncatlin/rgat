@@ -59,7 +59,7 @@ public:
 	~plotted_graph();
 
 	virtual void initialiseDefaultDimensions() {};
-	virtual bool get_node_screen_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo) { cerr << "Warning: Virtual gnsp called"; return false; };
+	virtual bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo) { cerr << "Warning: Virtual gvnp called"; return false; };
 	virtual void render_static_graph(VISSTATE *clientState) {};
 	virtual void plot_wireframe(VISSTATE *clientState) {};
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};

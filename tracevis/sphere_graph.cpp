@@ -833,7 +833,8 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 	}
 }
 
-bool sphere_graph::get_node_screen_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo)
+//returns the screen coordinate of a node if it is on the screen
+bool sphere_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo)
 {
 	VISSTATE *clientState = screenInfo->clientState;
 	SPHERECOORD *nodeCoord = get_node_coord(nidx);
