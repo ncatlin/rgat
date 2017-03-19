@@ -220,7 +220,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 }
 
 //function names as they are executed
-void tree_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd, int screenw, int screenh)
+void tree_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int height, PROJECTDATA *pd, int screenw, int screenh)
 {
 	return;
 	DCOORD nodepos;
@@ -715,7 +715,7 @@ void tree_graph::performMainGraphDrawing(VISSTATE *clientState)
 	gather_projection_data(&pd);
 	display_graph(clientState, &pd);
 	write_rising_externs(clientState->standardFont, clientState->modes.nearSide,
-		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd, 
+		clientState->mainFrameSize.height, &pd, 
 		clientState->displaySize.width, clientState->displaySize.height);
 }
 

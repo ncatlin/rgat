@@ -219,39 +219,12 @@ SPHERECOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 	return 0;
 }
 
-/*
-input: an 'a' coordinate, left and right columns of screen, horiz separation
-return: if coord is within those columns
-only as accurate as the inaccurate mystery constant
 
-TODO: come up with a way of deriving row 'b' from a given coordinate
-then we can improve performance even more by looking at the top and bottom rows
-instead of getting everything in the column
-
-Graph tends to not have much per column though so this isn't a desperate requirement
-*/
-bool cylinder_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
+bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 {
-	/* the idea here is to calculate the column of the given coordinate
-	dunno how though!
-	FIX ME - to fix text display
-	*/
-	//bad bad bad bad bad bad bad... but close. gets worse the wider the graph is
-	int coordcolumn = floor(-a / (COLOUR_PICKING_MYSTERY_CONSTANTA / hedgesep));
-	coordcolumn = coordcolumn % ADIVISIONS;
-
-	if (leftcol > rightcol)
-	{
-		int shifter = ADIVISIONS - leftcol;
-		leftcol = 0;
-		rightcol += shifter;
-		coordcolumn += shifter;
-	}
-
-	//this code is horrendous and doesn't fix it and ugh
-	int stupidHack = 1;
-	if ((coordcolumn >= leftcol) && (coordcolumn <= (rightcol + stupidHack))) return true;
-	else return false;
+	//TODO after cylinder implementation! it does not need scaling, so this should be a straightforward formula
+	//
+	return true;
 }
 
 //take longitude a, latitude b, output coord in space
@@ -383,7 +356,7 @@ void cylinder_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 }
 
 //function names as they are executed
-void cylinder_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
+void cylinder_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int height, PROJECTDATA *pd)
 {
 	DCOORD nodepos;
 
@@ -423,7 +396,7 @@ void cylinder_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int
 
 		EXTTEXT *extxt = &displayNodeListIt->second;
 
-		if (nearOnly && !a_coord_on_screen(coord->a, left, right, main_scalefactors->AEDGESEP))
+		if (nearOnly && !a_coord_on_screen(coord->a, main_scalefactors->AEDGESEP))
 			continue;
 
 		if (!get_screen_pos(displayNodeListIt->first, mainnodesdata, pd, &nodepos))
@@ -435,69 +408,46 @@ void cylinder_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int
 
 }
 
+void cylinder_graph::draw_wireframe()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_SPHERE_POS]);
+	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_SPHERE_COL]);
+	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
+
+	glMultiDrawArrays(GL_LINE_LOOP, wireframeStarts, wireframeSizes, WIREFRAMELOOPS);
+}
+
+
+void cylinder_graph::gen_wireframe_buffers()
+{
+	glGenBuffers(2, wireframeVBOs);
+
+	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
+	wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
+	wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
+	for (int i = 0; i < WIREFRAMELOOPS; ++i)
+	{
+		wireframeStarts[i] = i*WF_POINTSPERLINE;
+		wireframeSizes[i] = WF_POINTSPERLINE;
+	}
+}
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 void cylinder_graph::render_static_graph(VISSTATE *clientState)
 {
-	
-	
-	/*
-	if (clientState->autoscale)
-	{
-		//doesn't take bmod into account
-		//keeps graph away from the south pole
-		int lowestPoint = maxB * main_scalefactors->BEDGESEP;
-		if (lowestPoint > clientState->config->lowB)
-		{
-			float startB = lowestPoint;
-			while (lowestPoint > clientState->config->lowB)
-			{
-				main_scalefactors->userBEDGESEP *= 0.98;
-				preview_scalefactors->userBEDGESEP *= 0.98;
-				recalculate_sphere_scale(main_scalefactors);
-				lowestPoint = maxB * main_scalefactors->BEDGESEP;
-			}
-			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
-
-			recalculate_sphere_scale(preview_scalefactors);
-			doResize = true;
-			vertResizeIndex = 0;
-		}
-
-		//more straightforward, stops graph from wrapping around the globe
-		int widestPoint = maxA * main_scalefactors->AEDGESEP;
-		if (widestPoint > clientState->config->farA)
-		{
-			float startA = widestPoint;
-			while (widestPoint > clientState->config->farA)
-			{
-				main_scalefactors->userAEDGESEP *= 0.99;
-				preview_scalefactors->userAEDGESEP *= 0.99;
-				recalculate_sphere_scale(main_scalefactors);
-				widestPoint = maxB * main_scalefactors->AEDGESEP;
-			}
-			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
-			recalculate_sphere_scale(preview_scalefactors);
-			doResize = true;
-			vertResizeIndex = 0;
-		}
-	}
-	*/
-
 	bool doResize = false;
 	if (doResize) previewNeedsResize = true;
 
 	if (doResize || vertResizeIndex > 0)
 	{
-		rescale_nodes(false);
-
-
 		zoomLevel = main_scalefactors->size;
 		needVBOReload_main = true;
 
-		if (clientState->wireframe_sphere)
-			clientState->remakeWireframe = true;
+		if (wireframe_data)
+			remakeWireframe = true;
 	}
 
 	int drawCount = render_new_edges(doResize);
@@ -507,28 +457,34 @@ void cylinder_graph::render_static_graph(VISSTATE *clientState)
 	redraw_anim_edges();
 }
 
-void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
+void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 {
-	if (clientState->remakeWireframe)
+	if (!wireframeBuffersCreated)
 	{
-		delete clientState->wireframe_sphere;
-		clientState->wireframe_sphere = 0;
-		clientState->remakeWireframe = false;
+		wireframeBuffersCreated = true;
+		gen_wireframe_buffers();
 	}
 
-	if (!clientState->wireframe_sphere)
+	if (remakeWireframe)
+	{
+		delete wireframe_data;
+		wireframe_data = 0;
+		remakeWireframe = false;
+	}
+
+	if (!wireframe_data)
 	{
 		plot_wireframe(clientState);
-		plot_colourpick_sphere(clientState);
 	}
 
-	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
+	draw_wireframe();
 }
 
 //must be called by main opengl context thread
 void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 {
-	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+	cout << "plot wif called" << endl;
+	wireframe_data = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
@@ -537,7 +493,6 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 	const int points = WF_POINTSPERLINE;
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
-	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
@@ -570,8 +525,8 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 		}
 	}
 
-	load_VBO(VBO_SPHERE_POS, clientState->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
-	load_VBO(VBO_SPHERE_COL, clientState->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
+	load_VBO(VBO_SPHERE_POS, wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
+	load_VBO(VBO_SPHERE_COL, wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
 	wireframe_data->release_pos_write();
 	wireframe_data->release_col_write();
 }
@@ -768,6 +723,9 @@ void cylinder_graph::performMainGraphDrawing(VISSTATE *clientState)
 {
 	if (get_pid() != clientState->activePid->PID) return;
 
+	if (clientState->modes.wireframe)
+		maintain_draw_wireframe(clientState);
+
 	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < internalProtoGraph->loggedCalls.size())
 		clientState->logSize = internalProtoGraph->fill_extern_log(clientState->textlog, clientState->logSize);
@@ -796,8 +754,7 @@ void cylinder_graph::performMainGraphDrawing(VISSTATE *clientState)
 	PROJECTDATA pd;
 	gather_projection_data(&pd);
 	display_graph(clientState, &pd);
-	write_rising_externs(clientState->standardFont, clientState->modes.nearSide,
-		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd);
+	write_rising_externs(clientState->standardFont, clientState->modes.nearSide, clientState->mainFrameSize.height, &pd);
 }
 
 //standard animated or static display of the active graph
@@ -844,8 +801,7 @@ bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCR
 					  bypass by turning instruction display to "always on"
 					  */
 
-	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-		clientState->rightcolumn, main_scalefactors->AEDGESEP))
+	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, main_scalefactors->AEDGESEP))
 		return false;
 
 	DCOORD screenCoord;

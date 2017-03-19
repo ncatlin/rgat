@@ -143,14 +143,11 @@ drawing new highlights for things that match the active filter
 */
 void VISSTATE::performIrregularActions()
 {
-	SCREEN_EDGE_PIX TBRG;
-	//update where camera is pointing on sphere, used to choose which node text to draw
-	edge_picking_colours(this, &TBRG, true);
 
-	leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
-	rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 
 	plotted_graph * graph = (plotted_graph *)activeGraph;
+	graph->irregularActions(this);
+
 	HIGHLIGHT_DATA *highlightData = &graph->highlightData;
 	if (highlightData->highlightState && graph->get_protoGraph()->active)
 	{
@@ -158,17 +155,6 @@ void VISSTATE::performIrregularActions()
 	}
 }
 
-void VISSTATE::initWireframeBufs()
-{
-	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
-	wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	for (int i = 0; i < WIREFRAMELOOPS; ++i)
-	{
-		wireframeStarts[i] = i*WF_POINTSPERLINE;
-		wireframeSizes[i] = WF_POINTSPERLINE;
-	}
-}
 
 void VISSTATE::displayActiveGraph()
 {
@@ -187,9 +173,6 @@ void VISSTATE::displayActiveGraph()
 		performIrregularActions();
 	}
 
-	if (modes.wireframe)
-		thisActiveGraph->maintain_draw_wireframe(this, wireframeStarts, wireframeSizes);
-
 	if (modes.diffView == eDiffInactive)
 		thisActiveGraph->performMainGraphDrawing(this);
 	else
@@ -202,7 +185,6 @@ void VISSTATE::displayActiveGraph()
 		animFinished = false;
 		((TraceVisGUI*)widgets)->controlWindow->notifyAnimFinished();
 	}
-
 
 	al_set_target_backbuffer(maindisplay);
 	if (modes.preview)

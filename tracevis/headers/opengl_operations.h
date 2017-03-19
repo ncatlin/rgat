@@ -34,13 +34,9 @@ void loadVBOs(GLuint *VBOs, GRAPH_DISPLAY_DATA *verts, GRAPH_DISPLAY_DATA *lines
 
 void array_render(int prim, int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 
-void rotate_to_user_view(VISSTATE *clientState);
 
-void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear = true);
 void array_render_points(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
 void array_render_lines(int POSVBO, int COLVBO, GLuint *buffers, int quantity);
-void draw_wireframe(VISSTATE *clientState, GLint *starts, GLint *sizes);
-void plot_colourpick_sphere(VISSTATE *clientState);
 
 void drawHighlightLine(FCOORD endPt, ALLEGRO_COLOR *colour);
 void gather_projection_data(PROJECTDATA *pd);

@@ -63,7 +63,7 @@ protected:
 	FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier);
 
 private:
-	void write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd, int screenw, int screenh);
+	void write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int height, PROJECTDATA *pd, int screenw, int screenh);
 	void display_graph(VISSTATE *clientState, PROJECTDATA *pd);
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
 	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);

@@ -37,9 +37,12 @@ public:
 		: plotted_graph(protoGraph, coloursPtr) {
 		layout = eSphereLayout;
 	};
-	~sphere_graph() {};
+	~sphere_graph() {
+		free(wireframeStarts);
+		free(wireframeSizes);
+	};
 
-	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
+	void maintain_draw_wireframe(VISSTATE *clientState);
 	void plot_wireframe(VISSTATE *clientState);
 	void performMainGraphDrawing(VISSTATE *clientState);
 	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo);
@@ -51,14 +54,17 @@ public:
 	unsigned int get_graph_size() { return main_scalefactors->size; };
 	SPHERECOORD *get_node_coord(NODEINDEX idx);
 
+	void orient_to_user_view(int xshift, int yshift, long zoom);
+	void initialiseDefaultDimensions();
+
 	void toggle_autoscale();
 	bool pending_rescale() { return rescale; }
 	void adjust_A_edgeSep(float delta) { main_scalefactors->userAEDGESEP += delta; rescale = true;};
 	void adjust_B_edgeSep(float delta) { main_scalefactors->userBEDGESEP += delta; rescale = true;};
 	void reset_edgeSep() { main_scalefactors->userBEDGESEP = main_scalefactors->userAEDGESEP = 1; rescale = true;};
 	void adjust_size(float delta) { main_scalefactors->userSizeModifier += delta;  rescale = true;};
-	void orient_to_user_view(int xshift, int yshift, long zoom);
-	void initialiseDefaultDimensions();
+
+	void irregularActions(VISSTATE *clientState);
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -72,7 +78,8 @@ private:
 	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		ALLEGRO_COLOR *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos);
-	bool a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep);
+	bool a_coord_on_screen(int a, float hedgesep);
+
 
 	vector<SPHERECOORD> node_coords;
 
@@ -87,5 +94,22 @@ private:
 	void sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
 	void sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	void sphereAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+	void edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear);
+	void rotate_sphere_to_user_view(VISSTATE *clientState);
+	void plot_colourpick_sphere(VISSTATE *clientState);
+
+	void draw_wireframe();
+	void gen_wireframe_buffers();
+	GRAPH_DISPLAY_DATA *wireframe_data;
+	GLuint wireframeVBOs[2];
+	bool remakeWireframe = false;
+	bool wireframeBuffersCreated = false;
+
+	GLint *wireframeStarts, *wireframeSizes;
+
+	GRAPH_DISPLAY_DATA *col_pick_sphere_data = NULL;
+	int leftcolumn = 0;
+	int rightcolumn = 0;
+	GLuint colSphereVBOs[2];
 };
 

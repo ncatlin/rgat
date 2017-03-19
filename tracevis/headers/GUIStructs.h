@@ -97,13 +97,6 @@ public:
 	VISSTATE() {};
 	~VISSTATE() {};
 
-	void gen_wireframe_buffers()
-	{
-		glGenBuffers(2, colSphereVBOs);
-		glGenBuffers(2, wireframeVBOs);
-		initWireframeBufs();
-	}
-
 #ifdef XP_COMPATIBLE
 	HANDLE graphPtrMutex = CreateMutex(NULL, FALSE, NULL);
 #else
@@ -115,7 +108,6 @@ public:
 	void performIrregularActions();
 	void change_mode(eUIEventCode mode);
 	void draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer);
-	void initWireframeBufs();
 	void setFontPath(string path) { instructionFontpath = path; }
 	void setInstructionFontSize(int ptSize);
 	int getInstructionFontSize() { return instructionFontSize; }
@@ -123,11 +115,9 @@ public:
 	void closeFrame(agui::Frame *);
 	void openFrame(agui::Frame *);
 
-	//cache to avoid lock every time we move mouse
+	//this is a cache to avoid locking every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
-	void set_activegraph_size(long size) {
-		activeGraphSize = size;
-	}
+	void set_activegraph_size(long size) {	activeGraphSize = size;	}
 	long activeGraphSize = 0;
 
 	ALLEGRO_DISPLAY *maindisplay = 0;
@@ -154,9 +144,6 @@ public:
 	HEIGHTWIDTH displaySize;
 	HEIGHTWIDTH mainFrameSize;
 
-
-	int leftcolumn = 0;
-	int rightcolumn = 0;
 
 	void *widgets = 0;
 	int animationUpdate = 0;
@@ -190,8 +177,6 @@ public:
 	PROCESS_DATA *activePid = NULL;
 	PROCESS_DATA* spawnedProcess = NULL;
 
-	GRAPH_DISPLAY_DATA *col_pick_sphere = NULL;
-	GLuint colSphereVBOs[2];
 	
 	map<PID_TID, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
@@ -210,12 +195,7 @@ public:
 
 	int previewRenderFrame = 0;
 
-	GRAPH_DISPLAY_DATA *wireframe_sphere = NULL;
-	GLuint wireframeVBOs[2];
-	bool remakeWireframe = false;
 
-	GLint *wireframeStarts;
-	GLint *wireframeSizes;
 
 private:
 	string instructionFontpath;

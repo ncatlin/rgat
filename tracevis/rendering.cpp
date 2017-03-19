@@ -242,6 +242,8 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		diffgraph->needVBOReload_main = false;
 	}
 
+	//todo: wireframe
+
 	if (clientState->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
 

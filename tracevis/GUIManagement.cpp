@@ -502,8 +502,6 @@ bool controlSetup() {
 
 void cleanup_for_exit(VISSTATE *cstate) 
 {
-	free(cstate->wireframeStarts);
-	free(cstate->wireframeSizes);
 	al_destroy_display(cstate->maindisplay);
 }
 

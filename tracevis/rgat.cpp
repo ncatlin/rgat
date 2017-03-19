@@ -766,7 +766,6 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	clientState.gen_wireframe_buffers();
 	clientState.event_queue = newQueue;
 	clientState.maindisplay = newDisplay;
 	clientState.displaySize.height = al_get_display_height(clientState.maindisplay);
@@ -900,12 +899,6 @@ int main(int argc, char **argv)
 					vector<EXTTEXT> newVec;
 					clientState.externFloatingText[protoGraph->get_TID()] = newVec;
 				}
-
-				clientState.wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
-				if (clientState.modes.wireframe)
-					graph->plot_wireframe(&clientState);
-
-				plot_colourpick_sphere(&clientState);
 
 				widgets->toggleSmoothDrawing(false);
 				protoGraph->assign_modpath(activePid);

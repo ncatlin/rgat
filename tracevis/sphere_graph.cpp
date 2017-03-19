@@ -43,6 +43,172 @@ Creates a sphere layout for a plotted graph
 #define RETURNA_OFFSET -4
 #define RETURNB_OFFSET 3
 
+//draw a segmented sphere with row gradiented red, cols green
+void  sphere_graph::plot_colourpick_sphere(VISSTATE *clientState)
+{
+	if (col_pick_sphere_data)
+		delete col_pick_sphere_data;
+
+	col_pick_sphere_data = new GRAPH_DISPLAY_DATA(COL_SPHERE_BUFSIZE);
+	
+	int diam = ((plotted_graph *)clientState->activeGraph)->main_scalefactors->size;
+	int rowi, coli;
+	float tlx, tlz, trx, topy, trz;
+	float basey, brx, brz, blz, blx;
+	int rowAngle = (int)(360 / BDIVISIONS);
+
+	vector<GLfloat> *spherepos = col_pick_sphere_data->acquire_pos_write(23);
+	vector<GLfloat> *spherecol = col_pick_sphere_data->acquire_col_write();
+	for (rowi = 180; rowi >= 0; rowi -= rowAngle)
+	{
+		float colb = (float)rowi / 180;
+		float ringSizeTop, ringSizeBase, anglel, angler;
+		for (coli = 0; coli < ADIVISIONS; ++coli)
+		{
+			float cola = 1 - ((float)coli / ADIVISIONS);
+			float iitop = rowi;
+			float iibase = rowi + rowAngle;
+
+			anglel = (2 * M_PI * coli) / ADIVISIONS;
+			angler = (2 * M_PI * (coli + 1)) / ADIVISIONS;
+
+			ringSizeTop = diam * sin((iitop*M_PI) / 180);
+			topy = diam * cos((iitop*M_PI) / 180);
+			tlx = ringSizeTop * cos(anglel);
+			trx = ringSizeTop * cos(angler);
+			tlz = ringSizeTop * sin(anglel);
+			trz = ringSizeTop * sin(angler);
+
+			ringSizeBase = diam * sin((iibase*M_PI) / 180);
+			basey = diam * cos((iibase*M_PI) / 180);
+			blx = ringSizeBase * cos(anglel);
+			blz = ringSizeBase * sin(anglel);
+			brx = ringSizeBase * cos(angler);
+			brz = ringSizeBase * sin(angler);
+
+			int i;
+			for (i = 0; i < 4; ++i)
+			{
+				spherecol->push_back(colb);
+				spherecol->push_back(cola);
+				spherecol->push_back(0);
+			}
+
+			//draw a segment of the sphere clockwise
+			spherepos->push_back(tlx);
+			spherepos->push_back(topy);
+			spherepos->push_back(tlz);
+
+			spherepos->push_back(trx);
+			spherepos->push_back(topy);
+			spherepos->push_back(trz);
+
+			spherepos->push_back(brx);
+			spherepos->push_back(basey);
+			spherepos->push_back(brz);
+
+			spherepos->push_back(blx);
+			spherepos->push_back(basey);
+			spherepos->push_back(blz);
+		}
+	}
+
+	load_VBO(VBO_SPHERE_POS, colSphereVBOs, COL_SPHERE_BUFSIZE, &spherepos->at(0));
+	load_VBO(VBO_SPHERE_COL, colSphereVBOs, COL_SPHERE_BUFSIZE, &spherecol->at(0));
+	col_pick_sphere_data->release_col_write();
+	col_pick_sphere_data->release_pos_write();
+}
+
+void  sphere_graph::rotate_sphere_to_user_view(VISSTATE *clientState)
+{
+	glTranslatef(0, 0, -clientState->cameraZoomlevel);
+	glRotatef(-clientState->view_shift_y, 1, 0, 0);
+	glRotatef(-clientState->view_shift_x, 0, 1, 0);
+}
+
+//draw a colourful gradiented sphere on the screen
+//read colours on edge so we can see where window is on sphere
+//reset back to state before the call
+//return colours in passed SCREEN_EDGE_PIX struct
+//pass doclear false if you want to see it for debugging
+void  sphere_graph::edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX *TBRG, bool doClear)
+{
+	if (!col_pick_sphere_data)
+		plot_colourpick_sphere(clientState);
+
+	glPushMatrix();
+	//make sure camera only sees the nearest side of the sphere
+	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50,
+		clientState->cameraZoomlevel);
+	glLoadIdentity();
+
+	rotate_sphere_to_user_view(clientState);
+
+	glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[0]);
+	glVertexPointer(3, GL_FLOAT, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[1]);
+	glColorPointer(3, GL_FLOAT, 0, 0);
+	glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
+
+	//no idea why this ajustment needed, found by trial and error
+	int height = clientState->mainFrameSize.height - 20;
+	int width = al_get_bitmap_width(clientState->mainGraphBMP);
+	int halfheight = height / 2;
+	int halfwidth = width / 2;
+
+	GLfloat pixelRGB[3];
+	glReadPixels(0, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->leftgreen = pixelRGB[1];
+	glReadPixels(width - 1, halfheight, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->rightgreen = pixelRGB[1];
+	//not used yet
+	glReadPixels(halfwidth, height - 1, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->topred = pixelRGB[0];
+	glReadPixels(halfwidth, 3, 1, 1, GL_RGB, GL_FLOAT, pixelRGB);
+	TBRG->bottomred = pixelRGB[0];
+	glPopMatrix();
+
+	if (doClear) //also need to call this function on every frame to see it
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void sphere_graph::irregularActions(VISSTATE *clientState)
+{
+	SCREEN_EDGE_PIX TBRG;
+	//update where camera is pointing on sphere, used to choose which node text to draw
+	edge_picking_colours(clientState, &TBRG, true);
+
+	leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
+	rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
+}
+
+void sphere_graph::draw_wireframe()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_SPHERE_POS]);
+	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_SPHERE_COL]);
+	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
+
+	glMultiDrawArrays(GL_LINE_LOOP, wireframeStarts, wireframeSizes, WIREFRAMELOOPS);
+}
+
+
+void sphere_graph::gen_wireframe_buffers()
+{
+	glGenBuffers(2, colSphereVBOs);
+	glGenBuffers(2, wireframeVBOs);
+
+	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
+	wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
+	wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
+	for (int i = 0; i < WIREFRAMELOOPS; ++i)
+	{
+		wireframeStarts[i] = i*WF_POINTSPERLINE;
+		wireframeSizes[i] = WF_POINTSPERLINE;
+	}
+}
+
 void sphere_graph::initialiseDefaultDimensions()
 {
 	wireframeSupported = true;
@@ -230,7 +396,7 @@ instead of getting everything in the column
 
 Graph tends to not have much per column though so this isn't a desperate requirement
 */
-bool sphere_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
+bool sphere_graph::a_coord_on_screen(int a, float hedgesep)
 {
 	/* the idea here is to calculate the column of the given coordinate
 	dunno how though!
@@ -239,18 +405,20 @@ bool sphere_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hed
 	//bad bad bad bad bad bad bad... but close. gets worse the wider the graph is
 	int coordcolumn = floor(-a / (COLOUR_PICKING_MYSTERY_CONSTANTA / hedgesep));
 	coordcolumn = coordcolumn % ADIVISIONS;
+	int tempLeftCol = leftcolumn;
+	int tempRightCol = rightcolumn;
 
-	if (leftcol > rightcol)
+	if (tempLeftCol > tempRightCol)
 	{
-		int shifter = ADIVISIONS - leftcol;
-		leftcol = 0;
-		rightcol += shifter;
+		int shifter = ADIVISIONS - tempLeftCol;
+		tempLeftCol = 0;
+		tempRightCol += shifter;
 		coordcolumn += shifter;
 	}
 
 	//this code is horrendous and doesn't fix it and ugh
 	int stupidHack = 1;
-	if ((coordcolumn >= leftcol) && (coordcolumn <= (rightcol + stupidHack))) return true;
+	if ((coordcolumn >= tempLeftCol) && (coordcolumn <= (tempRightCol + stupidHack))) return true;
 	else return false;
 }
 
@@ -423,7 +591,7 @@ void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int l
 
 		EXTTEXT *extxt = &displayNodeListIt->second;
 
-		if (nearOnly && !a_coord_on_screen(coord->a, left, right, main_scalefactors->AEDGESEP))
+		if (nearOnly && !a_coord_on_screen(coord->a, main_scalefactors->AEDGESEP))
 			continue;
 
 		if (!get_screen_pos(displayNodeListIt->first, mainnodesdata, pd, &nodepos))
@@ -500,8 +668,8 @@ void sphere_graph::render_static_graph(VISSTATE *clientState)
 		zoomLevel = main_scalefactors->size;
 		needVBOReload_main = true;
 
-		if (clientState->wireframe_sphere)
-			clientState->remakeWireframe = true;
+		if (wireframe_data)
+			remakeWireframe = true;
 	}
 
 	int drawCount = render_new_edges(doResize);
@@ -511,28 +679,34 @@ void sphere_graph::render_static_graph(VISSTATE *clientState)
 	redraw_anim_edges();
 }
 
-void sphere_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
+void sphere_graph::maintain_draw_wireframe(VISSTATE *clientState)
 {
-	if (clientState->remakeWireframe)
+	if (!wireframeBuffersCreated)
 	{
-		delete clientState->wireframe_sphere;
-		clientState->wireframe_sphere = 0;
-		clientState->remakeWireframe = false;
+		wireframeBuffersCreated = true;
+		gen_wireframe_buffers();
 	}
 
-	if (!clientState->wireframe_sphere)
+	if (remakeWireframe)
+	{
+		delete wireframe_data;
+		wireframe_data = 0;
+		remakeWireframe = false;
+	}
+
+	if (!wireframe_data)
 	{
 		plot_wireframe(clientState);
 		plot_colourpick_sphere(clientState);
 	}
 
-	draw_wireframe(clientState, wireframeStarts, wireframeSizes);
+	draw_wireframe();
 }
 
 //must be called by main opengl context thread
 void sphere_graph::plot_wireframe(VISSTATE *clientState)
 {
-	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+	wireframe_data = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
@@ -541,7 +715,6 @@ void sphere_graph::plot_wireframe(VISSTATE *clientState)
 	const int points = WF_POINTSPERLINE;
 
 	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
-	GRAPH_DISPLAY_DATA *wireframe_data = clientState->wireframe_sphere;
 
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
@@ -574,8 +747,8 @@ void sphere_graph::plot_wireframe(VISSTATE *clientState)
 		}
 	}
 
-	load_VBO(VBO_SPHERE_POS, clientState->wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
-	load_VBO(VBO_SPHERE_COL, clientState->wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
+	load_VBO(VBO_SPHERE_POS, wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
+	load_VBO(VBO_SPHERE_COL, wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
 	wireframe_data->release_pos_write();
 	wireframe_data->release_col_write();
 }
@@ -772,6 +945,9 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState)
 {
 	if (get_pid() != clientState->activePid->PID) return;
 
+	if (clientState->modes.wireframe)
+		maintain_draw_wireframe(clientState);
+
 	//add any new logged calls to the call log window
 	if (clientState->textlog && clientState->logSize < internalProtoGraph->loggedCalls.size())
 		clientState->logSize = internalProtoGraph->fill_extern_log(clientState->textlog, clientState->logSize);
@@ -801,7 +977,7 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState)
 	gather_projection_data(&pd);
 	display_graph(clientState, &pd);
 	write_rising_externs(clientState->standardFont, clientState->modes.nearSide,
-		clientState->leftcolumn, clientState->rightcolumn, clientState->mainFrameSize.height, &pd);
+		leftcolumn, rightcolumn, clientState->mainFrameSize.height, &pd);
 }
 
 //standard animated or static display of the active graph
@@ -848,8 +1024,7 @@ bool sphere_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREE
 	bypass by turning instruction display to "always on"
 	*/
 
-	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-		clientState->rightcolumn, main_scalefactors->AEDGESEP))
+	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, main_scalefactors->AEDGESEP))
 		return false;
 
 	DCOORD screenCoord;
