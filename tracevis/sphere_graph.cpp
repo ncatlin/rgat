@@ -323,7 +323,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			int result = -1;
 
 			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
+			for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
 				if (stackIt->first == n->address)
 				{
 					result = stackIt->second;
@@ -341,7 +341,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 
 				//may not have returned to the last item in the callstack
 				//delete everything inbetween
-				callStack.resize(stackIt - callStack.begin());
+				callStack->resize(stackIt - callStack->begin());
 			}
 			else
 			{
@@ -901,7 +901,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 				lastNode->lastVertType = eNodeCall;
 				//if code arrives to next instruction after a return then arrange as a function
 				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-				callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+				callStack->push_back(make_pair(nextAddress, lastNode->lastVertID));
 				break;
 			}
 			default:

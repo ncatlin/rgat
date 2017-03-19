@@ -27,7 +27,7 @@ performs functions that are specific to the sphere shape
 #include "plotted_graph.h"
 #include "traceMisc.h"
 
-
+#define CYLINDER_PIXELS_PER_ROW 1500
 
 class cylinder_graph : public plotted_graph
 {
@@ -79,9 +79,9 @@ private:
 	map <NODEINDEX, bool> activeNodeMap;
 
 
-	void sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
-	void sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
-	void sphereAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+	void cylinderCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
+	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 
 	void draw_wireframe();
 	void gen_wireframe_buffers();

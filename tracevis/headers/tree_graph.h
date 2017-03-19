@@ -74,7 +74,6 @@ private:
 	void treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults);
 
 	vector<TREECOORD> node_coords;
-	vector<pair<MEM_ADDRESS, NODEINDEX>> callStack;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;

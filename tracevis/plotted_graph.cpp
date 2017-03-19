@@ -1341,6 +1341,7 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 		previewNeedsResize = false;
 	}
 
+	callStack = &previewCallStack;
 	if (!render_new_preview_edges(clientState))
 	{
 		cerr << "ERROR: Failed drawing new edges in render_preview_graph! " << endl;
@@ -1351,7 +1352,7 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 
 void plotted_graph::updateMainRender(VISSTATE *clientState)
 {
-
+	callStack = &mainCallStack;
 	render_static_graph(clientState);
 
 	updateTitle_NumPrimitives(clientState->maindisplay, clientState, get_mainnodes()->get_numVerts(),

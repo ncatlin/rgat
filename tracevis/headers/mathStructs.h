@@ -43,8 +43,8 @@ struct TREECOORD {
 };
 
 struct GRAPH_SCALE {
-	long size = 20000;
-	long baseSize = 20000;
+	long size = 10000;
+	long baseSize = 10000;
 	float AEDGESEP = 1;
 	float userAEDGESEP = 1;
 	float BEDGESEP = 1;
