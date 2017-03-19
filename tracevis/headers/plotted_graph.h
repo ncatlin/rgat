@@ -45,6 +45,13 @@ struct PLOT_TRACK {
 	eEdgeNodeType lastVertType = eNodeNonFlow;
 };
 
+struct SCREEN_QUERY_PTRS {
+	VISSTATE *clientState;
+	GRAPH_DISPLAY_DATA *mainverts;
+	PROJECTDATA *pd;
+	bool show_all_always;
+};
+
 class plotted_graph
 {
 public:
@@ -52,8 +59,7 @@ public:
 	~plotted_graph();
 
 	virtual void initialiseDefaultDimensions() {};
-	virtual void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) {};
-	virtual void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd) {};
+	virtual bool get_node_screen_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo) { cerr << "Warning: Virtual gnsp called"; return false; };
 	virtual void render_static_graph(VISSTATE *clientState) {};
 	virtual void plot_wireframe(VISSTATE *clientState) {};
 	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
@@ -78,6 +84,8 @@ public:
 	float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph->savedAnimationData.size()); }
 	void render_live_animation(float fadeRate);
 	void set_last_active_node();
+	void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
+	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
 
 	proto_graph * get_protoGraph() { return internalProtoGraph; }
 	bool isWireframeSupported() { return wireframeSupported; }
@@ -186,9 +194,6 @@ private:
 
 	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions) {cerr << "Warning: Virtual add_node called\n" << endl; return 0;	};
-	virtual void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd) { cerr << "Warning: Virtual draw_edge_heat_text called\n" << endl; };
-	virtual void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata) { cerr << "Warning: Virtual draw_condition_ins_text called\n" << endl; };
-
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 	bool isGraphBusy();
@@ -202,7 +207,8 @@ private:
 	bool fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
 	void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
 	void brighten_node_list(ANIMATIONENTRY *entry, int brightTime, vector <NODEINDEX> *nodeIDList);
-
+	void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata);
+	void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 
 	void process_live_animation_updates();
 	void process_live_update();

@@ -1369,3 +1369,251 @@ void plotted_graph::gen_graph_VBOs()
 }
 
 
+//iterate through all the nodes, draw instruction text for the ones in view
+//TODO: in animation mode don't show text for inactive nodes
+void plotted_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
+{
+	if (clientState->modes.show_ins_text == eInsTextOff) return;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	stringstream ss;
+	DCOORD screenCoord;
+	string displayText("?");
+
+	SCREEN_QUERY_PTRS screenInfo;
+	screenInfo.clientState = clientState;
+	screenInfo.mainverts = get_mainnodes();
+	screenInfo.pd = pd;
+	screenInfo.show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
+	int pp = 0;
+	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
+	for (NODEINDEX i = 0; i < numVerts; ++i)
+	{
+		node_data *n = internalProtoGraph->safe_get_node(i);
+
+		if (n->external) continue;
+		if (!get_node_screen_pos(i, &screenCoord, &screenInfo)) continue;
+
+		if (screenInfo.show_all_always)
+			displayText = n->ins->ins_text;
+		else
+		{
+			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
+				displayText = n->ins->ins_text;
+			else
+				displayText = n->ins->mnemonic;
+		}
+
+
+		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << displayText;
+
+		al_draw_text(clientState->instructionFont, al_col_white, screenCoord.x + INS_X_OFF,
+			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			ss.str().c_str());
+		ss.str("");
+		pp++;
+	}
+	cout << "drew " << pp << " ins texts" << endl;
+}
+
+//show functions/args for externs in active graph
+void plotted_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
+{
+	if (clientState->modes.show_symbol_verbosity == eSymboltextOff) return;
+
+	SCREEN_QUERY_PTRS screenInfo;
+	screenInfo.clientState = clientState;
+	screenInfo.mainverts = get_mainnodes();
+	screenInfo.pd = pd;
+	screenInfo.show_all_always = false;
+
+	vector<NODEINDEX> externListCopy;
+	vector<NODEINDEX> internListCopy;
+
+	if (clientState->modes.show_symbol_location != eSymboltextInternal)
+	{
+		obtainMutex(internalProtoGraph->highlightsMutex, 1052);
+		externListCopy = internalProtoGraph->externalSymbolList;
+		dropMutex(internalProtoGraph->highlightsMutex);
+
+		vector<NODEINDEX>::iterator externCallIt = externListCopy.begin();
+		for (; externCallIt != externListCopy.end(); ++externCallIt)
+		{
+			node_data *n = internalProtoGraph->safe_get_node(*externCallIt);
+			assert(n->external);
+
+			DCOORD screenCoord;
+			if (get_node_screen_pos(n->index, &screenCoord, &screenInfo))
+				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+		}
+	}
+
+	if (clientState->modes.show_symbol_location != eSymboltextExternal)
+	{
+		obtainMutex(internalProtoGraph->highlightsMutex, 1053);
+		internListCopy = internalProtoGraph->internalSymbolList;
+		dropMutex(internalProtoGraph->highlightsMutex);
+
+		vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
+		for (; internSymIt != internListCopy.end(); ++internSymIt)
+		{
+			node_data *n = internalProtoGraph->safe_get_node(*internSymIt);
+			assert(!n->external);
+
+			DCOORD screenCoord;
+			if (get_node_screen_pos(n->index, &screenCoord, &screenInfo))
+				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
+		}
+	}
+}
+
+//only draws text for instructions with unsatisfied conditions
+void plotted_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
+{
+	if (clientState->modes.show_ins_text == eInsTextOff) return;
+
+	SCREEN_QUERY_PTRS screenInfo;
+	screenInfo.clientState = clientState;
+	screenInfo.mainverts = get_mainnodes();
+	screenInfo.pd = pd;
+	screenInfo.show_all_always = false;
+
+	DCOORD screenCoord;
+
+	//iterate through nodes looking for ones that map to screen coords
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
+	NODEINDEX numVerts = vertsdata->get_numVerts();
+	GLfloat *vcol = vertsdata->readonly_col();
+	for (NODEINDEX i = 0; i < numVerts; ++i)
+	{
+		node_data *n = internalProtoGraph->safe_get_node(i);
+
+		if (n->external || !n->ins->conditional) continue;
+
+		
+		if (!get_node_screen_pos(n->index, &screenCoord, &screenInfo)) continue;
+
+		const int vectNodePos = n->index*COLELEMS;
+		ALLEGRO_COLOR textcol;
+		textcol.r = vcol[vectNodePos + ROFF];
+		textcol.g = vcol[vectNodePos + GOFF];
+		textcol.b = vcol[vectNodePos + BOFF];
+		textcol.a = 1;
+
+		string itext;
+		if (!show_all_always) {
+			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
+				itext = n->ins->ins_text;
+			else
+				itext = n->ins->mnemonic;
+		}
+		else itext = "?";
+
+		stringstream ss;
+		ss << "0x" << std::hex << n->ins->address << ": " << itext;
+		al_draw_text(clientState->instructionFont, textcol, screenCoord.x + INS_X_OFF,
+			clientState->mainFrameSize.height - screenCoord.y + COND_INSTEXT_Y_OFF, ALLEGRO_ALIGN_LEFT,
+			ss.str().c_str());
+	}
+}
+
+
+//draw number of times each edge has been executed in middle of edge
+void plotted_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
+{
+	if (clientState->modes.show_heat_location == eHeatNone) return;
+
+	SCREEN_QUERY_PTRS screenInfo;
+	screenInfo.clientState = clientState;
+	screenInfo.mainverts = get_mainnodes();
+	screenInfo.pd = pd;
+	screenInfo.show_all_always = false;
+
+	plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
+	GRAPH_DISPLAY_DATA *vertsdata = get_mainnodes();
+
+	//iterate through nodes looking for ones that map to screen coords
+	int edgelistIdx = 0;
+	int edgelistEnd = graph->heatmaplines->get_renderedEdges();
+
+	DCOORD screenCoord;
+	set <node_data *> displayNodes;
+
+	EDGELIST *edgelist = internalProtoGraph->edgeLptr();
+	//assert(edgelistEnd <= edgelist->size());
+	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
+	{
+		NODEPAIR *ePair = &edgelist->at(edgelistIdx);
+		node_data *firstNode = internalProtoGraph->safe_get_node(ePair->first);
+
+		//should these checks should be done on the midpoint rather than the first node?
+		if (firstNode->external) continue; //don't care about instruction in library call
+
+		DCOORD screenCoordA;
+		if (!get_node_screen_pos(ePair->first, &screenCoordA, &screenInfo)) continue;
+	
+		edge_data *e = internalProtoGraph->get_edge(*ePair);
+		if (!e) {
+			cerr << "[rgat]WARNING: Heatmap edge skip" << endl;
+			continue;
+		}
+
+		if (ePair->second >= internalProtoGraph->get_num_nodes()) continue;
+		DCOORD screenCoordB;
+
+		if (!get_node_screen_pos(ePair->first, &screenCoordB, &screenInfo)) continue;
+
+
+		DCOORD screenCoordMid;
+		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
+
+		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
+		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
+
+
+		if (clientState->modes.show_heat_location == eHeatEdges)
+		{
+			unsigned long edgeWeight = e->chainedWeight;
+			if (edgeWeight < 2) continue;
+
+			string weightString = to_string(edgeWeight);
+			al_draw_text(clientState->instructionFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
+				clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+				weightString.c_str());
+		}
+		else
+		{
+			displayNodes.insert(firstNode);
+			displayNodes.insert(internalProtoGraph->safe_get_node(ePair->second));
+		}
+
+	}
+
+	if (clientState->modes.show_heat_location == eHeatNodes)
+	{
+		set <node_data *>::iterator nodesIt = displayNodes.begin();
+		for (; nodesIt != displayNodes.end(); ++nodesIt)
+		{
+			node_data *n = *nodesIt;
+			if (n->executionCount == 1) continue;
+
+			DCOORD screenCoordN;
+			if (!get_node_screen_pos(n->index, &screenCoordN, &screenInfo)) continue;
+
+
+			ALLEGRO_COLOR *textcol;
+			if (!n->unreliableCount)
+				textcol = &al_col_white;
+			else
+				textcol = &al_col_cyan;
+
+			al_draw_text(clientState->instructionFont, *textcol, screenCoordN.x + INS_X_OFF,
+				clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
+				to_string(n->executionCount).c_str());
+		}
+	}
+}

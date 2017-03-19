@@ -157,7 +157,6 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			int result = -1;
 
 			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-			cout << "last node was ret/ext, searching for subsequent addresss (" << hex << n->address << " in callstack" << endl;
 			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
 				if (stackIt->first == n->address)
 				{
@@ -168,7 +167,6 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 			//if so, position next node near caller
 			if (result != -1)
 			{
-				cout << "Found a return for node " << n->index << ". caller was " << result << endl;
 				SPHERECOORD *caller = get_node_coord(result);
 				assert(caller);
 				a = caller->a + RETURNA_OFFSET;
@@ -835,276 +833,35 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 	}
 }
 
-//iterate through all the nodes, draw instruction text for the ones in view
-//TODO: in animation mode don't show text for inactive nodes
-void sphere_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
+bool sphere_graph::get_node_screen_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo)
 {
-	if (clientState->modes.show_ins_text == eInsTextOff) return;
+	VISSTATE *clientState = screenInfo->clientState;
+	SPHERECOORD *nodeCoord = get_node_coord(nidx);
+	if (!nodeCoord) 
+		return false; //usually happens with block interrupted by exception
 
-	//iterate through nodes looking for ones that map to screen coords
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	/*
+	this check removes the bulk of the offscreen instructions with low performance penalty, including those
+	on screen but on the other side of the sphere
+	implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
+	bypass by turning instruction display to "always on"
+	*/
 
-	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
-	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
-	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
-	stringstream ss;
+	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
+		clientState->rightcolumn, main_scalefactors->AEDGESEP))
+		return false;
+
 	DCOORD screenCoord;
-	string itext("?");
-	for (NODEINDEX i = 0; i < numVerts; ++i)
-	{
-		node_data *n = internalProtoGraph->safe_get_node(i);
-		if (n->external) continue;
+	if (!get_screen_pos(nidx, screenInfo->mainverts, screenInfo->pd, &screenCoord)) return false; //in graph but not rendered
+	if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) return false;
+	if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) return false;
 
-		SPHERECOORD *nodeCoord = get_node_coord(i);
-		if (!nodeCoord) continue; //usually happens with block interrupted by exception
-
-		//this check removes the bulk of the instructions at a low performance cost, including those
-		//on screen but on the other side of the sphere
-		//implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
-		//bypass by turning instruction display always on
-		if (!show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-			clientState->rightcolumn, main_scalefactors->AEDGESEP))
-			continue;
-
-
-		if (!get_screen_pos(i, mainverts, pd, &screenCoord)) continue; //in graph but not rendered
-		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
-
-		if (show_all_always)
-			itext = n->ins->ins_text;
-		else
-		{
-			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
-				itext = n->ins->ins_text;
-			else
-				itext = n->ins->mnemonic;
-		}
-			
-
-		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << itext;
-
-		al_draw_text(clientState->instructionFont, al_col_white, screenCoord.x + INS_X_OFF,
-			clientState->mainFrameSize.height - screenCoord.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			ss.str().c_str());
-		ss.str("");
-	}
+	*screenPos = screenCoord;
+	return true;
 }
 
-//show functions/args for externs in active graph
-void sphere_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
-{
-	if (clientState->modes.show_symbol_verbosity == eSymboltextOff) return;
-
-	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
-	
-	vector<NODEINDEX> externListCopy;
-	vector<NODEINDEX> internListCopy;
-
-	if (clientState->modes.show_symbol_location != eSymboltextInternal )
-	{
-		obtainMutex(internalProtoGraph->highlightsMutex, 1052);
-		externListCopy = internalProtoGraph->externalSymbolList;
-		dropMutex(internalProtoGraph->highlightsMutex);
-
-		vector<NODEINDEX>::iterator externCallIt = externListCopy.begin();
-		for (; externCallIt != externListCopy.end(); ++externCallIt)
-		{
-			node_data *n = internalProtoGraph->safe_get_node(*externCallIt);
-			assert(n->external);
-
-			DCOORD screenCoord;
-			if (!get_screen_pos(*externCallIt, mainverts, pd, &screenCoord)) continue;
-
-			if (clientState->modes.nearSide)
-			{
-				SPHERECOORD *nodeCoord = get_node_coord(*externCallIt);
-				assert(nodeCoord);
-				if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-					clientState->rightcolumn, main_scalefactors->AEDGESEP))
-					continue;
-			}
-
-			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
-				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
-		}
-	}
-
-	if (clientState->modes.show_symbol_location != eSymboltextExternal)
-	{
-		obtainMutex(internalProtoGraph->highlightsMutex, 1053);
-		internListCopy = internalProtoGraph->internalSymbolList;
-		dropMutex(internalProtoGraph->highlightsMutex);
-
-		vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
-		for (; internSymIt != internListCopy.end(); ++internSymIt)
-		{
-			node_data *n = internalProtoGraph->safe_get_node(*internSymIt);
-			assert(!n->external);
-
-			DCOORD screenCoord;
-			if (!get_screen_pos(*internSymIt, mainverts, pd, &screenCoord)) continue;
-
-			if (clientState->modes.nearSide)
-			{
-				SPHERECOORD *nodeCoord = get_node_coord(*internSymIt);
-				assert(nodeCoord);
-				if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
-					clientState->rightcolumn, main_scalefactors->AEDGESEP))
-					continue;
-			}
-
-			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
-				draw_internal_symbol(clientState, clientState->standardFont, screenCoord, n);
-		}
-	}
-}
-
-//only draws text for instructions with unsatisfied conditions
-void sphere_graph::draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata)
-{
-	if (clientState->modes.show_ins_text == eInsTextOff) return;
-
-	//iterate through nodes looking for ones that map to screen coords
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
-	NODEINDEX numVerts = vertsdata->get_numVerts();
-	GLfloat *vcol = vertsdata->readonly_col();
-	for (NODEINDEX i = 0; i < numVerts; ++i)
-	{
-		node_data *n = internalProtoGraph->safe_get_node(i);
-		
-		if (n->external || !n->ins->conditional) continue;
-
-		SPHERECOORD *nodeCoord = get_node_coord(i);
-		if (!nodeCoord) continue;
-		if (!a_coord_on_screen(nodeCoord->a, clientState->leftcolumn, clientState->rightcolumn,
-			main_scalefactors->AEDGESEP)) continue;
-
-		//todo: experiment with performance re:how much of these checks to include
-		DCOORD screenCoord;
-		if (!get_screen_pos(n->index, vertsdata, pd, &screenCoord)) continue;
-		if (screenCoord.x > clientState->mainFrameSize.width || screenCoord.x < -100) continue;
-		if (screenCoord.y > clientState->mainFrameSize.height || screenCoord.y < -100) continue;
-
-		const int vectNodePos = n->index*COLELEMS;
-		ALLEGRO_COLOR textcol;
-		textcol.r = vcol[vectNodePos + ROFF];
-		textcol.g = vcol[vectNodePos + GOFF];
-		textcol.b = vcol[vectNodePos + BOFF];
-		textcol.a = 1;
-
-		string itext;
-		if (!show_all_always) {
-			if (zdist < 5 && clientState->modes.show_ins_text == eInsTextAuto)
-				itext = n->ins->ins_text;
-			else
-				itext = n->ins->mnemonic;
-		}
-		else itext = "?";
-
-		stringstream ss;
-		ss << "0x" << std::hex << n->ins->address << ": " << itext;
-		al_draw_text(clientState->instructionFont, textcol, screenCoord.x + INS_X_OFF,
-			clientState->mainFrameSize.height - screenCoord.y + COND_INSTEXT_Y_OFF, ALLEGRO_ALIGN_LEFT,
-			ss.str().c_str());
-	}
-}
-
-//draw number of times each edge has been executed in middle of edge
-void sphere_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd)
-{
-	if (clientState->modes.show_heat_location == eHeatNone) return;
-
-	plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
-	GRAPH_DISPLAY_DATA *vertsdata = get_mainnodes();
-
-	//iterate through nodes looking for ones that map to screen coords
-	int edgelistIdx = 0;
-	int edgelistEnd = graph->heatmaplines->get_renderedEdges();
-
-	set <node_data *> displayNodes;
-
-	EDGELIST *edgelist = internalProtoGraph->edgeLptr();
-	//assert(edgelistEnd <= edgelist->size());
-	for (; edgelistIdx < edgelistEnd; ++edgelistIdx)
-	{
-		NODEPAIR *ePair = &edgelist->at(edgelistIdx);
-		node_data *firstNode = internalProtoGraph->safe_get_node(ePair->first);
-		
-		//should these checks should be done on the midpoint rather than the first node?
-		if (firstNode->external) continue; //don't care about instruction in library call
-
-		SPHERECOORD *firstNodeCoord = get_node_coord(ePair->first);
-		if (!firstNodeCoord) continue;
-		if (!a_coord_on_screen(firstNodeCoord->a, clientState->leftcolumn,
-			clientState->rightcolumn, graph->main_scalefactors->AEDGESEP))
-			continue;
-
-		edge_data *e = internalProtoGraph->get_edge(*ePair);
-		if (!e) {
-			cerr << "[rgat]WARNING: Heatmap edge skip" << endl;
-			continue;
-		}
-
-		DCOORD screenCoordA;
-		if (!get_screen_pos(ePair->first, vertsdata, pd, &screenCoordA)) continue;
-
-		if (ePair->second >= internalProtoGraph->get_num_nodes()) continue;
-		DCOORD screenCoordB;
-
-		if (!get_screen_pos(ePair->second, vertsdata, pd, &screenCoordB)) continue;
-
-		DCOORD screenCoordMid;
-		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
-
-		if (screenCoordMid.x > clientState->mainFrameSize.width || screenCoordMid.x < -100) continue;
-		if (screenCoordMid.y > clientState->mainFrameSize.height || screenCoordMid.y < -100) continue;
 
 
-		if (clientState->modes.show_heat_location == eHeatEdges)
-		{
-			unsigned long edgeWeight = e->chainedWeight;
-			if (edgeWeight < 2) continue;
-
-			string weightString = to_string(edgeWeight);
-			al_draw_text(clientState->instructionFont, clientState->config->heatmap.lineTextCol, screenCoordMid.x + INS_X_OFF,
-				clientState->mainFrameSize.height - screenCoordMid.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-				weightString.c_str());
-		}
-		else
-		{
-			displayNodes.insert(firstNode);
-			displayNodes.insert(internalProtoGraph->safe_get_node(ePair->second));
-		}
-		
-	}
-
-	if (clientState->modes.show_heat_location == eHeatNodes)
-	{
-		set <node_data *>::iterator nodesIt = displayNodes.begin();
-		for (; nodesIt != displayNodes.end(); ++nodesIt)
-		{
-			node_data *n = *nodesIt;
-			if (n->executionCount == 1) continue;
-
-			DCOORD screenCoordN;
-			if (!get_screen_pos(n->index, vertsdata, pd, &screenCoordN)) continue; //in graph but not rendered
-
-			ALLEGRO_COLOR *textcol;
-			if (!n->unreliableCount)
-				textcol = &al_col_white;
-			else
-				textcol = &al_col_cyan;
-
-			al_draw_text(clientState->instructionFont, *textcol, screenCoordN.x + INS_X_OFF,
-				clientState->mainFrameSize.height - screenCoordN.y + INS_Y_OFF, ALLEGRO_ALIGN_LEFT,
-				to_string(n->executionCount).c_str());
-		}
-	}
-}
 
 //this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
 //takes a node index and returns the x/y on the screen

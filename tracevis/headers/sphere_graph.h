@@ -27,6 +27,8 @@ performs functions that are specific to the sphere shape
 #include "plotted_graph.h"
 #include "traceMisc.h"
 
+
+
 class sphere_graph : public plotted_graph
 {
 
@@ -40,8 +42,7 @@ public:
 	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
 	void plot_wireframe(VISSTATE *clientState);
 	void performMainGraphDrawing(VISSTATE *clientState);
-	void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
-	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
+	bool get_node_screen_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo);
 	void render_static_graph(VISSTATE *clientState);
 	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 	void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
@@ -62,8 +63,6 @@ public:
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions);
-	void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
-	void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata);
 	FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier);
 
 private:
