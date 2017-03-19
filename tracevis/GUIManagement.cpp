@@ -31,21 +31,7 @@ RadioButtonListener::RadioButtonListener(VISSTATE *state, agui::RadioButton *s1,
 	clientState = state; 
 }
 
-#define LAYOUT_ICONS_X_END LAYOUT_ICONS_X2 + LAYOUT_ICONS_W
-#define LAYOUT_ICONS_Y_END LAYOUT_ICONS_Y + LAYOUT_ICONS_H
-graphLayouts layout_selection_click(int mousex, int mousey)
-{
-	if (mousey > LAYOUT_ICONS_Y_END || mousex > LAYOUT_ICONS_X_END || mousex < LAYOUT_ICONS_X1 || mousey < LAYOUT_ICONS_Y)
-		return eLayoutInvalid;
 
-	if (mousex >= LAYOUT_ICONS_X1 && mousex <= (LAYOUT_ICONS_X1 + LAYOUT_ICONS_W))
-		return eSphereLayout;
-
-	if (mousex >= LAYOUT_ICONS_X2 && mousex <= (LAYOUT_ICONS_X2 + LAYOUT_ICONS_W))
-		return eTreeLayout;
-
-	return eLayoutInvalid;
-}
 
 void TraceVisGUI::showHideHighlightFrame() 
 {
@@ -112,13 +98,28 @@ void TraceVisGUI::paintWidgets()
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	widgets->render();
 
-	al_draw_tinted_bitmap(sphereIcon, al_map_rgba(255, 255, 255, 255),  LAYOUT_ICONS_X1, LAYOUT_ICONS_Y, 0);
-	al_draw_tinted_bitmap(treeIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X2, LAYOUT_ICONS_Y, 0);
+	al_draw_tinted_bitmap(cylinderIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X1, LAYOUT_ICONS_Y, 0);
+	al_draw_tinted_bitmap(sphereIcon, al_map_rgba(255, 255, 255, 255),  LAYOUT_ICONS_X2, LAYOUT_ICONS_Y, 0);
+	al_draw_tinted_bitmap(treeIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X3, LAYOUT_ICONS_Y, 0);
 }
 
 void TraceVisGUI::setLayoutIcon()
 {
 	ALLEGRO_BITMAP *oldbmp = al_get_target_bitmap();
+
+	al_set_target_bitmap(cylinderIcon);
+	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
+	if (clientState->currentLayout == eCylinderLayout)
+	{
+		al_draw_tinted_bitmap(cylinderIconBase, al_map_rgba(255, 255, 255, 255), 0, 0, 0);
+		al_draw_rectangle(1, 1, 47, 47, al_col_white, 2);
+		al_draw_rectangle(3, 3, 45, 45, al_col_black, 2);
+	}
+	else
+	{
+		al_draw_tinted_bitmap(cylinderIconBase, al_map_rgba(255, 255, 255, 100), 0, 0, 0);
+	}
+
 
 	al_set_target_bitmap(sphereIcon);
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
@@ -146,6 +147,8 @@ void TraceVisGUI::setLayoutIcon()
 		al_draw_tinted_bitmap(treeIconBase, al_map_rgba(255, 255, 255, 100), 0, 0, 0);
 	}
 
+
+
 	al_set_target_bitmap(oldbmp);
 }
 
@@ -167,6 +170,59 @@ void TraceVisGUI::showGraphToolTip(proto_graph *graph, PROCESS_DATA *piddata, in
 	//diff frame is at 0,0 so paint it relative to that
 	agui::Widget *widget = this->diffWindow->diffFrame;
 	tippy->showToolTip(tipText.str(),200,x,y,widget);
+}
+
+void TraceVisGUI::initialiseIcons(string resourcepath)
+{
+	stringstream iconsPath;
+	iconsPath << resourcepath << "\\layoutIcons.png";
+	ALLEGRO_BITMAP *iconsBmp = al_load_bitmap(iconsPath.str().c_str());
+
+	sphereIconBase = al_create_bitmap(48, 48);
+	sphereIcon = al_create_bitmap(48, 48);
+	treeIconBase = al_create_bitmap(48, 48);
+	treeIcon = al_create_bitmap(48, 48);
+	cylinderIcon = al_create_bitmap(48, 48);
+	cylinderIconBase = al_create_bitmap(48, 48);
+
+	if (iconsBmp)
+	{
+		al_set_target_bitmap(cylinderIconBase);
+		al_draw_bitmap_region(iconsBmp, 0, 0, 48, 48, 0, 0, 0);
+		al_set_target_bitmap(sphereIconBase);
+		al_draw_bitmap_region(iconsBmp, 48, 0, 48, 48, 0, 0, 0);
+		al_set_target_bitmap(treeIconBase);
+		al_draw_bitmap_region(iconsBmp, 96, 0, 48, 48, 0, 0, 0);
+
+	}
+	else
+	{
+		ALLEGRO_FONT *ifont = al_load_ttf_font(resourcepath.c_str(), 14, 0);
+
+		if (ifont)
+		{
+			al_set_target_bitmap(sphereIconBase);
+			al_draw_text(ifont, al_col_white, 20, 20, 0, "S");
+
+			al_set_target_bitmap(treeIconBase);
+			al_draw_text(ifont, al_col_white, 20, 20, 0, "T");
+
+			al_set_target_bitmap(cylinderIconBase);
+			al_draw_text(ifont, al_col_white, 20, 20, 0, "C");
+		}
+		else
+		{
+			al_set_target_bitmap(sphereIconBase);
+			al_clear_to_color(al_col_red);
+
+			al_set_target_bitmap(treeIconBase);
+			al_clear_to_color(al_col_green);
+
+			al_set_target_bitmap(cylinderIconBase);
+			al_clear_to_color(al_col_purple);
+		}
+	}
+	setLayoutIcon();
 }
 
 void TraceVisGUI::fitToResize()
@@ -279,46 +335,10 @@ void TraceVisGUI::widgetSetup(string resourcepath, string fontfile) {
 
 	textConfigBox = new textDialog(widgets, clientState, defaultFont);
 
-	sphereIconBase = al_create_bitmap(48, 48);
-	treeIconBase = al_create_bitmap(48, 48);
-	sphereIcon = al_create_bitmap(48, 48);
-	treeIcon = al_create_bitmap(48, 48);
-
 	al_init_image_addon();
 
-	stringstream iconsPath;
-	iconsPath << resourcepath << "\\layoutIcons.png";
-	ALLEGRO_BITMAP *iconsBmp = al_load_bitmap(iconsPath.str().c_str());
-
-	if (iconsBmp)
-	{
-		al_set_target_bitmap(sphereIconBase);
-		al_draw_bitmap_region(iconsBmp, 0, 0, 48, 48, 0, 0, 0);
-		al_set_target_bitmap(treeIconBase);
-		al_draw_bitmap_region(iconsBmp, 48, 0, 48, 48, 0, 0, 0);
-	}
-	else
-	{
-		ALLEGRO_FONT *ifont = al_load_ttf_font(fontPath.c_str(), 14, 0);
-
-		if (ifont)
-		{
-			al_set_target_bitmap(sphereIconBase);
-			al_draw_text(ifont, al_col_white, 20, 20, 0, "O");
-
-			al_set_target_bitmap(treeIconBase);
-			al_draw_text(ifont, al_col_white, 20, 20, 0, "^");
-		}
-		else
-		{
-			al_set_target_bitmap(sphereIconBase);
-			al_clear_to_color(al_col_red);
-
-			al_set_target_bitmap(treeIconBase);
-			al_clear_to_color(al_col_green);
-		}
-	}
-	setLayoutIcon();
+	initialiseIcons(resourcepath);
+	
 
 }
 

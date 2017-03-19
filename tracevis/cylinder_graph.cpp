@@ -19,7 +19,7 @@ Creates a sphere layout for a plotted graph
 */
 
 #include "stdafx.h"
-#include "sphere_graph.h"
+#include "cylinder_graph.h"
 #include "rendering.h"
 
 //A: Longitude. How many units along the side of the sphere a node is placed
@@ -43,7 +43,7 @@ Creates a sphere layout for a plotted graph
 #define RETURNA_OFFSET -4
 #define RETURNB_OFFSET 3
 
-void sphere_graph::initialiseDefaultDimensions()
+void cylinder_graph::initialiseDefaultDimensions()
 {
 	wireframeSupported = true;
 	preview_scalefactors->AEDGESEP = 0.15;
@@ -57,9 +57,9 @@ void sphere_graph::initialiseDefaultDimensions()
 
 //performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 //this is the function that determines how the graph is laid out
-void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
+void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
-	
+
 	SPHERECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
 	{
@@ -93,112 +93,112 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 	{
 
 		//small vertical distance between instructions in a basic block	
-		case eNodeNonFlow: 
+	case eNodeNonFlow:
+	{
+		bMod += 1 * BMULT;
+		break;
+	}
+
+	case eNodeJump://long diagonal separation to show distinct basic blocks
+	{
+		//check if this is a conditional which fell through (ie: sequential)
+		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
 			bMod += 1 * BMULT;
 			break;
 		}
+		//notice lack of break
+	}
 
-		case eNodeJump://long diagonal separation to show distinct basic blocks
+	case eNodeException:
+	{
+		a += JUMPA;
+		b += JUMPB * BMULT;
+
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
-			//check if this is a conditional which fell through (ie: sequential)
-			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-			if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
+			a += JUMPA_CLASH;
+			++clash;
+		}
+
+		//if (clash > 15)
+		//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+		break;
+	}
+
+	//long purple line to show possible distinct functional blocks of the program
+	case eNodeCall:
+	{
+		//note: b sometimes huge after this?
+		b += CALLB * BMULT;
+
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		{
+			a += CALLA_CLASH;
+			b += CALLB_CLASH * BMULT;
+			++clash;
+		}
+
+		if (clash)
+		{
+			a += CALLA_CLASH;
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+		}
+		break;
+	}
+
+	case eNodeReturn:
+		//previous externs handled same as previous returns
+	case eNodeExternal:
+	{
+		//returning to address in call stack?
+		int result = -1;
+
+		vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
+		for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
+			if (stackIt->first == n->address)
 			{
-				bMod += 1 * BMULT;
+				result = stackIt->second;
 				break;
 			}
-			//notice lack of break
-		} 
-	
-		case eNodeException: 
+
+		//if so, position next node near caller
+		if (result != -1)
 		{
-			a += JUMPA;
-			b += JUMPB * BMULT;
+			SPHERECOORD *caller = get_node_coord(result);
+			assert(caller);
+			a = caller->a + RETURNA_OFFSET;
+			b = caller->b + RETURNB_OFFSET;
+			bMod = caller->bMod;
 
-			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-			{
-				a += JUMPA_CLASH;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
-			break;
+			//may not have returned to the last item in the callstack
+			//delete everything inbetween
+			callStack.resize(stackIt - callStack.begin());
+		}
+		else
+		{
+			a += EXTERNA;
+			b += EXTERNB * BMULT;
 		}
 
-		//long purple line to show possible distinct functional blocks of the program
-		case eNodeCall:
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
-			//note: b sometimes huge after this?
-			b += CALLB * BMULT;
-
-			while (usedCoords.find(make_pair(a,b)) != usedCoords.end())
-			{
-				a += CALLA_CLASH;
-				b += CALLB_CLASH * BMULT;
-				++clash;
-			}
-
-			if (clash)
-			{
-				a += CALLA_CLASH;
-				//if (clash > 15)
-				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
-			}
-			break;
+			a += JUMPA_CLASH;
+			b += 1;
+			++clash;
 		}
 
-		case eNodeReturn:
-			//previous externs handled same as previous returns
-		case eNodeExternal:
-		{
-			//returning to address in call stack?
-			int result = -1;
+		//if (clash > 15)
+		//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
+		break;
+	}
 
-			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-			for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
-				if (stackIt->first == n->address)
-				{
-					result = stackIt->second;
-					break;
-				}
-
-			//if so, position next node near caller
-			if (result != -1)
-			{
-				SPHERECOORD *caller = get_node_coord(result);
-				assert(caller);
-				a = caller->a + RETURNA_OFFSET;
-				b = caller->b + RETURNB_OFFSET;
-				bMod = caller->bMod;
-
-				//may not have returned to the last item in the callstack
-				//delete everything inbetween
-				callStack.resize(stackIt - callStack.begin());
-			}
-			else
-			{
-				a += EXTERNA;
-				b += EXTERNB * BMULT;
-			}
-
-			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-			{
-				a += JUMPA_CLASH;
-				b += 1;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
-			break;
-		}
-
-		default:
-			if (lastNode->lastVertType != eFIRST_IN_THREAD)
-				cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
-			break;
+	default:
+		if (lastNode->lastVertType != eFIRST_IN_THREAD)
+			cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
+		break;
 	}
 
 	position->a = a;
@@ -206,7 +206,7 @@ void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *
 	position->bMod = bMod;
 }
 
-SPHERECOORD * sphere_graph::get_node_coord(NODEINDEX idx)
+SPHERECOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 {
 	if (idx < node_coords.size())
 	{
@@ -230,7 +230,7 @@ instead of getting everything in the column
 
 Graph tends to not have much per column though so this isn't a desperate requirement
 */
-bool sphere_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
+bool cylinder_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hedgesep)
 {
 	/* the idea here is to calculate the column of the given coordinate
 	dunno how though!
@@ -256,7 +256,7 @@ bool sphere_graph::a_coord_on_screen(int a, int leftcol, int rightcol, float hed
 
 //take longitude a, latitude b, output coord in space
 //diamModifier allows specifying different sphere sizes
-void sphere_graph::sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier) 
+void cylinder_graph::sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
 
 	float a = ia*dimensions->AEDGESEP;
@@ -272,7 +272,7 @@ void sphere_graph::sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensio
 }
 
 //take coord in space, convert back to a/b
-void sphere_graph::sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
+void cylinder_graph::sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
 	float acosb = acos(c->y / (mults->size + 0.099));
 	float tb = DEGREESMUL*acosb;  //acos is a bit imprecise / wrong...
@@ -284,7 +284,7 @@ void sphere_graph::sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 }
 
 //double version
-void sphere_graph::sphereAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
+void cylinder_graph::sphereAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
 	FCOORD FFF;
 	FFF.x = c->x;
@@ -294,7 +294,7 @@ void sphere_graph::sphereAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 }
 
 //connect two nodes with an edge of automatic number of vertices
-int sphere_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
+int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	ALLEGRO_COLOR *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos)
 {
 	float r, b, g, a;
@@ -375,7 +375,7 @@ int sphere_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD
 	return curvePoints;
 }
 
-void sphere_graph::orient_to_user_view(int xshift, int yshift, long zoom)
+void cylinder_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 {
 	glTranslatef(0, 0, -zoom);
 	glRotatef(-yshift, 1, 0, 0);
@@ -383,7 +383,7 @@ void sphere_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 }
 
 //function names as they are executed
-void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
+void cylinder_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int left, int right, int height, PROJECTDATA *pd)
 {
 	DCOORD nodepos;
 
@@ -438,18 +438,12 @@ void sphere_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int l
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
-void sphere_graph::render_static_graph(VISSTATE *clientState)
+void cylinder_graph::render_static_graph(VISSTATE *clientState)
 {
-	bool doResize = false;
-	if (rescale)
-	{
-		recalculate_sphere_scale(main_scalefactors);
-		recalculate_sphere_scale(preview_scalefactors);
-		rescale = false;
-		doResize = true;
-	}
-
-	if (autoscale)
+	
+	
+	/*
+	if (clientState->autoscale)
 	{
 		//doesn't take bmod into account
 		//keeps graph away from the south pole
@@ -489,7 +483,9 @@ void sphere_graph::render_static_graph(VISSTATE *clientState)
 			vertResizeIndex = 0;
 		}
 	}
+	*/
 
+	bool doResize = false;
 	if (doResize) previewNeedsResize = true;
 
 	if (doResize || vertResizeIndex > 0)
@@ -511,7 +507,7 @@ void sphere_graph::render_static_graph(VISSTATE *clientState)
 	redraw_anim_edges();
 }
 
-void sphere_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
+void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes)
 {
 	if (clientState->remakeWireframe)
 	{
@@ -530,7 +526,7 @@ void sphere_graph::maintain_draw_wireframe(VISSTATE *clientState, GLint *wirefra
 }
 
 //must be called by main opengl context thread
-void sphere_graph::plot_wireframe(VISSTATE *clientState)
+void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 {
 	clientState->wireframe_sphere = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
@@ -581,7 +577,7 @@ void sphere_graph::plot_wireframe(VISSTATE *clientState)
 }
 
 //draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
-void sphere_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	FCOORD nodeCoordxyz;
 	SPHERECOORD *nodeCoordSphere = get_node_coord(nodeIndex);
@@ -593,7 +589,7 @@ void sphere_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGR
 }
 
 //draws a line from the center of the sphere to nodepos. adds lengthModifier to the end
-void sphere_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
+void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier)
 {
 	FCOORD nodeCoordxyz;
 	if (!nodeCoord) return;
@@ -605,7 +601,7 @@ void sphere_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, ALLEGRO_C
 }
 
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied sphere multipliers/size
-FCOORD sphere_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
+FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
 {
 	SPHERECOORD *nodeCoordSphere = get_node_coord(index);
 	float adjB = nodeCoordSphere->b + float(nodeCoordSphere->bMod * BMODMAG);
@@ -617,16 +613,16 @@ FCOORD sphere_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, fl
 
 
 //IMPORTANT: Must have edge reader lock to call this
-bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
+bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
 	unsigned long nodeCoordQty = node_coords.size();
-	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty) 
+	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
 
 	edge_data *e = &internalProtoGraph->edgeDict.at(ePair);
-	
+
 	GRAPH_SCALE *scaling;
 	if (preview)
 		scaling = preview_scalefactors;
@@ -656,7 +652,7 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 
 
 //converts a single node into node vertex data
-int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
+int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	GRAPH_SCALE *dimensions)
 {
 	//printf("in add node! node %d\n", n->index);
@@ -707,33 +703,33 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 	ALLEGRO_COLOR *active_col = 0;
 	if (n->external)
 		lastNode->lastVertType = eNodeExternal;
-	else 
+	else
 	{
 		switch (n->ins->itype)
 		{
-			case eInsUndefined:
-				lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
-				break;
+		case eInsUndefined:
+			lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
+			break;
 
-			case eInsJump:
-				lastNode->lastVertType = eNodeJump;
-				break; 
+		case eInsJump:
+			lastNode->lastVertType = eNodeJump;
+			break;
 
-			case eInsReturn: 
-				lastNode->lastVertType = eNodeReturn;
-				break; 
+		case eInsReturn:
+			lastNode->lastVertType = eNodeReturn;
+			break;
 
-			case eInsCall:
-			{
-				lastNode->lastVertType = eNodeCall;
-				//if code arrives to next instruction after a return then arrange as a function
-				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-				callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-				break;
-			}
-			default:
-				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
-				assert(0);
+		case eInsCall:
+		{
+			lastNode->lastVertType = eNodeCall;
+			//if code arrives to next instruction after a return then arrange as a function
+			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
+			callStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+			break;
+		}
+		default:
+			cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
+			assert(0);
 		}
 	}
 
@@ -768,7 +764,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 	return 1;
 }
 
-void sphere_graph::performMainGraphDrawing(VISSTATE *clientState)
+void cylinder_graph::performMainGraphDrawing(VISSTATE *clientState)
 {
 	if (get_pid() != clientState->activePid->PID) return;
 
@@ -805,7 +801,7 @@ void sphere_graph::performMainGraphDrawing(VISSTATE *clientState)
 }
 
 //standard animated or static display of the active graph
-void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
+void cylinder_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 {
 	if (clientState->modes.animation)
 		display_active(clientState->modes.nodes, clientState->modes.edges);
@@ -834,19 +830,19 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 }
 
 //returns the screen coordinate of a node if it is on the screen
-bool sphere_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo)
+bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo)
 {
 	VISSTATE *clientState = screenInfo->clientState;
 	SPHERECOORD *nodeCoord = get_node_coord(nidx);
-	if (!nodeCoord) 
+	if (!nodeCoord)
 		return false; //usually happens with block interrupted by exception
 
-	/*
-	this check removes the bulk of the offscreen instructions with low performance penalty, including those
-	on screen but on the other side of the sphere
-	implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
-	bypass by turning instruction display to "always on"
-	*/
+					  /*
+					  this check removes the bulk of the offscreen instructions with low performance penalty, including those
+					  on screen but on the other side of the sphere
+					  implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
+					  bypass by turning instruction display to "always on"
+					  */
 
 	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, clientState->leftcolumn,
 		clientState->rightcolumn, main_scalefactors->AEDGESEP))
@@ -866,7 +862,7 @@ bool sphere_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREE
 
 //this fails if we are drawing a node that has been recorded on the graph but not rendered graphically
 //takes a node index and returns the x/y on the screen
-bool sphere_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
+bool cylinder_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos)
 {
 	FCOORD graphPos;
 	if (!vdata->get_coord(nodeIndex, &graphPos)) return false;
@@ -877,10 +873,3 @@ bool sphere_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata
 	return true;
 }
 
-void sphere_graph::toggle_autoscale()
-{
-	autoscale = !autoscale;
-	cout << "[rgat]Autoscale ";
-	if (autoscale) cout << "On." << endl;
-	else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
-}

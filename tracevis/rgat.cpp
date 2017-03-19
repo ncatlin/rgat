@@ -35,8 +35,7 @@ Doing agui widget manipulation in other threads will cause deque errors
 #include "serialise.h"
 #include "diff_plotter.h"
 #include "timeline.h"
-#include "sphere_graph.h"
-#include "tree_graph.h"
+#include "plotted_graph_layouts.h"
 
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
@@ -267,6 +266,11 @@ void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayo
 	plotted_graph *newPlottedGraph = 0;
 	switch (clientState->currentLayout)
 	{
+	case eCylinderLayout:
+	{
+		newPlottedGraph = new cylinder_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
+		break;
+	}
 	case eSphereLayout:
 	{
 		newPlottedGraph = new sphere_graph(piddata, graphThread, active_proto_graph, &clientState->config->graphColours);
@@ -336,28 +340,23 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widge
 		//stretch and shrink the graph
 	case ALLEGRO_KEY_LEFT:
 		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.05);
-		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_RIGHT:
 		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.05);
-		clientState->rescale = true;
+		
 		break;
 	case ALLEGRO_KEY_DOWN:
 		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(0.02);
-		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_UP:
 		((plotted_graph *)clientState->activeGraph)->adjust_B_edgeSep(-0.02);
-		clientState->rescale = true;
 		break;
 
 	case ALLEGRO_KEY_PAD_4:
 		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(-0.005);
-		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_PAD_6:
 		((plotted_graph *)clientState->activeGraph)->adjust_A_edgeSep(0.005);
-		clientState->rescale = true;
 		break;
 
 		//fine zoon control
@@ -376,11 +375,9 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widge
 
 	case ALLEGRO_KEY_PAD_PLUS:
 		((plotted_graph *)clientState->activeGraph)->adjust_size(0.05);
-		clientState->rescale = true;
 		break;
 	case ALLEGRO_KEY_PAD_MINUS:
 		((plotted_graph *)clientState->activeGraph)->adjust_size(-0.05);
-		clientState->rescale = true;
 		break;
 	}
 
@@ -426,14 +423,10 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 
 	case EV_BTN_RESETSCALE:
 		((plotted_graph *)clientState->activeGraph)->reset_edgeSep();
-		clientState->rescale = true;
 		break;
 
 	case EV_BTN_AUTOSCALE:
-		clientState->autoscale = !clientState->autoscale;
-		cout << "[rgat]Autoscale ";
-		if (clientState->autoscale) cout << "On." << endl;
-		else cout << "Off. Re-enable to fix excess graph wrapping" << endl;
+		((plotted_graph *)clientState->activeGraph)->toggle_autoscale();
 		break;
 
 	case EV_BTN_NEARSIDE:

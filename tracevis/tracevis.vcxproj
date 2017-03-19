@@ -166,6 +166,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="headers\cylinder_graph.h" />
     <ClInclude Include="headers\base_thread.h" />
     <ClInclude Include="headers\animControls.h" />
     <ClInclude Include="headers\clientConfig.h" />
@@ -203,6 +204,7 @@
     <ClInclude Include="headers\OSspecific.h" />
     <ClInclude Include="headers\plotted_graph.h" />
     <ClInclude Include="headers\processLaunching.h" />
+    <ClInclude Include="headers\plotted_graph_layouts.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="headers\serialise.h" />
     <ClInclude Include="headers\thread_trace_reader.h" />
@@ -291,8 +293,10 @@
     <ClCompile Include="..\Agui-master\src\Agui\Widgets\ToolTip\ToolTip.cpp" />
     <ClCompile Include="animControls.cpp" />
     <ClCompile Include="b64.cpp" />
+    <ClCompile Include="cylinder_graph.cpp" />
     <ClCompile Include="GUIStructs.cpp" />
     <ClCompile Include="plotted_graph.cpp" />
+    <ClCompile Include="plotted_graph_layouts.cpp" />
     <ClCompile Include="processLaunching.cpp" />
     <ClCompile Include="proto_graph.cpp" />
     <ClCompile Include="textDialog.cpp" />

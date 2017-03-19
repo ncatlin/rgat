@@ -27,6 +27,7 @@ Requires inheriting to give it a layout (eg: sphere_graph)
 
 #define KEEP_BRIGHT -1
 
+
 struct VERTREMAINING {
 	unsigned int vertIdx;
 	unsigned int timeRemaining;
@@ -68,10 +69,14 @@ public:
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {	return false;};
 	virtual unsigned int get_graph_size() { return 0; };
+
+	virtual void toggle_autoscale() {};
+	virtual bool pending_rescale() { return false; }
 	virtual void adjust_A_edgeSep(float delta) {};
 	virtual void adjust_B_edgeSep(float delta) {};
 	virtual void reset_edgeSep() {};
 	virtual void adjust_size(float delta) {};
+
 	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 
@@ -166,12 +171,9 @@ protected:
 	virtual void updateStats(int a, int b, int c);
 	int maxA = 0, maxB = 0;
 
-	//PID_TID  tid, pid;
-
-protected:
 	//keep track of which a,b coords are occupied
 	std::map<pair<int, int>, bool> usedCoords;
-
+	vector<pair<MEM_ADDRESS, NODEINDEX>> callStack;
 
 	proto_graph *internalProtoGraph;
 	PLOT_TRACK lastMainNode;

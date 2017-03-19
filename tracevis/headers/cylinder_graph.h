@@ -29,15 +29,15 @@ performs functions that are specific to the sphere shape
 
 
 
-class sphere_graph : public plotted_graph
+class cylinder_graph : public plotted_graph
 {
 
 public:
-	sphere_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
+	cylinder_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<ALLEGRO_COLOR> *coloursPtr)
 		: plotted_graph(protoGraph, coloursPtr) {
-		layout = eSphereLayout;
+		layout = eCylinderLayout;
 	};
-	~sphere_graph() {};
+	~cylinder_graph() {};
 
 	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes);
 	void plot_wireframe(VISSTATE *clientState);
@@ -51,12 +51,10 @@ public:
 	unsigned int get_graph_size() { return main_scalefactors->size; };
 	SPHERECOORD *get_node_coord(NODEINDEX idx);
 
-	void toggle_autoscale();
-	bool pending_rescale() { return rescale; }
-	void adjust_A_edgeSep(float delta) { main_scalefactors->userAEDGESEP += delta; rescale = true;};
-	void adjust_B_edgeSep(float delta) { main_scalefactors->userBEDGESEP += delta; rescale = true;};
-	void reset_edgeSep() { main_scalefactors->userBEDGESEP = main_scalefactors->userAEDGESEP = 1; rescale = true;};
-	void adjust_size(float delta) { main_scalefactors->userSizeModifier += delta;  rescale = true;};
+	void adjust_A_edgeSep(float delta) { main_scalefactors->userAEDGESEP += delta; };
+	void adjust_B_edgeSep(float delta) { main_scalefactors->userBEDGESEP += delta; };
+	void reset_edgeSep() { main_scalefactors->userBEDGESEP = main_scalefactors->userAEDGESEP = 1; };
+	void adjust_size(float delta) { main_scalefactors->userSizeModifier += delta; };
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
 
@@ -81,8 +79,6 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 
-	bool rescale = true;
-	bool autoscale = true;
 
 	void sphereCoord(int ia, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
 	void sphereAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);

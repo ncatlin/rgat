@@ -24,6 +24,9 @@
     <Filter Include="Header Files\threads">
       <UniqueIdentifier>{f0e2bab1-bdb0-4b19-9a07-ab6cb836c3db}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\plotted_graphs">
+      <UniqueIdentifier>{37530e8b-9796-4ef1-9033-29e7ba7e8794}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\graphicsMaths.h">
@@ -140,9 +143,6 @@
     <ClInclude Include="resource1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\sphere_graph.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\plotted_graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -152,11 +152,20 @@
     <ClInclude Include="headers\processLaunching.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\tree_graph.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\textDialog.h">
       <Filter>Header Files\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\sphere_graph.h">
+      <Filter>Header Files\plotted_graphs</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\tree_graph.h">
+      <Filter>Header Files\plotted_graphs</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cylinder_graph.h">
+      <Filter>Header Files\plotted_graphs</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\plotted_graph_layouts.h">
+      <Filter>Header Files\plotted_graphs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -504,6 +513,12 @@
     </ClCompile>
     <ClCompile Include="textDialog.cpp">
       <Filter>Source Files\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="cylinder_graph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plotted_graph_layouts.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

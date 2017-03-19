@@ -84,6 +84,8 @@ public:
 	bool isDialogVisible() { return highlightWindow->highlightFrame->isVisible() || textConfigBox->textFrame->isVisible(); }
 
 private:
+	void initialiseIcons(string resourcepath);
+
 	unsigned int processCount = 0;
 	agui::ToolTip *tippy;
 	agui::Gui *widgets;
@@ -94,7 +96,7 @@ private:
 	agui::DropDown *dropDownWidget;
 	agui::Allegro5Input *widgetInputHandler;
 
-	ALLEGRO_BITMAP *sphereIcon, *sphereIconBase, *treeIcon, *treeIconBase;
+	ALLEGRO_BITMAP *sphereIcon, *sphereIconBase, *treeIcon, *treeIconBase, *cylinderIcon, *cylinderIconBase;
 
 	int widgetsUpdateCooldown = 1;
 	bool smoothDrawing = false;
@@ -156,8 +158,6 @@ void display_only_status_message(string msg, VISSTATE *clientState);
 bool controlSetup();
 ALLEGRO_EVENT_SOURCE * create_menu(ALLEGRO_DISPLAY *display);
 void cleanup_for_exit(VISSTATE *clientState);
-graphLayouts layout_selection_click(int mousex, int mousey);
 void resize_display(VISSTATE *clientState, int w, int h);
-void toggle_instext_mode(VISSTATE *clientState);
 void closeTextLog(VISSTATE *clientState);
 void toggleExternLog(VISSTATE *clientState);

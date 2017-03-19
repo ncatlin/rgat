@@ -25,8 +25,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "traceMisc.h"
 #include "trace_handler.h"
 #include "thread_trace_reader.h"
-#include "sphere_graph.h"
-#include "tree_graph.h"
+#include "plotted_graph_layouts.h"
 #include "GUIManagement.h"
 #include "b64.h"
 
@@ -123,6 +122,11 @@ void module_handler::main_loop()
 				plotted_graph *newPlottedGraph = 0;
 				switch (clientState->currentLayout)
 				{
+					case eCylinderLayout:
+					{
+						newPlottedGraph = new cylinder_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
+						break;
+					}
 					case eSphereLayout:
 					{
 						newPlottedGraph = new sphere_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
@@ -131,7 +135,6 @@ void module_handler::main_loop()
 					case eTreeLayout:
 					{
 						newPlottedGraph = new tree_graph(piddata, TID, newProtoGraph, &clientState->config->graphColours);
-						
 						break;
 					}
 					default:

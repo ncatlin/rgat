@@ -26,7 +26,7 @@ A messy collection of state structures, generally targeted to the visualiser sta
 #include "traceStructs.h"
 #include "graph_display_data.h"
 
-enum graphLayouts { eSphereLayout, eTreeLayout, eLayoutInvalid};
+enum graphLayouts { eCylinderLayout, eSphereLayout, eTreeLayout, eLayoutInvalid};
 enum instructionTextDisplayState { eInsTextOff, eInsTextAuto, eInsTextForced };
 enum symbolTextDisplayState { eSymboltextOff, eSymboltextSymbols, eSymboltextPaths, eSymboltextInternal, eSymboltextExternal, eSymboltextAll };
 enum heatTextDisplayState { eHeatNodes, eHeatEdges, eHeatNone };
@@ -153,8 +153,7 @@ public:
 	float view_shift_y = 0;
 	HEIGHTWIDTH displaySize;
 	HEIGHTWIDTH mainFrameSize;
-	bool rescale = false;
-	bool autoscale = true;
+
 
 	int leftcolumn = 0;
 	int rightcolumn = 0;
@@ -170,7 +169,7 @@ public:
 	//for rendering graph diff
 	void *diffRenderer;
 
-	graphLayouts currentLayout = eSphereLayout;
+	graphLayouts currentLayout = eCylinderLayout;
 	map <PID_TID, NODEPAIR> graphPositions;
 
 	string commandlineLaunchPath;

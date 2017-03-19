@@ -249,28 +249,8 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
 	if (divergeNode)
-	{
-		switch (diffgraph->getLayout())
-		{
-		case eSphereLayout:
-		{	
-			SPHERECOORD *divergeCoord = ((sphere_graph *)graph1)->get_node_coord(divergeNode->index);
-			diffgraph->drawHighlight((void *)divergeCoord, diffgraph->main_scalefactors, &al_col_orange, 10);
-			break; 
-		}
-		case eTreeLayout:
-		{
-			TREECOORD *divergeCoord = ((tree_graph *)graph1)->get_node_coord(divergeNode->index);
-			diffgraph->drawHighlight((void *)divergeNode, diffgraph->main_scalefactors, &al_col_orange, 10);
-			break; 
-		}
-
-		default:
-			cout << "bad layout?";
-			break;
-		}
-	}
-
+		diffgraph->drawHighlight((void *)divergeNode, diffgraph->main_scalefactors, &al_col_orange, 10);
+	
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->size);
 	/*
 	PROJECTDATA pd;

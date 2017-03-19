@@ -1613,3 +1613,4 @@ void plotted_graph::draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJEC
 		}
 	}
 }
+
