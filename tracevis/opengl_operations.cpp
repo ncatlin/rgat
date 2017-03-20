@@ -44,7 +44,7 @@ void frame_gl_setup(VISSTATE* clientState)
 	if (activeGraph)
 	{
 		float zmul = zoomFactor(clientState->cameraZoomlevel, activeGraph->main_scalefactors->size);
-		if (zmul < INSTEXT_VISIBLE_ZOOMFACTOR)
+		if (zmul < FORCE_NEARSIDE_ZOOMFACTOR)
 			zoomedIn = true;
 	
 		if (zoomedIn || clientState->modes.nearSide)

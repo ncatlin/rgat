@@ -27,6 +27,8 @@ Creates a sphere layout for a plotted graph
 //B: Latitude. How many units up or down the side of the sphere a node is placed
 
 #define B_PX_OFFSET_FROM_TOP 35
+
+#define PIX_PER_A_COORD 80
 #define PIX_PER_B_COORD -120
 #define PIX_PER_B_MOD -30
 
@@ -34,7 +36,7 @@ Creates a sphere layout for a plotted graph
 
 #define JUMPA 3
 #define JUMPB 3
-#define JUMPA_CLASH 15
+#define JUMPA_CLASH 1.5
 #define CALLB 3
 
 //how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
@@ -196,7 +198,6 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		break;
 	}
 
-	cout << "node " << n->index << " pos: a=" << a << ", b=" << b << ", bMod=" << bMod << endl;
 	position->a = a;
 	position->b = b;
 	position->bMod = bMod;
@@ -205,7 +206,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 void cylinder_graph::initialise()
 {
 	layout = eCylinderLayout;
-};
+}
 
 void cylinder_graph::initialiseDefaultDimensions()
 {
@@ -215,8 +216,8 @@ void cylinder_graph::initialiseDefaultDimensions()
 	preview_scalefactors->size = 400;
 	preview_scalefactors->baseSize = 400;
 
-	main_scalefactors->size = 7000;
-	main_scalefactors->baseSize = 7000;
+	main_scalefactors->size = 20000;
+	main_scalefactors->baseSize = 20000;
 
 	defaultViewShift = make_pair(135, -25);
 	defaultZoom = 80000;
@@ -248,36 +249,38 @@ bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 //diamModifier allows specifying different sphere sizes
 void cylinder_graph::cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
-	return cylinderCoord(sc->a, sc->b, sc->bMod, c, dimensions, diamModifier);
+	cylinderCoord(sc->a, sc->b, sc->bMod, c, dimensions, diamModifier);
 }
 
+//convert abstract a/b/bmod coords to opengl pixel coords
 void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
+	float r = (dimensions->size + diamModifier);// +0.1 to make sure we are above lines
 
 	float fa = a;
+	a = a*PIX_PER_A_COORD;
+	c->x = r * cos((a*M_PI) / r);
+	c->z = r * sin((a*M_PI) / r);
+
 	float fb = 0;
 	fb += B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
 	fb += b * PIX_PER_B_COORD;
 	fb += bmod * PIX_PER_B_MOD;
-
-			   //float sinb = sin((b*M_PI) / 180);
-	float r = (dimensions->size + diamModifier);// +0.1 to make sure we are above lines
-
-	c->x = r *  cos((a*M_PI) / 180);
 	c->y = fb;
-	c->z = r *  sin((a*M_PI) / 180);
+
 }
 
-//take coord in space, convert back to a/b
+//take coord in space, convert back to a/b by doing the reverse of cylinderCoord
 void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
 	float r = mults->size;
-	//float acosb = acos(c->y / (mults->size + 0.099));
-	float tb = c->y;  //acos is a bit imprecise / wrong...
+	float ta = (c->z / r) / M_PI;
+	ta = asin(ta) * r;
+	*a = (ta / PIX_PER_A_COORD);
 
-	float ta = DEGREESMUL * (asin((c->z / r + 0.1)));
+	//bmod lost, merged into b
+	float tb = c->y;  //acos is a bit imprecise / wrong...
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*a = ta;
 	*b = (tb / PIX_PER_B_COORD);
 }
 
@@ -314,7 +317,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 	case eEdgeNew:
 	{
 		//todo: make this number much smaller for previews
-		curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
+		curvePoints = eLen < 50 ? 1 : LONGCURVEPTS;
 		bezierC = middleC;
 		break;
 	}
@@ -376,7 +379,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 void cylinder_graph::orient_to_user_view(int xshift, int yshift, long zoom)
 {
 	glTranslatef(0, 0, -zoom);
-	glTranslatef(0, yshift * 60, 0);
+	glTranslatef(0, yshift * 160, 0); //todo: make this depend on zoom level
 	glRotatef(-xshift, 0, 1, 0);
 }
 

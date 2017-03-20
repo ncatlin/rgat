@@ -62,8 +62,12 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 //draws a long curve with multiple vertices
 int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
 	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos) {
-	float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
-		0.3, 0.3, 0.5, 0.7, 0.9, 1 };
+	//faded middle
+	//float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
+	//	0.3, 0.3, 0.5, 0.7, 0.9, 1 };
+
+	//bold start, faded end (convey direction)
+	float fadeArray[] = { 1, 1, 1, 0.7, 0.9, 0.9, 0.9, 0.7, 0.8, 0.8, 0.6, 0.7, 0.7, 0.5, 0.5, 0.4, 0.4 };
 
 	int vsadded = 0;
 	curvePoints += 2; 
@@ -96,12 +100,10 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	for (dt = 1; dt < segments + 1; ++dt)
 	{
 
-		if ((edgeType == eEdgeOld) || (edgeType == eEdgeReturn)) {
-			fadeA = fadeArray[dt - 1];
-			if (fadeA > 1) fadeA = 1;
-		}
-		else
-			fadeA = 0.9;
+
+		fadeA = fadeArray[dt - 1];
+		if (fadeA > 1) fadeA = 1;
+
 		cols[3] = fadeA;
 
 		bezierPT(startC, bezierC, endC, dt, segments, &resultC);

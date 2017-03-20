@@ -90,6 +90,7 @@ enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 
 #define EXTERN_VISIBLE_ZOOM_FACTOR 25
 #define INSTEXT_VISIBLE_ZOOMFACTOR 7
+#define FORCE_NEARSIDE_ZOOMFACTOR 15
 
 //how far floating text rises per frame. can be negative. todo: add to config
 #define EXTERN_FLOAT_RATE 0.3

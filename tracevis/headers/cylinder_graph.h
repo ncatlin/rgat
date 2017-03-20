@@ -27,7 +27,7 @@ performs functions that are specific to the sphere shape
 #include "plotted_graph.h"
 #include "traceMisc.h"
 
-#define CYLINDER_PIXELS_PER_ROW 1500
+#define CYLINDER_PIXELS_PER_ROW 3000
 
 class cylinder_graph : public plotted_graph
 {

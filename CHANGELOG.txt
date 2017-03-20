@@ -95,3 +95,4 @@ Ignoring backlog sizes of 1 to reduce flickering
 Reimplemented unwieldly text toggling options as a menu [t]
 Added a graph text font side slider
 Improved dialog handling of mouse and keyboard input
+Long edges now fade to show direction (bright->dull)
