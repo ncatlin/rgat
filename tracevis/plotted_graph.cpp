@@ -92,7 +92,7 @@ void plotted_graph::decrease_thread_references()
 
 
 //tracking how big the graph gets
-void plotted_graph::updateStats(int a, int b, int c)
+void plotted_graph::updateStats(float a, float b, float c)
 {
 	//the extra work of 2xabs() happens so rarely that its worth avoiding
 	//the stack allocations of a variable every call

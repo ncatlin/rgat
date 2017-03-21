@@ -169,8 +169,8 @@ protected:
 
 	//for keeping track of graph dimensions
 	//this will likely need to be genericised to width/height/depth or something
-	virtual void updateStats(int a, int b, int c);
-	int maxA = 0, maxB = 0;
+	virtual void updateStats(float a, float b, float c);
+	float maxA = 0, maxB = 0;
 
 	//keep track of which a,b coords are occupied
 	std::map<pair<float, float>, bool> usedCoords;

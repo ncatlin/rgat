@@ -29,8 +29,7 @@ Creates a sphere layout for a plotted graph
 #define B_PX_OFFSET_FROM_TOP 35
 
 #define DEFAULT_PIX_PER_A_COORD 80
-#define DEFAULT_PIX_PER_B_COORD -120
-#define DEFAULT_PIX_PER_B_MOD -30
+#define DEFAULT_PIX_PER_B_COORD 120
 
 
 
@@ -38,6 +37,7 @@ Creates a sphere layout for a plotted graph
 #define JUMPB 3
 #define JUMPA_CLASH 1.5
 #define CALLB 3
+#define B_BETWEEN_BLOCKNODES 0.25
 
 //how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
 #define CALLA_CLASH 12
@@ -71,9 +71,8 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		} while (!oldPosition);
 	}
 
-	int a = oldPosition->a;
-	int b = oldPosition->b;
-	int bMod = oldPosition->bMod;
+	float a = oldPosition->a;
+	float b = oldPosition->b;
 	int clash = 0;
 
 	SPHERECOORD *position = (SPHERECOORD *)positionStruct;
@@ -82,7 +81,6 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		position->a = a + EXTERNA - 1 * lastNodeData->childexterns;
 		position->b = b + EXTERNB + 0.7 * lastNodeData->childexterns;
-		position->bMod = bMod;
 		return;
 	}
 
@@ -92,7 +90,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		//small vertical distance between instructions in a basic block	
 		case eNodeNonFlow:
 		{
-			bMod += 1;
+			b += B_BETWEEN_BLOCKNODES;
 			break;
 		}
 
@@ -102,7 +100,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 			if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 			{
-				bMod += 1;
+				b += B_BETWEEN_BLOCKNODES;
 				break;
 			}
 			//notice lack of break
@@ -174,7 +172,6 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 				assert(caller);
 				a = caller->a + RETURNA_OFFSET;
 				b = caller->b + RETURNB_OFFSET;
-				bMod = caller->bMod;
 
 				//may not have returned to the last item in the callstack
 				//delete everything inbetween
@@ -206,14 +203,13 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 
 	position->a = a;
 	position->b = b;
-	position->bMod = bMod;
 }
 
 void cylinder_graph::initialise()
 {
 	pix_per_A = DEFAULT_PIX_PER_A_COORD;
 	pix_per_B = DEFAULT_PIX_PER_B_COORD;
-	pix_per_Bmod = DEFAULT_PIX_PER_B_MOD;
+	//pix_per_Bmod = DEFAULT_PIX_PER_B_MOD;
 	layout = eCylinderLayout;
 }
 
@@ -256,7 +252,7 @@ bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 //diamModifier allows specifying different sphere sizes
 void cylinder_graph::cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
-	cylinderCoord(sc->a, sc->b, sc->bMod, c, dimensions, diamModifier);
+	cylinderCoord(sc->a, sc->b, 0, c, dimensions, diamModifier);
 }
 
 //convert abstract a/b/bmod coords to opengl pixel coords
@@ -271,8 +267,7 @@ void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_
 
 	float fb = 0;
 	fb += B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
-	fb += b * pix_per_B;
-	fb += bmod * pix_per_Bmod;
+	fb += -1 * b * pix_per_B;
 	c->y = fb;
 
 }
@@ -469,6 +464,12 @@ void cylinder_graph::gen_wireframe_buffers()
 	}
 }
 
+void cylinder_graph::regenerate_wireframe_if_needed()
+{
+	if (needed_wireframe_loops() > wireframw_loop_count)
+		remakeWireframe = true;
+}
+
 //reads the list of nodes/edges, creates opengl vertex/colour data
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 void cylinder_graph::render_static_graph(VISSTATE *clientState)
@@ -495,6 +496,8 @@ void cylinder_graph::render_static_graph(VISSTATE *clientState)
 
 	redraw_anim_edges();
 	rescale = false;
+
+	regenerate_wireframe_if_needed();
 }
 
 void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
@@ -520,23 +523,30 @@ void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 	draw_wireframe();
 }
 
+int cylinder_graph::needed_wireframe_loops()
+{
+	return ((maxB * pix_per_B) / CYLINDER_PIXELS_PER_ROW) + 2;
+}
+
 //must be called by main opengl context thread
 void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 {
-	wireframe_data = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
+	wireframw_loop_count = needed_wireframe_loops();
+
+
+	wireframe_data = new GRAPH_DISPLAY_DATA(false); 
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
 	int ii, pp;
 	long diam = main_scalefactors->size;
-	const int points = WF_POINTSPERLINE;
 
-	int lineDivisions = (int)(360 / WIREFRAMELOOPS);
 
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
 	//horizontal lines
-	for (int rowY = 0; rowY < 20; rowY++)
+	cout << "drawing " << wireframw_loop_count << "rows" << endl;
+	for (int rowY = 0; rowY < wireframw_loop_count; rowY++)
 	{
 		for (pp = 0; pp < WF_POINTSPERLINE; ++pp) 
 		{
@@ -568,8 +578,10 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 		}
 	}*/
 
-	load_VBO(VBO_SPHERE_POS, wireframeVBOs, WFPOSBUFSIZE, &vpos->at(0));
-	load_VBO(VBO_SPHERE_COL, wireframeVBOs, WFCOLBUFSIZE, &vcol->at(0));
+	int bufSizeBase = wireframw_loop_count * WF_POINTSPERLINE * sizeof(GLfloat);
+
+	load_VBO(VBO_SPHERE_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
+	load_VBO(VBO_SPHERE_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
 	wireframe_data->release_pos_write();
 	wireframe_data->release_col_write();
 }
@@ -705,7 +717,7 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 		}
 
 
-		updateStats(tempPos.a, tempPos.b, tempPos.bMod);
+		updateStats(tempPos.a, tempPos.b, 0);
 		usedCoords.emplace(make_pair(make_pair(tempPos.a, tempPos.b), true));
 	}
 	else

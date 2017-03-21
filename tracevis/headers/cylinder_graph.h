@@ -80,9 +80,17 @@ private:
 	void cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
 	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
-
+	int needed_wireframe_loops();
 	void draw_wireframe();
+	void regenerate_wireframe_if_needed();
 	void gen_wireframe_buffers();
+
+	int wireframw_loop_count = 0;
+	GRAPH_DISPLAY_DATA *wireframe_data;
+	GLuint wireframeVBOs[2];
+	bool remakeWireframe = false;
+	bool wireframeBuffersCreated = false;
+	GLint *wireframeStarts, *wireframeSizes;
 
 	vector<SPHERECOORD> node_coords;
 
@@ -91,14 +99,9 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 
-	int pix_per_A, pix_per_B, pix_per_Bmod;
+	int pix_per_A, pix_per_B;
 	bool rescale = false;
 
-	GRAPH_DISPLAY_DATA *wireframe_data;
-	GLuint wireframeVBOs[2];
-	bool remakeWireframe = false;
-	bool wireframeBuffersCreated = false;
 
-	GLint *wireframeStarts, *wireframeSizes;
 };
 
