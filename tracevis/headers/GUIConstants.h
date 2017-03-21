@@ -59,13 +59,9 @@ coord -14a is between col 0 and 1 at h_edge_sep ~0.8. 0.8*14 = 11.2
 #define TOP_SUMMARY_HEIGHT 40
 
 #define WF_POINTSPERLINE 64
-#define WIREFRAMELOOPS 18 //meant to be alterable but stuff breaks if you change this. don't.
-#define WFPOSBUFSIZE WIREFRAMELOOPS * WF_POINTSPERLINE * POSELEMS * sizeof(GLfloat)
-#define WFCOLBUFSIZE WIREFRAMELOOPS * WF_POINTSPERLINE * COLELEMS * sizeof(GLfloat)
+
 
 #define VERTSPERQUAD 4
-#define COL_SPHERE_VERTS ((180 / BDIVISIONS)-2)*(WF_POINTSPERLINE/2)*VERTSPERQUAD
-#define COL_SPHERE_BUFSIZE COL_SPHERE_VERTS*POSELEMS*sizeof(float)
 
 #define M_PI acos(-1.0)
 #define DEGREESMUL float(180 / M_PI)

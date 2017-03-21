@@ -90,8 +90,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		} while (!oldPosition);
 	}
 
-	long a = oldPosition->a;
-	long b = oldPosition->b;
+	float a = oldPosition->a;
+	float b = oldPosition->b;
 	int clash = 0;
 
 	TREECOORD *position = (TREECOORD *)positionStruct;

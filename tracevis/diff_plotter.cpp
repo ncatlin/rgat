@@ -19,8 +19,7 @@ Class for the code that plots graph divergence
 */
 #include "stdafx.h"
 #include "diff_plotter.h"
-
-#include "tree_graph.h"
+#include "plotted_graph_layouts.h"
 #include "rendering.h"
 
 
@@ -38,7 +37,9 @@ diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state
 		graph2 = g1;
 	}
 
-	if (g1->getLayout() == eSphereLayout)
+	if (g1->getLayout() == eCylinderLayout)
+		diffgraph = new cylinder_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);
+	else if (g1->getLayout() == eSphereLayout)
 		diffgraph = new sphere_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);
 	else if (g1->getLayout() == eTreeLayout)
 		diffgraph = new tree_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);

@@ -446,15 +446,16 @@ void plotted_graph::brighten_node_list(ANIMATIONENTRY *entry, int brightTime, ve
 				newExternTimes[make_pair(nodeIdx, entry->callCount)] = EXTERN_LIFETIME_FRAMES;
 		}
 
-		if ((animationIndex != 0) && //cant draw edge to first node in animation
-									 //edge to unchained area is not part of unchained area
-			!(entry->entryType == ANIM_UNCHAINED && nodeIt == nodeIDList->begin()))
+		if (!(entry->entryType == ANIM_UNCHAINED && nodeIt == nodeIDList->begin()))
 		{
 			NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
 			if (internalProtoGraph->edge_exists(edge, 0))
+			{
 				newAnimEdgeTimes[edge] = brightTime;
+			}
 			//else
 			//	cout << "bad edge " << edge.first << "," << edge.second << endl;
+			
 			/*
 			A bad edge is expected here if the user has forced an animation skip using the slider
 			Shouldn't really happen otherwise but does after change to external edge creation
@@ -800,7 +801,6 @@ void plotted_graph::redraw_anim_edges()
 void plotted_graph::darken_nodes(float fadeRate)
 {
 	//darken fading verts
-	//more nodes makes it take longer, possibly increase faderate on large fadinganimnodes.size()'s
 	set<unsigned int>::iterator alphaPosIt = fadingAnimNodes.begin();
 	while (alphaPosIt != fadingAnimNodes.end())
 	{

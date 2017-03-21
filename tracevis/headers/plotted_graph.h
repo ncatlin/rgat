@@ -205,14 +205,14 @@ private:
 	void extend_faded_edges();
 	void reset_mainlines();
 	void render_animation(float fadeRate);
-	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	//node+edge col+pos
 	bool fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
-	void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
+	void brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
 	void brighten_node_list(ANIMATIONENTRY *entry, int brightTime, vector <NODEINDEX> *nodeIDList);
 	void draw_condition_ins_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata);
 	void draw_edge_heat_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
+	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 
 	void process_live_animation_updates();
 	void process_live_update();

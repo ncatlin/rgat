@@ -209,7 +209,6 @@ void cylinder_graph::initialise()
 {
 	pix_per_A = DEFAULT_PIX_PER_A_COORD;
 	pix_per_B = DEFAULT_PIX_PER_B_COORD;
-	//pix_per_Bmod = DEFAULT_PIX_PER_B_MOD;
 	layout = eCylinderLayout;
 }
 
@@ -283,7 +282,7 @@ void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mult
 	//bmod lost, merged into b
 	float tb = c->y;  //acos is a bit imprecise / wrong...
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*b = (tb / pix_per_B);
+	*b = (tb / (-1*pix_per_B));
 }
 
 //double version
@@ -334,11 +333,16 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 		else
 		{
 			float oldMidA, oldMidB;
-			FCOORD bezierC2;
+			bezierC = middleC;
+
+			//calculate the AB coords of the midpoint of the cylinder
 			cylinderAB(&middleC, &oldMidA, &oldMidB, dimensions);
+
+			//recalculate the midpoint coord as if it was inside the cylinder
 			cylinderCoord(oldMidA, oldMidB, 0, &bezierC, dimensions, -(eLen / 2));
 
 			//i dont know why this problem happens or why this fixes it
+			//todo: is this still an issue?
 			if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
 				bezierC.x = -bezierC.x;
 		}
@@ -446,27 +450,31 @@ void cylinder_graph::draw_wireframe()
 	glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_SPHERE_COL]);
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
-	glMultiDrawArrays(GL_LINE_LOOP, wireframeStarts, wireframeSizes, WIREFRAMELOOPS);
+	glMultiDrawArrays(GL_LINE_LOOP, wireframeStarts, wireframeSizes, wireframe_loop_count);
 }
 
 
-void cylinder_graph::gen_wireframe_buffers()
+void cylinder_graph::regen_wireframe_buffers()
 {
+	if (wireframeBuffersCreated)
+		glDeleteBuffers(2, wireframeVBOs);
 	glGenBuffers(2, wireframeVBOs);
-
+	
 	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
-	wireframeStarts = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	wireframeSizes = (GLint *)malloc(WIREFRAMELOOPS * sizeof(GLint));
-	for (int i = 0; i < WIREFRAMELOOPS; ++i)
+	wireframeStarts = (GLint *)malloc(wireframe_loop_count * sizeof(GLint));
+	wireframeSizes = (GLint *)malloc(wireframe_loop_count * sizeof(GLint));
+	for (int i = 0; i < wireframe_loop_count; ++i)
 	{
 		wireframeStarts[i] = i*WF_POINTSPERLINE;
 		wireframeSizes[i] = WF_POINTSPERLINE;
 	}
+
+	wireframeBuffersCreated = true;
 }
 
 void cylinder_graph::regenerate_wireframe_if_needed()
 {
-	if (needed_wireframe_loops() > wireframw_loop_count)
+	if (needed_wireframe_loops() > wireframe_loop_count)
 		remakeWireframe = true;
 }
 
@@ -474,8 +482,6 @@ void cylinder_graph::regenerate_wireframe_if_needed()
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 void cylinder_graph::render_static_graph(VISSTATE *clientState)
 {
-
-
 	if (rescale)
 	{
 		zoomLevel = main_scalefactors->size;
@@ -490,7 +496,7 @@ void cylinder_graph::render_static_graph(VISSTATE *clientState)
 		rescale_nodes(false);
 	}
 
-	int drawCount = render_new_edges(true);
+	int drawCount = render_new_edges(rescale);
 	if (drawCount)
 		needVBOReload_main = true;
 
@@ -502,11 +508,6 @@ void cylinder_graph::render_static_graph(VISSTATE *clientState)
 
 void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 {
-	if (!wireframeBuffersCreated)
-	{
-		wireframeBuffersCreated = true;
-		gen_wireframe_buffers();
-	}
 
 	if (remakeWireframe)
 	{
@@ -517,6 +518,8 @@ void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 
 	if (!wireframe_data)
 	{
+		wireframe_loop_count = needed_wireframe_loops();
+		regen_wireframe_buffers();
 		plot_wireframe(clientState);
 	}
 
@@ -531,9 +534,7 @@ int cylinder_graph::needed_wireframe_loops()
 //must be called by main opengl context thread
 void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 {
-	wireframw_loop_count = needed_wireframe_loops();
-
-
+	
 	wireframe_data = new GRAPH_DISPLAY_DATA(false); 
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
@@ -545,8 +546,8 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
 	//horizontal lines
-	cout << "drawing " << wireframw_loop_count << "rows" << endl;
-	for (int rowY = 0; rowY < wireframw_loop_count; rowY++)
+	cout << "drawing " << wireframe_loop_count << "rows" << endl;
+	for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
 	{
 		for (pp = 0; pp < WF_POINTSPERLINE; ++pp) 
 		{
@@ -578,7 +579,7 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 		}
 	}*/
 
-	int bufSizeBase = wireframw_loop_count * WF_POINTSPERLINE * sizeof(GLfloat);
+	int bufSizeBase = wireframe_loop_count * WF_POINTSPERLINE * sizeof(GLfloat);
 
 	load_VBO(VBO_SPHERE_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
 	load_VBO(VBO_SPHERE_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
@@ -617,24 +618,32 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 	return result;
 }
 
+
 //delta is a percentage (0-1) to increase/decrease seperation
 void cylinder_graph::adjust_A_edgeSep(float delta)
 { 
 	int newPixA = pix_per_A * (1 + delta);
 	if (newPixA > 0)
 	{
+		if (newPixA == pix_per_A)
+			newPixA ++;
+
 		//increase gets a bit too drastic above 25 per step
 		pix_per_A = min(newPixA, pix_per_A + 25); 
 		rescale = true;
 	}
 };
 
+//rule of three!
 //delta is a percentage (0-1) to increase/decrease seperation
 void cylinder_graph::adjust_B_edgeSep(float delta)
 { 
 	int newPixB = pix_per_B * (1 + delta);
 	if (newPixB > 0)
 	{
+		if (newPixB == pix_per_B)
+			newPixB++;
+
 		pix_per_B = min(newPixB, pix_per_B + 25);
 		rescale = true;
 	}
@@ -856,6 +865,7 @@ void cylinder_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 		show_symbol_labels(clientState, pd);
 	else
 	{	//show label of extern we are blocked on
+		//called in main thread
 		node_data *n = internalProtoGraph->safe_get_node(lastMainNode.lastVertID);
 		if (n && n->external)
 		{

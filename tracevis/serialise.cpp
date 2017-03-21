@@ -21,7 +21,7 @@ Graph/Process Saving/Loading routines
 #include "serialise.h"
 #include "OSspecific.h"
 #include "GUIManagement.h"
-#include "sphere_graph.h"
+#include "cylinder_graph.h"
 
 using namespace rapidjson;
 
@@ -853,7 +853,7 @@ bool loadGraph(VISSTATE *clientState, PROCESS_DATA* piddata, const Value& graphD
 	display_only_status_message("Loading Graph thread ID: " + tidstring, clientState);
 
 	proto_graph *protograph = new proto_graph(piddata, graphTID);
-	sphere_graph *graph = new sphere_graph(piddata, graphTID, protograph, &clientState->config->graphColours);
+	cylinder_graph *graph = new cylinder_graph(piddata, graphTID, protograph, &clientState->config->graphColours);
 	if (graph->get_protoGraph()->deserialise(graphData, &piddata->disassembly))
 		piddata->plottedGraphs.emplace(graphTID, graph);
 	else

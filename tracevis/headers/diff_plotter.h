@@ -20,9 +20,8 @@ Class for the code that plots graph divergence
 #pragma once
 #include "stdafx.h"
 #include "proto_graph.h"
-#include "sphere_graph.h"
 #include "GUIStructs.h"
-
+#include "plotted_graph.h"
 
 
 class diff_plotter {

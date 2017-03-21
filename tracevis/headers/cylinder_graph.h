@@ -83,9 +83,9 @@ private:
 	int needed_wireframe_loops();
 	void draw_wireframe();
 	void regenerate_wireframe_if_needed();
-	void gen_wireframe_buffers();
+	void regen_wireframe_buffers();
 
-	int wireframw_loop_count = 0;
+	int wireframe_loop_count = 0;
 	GRAPH_DISPLAY_DATA *wireframe_data;
 	GLuint wireframeVBOs[2];
 	bool remakeWireframe = false;

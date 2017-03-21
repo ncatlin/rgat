@@ -28,6 +28,11 @@ performs functions that are specific to the sphere shape
 #include "traceMisc.h"
 
 
+#define WIREFRAMELOOPS 18 //meant to be alterable but stuff breaks if you change this. don't.
+#define WFPOSBUFSIZE WIREFRAMELOOPS * WF_POINTSPERLINE * POSELEMS * sizeof(GLfloat)
+#define WFCOLBUFSIZE WIREFRAMELOOPS * WF_POINTSPERLINE * COLELEMS * sizeof(GLfloat)
+#define COL_SPHERE_VERTS ((180 / BDIVISIONS)-2)*(WF_POINTSPERLINE/2)*VERTSPERQUAD
+#define COL_SPHERE_BUFSIZE COL_SPHERE_VERTS*POSELEMS*sizeof(float)
 
 class sphere_graph : public plotted_graph
 {
