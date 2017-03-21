@@ -174,7 +174,6 @@ protected:
 
 	//keep track of which a,b coords are occupied
 	std::map<pair<float, float>, bool> usedCoords;
-	vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
 	vector<pair<MEM_ADDRESS, NODEINDEX>> mainCallStack;
 	vector<pair<MEM_ADDRESS, NODEINDEX>> previewCallStack;
 

@@ -28,9 +28,9 @@ Creates a sphere layout for a plotted graph
 
 #define B_PX_OFFSET_FROM_TOP 35
 
-#define PIX_PER_A_COORD 80
-#define PIX_PER_B_COORD -120
-#define PIX_PER_B_MOD -30
+#define DEFAULT_PIX_PER_A_COORD 80
+#define DEFAULT_PIX_PER_B_COORD -120
+#define DEFAULT_PIX_PER_B_MOD -30
 
 
 
@@ -81,7 +81,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		position->a = a + EXTERNA - 1 * lastNodeData->childexterns;
-		position->b = b + EXTERNB + lastNodeData->childexterns;
+		position->b = b + EXTERNB + 0.7 * lastNodeData->childexterns;
 		position->bMod = bMod;
 		return;
 	}
@@ -90,112 +90,118 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 	{
 
 		//small vertical distance between instructions in a basic block	
-	case eNodeNonFlow:
-	{
-		bMod += 1;
-		break;
-	}
-
-	case eNodeJump://long diagonal separation to show distinct basic blocks
-	{
-		//check if this is a conditional which fell through (ie: sequential)
-		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
+		case eNodeNonFlow:
 		{
 			bMod += 1;
 			break;
 		}
-		//notice lack of break
-	}
 
-	case eNodeException:
-	{
-		a += JUMPA;
-		b += JUMPB;
-
-		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		case eNodeJump://long diagonal separation to show distinct basic blocks
 		{
-			a += JUMPA_CLASH;
-			++clash;
-		}
-
-		//if (clash > 15)
-		//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
-		break;
-	}
-
-	//long purple line to show possible distinct functional blocks of the program
-	case eNodeCall:
-	{
-		//note: b sometimes huge after this?
-		b += CALLB;
-
-		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-		{
-			a += CALLA_CLASH;
-			b += CALLB_CLASH;
-			++clash;
-		}
-
-		if (clash)
-		{
-			a += CALLA_CLASH;
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
-		}
-		break;
-	}
-
-	case eNodeReturn:
-		//previous externs handled same as previous returns
-	case eNodeExternal:
-	{
-		//returning to address in call stack?
-		int result = -1;
-
-		vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
-			if (stackIt->first == n->address)
+			//check if this is a conditional which fell through (ie: sequential)
+			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+			if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 			{
-				result = stackIt->second;
+				bMod += 1;
 				break;
 			}
-
-		//if so, position next node near caller
-		if (result != -1)
-		{
-			SPHERECOORD *caller = get_node_coord(result);
-			assert(caller);
-			a = caller->a + RETURNA_OFFSET;
-			b = caller->b + RETURNB_OFFSET;
-			bMod = caller->bMod;
-
-			//may not have returned to the last item in the callstack
-			//delete everything inbetween
-			callStack->resize(stackIt - callStack->begin());
-		}
-		else
-		{
-			a += RETURNA_OFFSET;
-			b += RETURNB_OFFSET;
+			//notice lack of break
 		}
 
-		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		case eNodeException:
 		{
-			a += JUMPA_CLASH;
-			b += 1;
-			++clash;
+			a += JUMPA;
+			b += JUMPB;
+
+			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+			{
+				a += JUMPA_CLASH;
+				++clash;
+			}
+
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+			break;
 		}
 
-		//if (clash > 15)
-		//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
-		break;
-	}
+		//long purple line to show possible distinct functional blocks of the program
+		case eNodeCall:
+		{
+			//note: b sometimes huge after this?
+			b += CALLB;
 
-	default:
-		if (lastNode->lastVertType != eFIRST_IN_THREAD)
-			cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
-		break;
+			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+			{
+				a += CALLA_CLASH;
+				b += CALLB_CLASH;
+				++clash;
+			}
+
+			if (clash)
+			{
+				a += CALLA_CLASH;
+				//if (clash > 15)
+				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+			}
+			break;
+		}
+
+		case eNodeReturn:
+			//previous externs handled same as previous returns
+		case eNodeExternal:
+		{
+			//returning to address in call stack?
+			int result = -1;
+
+			vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
+			if (mainnodesdata->isPreview())
+				callStack = &previewCallStack;
+			else
+				callStack = &mainCallStack;
+
+			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
+			for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
+				if (stackIt->first == n->address)
+				{
+					result = stackIt->second;
+					break;
+				}
+
+			//if so, position next node near caller
+			if (result != -1)
+			{
+				SPHERECOORD *caller = get_node_coord(result);
+				assert(caller);
+				a = caller->a + RETURNA_OFFSET;
+				b = caller->b + RETURNB_OFFSET;
+				bMod = caller->bMod;
+
+				//may not have returned to the last item in the callstack
+				//delete everything inbetween
+				callStack->resize(stackIt - callStack->begin());
+			}
+			else
+			{
+				a += RETURNA_OFFSET;
+				b += RETURNB_OFFSET;
+			}
+
+			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+			{
+				a += JUMPA_CLASH;
+				b += 1;
+				++clash;
+			}
+
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
+			break;
+		}
+
+		default:
+			if (lastNode->lastVertType != eFIRST_IN_THREAD)
+				cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
+			break;
 	}
 
 	position->a = a;
@@ -205,14 +211,15 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 
 void cylinder_graph::initialise()
 {
+	pix_per_A = DEFAULT_PIX_PER_A_COORD;
+	pix_per_B = DEFAULT_PIX_PER_B_COORD;
+	pix_per_Bmod = DEFAULT_PIX_PER_B_MOD;
 	layout = eCylinderLayout;
 }
 
 void cylinder_graph::initialiseDefaultDimensions()
 {
 	wireframeSupported = true;
-	preview_scalefactors->AEDGESEP = 1;
-	preview_scalefactors->BEDGESEP = 1;
 	preview_scalefactors->size = 400;
 	preview_scalefactors->baseSize = 400;
 
@@ -258,14 +265,14 @@ void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_
 	float r = (dimensions->size + diamModifier);// +0.1 to make sure we are above lines
 
 	float fa = a;
-	a = a*PIX_PER_A_COORD;
+	a = a*pix_per_A;
 	c->x = r * cos((a*M_PI) / r);
 	c->z = r * sin((a*M_PI) / r);
 
 	float fb = 0;
 	fb += B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
-	fb += b * PIX_PER_B_COORD;
-	fb += bmod * PIX_PER_B_MOD;
+	fb += b * pix_per_B;
+	fb += bmod * pix_per_Bmod;
 	c->y = fb;
 
 }
@@ -276,12 +283,12 @@ void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mult
 	float r = mults->size;
 	float ta = (c->z / r) / M_PI;
 	ta = asin(ta) * r;
-	*a = (ta / PIX_PER_A_COORD);
+	*a = (ta / pix_per_A);
 
 	//bmod lost, merged into b
 	float tb = c->y;  //acos is a bit imprecise / wrong...
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*b = (tb / PIX_PER_B_COORD);
+	*b = (tb / pix_per_B);
 }
 
 //double version
@@ -466,10 +473,9 @@ void cylinder_graph::gen_wireframe_buffers()
 //resizes when it wraps too far around the sphere (lower than lowB, farther than farA)
 void cylinder_graph::render_static_graph(VISSTATE *clientState)
 {
-	bool doResize = false;
-	if (doResize) previewNeedsResize = true;
 
-	if (doResize || vertResizeIndex > 0)
+
+	if (rescale)
 	{
 		zoomLevel = main_scalefactors->size;
 		needVBOReload_main = true;
@@ -478,11 +484,17 @@ void cylinder_graph::render_static_graph(VISSTATE *clientState)
 			remakeWireframe = true;
 	}
 
-	int drawCount = render_new_edges(doResize);
+	if (vertResizeIndex > 0 || rescale)
+	{
+		rescale_nodes(false);
+	}
+
+	int drawCount = render_new_edges(true);
 	if (drawCount)
 		needVBOReload_main = true;
 
 	redraw_anim_edges();
+	rescale = false;
 }
 
 void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
@@ -511,7 +523,6 @@ void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 //must be called by main opengl context thread
 void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 {
-	cout << "plot wif called" << endl;
 	wireframe_data = new GRAPH_DISPLAY_DATA(WFCOLBUFSIZE * 2);
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
@@ -594,6 +605,35 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 	return result;
 }
 
+//delta is a percentage (0-1) to increase/decrease seperation
+void cylinder_graph::adjust_A_edgeSep(float delta)
+{ 
+	int newPixA = pix_per_A * (1 + delta);
+	if (newPixA > 0)
+	{
+		//increase gets a bit too drastic above 25 per step
+		pix_per_A = min(newPixA, pix_per_A + 25); 
+		rescale = true;
+	}
+};
+
+//delta is a percentage (0-1) to increase/decrease seperation
+void cylinder_graph::adjust_B_edgeSep(float delta)
+{ 
+	int newPixB = pix_per_B * (1 + delta);
+	if (newPixB > 0)
+	{
+		pix_per_B = min(newPixB, pix_per_B + 25);
+		rescale = true;
+	}
+};
+
+void cylinder_graph::reset_edgeSep()
+{ 
+	pix_per_A = DEFAULT_PIX_PER_A_COORD;  
+	pix_per_B = DEFAULT_PIX_PER_B_COORD;
+	rescale = true; 
+}
 
 //IMPORTANT: Must have edge reader lock to call this
 bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
@@ -706,7 +746,10 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 			lastNode->lastVertType = eNodeCall;
 			//if code arrives to next instruction after a return then arrange as a function
 			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-			callStack->push_back(make_pair(nextAddress, lastNode->lastVertID));
+			if (vertdata->isPreview())
+				previewCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+			else
+				mainCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
 			break;
 		}
 		default:
@@ -729,9 +772,8 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 	vertdata->release_pos_write();
 
 	//place node on the animated version of the graph
-	if (!vertdata->isPreview())
+	if (animvertdata)
 	{
-
 		vector<GLfloat> *animNcol = animvertdata->acquire_col_write();
 
 		animNcol->push_back(active_col->r);

@@ -57,6 +57,11 @@ public:
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
 
+	void adjust_A_edgeSep(float delta);
+	void adjust_B_edgeSep(float delta);
+	void reset_edgeSep();
+	bool pending_rescale() { return rescale; }
+
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions);
@@ -71,6 +76,13 @@ private:
 	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		ALLEGRO_COLOR *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos);
 	bool a_coord_on_screen(int a, float hedgesep);
+	void cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
+	void cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
+	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+
+	void draw_wireframe();
+	void gen_wireframe_buffers();
 
 	vector<SPHERECOORD> node_coords;
 
@@ -79,14 +91,9 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 
+	int pix_per_A, pix_per_B, pix_per_Bmod;
+	bool rescale = false;
 
-	void cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
-	void cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
-	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
-	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
-
-	void draw_wireframe();
-	void gen_wireframe_buffers();
 	GRAPH_DISPLAY_DATA *wireframe_data;
 	GLuint wireframeVBOs[2];
 	bool remakeWireframe = false;

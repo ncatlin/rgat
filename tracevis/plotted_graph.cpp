@@ -1144,7 +1144,7 @@ void plotted_graph::rescale_nodes(bool isPreview)
 		nodeIdx = vertResizeIndex;
 		vertResizeIndex += NODES_PER_RESCALE_ITERATION;
 		vertsdata = get_mainnodes();
-		targetIdx = min(vertResizeIndex, vertsdata->get_numVerts());
+		targetIdx = vertsdata->get_numVerts();// min(vertResizeIndex, vertsdata->get_numVerts());
 		if (targetIdx == vertsdata->get_numVerts()) 
 			vertResizeIndex = 0;
 	}
@@ -1187,7 +1187,7 @@ int plotted_graph::render_new_preview_edges(VISSTATE* clientState)
 		if (edgeIt->first >= previewnodes->get_numVerts())
 		{
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->first);
-			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors);
+			add_node(n, &lastPreviewNode, previewnodes, 0, preview_scalefactors);
 		}
 
 		if (edgeIt->second >= previewnodes->get_numVerts())
@@ -1197,7 +1197,7 @@ int plotted_graph::render_new_preview_edges(VISSTATE* clientState)
 				lastPreviewNode.lastVertType = eNodeException;
 
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
-			add_node(n, &lastPreviewNode, previewnodes, animnodesdata, preview_scalefactors);
+			add_node(n, &lastPreviewNode, previewnodes, 0, preview_scalefactors);
 		}
 
 		if (!render_edge(*edgeIt, previewlines, 0, true, false))
@@ -1341,7 +1341,6 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 		previewNeedsResize = false;
 	}
 
-	callStack = &previewCallStack;
 	if (!render_new_preview_edges(clientState))
 	{
 		cerr << "ERROR: Failed drawing new edges in render_preview_graph! " << endl;
@@ -1352,7 +1351,6 @@ int plotted_graph::render_preview_graph(VISSTATE *clientState)
 
 void plotted_graph::updateMainRender(VISSTATE *clientState)
 {
-	callStack = &mainCallStack;
 	render_static_graph(clientState);
 
 	updateTitle_NumPrimitives(clientState->maindisplay, clientState, get_mainnodes()->get_numVerts(),
@@ -1415,7 +1413,7 @@ void plotted_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJ
 		ss.str("");
 		pp++;
 	}
-	cout << "drew " << pp << " ins texts" << endl;
+	//cout << "drew " << pp << " ins texts" << endl;
 }
 
 //show functions/args for externs in active graph

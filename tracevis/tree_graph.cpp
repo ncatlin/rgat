@@ -170,6 +170,11 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	{
 		//returning to address in call stack?
 		int result = -1;
+		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
+		if (mainnodesdata->isPreview())
+			callStack = &previewCallStack;
+		else
+			callStack = &mainCallStack;
 		vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
 		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
 			if (stackIt->first == n->address)
@@ -616,7 +621,11 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 			case eInsCall:
 			{
 				lastNode->lastVertType = eNodeCall;
-
+				vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
+				if (mainnodesdata->isPreview())
+					callStack = &previewCallStack;
+				else
+					callStack = &mainCallStack;
 				//let returns find their caller if and only if they have one
 				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
 				callStack->push_back(make_pair(nextAddress, lastNode->lastVertID));

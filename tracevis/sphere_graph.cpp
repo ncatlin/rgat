@@ -45,6 +45,163 @@ Creates a sphere layout for a plotted graph
 #define RETURNA_OFFSET -4
 #define RETURNB_OFFSET 3
 
+//performs an action (call,jump,etc) from lastNode, places new position in positionStruct
+//this is the function that determines how the graph is laid out
+void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
+{
+
+	SPHERECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
+	if (!oldPosition)
+	{
+		cerr << "Waiting for node " << lastNode->lastVertID;
+		int waitPeriod = 5;
+		int iterations = 1;
+		do
+		{
+			Sleep(waitPeriod);
+			waitPeriod += (150 * iterations++);
+			oldPosition = get_node_coord(lastNode->lastVertID);
+		} while (!oldPosition);
+	}
+	
+	float a = oldPosition->a;
+	float b = oldPosition->b;
+	int bMod = oldPosition->bMod;
+	int clash = 0;
+
+	SPHERECOORD *position = (SPHERECOORD *)positionStruct;
+	if (n->external)
+	{
+		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+		position->a = a + 2 * lastNodeData->childexterns + 5;
+		position->b = b + lastNodeData->childexterns + 5;
+		position->bMod = bMod;
+		return;
+	}
+
+	switch (lastNode->lastVertType)
+	{
+
+		//small vertical distance between instructions in a basic block	
+	case eNodeNonFlow:
+	{
+		bMod += 1 * BMULT;
+		break;
+	}
+
+	case eNodeJump://long diagonal separation to show distinct basic blocks
+	{
+		//check if this is a conditional which fell through (ie: sequential)
+		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
+		{
+			bMod += 1 * BMULT;
+			break;
+		}
+		//notice lack of break
+	}
+
+	case eNodeException:
+	{
+		a += JUMPA;
+		b += JUMPB * BMULT;
+
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		{
+			a += JUMPA_CLASH;
+			++clash;
+		}
+
+		//if (clash > 15)
+		//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
+		break;
+	}
+
+	//long purple line to show possible distinct functional blocks of the program
+	case eNodeCall:
+	{
+		//note: b sometimes huge after this?
+		b += CALLB * BMULT;
+
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		{
+			a += CALLA_CLASH;
+			b += CALLB_CLASH * BMULT;
+			++clash;
+		}
+
+		if (clash)
+		{
+			a += CALLA_CLASH;
+			//if (clash > 15)
+			//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
+		}
+		break;
+	}
+
+	case eNodeReturn:
+		//previous externs handled same as previous returns
+	case eNodeExternal:
+	{
+		//returning to address in call stack?
+		int result = -1;
+		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
+		if (mainnodesdata->isPreview())
+			callStack = &previewCallStack;
+		else
+			callStack = &mainCallStack;
+
+		vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
+		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
+			if (stackIt->first == n->address)
+			{
+				result = stackIt->second;
+				break;
+			}
+
+		//if so, position next node near caller
+		if (result != -1)
+		{
+			SPHERECOORD *caller = get_node_coord(result);
+			assert(caller);
+			a = caller->a + RETURNA_OFFSET;
+			b = caller->b + RETURNB_OFFSET;
+			bMod = caller->bMod;
+
+			//may not have returned to the last item in the callstack
+			//delete everything inbetween
+			callStack->resize(stackIt - callStack->begin());
+		}
+		else
+		{
+			a += EXTERNA;
+			b += EXTERNB * BMULT;
+		}
+
+		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+		{
+			a += JUMPA_CLASH;
+			b += 1;
+			++clash;
+		}
+
+		//if (clash > 15)
+		//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
+		break;
+	}
+
+	default:
+		if (lastNode->lastVertType != eFIRST_IN_THREAD)
+			cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
+		break;
+	}
+
+	position->a = a;
+	position->b = b;
+	position->bMod = bMod;
+}
+
+
 //draw a segmented sphere with row gradiented red, cols green
 void  sphere_graph::plot_colourpick_sphere(VISSTATE *clientState)
 {
@@ -223,156 +380,6 @@ void sphere_graph::initialiseDefaultDimensions()
 	defaultZoom = 80000;
 }
 
-//performs an action (call,jump,etc) from lastNode, places new position in positionStruct
-//this is the function that determines how the graph is laid out
-void sphere_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
-{
-	
-	SPHERECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
-	if (!oldPosition)
-	{
-		cerr << "Waiting for node " << lastNode->lastVertID;
-		int waitPeriod = 5;
-		int iterations = 1;
-		do
-		{
-			Sleep(waitPeriod);
-			waitPeriod += (150 * iterations++);
-			oldPosition = get_node_coord(lastNode->lastVertID);
-		} while (!oldPosition);
-	}
-
-	int a = oldPosition->a;
-	int b = oldPosition->b;
-	int bMod = oldPosition->bMod;
-	int clash = 0;
-
-	SPHERECOORD *position = (SPHERECOORD *)positionStruct;
-	if (n->external)
-	{
-		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-		position->a = a + 2 * lastNodeData->childexterns + 5;
-		position->b = b + lastNodeData->childexterns + 5;
-		position->bMod = bMod;
-		return;
-	}
-
-	switch (lastNode->lastVertType)
-	{
-
-		//small vertical distance between instructions in a basic block	
-		case eNodeNonFlow: 
-		{
-			bMod += 1 * BMULT;
-			break;
-		}
-
-		case eNodeJump://long diagonal separation to show distinct basic blocks
-		{
-			//check if this is a conditional which fell through (ie: sequential)
-			node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
-			if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
-			{
-				bMod += 1 * BMULT;
-				break;
-			}
-			//notice lack of break
-		} 
-	
-		case eNodeException: 
-		{
-			a += JUMPA;
-			b += JUMPB * BMULT;
-
-			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-			{
-				a += JUMPA_CLASH;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
-			break;
-		}
-
-		//long purple line to show possible distinct functional blocks of the program
-		case eNodeCall:
-		{
-			//note: b sometimes huge after this?
-			b += CALLB * BMULT;
-
-			while (usedCoords.find(make_pair(a,b)) != usedCoords.end())
-			{
-				a += CALLA_CLASH;
-				b += CALLB_CLASH * BMULT;
-				++clash;
-			}
-
-			if (clash)
-			{
-				a += CALLA_CLASH;
-				//if (clash > 15)
-				//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
-			}
-			break;
-		}
-
-		case eNodeReturn:
-			//previous externs handled same as previous returns
-		case eNodeExternal:
-		{
-			//returning to address in call stack?
-			int result = -1;
-
-			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-			for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
-				if (stackIt->first == n->address)
-				{
-					result = stackIt->second;
-					break;
-				}
-
-			//if so, position next node near caller
-			if (result != -1)
-			{
-				SPHERECOORD *caller = get_node_coord(result);
-				assert(caller);
-				a = caller->a + RETURNA_OFFSET;
-				b = caller->b + RETURNB_OFFSET;
-				bMod = caller->bMod;
-
-				//may not have returned to the last item in the callstack
-				//delete everything inbetween
-				callStack->resize(stackIt - callStack->begin());
-			}
-			else
-			{
-				a += EXTERNA;
-				b += EXTERNB * BMULT;
-			}
-
-			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
-			{
-				a += JUMPA_CLASH;
-				b += 1;
-				++clash;
-			}
-
-			//if (clash > 15)
-			//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
-			break;
-		}
-
-		default:
-			if (lastNode->lastVertType != eFIRST_IN_THREAD)
-				cerr << "[rgat]ERROR: Unknown Last instruction type " << lastNode->lastVertType << endl;
-			break;
-	}
-
-	position->a = a;
-	position->b = b;
-	position->bMod = bMod;
-}
 
 SPHERECOORD * sphere_graph::get_node_coord(NODEINDEX idx)
 {
@@ -870,6 +877,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 	float adjustedB = spherecoord->b + float(spherecoord->bMod * BMODMAG);
 	FCOORD screenc;
 
+
 	sphereCoord(spherecoord->a, adjustedB, &screenc, dimensions, 0);
 
 	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
@@ -900,6 +908,12 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 
 			case eInsCall:
 			{
+				vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
+				if (mainnodesdata->isPreview())
+					callStack = &previewCallStack;
+				else
+					callStack = &mainCallStack;
+
 				lastNode->lastVertType = eNodeCall;
 				//if code arrives to next instruction after a return then arrange as a function
 				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;

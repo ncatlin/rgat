@@ -42,7 +42,7 @@ Defaults for using when a config file exist
 #define CONDITIONAL_cond_succeed al_map_rgba(0, 255, 0, 255)
 #define CONDITIONAL_cond_both al_map_rgba(0, 0, 0, 0)
 
-#define WIREFRAME_COLOUR al_map_rgba(255, 255, 255, 255)
+#define WIREFRAME_COLOUR al_map_rgba(255, 255, 255, 100)
 
 #define PREVIEW_RENDER_FPS 10
 #define PREVIEW_UPDATE_DELAY_MS 100
