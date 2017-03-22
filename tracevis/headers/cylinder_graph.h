@@ -77,7 +77,7 @@ private:
 		ALLEGRO_COLOR *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos);
 	bool a_coord_on_screen(int a, float hedgesep);
 	void cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
-	void cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
+	void cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
 	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	int needed_wireframe_loops();

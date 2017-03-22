@@ -537,7 +537,7 @@ int sphere_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD
 	{
 	case LONGCURVEPTS:
 	{
-		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
+		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, arraypos);
 		return vertsdrawn;
 	}
 

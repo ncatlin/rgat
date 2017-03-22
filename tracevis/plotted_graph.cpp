@@ -292,7 +292,7 @@ int plotted_graph::render_new_edges(bool doResize)
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
 			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 		}
-
+		
 		if (!render_edge(*edgeIt, lines, 0, false, false))
 		{
 			internalProtoGraph->dropEdgeReadLock();

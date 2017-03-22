@@ -33,7 +33,7 @@ Miscellaneous graphics routines that don't fit into the graph class
 void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_data* divergeNode);
 
 int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
-	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos);
+	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int *colarraypos);
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos);
 
 void draw_heatmap_key(VISSTATE *clientState);

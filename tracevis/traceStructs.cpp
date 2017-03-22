@@ -79,7 +79,7 @@ void PROCESS_DATA::dropExternlistWriteLock()
 bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym)
 {
 	bool found;
-	getDisassemblyReadLock();
+	getDisassemblyWriteLock();
 	if (modsymsPlain[modNum][addr].empty())
 	{
 		*sym = "";
@@ -90,7 +90,7 @@ bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym)
 		*sym = modsymsPlain[modNum][addr];
 		found = true;
 	}
-	dropDisassemblyReadLock();
+	dropDisassemblyWriteLock();
 
 	return found;
 }

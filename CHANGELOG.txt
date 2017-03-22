@@ -85,14 +85,17 @@ Misc code improvements
 
 09/03/17 0.4.2 [PREVIOUS SAVES OBSOLETE]
 -----------------
-Save files are now in JSON format. Future updates should be less likely to obsolete saves
-Fixed an error where externs were causing false edges to be created
-The heatmap solver now handles some extern edge/node count inaccuracies. Unreliable extern execution counts marked in cyan on the heatmap
-Tweaked user sphere scaling speed (via arrow keys) to be smoother 
-Added an option to reset user graph scaling
-Client debug logging is now more verbose
-Ignoring backlog sizes of 1 to reduce flickering
+The cylinder graph layout replaces the (now deprecated) sphere layout as default
 Reimplemented unwieldly text toggling options as a menu [t]
 Added a graph text font side slider
+Save files are now in JSON format. Future updates should be less likely to obsolete saves
+Client debug logging is now more verbose
+Tweaked user sphere scaling speed (via arrow keys) to be smoother 
+Added an option to reset user graph scaling
+Ignoring backlog sizes of 1 to reduce flickering
+The heatmap solver now handles some extern edge/node count inaccuracies. Unreliable extern execution counts marked in cyan on the heatmap
 Improved dialog handling of mouse and keyboard input
 Long edges now fade to show direction (bright->dull)
+Fixed an error where externs were causing false edges to be created
+Fixed lack of long edge brightening during live animation
+Various code improvements, crash and bug fixes

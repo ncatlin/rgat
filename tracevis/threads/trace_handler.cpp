@@ -973,7 +973,7 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 				}
 			}
 			if (!targetFound)
-				cerr << "[rgat]Error: Target not found for call to " << targ2 << endl;
+				cerr << "[rgat]Warning: 0x" << std::hex << targ2 << " in " << piddata->modpaths.at(foundExtern->modnum) << " not found. Heatmap accuracy may suffer." << endl;
 		}
 		else
 		{

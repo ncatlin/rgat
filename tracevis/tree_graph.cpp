@@ -531,23 +531,16 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 		return 0;
 	}
 
-	switch (curvePoints)
+	if (curvePoints == LONGCURVEPTS)
 	{
-	case LONGCURVEPTS:
-	{
-		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
+		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, arraypos);
 		return vertsdrawn;
 	}
-
-	case 1:
+	else
+	{
 		drawShortLinePoints(startC, endC, colour, linedata, arraypos);
 		return 2;
-
-	default:
-		cerr << "[rgat]Error: Drawcurve unknown curvePoints " << curvePoints << endl;
 	}
-
-	return curvePoints;
 }
 
 

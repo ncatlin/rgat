@@ -186,9 +186,15 @@ void basicblock_handler::main_loop()
 		{
 			char *next_token = buf + 1;
 			size_t i = 0;
+			/*
+			important TODO: these char->string->long/int operations are very very slow. use something better
+			see http://stackoverflow.com/questions/16826422/c-most-efficient-way-to-convert-string-to-int-faster-than-atoi
+			...but 16 bit
+			*/
 
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
 			MEM_ADDRESS targetaddr;
+			targetaddr = atol(start_s);
 			if (!caught_stoull(string(start_s), &targetaddr, 16)) {
 				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
 				assert(0);

@@ -210,6 +210,8 @@ void cylinder_graph::initialise()
 	pix_per_A = DEFAULT_PIX_PER_A_COORD;
 	pix_per_B = DEFAULT_PIX_PER_B_COORD;
 	layout = eCylinderLayout;
+
+
 }
 
 void cylinder_graph::initialiseDefaultDimensions()
@@ -251,21 +253,23 @@ bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 //diamModifier allows specifying different sphere sizes
 void cylinder_graph::cylinderCoord(SPHERECOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
-	cylinderCoord(sc->a, sc->b, 0, c, dimensions, diamModifier);
+	cylinderCoord(sc->a, sc->b, c, dimensions, diamModifier);
 }
 
-//convert abstract a/b/bmod coords to opengl pixel coords
-void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
-{
-	float r = (dimensions->size + diamModifier);// +0.1 to make sure we are above lines
 
-	float fa = a;
-	a = a*pix_per_A;
+
+
+//convert abstract a/b/bmod coords to opengl pixel coords
+void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
+{
+	double r = (dimensions->size+diamModifier);// +0.1 to make sure we are above lines
+
+	a *= pix_per_A;
 	c->x = r * cos((a*M_PI) / r);
 	c->z = r * sin((a*M_PI) / r);
 
-	float fb = 0;
-	fb += B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
+	double fb = 0;
+	fb += -1 * B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
 	fb += -1 * b * pix_per_B;
 	c->y = fb;
 
@@ -274,16 +278,14 @@ void cylinder_graph::cylinderCoord(float a, float b, int bmod, FCOORD *c, GRAPH_
 //take coord in space, convert back to a/b by doing the reverse of cylinderCoord
 void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
-	float r = mults->size;
-	float ta = (c->z / r) / M_PI;
-	ta = asin(ta) * r;
-	*a = (ta / pix_per_A);
+	double r = mults->size;
+	*a = (((asin(c->z / r) * r) / M_PI) / pix_per_A);
 
-	//bmod lost, merged into b
-	float tb = c->y;  //acos is a bit imprecise / wrong...
+	double tb = c->y;
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*b = (tb / (-1*pix_per_B));
+	*b = (tb / (-1 * pix_per_B));
 }
+
 
 //double version
 void cylinder_graph::cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
@@ -337,9 +339,9 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 
 			//calculate the AB coords of the midpoint of the cylinder
 			cylinderAB(&middleC, &oldMidA, &oldMidB, dimensions);
-
+			float curveMagnitude = min(eLen / 2, dimensions->size / 2);
 			//recalculate the midpoint coord as if it was inside the cylinder
-			cylinderCoord(oldMidA, oldMidB, 0, &bezierC, dimensions, -(eLen / 2));
+			cylinderCoord(oldMidA, oldMidB, &bezierC, dimensions, -curveMagnitude);
 
 			//i dont know why this problem happens or why this fixes it
 			//todo: is this still an issue?
@@ -367,7 +369,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 	{
 	case LONGCURVEPTS:
 	{
-		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, curvePoints, arraypos);
+		int vertsdrawn = drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, linedata, arraypos);
 		return vertsdrawn;
 	}
 
@@ -539,45 +541,24 @@ void cylinder_graph::plot_wireframe(VISSTATE *clientState)
 	ALLEGRO_COLOR *wireframe_col = &clientState->config->wireframe.edgeColor;
 	float cols[4] = { wireframe_col->r , wireframe_col->g, wireframe_col->b, wireframe_col->a };
 
-	int ii, pp;
 	long diam = main_scalefactors->size;
-
-
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
-	//horizontal lines
-	cout << "drawing " << wireframe_loop_count << "rows" << endl;
+	//horizontal circles
 	for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
 	{
-		for (pp = 0; pp < WF_POINTSPERLINE; ++pp) 
+		int rowYcoord = -rowY * CYLINDER_PIXELS_PER_ROW;
+		for (int circlePoint = 0; circlePoint < WF_POINTSPERLINE; ++circlePoint)
 		{
 
-			float angle = (2 * M_PI * pp) / WF_POINTSPERLINE;
+			float angle = (2 * M_PI * circlePoint) / WF_POINTSPERLINE;
 			vpos->push_back(diam * cos(angle)); //x
-			vpos->push_back(-rowY * CYLINDER_PIXELS_PER_ROW); //y
+			vpos->push_back(rowYcoord); //y
 			vpos->push_back(diam * sin(angle)); //z
 
 			vcol->insert(vcol->end(), cols, end(cols));
 		}
 	}
-
-	/*
-	for (int horizLine = 0; horizLine < WIREFRAMELOOPS; ii++)
-	{
-
-		float degs2 = (ii*M_PI) / 180;
-		for (pp = 0; pp < points; ++pp) 
-		{
-
-			float angle = (2 * M_PI * pp) / points;
-			float cosangle = cos(angle);
-			vpos->push_back(diam * cosangle * cos(degs2));
-			vpos->push_back(diam * sin(angle));
-			vpos->push_back(diam * cosangle * sin(degs2));
-
-			vcol->insert(vcol->end(), cols, end(cols));
-		}
-	}*/
 
 	int bufSizeBase = wireframe_loop_count * WF_POINTSPERLINE * sizeof(GLfloat);
 
@@ -594,7 +575,7 @@ void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLE
 	SPHERECOORD *nodeCoordSphere = get_node_coord(nodeIndex);
 	if (!nodeCoordSphere) return;
 
-	cylinderCoord(nodeCoordSphere, &nodeCoordxyz, scale, lengthModifier);
+	cylinderCoord(nodeCoordSphere, &nodeCoordxyz, scale, 0);// lengthModifier);
 	drawHighlightLine(nodeCoordxyz, colour);
 }
 
@@ -626,7 +607,7 @@ void cylinder_graph::adjust_A_edgeSep(float delta)
 	if (newPixA > 0)
 	{
 		if (newPixA == pix_per_A)
-			newPixA ++;
+			++newPixA;
 
 		//increase gets a bit too drastic above 25 per step
 		pix_per_A = min(newPixA, pix_per_A + 25); 
@@ -642,7 +623,7 @@ void cylinder_graph::adjust_B_edgeSep(float delta)
 	if (newPixB > 0)
 	{
 		if (newPixB == pix_per_B)
-			newPixB++;
+			++newPixB;
 
 		pix_per_B = min(newPixB, pix_per_B + 25);
 		rescale = true;
@@ -806,6 +787,8 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 		animvertdata->release_col_write();
 	}
 
+	if (n->index == 357)
+		cout << "2";
 	return 1;
 }
 
@@ -885,12 +868,12 @@ bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCR
 	if (!nodeCoord)
 		return false; //usually happens with block interrupted by exception
 
-					  /*
-					  this check removes the bulk of the offscreen instructions with low performance penalty, including those
-					  on screen but on the other side of the sphere
-					  implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
-					  bypass by turning instruction display to "always on"
-					  */
+	/*
+	this check removes the bulk of the offscreen instructions with low performance penalty, including those
+	on screen but on the other side of the sphere
+	implementation is tainted by a horribly derived constant that sometimes rules out nodes on screen
+	bypass by turning instruction display to "always on"
+	*/
 
 	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, 1))
 		return false;

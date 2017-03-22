@@ -60,17 +60,14 @@ void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GR
 }
 
 //draws a long curve with multiple vertices
-int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour,
-	int edgeType, GRAPH_DISPLAY_DATA *vertdata, int curvePoints, int *colarraypos) {
-	//faded middle
-	//float fadeArray[] = { 1,0.9,0.8,0.7,0.5,0.3,0.3,0.3,0.2,0.2,0.2,
-	//	0.3, 0.3, 0.5, 0.7, 0.9, 1 };
+int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, int edgeType, GRAPH_DISPLAY_DATA *vertdata, int *colarraypos)
+{
 
 	//bold start, faded end (convey direction)
 	float fadeArray[] = { 1, 1, 1, 0.7, 0.9, 0.9, 0.9, 0.7, 0.8, 0.8, 0.6, 0.7, 0.7, 0.5, 0.5, 0.4, 0.4 };
 
 	int vsadded = 0;
-	curvePoints += 2; 
+	int curvePoints = LONGCURVEPTS + 2;
 	vector<GLfloat> *vertpos = vertdata->acquire_pos_write(63);
 	vector<GLfloat> *vertcol = vertdata->acquire_col_write();
 
@@ -80,15 +77,13 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 		return 0;
 	}
 	*colarraypos = vertcol->size();
-	int ci = 0;
-	int pi = 0;
 
 	float cols[4] = { colour->r , colour->g, colour->b, colour->a };
 
 	vertpos->push_back(startC->x);
 	vertpos->push_back(startC->y);
 	vertpos->push_back(startC->z);
-	
+
 	vertcol->insert(vertcol->end(), cols, end(cols));
 	++vsadded;
 	// > for smoother lines, less performance
@@ -99,8 +94,6 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 	int segments = float(curvePoints) / 2;
 	for (dt = 1; dt < segments + 1; ++dt)
 	{
-
-
 		fadeA = fadeArray[dt - 1];
 		if (fadeA > 1) fadeA = 1;
 
@@ -139,8 +132,6 @@ int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, ALLEGRO_C
 
 	return curvePoints + 2;
 }
-
-
 
 
 

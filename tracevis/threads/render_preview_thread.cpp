@@ -66,9 +66,9 @@ void preview_renderer::main_loop()
 			//check for trace data that hasn't been rendered yet
 			plotted_graph *graph = *graphlistIt;
 			proto_graph *protoGraph = graph->get_protoGraph();
-			//if ((graph->previewnodes->get_numVerts() < protoGraph->get_num_nodes()) ||
-			//	(graph->previewlines->get_renderedEdges() < protoGraph->get_num_edges()))
-			//	graph->render_preview_graph(clientState);
+			if ((graph->previewnodes->get_numVerts() < protoGraph->get_num_nodes()) ||
+				(graph->previewlines->get_renderedEdges() < protoGraph->get_num_edges()))
+				graph->render_preview_graph(clientState);
 			
 			if (die) break;
 			Sleep(innerDelay);

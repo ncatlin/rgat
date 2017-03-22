@@ -917,6 +917,9 @@ int main(int argc, char **argv)
 		}
 
 
+		if (clientState.newActiveGraph)
+			switchToActiveGraph(&clientState, widgets);
+
 		widgets->updateWidgets((plotted_graph *)clientState.activeGraph);
 		
 		clientState.displayActiveGraph();
