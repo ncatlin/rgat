@@ -43,7 +43,7 @@ void VISSTATE::deleteOldGraphs()
 	vector <pair<void *, double>>::iterator graphIt =  deletionGraphsTimes.begin();
 	while (graphIt != deletionGraphsTimes.end())
 	{
-		double deletionTime = graphIt->second + 1000;
+		double deletionTime = graphIt->second + 5;
 		if (timenow > deletionTime)
 		{
 			plotted_graph *deadGraph = (plotted_graph *)graphIt->first;

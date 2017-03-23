@@ -295,19 +295,23 @@ void  sphere_graph::edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX 
 	if (!col_pick_sphere_data)
 		plot_colourpick_sphere(clientState);
 
+
 	glPushMatrix();
 	//make sure camera only sees the nearest side of the sphere
 	gluPerspective(45, clientState->mainFrameSize.width / clientState->mainFrameSize.height, 50,
 		clientState->cameraZoomlevel);
+
 	glLoadIdentity();
 
 	rotate_sphere_to_user_view(clientState);
-
-	glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[0]);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[1]);
-	glColorPointer(3, GL_FLOAT, 0, 0);
-	glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
+	if (colSphereVBOs[0])
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[0]);
+		glVertexPointer(3, GL_FLOAT, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, colSphereVBOs[1]);
+		glColorPointer(3, GL_FLOAT, 0, 0);
+		glDrawArrays(GL_QUADS, 0, COL_SPHERE_VERTS);
+	}
 
 	//no idea why this ajustment needed, found by trial and error
 	int height = clientState->mainFrameSize.height - 20;
@@ -329,16 +333,15 @@ void  sphere_graph::edge_picking_colours(VISSTATE *clientState, SCREEN_EDGE_PIX 
 
 	if (doClear) //also need to call this function on every frame to see it
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 }
 
 void sphere_graph::irregularActions(VISSTATE *clientState)
 {
 	SCREEN_EDGE_PIX TBRG;
 	//update where camera is pointing on sphere, used to choose which node text to draw
-	///crash around here
-	cout << "call edgepick" << endl;
 	edge_picking_colours(clientState, &TBRG, true);
-	///crash around here
+
 	leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 	rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 }
