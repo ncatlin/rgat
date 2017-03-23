@@ -61,6 +61,8 @@ public:
 	void adjust_B_edgeSep(float delta);
 	void reset_edgeSep();
 	bool pending_rescale() { return rescale; }
+	float previewZoom() { return -2550; }
+	int prevScrollYPosition() { return 450; }
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -99,9 +101,7 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 
-	int pix_per_A, pix_per_B;
 	bool rescale = false;
-
 
 };
 

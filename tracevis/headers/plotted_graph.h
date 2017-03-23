@@ -27,6 +27,7 @@ Requires inheriting to give it a layout (eg: sphere_graph)
 
 #define KEEP_BRIGHT -1
 
+enum PreviewScrollDir { ePrevscrollDown, ePrevscrollUp, ePrevscrollLeft, ePrevscrollRight, ePrevscrollDisabled};
 
 struct VERTREMAINING {
 	unsigned int vertIdx;
@@ -80,6 +81,9 @@ public:
 	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void irregularActions(VISSTATE *clientState) {};
+	virtual void previewYScroll() {};
+	virtual int prevScrollYPosition() { return -20; }
+	virtual float previewZoom() { return -550; }
 
 	void updateMainRender(VISSTATE *clientState);
 	bool setGraphBusy(bool set);
@@ -168,7 +172,6 @@ protected:
 	void release_nodecoord_write();
 
 	//for keeping track of graph dimensions
-	//this will likely need to be genericised to width/height/depth or something
 	virtual void updateStats(float a, float b, float c);
 	float maxA = 0, maxB = 0;
 

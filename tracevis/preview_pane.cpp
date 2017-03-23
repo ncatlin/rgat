@@ -132,15 +132,17 @@ void drawGraphBitmap(plotted_graph *previewgraph, VISSTATE *clientState)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	double aspect = PREVIEW_GRAPH_WIDTH / PREVIEW_GRAPH_HEIGHT;
-	gluPerspective(45, aspect, 1, 3000);
+	gluPerspective(45, aspect, 1, 12000);
 	glMatrixMode(GL_MODELVIEW);
 
-	glTranslatef(0, -20, 0);
-	glTranslatef(0, 0, -550);
+	glTranslatef(0, 0, previewgraph->previewZoom());
+	glTranslatef(0, previewgraph->prevScrollYPosition(), 0);
+
 
 	glRotatef(30, 1, 0, 0);
 
 	glRotatef(clientState->previewYAngle, 0, 1, 0);
+
 	glRotatef(90 / 1.0, 0, 1, 0);
 	
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -248,4 +250,6 @@ void redrawPreviewGraphs(VISSTATE *clientState, map <PID_TID, NODEPAIR> *graphPo
 		clientState->previewYAngle -= spinPerFrame;
 		if (clientState->previewYAngle < -360) clientState->previewYAngle = 0;
 	}
+
+	previewGraph->previewYScroll();
 }

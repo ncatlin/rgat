@@ -592,7 +592,6 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 
 			handleKeypress(ev, clientState, widgets);
 
-			
 			return EV_NONE;
 		}
 

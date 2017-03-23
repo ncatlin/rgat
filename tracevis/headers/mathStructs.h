@@ -53,6 +53,7 @@ struct GRAPH_SCALE {
 	int maxA = 360;
 	int maxB = 180;
 	int maxC = 1;
+	int pix_per_A, pix_per_B;
 };
 
 struct PROJECTDATA {

@@ -30,6 +30,8 @@ Creates a sphere layout for a plotted graph
 
 #define DEFAULT_PIX_PER_A_COORD 80
 #define DEFAULT_PIX_PER_B_COORD 120
+#define PREVIEW_PIX_PER_A_COORD 3
+#define PREVIEW_PIX_PER_B_COORD 4
 
 
 
@@ -207,21 +209,21 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 
 void cylinder_graph::initialise()
 {
-	pix_per_A = DEFAULT_PIX_PER_A_COORD;
-	pix_per_B = DEFAULT_PIX_PER_B_COORD;
 	layout = eCylinderLayout;
-
-
 }
 
 void cylinder_graph::initialiseDefaultDimensions()
 {
 	wireframeSupported = true;
-	preview_scalefactors->size = 400;
-	preview_scalefactors->baseSize = 400;
+	preview_scalefactors->size = 600;
+	preview_scalefactors->baseSize = 600;
+	preview_scalefactors->pix_per_A = PREVIEW_PIX_PER_A_COORD;
+	preview_scalefactors->pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
 	main_scalefactors->size = 20000;
 	main_scalefactors->baseSize = 20000;
+	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
+	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
 
 	defaultViewShift = make_pair(135, -25);
 	defaultZoom = 80000;
@@ -264,13 +266,13 @@ void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dim
 {
 	double r = (dimensions->size+diamModifier);// +0.1 to make sure we are above lines
 
-	a *= pix_per_A;
+	a *= dimensions->pix_per_A;
 	c->x = r * cos((a*M_PI) / r);
 	c->z = r * sin((a*M_PI) / r);
 
 	double fb = 0;
 	fb += -1 * B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
-	fb += -1 * b * pix_per_B;
+	fb += -1 * b * dimensions->pix_per_B;
 	c->y = fb;
 
 }
@@ -279,11 +281,11 @@ void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dim
 void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
 	double r = mults->size;
-	*a = (((asin(c->z / r) * r) / M_PI) / pix_per_A);
+	*a = (((asin(c->z / r) * r) / M_PI) / mults->pix_per_A);
 
 	double tb = c->y;
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*b = (tb / (-1 * pix_per_B));
+	*b = (tb / (-1 * mults->pix_per_B));
 }
 
 
@@ -530,7 +532,7 @@ void cylinder_graph::maintain_draw_wireframe(VISSTATE *clientState)
 
 int cylinder_graph::needed_wireframe_loops()
 {
-	return ((maxB * pix_per_B) / CYLINDER_PIXELS_PER_ROW) + 2;
+	return ((maxB * main_scalefactors->pix_per_B) / CYLINDER_PIXELS_PER_ROW) + 2;
 }
 
 //must be called by main opengl context thread
@@ -595,7 +597,7 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 	SPHERECOORD *nodeCoordSphere = get_node_coord(index);
 
 	FCOORD result;
-	cylinderCoord(nodeCoordSphere, &result, dimensions, diamModifier);
+	cylinderCoord(nodeCoordSphere->a, nodeCoordSphere->b, &result, dimensions, diamModifier);
 	return result;
 }
 
@@ -603,14 +605,14 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 //delta is a percentage (0-1) to increase/decrease seperation
 void cylinder_graph::adjust_A_edgeSep(float delta)
 { 
-	int newPixA = pix_per_A * (1 + delta);
+	int newPixA = main_scalefactors->pix_per_A * (1 + delta);
 	if (newPixA > 0)
 	{
-		if (newPixA == pix_per_A)
+		if (newPixA == main_scalefactors->pix_per_A)
 			++newPixA;
 
 		//increase gets a bit too drastic above 25 per step
-		pix_per_A = min(newPixA, pix_per_A + 25); 
+		main_scalefactors->pix_per_A = min(newPixA, main_scalefactors->pix_per_A + 25);
 		rescale = true;
 	}
 };
@@ -619,21 +621,21 @@ void cylinder_graph::adjust_A_edgeSep(float delta)
 //delta is a percentage (0-1) to increase/decrease seperation
 void cylinder_graph::adjust_B_edgeSep(float delta)
 { 
-	int newPixB = pix_per_B * (1 + delta);
+	int newPixB = main_scalefactors->pix_per_B * (1 + delta);
 	if (newPixB > 0)
 	{
-		if (newPixB == pix_per_B)
+		if (newPixB == main_scalefactors->pix_per_B)
 			++newPixB;
 
-		pix_per_B = min(newPixB, pix_per_B + 25);
+		main_scalefactors->pix_per_B = min(newPixB, main_scalefactors->pix_per_B + 25);
 		rescale = true;
 	}
 };
 
 void cylinder_graph::reset_edgeSep()
 { 
-	pix_per_A = DEFAULT_PIX_PER_A_COORD;  
-	pix_per_B = DEFAULT_PIX_PER_B_COORD;
+	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
+	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
 	rescale = true; 
 }
 
@@ -787,8 +789,6 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 		animvertdata->release_col_write();
 	}
 
-	if (n->index == 357)
-		cout << "2";
 	return 1;
 }
 
@@ -902,4 +902,3 @@ bool cylinder_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vda
 		&screenPos->x, &screenPos->y, &screenPos->z);
 	return true;
 }
-
