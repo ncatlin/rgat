@@ -32,7 +32,32 @@ void VISSTATE::set_activeGraph(void *graph)
 		oldGraph->decrease_thread_references();
 	}
 	((plotted_graph *)graph)->increase_thread_references();
+	cout << "setting new activegraph " << std::hex << graph << endl;
 	activeGraph = graph;
+}
+
+void VISSTATE::deleteOldGraphs()
+{
+	double timenow = al_get_time();
+
+	vector <pair<void *, double>>::iterator graphIt =  deletionGraphsTimes.begin();
+	while (graphIt != deletionGraphsTimes.end())
+	{
+		double deletionTime = graphIt->second + 1000;
+		if (timenow > deletionTime)
+		{
+			plotted_graph *deadGraph = (plotted_graph *)graphIt->first;
+			delete deadGraph;
+			graphIt = deletionGraphsTimes.erase(graphIt);
+		}
+		else
+			graphIt++;
+	}
+}
+
+void VISSTATE::irregularActions()
+{
+	deleteOldGraphs();
 }
 
 void VISSTATE::change_mode(eUIEventCode mode)

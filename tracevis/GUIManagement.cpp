@@ -79,12 +79,15 @@ void TraceVisGUI::updateWidgets(plotted_graph *graph)
 		highlightWindow->refreshData();
 }
 
+
 //widgets->render() is a monster on the CPU
 //try not to do it more than needed
 void TraceVisGUI::paintWidgets()
 {
 	if (widgetsUpdateCooldown > 0 && !smoothDrawing) return;
 	
+	clientState->irregularActions();
+
 	while (!pidEntryQueue.empty())
 	{
 		dropDownWidget->addItem(pidEntryQueue.back());

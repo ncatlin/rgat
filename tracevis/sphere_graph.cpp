@@ -335,8 +335,10 @@ void sphere_graph::irregularActions(VISSTATE *clientState)
 {
 	SCREEN_EDGE_PIX TBRG;
 	//update where camera is pointing on sphere, used to choose which node text to draw
+	///crash around here
+	cout << "call edgepick" << endl;
 	edge_picking_colours(clientState, &TBRG, true);
-
+	///crash around here
 	leftcolumn = (int)floor(ADIVISIONS * TBRG.leftgreen) - 1;
 	rightcolumn = (int)floor(ADIVISIONS * TBRG.rightgreen) - 1;
 }

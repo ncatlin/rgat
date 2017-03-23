@@ -44,6 +44,8 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<ALLEGRO_COLOR> *gra
 
 plotted_graph::~plotted_graph()
 {
+	if (!this) return;
+	cout << "Deleting plotted graph " << std::hex <<  this << endl;
 	dying = true;
 	setGraphBusy(true);
 
@@ -274,7 +276,8 @@ int plotted_graph::render_new_edges(bool doResize)
 	if (edgeIt != end)
 		needVBOReload_main = true;
 
-	for (; edgeIt != end; ++edgeIt)
+	setGraphBusy(true);
+	for (; edgeIt != end && !dying; ++edgeIt)
 	{
 		if (edgeIt->first >= mainnodesdata->get_numVerts())
 		{
@@ -304,6 +307,7 @@ int plotted_graph::render_new_edges(bool doResize)
 		extend_faded_edges();
 		lines->inc_edgesRendered();
 	}
+	setGraphBusy(false);
 	internalProtoGraph->dropEdgeReadLock();
 	return edgesDrawn;
 }

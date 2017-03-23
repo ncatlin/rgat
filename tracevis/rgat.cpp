@@ -257,6 +257,7 @@ void handle_mouse_move(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wi
 void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayouts clickedLayout, plotted_graph *oldActiveGraph)
 {
 	clientState->currentLayout = clickedLayout;
+
 	widgets->setLayoutIcon();
 
 	proto_graph *active_proto_graph = oldActiveGraph->get_protoGraph();
@@ -293,7 +294,8 @@ void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayo
 	clientState->newActiveGraph = newPlottedGraph;
 	switchToActiveGraph(clientState, widgets);
 
-	delete oldActiveGraph;
+	pair <void *, double> deletionPair = make_pair(oldActiveGraph, al_get_time());
+	clientState->deletionGraphsTimes.push_back(deletionPair);
 }
 
 void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widgets)
@@ -631,9 +633,7 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 
 	renderThread->getMutex();
 
-	clientState->set_activeGraph((plotted_graph *)clientState->newActiveGraph);
-
-	plotted_graph * newGraph = (plotted_graph *)clientState->activeGraph;
+	plotted_graph * newGraph = (plotted_graph *)clientState->newActiveGraph;
 	newGraph->needVBOReload_active = true;
 
 	clientState->cameraZoomlevel = newGraph->get_zoom();
@@ -662,7 +662,9 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 		clientState->animationUpdate = 1;
 		protoGraph->set_active_node(0);
 	}
-	renderThread->dropMutex();
+
+
+	
 
 	//protoGraph->emptyArgQueue();
 	protoGraph->assign_modpath(clientState->activePid);
@@ -675,6 +677,10 @@ void switchToActiveGraph(VISSTATE *clientState, TraceVisGUI* widgets)
 		vector<EXTTEXT> newVec;
 		(clientState->externFloatingText)[protoGraph->get_TID()] = newVec;
 	}
+
+	clientState->set_activeGraph(newGraph);
+
+	renderThread->dropMutex();
 
 	if (clientState->textlog) closeTextLog(clientState);
 }

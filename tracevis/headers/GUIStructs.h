@@ -114,6 +114,8 @@ public:
 	bool mouseInDialog(int mousex, int mousey);
 	void closeFrame(agui::Frame *);
 	void openFrame(agui::Frame *);
+	void irregularActions();
+	void deleteOldGraphs();
 
 	//this is a cache to avoid locking every time we move mouse
 	long get_activegraph_size() { return activeGraphSize; }
@@ -177,7 +179,6 @@ public:
 	PROCESS_DATA *activePid = NULL;
 	PROCESS_DATA* spawnedProcess = NULL;
 
-	
 	map<PID_TID, PROCESS_DATA *> glob_piddata_map;
 	HANDLE pidMapMutex = CreateMutex(NULL, false, NULL);
 
@@ -195,7 +196,7 @@ public:
 
 	int previewRenderFrame = 0;
 
-
+	vector <pair<void *, double>> deletionGraphsTimes;
 
 private:
 	string instructionFontpath;
