@@ -186,6 +186,7 @@ bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
 
 	retstring.append(drrunArgs);
 	retstring.append(DRGATpath);
+
 	*path = retstring;
 	return true;
 }
@@ -202,6 +203,8 @@ string get_options(VISSTATE *clientState)
 	if (clientState->launchopts.debugMode)
 		optstring << " -blkdebug";
 
+	//todo: included/excluded dlls
+
 	return optstring.str();
 }
 
@@ -210,6 +213,8 @@ eExeCheckResult check_excecutable_type(string executable)
 	DWORD theType;
 	if (!GetBinaryTypeA(executable.c_str(), &theType))
 		return eNotExecutable;
+
+	//todo: .NET detection
 
 	switch (theType)
 	{

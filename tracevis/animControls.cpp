@@ -38,6 +38,7 @@ void AnimControls::setAnimState(int newAnimState)
 	if (newAnimState == animationState) return;
 
 	plotted_graph *graph = (plotted_graph *)clientState->activeGraph;
+	if (!graph) return;
 	proto_graph *protoGraph = graph->get_protoGraph();
 	if (animationState == ANIM_INACTIVE && newAnimState == ANIM_ACTIVATED)
 	{

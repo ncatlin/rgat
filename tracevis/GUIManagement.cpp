@@ -354,6 +354,24 @@ ALLEGRO_DISPLAY* displaySetup()
 	al_set_new_display_flags(ALLEGRO_OPENGL | ALLEGRO_WINDOWED | ALLEGRO_RESIZABLE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 16, ALLEGRO_SUGGEST);
 
+	int startWindowWidth = STARTWWIDTH;
+	int startWindowHeight = STARTWHEIGHT;
+
+	//make window size vaguely sensible on smaller screens
+	ALLEGRO_MONITOR_INFO minfo;
+	if (al_get_monitor_info(0, &minfo))
+	{
+		int monitorWidth = minfo.x2 - minfo.x1;
+		int monitorHeight = minfo.y2 - minfo.y1;
+
+		if (startWindowWidth > (monitorWidth - 200))
+			startWindowWidth = monitorWidth - 200;
+
+		if (startWindowHeight > (monitorHeight - 200))
+			startWindowHeight = monitorHeight - 200;
+	}
+
+
 	ALLEGRO_DISPLAY *display = al_create_display(STARTWWIDTH, STARTWHEIGHT);
 	if (!display) 
 	{

@@ -28,7 +28,7 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	if(!graph->setGraphBusy(true))
 		return;
 	proto_graph *protoGraph = graph->get_protoGraph();
-	if (!protoGraph) return;
+	if (!protoGraph || !graph->get_mainnodes()) return;
 
 	if (
 		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||
@@ -90,7 +90,7 @@ void maingraph_render_thread::main_loop()
 	{
 		
 		activeGraph = (plotted_graph *)clientState->activeGraph;
-		while (!activeGraph) {
+		while (!activeGraph || !activeGraph->get_mainlines()) {
 			activeGraph = (plotted_graph *)clientState->activeGraph;
 			Sleep(5); continue;
 		}

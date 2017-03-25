@@ -92,21 +92,19 @@ bool process_rgat_args(int argc, char **argv, VISSTATE *clientState)
 			return false;
 		}
 
-		if (arg == "-h" || arg == "-?")
-		{
-			cout << "rgat - Instruction trace visualiser" << endl;
-			cout << "-e target \"arguments\" Execute target with specified argument string"  << endl;
-			cout << "-l target Execute target without arguments" << endl;
-			cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
-			cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
-			cout << "-y Generate an instrumentation log for debugging drgat and reporting crashes" << endl;
-			return false;
-		}
-		else
+
+		if (arg != "-h" && arg != "-?")
 		{
 			cout << "[rgat]Unknown arg: " << arg << endl;
-			return false;
 		}
+
+		cout << "rgat - Instruction trace visualiser" << endl;
+		cout << "-e [target] [\"arguments\"] Execute target with specified argument string"  << endl;
+		cout << "-l [target] Execute target without arguments" << endl;
+		cout << "-p Pause execution on program start. Allows attaching a debugger" << endl;
+		cout << "-s Reduce sleep() calls and shorten tick counts for target" << endl;
+		cout << "-y Generate an instrumentation log for debugging drgat and reporting crashes" << endl;
+		return false;
 	}
 
 	if (!fileExists(clientState->commandlineLaunchPath))
