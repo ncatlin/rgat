@@ -951,7 +951,7 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 
 	if (find_containing_module(targ2) == MOD_UNINSTRUMENTED)
 	{
-		BB_DATA* foundExtern;
+		BB_DATA* foundExtern = 0;
 		assert(piddata->get_extern_at_address(targ2, &foundExtern, 3));
 
 		bool targetFound = false;

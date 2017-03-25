@@ -693,9 +693,9 @@ int start_nongraphical_mode(VISSTATE *clientState)
 
 	eExeCheckResult exeType = check_excecutable_type(clientState->commandlineLaunchPath);
 	if (exeType == eBinary32Bit)
-		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, &clientState, false);
+		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, clientState, false);
 	else if (exeType == eBinary64Bit)
-		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, &clientState, true);
+		execute_tracer(clientState->commandlineLaunchPath, clientState->commandlineLaunchArgs, clientState, true);
 
 	int newTIDs, activeTIDs = 0;
 	int newPIDs, activePIDs = 0;

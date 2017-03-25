@@ -330,6 +330,7 @@ void heatmap_renderer::build_colour_mapping(vector<edge_data *> *finishedEdgeLis
 		heatColours->emplace(make_pair(lastColour,*colourRange.rbegin()));
 }
 
+//when tracing a large program this is roughly %30 of rgats execution time (mainly the solver)
 bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 {
 
