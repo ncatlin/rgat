@@ -768,7 +768,6 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
 	}
-
 	const Value& procData = memberIt->value;
 
 	unsigned int versionMaj, versionMin, versionFeature;
@@ -803,6 +802,8 @@ bool loadProcessData(VISSTATE *clientState, Document& saveJSON, PROCESS_DATA** p
 	}
 
 	PROCESS_DATA* piddata = *piddataPtr;
+
+	piddata->PID = PID; 
 
 	if(!loadModulePaths(clientState, piddata, procData))
 	{
@@ -849,7 +850,7 @@ bool loadGraph(VISSTATE *clientState, PROCESS_DATA* piddata, const Value& graphD
 	PID_TID graphTID = memberIt->value.GetUint64();
 	string tidstring = to_string(graphTID);
 
-	display_only_status_message("Loading Graph thread ID: " + tidstring, clientState);
+	display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
 	proto_graph *protograph = new proto_graph(piddata, graphTID);
 	cylinder_graph *graph = new cylinder_graph(piddata, graphTID, protograph, &clientState->config->graphColours);

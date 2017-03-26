@@ -212,6 +212,8 @@ void launch_saved_process_threads(PID_TID PID, PROCESS_DATA *piddata, VISSTATE *
 
 bool loadTrace(VISSTATE *clientState, string filename)
 {
+	display_only_status_message("Loading save file...", clientState);
+	cout << "Reading " << filename << " from disk" << endl;
 
 	FILE* pFile;
 	fopen_s(&pFile, filename.c_str(), "rb");
@@ -222,9 +224,6 @@ bool loadTrace(VISSTATE *clientState, string filename)
 
 	//load process data
 	string s1;
-
-	display_only_status_message("Loading save file...", clientState);
-
 
 	rapidjson::Value::ConstMemberIterator PIDIt = saveJSON.FindMember("PID");
 	if (PIDIt == saveJSON.MemberEnd())

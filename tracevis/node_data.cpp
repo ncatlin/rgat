@@ -73,9 +73,10 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 		}
 		writer.EndArray(); //end list of calls for this node
 	}
-	writer.EndArray(); //end node
 
 	writer.Bool(unreliableCount);
+
+	writer.EndArray(); //end node
 
 	return true;
 }

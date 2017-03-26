@@ -47,7 +47,7 @@ clientConfig::clientConfig(string filepath)
 	}
 	else
 	{
-		cout << "[rgat]WARNING: Config file " << filepath << " not found, loading from defaults...\n" << endl;
+		cout << "[rgat]Creating default config file" << endl;
 		loadDefaults();
 		saveToFile();
 	}
@@ -451,7 +451,7 @@ void clientConfig::loadDefaultPaths()
 #ifdef WINDOWS
 	saveDir.append("\\saves\\");
 	DRDir.append("\\DynamoRIO\\");
-	clientPath.append("\\drgat\\");
+	clientPath.append("\\");
 #elif LINUX
 	assert(0);
 #endif

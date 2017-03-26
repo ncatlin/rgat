@@ -83,7 +83,7 @@ Added prototype tree graph. Not much use at the moment but demonstrates multiple
 A couple of crash fixes
 Misc code improvements
 
-09/03/17 0.4.2 [PREVIOUS SAVES OBSOLETE]
+26/03/17 0.4.2 [PREVIOUS SAVES OBSOLETE]
 -----------------
 The cylinder graph layout replaces the (now deprecated) sphere layout as default
 Reimplemented unwieldly text toggling options as a menu [t]
