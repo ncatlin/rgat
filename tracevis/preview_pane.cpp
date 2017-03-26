@@ -42,13 +42,14 @@ void write_tid_text(ALLEGRO_FONT* font, plotted_graph *graph, int x, int y)
 		textcol = al_col_green;
 		infotxt << " (Active)";
 
-		unsigned long backlog = graphData->get_backlog_total();
-		if (backlog > 10)
-			infotxt << " Q:" << backlog;
-
 		unsigned long newIn = graphData->getBacklogIn();
 		if (newIn)
 			infotxt << " in:" << newIn;
+
+		unsigned long backlog = graphData->get_backlog_total();
+		if (backlog > 200)
+			infotxt << " Q:" << backlog;
+
 	}
 	else
 	{
