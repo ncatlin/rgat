@@ -852,18 +852,19 @@ void cylinder_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 	//if zoomed in, show all extern/internal labels
 	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 		show_symbol_labels(clientState, pd);
-	else
-	{	//show label of extern we are blocked on
-		//called in main thread
-		node_data *n = internalProtoGraph->safe_get_node(lastMainNode.lastVertID);
-		if (n && n->external)
-		{
-			DCOORD screenCoord;
-			if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
-			if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
-				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+	else 
+		if(clientState->modes.animation)
+		{	//show label of extern we are blocked on
+			//called in main thread
+			node_data *n = internalProtoGraph->safe_get_node(lastMainNode.lastVertID);
+			if(n && n->external)
+			{
+				DCOORD screenCoord;
+				if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
+				if (is_on_screen(&screenCoord, clientState->mainFrameSize.width, clientState->mainFrameSize.height))
+					draw_func_args(clientState, clientState->standardFont, screenCoord, n);
+			}
 		}
-	}
 }
 
 //returns the screen coordinate of a node if it is on the screen

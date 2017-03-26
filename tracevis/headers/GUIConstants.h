@@ -84,8 +84,10 @@ enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 #define DEFAULTPOINTSIZE 5
 #define PREVIEW_POINT_SIZE 5
 
-#define EXTERN_VISIBLE_ZOOM_FACTOR 25
+//higher number -> visible at more distant zoom levels
+#define EXTERN_VISIBLE_ZOOM_FACTOR 40
 #define INSTEXT_VISIBLE_ZOOMFACTOR 7
+
 #define FORCE_NEARSIDE_ZOOMFACTOR 15
 
 //how far floating text rises per frame. can be negative. todo: add to config

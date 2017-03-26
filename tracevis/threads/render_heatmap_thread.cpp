@@ -351,6 +351,7 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 		{
 			cout << "-----Heatmap complete-----" << endl;
 
+			cout << unfinishedEdgeList.size() << " unsolved edges: ";
 			protoGraph->acquireNodeReadLock();
 			vector<pair<NODEPAIR, edge_data *>>::iterator unfinishedIt = unfinishedEdgeList.begin();
 			for (; unfinishedIt != unfinishedEdgeList.end(); unfinishedIt++)
@@ -360,9 +361,9 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 				NODEINDEX targ = unfinishedIt->first.second;
 				node_data *targnode = protoGraph->unsafe_get_node(targ);
 
-				cout << "Unsolved edge: " << src << "," << targ << endl;
-				cout << "\t source n " << src << " remaining out: " << srcnode->chain_remaining_out << endl;
-				cout << "\t targ n " << targ << " remaining in: " << targnode->chain_remaining_in << endl;
+				cout << "(" << src << "->" << targ << ") " << endl;
+				//cout << "\t source n " << src << " remaining out: " << srcnode->chain_remaining_out << endl;
+				//cout << "\t targ n " << targ << " remaining in: " << targnode->chain_remaining_in << endl;
 			}
 			protoGraph->dropNodeReadLock();
 			cout << "[rgat]Heatmap for for thread " << dec << protoGraph->get_TID() << " partially incomplete: Ending solver with " <<
