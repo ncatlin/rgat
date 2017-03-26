@@ -1325,7 +1325,7 @@ void plotted_graph::display_big_conditional(VISSTATE *clientState)
 	gather_projection_data(&pd);
 	float zoomDiffMult = (clientState->cameraZoomlevel - graph->zoomLevel) / 1000 - 1;
 
-	if (zoomDiffMult < 10 && internalProtoGraph->get_num_nodes() > 2)
+	if (zoomDiffMult < 35 && internalProtoGraph->get_num_nodes() > 2)
 		draw_condition_ins_text(clientState, zoomDiffMult, &pd, graph->get_mainnodes());
 
 }
