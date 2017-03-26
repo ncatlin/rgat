@@ -26,21 +26,20 @@ Class for the code that plots graph divergence
 diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state)
 {
 
-	if (g1->get_protoGraph()->getAnimDataSize() >= g2->get_protoGraph()->getAnimDataSize())
-	{
+
 		graph1 = g1;
 		graph2 = g2;
-	}
-	else
-	{
-		graph1 = g2;
-		graph2 = g1;
-	}
 
 	if (g1->getLayout() == eCylinderLayout)
+	{
+		cout << "creating cylinder diffgraph" << endl;
 		diffgraph = new cylinder_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);
+	}
 	else if (g1->getLayout() == eSphereLayout)
+	{
+		cout << "creating sphere diffgraph" << endl;
 		diffgraph = new sphere_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);
+	}
 	else if (g1->getLayout() == eTreeLayout)
 		diffgraph = new tree_graph(0, 0, graph1->get_protoGraph(), &state->config->graphColours);
 	else
@@ -62,13 +61,12 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 	stringstream infotxt1, infotxt2, infotxt3;
 
 	string modPath1, modPath2;
-	graph2->get_protoGraph()->get_piddata()->get_modpath(0, &modPath1);
-	graph2->get_protoGraph()->get_piddata()->get_modpath(0, &modPath2);
+	graph1->get_protoGraph()->get_piddata()->get_modpath(0, &modPath1);
+	//graph2->get_protoGraph()->get_piddata()->get_modpath(0, &modPath2);
 
-	infotxt1 << "Green (PID: " << graph2->get_pid() << " TID: " << graph2->get_tid() <<
-		") Path: " << modPath1 << endl;
-	infotxt2 << "Red+Green (PID:" << graph1->get_pid() << " TID:" << graph1->get_tid() <<
-		") Path: " << modPath2 << endl;
+	infotxt1 << "Green - both traces" << endl;
+	infotxt2 << "Red - (PID:" << graph1->get_pid() << " TID:" << graph1->get_tid() <<
+		") Path: " << modPath1 << "only" << endl;
 
 	int textVSep = font->height + 5;
 
@@ -78,13 +76,13 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 	{
 		al_draw_text(font, al_col_orange, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
 		al_draw_text(font, al_col_orange, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
-		al_draw_text(font, al_col_orange, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "Divergence found");
+		al_draw_text(font, al_col_orange, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "Divergence found [ESC to reset]");
 	}
 	else
 	{
 		al_draw_text(font, al_col_green, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
 		al_draw_text(font, al_col_green, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
-		al_draw_text(font, al_col_green, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "No divergence found");
+		al_draw_text(font, al_col_green, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "No divergence found [ESC to reset]");
 	}
 }
 
@@ -149,7 +147,7 @@ void diff_plotter::render()
 
 	edgeColour = matchingEdgeColour;
 
-	
+	map <NODEPAIR, bool> renderedEdges;
 
 	for (; renderIdx < renderEnd; ++renderIdx)
 	{
@@ -282,21 +280,35 @@ void diff_plotter::render()
 			}
 		} 
 
+		//render edge between previous block and this block
 		if (renderIdx > 0)
 		{
 			nextEdge = make_pair(lastNode, first_lastNodeG1.first);
-			if (!g1Proto->edge_exists(nextEdge, 0))
+			if (g1Proto->edge_exists(nextEdge, 0))
 			{
-				cerr << "[rgat]ERROR: Divergence renderer tried to colour non-rendered edge " << nextEdge.first << "," << nextEdge.second << endl;
-				break;
+
+				map <NODEPAIR, bool>::iterator edgeIt = renderedEdges.find(nextEdge);
+				if (edgeIt == renderedEdges.end())
+				{
+					graph1->render_edge(nextEdge, linedata, &edgeColour, false, true);
+					renderedEdges[nextEdge] = true;
+				}
 			}
-			graph1->render_edge(nextEdge, linedata, &edgeColour, false, true);
-
-			//draw block internal edges
-			for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
-				graph1->render_edge(make_pair(i,i+1), linedata, &edgeColour, false, true);
-
 		}
+
+		//draw block internal edges
+		for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
+		{
+			NODEPAIR edge = make_pair(i, i + 1);
+			map <NODEPAIR, bool>::iterator edgeIt = renderedEdges.find(edge);
+			if (edgeIt == renderedEdges.end())
+			{
+				graph1->render_edge(edge, linedata, &edgeColour, false, true);
+				renderedEdges[edge] = true;
+			}
+		}
+
+		
 
 		lastNode = first_lastNodeG1.second;
 	}
@@ -304,4 +316,6 @@ void diff_plotter::render()
 	dropMutex(g1Proto->animationListsMutex);
 	dropMutex(g2Proto->animationListsMutex);
 	diffgraph->needVBOReload_main = true;
+
+	diffgraph->set_diffgraph_nodes(graph1->get_diffgraph_nodes());
 }

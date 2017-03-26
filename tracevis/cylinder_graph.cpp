@@ -230,13 +230,19 @@ void cylinder_graph::initialiseDefaultDimensions()
 }
 
 
+
+void *cylinder_graph::get_node_coord_ptr(NODEINDEX idx)
+{
+	return (void *)get_node_coord(idx);
+}
+
 SPHERECOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 {
-	if (idx < node_coords.size())
+	if (idx < node_coords->size())
 	{
 		SPHERECOORD *result;
 		acquire_nodecoord_read();
-		result = &node_coords.at(idx);
+		result = &node_coords->at(idx);
 		release_nodecoord_read();
 		return result;
 	}
@@ -644,7 +650,7 @@ bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
-	unsigned long nodeCoordQty = node_coords.size();
+	unsigned long nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
 
@@ -684,18 +690,18 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 {
 	//printf("in add node! node %d\n", n->index);
 	SPHERECOORD * spherecoord;
-	if (n->index >= node_coords.size())
+	if (n->index >= node_coords->size())
 	{
 
 		SPHERECOORD tempPos;
-		if (node_coords.empty())
+		if (node_coords->empty())
 		{
 			assert(n->index == 0);
 			tempPos = { 0,0,0 };
 			spherecoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 		else
@@ -704,7 +710,7 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 			spherecoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 

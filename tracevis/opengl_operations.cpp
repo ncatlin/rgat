@@ -62,7 +62,13 @@ void frame_gl_setup(VISSTATE* clientState)
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 
-	activeGraph->orient_to_user_view(clientState->view_shift_x, clientState->view_shift_y, clientState->cameraZoomlevel);
+	if(clientState->modes.diffView != eDiffRendered)
+		activeGraph->orient_to_user_view(clientState->view_shift_x, clientState->view_shift_y, clientState->cameraZoomlevel);
+	else
+	{
+		plotted_graph *diffgraph = ((diff_plotter *)clientState->diffRenderer)->get_diff_graph();
+		diffgraph->orient_to_user_view(clientState->view_shift_x, clientState->view_shift_y, clientState->cameraZoomlevel);
+	}
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);

@@ -64,12 +64,13 @@ public:
 	virtual bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo) { cerr << "Warning: Virtual gvnp called"; return false; };
 	virtual void render_static_graph(VISSTATE *clientState) {};
 	virtual void plot_wireframe(VISSTATE *clientState) {};
-	virtual void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) {};
+	virtual void maintain_draw_wireframe(VISSTATE *clientState) {};
 	virtual void performMainGraphDrawing(VISSTATE *clientState) {};
 	virtual void orient_to_user_view(int xshift, int yshift, long zoom) {};
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 		ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate) {	return false;};
 	virtual unsigned int get_graph_size() { return 0; };
+	virtual void *get_node_coord_ptr(NODEINDEX idx) {return 0;	}
 
 	virtual void toggle_autoscale() {};
 	virtual bool pending_rescale() { return false; }
@@ -80,10 +81,12 @@ public:
 
 	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier) { cerr << "Warning: Virtual drawHighlight called\n" << endl; };
-	virtual void irregularActions(VISSTATE *clientState) {};
-	virtual void previewYScroll() {};
+	virtual void irregularActions(VISSTATE *clientState) {}
+	virtual void previewYScroll() {}
 	virtual int prevScrollYPosition() { return -20; }
 	virtual float previewZoom() { return -550; }
+	virtual pair<void *, float> get_diffgraph_nodes() { return make_pair((void *)0,(float)0.0); }
+	virtual void set_diffgraph_nodes(pair<void *, float> diffData){  }
 
 	void updateMainRender(VISSTATE *clientState);
 	bool setGraphBusy(bool set);
@@ -103,6 +106,7 @@ public:
 	pair <long, long> getStartShift() { return defaultViewShift; };
 	PID_TID get_pid() { return pid; }
 	PID_TID get_tid() { return tid; }
+	
 	graphLayouts getLayout() { return layout; }
 
 	GLuint graphVBOs[4] = { 0,0,0,0 };

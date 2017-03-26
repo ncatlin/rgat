@@ -49,10 +49,12 @@ public:
 	void render_static_graph(VISSTATE *clientState);
 	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
 	void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, ALLEGRO_COLOR *colour, int lengthModifier);
+	void *get_node_coord_ptr(NODEINDEX idx);
+	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords,maxB); }
+	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <SPHERECOORD>*)diffData.first; maxB = diffData.second; }
 
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
 	unsigned int get_graph_size() { return main_scalefactors->size; };
-	SPHERECOORD *get_node_coord(NODEINDEX idx);
 
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
@@ -74,6 +76,7 @@ private:
 	void write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int height, PROJECTDATA *pd);
 	void display_graph(VISSTATE *clientState, PROJECTDATA *pd);
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
+	SPHERECOORD *get_node_coord(NODEINDEX idx);
 	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 		ALLEGRO_COLOR *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos);
@@ -94,7 +97,8 @@ private:
 	bool wireframeBuffersCreated = false;
 	GLint *wireframeStarts, *wireframeSizes;
 
-	vector<SPHERECOORD> node_coords;
+	vector<SPHERECOORD> node_coords_storage;
+	vector<SPHERECOORD> *node_coords = &node_coords_storage;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;

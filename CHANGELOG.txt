@@ -98,4 +98,6 @@ Improved dialog handling of mouse and keyboard input
 Long edges now fade to show direction (bright->dull)
 Fixed an error where externs were causing false edges to be created
 Fixed lack of long edge brightening during live animation
+Reduced the size of the window on smaller displays
+Improved command line output
 Various code improvements, crash and bug fixes

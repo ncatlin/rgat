@@ -79,8 +79,9 @@ private:
 	agui::Label *graph1Path = 0;
 	agui::Label *graph2Info = 0;
 	agui::Label *graph2Path = 0;
-	plotted_graph *graph1 = 0;
-	plotted_graph *graph2 = 0;
+	PID_TID graph1pid = 0, graph1tid = 0, graph2pid = 0, graph2tid = 0;
+	//plotted_graph *graph1 = 0;
+	//plotted_graph *graph2 = 0;
 	VISSTATE *clientState;
 };
 

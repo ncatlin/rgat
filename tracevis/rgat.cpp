@@ -134,35 +134,6 @@ void handleKBDExit()
 	}
 }
 
-//prepares for switch to new graph
-static void set_active_graph(VISSTATE *clientState, PID_TID PID, PID_TID TID)
-{
-	PROCESS_DATA* target_pid = clientState->glob_piddata_map[PID];
-	plotted_graph * graph = (plotted_graph *)target_pid->plottedGraphs[TID];
-
-	bool currentGraph = (clientState->activeGraph == graph) ? true : false;
-
-	if (!currentGraph)
-	{
-		clientState->newActiveGraph = target_pid->plottedGraphs[TID];
-
-		if (target_pid != clientState->activePid)
-		{
-			clientState->spawnedProcess = target_pid;
-			clientState->switchProcess = true;
-		}
-
-		if (graph->get_protoGraph()->modulePath.empty())	graph->get_protoGraph()->assign_modpath(target_pid);
-		graph->reset_animation();
-	}
-
-	TraceVisGUI *widgets = (TraceVisGUI *)clientState->widgets;
-	widgets->diffWindow->setDiffGraph(graph);
-	clientState->modes.diffView = eDiffInactive;
-
-	updateTitle_NumPrimitives(clientState->maindisplay, clientState, graph->get_mainnodes()->get_numVerts(),
-		graph->get_mainlines()->get_renderedEdges());
-}
 
 static bool mouse_in_previewpane(VISSTATE* clientState, int mousex)
 {
@@ -262,6 +233,12 @@ void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayo
 	PROCESS_DATA *piddata = active_proto_graph->get_piddata();
 	PID_TID graphThread = oldActiveGraph->get_tid();
 
+	if (clientState->modes.diffView != eDiffInactive)
+	{
+		delete clientState->diffRenderer;
+		clientState->modes.diffView = eDiffInactive;
+	}
+
 	plotted_graph *newPlottedGraph = 0;
 	switch (clientState->currentLayout)
 	{
@@ -310,6 +287,12 @@ void handleKeypress(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *widge
 			break;
 		}
 
+		if (clientState->modes.diffView == eDiffRendered)
+		{
+			diff_plotter *diffrenderer = (diff_plotter *)clientState->diffRenderer;
+			clientState->set_active_graph(diffrenderer->get_graph(1)->get_pid(), diffrenderer->get_graph(1)->get_tid(), true);
+			delete clientState->diffRenderer;
+		}
 		clientState->modes.diffView = eDiffInactive;
 		break;
 	}
@@ -411,7 +394,7 @@ int handle_menu_click(ALLEGRO_EVENT *ev, VISSTATE *clientState, TraceVisGUI *wid
 		break;
 
 	case EV_BTN_DIFF:
-		widgets->showHideDiffFrame();
+		widgets->toggleDiffFrame(false, true);
 		break;
 
 	case EV_BTN_EXTERNLOG:
@@ -501,7 +484,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 			else
 				handle_mouse_move(ev, clientState, widgets);
 
-			updateTitle_Mouse(display, clientState->title, ev->mouse.x, ev->mouse.y);
+			//updateTitle_Mouse(display, clientState->title, ev->mouse.x, ev->mouse.y);
 		}
 
 		return EV_MOUSE;
@@ -537,7 +520,7 @@ static int handle_event(ALLEGRO_EVENT *ev, VISSTATE *clientState)
 					if (widgets->dropdownDropped()) return EV_MOUSE;
 					PID_TID PID, TID;
 					if (find_mouseover_thread(clientState, ev->mouse.x, ev->mouse.y, &PID, &TID))
-						set_active_graph(clientState, PID, TID);
+						clientState->set_active_graph(PID, TID, false);
 				}
 
 			return EV_MOUSE;
@@ -783,9 +766,6 @@ int main(int argc, char **argv)
 
 	TITLE windowtitle;
 	clientState.title = &windowtitle;
-
-	updateTitle_Mouse(clientState.maindisplay, &windowtitle, 0, 0);
-	updateTitle_Zoom(clientState.maindisplay, &windowtitle, clientState.cameraZoomlevel);
 
 	bool buildComplete = false;
 

@@ -235,7 +235,8 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		diffgraph->needVBOReload_main = false;
 	}
 
-	//todo: wireframe
+	if (clientState->modes.wireframe)
+		diffgraph->maintain_draw_wireframe(clientState);
 
 	if (clientState->modes.nodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
@@ -244,26 +245,28 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		array_render_lines(VBO_LINE_POS, VBO_LINE_COL, diffgraph->graphVBOs, diffgraph->get_mainlines()->get_numVerts());
 
 	if (divergeNode)
-		diffgraph->drawHighlight((void *)divergeNode, diffgraph->main_scalefactors, &al_col_orange, 10);
+	{
+		void *nodePos = diffRenderer->get_graph(1)->get_node_coord_ptr(divergeNode->index);
+		diffgraph->drawHighlight(nodePos, diffgraph->main_scalefactors, &al_col_orange, 10);
+	}
 	
 	float zmul = zoomFactor(clientState->cameraZoomlevel, graph1->main_scalefactors->size);
-	/*
+	
 	PROJECTDATA pd;
 	bool pdgathered = false;
 	if (zmul < EXTERN_VISIBLE_ZOOM_FACTOR)
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		show_symbol_labels(clientState, &pd);
+		diffgraph->show_symbol_labels(clientState, &pd);
 	}
 
 	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph1->get_protoGraph()->get_num_nodes() > 2)
 	{
 		if (!pdgathered)
 			gather_projection_data(&pd);
-		draw_instruction_text(clientState, zmul, &pd);
+		diffgraph->draw_instruction_text(clientState, zmul, &pd);
 	}
-	*/
 }
 
 void draw_heatmap_key_blocks(VISSTATE *clientState, int x, int y)

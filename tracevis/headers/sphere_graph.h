@@ -57,7 +57,7 @@ public:
 
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate);
 	unsigned int get_graph_size() { return main_scalefactors->size; };
-	SPHERECOORD *get_node_coord(NODEINDEX idx);
+	void *get_node_coord_ptr(NODEINDEX idx);
 
 	void orient_to_user_view(int xshift, int yshift, long zoom);
 	void initialiseDefaultDimensions();
@@ -70,6 +70,8 @@ public:
 	void adjust_size(float delta) { main_scalefactors->userSizeModifier += delta;  rescale = true;};
 
 	void irregularActions(VISSTATE *clientState);
+	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords, maxB); }
+	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <SPHERECOORD>*)diffData.first; maxB = diffData.second; }
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -86,7 +88,8 @@ private:
 	bool a_coord_on_screen(int a, float hedgesep);
 
 
-	vector<SPHERECOORD> node_coords;
+	vector<SPHERECOORD> node_coords_storage;
+	vector<SPHERECOORD> *node_coords = &node_coords_storage;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;
@@ -103,6 +106,7 @@ private:
 	void rotate_sphere_to_user_view(VISSTATE *clientState);
 	void plot_colourpick_sphere(VISSTATE *clientState);
 
+	SPHERECOORD *get_node_coord(NODEINDEX idx);
 	void draw_wireframe();
 	void gen_wireframe_buffers();
 	GRAPH_DISPLAY_DATA *wireframe_data;

@@ -60,12 +60,17 @@ void TraceVisGUI::setActivePID(PID_TID PID)
 	dropDownWidget->setText(pidstring);
 }
 
-void TraceVisGUI::showHideDiffFrame() 
+void TraceVisGUI::toggleDiffFrame(bool newState, bool toggle)
 {
-	if (diffWindow->diffFrame->isVisible())
+	bool windowVisible = diffWindow->diffFrame->isVisible();
+
+	if ((toggle && windowVisible) || (!toggle && !newState))
 		clientState->closeFrame(diffWindow->diffFrame);
 	else
 		clientState->openFrame(diffWindow->diffFrame);
+
+	
+
 }
 
 void TraceVisGUI::updateWidgets(plotted_graph *graph)
@@ -392,7 +397,7 @@ void updateTitle(ALLEGRO_DISPLAY *display, TITLE *title) {
 	stringstream newTitle;
 	newTitle << "rgat " 
 		<< RGAT_VERSION_MAJ << "." << RGAT_VERSION_MIN << "." << RGAT_VERSION_FEATURE << " " 
-		<<title->Primitives;
+		<< title->Primitives;
 		//<< " FPS: " << title->FPS;
 	al_set_window_title(display, newTitle.str().c_str());
 }
@@ -452,7 +457,7 @@ void display_activeGraph_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *cli
 	ALLEGRO_COLOR textColour;
 
 	PROCESS_DATA *piddata = clientState->activePid;
-	if (piddata->is_running())
+	if (graph->active)
 		textColour = al_col_white;
 	else
 		textColour = al_col_red;

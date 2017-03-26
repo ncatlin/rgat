@@ -27,6 +27,9 @@
     <Filter Include="Header Files\plotted_graphs">
       <UniqueIdentifier>{37530e8b-9796-4ef1-9033-29e7ba7e8794}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\plotted_graphs">
+      <UniqueIdentifier>{b90b5c05-0532-4e80-b2dc-32f5bad54569}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\graphicsMaths.h">
@@ -496,16 +499,7 @@
     <ClCompile Include="proto_graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sphere_graph.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="plotted_graph.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="processLaunching.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="tree_graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GUIStructs.cpp">
@@ -514,11 +508,20 @@
     <ClCompile Include="textDialog.cpp">
       <Filter>Source Files\interface</Filter>
     </ClCompile>
-    <ClCompile Include="cylinder_graph.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="plotted_graph_layouts.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plotted_graph.cpp">
+      <Filter>Source Files\plotted_graphs</Filter>
+    </ClCompile>
+    <ClCompile Include="cylinder_graph.cpp">
+      <Filter>Source Files\plotted_graphs</Filter>
+    </ClCompile>
+    <ClCompile Include="sphere_graph.cpp">
+      <Filter>Source Files\plotted_graphs</Filter>
+    </ClCompile>
+    <ClCompile Include="tree_graph.cpp">
+      <Filter>Source Files\plotted_graphs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

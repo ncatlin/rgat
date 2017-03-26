@@ -40,8 +40,9 @@ private:
 	NODEPAIR firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *pd, PID_TID thread);
 	void mark_divergence();
 
-	plotted_graph *graph1;
-	plotted_graph *graph2;
+	PID_TID graph1pid, graph1tid, graph2pid, graph2tid;
+	plotted_graph *graph1 = 0;
+	plotted_graph *graph2 = 0;
 	plotted_graph *diffgraph;
 	VISSTATE *clientState;
 	unsigned long divergenceIdx = 0;

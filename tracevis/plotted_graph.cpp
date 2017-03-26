@@ -480,9 +480,10 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 		PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
 		NODEINDEX nextNode;
 		NODEPAIR linkingPair;
-		if (piddata->externdict.count(entry->targetAddr))
+		map <MEM_ADDRESS, BB_DATA *>::iterator externIt = piddata->externdict.find(entry->targetAddr);
+		if (externIt != piddata->externdict.end())
 		{
-			EDGELIST callers = piddata->externdict.at(entry->targetAddr)->thread_callers.at(tid);
+			EDGELIST callers = externIt->second->thread_callers.at(tid);
 			EDGELIST::iterator callIt = callers.begin();
 			for (; callIt != callers.end(); ++callIt)
 			{
@@ -1386,7 +1387,13 @@ void plotted_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJ
 
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.clientState = clientState;
-	screenInfo.mainverts = get_mainnodes();
+	if (clientState->modes.diffView != eDiffRendered)
+		screenInfo.mainverts = get_mainnodes();
+	else
+	{
+		plotted_graph *originalgraph = ((diff_plotter *)clientState->diffRenderer)->get_graph(1);
+		screenInfo.mainverts = originalgraph->get_mainnodes();
+	}
 	screenInfo.pd = pd;
 	screenInfo.show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
 	int pp = 0;
@@ -1427,7 +1434,14 @@ void plotted_graph::show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd)
 
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.clientState = clientState;
-	screenInfo.mainverts = get_mainnodes();
+	screenInfo.clientState = clientState;
+	if (clientState->modes.diffView != eDiffRendered)
+		screenInfo.mainverts = get_mainnodes();
+	else
+	{
+		plotted_graph *originalgraph = ((diff_plotter *)clientState->diffRenderer)->get_graph(1);
+		screenInfo.mainverts = originalgraph->get_mainnodes();
+	}
 	screenInfo.pd = pd;
 	screenInfo.show_all_always = false;
 

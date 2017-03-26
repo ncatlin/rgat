@@ -116,9 +116,10 @@ public:
 	void openFrame(agui::Frame *);
 	void irregularActions();
 	void deleteOldGraphs();
+	void set_active_graph(PID_TID PID, PID_TID TID, bool diffSwitch);
 
 	//this is a cache to avoid locking every time we move mouse
-	long get_activegraph_size() { return activeGraphSize; }
+	long get_activegraph_size();
 	void set_activegraph_size(long size) {	activeGraphSize = size;	}
 	long activeGraphSize = 0;
 

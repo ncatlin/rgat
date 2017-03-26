@@ -60,11 +60,11 @@ void tree_graph::initialiseDefaultDimensions()
 
 TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)
 {
-	if (idx < node_coords.size())
+	if (idx < node_coords->size())
 	{
 		TREECOORD *result;
 		acquire_nodecoord_read();
-		result = &node_coords.at(idx);
+		result = &node_coords->at(idx);
 		release_nodecoord_read();
 		return result;
 	}
@@ -435,7 +435,7 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
-	unsigned long nodeCoordQty = node_coords.size();
+	unsigned long nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
 
@@ -549,17 +549,17 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 	GRAPH_SCALE *dimensions)
 {
 	TREECOORD * nodeCoord;
-	if (n->index >= node_coords.size())
+	if (n->index >= node_coords->size())
 	{
 		TREECOORD tempPos;
-		if (node_coords.empty())
+		if (node_coords->empty())
 		{
 			assert(n->index == 0);
 			tempPos = { 0,0,1 };
 			nodeCoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 		else
@@ -568,7 +568,7 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 			nodeCoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 
@@ -576,7 +576,7 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 		usedCoords.emplace(make_pair(make_pair(tempPos.a, tempPos.b), true));
 	}
 	else
-		nodeCoord = &node_coords.at(n->index);
+		nodeCoord = &node_coords->at(n->index);
 
 	FCOORD screenc;
 
@@ -760,7 +760,7 @@ void tree_graph::draw_instruction_text(VISSTATE *clientState, int zdist, PROJECT
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	bool show_all_always = (clientState->modes.show_ins_text == eInsTextForced);
-	NODEINDEX numVerts = node_coords.size();
+	NODEINDEX numVerts = node_coords->size();
 	GRAPH_DISPLAY_DATA *mainverts = get_mainnodes();
 	stringstream ss;
 	DCOORD screenCoord;

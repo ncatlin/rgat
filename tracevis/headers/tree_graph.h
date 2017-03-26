@@ -51,9 +51,11 @@ public:
 
 	unsigned int get_graph_size() { return 10; };
 
-	void maintain_draw_wireframe(VISSTATE *clientState, GLint *wireframeStarts, GLint *wireframeSizes) { return; }
+	void maintain_draw_wireframe(VISSTATE *clientState) { return; }
 	void plot_wireframe(VISSTATE *clientState) { return; }
 	TREECOORD *get_node_coord(NODEINDEX idx);
+	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords, maxB); }
+	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <TREECOORD>*)diffData.first; maxB = diffData.second; }
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -73,7 +75,8 @@ private:
 	void treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions);
 	void treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults);
 
-	vector<TREECOORD> node_coords;
+	vector<TREECOORD> node_coords_storage;
+	vector<TREECOORD> *node_coords = &node_coords_storage;
 
 	//these are the edges/nodes that are brightend in the animation
 	map <NODEPAIR, edge_data *> activeEdgeMap;

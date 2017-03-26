@@ -102,12 +102,32 @@ DiffSelectionFrame::DiffSelectionFrame(agui::Gui *widgets, VISSTATE *state, agui
 
 plotted_graph *DiffSelectionFrame::get_graph(int idx)
 {
-	if (idx == 1) return graph1;
-	if (idx == 2) return graph2;
-	return 0;
+	PID_TID graphpid = 0, graphtid = 0;
+	if (idx == 1)
+	{
+		graphpid = graph1pid;
+		graphtid = graph1tid;
+	}
+	else 
+	{
+		graphpid = graph2pid;
+		graphtid = graph2tid;
+	}
+
+	map<PID_TID, PROCESS_DATA *>::iterator pidIt = clientState->glob_piddata_map.find(graphpid);
+	if (pidIt == clientState->glob_piddata_map.end())
+		return 0;
+
+	map <PID_TID, void *> *processGraphs = &pidIt->second->plottedGraphs;
+	map <PID_TID, void *>::iterator tidIt = processGraphs->find(graphtid);
+	if (tidIt == processGraphs->end())
+		return 0;
+
+	return (plotted_graph*)tidIt->second;
 }
 
-void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
+void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) 
+{
 	int graphIdx = getSelectedDiff();
 	stringstream graphText;
 	proto_graph *protograph = graph->get_protoGraph();
@@ -123,7 +143,8 @@ void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
 	{
 		firstDiffLabel->setText(graphText.str());
 		firstDiffLabel->resizeToContents();
-		graph1 = graph;
+		graph1pid = graph->get_pid();
+		graph1tid = graph->get_tid();
 		graph1Path->setText(protograph->modulePath);
 		graph1Info->setText(threadSummary.str());
 		firstDiffLabel->setChecked(false);
@@ -134,14 +155,16 @@ void DiffSelectionFrame::setDiffGraph(plotted_graph *graph) {
 	{
 		secondDiffLabel->setText(graphText.str());
 		secondDiffLabel->resizeToContents();
-		graph2 = graph;
+		graph2pid = graph->get_pid();
+		graph2tid = graph->get_tid();
 		graph2Path->setText(protograph->modulePath);
 		graph2Info->setText(threadSummary.str());
 		firstDiffLabel->setChecked(true);
 		secondDiffLabel->setChecked(false);
 	}
 
-	if (graph1 && graph2 && (graph1 != graph2))
+	if (graph1tid && graph2tid && 
+		((graph1pid != graph2pid) || (graph1tid != graph2tid)))
 		{
 			//int similarityScore = IMPLEMENT_ME(graph1, graph2);
 			//set comparison label

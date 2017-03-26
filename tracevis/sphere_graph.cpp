@@ -388,11 +388,11 @@ void sphere_graph::initialiseDefaultDimensions()
 
 SPHERECOORD * sphere_graph::get_node_coord(NODEINDEX idx)
 {
-	if (idx < node_coords.size())
+	if (idx < node_coords->size())
 	{
 		SPHERECOORD *result;
 		acquire_nodecoord_read();
-		result = &node_coords.at(idx);
+		result = &node_coords->at(idx);
 		release_nodecoord_read();
 		return result;
 	}
@@ -808,7 +808,7 @@ bool sphere_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,
 	ALLEGRO_COLOR *forceColour, bool preview, bool noUpdate)
 {
 
-	unsigned long nodeCoordQty = node_coords.size();
+	unsigned long nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty) 
 		return false;
 
@@ -848,18 +848,18 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 {
 	//printf("in add node! node %d\n", n->index);
 	SPHERECOORD * spherecoord;
-	if (n->index >= node_coords.size())
+	if (n->index >= node_coords->size())
 	{
 
 		SPHERECOORD tempPos;
-		if (node_coords.empty())
+		if (node_coords->empty())
 		{
 			assert(n->index == 0);
 			tempPos = { 0,0,0 };
 			spherecoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 		else
@@ -868,7 +868,7 @@ int sphere_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DAT
 			spherecoord = &tempPos;
 
 			acquire_nodecoord_write();
-			node_coords.push_back(tempPos);
+			node_coords->push_back(tempPos);
 			release_nodecoord_write();
 		}
 
@@ -1028,6 +1028,12 @@ void sphere_graph::display_graph(VISSTATE *clientState, PROJECTDATA *pd)
 				draw_func_args(clientState, clientState->standardFont, screenCoord, n);
 		}
 	}
+}
+
+
+void *sphere_graph::get_node_coord_ptr(NODEINDEX idx)
+{
+	return (void *)get_node_coord(idx);
 }
 
 //returns the screen coordinate of a node if it is on the screen

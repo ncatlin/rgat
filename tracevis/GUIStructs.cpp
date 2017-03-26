@@ -32,7 +32,6 @@ void VISSTATE::set_activeGraph(void *graph)
 		oldGraph->decrease_thread_references();
 	}
 	((plotted_graph *)graph)->increase_thread_references();
-	cout << "setting new activegraph " << std::hex << graph << endl;
 	activeGraph = graph;
 }
 
@@ -108,6 +107,7 @@ void VISSTATE::change_mode(eUIEventCode mode)
 
 		break;
 	}
+
 	case EV_BTN_DIFF:
 		modes.heatmap = false;
 		modes.conditional = false;
@@ -131,6 +131,8 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 	if (modes.diffView == eDiffRendered) //diff graph built, display it
 	{
 		plotted_graph *graph1 = diffRendererPtr->get_graph(1);
+
+
 		proto_graph *protoGraph1 = graph1->get_protoGraph();
 
 		node_data *diffnode = 0;
@@ -138,6 +140,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 			diffnode = protoGraph1->safe_get_node(diffRendererPtr->get_diff_node());
 		
 		display_graph_diff(this, diffRendererPtr, diffnode);
+		diffRendererPtr->display_diff_summary(20, LAYOUT_ICONS_Y + LAYOUT_ICONS_H + 3, font, this);
 	}
 
 	else if (modes.diffView == eDiffSelected)//diff button clicked, build the graph first
@@ -146,7 +149,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 
 		modes.diffView = eDiffRendered;
 		TraceVisGUI *mywidgets = (TraceVisGUI *)widgets;
-		mywidgets->showHideDiffFrame();
+		mywidgets->toggleDiffFrame(false, false);
 
 		plotted_graph *graph1 = mywidgets->diffWindow->get_graph(1);
 		plotted_graph *graph2 = mywidgets->diffWindow->get_graph(2);
@@ -157,7 +160,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 		diffRendererPtr = *(diff_plotter **)diffRenderer;
 	}
 
-	diffRendererPtr->display_diff_summary(20, LAYOUT_ICONS_Y + LAYOUT_ICONS_H, font, this);
+
 }
 
 
@@ -235,6 +238,49 @@ void VISSTATE::setInstructionFontSize(int ptSize)
 		al_destroy_font(instructionFont);
 
 	instructionFont = al_load_ttf_font(instructionFontpath.c_str(), ptSize, 0);
+}
+
+
+//prepares for switch to new graph
+void VISSTATE::set_active_graph(PID_TID PID, PID_TID TID, bool diffSwitch = false)
+{
+	PROCESS_DATA* target_pid = glob_piddata_map[PID];
+	plotted_graph * graph = (plotted_graph *)target_pid->plottedGraphs[TID];
+
+	bool currentGraph = (activeGraph == graph) ? true : false;
+
+	if (!currentGraph)
+	{
+		newActiveGraph = target_pid->plottedGraphs[TID];
+
+		if (target_pid != activePid)
+		{
+			spawnedProcess = target_pid;
+			switchProcess = true;
+		}
+
+		if (graph->get_protoGraph()->modulePath.empty())	graph->get_protoGraph()->assign_modpath(target_pid);
+		graph->reset_animation();
+	}
+
+	if (!diffSwitch)
+	{
+		((TraceVisGUI *)widgets)->diffWindow->setDiffGraph(graph);
+		modes.diffView = eDiffInactive;
+	}
+
+	updateTitle_NumPrimitives(maindisplay, this, graph->get_mainnodes()->get_numVerts(),
+		graph->get_mainlines()->get_renderedEdges());
+}
+
+long VISSTATE::get_activegraph_size() 
+{ 
+	if (modes.diffView == eDiffRendered)
+	{
+		plotted_graph *diffgraph = ((diff_plotter *)diffRenderer)->get_graph(1);
+		return diffgraph->get_graph_size();
+	}
+	return activeGraphSize; 
 }
 
 bool VISSTATE::mouseInDialog(int mousex, int mousey)

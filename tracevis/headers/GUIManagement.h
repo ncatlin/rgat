@@ -58,7 +58,7 @@ public:
 	void doLogic() { widgets->logic(); }
 	void setActivePID(PID_TID PID);
 	void addPID(PID_TID PID);
-	void showHideDiffFrame();
+	void toggleDiffFrame(bool newState, bool toggle);
 	void showHideHighlightFrame();
 	void processEvent(ALLEGRO_EVENT *ev)
 		{ widgetInputHandler->processEvent(*ev); widgets->logic();	}
