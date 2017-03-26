@@ -76,6 +76,7 @@ Defaults for using when a config file exist
 #define ACTIVITY_LINE_COLOUR al_col_red
 
 #define ANIMATION_FADE_RATE 0.07
+#define ANIMATION_UPDATES_PER_FRAME 500
 #define MAINGRAPH_DEFAULT_RENDER_FREQUENCY 25
 
 #define DEFAULT_MAX_TRACE_BUFSIZE 400000

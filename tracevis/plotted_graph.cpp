@@ -428,7 +428,6 @@ void plotted_graph::end_unchained(ANIMATIONENTRY *entry)
 	INSLIST* firstChainedBlock = getDisassemblyBlock(entry->blockAddr, entry->blockID,
 		internalProtoGraph->get_piddata(), &internalProtoGraph->terminationFlag);
 	NODEINDEX firstChainedNode = firstChainedBlock->back()->threadvertIdx.at(tid);
-
 	lastAnimatedNode = firstChainedNode;
 }
 
@@ -469,7 +468,7 @@ void plotted_graph::brighten_node_list(ANIMATIONENTRY *entry, int brightTime, ve
 		}
 		//cout << "lastanimnode: " << nodeIdx << endl;
 		lastAnimatedNode = nodeIdx;
-
+		//cout << "set 2 lastanimated node: " << nodeIdx << endl;
 		++instructionCount;
 		if ((entry->entryType == ANIM_EXEC_EXCEPTION) && (instructionCount == (entry->count + 1))) break;
 	}
@@ -483,6 +482,7 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 		map <MEM_ADDRESS, BB_DATA *>::iterator externIt = piddata->externdict.find(entry->targetAddr);
 		if (externIt != piddata->externdict.end())
 		{
+			piddata->getExternCallerReadLock();
 			EDGELIST callers = externIt->second->thread_callers.at(tid);
 			EDGELIST::iterator callIt = callers.begin();
 			for (; callIt != callers.end(); ++callIt)
@@ -499,6 +499,7 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 				cerr << "[rgat]Error: Caller for " << hex << entry->targetAddr << " not found" << endl;
 				assert(0);
 			}
+			piddata->dropExternCallerReadLock();
 		}
 		else
 		{
@@ -578,14 +579,13 @@ void plotted_graph::process_live_animation_updates()
 {
 	if (internalProtoGraph->animUpdates.empty()) return;
 
-	int updateLimit = 150; //too many updates at a time damages interactivity
+	//too many updates at a time damages interactivity
+	//too few creates big backlogs which delays the animation (can still see realtime in Structure mode though)
+	int updateLimit = animEntriesPerFrame; 
 	while (!internalProtoGraph->animUpdates.empty() && updateLimit--)
 	{
 		process_live_update();
 	}
-
-	if (!updateLimit)
-		cerr << "[rgat]Warning: " << internalProtoGraph->animUpdates.size() << " entry animation backlog" << endl;
 }
 
 
@@ -766,8 +766,7 @@ void plotted_graph::maintain_active()
 		int brightTime = edgeIDIt->second;
 		if (brightTime == KEEP_BRIGHT)
 		{
-			edge_data *pulsingEdge;
-			assert(internalProtoGraph->edge_exists(edgeIDIt->first, &pulsingEdge));
+			assert(internalProtoGraph->edge_exists(edgeIDIt->first,0));
 
 			set_edge_alpha(edgeIDIt->first, animlinedata, currentPulseAlpha);
 			continue;

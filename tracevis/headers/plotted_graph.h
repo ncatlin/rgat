@@ -99,6 +99,7 @@ public:
 	void set_last_active_node();
 	void draw_instruction_text(VISSTATE *clientState, int zdist, PROJECTDATA *pd);
 	void show_symbol_labels(VISSTATE *clientState, PROJECTDATA *pd);
+	void set_animation_update_rate(int updatesPerFrame) { animEntriesPerFrame = updatesPerFrame; }
 
 	proto_graph * get_protoGraph() { return internalProtoGraph; }
 	bool isWireframeSupported() { return wireframeSupported; }
@@ -259,6 +260,7 @@ private:
 	map <pair<NODEINDEX, unsigned int>, int> newExternTimes;
 	HANDLE graphwritingMutex = CreateMutex(NULL, FALSE, NULL);
 
+	unsigned int animEntriesPerFrame = 150;
 	unsigned long animLoopCounter = 0;
 	unsigned int unchainedWaitFrames = 0;
 	unsigned int maxWaitFrames = 0;

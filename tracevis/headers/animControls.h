@@ -81,7 +81,8 @@ private:
 	agui::FlowLayout *backlogLayout = NULL;
 	agui::Label *readLabel = NULL;
 	agui::Label *doneLabel = NULL;
-	agui::Label *backlogLabel = NULL;
+	agui::Label *traceBacklogLabel = NULL;
+	agui::Label *animBacklogLabel = NULL;
 
 	agui::Font *btnFont;
 	agui::Label *statusLabel;

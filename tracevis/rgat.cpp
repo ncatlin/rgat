@@ -265,6 +265,8 @@ void change_active_layout(VISSTATE *clientState, TraceVisGUI *widgets, graphLayo
 	}
 	newPlottedGraph->initialiseDefaultDimensions();
 	newPlottedGraph->reset_edgeSep();
+	newPlottedGraph->set_animation_update_rate(clientState->config->animationUpdateRate);
+
 	piddata->plottedGraphs.at(graphThread) = newPlottedGraph;
 	clientState->newActiveGraph = newPlottedGraph;
 	switchToActiveGraph(clientState, widgets);

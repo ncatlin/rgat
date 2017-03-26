@@ -292,6 +292,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	//see if caller already called this
 	//if so, get the destination node so we can just increase edge weight
 	auto x = thisbb->thread_callers.find(TID);
+	piddata->getExternCallerReadLock();
 	if (x != thisbb->thread_callers.end())
 	{
 		EDGELIST::iterator vecit = x->second.begin();
@@ -299,6 +300,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 		{
 			if (vecit->first != lastVertID) continue;
 
+			piddata->dropExternCallerReadLock();
 			//this instruction in this thread has already called it
 			//cout << "repeated external edge from " << lastVertID << "->" << targVertID << endl;
 
@@ -312,10 +314,12 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 		//else: thread has already called it, but from a different place
 	}
 	//else: thread hasnt called this function before
+	piddata->dropExternCallerReadLock();
 
 	lastNode->childexterns += 1;
 	targVertID = thisgraph->get_num_nodes();
-	//todo: check thread safety. crashes
+
+	piddata->getExternCallerWriteLock();
 	if (!thisbb->thread_callers.count(TID))
 	{
 		EDGELIST callervec;
@@ -324,7 +328,8 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	}
 	else
 		thisbb->thread_callers.at(TID).push_back(make_pair(lastVertID, targVertID));
-	
+	piddata->dropExternCallerWriteLock();
+
 	int module = thisbb->modnum;
 
 	//make new external/library call node
@@ -361,17 +366,20 @@ void thread_trace_handler::process_new_args()
 		MEM_ADDRESS funcad = pendingCallArgIt->first;
 
 		piddata->getExternlistReadLock();
+		piddata->getExternCallerReadLock();
 		map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
 		externIt = piddata->externdict.find(funcad);
 		if (externIt == piddata->externdict.end() ||
 			!externIt->second->thread_callers.count(TID)) {
 			piddata->dropExternlistReadLock();
+			piddata->dropExternCallerReadLock();
 			++pendingCallArgIt;
 			continue; 
 		}
 
 		EDGELIST callvs = externIt->second->thread_callers.at(TID);
 		piddata->dropExternlistReadLock();
+		piddata->dropExternCallerReadLock();
 
 		EDGELIST::iterator callvsIt = callvs.begin();
 		while (callvsIt != callvs.end()) //run through each function with a new arg
@@ -952,9 +960,11 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 	if (find_containing_module(targ2) == MOD_UNINSTRUMENTED)
 	{
 		BB_DATA* foundExtern = 0;
-		assert(piddata->get_extern_at_address(targ2, &foundExtern, 3));
+		bool addressFound = piddata->get_extern_at_address(targ2, &foundExtern, 3);
+		assert(addressFound);
 
 		bool targetFound = false;
+		piddata->getExternCallerReadLock();
 		map <PID_TID, EDGELIST>::iterator callerIt = foundExtern->thread_callers.find(TID);
 
 		if (callerIt != foundExtern->thread_callers.end())
@@ -991,6 +1001,7 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 				 << piddata->modpaths.at(foundExtern->modnum) <<" Addr: " << std::hex << targ2 << ")" << endl;
 			cerr << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
 		}
+		piddata->dropExternCallerReadLock();
 	}
 
 	ANIMATIONENTRY animUpdate;

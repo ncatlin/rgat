@@ -76,6 +76,42 @@ void PROCESS_DATA::dropExternlistWriteLock()
 #endif
 }
 
+void PROCESS_DATA::getExternCallerReadLock()
+{
+#ifdef XP_COMPATIBLE
+	obtainMutex(externCallerMutex, 6366);
+#else
+	AcquireSRWLockShared(&externCallerRWLock);
+#endif
+}
+
+void PROCESS_DATA::getExternCallerWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	obtainMutex(externCallerMutex, 1602);
+#else
+	AcquireSRWLockExclusive(&externCallerRWLock);
+#endif
+}
+
+void PROCESS_DATA::dropExternCallerReadLock()
+{
+#ifdef XP_COMPATIBLE
+	dropMutex(externCallerMutex);
+#else
+	ReleaseSRWLockShared(&externCallerRWLock);
+#endif
+}
+
+void PROCESS_DATA::dropExternCallerWriteLock()
+{
+#ifdef XP_COMPATIBLE 
+	dropMutex(externCallerMutex);
+#else
+	ReleaseSRWLockExclusive(&externCallerRWLock);
+#endif
+}
+
 bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym)
 {
 	bool found;

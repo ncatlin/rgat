@@ -24,10 +24,6 @@ Miscellaneous graphics routines that don't fit into the graph class
 #include "tree_graph.h"
 #include "sphere_graph.h"
 
-//plot wireframe/colpick sphere in memory if they dont exist
-//+draw wireframe
-
-
 //draw basic opengl line between 2 points
 void drawShortLinePoints(FCOORD *startC, FCOORD *endC, ALLEGRO_COLOR *colour, GRAPH_DISPLAY_DATA *vertdata, int *arraypos)
 {

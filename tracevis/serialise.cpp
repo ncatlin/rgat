@@ -693,7 +693,6 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 				unsigned int target = Edge[1].GetUint();
 				threadExternCalls.push_back(make_pair(source, target));
 			}
-
 			BBEntry->thread_callers[threadID] = threadExternCalls;
 		}	
 	}

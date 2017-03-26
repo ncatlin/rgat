@@ -235,6 +235,8 @@ bool clientConfig::loadFromFile()
 	charstr_to_col(al_get_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA"), &activityLineColour, &errorCount);
 	argtof(al_get_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE"), &animationFadeRate, &errorCount);
 	argtouni(al_get_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS"), &renderFrequency, &errorCount);
+	argtoi(al_get_config_value(alConfig, "Misc", "ANIMATION_UPDATES_PER_FRAME"), &animationUpdateRate, &errorCount);
+
 	argtounl(al_get_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX"), &traceBufMax, &errorCount);
 	argtouni(al_get_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE"), &maxArgStorage, &errorCount);
 	argtouni(al_get_config_value(alConfig, "Misc", "DEFAULT_MAX_WAIT_FRAMES"), &maxWaitFrames, &errorCount);
@@ -397,6 +399,7 @@ void clientConfig::saveToFile()
 	al_set_config_value(alConfig, "Misc", "HIGHLIGHT_PROTRUSION", to_string(highlightProtrusion).c_str());
 	al_set_config_value(alConfig, "Misc", "ACTIVITY_MARKER_RGBA", col_to_charstr(activityLineColour));
 	al_set_config_value(alConfig, "Misc", "ANIMATION_FADE_RATE", to_string(animationFadeRate).c_str());
+	al_set_config_value(alConfig, "Misc", "ANIMATION_UPDATES_PER_FRAME", to_string(animationUpdateRate).c_str());
 	al_set_config_value(alConfig, "Misc", "MAINGRAPH_UPDATE_FREQUENCY_MS", to_string(renderFrequency).c_str());
 	al_set_config_value(alConfig, "Misc", "TRACE_BUFFER_MAX", to_string(traceBufMax).c_str());
 	al_set_config_value(alConfig, "Misc", "DEFAULT_MAX_ARG_STORAGE", to_string(maxArgStorage).c_str());
@@ -472,6 +475,7 @@ void clientConfig::loadDefaults()
 	highlightProtrusion = HIGHLIGHT_LINE_PROTRUSION;
 	activityLineColour = ACTIVITY_LINE_COLOUR;
 	animationFadeRate = ANIMATION_FADE_RATE;
+	animationUpdateRate = ANIMATION_UPDATES_PER_FRAME;
 	renderFrequency = MAINGRAPH_DEFAULT_RENDER_FREQUENCY;
 	traceBufMax = DEFAULT_MAX_TRACE_BUFSIZE;
 	maxArgStorage = DEFAULT_MAX_ARG_STORAGE;

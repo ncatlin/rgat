@@ -812,7 +812,7 @@ void cylinder_graph::performMainGraphDrawing(VISSTATE *clientState)
 	//line marking last instruction
 	//<there may be a need to do something different depending on currentUnchainedBlocks.empty() or not>
 	drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config->activityLineColour, 0);
-
+	
 	//highlight lines
 	if (highlightData.highlightState)
 		display_highlight_lines(&highlightData.highlightNodes,

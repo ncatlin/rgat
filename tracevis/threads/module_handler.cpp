@@ -144,10 +144,7 @@ void module_handler::main_loop()
 					}
 				}
 				newPlottedGraph->initialiseDefaultDimensions();
-
-				//todo?
-				//graph->set_max_wait_frames(clientState->config->maxWaitFrames); 
-				
+				newPlottedGraph->set_animation_update_rate(clientState->config->animationUpdateRate);
 
 				thread_trace_reader *TID_reader = new thread_trace_reader(newProtoGraph, PID, TID);
 				TID_reader->traceBufMax = clientState->config->traceBufMax;

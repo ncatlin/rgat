@@ -79,6 +79,7 @@ public:
 	string lastPath;
 
 	float animationFadeRate;
+	int animationUpdateRate;
 	unsigned int maxArgStorage;
 
 	//these are not saved in the config file but toggled at runtime

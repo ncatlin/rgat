@@ -136,7 +136,7 @@ void AnimControls::displayBacklog(proto_graph *graph)
 	
 	int redShade = 255 - (int)(bufFullness * 255);
 
-	backlogLabel->setFontColor(agui::Color(255, redShade, redShade));
+	traceBacklogLabel->setFontColor(agui::Color(255, redShade, redShade));
 
 	string readString;
 	if (bufFullness == 1.0)
@@ -148,7 +148,15 @@ void AnimControls::displayBacklog(proto_graph *graph)
 
 	readLabel->setText(readString);
 	doneLabel->setText(processedString);
-	backlogLabel->setText("Backlog: "+to_string(totalBacklog));
+	traceBacklogLabel->setText("Trace backlog: "+to_string(totalBacklog));
+
+	if (clientState->modes.animation && graph->animUpdates.size() > 1000)
+	{
+		animBacklogLabel->show();
+		animBacklogLabel->setText("Animation backlog: " + to_string(graph->animUpdates.size()));
+	}
+	else
+		animBacklogLabel->hide();
 }
 
 void AnimControls::update(plotted_graph *graph)
@@ -266,16 +274,23 @@ void AnimControls::CreateBufLayout()
 	readLabel->setFontColor(agui::Color(255, 255, 255));
 	backlogLayout->add(readLabel);
 
-	backlogLabel = new agui::Label();
-	backlogLabel->setFont(btnFont);
-	backlogLabel->setFontColor(agui::Color(255, 255, 255));
-	backlogLabel->resizeToContents();
-	backlogLayout->add(backlogLabel);
+	traceBacklogLabel = new agui::Label();
+	traceBacklogLabel->setFont(btnFont);
+	traceBacklogLabel->setFontColor(agui::Color(255, 255, 255));
+	traceBacklogLabel->resizeToContents();
+	backlogLayout->add(traceBacklogLabel);
 
 	doneLabel = new agui::Label();
 	doneLabel->setFont(btnFont);
 	doneLabel->setFontColor(agui::Color(255, 255, 255));
 	backlogLayout->add(doneLabel);
+
+	animBacklogLabel = new agui::Label();
+	animBacklogLabel->setFont(btnFont);
+	animBacklogLabel->setFontColor(agui::Color(255, 0, 0));
+	animBacklogLabel->resizeToContents();
+	backlogLayout->add(animBacklogLabel);
+
 
 	backlogLayout->setLocation(clientState->mainFrameSize.width - BACKLOG_X_OFFSET,
 		clientState->mainFrameSize.height - backlogLayout->getHeight() - 10);

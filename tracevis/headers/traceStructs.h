@@ -151,8 +151,10 @@ public:
 #else
 	SRWLOCK disassemblyRWLock = SRWLOCK_INIT;
 	SRWLOCK externlistRWLock = SRWLOCK_INIT;
+	SRWLOCK externCallerRWLock = SRWLOCK_INIT;
 #endif
 
+	//todo: too many of these now. needs a tidy up
 	inline void getDisassemblyReadLock();
 	inline void getDisassemblyWriteLock();
 	inline void dropDisassemblyReadLock();
@@ -165,6 +167,10 @@ public:
 	void getExternlistWriteLock();
 	void dropExternlistReadLock();
 	void dropExternlistWriteLock();
+	void getExternCallerReadLock();
+	void getExternCallerWriteLock();
+	void dropExternCallerReadLock();
+	void dropExternCallerWriteLock();
 
 	//maps instruction addresses to all data about it
 	map <MEM_ADDRESS, INSLIST> disassembly;
