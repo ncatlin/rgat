@@ -11,7 +11,7 @@ disassemblers and debuggers alone.
 
 Live animation:
 
-![image](https://github.com/ncatlin/ncatlin/raw/master/firefox-live-small.gif)
+![image](https://github.com/ncatlin/ncatlin/raw/master/ffox-cylinder-anim.gif)
 
 Edge frequency Heatmap:
   
