@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 /*
-Describes the position of each vertex in the sphere
-performs functions that are specific to the sphere shape
+Describes the position of each vertex in the cylinder
+performs functions that are specific to the cylinder shape
 */
 
 #pragma once

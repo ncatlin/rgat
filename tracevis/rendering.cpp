@@ -149,7 +149,10 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 
 	int numCalls = n->calls;
 	string symString;
-	clientState->activePid->get_sym(n->nodeMod,n->address,&symString);
+
+	if (clientState->modes.show_symbol_verbosity != eSymboltextAddresses)
+		clientState->activePid->get_sym(n->nodeMod,n->address,&symString);
+
 
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())

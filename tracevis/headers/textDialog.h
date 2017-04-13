@@ -11,18 +11,8 @@
 #include "Agui\Widgets\Slider\Slider.hpp"
 #include "Agui\Widgets\Slider\SliderListener.hpp"
 
-#define INSRADIO_NONE 1
-#define INSRADIO_AUTO 2
-#define INSRADIO_ALL 3
-#define EXTRADIO_INTERNAL 4
-#define EXTRADIO_EXTERNAL 5
-#define EXTRADIO_ALL 6
-#define EXTRADIO_NAMES 7
-#define EXTRADIO_PATHS 8
-#define EXTRADIO_NONE 9
-#define HEATRADIO_NODE 10
-#define HEATRADIO_EDGE 11 
-#define HEATRADIO_NONE 12
+enum textRadioOption { INSRADIO_NONE, INSRADIO_AUTO, INSRADIO_ALL, EXTRADIO_INTERNAL, EXTRADIO_EXTERNAL,
+	EXTRADIO_ALL, EXTRADIO_NAMES, EXTRADIO_PATHS, EXTRADIO_ADDRESS, EXTRADIO_NONE, HEATRADIO_NODE, HEATRADIO_EDGE, HEATRADIO_NONE };
 
 class TextRadioListener : public agui::ActionListener
 {
@@ -44,7 +34,7 @@ class textDialog
 {
 public:
 	textDialog(agui::Gui *widgets, VISSTATE *state, agui::Font *font);
-	~textDialog();
+	~textDialog() {};
 
 	void createInsTextRadios(agui::Font *font, int X, int Y, TextRadioListener *radiolisten);
 	void createRadios_symVerbosity(agui::Font *font, int X, int Y, TextRadioListener *radiolisten);
@@ -58,18 +48,10 @@ public:
 
 	vector <agui::Label *> labelPtrs;
 
-	agui::RadioButton *insTextRadio_Auto;
-	agui::RadioButton *insTextRadio_All;
-	agui::RadioButton *insTextRadio_None;
-	agui::RadioButton *externTextRadio_Names;
-	agui::RadioButton *externTextRadio_Paths;
-	agui::RadioButton *externTextRadio_None;
-	agui::RadioButton *externTextRadio_Internal;
-	agui::RadioButton *externTextRadio_External;
-	agui::RadioButton *externTextRadio_All;
-	agui::RadioButton *heatTextRadio_Node;
-	agui::RadioButton *heatTextRadio_Edge;
-	agui::RadioButton *heatTextRadio_None;
+	agui::RadioButton *insTextRadio_Auto, *insTextRadio_All, *insTextRadio_None;
+	agui::RadioButton *externTextRadio_Names, *externTextRadio_Paths, *externTextRadio_Addresses, *externTextRadio_None;
+	agui::RadioButton *externTextRadio_Internal, *externTextRadio_External, *externTextRadio_All;
+	agui::RadioButton *heatTextRadio_Node, *heatTextRadio_Edge, *heatTextRadio_None;
 
 	agui::Label *fontPtBox = NULL;
 	agui::Slider *fontSlider = NULL;

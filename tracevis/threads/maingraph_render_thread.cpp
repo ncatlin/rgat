@@ -25,10 +25,12 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 
 void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 {
-	if(!graph->setGraphBusy(true))
+	if(!graph->setGraphBusy(true) || !graph->get_mainnodes())
 		return;
+
 	proto_graph *protoGraph = graph->get_protoGraph();
-	if (!protoGraph || !graph->get_mainnodes()) return;
+	if (!protoGraph || protoGraph->edgeList.empty()) 
+		return;
 
 	if (
 		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||

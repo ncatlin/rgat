@@ -108,7 +108,7 @@ void TraceVisGUI::paintWidgets()
 
 	al_draw_tinted_bitmap(cylinderIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X1, LAYOUT_ICONS_Y, 0);
 	al_draw_tinted_bitmap(sphereIcon, al_map_rgba(255, 255, 255, 255),  LAYOUT_ICONS_X2, LAYOUT_ICONS_Y, 0);
-	//al_draw_tinted_bitmap(treeIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X3, LAYOUT_ICONS_Y, 0);
+	al_draw_tinted_bitmap(treeIcon, al_map_rgba(255, 255, 255, 255), LAYOUT_ICONS_X3, LAYOUT_ICONS_Y, 0);
 }
 
 void TraceVisGUI::setLayoutIcon()

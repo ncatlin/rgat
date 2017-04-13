@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Creates a sphere layout for a plotted graph
+Creates a cylinder layout for a plotted graph - grows down the y axis
 */
 
 #include "stdafx.h"

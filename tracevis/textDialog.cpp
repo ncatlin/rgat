@@ -77,11 +77,10 @@ void textDialog::createRadios_symVerbosity(agui::Font *font, int X, int Y, TextR
 	labelPtrs.push_back(summaryLabel);
 
 	int radioOffsetY = 20;
-	int offsetX2 = 110;
-	int offsetX3 = 2 * offsetX2;
+	int labelXSep = 85;
 
 	externTextRadio_Names = new agui::RadioButton();
-	externTextRadio_Names->setText("Names");
+	externTextRadio_Names->setText("Name");
 	externTextRadio_Names->setLocation(X, Y + radioOffsetY);
 	externTextRadio_Names->setFont(font);
 	externTextRadio_Names->resizeToContents();
@@ -90,17 +89,26 @@ void textDialog::createRadios_symVerbosity(agui::Font *font, int X, int Y, TextR
 	textFrame->add(externTextRadio_Names);
 
 	externTextRadio_Paths = new agui::RadioButton();
-	externTextRadio_Paths->setText("Paths");
-	externTextRadio_Paths->setLocation(X + offsetX2, Y + radioOffsetY);
+	externTextRadio_Paths->setText("Path");
+	externTextRadio_Paths->setLocation(X + labelXSep, Y + radioOffsetY);
 	externTextRadio_Paths->setFont(font);
 	externTextRadio_Paths->resizeToContents();
 	externTextRadio_Paths->setWidgetID(EXTRADIO_PATHS);
 	externTextRadio_Paths->addActionListener(radiolisten);
 	textFrame->add(externTextRadio_Paths);
 
+	externTextRadio_Addresses = new agui::RadioButton();
+	externTextRadio_Addresses->setText("Address");
+	externTextRadio_Addresses->setLocation(X + labelXSep*2 - 10, Y + radioOffsetY);
+	externTextRadio_Addresses->setFont(font);
+	externTextRadio_Addresses->resizeToContents();
+	externTextRadio_Addresses->setWidgetID(EXTRADIO_ADDRESS);
+	externTextRadio_Addresses->addActionListener(radiolisten);
+	textFrame->add(externTextRadio_Addresses);
+
 	externTextRadio_None = new agui::RadioButton();
 	externTextRadio_None->setText("None");
-	externTextRadio_None->setLocation(X + offsetX3, Y + radioOffsetY);
+	externTextRadio_None->setLocation(X + labelXSep*3, Y + radioOffsetY);
 	externTextRadio_None->setFont(font);
 	externTextRadio_None->resizeToContents();
 	externTextRadio_None->setWidgetID(EXTRADIO_NONE);
@@ -378,6 +386,7 @@ void TextRadioListener::actionPerformed(const agui::ActionEvent &evt)
 		clientState->modes.show_symbol_verbosity = eSymboltextSymbols;
 		txtbox->externTextRadio_Names->setChecked(true);
 		txtbox->externTextRadio_Paths->setChecked(false);
+		txtbox->externTextRadio_Addresses->setChecked(false);
 		txtbox->externTextRadio_None->setChecked(false);
 		break;
 
@@ -385,6 +394,15 @@ void TextRadioListener::actionPerformed(const agui::ActionEvent &evt)
 		clientState->modes.show_symbol_verbosity = eSymboltextPaths;
 		txtbox->externTextRadio_Names->setChecked(false);
 		txtbox->externTextRadio_Paths->setChecked(true);
+		txtbox->externTextRadio_Addresses->setChecked(false);
+		txtbox->externTextRadio_None->setChecked(false);
+		break;
+
+	case EXTRADIO_ADDRESS:
+		clientState->modes.show_symbol_verbosity = eSymboltextAddresses;
+		txtbox->externTextRadio_Names->setChecked(false);
+		txtbox->externTextRadio_Paths->setChecked(false);
+		txtbox->externTextRadio_Addresses->setChecked(true);
 		txtbox->externTextRadio_None->setChecked(false);
 		break;
 
@@ -392,6 +410,7 @@ void TextRadioListener::actionPerformed(const agui::ActionEvent &evt)
 		clientState->modes.show_symbol_verbosity = eSymboltextOff;
 		txtbox->externTextRadio_Names->setChecked(false);
 		txtbox->externTextRadio_Paths->setChecked(false);
+		txtbox->externTextRadio_Addresses->setChecked(false);
 		txtbox->externTextRadio_None->setChecked(true);
 		break;
 

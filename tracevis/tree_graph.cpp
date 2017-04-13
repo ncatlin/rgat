@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 /*
-Creates a sphere layout for a plotted graph
+Creates a tree layout for a plotted graph
 */
 
 #include "stdafx.h"
@@ -24,11 +24,11 @@ Creates a sphere layout for a plotted graph
 
 //A: Horizontal separation 
 //B: Vertical separation
-#define BMULT 30
-#define BAdj 35
+#define CMULT 30
+#define CAdj 35
 
 #define JUMPA 400
-#define JUMPB 60
+#define JUMPC 60
 #define JUMPA_CLASH 15
 #define CALLB 20
 
@@ -58,21 +58,14 @@ void tree_graph::initialiseDefaultDimensions()
 	defaultZoom = 1600;
 }
 
-TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)
-{
-	if (idx < node_coords->size())
-	{
-		TREECOORD *result;
-		acquire_nodecoord_read();
-		result = &node_coords->at(idx);
-		release_nodecoord_read();
-		return result;
-	}
-	return 0;
-}
 
-//performs an action (call,jump,etc) from lastNode, places new position in positionStruct
-//this is the function that determines how the graph is laid out
+
+/*performs an action (call,jump,etc) from lastNode, places new position in positionStruct
+this is the function that determines how the graph is laid out
+
+for this tree the depth is added down in y axis
+spacing is done by spreading out in x/z axes
+*/
 void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
 
@@ -92,6 +85,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	float a = oldPosition->a;
 	float b = oldPosition->b;
+	float c = oldPosition->c;
 	int clash = 0;
 
 	TREECOORD *position = (TREECOORD *)positionStruct;
@@ -100,7 +94,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		position->a = a + 2 * lastNodeData->childexterns + EXTERNA;
 		position->b = b + lastNodeData->childexterns + EXTERNB;
-		position->c = 1;
+		position->c = c;
 		return;
 	}
 
@@ -110,7 +104,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//small vertical distance between instructions in a basic block	
 	case eNodeNonFlow:
 	{
-		b += -1 * BMULT;
+		c += -1 * CMULT;
 		break;
 	}
 
@@ -120,7 +114,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
-			b += -1 * BMULT;
+			c += -1 * CMULT;
 			break;
 		}
 		//notice lack of break
@@ -129,7 +123,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeException:
 	{
 		a += JUMPA;
-		b += JUMPB * BMULT * -1;
+		c += JUMPC * CMULT * -1;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
@@ -146,12 +140,12 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeCall:
 	{
 		//note: b sometimes huge after this?
-		b += CALLB * BMULT * -1;
+		c += CALLB * CMULT * -1;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			a += CALLA_CLASH;
-			b += CALLB_CLASH * BMULT * -1;
+			c += CALLB_CLASH * CMULT * -1;
 			++clash;
 		}
 
@@ -198,13 +192,13 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		else
 		{
 			a += EXTERNA;
-			b += EXTERNB * BMULT * -1;
+			c += EXTERNB * CMULT * -1;
 		}
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			a += JUMPA_CLASH;
-			b += -1 * BMULT;
+			c += -1 * CMULT;
 			++clash;
 		}
 
@@ -222,7 +216,20 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << endl;
 	position->a = a;
 	position->b = b;
-	position->c = 1;
+	position->c = c;
+}
+
+TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)
+{
+	if (idx < node_coords->size())
+	{
+		TREECOORD *result;
+		acquire_nodecoord_read();
+		result = &node_coords->at(idx);
+		release_nodecoord_read();
+		return result;
+	}
+	return 0;
 }
 
 //function names as they are executed
@@ -284,20 +291,20 @@ void tree_graph::write_rising_externs(ALLEGRO_FONT *font, bool nearOnly, int hei
 void tree_graph::treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions)
 {
 	float a = ia*dimensions->AEDGESEP;
-	b *= dimensions->BEDGESEP;
-	b += BAdj; //offset start down on sphere
+	c *= dimensions->BEDGESEP;
+	c += CAdj; //offset start down on sphere
 
 	coord->x = a;
-	coord->y = b;
-	coord->z = c;
+	coord->z = b;
+	coord->y = c;
 }
 
 //take coord in space, convert back to a/b/c
 void tree_graph::treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults)
 {
 	*a = coord->x;
-	*b = coord->y;
-	*c = coord->z;
+	*b = coord->z;
+	*c = coord->y;
 }
 
 void recalculate_scale(GRAPH_SCALE *mults)
@@ -425,7 +432,7 @@ FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, floa
 	TREECOORD *nodeCoord = get_node_coord(index);
 
 	FCOORD result;
-	treeCoord(nodeCoord->a, nodeCoord->b, 1, &result, dimensions);
+	treeCoord(nodeCoord->a, nodeCoord->b, nodeCoord->c, &result, dimensions);
 	return result;
 }
 

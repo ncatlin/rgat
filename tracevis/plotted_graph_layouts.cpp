@@ -14,8 +14,8 @@ graphLayouts layout_selection_click(int mousex, int mousey)
 	if (mousex >= LAYOUT_ICONS_X2 && mousex <= (LAYOUT_ICONS_X2 + LAYOUT_ICONS_W))
 		return eSphereLayout;
 
-	//if (mousex >= LAYOUT_ICONS_X3 && mousex <= (LAYOUT_ICONS_X3 + LAYOUT_ICONS_W))
-	//	return eTreeLayout;
+	if (mousex >= LAYOUT_ICONS_X3 && mousex <= (LAYOUT_ICONS_X3 + LAYOUT_ICONS_W))
+		return eTreeLayout;
 
 	return eLayoutInvalid;
 }

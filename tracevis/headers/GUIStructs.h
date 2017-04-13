@@ -28,7 +28,7 @@ A messy collection of state structures, generally targeted to the visualiser sta
 
 enum graphLayouts { eCylinderLayout, eSphereLayout, eTreeLayout, eLayoutInvalid};
 enum instructionTextDisplayState { eInsTextOff, eInsTextAuto, eInsTextForced };
-enum symbolTextDisplayState { eSymboltextOff, eSymboltextSymbols, eSymboltextPaths, eSymboltextInternal, eSymboltextExternal, eSymboltextAll };
+enum symbolTextDisplayState { eSymboltextOff, eSymboltextSymbols, eSymboltextPaths, eSymboltextAddresses, eSymboltextInternal, eSymboltextExternal, eSymboltextAll };
 enum heatTextDisplayState { eHeatNodes, eHeatEdges, eHeatNone };
 
 #define XOFF 0
