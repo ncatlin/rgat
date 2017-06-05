@@ -37,6 +37,7 @@ Doing agui widget manipulation in other threads will cause deque errors
 #include "timeline.h"
 #include "plotted_graph_layouts.h"
 
+
 #pragma comment(lib, "glu32.lib")
 #pragma comment(lib, "OpenGL32.lib")
 
@@ -750,6 +751,8 @@ int main(int argc, char **argv)
 
 	ALLEGRO_DISPLAY *newDisplay = 0;
 	ALLEGRO_EVENT_QUEUE *newQueue = 0;
+
+
 	if (!GUI_init(&newQueue, &newDisplay)) {
 		cout << "[rgat]GUI init failed - Use nongraphical mode from command line" << endl;
 		return 0;

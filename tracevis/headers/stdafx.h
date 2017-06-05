@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <tchar.h>
-
+#include <stdint.h>
 
 #define RGAT_VERSION_MAJ 0
 #define RGAT_VERSION_MIN 4
@@ -36,15 +36,18 @@ using namespace std;
 #include <math.h>
 #include <queue>
 
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_opengl.h>
+#include "GL/glew.h"
+
+#include "allegro5\allegro.h"
+#include "allegro5/allegro_opengl.h"
+
 #ifdef WINDOWS
-#include <allegro5/allegro_windows.h>
+#include "allegro5/allegro_windows.h"
 #endif 
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_ttf.h>
-#include <allegro5/allegro_native_dialog.h>
+
+#include "allegro5/allegro_font.h"
+#include "allegro5/allegro_ttf.h"
+#include "allegro5/allegro_native_dialog.h"
 #include "Agui\Widgets\Frame\Frame.hpp"
 
 #include <capstone.h>

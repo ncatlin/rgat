@@ -21,14 +21,15 @@ Class for the code that plots graph divergence
 #include "diff_plotter.h"
 #include "plotted_graph_layouts.h"
 #include "rendering.h"
+#include "allegro5\allegro_font.h"
 
-
-diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state)
+diff_plotter::diff_plotter(plotted_graph *g1, plotted_graph *g2, VISSTATE *state, ALLEGRO_FONT *displayfont)
 {
 
 
 		graph1 = g1;
 		graph2 = g2;
+		diffont = displayfont;
 
 	if (g1->getLayout() == eCylinderLayout)
 	{
@@ -56,7 +57,7 @@ plotted_graph *diff_plotter::get_graph(int idx) {
 }
 
 
-void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState)
+void diff_plotter::display_diff_summary(int x, int y, VISSTATE *clientState)
 {
 	stringstream infotxt1, infotxt2, infotxt3;
 
@@ -67,22 +68,21 @@ void diff_plotter::display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTA
 	infotxt1 << "Green - both traces" << endl;
 	infotxt2 << "Red - (PID:" << graph1->get_pid() << " TID:" << graph1->get_tid() <<
 		") Path: " << modPath1 << "only" << endl;
-
-	int textVSep = font->height + 5;
-
+	
+	int textVSep = al_get_font_line_height(diffont) + 5;
 
 
 	if (divergenceFound)
 	{
-		al_draw_text(font, al_col_orange, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
-		al_draw_text(font, al_col_orange, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
-		al_draw_text(font, al_col_orange, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "Divergence found [ESC to reset]");
+		al_draw_text(diffont, al_col_orange, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
+		al_draw_text(diffont, al_col_orange, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
+		al_draw_text(diffont, al_col_orange, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "Divergence found [ESC to reset]");
 	}
 	else
 	{
-		al_draw_text(font, al_col_green, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
-		al_draw_text(font, al_col_green, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
-		al_draw_text(font, al_col_green, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "No divergence found [ESC to reset]");
+		al_draw_text(diffont, al_col_green, x, y, ALLEGRO_ALIGN_LEFT, infotxt1.str().c_str());
+		al_draw_text(diffont, al_col_green, x, y + textVSep, ALLEGRO_ALIGN_LEFT, infotxt2.str().c_str());
+		al_draw_text(diffont, al_col_green, x, y + textVSep * 2, ALLEGRO_ALIGN_LEFT, "No divergence found [ESC to reset]");
 	}
 }
 

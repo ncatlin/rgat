@@ -140,7 +140,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 			diffnode = protoGraph1->safe_get_node(diffRendererPtr->get_diff_node());
 		
 		display_graph_diff(this, diffRendererPtr, diffnode);
-		diffRendererPtr->display_diff_summary(20, LAYOUT_ICONS_Y + LAYOUT_ICONS_H + 3, font, this);
+		diffRendererPtr->display_diff_summary(20, LAYOUT_ICONS_Y + LAYOUT_ICONS_H + 3, this);
 	}
 
 	else if (modes.diffView == eDiffSelected)//diff button clicked, build the graph first
@@ -155,7 +155,7 @@ void VISSTATE::draw_display_diff(ALLEGRO_FONT *font, void **diffRenderer)
 		plotted_graph *graph2 = mywidgets->diffWindow->get_graph(2);
 
 		diff_plotter **diffRenderPtrPtr = (diff_plotter **)diffRenderer;
-		*diffRenderPtrPtr = new diff_plotter(graph1, graph2, this);
+		*diffRenderPtrPtr = new diff_plotter(graph1, graph2, this, font);
 		((diff_plotter*)*diffRenderPtrPtr)->render();
 		diffRendererPtr = *(diff_plotter **)diffRenderer;
 	}

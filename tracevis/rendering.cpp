@@ -168,7 +168,7 @@ void draw_func_args(VISSTATE *clientState, ALLEGRO_FONT *font, DCOORD screenCoor
 		argstring << " ()";
 	else
 		{
-			//TODO: crash here with argIt->second or first == <NULL>. 
+			//(fixed?)TODO: crash here with argIt->second or first == <NULL>. 
 			//not sure why because funcargs accesses seem to be guarded
 			try 
 			{
@@ -260,7 +260,9 @@ void display_graph_diff(VISSTATE *clientState, diff_plotter *diffRenderer, node_
 		diffgraph->show_symbol_labels(clientState, &pd);
 	}
 
-	if (clientState->modes.show_ins_text && zmul < INSTEXT_VISIBLE_ZOOMFACTOR && graph1->get_protoGraph()->get_num_nodes() > 2)
+	if (clientState->modes.show_ins_text && 
+		zmul < INSTEXT_VISIBLE_ZOOMFACTOR && 
+		graph1->get_protoGraph()->get_num_nodes() > 2)
 	{
 		if (!pdgathered)
 			gather_projection_data(&pd);

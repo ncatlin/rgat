@@ -389,6 +389,15 @@ ALLEGRO_DISPLAY* displaySetup()
 		return NULL;
 	}
 
+	//do some magic to make opengl work
+	GLenum err = glewInit();
+	if (GLEW_OK != err)
+	{
+		/* Problem: glewInit failed, something is seriously wrong. */
+		cerr << "[rgat]glew init Error: " << glewGetErrorString(err) << endl;
+		return NULL;
+	}
+
 	return display;
 }
 

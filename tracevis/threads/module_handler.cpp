@@ -206,7 +206,6 @@ void module_handler::main_loop()
 			if (buf[0] == 'm' && buf[1] == 'n' && bread > 8)
 			{
 				char *next_token = NULL;
-
 				string b64path;
 				//null path
 				if (buf[2] == '@' && buf[3] == '@')

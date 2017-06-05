@@ -27,8 +27,8 @@ Class for the code that plots graph divergence
 class diff_plotter {
 public:
 	plotted_graph *get_diff_graph() { return diffgraph; }
-	diff_plotter(plotted_graph *graph1, plotted_graph *graph2, VISSTATE *state);
-	void display_diff_summary(int x, int y, ALLEGRO_FONT *font, VISSTATE *clientState);
+	diff_plotter(plotted_graph *graph1, plotted_graph *graph2, VISSTATE *state, ALLEGRO_FONT *displayfont );
+	void display_diff_summary(int x, int y, VISSTATE *clientState);
 
 	void render();
 	plotted_graph *get_graph(int idx);
@@ -52,6 +52,7 @@ private:
 	ALLEGRO_COLOR edgeColour;
 	ALLEGRO_COLOR matchingEdgeColour;
 	ALLEGRO_COLOR divergingEdgeColour;
+	ALLEGRO_FONT *diffont;
 
 	PROCESS_DATA *g1ProcessData, *g2ProcessData;
 	unsigned long animIndex = 0;
@@ -61,4 +62,5 @@ private:
 	bool divergenceFound = false;
 
 	unordered_map <NODEPAIR, bool> matchingEdgeList;
+
 };

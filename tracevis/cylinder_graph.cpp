@@ -21,7 +21,7 @@ Creates a cylinder layout for a plotted graph - grows down the y axis
 #include "stdafx.h"
 #include "cylinder_graph.h"
 #include "rendering.h"
-
+#include "allegro5\opengl\gl_ext.h"
 
 //A: Longitude. How many units along the side of the sphere a node is placed
 //B: Latitude. How many units up or down the side of the sphere a node is placed
@@ -469,6 +469,7 @@ void cylinder_graph::regen_wireframe_buffers()
 	if (wireframeBuffersCreated)
 		glDeleteBuffers(2, wireframeVBOs);
 	glGenBuffers(2, wireframeVBOs);
+	
 	
 	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
 	wireframeStarts = (GLint *)malloc(wireframe_loop_count * sizeof(GLint));
