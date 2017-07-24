@@ -249,13 +249,62 @@ ModelManifest.xml
 .paket/paket.exe
 
 #rgat save
-tracevis/saves/
+saves/
 tracelog*
+
+# C++ objects and libs
+
+*.slo
+*.lo
+*.o
+*.a
+*.la
+*.lai
+*.so
+*.dll
+*.dylib
+
+# Qt-es
+
+object_script.*.Release
+object_script.*.Debug
+*_plugin_import.cpp
+/.qmake.cache
+/.qmake.stash
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+Makefile*
+*build-*
+
+
+# Qt unit tests
+target_wrapper.*
+
+
+# QtCreator
+
+*.autosave
+
+# QtCtreator Qml
+*.qmlproject.user
+*.qmlproject.user.*
+
+# QtCtreator CMake
+CMakeLists.txt.user*
+
+#qt generated files
+*/GeneratedFiles/*
 
 # FAKE - F# Make
 .fake/
 /issues
-/INSTALLING.txt
 /tracevis/drgat/DynamoRIO
 /tracevis/drgat/allegro_ttf-5.2.dll
 /tracevis/drgat/allegro_primitives-5.2.dll

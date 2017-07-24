@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>highlightDialog</class>
+ <widget class="QDialog" name="highlightDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>521</width>
+    <height>309</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Highlight Nodes</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="highlightWidget" name="highlightDialogWidget" native="true">
+     <layout class="QGridLayout" name="gridLayout_2">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="sizeConstraint">
+         <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="exceptionHighlightLayout">
+          <property name="spacing">
+           <number>7</number>
+          </property>
+          <property name="leftMargin">
+           <number>13</number>
+          </property>
+          <property name="topMargin">
+           <number>7</number>
+          </property>
+          <property name="rightMargin">
+           <number>13</number>
+          </property>
+          <property name="bottomMargin">
+           <number>7</number>
+          </property>
+          <item>
+           <widget class="QTreeWidget" name="modSymTree">
+            <property name="selectionMode">
+             <enum>QAbstractItemView::ExtendedSelection</enum>
+            </property>
+            <property name="sortingEnabled">
+             <bool>true</bool>
+            </property>
+            <column>
+             <property name="text">
+              <string>Module</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>(Path)/Symbol</string>
+             </property>
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Address</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="highlightMosSymBtn">
+            <property name="minimumSize">
+             <size>
+              <width>35</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>35</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Highlight Selected Symbols</string>
+            </property>
+            <property name="statusTip">
+             <string>Highlight Selected Symbols</string>
+            </property>
+            <property name="text">
+             <string>PushButton</string>
+            </property>
+            <property name="icon">
+             <iconset resource="rgat.qrc">
+              <normaloff>:/Resources/crosshairOff.png</normaloff>
+              <normalon>:/Resources/crosshairOn.png</normalon>:/Resources/crosshairOff.png</iconset>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="otherHighlight">
+          <item>
+           <layout class="QHBoxLayout" name="addressLayout">
+            <property name="spacing">
+             <number>6</number>
+            </property>
+            <property name="leftMargin">
+             <number>6</number>
+            </property>
+            <property name="topMargin">
+             <number>6</number>
+            </property>
+            <property name="rightMargin">
+             <number>6</number>
+            </property>
+            <property name="bottomMargin">
+             <number>6</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="addressLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>57</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>57</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Address: 0x</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="addressEdit">
+              <property name="styleSheet">
+               <string notr="true">border: 1px solid red</string>
+              </property>
+              <property name="inputMask">
+               <string/>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="maxLength">
+               <number>16</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="highlightAddressBtn">
+              <property name="minimumSize">
+               <size>
+                <width>35</width>
+                <height>35</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>35</height>
+               </size>
+              </property>
+              <property name="sizeIncrement">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>Highlight node at this address</string>
+              </property>
+              <property name="statusTip">
+               <string>Highlight node at this address</string>
+              </property>
+              <property name="text">
+               <string>PushButton</string>
+              </property>
+              <property name="icon">
+               <iconset resource="rgat.qrc">
+                <normaloff>:/Resources/crosshairOff.png</normaloff>
+                <normalon>:/Resources/crosshairOn.png</normalon>:/Resources/crosshairOff.png</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="exceptionLayout">
+            <property name="spacing">
+             <number>16</number>
+            </property>
+            <property name="leftMargin">
+             <number>6</number>
+            </property>
+            <property name="topMargin">
+             <number>6</number>
+            </property>
+            <property name="rightMargin">
+             <number>6</number>
+            </property>
+            <property name="bottomMargin">
+             <number>6</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="exceptionsHighlightLabel">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>0 Exceptions</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="exceptionsHighlightBtn">
+              <property name="minimumSize">
+               <size>
+                <width>35</width>
+                <height>35</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>35</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>Highlight source of any exceptions</string>
+              </property>
+              <property name="statusTip">
+               <string>Highlight source of any exceptions</string>
+              </property>
+              <property name="text">
+               <string>O</string>
+              </property>
+              <property name="icon">
+               <iconset resource="rgat.qrc">
+                <normaloff>:/Resources/crosshairOff.png</normaloff>
+                <normalon>:/Resources/crosshairOn.png</normalon>:/Resources/crosshairOff.png</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="optionsLayout">
+          <property name="spacing">
+           <number>4</number>
+          </property>
+          <property name="topMargin">
+           <number>7</number>
+          </property>
+          <property name="bottomMargin">
+           <number>4</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="colourSelectorBtn">
+            <property name="minimumSize">
+             <size>
+              <width>150</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>150</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Set highlight colour</string>
+            </property>
+            <property name="statusTip">
+             <string>Set the colour of the highlight lines</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:rgb(85, 255, 255);
+background-color:rgb(0, 0, 0);</string>
+            </property>
+            <property name="text">
+             <string>Highlight Colour</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="clearCheckBox">
+            <property name="minimumSize">
+             <size>
+              <width>150</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>150</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Stop highlight on close</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>highlightWidget</class>
+   <extends>QWidget</extends>
+   <header>highlightwidget.h</header>
+   <container>1</container>
+   <slots>
+    <slot>addressClick()</slot>
+    <slot>modSymClick()</slot>
+    <slot>exceptionClick()</slot>
+    <slot>closed(int)</slot>
+    <slot>startColourSelect()</slot>
+    <slot>addressChange(QString)</slot>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="rgat.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>highlightAddressBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>addressClick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>364</x>
+     <y>256</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>exceptionsHighlightBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>exceptionClick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>486</x>
+     <y>257</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>highlightMosSymBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>modSymClick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>477</x>
+     <y>117</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>highlightDialog</sender>
+   <signal>finished(int)</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>closed(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colourSelectorBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>startColourSelect()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>150</x>
+     <y>283</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>addressEdit</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>highlightDialogWidget</receiver>
+   <slot>addressChange(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>203</x>
+     <y>239</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
