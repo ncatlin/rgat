@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "rgatState.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "ui_rgat.h"
 #include "serialise.h"
-#include "plotted_graph_layouts.h"
+#include "graphplots/plotted_graph_layouts.h"
 
 int rgatState::getPreviewAngle() 
 {

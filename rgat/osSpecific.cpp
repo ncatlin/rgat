@@ -28,7 +28,7 @@ Need to migrate all Windows API (and soon Linux) routines here
 
 
 
-#ifdef WINDOWS
+#ifdef _WINDOWS
 #include <Windows.h>
 #include <Shlwapi.h>
 #include <TlHelp32.h>

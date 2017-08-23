@@ -23,7 +23,7 @@ eExeCheckResult binaryTarget::getTraceableStatus()
 	if (exeType != eNotInitialised)
 		return exeType;
 
-#ifdef WINDOWS
+#ifdef _WINDOWS
 	DWORD theType;
 	if (!GetBinaryTypeA(filepath.string().c_str(), &theType))
 	{

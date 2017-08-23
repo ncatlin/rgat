@@ -21,7 +21,7 @@ An opengl widget with a vertical scrollbar to display animated graph previews fo
 #pragma once
 #include "graphGLWidget.h"
 #include "rgatState.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "graph_display_data.h"
 #include "mathstructs.h"
 #include "qopenglframebufferobject.h"

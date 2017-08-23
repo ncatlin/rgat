@@ -20,8 +20,8 @@ Pointers to child processes (traces) are contained in the processdata
 */
 
 #pragma once
-#include "headers\traceStructs.h"
-#include "headers\timeline.h"
+#include "traceStructs.h"
+#include "timeline.h"
 
 typedef void * BINARYTARGETPTR;
 

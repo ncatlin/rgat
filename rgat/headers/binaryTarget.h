@@ -47,7 +47,7 @@ public:
 	traceRecord *getRecordWithPID(PID_TID PID, int PID_ID);
 	void applyBitWidthHint(cs_mode bitWidth);
 	int getBitWidth();
-	int traceCount() { return traceRecords.size(); }	
+	size_t traceCount() { return traceRecords.size(); }
 
 private:
 	CRITICAL_SECTION binaryCritSec;

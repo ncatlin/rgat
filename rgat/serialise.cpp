@@ -20,7 +20,7 @@ Graph/Process Saving/Loading routines
 #include "stdafx.h"
 #include "serialise.h"
 #include "OSspecific.h"
-#include "cylinder_graph.h"
+#include "graphplots/cylinder_graph.h"
 #include "traceRecord.h"
 #include "binaryTargets.h"
 

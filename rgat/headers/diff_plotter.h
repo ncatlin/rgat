@@ -19,7 +19,7 @@ Class for the code that plots graph divergence
 */
 #pragma once
 #include "stdafx.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "graphGLWidget.h"
 
 class diff_plotter 

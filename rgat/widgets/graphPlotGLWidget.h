@@ -20,7 +20,7 @@ The primary graph display opengl widget
 
 #pragma once
 #include "rgatState.h"
-#include "plotted_graph.h"
+#include "graphplots\plotted_graph.h"
 #include "graph_display_data.h"
 #include "mathstructs.h"
 #include "graphGLWidget.h"

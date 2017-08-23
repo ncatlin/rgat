@@ -21,7 +21,8 @@ Structures used to represent the disassembly
 #include "stdafx.h"
 #include "edge_data.h"
 #include "traceConstants.h"
-//#include "OSspecific.h"
+
+#include <boost/filesystem.hpp>
 #include "b64.h"
 
 /*

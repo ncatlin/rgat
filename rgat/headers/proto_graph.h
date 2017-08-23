@@ -99,8 +99,8 @@ public:
 	vector<node_data> nodeList; //node id to node data
 
 	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
-	unsigned int get_num_nodes() { return nodeList.size(); }
-	unsigned int get_num_edges() { return edgeDict.size(); }
+	size_t get_num_nodes() { return nodeList.size(); }
+	size_t get_num_edges() { return edgeDict.size(); }
 
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
@@ -115,7 +115,7 @@ public:
 
 	string get_node_sym(NODEINDEX idx);
 
-	unsigned long getAnimDataSize() { return savedAnimationData.size(); }
+	size_t getAnimDataSize() { return savedAnimationData.size(); }
 	vector <ANIMATIONENTRY> * getSavedAnimData() { return &savedAnimationData; }
 
 	//list of all external nodes

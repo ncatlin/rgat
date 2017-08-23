@@ -1,8 +1,8 @@
 #include <QtWidgets>
 
-#ifdef WINDOWS
-#include <Windows.h>
-#include <time.h>
+#ifdef _WINDOWS
+//#include <Windows.h>
+//#include <time.h>
 #endif 
 
 #define RGAT_VERSION_MAJ 0
@@ -28,5 +28,4 @@ using namespace std;
 
 #include <capstone.h>
 
-#include <boost/filesystem.hpp>
 

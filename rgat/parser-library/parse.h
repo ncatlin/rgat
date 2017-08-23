@@ -107,7 +107,7 @@ struct resource {
   bounded_buffer *buf;
 };
 
-#ifndef WINDOWS //rgat modification
+#ifndef _WINDOWS //rgat modification
 // http://msdn.microsoft.com/en-us/library/ms648009(v=vs.85).aspx
 enum resource_type {
   RT_CURSOR = 1,

@@ -23,7 +23,7 @@ intended to be inherited eg: (main animated trace display, trace diffs)
 #include "widgets\graphGLWidget.h"
 #include "GUIconstants.h"
 #include "graphicsMaths.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "ui_highlightSelector.h"
 
 rgatState *graphGLWidget::clientState = NULL;
