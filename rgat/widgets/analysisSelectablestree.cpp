@@ -53,7 +53,7 @@ void analysisSelectablesTree::fillAnalysisLog_ExternCalls(proto_graph *graph, bo
 		text_cursor.insertText(HEADERLINE + "\n");
 	}
 
-	unsigned long recordsCount = graph->externCallRecords.size();
+	size_t recordsCount = graph->externCallRecords.size();
 	unsigned long startPosition = appendNewUpdates ? currentLogLines : 0;
 	//check if symbols in graph > previous count
 	//if it is, add extras to log
@@ -83,7 +83,7 @@ void analysisSelectablesTree::fillAnalysisLog_Modules(traceRecord *trace, bool a
 
 	map <int, boost::filesystem::path> modpaths = trace->get_piddata()->modpaths;
 
-	unsigned long recordsCount = modpaths.size();
+	size_t recordsCount = modpaths.size();
 	unsigned long startPosition = appendNewUpdates ? currentLogLines : 0;
 	//check if symbols in graph > previous count
 	//if it is, add extras to log
@@ -274,7 +274,7 @@ void analysisSelectablesTree::updateThreadItem(QTreeWidgetItem* threadItem, prot
 		{
 		case eAC_ExternalCalls:
 			{
-				unsigned long callQty = graph->externCallRecords.size();
+				size_t callQty = graph->externCallRecords.size();
 				
 				QString newText = "Symbol Calls (" + QString::number(callQty) + ")";
 				item->setText(0, newText);
@@ -344,7 +344,6 @@ void analysisSelectablesTree::addTrace(traceRecord * trace, QTreeWidgetItem* par
 //adding trace from scratch
 void analysisSelectablesTree::updateTraceSelectables(traceRecord * trace, QTreeWidgetItem* traceItem)
 {
-	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QTreeWidgetItem *item;
 	for (int i = 0; i < traceItem->childCount(); ++i)
 	{
@@ -356,7 +355,7 @@ void analysisSelectablesTree::updateTraceSelectables(traceRecord * trace, QTreeW
 		{
 		case eAC_Modules:
 			{
-				unsigned int moduleQty = trace->get_piddata()->modpaths.size();
+				size_t moduleQty = trace->get_piddata()->modpaths.size();
 				QString newText = "Loaded Modules (" + QString::number(moduleQty) + ")";
 				item->setText(0, newText);
 

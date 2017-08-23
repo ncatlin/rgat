@@ -217,7 +217,7 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 	++vsadded;
 	// > for smoother lines, less performance
 	int dt;
-	float fadeA = 0.9;
+	float fadeA = (float)0.9;
 	FCOORD resultC;
 
 	int segments = float(curvePoints) / 2;

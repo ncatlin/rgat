@@ -32,7 +32,7 @@ public:
 	bool exists(boost::filesystem::path file) { return targets.count(file) > 0;}
 	bool exists(binaryTarget * target) { return (std::find(targetsList.begin(), targetsList.end(), target) != targetsList.end()); }
 
-	unsigned int count() { return targets.size(); }
+	size_t count() { return targets.size(); }
 	void registerChild(PID_TID parentPID, traceRecord *trace);
 
 private:

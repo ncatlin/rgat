@@ -22,7 +22,7 @@ This contains much of the functionality for the dynamic analysis tabs
 #include "stdafx.h"
 #include "widgets\maintabbox.h"
 #include "OSspecific.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "widgets\graphPlotGLWidget.h"
 #include "ui_rgat.h"
 #include "ui_processSelector.h"
@@ -113,7 +113,7 @@ void mainTabBox::tabChanged(int newIndex)
 
 	if (newIndex == eVisualiseTab)
 	{
-		DWORD suppressWarningThreadID;
+		//DWORD suppressWarningThreadID;
 		//CreateThread(NULL, 0, stressThread, (LPVOID)clientState->ui, 0, &suppressWarningThreadID);
 
 		ui->graphPlotGLBox->tabChanged(true);
@@ -374,7 +374,7 @@ void mainTabBox::refreshTracesCombo(traceRecord *initialTrace)
 	if (!clientState->activeBinary) return;
 
 	int activeTraceCount = 0;
-	int currentIndex = ui->tracesListCombo->currentIndex();
+	//int currentIndex = ui->tracesListCombo->currentIndex();
 
 	ui->tracesListCombo->blockSignals(true);
 	list <traceRecord *> tracelist = clientState->activeBinary->getTraceList();

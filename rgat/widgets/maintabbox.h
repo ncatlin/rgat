@@ -22,7 +22,7 @@ of the GUI activity around dynamic analysis
 #include <qtabwidget>
 #include "binaryTargets.h"
 #include "rgatState.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 
 #define PLAYICON ":/Resources/playico.ico"
 #define PAUSEICON ":/Resources/pauseico.ico"

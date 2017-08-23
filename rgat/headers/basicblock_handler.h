@@ -31,11 +31,10 @@ public:
 		binary = binaryptr;  runRecord = runRecordptr;
 		int bitwidth = binary->getBitWidth();
 		assert(bitwidth);
-		disassemblyBitwidth = (binary->getBitWidth() == 32) ? CS_MODE_32 : CS_MODE_64;
+		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
 	};
 
 	wstring pipename;
-	//int get_bitwidth() { return bitwidth; }
 
 private:
 	binaryTarget *binary;

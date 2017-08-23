@@ -20,8 +20,8 @@ Also handles creating new targets.
 */
 
 #include "stdafx.h"
-#include "widgets\targetcombo.h"
-#include "widgets\maintabbox.h"
+#include "targetcombo.h"
+#include "maintabbox.h"
 #include <boost\filesystem.hpp>
 #include "ui_rgat.h"
 

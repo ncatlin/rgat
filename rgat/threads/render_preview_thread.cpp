@@ -20,7 +20,7 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 
 #include <stdafx.h>
 #include "render_preview_thread.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "traceMisc.h"
 #include "previewPlotGLWidget.h"
 #include "ui_rgat.h"

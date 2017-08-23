@@ -56,11 +56,12 @@ constexpr std::uint16_t DIR_DELAY_IMPORT = 13;
 constexpr std::uint16_t DIR_COM_DESCRIPTOR = 14;
 
 
-constexpr std::uint16_t IMAGE_FILE_MACHINE_ARM64 = 0xaa64;    // ARM64 little endian
 
-//commented out for compiling on windows with nt headers already included
+//rgat modification: commented out for compiling on windows with nt headers already included
 // Machine Types
-#ifndef WINDOWS
+#ifndef _WINDOWS
+
+constexpr std::uint16_t IMAGE_FILE_MACHINE_ARM64 = 0xaa64;    // ARM64 little endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_UNKNOWN = 0x0;
 constexpr std::uint16_t IMAGE_FILE_MACHINE_AM33 = 0x1d3;      // Matsushita AM33
 constexpr std::uint16_t IMAGE_FILE_MACHINE_AMD64 = 0x8664;    // x64

@@ -32,7 +32,7 @@ string generate_funcArg_string(string sym, ARGLIST *args)
 
 	if (args)
 	{
-		int numargs = args->size();
+		size_t numargs = args->size();
 		for (int i = 0; i < numargs; ++i)
 		{
 			ARGIDXDATA arg = args->at(i);

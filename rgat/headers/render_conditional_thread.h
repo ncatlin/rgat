@@ -20,7 +20,7 @@ Header for the thread that renders graph conditional data
 #pragma once
 #include <stdafx.h>
 #include "traceStructs.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "base_thread.h"
 
 class conditional_renderer : public base_thread

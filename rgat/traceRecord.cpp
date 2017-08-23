@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "traceRecord.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "serialise.h"
-#include "cylinder_graph.h"
+#include "graphplots/cylinder_graph.h"
 #include "processLaunching.h"
 
 traceRecord::traceRecord(PID_TID newPID, int randomNo, int bitWidth)

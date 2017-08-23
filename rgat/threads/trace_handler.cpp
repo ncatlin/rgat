@@ -545,7 +545,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //TODO: this assumption is bad; any self modifying dll may cause problems
 int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 {
-	const int numModules = piddata->modBounds.size();
+	const size_t numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
 		piddata->getDisassemblyReadLock();
@@ -702,7 +702,6 @@ bool thread_trace_handler::assign_blockrepeats()
 		}
 		
 		//create any new edges between unchained nodes
-		unsigned int sourceNodeidx = n->index;
 		vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>>::iterator targCallIt = repeatIt->targBlocks.begin();
 		while (targCallIt != repeatIt->targBlocks.end())
 		{
@@ -730,9 +729,6 @@ bool thread_trace_handler::assign_blockrepeats()
 
 			INS_DATA *firstIns = targetBlock->front();
 			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIt; continue; }
-
-			unsigned int targNodeIdx = firstIns->threadvertIdx.at(TID);
-			edge_data *targEdge = thisgraph->get_edge_create(n, thisgraph->safe_get_node(targNodeIdx));
 
 			targCallIt = repeatIt->targBlocks.erase(targCallIt);
 		}

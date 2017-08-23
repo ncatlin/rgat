@@ -26,7 +26,9 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "trace_handler.h"
 #include "thread_trace_reader.h"
 #include "b64.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
+
+#include <boost/filesystem.hpp>
 
 //listen to module data for given process
 void module_handler::main_loop()
@@ -60,7 +62,6 @@ void module_handler::main_loop()
 	clientState->newProcessSeen();
 
 	char buf[400] = { 0 };
-	int PIDcount = 0;
 
 	OVERLAPPED ov2 = { 0 };
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -72,7 +73,6 @@ void module_handler::main_loop()
 
 	vector < base_thread *> threadList;
 	vector < thread_trace_reader *> readerThreadList;
-	DWORD res= 0;
 	while (!die && !piddata->should_die())
 	{
 

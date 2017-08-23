@@ -413,7 +413,7 @@ void previewPlotGLWidget::refreshPreviewGraphs(bool forceFullCheck = false)
 	forceFullCheck = true;
 
 	plotted_graph * currentGraph;
-	int traceGraphQty = activeTrace->plottedGraphs.size();
+	size_t traceGraphQty = activeTrace->plottedGraphs.size();
 	if (testedGraphQty < traceGraphQty || forceFullCheck)
 	{
 		previewGraphs.clear();

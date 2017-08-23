@@ -42,7 +42,7 @@ public:
 	void clear();
 	void reset();
 
-	unsigned int col_sizec() { return vcolarray.size(); }
+	size_t col_sizec() { return vcolarray.size(); }
 	//this is actually quite slow? or at least is a significant % of reported cpu time
 	unsigned int col_buf_capacity_floats() { return vcolarraySize; }
 	GLsizei get_numVerts() { return numVerts; }

@@ -19,7 +19,7 @@ Class for the code that plots graph divergence
 */
 #include "stdafx.h"
 #include "diff_plotter.h"
-#include "plotted_graph_layouts.h"
+#include "graphplots/plotted_graph_layouts.h"
 #include "rgatState.h"
 
 diff_plotter::diff_plotter(graphGLWidget *plotwindow, plotted_graph *g1, plotted_graph *g2,  QFont *displayfont)
@@ -141,8 +141,6 @@ void diff_plotter::render(graphGLWidget *gltarget)
 	proto_graph *g1Proto = graph1->get_protoGraph();
 	proto_graph *g2Proto = graph2->get_protoGraph();
 
-	rgatState *clientState = graph1->clientState;
-
 	AcquireSRWLockShared(&g1Proto->animationListsSRWLOCK);
 	AcquireSRWLockShared(&g2Proto->animationListsSRWLOCK);
 
@@ -170,8 +168,8 @@ void diff_plotter::render(graphGLWidget *gltarget)
 
 	map <NODEPAIR, bool> renderedEdges;
 
-	unsigned long renderIdx = 0;
-	unsigned long renderEnd = graph1Data->size();
+	size_t renderIdx = 0;
+	size_t renderEnd = graph1Data->size();
 	for (; renderIdx < renderEnd; ++renderIdx)
 	{
 		//stop comparing once divergence is found

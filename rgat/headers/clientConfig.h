@@ -20,6 +20,7 @@ Class that holds the configuration data read from and written to the config file
 #pragma once
 #include "stdafx.h"
 
+#include <boost/filesystem.hpp>
 
 enum PreviewScrollDir { ePrevscrollDown, ePrevscrollUp, ePrevscrollLeft, ePrevscrollRight, ePrevscrollDisabled };
 enum heatTextDisplayState { eHeatNodes, eHeatEdges, eHeatNone };

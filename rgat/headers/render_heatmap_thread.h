@@ -20,9 +20,9 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 #pragma once
 #include <stdafx.h>
 #include <set>
-//#include "GUIStructs.h"
+
 #include "traceStructs.h"
-#include "plotted_graph.h"
+#include "graphplots/plotted_graph.h"
 #include "base_thread.h"
 #include "binaryTarget.h"
 
