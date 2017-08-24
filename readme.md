@@ -25,11 +25,15 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.5.0 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.7z) for Windows x86 and x64 binary targets. rgat itself is compiled for running on x64 hosts.
+Version 0.5.0 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.7z) for Windows x86 and x64 binary targets.
+rgat itself is compiled for running on x64 hosts.
 
 This version sees the entire frontend UI reimplemented in Qt. Allegro served its purpose but implementing new features with Qt is actually a pleasure rather than a struggle, which will encourage further development.
 
 See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for a list of changes.
+
+For the next few releases in 0.5.* i'm planning to write a collection of tests for drgat to give me some assurance that the instruction tracing is accurate, switch out OS dependent code from rgat with platform independent 
+replacements and flesh out some of the missing or barebones features in the UI.
 
 ## Download/Installation
 
