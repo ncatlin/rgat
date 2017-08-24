@@ -68,4 +68,4 @@ rgat relies upon:
 * [Qt](https://www.qt.io/) for managing OpenGL and handling input
 * [rapidjson](http://rapidjson.org) used for serialising traces
 * [Base 64 code](http://www.adp-gmbh.ch/cpp/common/base64.html) for encoding symbol/module path strings
-* [pe-parse] (https://github.com/trailofbits/pe-parse) which performs some binary header analysis
+* [pe-parse](https://github.com/trailofbits/pe-parse) which performs some binary header analysis
