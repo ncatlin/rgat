@@ -237,7 +237,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="iconSize">
            <size>
@@ -2263,6 +2263,7 @@
     </item>
    </layout>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
@@ -2294,21 +2295,12 @@
      <string>Settings</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menuAnalysis_Mode">
-    <property name="title">
-     <string>Analysis Mode</string>
-    </property>
-    <addaction name="actionStatic"/>
-    <addaction name="actionDynamic"/>
-   </widget>
    <addaction name="menuoption1"/>
    <addaction name="menuSettings"/>
-   <addaction name="menuAnalysis_Mode"/>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionNew_Target_File">
    <property name="text">
-    <string>Select Target File</string>
+    <string>Select Target Executable</string>
    </property>
    <property name="toolTip">
     <string>Select a binary file to execute, trace and analyze</string>
@@ -2362,6 +2354,9 @@
   </action>
   <action name="actionStatic">
    <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="text">
