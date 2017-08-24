@@ -218,7 +218,6 @@ void rgat::setupUI()
 		//disable fuzzing tab
 		ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);
 
-		ui.menuAnalysis_Mode->menuAction()->setEnabled(false);
 		ui.menuSettings->menuAction()->setEnabled(false);
 		ui.pauseBreakBtn->setEnabled(false);
 #endif

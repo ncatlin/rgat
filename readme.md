@@ -25,12 +25,10 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.4.2 is here: [zip](https://github.com/ncatlin/rgat-builds/raw/master/rgat-0.4.2.zip)/[7z](https://github.com/ncatlin/rgat-builds/raw/master/rgat-0.4.2.7z) for Windows x86 and x64 targets.
+Version 0.5.0 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.7z) for Windows x86 and x64 binary targets. rgat itself is compiled for running on x64 hosts.
 
-This update brings various changes, including the cylinder layout! This grows with the trace instead of 
-being forced to constantly shrink the graph to fit a fixed sphere. The sphere is still selectable in a new layout menu.
+This version sees the entire frontend UI reimplemented in Qt. Allegro served its purpose but implementing new features with Qt is actually a pleasure rather than a struggle, which will encourage further development.
 
-There is also a text management config [press 't'] and the awful custom save format has been replaced with JSON.
 See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for a list of changes.
 
 ## Download/Installation
@@ -41,22 +39,6 @@ Unzip it, run it.
 
 Try to execute something. If you get an error then you likely need to install the [Visual C++ Redistributable for Visual Studio 2012](https://www.microsoft.com/en-gb/download/details.aspx?id=30679), because of reasons.
 
-It should create a default config file at start-up, feel free to customise.
-
-## Running
-
-Virtual Machines and OpenGL do not get on well together. rgat works on VMWare Workstation with a Win 7 guest but it tends to crash VirtualBox. You can use it from the command line in environments without 3D capability and export the save file for analysis elsewhere.
-
-Run, save and load traces from the file menu. Other functionality should be reasonably self-explanatory from the other menus.
-
-run from the command line with -h to get a list of command line options. Ctrl-C will force rgat to save everything it has so far and quit.
-
-Graph navigation is intended to be similar to Google Earth: drag it with the mouse and zoom with the scroll wheel. Num pad 7,8,1 and 2 allow finer grained zoom control.
-
-Press 'n' to stop the stuff on the back of the sphere cluttering up your view, and 't' and 'm' to toggle instruction and dll text to the situation if the defaults don't work for the situation.
-
-Use the arrow keys to stretch and compress the graph you are looking at. Turn off autoscaling in the options menu if rgat doesn't like it.
-
 ## Problems
 
 See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://github.com/ncatlin/rgat/wiki#limitations)
@@ -65,9 +47,9 @@ See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://g
 
 This is an unstable preview release. I promise not to use that excuse when the basic functionality has been done. 
 
-Its reliance on DynamoRIO means that rgat suffers from all of the same limitations. 99% of problems you find will be my fault, though.
+Its reliance on DynamoRIO means that rgat suffers from all of the same limitations. In particular - it won't currently instrument x86 binaries on the new Ryzen processors. 
 
-Instrumenting arbitrary code - especially malicious obfuscated code - tends to present a *lot* of edge cases.
+99% of problems you find will be my fault, though. Instrumenting arbitrary code - especially malicious obfuscated code - tends to present a *lot* of edge cases.
 
 ## 'rgat'?
 
@@ -79,7 +61,7 @@ rgat relies upon:
 
 * [DynamoRIO](https://github.com/DynamoRIO/) for generating instruction [opcode] traces
 * [Capstone](http://www.capstone-engine.org/) for disassembling them
-* [Allegro 5](https://www.allegro.cc/) for managing OpenGL and handling input
-* [agui](https://github.com/jmasterx/Agui/) for a lightweight UI that didn't involve distributing GTK/Qt/etc
+* [Qt](https://www.qt.io/) for managing OpenGL and handling input
 * [rapidjson](http://rapidjson.org) used for serialising traces
-* [Base 64 code](http://www.adp-gmbh.ch/cpp/common/base64.html) for platform independent encoding.
+* [Base 64 code](http://www.adp-gmbh.ch/cpp/common/base64.html) for encoding symbol/module path strings
+* [pe-parse] (https://github.com/trailofbits/pe-parse) which performs some binary header analysis

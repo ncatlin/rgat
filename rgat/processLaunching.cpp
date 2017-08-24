@@ -11,9 +11,6 @@
 
 void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
 {
-	
-	PROCESS_DATA *piddata = new PROCESS_DATA(target->getBitWidth());
-
 	//spawns trace threads + handles module data for process
 	module_handler *tPIDThread = new module_handler(target, runRecord);
 

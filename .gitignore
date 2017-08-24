@@ -231,7 +231,7 @@ FakesAssemblies/
 *.opt
 
 # Solution file
-*.sln
+#*.sln
 
 # Visual Studio LightSwitch build output
 **/*.HTMLClient/GeneratedArtifacts
