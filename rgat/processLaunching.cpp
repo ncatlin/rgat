@@ -70,6 +70,7 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		PID_TID parentPID = getParentPID(PID);
 
 		binaryTarget *target;
+
 		clientState->targets.getTargetByPath(binarypath, &target);
 		target->applyBitWidthHint(bitWidth);
 

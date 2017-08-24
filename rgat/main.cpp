@@ -8,7 +8,6 @@ int main(int argc, char *argv[])
 
 	rgat w;
 
-	
 	w.show();
 	return a.exec();
 }

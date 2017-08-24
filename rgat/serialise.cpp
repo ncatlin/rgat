@@ -245,7 +245,11 @@ void saveMetaData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	else if (piddata->bitwidth == 64)
 		writer.Uint(64);
 	else
-		cerr << "[rgat] Proto-graph has invalid bitwidth marker " << piddata->bitwidth << endl;
+	{
+		cerr << "[rgat] Error: Trace not locked while saving. Proto-graph has invalid bitwidth marker " << piddata->bitwidth << endl;
+		assert(false);
+		return;
+	}
 
 	writer.Key("RGATVersionMaj");
 	writer.Uint(RGAT_VERSION_MAJ);

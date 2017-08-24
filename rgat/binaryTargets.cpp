@@ -22,18 +22,20 @@ limitations under the License.
 bool binaryTargets::getTargetByPath(boost::filesystem::path path, binaryTarget **target)
 {
 	obtainMutex(&targetsCritSec,82);
+
+
 	binaryTarget* result = NULL;
 	bool newBinary;
 	auto it = targets.find(path);
 	if (it != targets.end()) 
 	{ 
-		result = &it->second;
+		result = it->second;
 		newBinary = false;
 	}
 	else
 	{
-		binaryTarget newTarget(path.generic_path());
-		result = &targets.emplace(make_pair(path, newTarget)).first->second;
+		binaryTarget *newTarget = new binaryTarget(path.generic_path());
+		result = targets.emplace(make_pair(path, newTarget)).first->second;
 
 		targetsList.push_back(result);
 		newBinary = true;
@@ -52,7 +54,7 @@ void binaryTargets::registerChild(PID_TID parentPID, traceRecord *trace)
 	obtainMutex(&targetsCritSec, 182);
 	for (auto tarIt = targets.begin();  tarIt != targets.end(); tarIt++)
 	{
-		traceRecord *possibleParentTrace = tarIt->second.getRecordWithPID(parentPID, 0);
+		traceRecord *possibleParentTrace = tarIt->second->getRecordWithPID(parentPID, 0);
 		if (possibleParentTrace)
 			matchingRecords.push_back(possibleParentTrace);
 	}

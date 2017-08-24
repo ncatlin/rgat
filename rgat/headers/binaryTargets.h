@@ -37,7 +37,7 @@ public:
 
 private:
 	CRITICAL_SECTION targetsCritSec;
-	map <boost::filesystem::path, binaryTarget> targets;
+	map <boost::filesystem::path, binaryTarget *> targets;
 	vector<binaryTarget *> targetsList;
 	binaryTarget *activeTarget = NULL;
 };

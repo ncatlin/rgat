@@ -318,3 +318,4 @@ CMakeLists.txt.user*
 /rgatTesting
 rgat*.7z
 rgat*.zip
+/debuglogs
