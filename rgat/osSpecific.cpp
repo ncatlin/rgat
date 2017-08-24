@@ -42,7 +42,7 @@ PID_TID getParentPID(PID_TID childPid)
 		PROCESSENTRY32 pe32;
 		PID_TID ppid = 0;
 
-		hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+		hSnapshot = CreateToolhelp32Snapshot(0x2, 0);// TH32CS_SNAPPROCESS
 		__try {
 			if (hSnapshot == INVALID_HANDLE_VALUE) __leave;
 
@@ -209,9 +209,65 @@ bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, 
 		finalCommandline << " -msgbox_mask 15 ";
 
 	string drrunArgs = " -thread_private "; //todo: allow user to tweak dr options
+	//string drrunArgs = " -debug -thread_private "; //todo: allow user to tweak dr options
+
 	finalCommandline << drrunArgs;
 
 	finalCommandline << "-c \"" << drgatPath.string() << "\"";
+
+	*path = finalCommandline.str();
+	return true;
+}
+
+bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
+{
+	//get dynamorio exe from path in settings
+	//todo: check this works with spaces in the path
+	boost::filesystem::path DRBase = config->DRDir;
+	boost::filesystem::path DRConfigRunPath = DRBase;
+	boost::filesystem::path DRPathEnd;
+	if (is64Bits)
+		DRPathEnd.append("bin64\\drrun.exe");
+	else
+		DRPathEnd.append("bin32\\drrun.exe");
+
+	DRConfigRunPath += DRPathEnd;
+
+	//not there - try finding it in rgats directory
+	if (!boost::filesystem::exists(DRConfigRunPath))
+	{
+		cerr << "[rgat] ERROR: Failed to find DynamoRIO executable at " << DRConfigRunPath << " listed in config file" << endl;
+
+		DRBase = boost::filesystem::path(getModulePath() + "\\DynamoRIO");
+		boost::filesystem::path DRModRunPath(DRBase);
+		if (is64Bits)
+			DRModRunPath.append("bin64\\drrun.exe");
+		else
+			DRModRunPath.append("bin32\\drrun.exe");
+
+		if ((DRModRunPath != DRConfigRunPath) && boost::filesystem::exists(DRModRunPath))
+		{
+			cout << "[rgat] Found DynamoRIO executable at " << DRModRunPath << ", continuing..." << endl;
+			DRConfigRunPath = DRModRunPath;
+		}
+		else
+		{
+			cerr << "[rgat]ERROR: Also failed to find DynamoRIO executable at default " << DRModRunPath << endl;
+			return false;
+		}
+	}
+
+	//get the rgat instrumentation client
+	boost::filesystem::path samplePath = DRBase;
+	if (is64Bits)
+		samplePath += "samples\\bin64\\" + sampleName + ".dll";
+	else
+		samplePath += "samples\\bin32\\" + sampleName + ".dll";
+
+	stringstream finalCommandline;
+	finalCommandline << DRConfigRunPath.string();
+
+	finalCommandline << " -c \"" << samplePath.string() << "\"";
 
 	*path = finalCommandline.str();
 	return true;
@@ -282,6 +338,33 @@ void execute_tracer(void *binaryTargetPtr, clientConfig *config)
 	CloseHandle(processinfo.hThread);
 }
 
+void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)
+{
+	if (!binaryTargetPtr) return;
+	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
+
+	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	string runpath;
+	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
+		return;
+
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+
+	STARTUPINFOA startupinfo;
+	ZeroMemory(&startupinfo, sizeof(startupinfo));
+	startupinfo.cb = sizeof(startupinfo);
+
+	PROCESS_INFORMATION processinfo;
+	ZeroMemory(&processinfo, sizeof(processinfo));
+
+	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
+	bool success = CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &startupinfo, &processinfo);
+	if (!success)
+		cerr << "[rgat]ERROR: Failed to execute target. Windows error code: " << GetLastError() << endl;
+
+	CloseHandle(processinfo.hProcess);
+	CloseHandle(processinfo.hThread);
+}
 
 void rgat_create_thread(void *threadEntry, void *arg)
 {

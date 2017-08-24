@@ -21,7 +21,7 @@ intended to be inherited eg: (main animated trace display, trace diffs)
 
 #pragma once
 #include "qopenglwidget.h"
-#include <QtGui\qopenglfunctions_3_1.h>
+#include <QtGui\qopenglfunctions_3_0.h>
 #include "mathstructs.h"
 #include "graph_display_data.h"
 #include "rgatState.h"
@@ -31,7 +31,7 @@ enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 
 
 class graphGLWidget :
-	public QOpenGLWidget, public QOpenGLFunctions_3_1
+	public QOpenGLWidget, public QOpenGLFunctions_3_0
 {
 
 	Q_OBJECT

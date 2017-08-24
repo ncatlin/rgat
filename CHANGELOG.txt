@@ -102,7 +102,7 @@ Reduced the size of the window on smaller displays
 Improved command line output
 Various code improvements, crash and bug fixes
 
-24/07/17 0.5.0-Alpha [PREVIOUS SAVES OBSOLETE+CONFIGS OBSOLETE]
+23/08/17 0.5.0-Alpha [PREVIOUS SAVES OBSOLETE+CONFIGS OBSOLETE]
 -----------------
 Reimplementation of UI in QT leading to many changes
 Configs moved to registry
@@ -110,5 +110,4 @@ UI now tab based
 Added a trace analysis tab for text trace data
 Sphere layout removed
 Command line mode disabled pending reimplementation
-
 

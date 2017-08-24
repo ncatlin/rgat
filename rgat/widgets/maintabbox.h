@@ -74,6 +74,8 @@ public Q_SLOTS:
 	void renderModeSelected(int index);
 	void graphLayoutSelected(int index);
 	void highlightDialogBtnClicked();
+	void startDynamorioTest();
+	void startDrgatTest();
 
 private:
 	void updateVisualiseStats(bool fullRefresh = false);

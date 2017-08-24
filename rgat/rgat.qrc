@@ -1,7 +1,7 @@
 <RCC>
   <qresource prefix="/">
-    <file>Resources/volume.svg</file>
     <file>Resources/wireframeOff.png</file>
+    <file>Resources/volume.png</file>
     <file>Resources/treeIcon.png</file>
     <file>Resources/wireframeOn.png</file>
     <file>Resources/crosshairOff.png</file>

@@ -125,6 +125,7 @@ void graphPlotGLWidget::tabChanged(bool nowActive)
 
 void graphPlotGLWidget::initializeGL()
 {
+
 	initializeOpenGLFunctions();
 
 	glEnable(GL_ALPHA_TEST);

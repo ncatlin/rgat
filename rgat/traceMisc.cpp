@@ -88,7 +88,7 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 	for (; pos2 < pipeinput.length(); pos2++)
 		if (pipeinput.at(pos2) == 'p') { break; }
 
-	string randstring = pipeinput.substr(pos + 1, pos2 - pos);
+	string randstring = pipeinput.substr(pos + 1, pos2 - pos - 1);
 	try {
 		*PID_ID = std::stoi(randstring);
 	}

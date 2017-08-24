@@ -46,6 +46,7 @@ void targetCombo::setActiveTarget(binaryTarget * target)
 	mainTabs->changeTarget(target, eVisualiseTab);
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+
 	ui->traceGatherTab->fillAnalyseTab(target);
 }
 
@@ -57,6 +58,7 @@ void targetCombo::setActiveTarget(int index)
 	if (activePath.size() == 0) return;
 
 	binaryTarget * target;
+
 	targets->getTargetByPath(activePath, &target);
 	if (target)
 		setActiveTarget(target);
@@ -64,11 +66,11 @@ void targetCombo::setActiveTarget(int index)
 
 void targetCombo::addTargetToInterface(binaryTarget *target, bool newBinary)
 {
-
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	boost::filesystem::path filepath = target->path();
 	if (newBinary)
 	{
+
 		if (paths.empty())
 		{
 			//get rid of the [hey you should add a target] text
@@ -86,6 +88,7 @@ void targetCombo::addTargetToInterface(binaryTarget *target, bool newBinary)
 		setCurrentIndex(count() - 1);
 
 		ui->staticDynamicStack->setCurrentIndex(eDynamicTabs);
+
 		ui->dynamicAnalysisContentsTab->setCurrentIndex(eStartTraceTab);
 	}
 	else
@@ -93,8 +96,11 @@ void targetCombo::addTargetToInterface(binaryTarget *target, bool newBinary)
 		auto vecpos = std::find(paths.begin(), paths.end(), filepath);
 		assert(vecpos != paths.end());
 		setCurrentIndex(vecpos - paths.begin());
+		ui->dynamicAnalysisContentsTab->setCurrentIndex(eStartTraceTab);
 	}
+
 	ui->traceGatherTab->fillAnalyseTab(target);
+
 }
 
 
@@ -109,8 +115,10 @@ void targetCombo::addNewTarget()
 		return;
 
 	binaryTarget *target;
+
 	bool newBinary = targets->getTargetByPath(filepath, &target);
+
 	addTargetToInterface(target, newBinary);
-	
+
 	clientState->config.updateLastPath(filepath);
 }

@@ -190,9 +190,7 @@ void rgat::setupUI()
 	ui.speedComboBox->addItem("128x");
 
 	ui.playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-
-	QIcon newicon = QIcon(":/Resources/crosshairOn.png");
-	ui.edgesVisibleButton->setIcon(QIcon(":/Resources/crosshairOn.png"));
+	ui.stopBtn->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
 
 	activityStatusLabel = new QLabel(this);
 	ui.statusBar->addPermanentWidget(activityStatusLabel);
@@ -231,7 +229,6 @@ rgat::rgat(QWidget *parent)
 	: QMainWindow(parent)
 {
 
-
 	if (checkAlreadyRunning())
 	{
 		std::cerr << "[rgat]Error: rgat already running [Existing BootstrapPipe found]. Exiting..." << endl;
@@ -239,6 +236,7 @@ rgat::rgat(QWidget *parent)
 	}
 
 	rgatstate = new rgatState;
+
 	setupUI();
 	setStatePointers();
 
@@ -350,6 +348,9 @@ void rgat::loadSavedTrace()
 	
 	rgatstate->activeBinary = (binaryTarget *)trace->get_binaryPtr();
 	rgatstate->switchTrace = trace;
+
+	ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
+
 }
 
 void rgat::closeEvent(QCloseEvent *event)

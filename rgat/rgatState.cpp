@@ -198,13 +198,18 @@ void rgatState::setNodesShown(bool state)
 
 void rgatState::saveAll()
 {
+	int i = 0;
 	vector<binaryTarget *> targetsList = targets.getTargetsList();
 	for(auto targetIt = targetsList.begin(); targetIt != targetsList.end(); targetIt++)
 	{
 		binaryTarget *target = *targetIt;
 		updateActivityStatus("Saving Target: " + QString::fromStdString(target->path().string()), 10000);
 		saveTarget(target);
+		i++;
 	}
+
+	string savemsg ("Finished saving " + to_string(i) + " targets");
+	updateActivityStatus(QString::fromStdString(savemsg), 7000);
 }
 
 
@@ -231,6 +236,8 @@ void rgatState::saveTrace(traceRecord *trace)
 	rapidjson::Writer<rapidjson::FileWriteStream> writer{ outstream };
 
 	binaryTarget *target = (binaryTarget *)trace->get_binaryPtr();
+
+	if (trace->protoGraphs.size() < 1) return; //trace not even started
 
 	writer.StartObject();
 
@@ -278,6 +285,7 @@ void rgatState::saveTrace(traceRecord *trace)
 	writer.EndObject();
 	fclose(savefile);
 
+
 	traceRecord *child;
 	foreach(child, trace->children)
 	{
@@ -319,6 +327,8 @@ bool initialiseTarget(rapidjson::Document *saveJSON, binaryTargets *targets, Ui:
 	boost::filesystem::path binaryPath = pathIt->value.GetString();
 
 	binaryTarget * target;
+
+	cout << "gtbp 2" << endl;
 	bool newBinary = targets->getTargetByPath(binaryPath, &target);
 	myui->targetListCombo->addTargetToInterface(target, newBinary);
 	*targetPtr = target;
@@ -440,7 +450,7 @@ bool rgatState::loadTrace(boost::filesystem::path traceFilePath, traceRecord **t
 
 	vector<boost::filesystem::path> childrenFiles;
 	extractChildTraceFilenames(saveJSON, &childrenFiles);
-	updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.filename().string()) + " completed successfully", 15000);
+	updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
 
 	fclose(pFile);
 

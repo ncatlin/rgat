@@ -39,7 +39,7 @@ previewPlotGLWidget::previewPlotGLWidget(QWidget *parent)
 		this, &previewPlotGLWidget::irregularTimerFired);
 	irregularTimer->start(800);
 
-	this->setMouseTracking(true);
+	setMouseTracking(true);
 	setEnabled(true);
 
 	mousePos.setX(0);
@@ -96,6 +96,8 @@ void previewPlotGLWidget::tabChanged(bool nowActive)
 
 void previewPlotGLWidget::initializeGL()
 {
+
+	makeCurrent();
 	initializeOpenGLFunctions();
 
 	glEnable(GL_ALPHA_TEST);

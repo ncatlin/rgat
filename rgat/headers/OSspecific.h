@@ -39,6 +39,7 @@ PID_TID getParentPID(PID_TID childPid);
 void renameFile(string originalPath, string targetPath);
 void execute_tracer(void *binaryTargetPtr, clientConfig *config);
 eExeCheckResult check_excecutable_type(string executable);
+void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
 
 //in: mutex to wait on, waitTimeCode ms to wait per warning
 bool obtainMutex(CRITICAL_SECTION *critsec, int waitTimeCode);

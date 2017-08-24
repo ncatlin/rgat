@@ -51,7 +51,9 @@ void mainTabBox::changeTarget(binaryTarget *target, dynamicTabs tabToOpen)
 {
 	activeTarget = target;
 	lastIndex = -1; //ensure refresh of current tab contents
+
 	setCurrentIndex(tabToOpen);
+
 	tabChanged(tabToOpen);
 }
 
@@ -587,6 +589,25 @@ void mainTabBox::graphLayoutSelected(int index)
 	if (index == clientState->newGraphLayout) return;
 
 	clientState->newGraphLayout = (graphLayouts)index;
+
+}
+
+void mainTabBox::startDynamorioTest()
+{
+	binaryTarget *activeTarget = clientState->activeBinary;
+	if (!activeTarget)
+	{
+		cerr << " No target to test... ignoring" << endl;
+		return;
+	}
+	if (!activeTarget->getBitWidth())
+		return;
+
+	execute_dynamorio_test(activeTarget, &clientState->config);
+}
+
+void mainTabBox::startDrgatTest()
+{
 
 }
 
