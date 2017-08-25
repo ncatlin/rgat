@@ -13,14 +13,14 @@ traceRecord::traceRecord(PID_TID newPID, int randomNo, int bitWidth)
 	processdata->randID = randomNo;
 	processdata->tracePtr = this;
 
-	InitializeCriticalSection(&graphsListCritsec);
+	//InitializeCriticalSection(&graphsListCritsec);
 };
 
 //fill vector ptr with pointers to all trace graphs (which have nodes)
 //point is to generate a list of graphs we can interate over in a thread safe way
 void traceRecord::getPlottedGraphs(void *graphPtrVecPtr)
 {
-	if (!tryObtainMutex(&graphsListCritsec, 50))
+	if (!tryObtainGLMutex(&graphsListCritsec, 50))
 		return;
 
 	vector<plotted_graph *> *graphlist = (vector<plotted_graph *> *)graphPtrVecPtr;
@@ -37,13 +37,13 @@ void traceRecord::getPlottedGraphs(void *graphPtrVecPtr)
 		}
 	}
 
-	dropMutex(&graphsListCritsec);
+	dropGLMutex(&graphsListCritsec);
 }
 
 //fill vector ptr with all trace graphs (which have nodes)
 void traceRecord::getProtoGraphs(void *graphPtrVecPtr)
 {
-	obtainMutex(&graphsListCritsec, 1012);
+	obtainGLMutex(&graphsListCritsec, 1012);
 
 	vector<proto_graph *> *graphlist = (vector<proto_graph *> *)graphPtrVecPtr;
 	for (auto it = protoGraphs.begin(); it != protoGraphs.end(); it++)
@@ -52,17 +52,17 @@ void traceRecord::getProtoGraphs(void *graphPtrVecPtr)
 		graphlist->push_back(currentGraph);
 	}
 
-	dropMutex(&graphsListCritsec);
+	dropGLMutex(&graphsListCritsec);
 }
 
 void * traceRecord::get_first_graph()
 {
 	if (plottedGraphs.empty()) return NULL;
 
-	if (tryObtainMutex(&graphsListCritsec, 25))
+	if (tryObtainGLMutex(&graphsListCritsec, 25))
 	{
 		void *result = plottedGraphs.begin()->second;
-		dropMutex(&graphsListCritsec);
+		dropGLMutex(&graphsListCritsec);
 		return result;
 	}
 	return NULL;
@@ -72,7 +72,7 @@ void * traceRecord::get_first_graph()
 void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer)
 {
 	writer->StartArray();
-	obtainMutex(&graphsListCritsec, 7261);
+	obtainGLMutex(&graphsListCritsec, 7261);
 	map <PID_TID, PLOTTEDGRAPH_CASTPTR>::iterator graphit = plottedGraphs.begin();
 	for (; graphit != plottedGraphs.end(); graphit++)
 	{
@@ -84,7 +84,7 @@ void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream>
 		cout << "[rgat]Serialising graph: " << graphit->first << endl;
 		graph->serialise(*writer);
 	}
-	dropMutex(&graphsListCritsec);
+	dropGLMutex(&graphsListCritsec);
 	writer->EndArray();
 }
 
@@ -269,22 +269,22 @@ int traceRecord::countDescendants()
 {
 	int numProcesses = 1;
 
-	obtainMutex(&graphsListCritsec, 12121);
+	obtainGLMutex(&graphsListCritsec, 12121);
 	for (auto traceIt = children.begin(); traceIt != children.end(); traceIt++)
 		numProcesses += (*traceIt)->countDescendants();
-	dropMutex(&graphsListCritsec);
+	dropGLMutex(&graphsListCritsec);
 
 	return numProcesses;
 }
 
 bool traceRecord::insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot, PROTOGRAPH_CASTPTR graph_proto)
 {
-	if (!obtainMutex(&graphsListCritsec, 1010)) return false;
+	obtainGLMutex(&graphsListCritsec, 1010);
 
 	if (protoGraphs.count(TID) > 0)
 	{
 		cout << "[rgat]: Warning - thread with duplicate ID discarded. This is bad behaviour." << endl;
-		dropMutex(&graphsListCritsec);
+		dropGLMutex(&graphsListCritsec);
 		return false;
 	}
 
@@ -292,7 +292,7 @@ bool traceRecord::insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot
 	plottedGraphs.insert(make_pair(TID, graph_plot));
 	runtimeline.notify_new_thread(getPID(), get_piddata()->randID, TID);
 
-	dropMutex(&graphsListCritsec);
+	dropGLMutex(&graphsListCritsec);
 	return true;
 }
 

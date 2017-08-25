@@ -34,6 +34,8 @@ Need to migrate all Windows API (and soon Linux) routines here
 #include <TlHelp32.h>
 //#pragma comment(lib, "shlwapi.lib")
 
+//this is needed for building timelines. it would be good to get drgat to pass the parent PID
+//along but I don't think dynamorio can do this so we are stuck with it
 //https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4
 PID_TID getParentPID(PID_TID childPid)
 {
@@ -64,13 +66,9 @@ PID_TID getParentPID(PID_TID childPid)
 		return ppid;
 }
 
-void renameFile(boost::filesystem::path originalPath, boost::filesystem::path targetPath)
-{
-	MoveFileA(originalPath.string().c_str(), targetPath.string().c_str());
-}
-
 /*
-this is here for abstraction and debugging purposes. performance can be improved by using "#ifdef OS" instead
+can't use boost::shared_mutex because it performs awfully on linux
+https://svn.boost.org/trac10/ticket/11798
 */
 bool obtainMutex(CRITICAL_SECTION *critsec, int waitTimeCode)
 {
@@ -120,6 +118,28 @@ void dropMutex(CRITICAL_SECTION *critsec)
 {
 	LeaveCriticalSection(critsec);
 }
+
+
+
+void obtainGLMutex(rgatlocks::TestableLock *critsec, int waitTimeCode)
+{
+	critsec->lock();
+
+}
+
+
+bool tryObtainGLMutex(rgatlocks::TestableLock *critsec, int waitTime)
+{
+	return critsec->trylock();
+}
+
+
+void dropGLMutex(rgatlocks::TestableLock *critsec)
+{
+	critsec->unlock();
+}
+
+
 
 
 //gets path the rgat executable is located in
@@ -376,11 +396,6 @@ void rgat_create_thread(void *threadEntry, void *arg)
 #endif // WIN32
 
 #ifdef LINUX
-void renameFile(string originalPath, string targetPath)
-{
-	cout << "implement me" << endl;
-}
-
 /*
 a lot of the code checks this for success/failure
 have changed this to not return until success but leaving this here

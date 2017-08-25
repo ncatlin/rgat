@@ -22,6 +22,7 @@ Pointers to child processes (traces) are contained in the processdata
 #pragma once
 #include "traceStructs.h"
 #include "timeline.h"
+#include "locks.h"
 
 typedef void * BINARYTARGETPTR;
 
@@ -29,7 +30,7 @@ class traceRecord
 {
 public:
 	traceRecord(PID_TID newPID, int randomNo, int bitWidth);
-	~traceRecord() { DeleteCriticalSection(&graphsListCritsec); };
+	~traceRecord() {};// DeleteCriticalSection(&graphsListCritsec);
 
 	PID_TID getPID() { return processdata->PID; }
 	wstring getModpathID() { return to_wstring(processdata->PID) + to_wstring(processdata->randID); }
@@ -55,7 +56,9 @@ public:
 	void killTree();
 
 
-	CRITICAL_SECTION graphsListCritsec;
+	//CRITICAL_SECTION graphsListCritsec;
+	rgatlocks::TestableLock graphsListCritsec;// graphListLock;
+
 	map <PID_TID, PROTOGRAPH_CASTPTR> protoGraphs;
 	map <PID_TID, PLOTTEDGRAPH_CASTPTR> plottedGraphs;
 

@@ -31,9 +31,8 @@ public:
 	maingraph_render_thread(rgatState *clientStateptr)
 		:base_thread() {
 		clientState = clientStateptr;
-		InitializeCriticalSection(&renderingCritsec);
 	}
-	~maingraph_render_thread() { DeleteCriticalSection(&renderingCritsec); }
+	~maingraph_render_thread() { }
 
 private:
 	binaryTarget *binary;
@@ -42,6 +41,5 @@ private:
 
 	void main_loop();
 	void performMainGraphRendering(plotted_graph *graph);
-	CRITICAL_SECTION renderingCritsec;
 };
 

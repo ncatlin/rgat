@@ -396,7 +396,7 @@ void mainTabBox::refreshTracesCombo(traceRecord *initialTrace)
 		strftime(buffer, sizeof(buffer), " (%H:%M:%S %d/%m/%Y)", timeinfo);
 		std::string timeString(buffer);
 
-		entrySS << "Parent PID: " << trace->getPID() << timeString;
+		entrySS << "First PID: " << trace->getPID() << timeString;
 		if (trace->UIRunningFlag) //set while iterating through the child processes if any are running
 		{
 			++activeTraceCount;
