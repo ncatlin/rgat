@@ -136,6 +136,7 @@ bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, 
 
 		if (launchopts->debugLogging)
 			drgatPath2 += "-debug";
+
 		drgatPath2 += ".dll";
 
 		if ((drgatPath2 != drgatPath) && boost::filesystem::exists(drgatPath2))
