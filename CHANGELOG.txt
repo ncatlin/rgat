@@ -102,7 +102,7 @@ Reduced the size of the window on smaller displays
 Improved command line output
 Various code improvements, crash and bug fixes
 
-23/08/17 0.5.0-Alpha [PREVIOUS SAVES OBSOLETE+CONFIGS OBSOLETE]
+24/08/17 0.5.0-Alpha [PREVIOUS SAVES OBSOLETE+CONFIGS OBSOLETE]
 -----------------
 Reimplementation of UI in QT leading to many changes
 Configs moved to registry
@@ -110,4 +110,10 @@ UI now tab based
 Added a trace analysis tab for text trace data
 Sphere layout removed
 Command line mode disabled pending reimplementation
+
+25/08/17 0.5.1
+-----------------
+Bugfix: Made the trace selector dropdown work in the visualiser pane
+Bugfix: The exit button in  the file menu now works
+Code change: made exclusive locks platform independent
 

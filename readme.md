@@ -25,7 +25,7 @@ You may also want a brief introduction to the [graph layout](https://github.com/
 
 ## Latest Version
 
-Version 0.5.0 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.0/rgat-0.5.0.7z) for Windows x86 and x64 binary targets.
+Version 0.5.1 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.1/rgat-0.5.1.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.1/rgat-0.5.1.7z) for Windows x86 and x64 binary targets.
 rgat itself is compiled for running on x64 hosts.
 
 This version sees the entire frontend UI reimplemented in Qt. Allegro served its purpose but implementing new features with Qt is actually a pleasure rather than a struggle, which will encourage further development.
