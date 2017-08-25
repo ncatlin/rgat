@@ -141,6 +141,7 @@ public:
 	
 	CRITICAL_SECTION highlightsCritsec; //todo comment this or rename
 	SRWLOCK animationListsSRWLOCK = SRWLOCK_INIT;
+
 	CRITICAL_SECTION externGuardMutex;
 
 	/*

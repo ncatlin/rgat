@@ -140,7 +140,7 @@ void conditional_renderer::main_loop()
 	while (!clientState->rgatIsExiting())
 	{
 
-		if (!tryObtainMutex(&runRecord->graphsListCritsec, 50))
+		if (!tryObtainGLMutex(&runRecord->graphsListCritsec, 50))
 		{
 			Sleep(20); continue;
 		}
@@ -154,7 +154,7 @@ void conditional_renderer::main_loop()
 				graphlist.push_back(g);
 			}
 		}
-		dropMutex(&runRecord->graphsListCritsec);
+		dropGLMutex(&runRecord->graphsListCritsec);
 		
 		//process terminated, all graphs fully rendered, now can head off to valhalla
 		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))

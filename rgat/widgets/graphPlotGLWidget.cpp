@@ -258,18 +258,6 @@ void graphPlotGLWidget::drawHUD()
 
 bool graphPlotGLWidget::chooseGraphToDisplay()
 {
-	if (activeGraph)
-	{
-		if (activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
-		{
-			activeGraph->decrease_thread_references();
-			//cout << "[-1: " << activeGraph->threadReferences << "] chooseGraphToDisplay decreased references " << endl;
-			activeGraph = NULL;
-			return false;
-		}
-
-		return true;
-	}
 
 	if (clientState->switchTrace)
 	{
@@ -286,6 +274,7 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 		clientState->switchGraph = NULL;
 	}
 
+
 	activeGraph = (plotted_graph*)clientState->getActiveGraph(true);
 	//cout << "set actg to " << activeGraph << endl;
 	if (!activeGraph && !clientState->waitingForNewTrace)
@@ -296,6 +285,19 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 		
 		selectGraphInActiveTrace();
 		//cout << "set actg-2- to " << activeGraph << endl;
+	}
+
+	if (activeGraph)
+	{
+		if (activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
+		{
+			activeGraph->decrease_thread_references();
+			//cout << "[-1: " << activeGraph->threadReferences << "] chooseGraphToDisplay decreased references " << endl;
+			activeGraph = NULL;
+			return false;
+		}
+
+		return true;
 	}
 
 	//cout << "activegraph: " << activeGraph << " cs->ag: " << clientState->getActiveGraph(false)<<endl;

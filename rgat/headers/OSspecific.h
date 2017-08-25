@@ -22,6 +22,7 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 #include <stdafx.h>
 
 #include "clientConfig.h"
+#include "locks.h"
 
 #ifdef WINDOWS
 #include <shlwapi.h>
@@ -36,7 +37,6 @@ enum eExeCheckResult { eNotInitialised, eNotExecutable, eBinary32Bit, eBinary64B
 
 string getModulePath();
 PID_TID getParentPID(PID_TID childPid);
-void renameFile(string originalPath, string targetPath);
 void execute_tracer(void *binaryTargetPtr, clientConfig *config);
 eExeCheckResult check_excecutable_type(string executable);
 void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
@@ -45,6 +45,11 @@ void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
 bool obtainMutex(CRITICAL_SECTION *critsec, int waitTimeCode);
 bool tryObtainMutex(CRITICAL_SECTION *critsec, int waitTime);
 void dropMutex(CRITICAL_SECTION *critsec);
+
+void obtainGLMutex(rgatlocks::TestableLock *critsec, int waitTimeCode);
+bool tryObtainGLMutex(rgatlocks::TestableLock *critsec, int waitTime);
+void dropGLMutex(rgatlocks::TestableLock *critsec);
+
 
 void rgat_create_thread(void *threadEntry, void *arg);
 
