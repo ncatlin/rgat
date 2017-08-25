@@ -2997,6 +2997,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionExit</sender>
+   <signal>triggered()</signal>
+   <receiver>rgatClass</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>377</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>activateDynamicStack()</slot>
@@ -3005,5 +3021,6 @@
   <slot>startSaveTrace()</slot>
   <slot>startSaveTarget()</slot>
   <slot>loadSavedTrace()</slot>
+  <slot>doexit()</slot>
  </slots>
 </ui>
