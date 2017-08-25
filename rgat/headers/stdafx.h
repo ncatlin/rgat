@@ -1,13 +1,8 @@
 #include <QtWidgets>
 
-#ifdef _WINDOWS
-//#include <Windows.h>
-//#include <time.h>
-#endif 
-
 #define RGAT_VERSION_MAJ 0
 #define RGAT_VERSION_MIN 5
-#define RGAT_VERSION_FEATURE 0
+#define RGAT_VERSION_FEATURE 1
 #define RGAT_VERSION_DESCRIPTION "QT-Alpha"
 
 using namespace std;
@@ -24,7 +19,6 @@ using namespace std;
 #include <math.h>
 #include <queue>
 #include <chrono>
-
 
 #include <capstone.h>
 
