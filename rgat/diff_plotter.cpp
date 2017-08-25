@@ -102,7 +102,7 @@ void diff_plotter::display_diff_summary(int x, int y)
 	*/
 }
 
-void diff_plotter::mark_divergence(unsigned long instructionIndex)
+void diff_plotter::mark_divergence(NODEINDEX instructionIndex)
 {
 	divergenceFound = true;
 	diffNode = lastNode;
@@ -168,8 +168,8 @@ void diff_plotter::render(graphGLWidget *gltarget)
 
 	map <NODEPAIR, bool> renderedEdges;
 
-	size_t renderIdx = 0;
-	size_t renderEnd = graph1Data->size();
+	NODEINDEX renderIdx = 0;
+	NODEINDEX renderEnd = (NODEINDEX)graph1Data->size();
 	for (; renderIdx < renderEnd; ++renderIdx)
 	{
 		//stop comparing once divergence is found
@@ -319,7 +319,7 @@ void diff_plotter::render(graphGLWidget *gltarget)
 		}
 
 		//draw block internal edges
-		for (unsigned int i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
+		for (NODEINDEX i = first_lastNodeG1.first; i < first_lastNodeG1.second; ++i)
 		{
 			NODEPAIR edge = make_pair(i, i + 1);
 			map <NODEPAIR, bool>::iterator edgeIt = renderedEdges.find(edge);

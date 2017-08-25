@@ -26,6 +26,7 @@ Requires inheriting to give it a layout (eg: cylinder_graph)
 #include "GUIConstants.h"
 #include "rgatState.h"
 #include "graphGLWidget.h"
+#include "locks.h"
 
 #define KEEP_BRIGHT -1
 
@@ -49,7 +50,7 @@ struct HIGHLIGHT_DATA {
 
 
 struct PLOT_TRACK {
-	unsigned int lastVertID = 0;
+	NODEINDEX lastVertID = 0;
 	eEdgeNodeType lastVertType = eNodeNonFlow;
 };
 
@@ -206,7 +207,7 @@ protected:
 	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
 #endif
 
-	CRITICAL_SECTION callStackMutex;
+	rgatlocks::UntestableLock callStackLock;
 
 	bool previewNeedsResize = false;
 	bool freeMe = false;
@@ -249,7 +250,7 @@ private:
 	virtual void positionVert(void *positionStruct, MEM_ADDRESS address) {};
 	virtual void display_graph(PROJECTDATA *pd) {};
 
-	virtual FCOORD nodeIndexToXYZ(unsigned int index, GRAPH_SCALE *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
+	virtual FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
 
 	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions) {
@@ -263,7 +264,7 @@ private:
 	void extend_faded_edges();
 	void reset_mainlines();
 	void render_animation(float fadeRate);
-	void set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
+	void set_node_alpha(NODEINDEX nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha);
 	//node+edge col+pos
 	bool fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
 	void brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
@@ -307,7 +308,7 @@ private:
 	map <pair<NODEINDEX, unsigned long>, int> newExternTimes;
 
 	//prevent graph from being deleted while being used
-	CRITICAL_SECTION graphBusyCritsec;
+	rgatlocks::TestableLock graphBusyLock;
 
 	unsigned int animEntriesPerFrame = 150;
 	unsigned long animLoopCounter = 0;
@@ -319,8 +320,8 @@ private:
 
 	//have tried vector<pair<nodeindex,int>> but it's slower
 	map <NODEINDEX, int> newAnimNodeTimes;
-	map <unsigned int, int> activeAnimNodeTimes;
-	set <unsigned int> fadingAnimNodes;
+	map <NODEINDEX, int> activeAnimNodeTimes;
+	set <NODEINDEX> fadingAnimNodes;
 
 	map <NODEPAIR, int> newAnimEdgeTimes;
 	map <NODEPAIR, int> activeAnimEdgeTimes;

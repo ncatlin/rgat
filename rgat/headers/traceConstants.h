@@ -51,7 +51,9 @@ enum eEdgeNodeType { eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
 #define INSTRUMENTED_CODE '1'
 #define CODE_IN_DATA_AREA '2'
 
+//4 billion should be enough instructions
 typedef unsigned int NODEINDEX;
+
 typedef pair<NODEINDEX, NODEINDEX> NODEPAIR;
 typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;

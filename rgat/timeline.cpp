@@ -68,7 +68,7 @@ void timeline::notify_new_pid(PID_TID pid, int PID_ID, PID_TID parentPID)
 	}
 
 	processEvent ev;
-	ev.eventType = eProcessCreate;
+	ev.eventType = eTimelineEvent::eProcessCreate;
 	ev.PID = pid;
 	ev.PID_ID = PID_ID;
 	ev.parentPID = parentPID;
@@ -84,7 +84,7 @@ void timeline::notify_new_pid(PID_TID pid, int PID_ID, PID_TID parentPID)
 void timeline::notify_new_thread(PID_TID pid, int PID_ID, PID_TID tid)
 {
 	processEvent ev;
-	ev.eventType = eThreadCreate;
+	ev.eventType = eTimelineEvent::eThreadCreate;
 	time(&ev.eventTime);
 	ev.PID = pid;
 	ev.PID_ID = PID_ID;
@@ -101,7 +101,7 @@ void timeline::notify_new_thread(PID_TID pid, int PID_ID, PID_TID tid)
 void timeline::notify_thread_end(PID_TID pid, int PID_ID, PID_TID tid)
 {
 	processEvent ev;
-	ev.eventType = eThreadTerminate;
+	ev.eventType = eTimelineEvent::eThreadTerminate;
 	time(&ev.eventTime);
 	ev.PID = pid;
 	ev.PID_ID = PID_ID;
@@ -156,6 +156,7 @@ void timeline::serialise(Writer<FileWriteStream> *writer)
 	writer->EndObject();
 }
 
+//assumes loglog is held
 bool timeline::unserialiseEvent(const Value& eventData)
 {
 	if (eventData.Capacity() != 6)
@@ -165,16 +166,14 @@ bool timeline::unserialiseEvent(const Value& eventData)
 	}
 
 	processEvent newEvent;
-	newEvent.eventType = eventData[0].GetInt();
+	newEvent.eventType = (eTimelineEvent)eventData[0].GetInt();
 	newEvent.eventTime = eventData[1].GetUint64();
 	newEvent.PID = eventData[2].GetUint64();
 	newEvent.PID_ID = eventData[3].GetInt();
 	newEvent.parentPID = eventData[4].GetUint64();
 	newEvent.TID = eventData[5].GetUint64();
 
-	logLock.lock();
 	eventLog.push_back(newEvent);
-	logLock.unlock();
 
 	pair<PID_TID, int> uniquePidPair = make_pair(newEvent.PID, newEvent.PID_ID);
 	if (std::find(pidlist.begin(), pidlist.end(), uniquePidPair) == pidlist.end())

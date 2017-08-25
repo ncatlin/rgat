@@ -188,14 +188,16 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeExternal:
 	{
 		//returning to address in call stack?
-		int result = -1;
+		long long result = -1;
 		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
 		if (mainnodesdata->isPreview())
 			callStack = &previewCallStack;
 		else
 			callStack = &mainCallStack;
-		vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-		EnterCriticalSection(&callStackMutex);
+		vector<pair<MEM_ADDRESS, NODEINDEX>>::iterator stackIt;
+
+		callStackLock.lock();
+
 		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
 			if (stackIt->first == n->address)
 			{
@@ -221,7 +223,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			a += EXTERNA;
 			c += EXTERNB * CMULT * -1;
 		}
-		LeaveCriticalSection(&callStackMutex);
+		callStackLock.unlock();
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
@@ -276,7 +278,7 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
 
 		if (extxt->framesRemaining != KEEP_BRIGHT)
 		{
-			extxt->yOffset += EXTERN_FLOAT_RATE;
+			extxt->yOffset += (float)EXTERN_FLOAT_RATE;
 
 			if (extxt->framesRemaining-- == 0)
 			{
@@ -461,7 +463,7 @@ FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, floa
 bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor *forceColour, bool preview, bool noUpdate)
 {
 
-	unsigned long nodeCoordQty = node_coords->size();
+	size_t nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
 
@@ -476,7 +478,7 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor
 	FCOORD srcc = nodeIndexToXYZ(ePair.first, scaling, 0);
 	FCOORD targc = nodeIndexToXYZ(ePair.second, scaling, 0);
 
-	int arraypos = 0;
+	long arraypos = 0;
 	QColor *edgeColour;
 	if (forceColour) edgeColour = forceColour;
 	else
@@ -495,7 +497,7 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor
 
 //connect two nodes with an edge of automatic number of vertices
 int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos)
+	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
 {
 	//describe the normal
 	FCOORD middleC;
@@ -637,16 +639,13 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 				//let returns find their caller if they have one
 				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
 
-				vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
-				EnterCriticalSection(&callStackMutex);
+				callStackLock.lock();
 				if (mainnodesdata->isPreview())
 					previewCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
 				else
 					mainCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-				LeaveCriticalSection(&callStackMutex);
+				callStackLock.unlock();
 
-				//todo: BUG: have experienced heap corruption at this point before
-				//find out why
 				break;
 			}
 			//case ISYS: //todo: never used - intended for syscalls

@@ -174,10 +174,10 @@ unsigned int heatmap_renderer::initialise_solver(proto_graph *protoGraph, bool l
 unsigned int heatmap_renderer::count_remaining_other_input(proto_graph *protoGraph, node_data *targnode, NODEINDEX ignoreNode)
 {
 	unsigned int otherNeighboursOut = 0;
-	set<unsigned int>::iterator targincomingIt = targnode->incomingNeighbours.begin();
+	set<NODEINDEX>::iterator targincomingIt = targnode->incomingNeighbours.begin();
 	for (; targincomingIt != targnode->incomingNeighbours.end(); targincomingIt++)
 	{
-		unsigned int idx = *targincomingIt;
+		NODEINDEX idx = *targincomingIt;
 		if (idx == ignoreNode) continue;
 		node_data *otherNeighbour = protoGraph->unsafe_get_node(idx);
 		otherNeighboursOut += otherNeighbour->chain_remaining_out;
@@ -188,10 +188,10 @@ unsigned int heatmap_renderer::count_remaining_other_input(proto_graph *protoGra
 unsigned int heatmap_renderer::count_remaining_other_output(proto_graph *protoGraph, node_data *sourcenode, NODEINDEX ignoreNode)
 {
 	unsigned int otherNeighboursIn = 0;
-	set<unsigned int>::iterator sourceoutgoingIt = sourcenode->outgoingNeighbours.begin();
+	set<NODEINDEX>::iterator sourceoutgoingIt = sourcenode->outgoingNeighbours.begin();
 	for (; sourceoutgoingIt != sourcenode->outgoingNeighbours.end(); sourceoutgoingIt++)
 	{
-		unsigned int idx = *sourceoutgoingIt;
+		NODEINDEX idx = *sourceoutgoingIt;
 		if (idx == ignoreNode) continue;
 		node_data *neib = protoGraph->unsafe_get_node(idx);
 		otherNeighboursIn += neib->chain_remaining_in;
@@ -217,8 +217,8 @@ unsigned int heatmap_renderer::heatmap_solver(proto_graph *protoGraph, bool last
 		unfinishedIt = unfinishedEdgeList->begin();
 		for (; unfinishedIt != unfinishedEdgeList->end(); ++unfinishedIt)
 		{
-			unsigned int srcNodeIdx = unfinishedIt->first.first;
-			unsigned int targNodeIdx = unfinishedIt->first.second;
+			NODEINDEX srcNodeIdx = unfinishedIt->first.first;
+			NODEINDEX targNodeIdx = unfinishedIt->first.second;
 
 			protoGraph->acquireNodeReadLock();
 			node_data *tnode = protoGraph->unsafe_get_node(targNodeIdx);
@@ -306,8 +306,6 @@ void heatmap_renderer::build_colour_mapping(vector<edge_data *> *finishedEdgeLis
 	vector<edge_data *>::iterator finishedEdgeIt;
 	for (finishedEdgeIt = finishedEdgeList->begin(); finishedEdgeIt != finishedEdgeList->end(); ++finishedEdgeIt)
 	heatValues->insert(((edge_data *)*finishedEdgeIt)->chainedWeight);
-
-	int heatrange = heatValues->size();
 
 	//create map of distances of each value in set
 	map<unsigned long, int> heatDistances;
@@ -425,7 +423,7 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 
 		float edgeColArr[4] = { edgeColour->r, edgeColour->g, edgeColour->b, edgeColour->a};
 
-		unsigned int vertIdx = 0;
+		NODEINDEX vertIdx = 0;
 		assert(edge->vertSize);
 		for (; vertIdx < edge->vertSize; ++vertIdx)
 			lineVector->insert(lineVector->end(), edgeColArr, end(edgeColArr));

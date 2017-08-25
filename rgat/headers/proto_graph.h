@@ -99,7 +99,7 @@ public:
 
 	vector<node_data> nodeList; //node id to node data
 
-	bool node_exists(unsigned int idx) { if (nodeList.size() > idx) return true; return false; }
+	bool node_exists(NODEINDEX idx) { if (nodeList.size() > idx) return true; return false; }
 	size_t get_num_nodes() { return nodeList.size(); }
 	size_t get_num_edges() { return edgeDict.size(); }
 
@@ -107,7 +107,7 @@ public:
 	void releaseNodeReadLock() { dropNodeReadLock(); }
 
 	unsigned int handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
-	void handle_previous_instruction(unsigned int targVertID, unsigned long repeats);
+	void handle_previous_instruction(NODEINDEX targVertID, unsigned long repeats);
 
 	PROCESS_DATA* get_piddata() { return piddata; }
 	PID_TID get_TID() { return tid; }
@@ -131,7 +131,7 @@ public:
 	edge_data *get_edge(NODEPAIR edge);
 	inline edge_data * unsafe_get_edge(NODEPAIR edgePair);
 
-	edge_data * get_edge(unsigned int edgeindex);
+	edge_data * get_edge(NODEINDEX edgeindex);
 
 	edge_data *get_edge_create(node_data *source, node_data *target);
 

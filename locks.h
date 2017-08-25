@@ -22,6 +22,7 @@ Untestable is a little faster but can't be queried for availability
 #pragma once
 #include <atomic>
 #include <thread>
+#include <assert.h>
 
 namespace rgatlocks {
 	class UntestableLock
@@ -29,13 +30,13 @@ namespace rgatlocks {
 		std::atomic_flag locked = ATOMIC_FLAG_INIT;
 	public:
 		void lock() {
-			while (locked.test_and_set(std::memory_order_acquire)) {
+			while (locked.test_and_set()) {
 				std::this_thread::yield();
 			}
 		}
 
 		void unlock() {			
-			locked.clear(std::memory_order_release);
+			locked.clear();
 		}
 	};
 
@@ -47,17 +48,24 @@ namespace rgatlocks {
 			while (locked.load()) {	
 				std::this_thread::yield();	
 			}
-			locked.store(true, std::memory_order_acquire);
+			locked.store(true);
+
+			assert(locked.load());
 		}
 
 		bool trylock() {
-			if (locked.load()) return false;
+
+			if (locked.load()) 
+				return false;
 			lock();
+
+			assert(locked.load());
 			return true;
 		}
 
 		void unlock() {
-			locked.store(false, std::memory_order_release);
+			assert(locked.load());
+			locked.store(false);
 		}
 	};
 

@@ -47,7 +47,7 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	node_data thisnode;
 	thisnode.ins = instruction;
 
-	int targVertID = get_num_nodes();
+	NODEINDEX targVertID = get_num_nodes();
 
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
@@ -68,7 +68,7 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	return targVertID;
 }
 
-void proto_graph::handle_previous_instruction(unsigned int newTargVertID, unsigned long repeats)
+void proto_graph::handle_previous_instruction(NODEINDEX newTargVertID, unsigned long repeats)
 {
 	safe_get_node(newTargVertID)->executionCount += repeats;
 	lastNode = newTargVertID;
@@ -179,7 +179,7 @@ edge_data *proto_graph::get_edge_create(node_data *source, node_data *target)
 }
 
 //linker error if we make this inline too
-edge_data * proto_graph::get_edge(unsigned int edgeindex)
+edge_data * proto_graph::get_edge(NODEINDEX edgeindex)
 {
 	if (edgeindex >= edgeList.size()) return 0;
 
@@ -368,9 +368,9 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	writer.Key("Exceptions");
 	writer.StartArray();
 	highlightsLock.lock();
-	set<unsigned int>::iterator exceptit = exceptionSet.begin();
+	set<NODEINDEX>::iterator exceptit = exceptionSet.begin();
 	for (; exceptit != exceptionSet.end(); ++exceptit)
-		writer.Uint(*exceptit);
+		writer.Uint64(*exceptit);
 	highlightsLock.unlock();
 	writer.EndArray();
 
@@ -385,8 +385,8 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	foreach(externcall, externCallRecords)
 	{
 		writer.StartArray();
-			writer.Uint(externcall.edgeIdx.first);
-			writer.Uint(externcall.edgeIdx.second);
+			writer.Uint64(externcall.edgeIdx.first);
+			writer.Uint64(externcall.edgeIdx.second);
 			writer.StartArray();
 				foreach(argData, externcall.argList)
 				{
@@ -603,7 +603,7 @@ bool proto_graph::loadExceptions(const Value& exceptionsArrays)
 	Value::ConstValueIterator exceptIt = exceptionsArrays.Begin();
 
 	for (; exceptIt != exceptionsArrays.End(); exceptIt++)
-		exceptionSet.insert(exceptionSet.end(), exceptIt->GetUint());
+		exceptionSet.insert(exceptionSet.end(), exceptIt->GetUint64());
 
 	return true;
 }
@@ -617,8 +617,8 @@ bool proto_graph::loadEdgeDict(const Value& edgeArray)
 	{
 		const Value& edgeData = *edgeIt;
 
-		unsigned int source = edgeData[0].GetUint();
-		unsigned int target = edgeData[1].GetUint();
+		NODEINDEX source = edgeData[0].GetUint64();
+		NODEINDEX target = edgeData[1].GetUint64();
 		unsigned int edgeClass = edgeData[2].GetUint();
 
 		edge_data *edge = new edge_data;

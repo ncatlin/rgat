@@ -43,9 +43,9 @@ GRAPH_DISPLAY_DATA::~GRAPH_DISPLAY_DATA()
 	acquire_col_write();
 }
 
-bool GRAPH_DISPLAY_DATA::get_coord(unsigned int index, FCOORD* result)
+bool GRAPH_DISPLAY_DATA::get_coord(NODEINDEX index, FCOORD* result)
 {
-	const unsigned int listIndex = index*POSELEMS;
+	const unsigned long listIndex = index*POSELEMS;
 	if (listIndex >= vposarray.size()) return false;
 
 	acquire_pos_read(12);
@@ -159,7 +159,7 @@ void GRAPH_DISPLAY_DATA::reset()
 }
 
 //draw basic opengl line between 2 points
-void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, int *arraypos)
+void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, long *arraypos)
 {
 	vector <float> *vpos = acquire_pos_write(52);
 	vector <float> *vcol = acquire_col_write();
@@ -190,7 +190,7 @@ void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColo
 }
 
 //draws a long curve with multiple vertices
-int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, int *colarraypos)
+int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, long *colarraypos)
 {
 	//bold start, faded end (convey direction)
 	float fadeArray[] = { 1, 1, 1, (float)0.7, (float)0.9, (float)0.9, (float)0.9, (float)0.7, (float)0.8, (float)0.8,

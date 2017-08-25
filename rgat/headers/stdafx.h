@@ -2,7 +2,7 @@
 
 #define RGAT_VERSION_MAJ 0
 #define RGAT_VERSION_MIN 5
-#define RGAT_VERSION_FEATURE 1
+#define RGAT_VERSION_FEATURE 2
 #define RGAT_VERSION_DESCRIPTION "QT-Alpha"
 
 using namespace std;

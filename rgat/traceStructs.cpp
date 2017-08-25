@@ -207,8 +207,8 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 			for (; callerEdgesIt != callingThreadEdges.End(); callerEdgesIt++)
 			{
 				const Value& Edge = *callerEdgesIt;
-				unsigned int source = Edge[0].GetUint();
-				unsigned int target = Edge[1].GetUint();
+				NODEINDEX source = Edge[0].GetUint64();
+				NODEINDEX target = Edge[1].GetUint64();
 				threadExternCalls.push_back(make_pair(source, target));
 			}
 			BBEntry->thread_callers[threadID] = threadExternCalls;

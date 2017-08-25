@@ -35,12 +35,12 @@ public:
 	plotted_graph *get_graph(int idx);
 	//return first node different between the two graphs
 	NODEINDEX get_diff_node() { return diffNode; }
-	unsigned long get_divergence_index() { return divergenceIdx;}
+	NODEINDEX get_divergence_index() { return divergenceIdx;}
 	bool wasDivergenceFound() {	return divergenceFound;	}
 
 private:
 	NODEPAIR firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *pd, PID_TID thread);
-	void mark_divergence(unsigned long instructionIndex);
+	void mark_divergence(NODEINDEX instructionIndex);
 
 	PID_TID graph1pid, graph1tid, graph2pid, graph2tid;
 	plotted_graph *graph1 = NULL;
@@ -48,7 +48,7 @@ private:
 	plotted_graph *diffgraph = NULL;
 	graphGLWidget *window = NULL;
 
-	unsigned long divergenceIdx = 0;
+	NODEINDEX divergenceIdx = 0;
 	NODEINDEX diffNode = 0;
 	NODEINDEX lastNode = 0;
 	NODEINDEX prevLastNode = 0;
