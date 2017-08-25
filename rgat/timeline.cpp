@@ -28,13 +28,11 @@ using namespace rapidjson;
 
 timeline::timeline()
 {
-	InitializeCriticalSection(&logCritsec);
 }
 
 
 timeline::~timeline()
 {
-	DeleteCriticalSection(&logCritsec);
 }
 
 //return if there are still other processes running
@@ -51,9 +49,9 @@ bool timeline::notify_pid_end(PID_TID pid, int PID_ID)
 	ev.PID_ID = PID_ID;
 	time(&ev.eventTime);
 
-	obtainMutex(&logCritsec, 1031);
+	logLock.lock();
 	eventLog.push_back(ev);
-	dropMutex(&logCritsec);
+	logLock.unlock();
 
 	--liveProcesses;
 
@@ -76,10 +74,10 @@ void timeline::notify_new_pid(PID_TID pid, int PID_ID, PID_TID parentPID)
 	ev.parentPID = parentPID;
 	time(&ev.eventTime);
 
-	obtainMutex(&logCritsec, 1033);
+	logLock.lock();
 	eventLog.push_back(ev);
 	pidlist.push_back(make_pair(pid,PID_ID));
-	dropMutex(&logCritsec);
+	logLock.unlock();
 	++liveProcesses;
 }
 
@@ -92,11 +90,11 @@ void timeline::notify_new_thread(PID_TID pid, int PID_ID, PID_TID tid)
 	ev.PID_ID = PID_ID;
 	ev.TID = tid;
 
-	obtainMutex(&logCritsec, 1034);
+	logLock.lock();
 
 	eventLog.push_back(ev);
 	//pidlist[pid].push_back(&ev);
-	dropMutex(&logCritsec);
+	logLock.unlock();
 	++liveThreads;
 }
 
@@ -109,9 +107,9 @@ void timeline::notify_thread_end(PID_TID pid, int PID_ID, PID_TID tid)
 	ev.PID_ID = PID_ID;
 	ev.TID = tid;
 
-	obtainMutex(&logCritsec, 1035);
+	logLock.lock();
 	eventLog.push_back(ev);
-	dropMutex(&logCritsec);
+	logLock.unlock();
 	--liveThreads;
 }
 
@@ -120,9 +118,9 @@ bool timeline::getFirstEventTime(time_t *result)
 	if (eventLog.empty())
 		return false;
 
-	obtainMutex(&logCritsec, 1035);
+	logLock.lock();
 	*result = eventLog.front().eventTime;
-	dropMutex(&logCritsec);
+	logLock.unlock();
 
 	return true;
 }
@@ -148,10 +146,10 @@ void timeline::serialise(Writer<FileWriteStream> *writer)
 
 	writer->StartArray();
 
-	obtainMutex(&logCritsec, 1035);
+	logLock.lock();
 	foreach(pevent, eventLog)
 		serialiseEvent(writer, &pevent);
-	dropMutex(&logCritsec);
+	logLock.unlock();
 
 	writer->EndArray();
 
@@ -174,9 +172,9 @@ bool timeline::unserialiseEvent(const Value& eventData)
 	newEvent.parentPID = eventData[4].GetUint64();
 	newEvent.TID = eventData[5].GetUint64();
 
-	obtainMutex(&logCritsec, 1035);
+	logLock.lock();
 	eventLog.push_back(newEvent);
-	dropMutex(&logCritsec);
+	logLock.unlock();
 
 	pair<PID_TID, int> uniquePidPair = make_pair(newEvent.PID, newEvent.PID_ID);
 	if (std::find(pidlist.begin(), pidlist.end(), uniquePidPair) == pidlist.end())
@@ -191,7 +189,7 @@ bool timeline::unserialise(const Value& timelineJSONData)
 {
 	processEvent pevent;
 
-	obtainMutex(&logCritsec, 1035);
+	logLock.lock();
 
 	Value::ConstMemberIterator timelineDataIt = timelineJSONData.FindMember("EventLog");
 	if (timelineDataIt == timelineJSONData.MemberEnd())
@@ -209,6 +207,6 @@ bool timeline::unserialise(const Value& timelineJSONData)
 		}
 	}
 
-	dropMutex(&logCritsec);
+	logLock.unlock();
 	return true;
 }

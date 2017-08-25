@@ -70,77 +70,6 @@ PID_TID getParentPID(PID_TID childPid)
 can't use boost::shared_mutex because it performs awfully on linux
 https://svn.boost.org/trac10/ticket/11798
 */
-bool obtainMutex(CRITICAL_SECTION *critsec, int waitTimeCode)
-{
-	int wait = 0;
-	do {
-		if (TryEnterCriticalSection(critsec))
-			return true;
-		else
-		{
-			Sleep(1); 
-			wait++;
-			if (wait >= waitTimeCode)
-				cout << "WARNING! critsec wait failed after " << std::dec << waitTimeCode << " ms: " << endl;
-		}
-		
-	} while (true);
-}
-
-bool tryObtainMutex(CRITICAL_SECTION *critsec, int waitTime)
-{
-	int wait = 0;
-	do {
-		if (TryEnterCriticalSection(critsec))
-			return true;
-		else
-		{
-			Sleep(1);
-			wait++;
-			if (wait >= waitTime)
-				return false;
-		}
-
-	} while (true);
-}
-
-bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
-{
-	DWORD waitresult;
-	do {
-		waitresult = WaitForSingleObject(mutex, waitTimeCode);
-		if (waitresult == WAIT_OBJECT_0) return true;
-		cout << "WARNING! Mutex wait failed after " << std::dec << waitTimeCode << " ms: " << waitresult << " error: " << GetLastError()<< endl;
-	} while (true);
-}
-
-void dropMutex(CRITICAL_SECTION *critsec) 
-{
-	LeaveCriticalSection(critsec);
-}
-
-
-
-void obtainGLMutex(rgatlocks::TestableLock *critsec, int waitTimeCode)
-{
-	critsec->lock();
-
-}
-
-
-bool tryObtainGLMutex(rgatlocks::TestableLock *critsec, int waitTime)
-{
-	return critsec->trylock();
-}
-
-
-void dropGLMutex(rgatlocks::TestableLock *critsec)
-{
-	critsec->unlock();
-}
-
-
-
 
 //gets path the rgat executable is located in
 string getModulePath()
@@ -396,28 +325,6 @@ void rgat_create_thread(void *threadEntry, void *arg)
 #endif // WIN32
 
 #ifdef LINUX
-/*
-a lot of the code checks this for success/failure
-have changed this to not return until success but leaving this here
-in case we want to revert it
-
-prints waitTimeCode in case of failure so use unique time for debugging
-*/
-bool obtainMutex(HANDLE mutex, int waitTimeCode)
-{
-	cout << "implement me" << endl;
-	return false;
-}
-
-bool obtainReadMutex(HANDLE mutex, int waitTimeCode)
-{
-	cout << "implement me" << endl;
-	return false;
-}
-
-void dropMutex(HANDLE mutex) {
-	cout << "implement me" << endl;
-}
 
 string time_string()
 {

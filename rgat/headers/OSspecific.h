@@ -41,15 +41,6 @@ void execute_tracer(void *binaryTargetPtr, clientConfig *config);
 eExeCheckResult check_excecutable_type(string executable);
 void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
 
-//in: mutex to wait on, waitTimeCode ms to wait per warning
-bool obtainMutex(CRITICAL_SECTION *critsec, int waitTimeCode);
-bool tryObtainMutex(CRITICAL_SECTION *critsec, int waitTime);
-void dropMutex(CRITICAL_SECTION *critsec);
-
-void obtainGLMutex(rgatlocks::TestableLock *critsec, int waitTimeCode);
-bool tryObtainGLMutex(rgatlocks::TestableLock *critsec, int waitTime);
-void dropGLMutex(rgatlocks::TestableLock *critsec);
-
 
 void rgat_create_thread(void *threadEntry, void *arg);
 

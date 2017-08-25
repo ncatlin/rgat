@@ -405,7 +405,7 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 	vector <pair<NODEINDEX, EXTTEXT>> displayNodeList;
 
 	//make labels rise up screen, delete those that reach top
-	obtainMutex(&internalProtoGraph->externGuardMutex, 7676);
+	internalProtoGraph->externCallsLock.lock();
 	map <NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
 	for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
 	{
@@ -426,7 +426,7 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 		}
 		displayNodeList.push_back(make_pair(activeExternIt->first, activeExternIt->second));;
 	}
-	dropMutex(&internalProtoGraph->externGuardMutex);
+	internalProtoGraph->externCallsLock.unlock();
 
 	if (displayNodeList.empty()) return;
 

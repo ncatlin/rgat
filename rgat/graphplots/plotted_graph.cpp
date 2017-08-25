@@ -491,12 +491,12 @@ void plotted_graph::remove_unchained_from_animation()
 		if (nodeIt->second == KEEP_BRIGHT)
 			nodeIt->second = 0;
 
-	obtainMutex(&internalProtoGraph->externGuardMutex, 2019);
+	internalProtoGraph->externCallsLock.lock();
 	map <NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
 	for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
 		if (activeExternIt->second.framesRemaining == KEEP_BRIGHT)
 			activeExternIt->second.framesRemaining = (int)(EXTERN_LIFETIME_FRAMES / 2);
-	dropMutex(&internalProtoGraph->externGuardMutex);
+	internalProtoGraph->externCallsLock.unlock();
 
 	map <NODEPAIR, int>::iterator edgeIt = activeAnimEdgeTimes.begin();
 	for (; edgeIt != activeAnimEdgeTimes.end(); ++edgeIt)
@@ -1071,7 +1071,7 @@ void plotted_graph::brighten_new_active_extern_nodes()
 		ARGLIST *args = NULL;
 		unsigned long callRecordIndex = NULL;
 
-		obtainMutex(&internalProtoGraph->externGuardMutex, 2121);
+		internalProtoGraph->externCallsLock.lock();
 		if (callsSoFar < externNode->callRecordsIndexs.size())
 		{
 			callRecordIndex = externNode->callRecordsIndexs.at(callsSoFar);
@@ -1086,7 +1086,7 @@ void plotted_graph::brighten_new_active_extern_nodes()
 		internalProtoGraph->dropNodeReadLock();
 
 		string externString = generate_funcArg_string(internalProtoGraph->get_node_sym(externNodeIdx), args);
-		dropMutex(&internalProtoGraph->externGuardMutex);
+		internalProtoGraph->externCallsLock.unlock();
 
 		boost::filesystem::path modulePath;
 		piddata->get_modpath(nodeModule, &modulePath);
@@ -1107,11 +1107,11 @@ void plotted_graph::brighten_new_active_extern_nodes()
 		externTimeIt = newExternTimes.erase(externTimeIt);
 	}
 
-	obtainMutex(&internalProtoGraph->externGuardMutex, 2819);
+	internalProtoGraph->externCallsLock.lock();
 	map <NODEINDEX, EXTTEXT>::iterator entryIt = newEntries.begin();
 	for (; entryIt != newEntries.end(); ++entryIt)
 		activeExternTimes[entryIt->first] = entryIt->second;
-	dropMutex(&internalProtoGraph->externGuardMutex);
+	internalProtoGraph->externCallsLock.unlock();
 }
 
 
@@ -1585,7 +1585,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	else
 		argstring << n->calls << "x " << symString;
 
-	obtainMutex(&protoGraph->externGuardMutex, 3521);
+	protoGraph->externCallsLock.lock();
 	if (n->callRecordsIndexs.empty() || !clientState->config.externalSymbolVisibility.arguments)
 		argstring << " ()";
 	else
@@ -1618,7 +1618,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 		else
 			argstring << ")";
 	}
-	dropMutex(&protoGraph->externGuardMutex);
+	protoGraph->externCallsLock.unlock();
 
 	painter->drawText(screenCoord.x + INS_X_OFF + 10, gltarget->height() - screenCoord.y + INS_Y_OFF, argstring.str().c_str());
 }
@@ -1972,7 +1972,7 @@ void plotted_graph::copy_node_data(GRAPH_DISPLAY_DATA *nodes)
 
 void plotted_graph::setHighlightData(vector<NODEINDEX> *nodes, egraphHighlightModes highlightType)
 {
-	EnterCriticalSection(&get_protoGraph()->highlightsCritsec);
+	get_protoGraph()->highlightsLock.lock();
 
 	highlightData.highlightNodes.clear();
 
@@ -1981,5 +1981,5 @@ void plotted_graph::setHighlightData(vector<NODEINDEX> *nodes, egraphHighlightMo
 
 	highlightData.highlightState = highlightType;
 
-	LeaveCriticalSection(&get_protoGraph()->highlightsCritsec);
+	get_protoGraph()->highlightsLock.unlock();
 }

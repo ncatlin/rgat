@@ -23,8 +23,8 @@ Container for all binary targets rgat has analyzed this session
 class binaryTargets
 {
 public:
-	binaryTargets() { InitializeCriticalSection(&targetsCritSec); };
-	~binaryTargets() { DeleteCriticalSection(&targetsCritSec); }
+	binaryTargets() { };
+	~binaryTargets() { };
 
 	bool binaryTargets::getTargetByPath(boost::filesystem::path path, binaryTarget **target);
 	vector<binaryTarget *> getTargetsList();
@@ -36,7 +36,7 @@ public:
 	void registerChild(PID_TID parentPID, traceRecord *trace);
 
 private:
-	CRITICAL_SECTION targetsCritSec;
+	rgatlocks::UntestableLock targetsLock;
 	map <boost::filesystem::path, binaryTarget *> targets;
 	vector<binaryTarget *> targetsList;
 	binaryTarget *activeTarget = NULL;

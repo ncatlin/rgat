@@ -476,7 +476,7 @@ void heatmap_renderer::main_loop()
 	map<plotted_graph *, bool> finishedGraphs;
 	while (!clientState->rgatIsExiting())
 	{
-		obtainGLMutex(&runRecord->graphsListCritsec, 1054);
+		runRecord->graphListLock.lock();
 		vector<plotted_graph *> graphlist;
 		map <PID_TID, void *>::iterator graphIt = runRecord->plottedGraphs.begin();
 		for (; graphIt != runRecord->plottedGraphs.end(); ++graphIt)
@@ -485,7 +485,7 @@ void heatmap_renderer::main_loop()
 			if (g->increase_thread_references())
 				graphlist.push_back(g);
 		}
-		dropGLMutex(&runRecord->graphsListCritsec);
+		runRecord->graphListLock.unlock();
 
 		//process terminated, all graphs fully rendered, now can head off to valhalla
 		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))

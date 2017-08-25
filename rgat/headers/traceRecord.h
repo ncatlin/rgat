@@ -56,8 +56,7 @@ public:
 	void killTree();
 
 
-	//CRITICAL_SECTION graphsListCritsec;
-	rgatlocks::TestableLock graphsListCritsec;// graphListLock;
+	rgatlocks::TestableLock graphListLock;
 
 	map <PID_TID, PROTOGRAPH_CASTPTR> protoGraphs;
 	map <PID_TID, PLOTTEDGRAPH_CASTPTR> plottedGraphs;
