@@ -109,17 +109,20 @@ void maingraph_render_thread::main_loop()
 				THREAD_POINTERS *processThreads = (THREAD_POINTERS *)activeTrace->processThreads;
 				if (!processThreads->previewThread->is_alive())
 				{
-					rgat_create_thread((LPTHREAD_START_ROUTINE)processThreads->previewThread->ThreadEntry, processThreads->previewThread);
+					std::thread prevthread(&preview_renderer::ThreadEntry, processThreads->previewThread);
+					prevthread.detach();
 				}
 
 				if (!processThreads->conditionalThread->is_alive())
 				{
-					rgat_create_thread((LPTHREAD_START_ROUTINE)processThreads->conditionalThread->ThreadEntry, processThreads->conditionalThread);
+					std::thread condthread(&conditional_renderer::ThreadEntry, processThreads->conditionalThread);
+					condthread.detach();
 				}
 
 				if (!processThreads->heatmapThread->is_alive())
 				{
-					rgat_create_thread((LPTHREAD_START_ROUTINE)processThreads->heatmapThread->ThreadEntry, processThreads->heatmapThread);
+					std::thread heatthread(&heatmap_renderer::ThreadEntry, processThreads->heatmapThread);
+					heatthread.detach();
 				}
 				continue;
 			}
