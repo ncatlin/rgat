@@ -41,9 +41,9 @@ public:
 	unsigned long chainedWeight = 0;
 
 	//number of verticies taken up in OpenGL data
-	unsigned int vertSize = 0;
+	unsigned long vertSize = 0;
 	//position in rendering data structure
-	unsigned int arraypos = 0;
+	unsigned long arraypos = 0;
 };
 
 

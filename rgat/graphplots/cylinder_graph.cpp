@@ -150,7 +150,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		case eNodeExternal:
 		{
 			//returning to address in call stack?
-			int result = -1;
+			long long result = -1;
 
 			vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
 			if (mainnodesdata->isPreview())
@@ -158,8 +158,9 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 			else
 				callStack = &mainCallStack;
 
-			vector<pair<MEM_ADDRESS, unsigned int>>::iterator stackIt;
-			EnterCriticalSection(&callStackMutex);
+			vector<pair<MEM_ADDRESS, NODEINDEX>>::iterator stackIt;
+
+			callStackLock.lock();
 			for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
 				if (stackIt->first == n->address)
 				{
@@ -170,7 +171,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 			//if so, position next node near caller
 			if (result != -1)
 			{
-				CYLINDERCOORD *caller = get_node_coord(result);
+				CYLINDERCOORD *caller = get_node_coord((NODEINDEX)result);
 				assert(caller);
 				a = caller->a + RETURNA_OFFSET;
 				b = caller->b + RETURNB_OFFSET;
@@ -184,7 +185,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 				a += RETURNA_OFFSET;
 				b += RETURNB_OFFSET;
 			}
-			LeaveCriticalSection(&callStackMutex);
+			callStackLock.unlock();
 
 			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 			{
@@ -311,7 +312,7 @@ void cylinder_graph::cylinderAB(DCOORD *doubleCoord, float *a, float *b, GRAPH_S
 
 //connect two nodes with an edge of automatic number of vertices
 int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos)
+	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
 {
 	//describe the normal
 	FCOORD middleC;
@@ -413,7 +414,7 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 
 		if (extxt->framesRemaining != KEEP_BRIGHT)
 		{
-			extxt->yOffset += EXTERN_FLOAT_RATE;
+			extxt->yOffset += (float)EXTERN_FLOAT_RATE;
 
 			if (extxt->framesRemaining-- == 0)
 			{
@@ -660,7 +661,7 @@ void cylinder_graph::reset_edgeSep()
 bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate)
 {
 
-	unsigned long nodeCoordQty = node_coords->size();
+	unsigned long nodeCoordQty = (unsigned long)node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
 
@@ -675,7 +676,7 @@ bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, Q
 	FCOORD srcc = nodeIndexToXYZ(ePair.first, scaling, 0);
 	FCOORD targc = nodeIndexToXYZ(ePair.second, scaling, 0);
 
-	int arraypos = 0;
+	long arraypos = 0;
 	QColor *edgeColour;
 	if (forceColour) edgeColour = forceColour;
 	else
@@ -763,12 +764,12 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 			lastNode->lastVertType = eNodeCall;
 			//if code arrives to next instruction after a return then arrange as a function
 			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-			EnterCriticalSection(&callStackMutex);
+			callStackLock.lock();
 			if (vertdata->isPreview())
 				previewCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
 			else
 				mainCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-			LeaveCriticalSection(&callStackMutex);
+			callStackLock.unlock();
 			break;
 		}
 		default:

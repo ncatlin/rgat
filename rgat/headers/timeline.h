@@ -30,15 +30,10 @@ Intended to be used to provide a visualisation
 #include <rapidjson\reader.h>
 #include <boost\filesystem.hpp>
 
-#define PID_CREATE 1
-#define PID_DIE 2
-#define TID_CREATE 3
-#define TID_DIE 4
-
 enum eTimelineEvent { eProcessCreate, eProcessTerminate, eThreadCreate, eThreadTerminate};
 
 struct processEvent {
-	int eventType;
+	eTimelineEvent eventType;
 	time_t eventTime;
 	PID_TID PID, parentPID;
 	int PID_ID;

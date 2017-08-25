@@ -20,6 +20,7 @@ This class holds (and provides dubiously mutex guarded access to) OpenGl vertex 
 #pragma once
 #include <stdafx.h>
 #include "mathStructs.h"
+#include "traceConstants.h"
 
 class GRAPH_DISPLAY_DATA {
 public:
@@ -52,10 +53,10 @@ public:
 	unsigned int get_renderedEdges() { return edgesRendered; }
 	void inc_edgesRendered() { ++edgesRendered; }
 
-	void drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, int *arraypos);
-	int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, int *colarraypos);
+	void drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, long *arraypos);
+	int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, long *colarraypos);
 
-	bool get_coord(unsigned int index, FCOORD* result);
+	bool get_coord(NODEINDEX index, FCOORD* result);
 
 	bool isPreview() { return preview; }
 
@@ -74,7 +75,7 @@ private:
 
 	vector<GLfloat> vposarray;
 	vector<GLfloat> vcolarray;
-	unsigned int vcolarraySize = 0;
+	unsigned long vcolarraySize = 0;
 
 	//not used for nodes
 	unsigned int edgesRendered = 0;

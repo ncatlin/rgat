@@ -33,8 +33,8 @@ edge_data::~edge_data()
 bool edge_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, int source, int target)
 {
 	writer.StartArray();
-	writer.Uint(source);
-	writer.Uint(target);
+	writer.Uint64(source);
+	writer.Uint64(target);
 	writer.Uint((eEdgeNodeType)edgeClass);
 	writer.EndArray();
 

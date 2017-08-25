@@ -414,8 +414,7 @@ void previewPlotGLWidget::refreshPreviewGraphs(bool forceFullCheck = false)
 	//changing graph layouts ruins the list. fix that if this is a performance bottleneck.
 	forceFullCheck = true;
 
-	plotted_graph * currentGraph;
-	size_t traceGraphQty = activeTrace->plottedGraphs.size();
+	int traceGraphQty = (int)activeTrace->plottedGraphs.size();
 	if (testedGraphQty < traceGraphQty || forceFullCheck)
 	{
 		previewGraphs.clear();

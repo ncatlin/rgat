@@ -285,7 +285,7 @@ void basicblock_handler::main_loop()
 					}
 
 					piddata->disassembly[insaddr].push_back(instruction);
-					instruction->mutationIndex = piddata->disassembly[insaddr].size()-1;
+					instruction->mutationIndex = (unsigned int)piddata->disassembly[insaddr].size()-1;
 				}
 				blockInstructions->push_back(instruction);
 

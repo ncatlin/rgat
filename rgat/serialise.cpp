@@ -40,7 +40,7 @@ void saveModulePaths(PROCESS_DATA *piddata, Writer<rapidjson::FileWriteStream>& 
 		writer.Key("ID");
 		writer.Int(pathIt->first);
 		writer.Key("B64");
-		writer.String(base64_encode(cus_pathstring, pathIt->second.size()).c_str());
+		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->second.size()).c_str());
 		writer.EndObject();
 	}
 
@@ -111,7 +111,7 @@ void saveDisassembly(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 				writer.StartArray();
 
 				writer.Int64(threadVertIt->first); //could make file smaller by doing a lookup table.
-				writer.Uint(threadVertIt->second);
+				writer.Uint64(threadVertIt->second);
 
 				writer.EndArray();
 			}
@@ -167,8 +167,8 @@ void saveExternDict(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 				{
 					writer.StartArray();
 					//source, target
-					writer.Int(edgeIt->first);
-					writer.Int(edgeIt->second);
+					writer.Uint64(edgeIt->first);
+					writer.Uint64(edgeIt->second);
 
 					writer.EndArray();
 				}

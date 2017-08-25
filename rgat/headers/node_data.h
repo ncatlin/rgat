@@ -49,7 +49,7 @@ public:
 	BLOCK_IDENTIFIER blockID;
 	
 	//an index used to lookup the caller/arguments of each instance of this being called
-	vector<unsigned long> callRecordsIndexs;
+	vector<NODEINDEX> callRecordsIndexs;
 	unsigned long calls = 1;
 
 	//number of external functions called

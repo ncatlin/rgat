@@ -30,22 +30,22 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 {
 	writer.StartArray();
 
-	writer.Uint(index); //[0]
+	writer.Uint64(index); //[0]
 	writer.Uint(conditional);//[1]
 	writer.Uint(nodeMod);//[2]
 	writer.Uint64(address);//[3]
 	writer.Uint64(executionCount);//[4]
 
 	writer.StartArray();//[5]
-	set<unsigned int>::iterator adjacentIt = incomingNeighbours.begin();
+	set<NODEINDEX>::iterator adjacentIt = incomingNeighbours.begin();
 	for (; adjacentIt != incomingNeighbours.end(); ++adjacentIt)
-		writer.Uint(*adjacentIt);
+		writer.Uint64(*adjacentIt);
 	writer.EndArray();
 
 	writer.StartArray();//[6]
 	adjacentIt = outgoingNeighbours.begin();
 	for (; adjacentIt != outgoingNeighbours.end(); ++adjacentIt)
-		writer.Uint(*adjacentIt);
+		writer.Uint64(*adjacentIt);
 	writer.EndArray();
 
 	writer.Bool(external);//[7]
@@ -55,7 +55,7 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 	else
 	{
 		writer.StartArray(); //[8] function calls as indexes into call records
-		vector<unsigned long>::iterator callIt = callRecordsIndexs.begin();
+		vector<NODEINDEX>::iterator callIt = callRecordsIndexs.begin();
 		for (; callIt != callRecordsIndexs.end(); callIt++)
 		{
 			writer.Uint64(*callIt);
@@ -80,8 +80,8 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 {
 	using namespace rapidjson;
 
-	if (!nodeData[0].IsUint()) return errorAtIndex(0);
-	index = nodeData[0].GetUint();
+	if (!nodeData[0].IsUint64()) return errorAtIndex(0);
+	index = nodeData[0].GetUint64();
 	if (!nodeData[1].IsUint()) return errorAtIndex(1);
 	conditional = nodeData[1].GetUint();
 	if (!nodeData[2].IsUint()) return errorAtIndex(2);
@@ -97,8 +97,8 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 	Value::ConstValueIterator incomingIt = incomingEdges.Begin();
 	for (; incomingIt != incomingEdges.End(); incomingIt++)
 	{
-		if (!incomingIt->IsUint()) return errorAtIndex(5);
-		incomingNeighbours.insert(incomingIt->GetUint());
+		if (!incomingIt->IsUint64()) return errorAtIndex(5);
+		incomingNeighbours.insert(incomingIt->GetUint64());
 	}
 
 	//execution goes from this node to these nodes
@@ -111,8 +111,8 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 	Value::ConstValueIterator outgoingIt = outgoingEdges.Begin();
 	for (; outgoingIt != outgoingEdges.End(); outgoingIt++)
 	{
-		if (!outgoingIt->IsUint()) return errorAtIndex(6);
-		outgoingNeighbours.insert(outgoingIt->GetUint());
+		if (!outgoingIt->IsUint64()) return errorAtIndex(6);
+		outgoingNeighbours.insert(outgoingIt->GetUint64());
 	}
 
 	if (!nodeData[7].IsBool()) return errorAtIndex(7);

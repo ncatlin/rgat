@@ -117,3 +117,8 @@ Bugfix: Made the trace selector dropdown work in the visualiser pane
 Bugfix: The exit button in  the file menu now works
 Code change: made exclusive locks platform independent
 
+25/08/17 0.5.2	[PREVIOUS SAVES OBSOLETE]
+-----------------
+Instruction indexes are now 64bits in save files. Support for >4gb trace sizes is built-in but not enabled due to presumed lack of need and increased memory requirements
+Bugfix: Fixed a deadlock caused by new locks being non-recursive
+Code change: platform independent threading

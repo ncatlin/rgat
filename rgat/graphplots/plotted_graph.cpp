@@ -63,9 +63,6 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColou
 
 		graphColours = graphColoursPtr;
 
-		InitializeCriticalSection(&graphBusyCritsec);
-		InitializeCriticalSection(&callStackMutex);
-
 #ifdef XP_COMPATIBLE
 		nodeCoordMutex = CreateMutex(NULL, FALSE, NULL);
 		threadReferenceMutex = CreateMutex(NULL, FALSE, NULL);
@@ -81,10 +78,8 @@ plotted_graph::~plotted_graph()
 	freeMe = true;
 	beingDeleted = true;
 
-	EnterCriticalSection(&graphBusyCritsec);
-	DeleteCriticalSection(&graphBusyCritsec);
-	EnterCriticalSection(&callStackMutex);
-	DeleteCriticalSection(&callStackMutex);
+	callStackLock.lock();
+	graphBusyLock.lock();
 #ifdef XP_COMPATIBLE
 	while (threadRefs) Sleep(10);
 	obtainMutex(threadReferenceMutex);
@@ -168,25 +163,25 @@ void plotted_graph::updateStats(float a, float b, float c)
 
 bool plotted_graph::trySetGraphBusy()
 {
-	return TryEnterCriticalSection(&graphBusyCritsec);
+
+	bool result = graphBusyLock.trylock();
+	return result;
 }
 
 bool plotted_graph::setGraphBusy(bool set, int caller)
 {
 	if (set) 
 	{
-		if (dying) return false;
-		EnterCriticalSection(&graphBusyCritsec);
+		graphBusyLock.lock();
 		if (dying)
 		{
-			//in case it was set to dying in the mean time
-			LeaveCriticalSection(&graphBusyCritsec);
+			graphBusyLock.unlock();
 			return false;
 		}
 	}
 	else
 	{
-		LeaveCriticalSection(&graphBusyCritsec);
+		graphBusyLock.unlock();
 	}
 	return true;
 }
@@ -317,7 +312,7 @@ void plotted_graph::extend_faded_edges()
 	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
 	unsigned int end = drawnVerts*COLELEMS;
 	for (; index2 < end; index2 += COLELEMS)
-		animecol->at(index2 + AOFF) = 0.01; //TODO: config file entry for anim inactive
+		animecol->at(index2 + AOFF) = (float)0.01; //TODO: config file entry for anim inactive
 
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col_write();
@@ -352,7 +347,6 @@ int plotted_graph::render_new_edges(bool doResize)
 
 	needVBOReload_main = true;
 
-	setGraphBusy(true, 9);
 	for (; edgeIt != end && !dying; ++edgeIt)
 	{
 		//render source node if not already done
@@ -376,7 +370,6 @@ int plotted_graph::render_new_edges(bool doResize)
 		
 		if (!render_edge(*edgeIt, lines, 0, false, false))
 		{
-			setGraphBusy(false, 9);
 			internalProtoGraph->dropEdgeReadLock();
 			return edgesDrawn;
 		}
@@ -386,7 +379,7 @@ int plotted_graph::render_new_edges(bool doResize)
 		extend_faded_edges();
 		lines->inc_edgesRendered();
 	}
-	setGraphBusy(false, 9);
+
 	internalProtoGraph->dropEdgeReadLock();
 
 	return edgesDrawn;
@@ -422,9 +415,9 @@ void plotted_graph::reset_animation()
 }
 
 
-void plotted_graph::set_node_alpha(unsigned int nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
+void plotted_graph::set_node_alpha(NODEINDEX nIdx, GRAPH_DISPLAY_DATA *nodesdata, float alpha)
 {
-	unsigned int bufIndex = nIdx*COLELEMS + AOFF;
+	unsigned long long bufIndex = nIdx*COLELEMS + AOFF;
 	if (bufIndex >= nodesdata->col_buf_capacity_floats()) return;
 
 	GLfloat *colarray = &nodesdata->acquire_col_write()->at(0);
@@ -486,7 +479,7 @@ void plotted_graph::remove_unchained_from_animation()
 			++newEdgeIt;
 
 	//get rid of any nodes/externals/edges that have already been activated
-	map <unsigned int, int>::iterator nodeIt = activeAnimNodeTimes.begin();
+	map <NODEINDEX, int>::iterator nodeIt = activeAnimNodeTimes.begin();
 	for (; nodeIt != activeAnimNodeTimes.end(); ++nodeIt)
 		if (nodeIt->second == KEEP_BRIGHT)
 			nodeIt->second = 0;
@@ -797,7 +790,7 @@ int plotted_graph::process_replay_animation_updates(int optionalStepSize = 0)
 		stepSize = (replayState != ePaused) ? clientState->animationStepRate : 0;
 	}
 
-	unsigned long targetAnimIndex = animationIndex + stepSize;
+	NODEINDEX targetAnimIndex = animationIndex + stepSize;
 	if (targetAnimIndex >= internalProtoGraph->savedAnimationData.size())
 		targetAnimIndex = internalProtoGraph->savedAnimationData.size() - 1;
 
@@ -823,7 +816,7 @@ void plotted_graph::clear_active()
 {
 	if (!animnodesdata->get_numVerts()) return;
 
-	map<unsigned int, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
+	map<NODEINDEX, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
 	GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 
 	for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
@@ -842,7 +835,7 @@ void plotted_graph::clear_active()
 void plotted_graph::maintain_active()
 {
 	if (!animnodesdata->get_numVerts()) return;
-	map<unsigned int, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
+	map<NODEINDEX, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
 
 	GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 	float currentPulseAlpha = fmax(ANIM_INACTIVE_NODE_ALPHA, getPulseAlpha());
@@ -912,10 +905,10 @@ void plotted_graph::redraw_anim_edges()
 void plotted_graph::darken_nodes(float fadeRate)
 {
 	//darken fading verts
-	set<unsigned int>::iterator alphaPosIt = fadingAnimNodes.begin();
+	set<NODEINDEX>::iterator alphaPosIt = fadingAnimNodes.begin();
 	while (alphaPosIt != fadingAnimNodes.end())
 	{
-		unsigned int nodeAlphaIndex = *alphaPosIt;
+		NODEINDEX nodeAlphaIndex = *alphaPosIt;
 
 		GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 		//set alpha value to 1 in animation colour data
@@ -1021,7 +1014,7 @@ void plotted_graph::brighten_new_active_nodes()
 
 		GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
 
-		const unsigned int arrIndexNodeAlpha = (nodeIdx * COLELEMS) + AOFF;
+		const size_t arrIndexNodeAlpha = (nodeIdx * COLELEMS) + AOFF;
 		if (arrIndexNodeAlpha >= animnodesdata->col_buf_capacity_floats())
 		{
 			//trying to brighten nodes we havent rendered yet
@@ -1037,7 +1030,7 @@ void plotted_graph::brighten_new_active_nodes()
 		if (animTime)
 		{
 			activeAnimNodeTimes[arrIndexNodeAlpha] = animTime;
-			set <unsigned int>::iterator fadeIt = fadingAnimNodes.find(arrIndexNodeAlpha);
+			set <NODEINDEX>::iterator fadeIt = fadingAnimNodes.find(arrIndexNodeAlpha);
 			if (fadeIt != fadingAnimNodes.end())
 				fadingAnimNodes.erase(fadeIt);
 		}
@@ -1692,7 +1685,7 @@ void plotted_graph::apply_drag(double dx, double dy)
 	if (slowdown > 0)
 	{
 		//reduce movement this much for every 1000 pixels camera is away
-		float slowdownfactor = 0.035; 
+		float slowdownfactor = (float)0.035; 
 		if (dx != 0) dx *= (slowdown * slowdownfactor);
 		if (dy != 0) dy *= (slowdown * slowdownfactor);
 	}
@@ -1742,7 +1735,7 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 
 		//hmm.. should probably just read a success/fail colour
 		//don't think the state is stored anywhere easy to get to (computed then discarded)
-		const int vectNodePos = n->index*COLELEMS;
+		const size_t vectNodePos = n->index*COLELEMS;
 		textColour.setRedF(vcol[vectNodePos + ROFF]);
 		textColour.setGreenF(vcol[vectNodePos + GOFF]);
 		textColour.setBlueF(vcol[vectNodePos + BOFF]);
@@ -1775,7 +1768,6 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 
 
 	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
-	GRAPH_DISPLAY_DATA *vertsdata = get_mainnodes();
 
 	//iterate through nodes looking for ones that map to screen coords
 	int edgelistIdx = 0;

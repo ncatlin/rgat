@@ -70,7 +70,7 @@ private:
 
 	void display_graph(PROJECTDATA *pd, graphGLWidget *gltarget);
 	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-		QColor *colour, int edgeType, GRAPH_SCALE *dimensions, int *arraypos);
+		QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
 	void write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget);
 
 

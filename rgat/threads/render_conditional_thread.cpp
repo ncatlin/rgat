@@ -26,7 +26,6 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 	GRAPH_DISPLAY_DATA *linedata = graph->get_mainlines();
 	if (!linedata || !linedata->get_numVerts()) return false;
 
-	GRAPH_DISPLAY_DATA *vertsdata = graph->get_mainnodes();
 	GRAPH_DISPLAY_DATA *conditionalNodes = graph->conditionalnodes;
 	bool newDrawn = false;
 	int nodeIdx = 0;

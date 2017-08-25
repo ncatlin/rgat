@@ -711,7 +711,7 @@ bool thread_trace_handler::assign_blockrepeats()
 				//external libraries will not be found by find_block_disassembly, but will be handled by run_external
 				//this notices it has been handled and drops it from pending list
 				bool alreadyPresent = false;
-				set<unsigned int>::iterator calledIt = n->outgoingNeighbours.begin();
+				set<NODEINDEX>::iterator calledIt = n->outgoingNeighbours.begin();
 				for (; calledIt != n->outgoingNeighbours.end(); ++calledIt)
 					if (thisgraph->safe_get_node(*calledIt)->address == targCallIt->first)
 					{
