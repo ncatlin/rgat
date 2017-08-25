@@ -3,6 +3,7 @@
 #include "processLaunching.h"
 #include "serialise.h"
 #include "ui_rgat.h"
+#include <thread>
 
 #define PIDSTRING_BUFSIZE MAX_PATH + 100
 
@@ -15,14 +16,16 @@ void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rg
 	module_handler *tPIDThread = new module_handler(target, runRecord);
 
 	THREAD_POINTERS *processThreads = (THREAD_POINTERS *)runRecord->processThreads;
-	rgat_create_thread((LPTHREAD_START_ROUTINE)tPIDThread->ThreadEntry, tPIDThread);
+	std::thread modthread(&module_handler::ThreadEntry, tPIDThread);
+	modthread.detach();
 	processThreads->modThread = tPIDThread;
 	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
 	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord);
 
-	rgat_create_thread((LPTHREAD_START_ROUTINE)tBBHandler->ThreadEntry, tBBHandler);
+	std::thread bbthread(&basicblock_handler::ThreadEntry, tBBHandler);
+	bbthread.detach();
 	processThreads->BBthread = tBBHandler;
 	processThreads->threads.push_back(tBBHandler);
 
@@ -32,20 +35,19 @@ void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rg
 	//graphics rendering threads for each process here	
 	preview_renderer *tPrevThread = new preview_renderer(runRecord);
 	processThreads->previewThread = tPrevThread;
-	rgat_create_thread((LPTHREAD_START_ROUTINE)tPrevThread->ThreadEntry, tPrevThread);
+	std::thread previewthread(&preview_renderer::ThreadEntry, tPrevThread);
+	previewthread.detach();
 
 	heatmap_renderer *tHeatThread = new heatmap_renderer(runRecord);
-	
-
-	rgat_create_thread((LPTHREAD_START_ROUTINE)tHeatThread->ThreadEntry, tHeatThread);
-
+	std::thread heatthread(&heatmap_renderer::ThreadEntry, tHeatThread);
+	heatthread.detach();
 	processThreads->heatmapThread = tHeatThread;
 	processThreads->threads.push_back(tHeatThread);
 
 	conditional_renderer *tCondThread = new conditional_renderer(runRecord);
-
 	Sleep(200);
-	rgat_create_thread((LPTHREAD_START_ROUTINE)tCondThread->ThreadEntry, tCondThread);
+	std::thread condthread(&conditional_renderer::ThreadEntry, tCondThread);
+	condthread.detach();
 	processThreads->conditionalThread = tCondThread;
 	processThreads->threads.push_back(tCondThread);
 }
@@ -221,12 +223,15 @@ void process_coordinator_thread(rgatState *clientState)
 void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState)
 {
 	preview_renderer *previews_thread = new preview_renderer(runRecord);
-	rgat_create_thread((LPTHREAD_START_ROUTINE)previews_thread->ThreadEntry, previews_thread);
+	std::thread previewsthread(&preview_renderer::ThreadEntry, previews_thread);
+	previewsthread.detach();
 
 	heatmap_renderer *heatmap_thread = new heatmap_renderer(runRecord);
-	rgat_create_thread((LPTHREAD_START_ROUTINE)heatmap_thread->ThreadEntry, heatmap_thread);
+	std::thread heatthread(&heatmap_renderer::ThreadEntry, heatmap_thread);
+	heatthread.detach();
 
 	conditional_renderer *conditional_thread = new conditional_renderer(runRecord);
 	Sleep(200);
-	rgat_create_thread((LPTHREAD_START_ROUTINE)conditional_thread->ThreadEntry, conditional_thread);
+	std::thread condthread(&conditional_renderer::ThreadEntry, conditional_thread);
+	condthread.detach();
 }

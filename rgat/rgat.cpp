@@ -239,14 +239,16 @@ rgat::rgat(QWidget *parent)
 	setupUI();
 	setStatePointers();
 
-	rgat_create_thread(process_coordinator_thread, rgatstate);
+	std::thread coordinatorThread(process_coordinator_thread, rgatstate);
+	coordinatorThread.detach();
 
 	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)rgatstate->highlightSelectUI;
 	highlightui->addressLabel->setText("Address:");
 
 	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(rgatstate);
-	rgatstate->maingraphRenderer = mainRenderThread;
-	rgat_create_thread(mainRenderThread->ThreadEntry, mainRenderThread);
+	rgatstate->maingraphRenderer = mainRenderThread;	
+	std::thread renderThread(maingraph_render_thread::ThreadEntry, mainRenderThread);
+	renderThread.detach();
 
 	rgatstate->emptyComparePane1();
 	rgatstate->emptyComparePane2();

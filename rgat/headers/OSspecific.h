@@ -40,7 +40,3 @@ PID_TID getParentPID(PID_TID childPid);
 void execute_tracer(void *binaryTargetPtr, clientConfig *config);
 eExeCheckResult check_excecutable_type(string executable);
 void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
-
-
-void rgat_create_thread(void *threadEntry, void *arg);
-

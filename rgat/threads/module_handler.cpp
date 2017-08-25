@@ -130,7 +130,8 @@ void module_handler::main_loop()
 
 				threadList.push_back(TID_reader);
 				readerThreadList.push_back(TID_reader);
-				rgat_create_thread(TID_reader->ThreadEntry, TID_reader);
+				std::thread tracereader(&thread_trace_reader::ThreadEntry, TID_reader);
+				tracereader.detach();
 				
 				thread_trace_handler *TID_processor = new thread_trace_handler(binary, runRecord, newProtoGraph);
 				TID_processor->reader = TID_reader;
@@ -141,8 +142,9 @@ void module_handler::main_loop()
 					break;
 				}
 
-				threadList.push_back(TID_processor);
-				rgat_create_thread(TID_processor->ThreadEntry, TID_processor);
+				threadList.push_back(TID_processor); 
+				std::thread tracehandler(&thread_trace_handler::ThreadEntry, TID_processor);
+				tracehandler.detach();
 				continue;
 			}
 

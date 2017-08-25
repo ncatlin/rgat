@@ -80,7 +80,7 @@ string getModulePath()
 	return string(buffer).substr(0, pos);
 }
 
-//get execution string of dr executable + client dll
+//get command line string of dr executable + client dll + options
 bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
 {
 	//get dynamorio exe from path in settings
@@ -314,14 +314,6 @@ void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)
 	CloseHandle(processinfo.hProcess);
 	CloseHandle(processinfo.hThread);
 }
-
-void rgat_create_thread(void *threadEntry, void *arg)
-{
-	DWORD suppressWarningThreadID;
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadEntry, (LPVOID)arg, 0, &suppressWarningThreadID);
-}
-
-
 #endif // WIN32
 
 #ifdef LINUX
@@ -377,11 +369,5 @@ void execute_tracer(string executable, string args, void *clientState_ptr, bool 
 {
 	cout << "implement me" << endl;
 }
-
-void rgat_create_thread(void *threadEntry, void *arg)
-{
-	cout << "implement me" << endl;
-}
-
 
 #endif // LINUX
