@@ -21,7 +21,8 @@ limitations under the License.
 //if it doesn't exist, creates it and returns true (new binary target)
 bool binaryTargets::getTargetByPath(boost::filesystem::path path, binaryTarget **target)
 {
-	obtainMutex(&targetsCritSec,82);
+
+	targetsLock.lock();
 
 
 	binaryTarget* result = NULL;
@@ -41,7 +42,7 @@ bool binaryTargets::getTargetByPath(boost::filesystem::path path, binaryTarget *
 		newBinary = true;
 
 	}
-	dropMutex(&targetsCritSec);
+	targetsLock.unlock();
 
 	*target = result;
 	return newBinary;
@@ -51,14 +52,15 @@ void binaryTargets::registerChild(PID_TID parentPID, traceRecord *trace)
 {
 	vector<traceRecord *> matchingRecords;
 
-	obtainMutex(&targetsCritSec, 182);
+	targetsLock.lock();
+
 	for (auto tarIt = targets.begin();  tarIt != targets.end(); tarIt++)
 	{
 		traceRecord *possibleParentTrace = tarIt->second->getRecordWithPID(parentPID, 0);
 		if (possibleParentTrace)
 			matchingRecords.push_back(possibleParentTrace);
 	}
-	dropMutex(&targetsCritSec);
+	targetsLock.unlock();
 
 	if (!matchingRecords.empty())
 	{
@@ -71,8 +73,8 @@ void binaryTargets::registerChild(PID_TID parentPID, traceRecord *trace)
 vector<binaryTarget *> binaryTargets::getTargetsList() 
 { 
 	vector<binaryTarget *> tempTargets;
-	obtainMutex(&targetsCritSec, 182);
+	targetsLock.lock();
 	tempTargets = targetsList;
-	dropMutex(&targetsCritSec);
+	targetsLock.unlock();
 	return tempTargets;
 }

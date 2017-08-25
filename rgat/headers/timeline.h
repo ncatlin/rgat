@@ -21,6 +21,7 @@ Intended to be used to provide a visualisation
 #pragma once
 
 #include "traceConstants.h"
+#include "locks.h"
 
 #include <rapidjson\document.h>
 #include <rapidjson\filewritestream.h>
@@ -64,9 +65,9 @@ public:
 private:
 	unsigned int liveProcesses = 0;
 	unsigned int liveThreads = 0;
-	//map <int, vector<processEvent *>> pidlist;
+
 	vector <pair<PID_TID,int>> pidlist;
 	vector<processEvent> eventLog;
-	CRITICAL_SECTION logCritsec;
+	rgatlocks::UntestableLock logLock;
 };
 

@@ -33,17 +33,11 @@ proto_graph::proto_graph(PROCESS_DATA *processdata, unsigned int threadID)
 
 	piddata = processdata;
 	tid = threadID;
-	InitializeCriticalSection(&highlightsCritsec);
-	InitializeCriticalSection(&externGuardMutex);
 }
 
 
 proto_graph::~proto_graph()
 {
-	EnterCriticalSection(&highlightsCritsec);
-	DeleteCriticalSection(&highlightsCritsec);
-	EnterCriticalSection(&externGuardMutex);
-	DeleteCriticalSection(&externGuardMutex);
 }
 
 //creates a node for a newly executed instruction
@@ -308,15 +302,15 @@ void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 
 	if (node.external)
 	{
-		EnterCriticalSection(&highlightsCritsec);
+		highlightsLock.lock();
 		externalNodeList.push_back(node.index);
-		LeaveCriticalSection(&highlightsCritsec);
+		highlightsLock.unlock();
 	}
 	else if (node.ins->hasSymbol)
 	{
-		EnterCriticalSection(&highlightsCritsec);
+		highlightsLock.lock();
 		internalNodeList.push_back(node.index);
-		LeaveCriticalSection(&highlightsCritsec);
+		highlightsLock.unlock();
 	}
 
 	getNodeWriteLock();
@@ -373,17 +367,17 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 
 	writer.Key("Exceptions");
 	writer.StartArray();
-	EnterCriticalSection(&highlightsCritsec);
+	highlightsLock.lock();
 	set<unsigned int>::iterator exceptit = exceptionSet.begin();
 	for (; exceptit != exceptionSet.end(); ++exceptit)
 		writer.Uint(*exceptit);
-	LeaveCriticalSection(&highlightsCritsec);
+	highlightsLock.unlock();
 	writer.EndArray();
 
 	writer.Key("Module");
 	writer.Uint(baseModule);
 
-	obtainMutex(&externGuardMutex, 1048);
+	externCallsLock.lock();
 	writer.Key("ExternCalls");
 	writer.StartArray();
 	ARGIDXDATA argData;
@@ -405,7 +399,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 		writer.EndArray();
 	}
 	writer.EndArray();
-	dropMutex(&externGuardMutex);
+	externCallsLock.unlock();
 
 	writer.Key("TotalInstructions");
 	writer.Uint64(totalInstructions);
@@ -696,16 +690,16 @@ void proto_graph::stop_edgeD_iteration()
 
 vector<NODEINDEX> proto_graph::copyExternalNodeList()
 {
-	EnterCriticalSection(&highlightsCritsec);
+	highlightsLock.lock();
 	vector<NODEINDEX> externListCopy(externalNodeList);
-	LeaveCriticalSection(&highlightsCritsec);
+	highlightsLock.unlock();
 	return externListCopy;
 }
 
 vector<NODEINDEX> proto_graph::copyInternalNodeList()
 {
-	EnterCriticalSection(&highlightsCritsec);
+	highlightsLock.lock();
 	vector<NODEINDEX> externListCopy(internalNodeList);
-	LeaveCriticalSection(&highlightsCritsec);
+	highlightsLock.unlock();
 	return externListCopy;
 }

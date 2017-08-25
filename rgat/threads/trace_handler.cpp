@@ -199,9 +199,9 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 		else
 		{
 			lastNodeType = eNodeException;
-			EnterCriticalSection(&thisgraph->highlightsCritsec);
+			thisgraph->highlightsLock.lock();
 			thisgraph->exceptionSet.insert(thisgraph->exceptionSet.end(),targVertID);
-			LeaveCriticalSection(&thisgraph->highlightsCritsec);
+			thisgraph->highlightsLock.unlock();
 		}
 
 		lastVertID = targVertID;
@@ -421,7 +421,7 @@ void thread_trace_handler::process_new_args()
 			MEM_ADDRESS callerAddress = callerNode->ins->address; //this breaks if call not used?
 			node_data *functionNode = thisgraph->safe_get_node(callEdgeIt->second);
 
-			obtainMutex(&thisgraph->externGuardMutex, 1048);
+			thisgraph->externCallsLock.lock();
 			map <MEM_ADDRESS, vector<ARGLIST>>::iterator caller_args_vec_IT = pendingCallArgIt->second.begin();
 			
 			while (caller_args_vec_IT != pendingCallArgIt->second.end())
@@ -458,8 +458,8 @@ void thread_trace_handler::process_new_args()
 					caller_args_vec_IT = pendingCallArgIt->second.erase(caller_args_vec_IT);
 				else
 					++caller_args_vec_IT;
-			}
-			dropMutex(&thisgraph->externGuardMutex);
+			}			
+			thisgraph->externCallsLock.unlock();
 
 			++callEdgeIt;
 		}

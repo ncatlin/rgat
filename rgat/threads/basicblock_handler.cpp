@@ -124,7 +124,7 @@ void basicblock_handler::main_loop()
 	{
 		int result = WaitForSingleObject(ov.hEvent, 3000);
 		if (result != WAIT_TIMEOUT) break;
-		cerr << "[rgat]WARNING:Long wait for BB handler pipe" << endl;
+		cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
 	}
 	vector<char> buf;
 	buf.resize(BBBUFSIZE, 0);

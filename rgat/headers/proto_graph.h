@@ -23,6 +23,7 @@ The final graphs (cylinder, tree, etc are built using this data)
 #include <traceStructs.h>
 #include <traceMisc.h>
 #include "node_data.h"
+#include "locks.h"
 
 #include <rapidjson\document.h>
 #include <rapidjson\filewritestream.h>
@@ -139,10 +140,10 @@ public:
 
 	bool loadEdgeDict(const rapidjson::Value& edgeArray);
 	
-	CRITICAL_SECTION highlightsCritsec; //todo comment this or rename
+	rgatlocks::UntestableLock highlightsLock; //todo comment this or rename
 	SRWLOCK animationListsSRWLOCK = SRWLOCK_INIT;
 
-	CRITICAL_SECTION externGuardMutex;
+	rgatlocks::UntestableLock externCallsLock;
 
 	/*
 	the below was for a scrapped extern call log implementation but this should be how animationdata is done instead?

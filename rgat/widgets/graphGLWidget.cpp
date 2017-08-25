@@ -292,7 +292,7 @@ void graphGLWidget::selectHighlightedExceptionNodes(PLOTTEDGRAPH_CASTPTR graphPt
 
 	vector<NODEINDEX> nodeList;
 
-	EnterCriticalSection(&protoGraph->highlightsCritsec);
+	protoGraph->highlightsLock.lock();
 
 	if (!protoGraph->exceptionSet.empty())
 	{
@@ -300,7 +300,7 @@ void graphGLWidget::selectHighlightedExceptionNodes(PLOTTEDGRAPH_CASTPTR graphPt
 		for (; exceptIt != protoGraph->exceptionSet.end(); ++exceptIt)
 			nodeList.push_back(*exceptIt);
 	}
-	LeaveCriticalSection(&protoGraph->highlightsCritsec);
+	protoGraph->highlightsLock.unlock();
 
 
 	graph->setHighlightData(&nodeList, eExceptions_HL);

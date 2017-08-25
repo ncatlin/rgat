@@ -10,12 +10,10 @@
 binaryTarget::binaryTarget(boost::filesystem::path path)
 { 
 	filepath = path; 
-	InitializeCriticalSection(&binaryCritSec);
 }
 
 binaryTarget::~binaryTarget()
 {
-	DeleteCriticalSection(&binaryCritSec);
 }
 
 eExeCheckResult binaryTarget::getTraceableStatus()
@@ -126,7 +124,7 @@ traceRecord *binaryTarget::getFirstTrace()
 traceRecord *binaryTarget::getRecordWithPID(PID_TID PID, int PID_ID = 0)
 {
 	traceRecord *result = NULL;
-	obtainMutex(&binaryCritSec, 500);
+	binaryLock.lock();
 	for (auto it = traceRecords.begin(); it != traceRecords.end(); it++)
 	{
 		traceRecord *trace = *it;
@@ -136,7 +134,7 @@ traceRecord *binaryTarget::getRecordWithPID(PID_TID PID, int PID_ID = 0)
 			break;
 		}
 	}
-	dropMutex(&binaryCritSec);
+	binaryLock.unlock();
 
 	return result;
 }

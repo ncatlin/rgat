@@ -23,6 +23,7 @@ Container for a binary target. Contains all traces gathered for the target in a 
 #include "traceRecord.h"
 #include "clientConfig.h"
 #include "osSpecific.h"
+#include "locks.h"
 
 #define MAGIC_BYTES_LENGTH 4
 
@@ -50,7 +51,7 @@ public:
 	size_t traceCount() { return traceRecords.size(); }
 
 private:
-	CRITICAL_SECTION binaryCritSec;
+	rgatlocks::UntestableLock binaryLock;
 
 	bool initialAnalysisCompleted = false;
 

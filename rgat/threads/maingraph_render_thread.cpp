@@ -92,7 +92,7 @@ void maingraph_render_thread::main_loop()
 
 				while (clientState->getActiveGraph(false) == activeGraph)
 					Sleep(25);
-				obtainGLMutex(&activeTrace->graphsListCritsec, 100);
+				activeTrace->graphListLock.lock();
 				proto_graph *protoGraph = activeGraph->get_protoGraph();
 				
 				delete activeGraph;
@@ -104,7 +104,7 @@ void maingraph_render_thread::main_loop()
 				assert(clientState->setActiveGraph(activeGraph));
 				activeTrace->plottedGraphs.at(protoGraph->get_TID()) = activeGraph;
 
-				dropGLMutex(&activeTrace->graphsListCritsec);
+				activeTrace->graphListLock.unlock();
 
 				THREAD_POINTERS *processThreads = (THREAD_POINTERS *)activeTrace->processThreads;
 				if (!processThreads->previewThread->is_alive())
