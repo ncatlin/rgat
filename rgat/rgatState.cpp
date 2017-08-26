@@ -294,28 +294,7 @@ void rgatState::saveTrace(traceRecord *trace)
 
 }
 
-//todo error checking
-FILE *getJSON(boost::filesystem::path traceFilePath, rapidjson::Document *saveJSON)
-{
-	FILE* pFile;
-	fopen_s(&pFile, traceFilePath.string().c_str(), "rb");
-	if (!pFile)
-	{
-		cerr << "[rgat]Warning: Could not open file for reading. Abandoning Load." << endl;
-		return NULL;
-	}
-	
-	char buffer[65536];
-	rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
-	
-	saveJSON->ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
-	if (!saveJSON->IsObject())
-	{
-		cerr << "[rgat]Warning: Corrupt trace file (invalid JSON). Abandoning Load." << endl;
-		return NULL;
-	}
-	return pFile;
-}
+
 
 bool initialiseTarget(rapidjson::Document *saveJSON, binaryTargets *targets, Ui::rgatClass *myui, binaryTarget ** targetPtr)
 {
@@ -328,7 +307,6 @@ bool initialiseTarget(rapidjson::Document *saveJSON, binaryTargets *targets, Ui:
 
 	binaryTarget * target;
 
-	cout << "gtbp 2" << endl;
 	bool newBinary = targets->getTargetByPath(binaryPath, &target);
 	myui->targetListCombo->addTargetToInterface(target, newBinary);
 	*targetPtr = target;

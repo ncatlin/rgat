@@ -237,7 +237,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="iconSize">
            <size>
@@ -395,7 +395,7 @@
                   <item>
                    <widget class="QPushButton" name="drgatDiagnoseBtn">
                     <property name="enabled">
-                     <bool>false</bool>
+                     <bool>true</bool>
                     </property>
                     <property name="toolTip">
                      <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
@@ -3021,6 +3021,5 @@
   <slot>startSaveTrace()</slot>
   <slot>startSaveTarget()</slot>
   <slot>loadSavedTrace()</slot>
-  <slot>doexit()</slot>
  </slots>
 </ui>

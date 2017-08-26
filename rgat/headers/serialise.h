@@ -33,5 +33,5 @@ FILE * setupSaveFile(clientConfig *config, traceRecord *trace);
 wstring time_string(time_t startedTime);
 boost::filesystem::path getSaveFilename(boost::filesystem::path binaryFilename, time_t startedTime, PID_TID PID);
 bool getSavePath(boost::filesystem::path saveDir, boost::filesystem::path saveFilename, boost::filesystem::path *result);
-
+FILE *getJSON(boost::filesystem::path traceFilePath, rapidjson::Document *saveJSON);
 
