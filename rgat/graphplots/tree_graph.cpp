@@ -65,13 +65,13 @@ void tree_graph::initialiseDefaultDimensions()
 	defaultViewShift = make_pair(0, 0);
 	//defaultZoom = 1600;
 
-	preview_scalefactors->size = 600;
-	preview_scalefactors->baseSize = 600;
+	preview_scalefactors->plotSize = 600;
+	preview_scalefactors->basePlotSize = 600;
 	preview_scalefactors->pix_per_A = PREVIEW_PIX_PER_A_COORD;
 	preview_scalefactors->pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
-	main_scalefactors->size = 20000;
-	main_scalefactors->baseSize = 20000;
+	main_scalefactors->plotSize = 20000;
+	main_scalefactors->basePlotSize = 20000;
 	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
 	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
 
@@ -320,8 +320,8 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
 //take longitude a, latitude b, output coord in space
 void tree_graph::treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions)
 {
-	float a = ia*dimensions->AEDGESEP;
-	c *= dimensions->BEDGESEP;
+	float a = ia*dimensions->pix_per_A;
+	c *= dimensions->pix_per_B;
 	c += CAdj; //offset start down on tree
 
 	coord->x = a;
@@ -339,13 +339,13 @@ void tree_graph::treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *m
 
 void recalculate_scale(GRAPH_SCALE *mults)
 {
-	mults->size = mults->baseSize * mults->userSizeModifier;
+	//mults->plotSize = mults->basePlotSize * mults->userSizeModifier;
 
-	float HMULTIPLIER = mults->size;
-	mults->AEDGESEP = (HMULTIPLIER / mults->size) + (mults->userAEDGESEP - 1);
+	//float HMULTIPLIER = mults->plotSize;
+	//mults->AEDGESEP = (HMULTIPLIER / mults->plotSize) + (mults->userAEDGESEP - 1);
 
-	float VMULTIPLIER = mults->size;
-	mults->BEDGESEP = (VMULTIPLIER / mults->size) + (mults->userBEDGESEP - 1);
+	//float VMULTIPLIER = mults->plotSize;
+	//mults->BEDGESEP = (VMULTIPLIER / mults->plotSize) + (mults->userBEDGESEP - 1);
 }
 
 
@@ -739,7 +739,7 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 	else
 		display_static(gltarget);
 
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->size);
+	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
 
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_instructions_text(zmul, pd, gltarget);

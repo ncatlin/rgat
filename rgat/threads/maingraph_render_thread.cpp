@@ -77,14 +77,20 @@ void maingraph_render_thread::main_loop()
 			Sleep(50); continue;
 		}
 
-		if (activeGraph->increase_thread_references())
+		if (activeGraph->increase_thread_references(1))
 		{
-			//cout << "[+1: "<< activeGraph->threadReferences << "]Mainrenderer increased references " <<  endl;
-			if (activeGraph->getLayout() != clientState->newGraphLayout)
+			if (activeGraph->getLayout() != clientState->newGraphLayout || activeGraph->needsReplotting)
 			{
+				GRAPH_SCALE newScaleFactors;
+				bool doReplot = activeGraph->needsReplotting;
+				if (doReplot)
+					newScaleFactors = *activeGraph->main_scalefactors;
+				float xrot = activeGraph->view_shift_x, yrot = activeGraph->view_shift_y;
+				double zoom = activeGraph->cameraZoomlevel;
+
+
 				activeGraph->setBeingDeleted();
-				activeGraph->decrease_thread_references();
-				//cout << "[-1: " << activeGraph->threadReferences << "]Mainrenderer a decreased references " << endl;
+				activeGraph->decrease_thread_references(1);
 
 				clientState->clearActiveGraph();
 
@@ -98,8 +104,15 @@ void maingraph_render_thread::main_loop()
 				delete activeGraph;
 
 				activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
-				activeGraph->initialiseDefaultDimensions();
-				cout << "created new graph " << activeGraph << endl;
+				if (doReplot)
+				{
+					activeGraph->initialiseCustomDimensions(newScaleFactors);				
+					activeGraph->view_shift_x = xrot;
+					activeGraph->view_shift_y = yrot;
+					activeGraph->cameraZoomlevel = zoom;
+				}
+				else
+					activeGraph->initialiseDefaultDimensions();
 
 				assert(clientState->setActiveGraph(activeGraph));
 				activeTrace->plottedGraphs.at(protoGraph->get_TID()) = activeGraph;
@@ -128,8 +141,7 @@ void maingraph_render_thread::main_loop()
 			}
 
 			performMainGraphRendering(activeGraph);
-			activeGraph->decrease_thread_references();
-			//cout << "[-1: " << activeGraph->threadReferences << "]Mainrenderer  b decreased references " << endl;
+			activeGraph->decrease_thread_references(1);
 		}
 		activeGraph = NULL;
 

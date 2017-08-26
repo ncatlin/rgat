@@ -64,7 +64,7 @@ void mainTabBox::toggleGraphAnimated(bool state)
 	if (!graph) return;
 
 	graph->setAnimated(true);
-	graph->decrease_thread_references();
+	graph->decrease_thread_references(33);
 	cout << "[-1: " << graph->threadReferences << "] toggle graph anim decreased references " << endl;
 }
 
@@ -75,7 +75,7 @@ void mainTabBox::toggleGraphStatic(bool state)
 	if (!graph) return;
 
 	graph->setAnimated(false);
-	graph->decrease_thread_references();
+	graph->decrease_thread_references(44);
 	cout << "[-1: " << graph->threadReferences << "]  toggleGraphStatic decreased references " << endl;
 }
 
@@ -210,7 +210,7 @@ void mainTabBox::playPauseClicked()
 {
 	plotted_graph *graph = (plotted_graph *)clientState->getActiveGraph(true);
 	if (!graph) return;
-	if (graph->get_protoGraph()->active) { graph->decrease_thread_references();  return; }
+	if (graph->get_protoGraph()->active) { graph->decrease_thread_references(55);  return; }
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	switch (graph->replayState)
@@ -232,19 +232,19 @@ void mainTabBox::playPauseClicked()
 		ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
 		break;
 	}
-	graph->decrease_thread_references();
+	graph->decrease_thread_references(56);
 }
 
 void mainTabBox::stopAnimation()
 {
 	plotted_graph *graph = (plotted_graph *)clientState->getActiveGraph(true);
 	if (!graph) return;
-	if (graph->get_protoGraph()->active) { graph->decrease_thread_references();  return; }
+	if (graph->get_protoGraph()->active) { graph->decrease_thread_references(66);  return; }
 
 	graph->replayState = eStopped;
 	graph->setAnimated(false);
 
-	graph->decrease_thread_references();
+	graph->decrease_thread_references(67);
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
@@ -262,7 +262,7 @@ void mainTabBox::sliderChanged(int value)
 {
 	plotted_graph *graph = (plotted_graph *)clientState->getActiveGraph(true);
 	if (!graph) return;
-	if (graph->get_protoGraph()->active) { graph->decrease_thread_references();  return; }
+	if (graph->get_protoGraph()->active) { graph->decrease_thread_references(77);  return; }
 
 	if (graph->replayState == eStopped)
 	{
@@ -276,7 +276,7 @@ void mainTabBox::sliderChanged(int value)
 	long long newPos = (unsigned long)(graph->get_protoGraph()->getAnimDataSize()*animationProportion);
 	graph->userSelectedAnimPosition = newPos;
 
-	graph->decrease_thread_references();
+	graph->decrease_thread_references(88);
 }
 
 //regular (multiple times per second)
@@ -456,6 +456,8 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 	labelStringStream.str("");
 	labelStringStream << "Nodes: " << protoGraph->nodeList.size();
 	ui->nodesLabel->setText(QString::fromStdString(labelStringStream.str()));
+
+
 }
 
 void mainTabBox::processSelectBtnClicked()

@@ -85,10 +85,17 @@ plotted_graph::~plotted_graph()
 	obtainMutex(threadReferenceMutex);
 #else
 	
+	int failedWaits = 0;
 	while (isreferenced())
 	{
-		//cout << "waiting to delete reference trl: " << threadReferences << endl;
-		Sleep(50);
+		if ((failedWaits > 6) && isreferenced())
+			cout << "[rgat] Waiting for all threads to dereference graph: #" << threadReferences << endl;
+		Sleep(40);
+		if (failedWaits++ == 12 && isreferenced())
+		{
+			cerr << "[rgat] Warning: Not all threads dereferenced the graph. Proceeding with graph deletion, but it may crash..." << endl;
+			break;
+		}
 	}
 	AcquireSRWLockExclusive(&threadReferenceLock);
 #endif
@@ -117,7 +124,7 @@ plotted_graph::~plotted_graph()
 
 //this is called by threads to indicate it is being used to prevent deletion
 //should probably use a spinlock instead?
-bool plotted_graph::increase_thread_references()
+bool plotted_graph::increase_thread_references(int caller)
 {
 	if (dying || freeMe || beingDeleted) return false;
 #ifdef XP_COMPATIBLE
@@ -126,18 +133,18 @@ bool plotted_graph::increase_thread_references()
 	if (TryAcquireSRWLockShared(&threadReferenceLock))
 	{
 		++threadReferences;
-		//cout << "\tincrease refs now " << threadReferences << " for graph " << this << endl;
+		//cout << "thread refs increased by caller " << caller << " to " << threadReferences << endl;
 		return true;
 	}
 #endif
 	return false;
 }
 
-void plotted_graph::decrease_thread_references()
+void plotted_graph::decrease_thread_references(int caller)
 {
 	if (threadReferences <= 0)
 	{
-		cerr << "Assert in graph " << this << endl;
+		cerr << "Assert in graph " << this << " due to decreasing refs from 0 " << endl;
 		assert(threadReferences > 0);
 	}
 #ifdef XP_COMPATIBLE
@@ -147,7 +154,7 @@ void plotted_graph::decrease_thread_references()
 #endif
 	--threadReferences;
 
-	//cout << "\tdecrease refs now " << threadReferences << " for graph " << this << endl;
+	//cout << "thread refs decreased by caller " << caller << " to " << threadReferences << endl;
 }
 
 
@@ -350,7 +357,7 @@ int plotted_graph::render_new_edges(bool doResize)
 	for (; edgeIt != end && !dying; ++edgeIt)
 	{
 		//render source node if not already done
-		if (edgeIt->first >= mainnodesdata->get_numVerts())
+		if (edgeIt->first >= (NODEINDEX)mainnodesdata->get_numVerts())
 		{
 			node_data *n;
 			n = internalProtoGraph->safe_get_node(edgeIt->first);
@@ -358,7 +365,7 @@ int plotted_graph::render_new_edges(bool doResize)
 		}
 
 		//render target node if not already done
-		if (edgeIt->second >= mainnodesdata->get_numVerts())
+		if (edgeIt->second >= (NODEINDEX)mainnodesdata->get_numVerts())
 		{
 			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
 			if (e->edgeClass == eEdgeException)
@@ -1370,7 +1377,7 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 		glDrawArrays(GL_LINES, 0, heatmaplines->get_numLoadedVerts());
 	}
 
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->size);
+	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
 
 	PROJECTDATA pd;
 	gltarget->gather_projection_data(&pd);
@@ -1437,7 +1444,7 @@ void plotted_graph::display_big_conditional(graphGLWidget *gltarget)
 
 	PROJECTDATA pd;
 	gltarget->gather_projection_data(&pd);
-	float zoomDiffMult = (cameraZoomlevel - main_scalefactors->size) / 1000 - 1;
+	float zoomDiffMult = (cameraZoomlevel - main_scalefactors->plotSize) / 1000 - 1;
 
 	if (clientState->should_show_instructions(zoomDiffMult) && internalProtoGraph->get_num_nodes() > 2)
 		draw_condition_ins_text(zoomDiffMult, &pd, conditionalnodes, gltarget);
@@ -1859,7 +1866,7 @@ void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
 	}
 
 	bool zoomedIn = false;
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->size);
+	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
 	if (zmul < FORCE_NEARSIDE_ZOOMFACTOR)
 		zoomedIn = true;
 
@@ -1873,7 +1880,7 @@ void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
 		//cout << "noclip from " << 1.8 << " to " << abs(cameraZoomlevel) + 500 << endl;
 	}
 	else
-		gluPerspective(45, windowAspect, 1.8, abs(cameraZoomlevel) + main_scalefactors->size + 50);
+		gluPerspective(45, windowAspect, 1.8, abs(cameraZoomlevel) + main_scalefactors->plotSize + 50);
 
 	orient_to_user_view();
 
@@ -1915,7 +1922,7 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 		drawHighlight(divergeNodePosition, main_scalefactors, &al_col_orange, 10, plotwindow);
 	}
 
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->size);
+	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
 
 	PROJECTDATA pd;
 	bool pdgathered = false;

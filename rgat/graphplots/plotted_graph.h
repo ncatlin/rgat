@@ -68,6 +68,7 @@ public:
 	~plotted_graph();
 
 	virtual void initialiseDefaultDimensions() {};
+	virtual void initialiseCustomDimensions(GRAPH_SCALE scale) {};
 	virtual void plot_wireframe(graphGLWidget *gltarget) {};
 	virtual void maintain_draw_wireframe(graphGLWidget *gltarget) {};
 
@@ -142,6 +143,7 @@ public:
 	bool isWireframeSupported() { return wireframeSupported; }
 	bool isWireframeActive() { return wireframeActive; }
 	void setWireframeActive(bool newState) { wireframeActive = wireframeSupported ? newState : false; }
+	bool needsReplotting = false;
 
 	PID_TID get_pid() { return pid; }
 	PID_TID get_tid() { return tid; }
@@ -183,8 +185,8 @@ public:
 	bool VBOsGenned = false;
 	long long userSelectedAnimPosition = -1;
 
-	bool increase_thread_references();
-	void decrease_thread_references();
+	bool increase_thread_references(int caller);
+	void decrease_thread_references(int caller);
 	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
 	void setHighlightData(vector<NODEINDEX> *nodeList, egraphHighlightModes highlightType);
 

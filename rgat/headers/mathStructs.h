@@ -43,17 +43,14 @@ struct TREECOORD {
 };
 
 struct GRAPH_SCALE {
-	long size = 10000;
-	long baseSize = 10000;
-	float AEDGESEP = 1;
-	float userAEDGESEP = 1;
-	float BEDGESEP = 1;
-	float userBEDGESEP = 1;
+	long plotSize = 10000;
+	long basePlotSize = 10000;
 	float userSizeModifier = 1;
 	int maxA = 360;
 	int maxB = 180;
 	int maxC = 1;
-	int pix_per_A, pix_per_B;
+	int pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B;
+	float stretchA = 1, stretchB = 1;
 };
 
 struct PROJECTDATA 

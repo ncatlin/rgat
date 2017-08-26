@@ -46,7 +46,7 @@ void preview_renderer::main_loop()
 		//so not important to release this quickly
 
 		runRecord->getPlottedGraphs(&graphlist);
-	
+
 		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 
 		moreRenderingNeeded = false;
@@ -68,7 +68,9 @@ void preview_renderer::main_loop()
 		}
 		
 		for (auto graph : graphlist)
-			graph->decrease_thread_references();
+		{
+			graph->decrease_thread_references(1288);
+		}
 		graphlist.clear();
 
 		int waitForNextIt = 0;

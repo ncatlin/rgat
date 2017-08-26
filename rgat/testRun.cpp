@@ -49,7 +49,9 @@ void testRun::runx86Test(boost::filesystem::path testStem, rapidjson::Value::Con
 	testExe += testStem;
 	testExe += ".86.exe";
 
+	cout << "Running 32 bit test - " << testExe << endl;
 
+	//execute_tracer(activeTarget, &clientState->config);
 }
 
 void testRun::runx64Test(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults)
@@ -58,5 +60,5 @@ void testRun::runx64Test(boost::filesystem::path testStem, rapidjson::Value::Con
 	testExe += testStem;
 	testExe += ".64.exe";
 
-
+	cout << "Running 64 bit test - " << testExe << endl;
 }

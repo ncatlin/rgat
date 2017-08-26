@@ -63,6 +63,15 @@ public Q_SLOTS:
 	void keyPressEvent(QKeyEvent *event);
 	void keyReleaseEvent(QKeyEvent *event);
 	void wireframeButtonToggled(bool state);
+	void stretchHIncrease();
+	void stretchHDecrease();
+	void stretchHSet();
+	void stretchVIncrease();
+	void stretchVDecrease();
+	void stretchVSet();
+	void plotSizeIncrease();
+	void plotSizeDecrease();
+	void plotSizeSet();
 
 private:
 

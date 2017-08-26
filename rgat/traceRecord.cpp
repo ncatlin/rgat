@@ -29,7 +29,7 @@ void traceRecord::getPlottedGraphs(void *graphPtrVecPtr)
 		plotted_graph *currentGraph = (plotted_graph *)it->second;
 		if (currentGraph->get_protoGraph()->get_num_nodes()) //skip threads with no instrumented code
 		{
-			if (currentGraph->increase_thread_references())
+			if (currentGraph->increase_thread_references(12))
 			{
 				//cout << "[+1: " << currentGraph->threadReferences << "] trace getplottedgraphs increased references " << endl;
 				graphlist->push_back(currentGraph);
