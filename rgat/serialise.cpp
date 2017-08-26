@@ -24,7 +24,34 @@ Graph/Process Saving/Loading routines
 #include "traceRecord.h"
 #include "binaryTargets.h"
 
+#include "rapidjson/document.h"
 using namespace rapidjson;
+
+FILE *getJSON(boost::filesystem::path traceFilePath, rapidjson::Document *saveJSON)
+{
+	FILE* pFile;
+	fopen_s(&pFile, traceFilePath.string().c_str(), "rb");
+	if (!pFile)
+	{
+		cerr << "[rgat]Warning: Could not open file for reading. Abandoning Load." << endl;
+		return NULL;
+	}
+
+	char buffer[65536];
+	rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
+
+	saveJSON->ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
+	if (!saveJSON->IsObject())
+	{
+		cerr << "[rgat]Warning: Corrupt file. Abandoning Load." << endl;
+		if (saveJSON->HasParseError())
+		{
+			cerr << "\t rapidjson parse error "<< saveJSON->GetParseError() << " at offset " << saveJSON->GetErrorOffset() << endl;
+		}
+		return NULL;
+	}
+	return pFile;
+}
 
 void saveModulePaths(PROCESS_DATA *piddata, Writer<rapidjson::FileWriteStream>& writer)
 {

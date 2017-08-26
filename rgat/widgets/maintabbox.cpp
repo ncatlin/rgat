@@ -28,7 +28,7 @@ This contains much of the functionality for the dynamic analysis tabs
 #include "ui_processSelector.h"
 #include "widgets\highlightWidget.h"
 #include "ui_highlightSelector.h"
-
+#include "testRun.h"
 
 mainTabBox::mainTabBox(QWidget *parent)
 	: QTabWidget(parent)
@@ -606,8 +606,22 @@ void mainTabBox::startDynamorioTest()
 	execute_dynamorio_test(activeTarget, &clientState->config);
 }
 
+
+
 void mainTabBox::startDrgatTest()
 {
+	boost::filesystem::path testPath = clientState->config.clientPath;
+	testPath.append("tests");
+	if (!boost::filesystem::exists(testPath)) 
+	{
+		string errMsg = "Directory " + testPath.string() + " not found - aborting tests";
+		clientState->updateActivityStatus(QString::fromStdString(errMsg), 10);
+		cerr << errMsg << endl;
+		return;
+	}
+
+	testRun testingRun(testPath);
+	testingRun.beginTests();
 
 }
 
