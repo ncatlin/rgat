@@ -77,7 +77,7 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 	try {
 		*pid = std::stoul(pidstring, &sz);
 	}
-	catch (const std::exception& e) {
+	catch (...) {
 		sz = 0;
 	}
 
@@ -92,7 +92,7 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 	try {
 		*PID_ID = std::stoi(randstring);
 	}
-	catch (const std::exception& e) {
+	catch (...) {
 		sz = 0;
 	}
 
@@ -114,7 +114,7 @@ int extract_tid(char *char_buf, string marker, PID_TID *tid)
 	try {
 		*tid = std::stoul(x, &sz);
 	}
-	catch (const std::exception& e) {
+	catch (...) {
 		sz = 0;
 	}
 
@@ -128,7 +128,7 @@ int caught_stoi(string s, int *result, int base)
 	try {
 		*result = std::stoi(s, 0, base);
 	}
-	catch (std::exception const & e) {
+	catch (...) {
 		return 0;
 	}
 	return 1;
@@ -141,7 +141,7 @@ int caught_stoi(string s, unsigned int *result, int base)
 	try {
 		*result = std::stoi(s, 0, base);
 	}
-	catch (std::exception const & e) {
+	catch (...) {
 		return 0;
 	}
 	return 1;
@@ -153,7 +153,7 @@ int caught_stoul(string s, unsigned long *result, int base) {
 	try {
 		*result = std::stoul(s, 0, base);
 	}
-	catch (std::exception const & e) {
+	catch (...) {
 
 		return 0;
 	}
@@ -166,7 +166,7 @@ int caught_stoull(string s, unsigned long long *result, int base) {
 	try {
 		*result = std::stoull(s, 0, base);
 	}
-	catch (std::exception const & e) {
+	catch (...) {
 
 		return 0;
 	}

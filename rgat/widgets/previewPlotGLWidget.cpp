@@ -482,7 +482,7 @@ void previewPlotGLWidget::paintGL()
 
 	for (auto graph : previewGraphs)
 	{
-		graph->decrease_thread_references();
+		graph->decrease_thread_references(9911);
 		//cout << "[-1: " << graph->threadReferences << "] after preview getplottedgraphs decreased references " << endl;
 	}
 }

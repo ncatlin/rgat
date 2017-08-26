@@ -53,10 +53,11 @@ public:
 
 	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords,maxB); }
 	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <CYLINDERCOORD>*)diffData.first; maxB = diffData.second; }
-	unsigned int get_graph_size() { return main_scalefactors->size; };
+	unsigned int get_graph_size() { return main_scalefactors->plotSize; };
 
 	void orient_to_user_view();
-	void initialiseDefaultDimensions();
+	void initialiseDefaultDimensions(); 
+	void initialiseCustomDimensions(GRAPH_SCALE scale);
 
 	//void adjust_A_edgeSep(float delta);
 	//void adjust_B_edgeSep(float delta);

@@ -70,13 +70,13 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 			
 			foreach(tmp, traceGraphs)
 			{
-				tmp->decrease_thread_references();
+				tmp->decrease_thread_references(144);
 			}
 			return;
 		}
 		foreach(tmp, traceGraphs)
 		{
-			tmp->decrease_thread_references();
+			tmp->decrease_thread_references(144);
 		}
 	}
 
@@ -98,6 +98,16 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 	ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
 	ui->wireframeBtn->setCheckable(graph->isWireframeSupported());
 	ui->wireframeBtn->setChecked(graph->isWireframeActive());
+
+
+		QString val;
+		val.setNum(graph->main_scalefactors->stretchA);
+		ui->stretchHEdit->setText(val);
+		val.setNum(graph->main_scalefactors->stretchB);
+		ui->stretchVEdit->setText(val);
+		val.setNum(graph->main_scalefactors->userSizeModifier);
+		ui->plotSizeEdit->setText(val);
+
 }
 
 
@@ -269,11 +279,23 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 
 	if (clientState->switchGraph)
 	{
-		//cout << "cgtd switching to cs-switch " << (plotted_graph*)clientState->switchGraph << endl;
 		switchToGraph((plotted_graph*)clientState->switchGraph);
 		clientState->switchGraph = NULL;
 	}
 
+
+
+	if (activeGraph)
+	{
+		if (activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
+		{
+			activeGraph->decrease_thread_references(141);
+			activeGraph = NULL;
+			return false;
+		}
+
+		return true;
+	}
 
 	activeGraph = (plotted_graph*)clientState->getActiveGraph(true);
 	//cout << "set actg to " << activeGraph << endl;
@@ -282,25 +304,11 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 		if (!clientState->activeTrace)
 			clientState->selectActiveTrace();
 
-		
+
 		selectGraphInActiveTrace();
-		//cout << "set actg-2- to " << activeGraph << endl;
 	}
 
-	if (activeGraph)
-	{
-		if (activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
-		{
-			activeGraph->decrease_thread_references();
-			//cout << "[-1: " << activeGraph->threadReferences << "] chooseGraphToDisplay decreased references " << endl;
-			activeGraph = NULL;
-			return false;
-		}
 
-		return true;
-	}
-
-	//cout << "activegraph: " << activeGraph << " cs->ag: " << clientState->getActiveGraph(false)<<endl;
 	return (activeGraph != NULL);
 
 }
@@ -315,6 +323,7 @@ void graphPlotGLWidget::paintGL()
 	activeGraph->performMainGraphDrawing(this);
 
 	drawHUD();
+
 }
 
 void graphPlotGLWidget::resizeGL(int w, int h)
@@ -359,7 +368,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 		diffgraph->drawHighlight(nodePos, diffgraph->main_scalefactors, &al_col_orange, 10, this);
 	}
 
-	float zmul = zoomFactor(graph1->cameraZoomlevel, graph1->main_scalefactors->size);
+	float zmul = zoomFactor(graph1->cameraZoomlevel, graph1->main_scalefactors->plotSize);
 
 	PROJECTDATA pd;
 	bool pdgathered = false;
@@ -527,4 +536,136 @@ void graphPlotGLWidget::exceptionsHighlightSelected()
 void graphPlotGLWidget::clearHighlights()
 {
 	clearHighlightNodes(activeGraph);
+}
+
+void graphPlotGLWidget::stretchHIncrease() 
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->stretchA += 0.2;
+	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->stretchA);
+	ui->stretchHEdit->setText(newval);
+}
+
+void graphPlotGLWidget::stretchHDecrease() 
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->stretchA -= 0.2;
+	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->stretchA);
+	ui->stretchHEdit->setText(newval);
+}
+
+void graphPlotGLWidget::stretchHSet()
+{
+	if (!activeGraph) return;
+
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newText = ui->stretchHEdit->text();
+	float newValue = newText.toFloat();
+	if (newValue > 0.09)
+	{
+		activeGraph->main_scalefactors->stretchA = newValue;
+		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
+		activeGraph->needsReplotting = true;
+	}
+}
+
+void graphPlotGLWidget::stretchVIncrease()
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->stretchB += 0.2;
+	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->stretchB);
+	ui->stretchVEdit->setText(newval);
+}
+
+void graphPlotGLWidget::stretchVDecrease()
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->stretchB -= 0.2;
+	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->stretchB);
+	ui->stretchVEdit->setText(newval);
+}
+
+void graphPlotGLWidget::stretchVSet()
+{
+	if (!activeGraph) return;
+
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newText = ui->stretchVEdit->text();
+	float newValue = newText.toFloat();
+	if (newValue > 0.09)
+	{
+		activeGraph->main_scalefactors->stretchA = newValue;
+		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
+		activeGraph->needsReplotting = true;
+	}
+}
+
+void graphPlotGLWidget::plotSizeIncrease()
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->userSizeModifier += 0.2;
+	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->userSizeModifier);
+	ui->plotSizeEdit->setText(newval);
+}
+
+void graphPlotGLWidget::plotSizeDecrease()
+{
+	if (!activeGraph) return;
+
+	activeGraph->main_scalefactors->userSizeModifier -= 0.2;
+	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
+	activeGraph->needsReplotting = true;
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newval;
+	newval.setNum(activeGraph->main_scalefactors->userSizeModifier);
+	ui->plotSizeEdit->setText(newval);
+}
+
+void graphPlotGLWidget::plotSizeSet()
+{
+	if (!activeGraph) return;
+
+
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	QString newText = ui->plotSizeEdit->text();
+	float newValue = newText.toFloat();
+	if (newValue > 0.09)
+	{
+		activeGraph->main_scalefactors->userSizeModifier = newValue;
+		activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * newValue;
+		activeGraph->needsReplotting = true;
+	}
 }

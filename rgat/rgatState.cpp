@@ -643,7 +643,7 @@ PLOTTEDGRAPH_CASTPTR rgatState::getActiveGraph(bool increaseReferences)
 
 	if (increaseReferences)
 	{
-		bool success = ((plotted_graph *)activeGraph)->increase_thread_references();
+		bool success = ((plotted_graph *)activeGraph)->increase_thread_references(52);
 		if (!success)
 		{
 			LeaveCriticalSection(&activeGraphCritsec);
@@ -666,7 +666,7 @@ void rgatState::clearActiveGraph()
 		return;
 	}
 
-	((plotted_graph *)activeGraph)->decrease_thread_references();
+	((plotted_graph *)activeGraph)->decrease_thread_references(50);
 	activeGraph = NULL;
 	LeaveCriticalSection(&activeGraphCritsec);
 }
@@ -682,7 +682,7 @@ bool rgatState::setActiveGraph(PLOTTEDGRAPH_CASTPTR graph)
 	assert(activeGraph == NULL);
 
 	EnterCriticalSection(&activeGraphCritsec);
-	if (((plotted_graph *)graph)->increase_thread_references())
+	if (((plotted_graph *)graph)->increase_thread_references(50))
 	{
 		activeGraph = graph;
 	}
@@ -695,10 +695,10 @@ PROTOGRAPH_CASTPTR rgatState::getActiveProtoGraph()
 	PROTOGRAPH_CASTPTR tmp = NULL;
 	EnterCriticalSection(&activeGraphCritsec);
 	plotted_graph *activePlot = (plotted_graph *)activeGraph;
-	if (activePlot && activePlot->increase_thread_references())
+	if (activePlot && activePlot->increase_thread_references(51))
 	{
 		tmp = activePlot->get_protoGraph();
-		activePlot->decrease_thread_references();
+		activePlot->decrease_thread_references(51);
 	}
 	LeaveCriticalSection(&activeGraphCritsec);
 

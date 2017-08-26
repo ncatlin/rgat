@@ -315,7 +315,7 @@ void heatmap_renderer::build_colour_mapping(vector<edge_data *> *finishedEdgeLis
 	heatDistances[*setit] = distance++;
 
 
-	int maxDist = heatDistances.size();
+	size_t maxDist = heatDistances.size();
 	map<unsigned long, int>::iterator distit = heatDistances.begin();
 	
 
@@ -480,8 +480,10 @@ void heatmap_renderer::main_loop()
 		for (; graphIt != runRecord->plottedGraphs.end(); ++graphIt)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references())
+			if (g->increase_thread_references(3))
+			{
 				graphlist.push_back(g);
+			}
 		}
 		runRecord->graphListLock.unlock();
 
@@ -489,7 +491,7 @@ void heatmap_renderer::main_loop()
 		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
 		{
 			for (auto graph : graphlist)
-				graph->decrease_thread_references();
+				graph->decrease_thread_references(3);
 			break;
 		}
 
@@ -516,7 +518,9 @@ void heatmap_renderer::main_loop()
 		}
 		
 		for (auto graph : graphlist)
-			graph->decrease_thread_references();
+		{
+			graph->decrease_thread_references(3);
+		}
 		graphlist.clear();
 
 		int waitForNextIt = 0;

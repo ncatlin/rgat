@@ -148,8 +148,7 @@ void conditional_renderer::main_loop()
 		for (graphIt = runRecord->plottedGraphs.begin(); graphIt != runRecord->plottedGraphs.end(); ++graphIt)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references())
-			{
+			if (g->increase_thread_references(2)){
 				graphlist.push_back(g);
 			}
 		}
@@ -159,7 +158,7 @@ void conditional_renderer::main_loop()
 		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
 		{
 			for (auto graph : graphlist)
-				graph->decrease_thread_references();
+				graph->decrease_thread_references(2);
 			break;
 		}
 
@@ -185,7 +184,7 @@ void conditional_renderer::main_loop()
 
 		for (auto graph : graphlist)
 		{
-			graph->decrease_thread_references();
+			graph->decrease_thread_references(2);
 		}
 		graphlist.clear();
 

@@ -224,21 +224,31 @@ void cylinder_graph::initialiseDefaultDimensions()
 	wireframeSupported = true;
 	wireframeActive = true;
 
-	preview_scalefactors->size = 600;
-	preview_scalefactors->baseSize = 600;
+	preview_scalefactors->plotSize = 600;
+	preview_scalefactors->basePlotSize = 600;
 	preview_scalefactors->pix_per_A = PREVIEW_PIX_PER_A_COORD;
 	preview_scalefactors->pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
-	main_scalefactors->size = 20000;
-	main_scalefactors->baseSize = 20000;
+	main_scalefactors->plotSize = 20000;
+	main_scalefactors->basePlotSize = 20000;
+	main_scalefactors->userSizeModifier = 1;
 	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
-	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
+	main_scalefactors->original_pix_per_A = DEFAULT_PIX_PER_A_COORD;
+	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;	
+	main_scalefactors->original_pix_per_B = DEFAULT_PIX_PER_B_COORD;
 
 	view_shift_x = 96;
-	view_shift_y =  -25;
+	view_shift_y =  65;
 	cameraZoomlevel = 60000;
 }
 
+
+void cylinder_graph::initialiseCustomDimensions(GRAPH_SCALE newscale)
+{
+	initialiseDefaultDimensions();
+	newscale.plotSize = newscale.basePlotSize * newscale.userSizeModifier;
+	*main_scalefactors = newscale;
+}
 
 /*
 void *cylinder_graph::get_node_coord_ptr(NODEINDEX idx)
@@ -277,7 +287,7 @@ void cylinder_graph::cylinderCoord(CYLINDERCOORD *sc, FCOORD *c, GRAPH_SCALE *di
 //convert abstract a/b/bmod coords to opengl pixel coords
 void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier)
 {
-	double r = (dimensions->size+diamModifier);// +0.1 to make sure we are above lines
+	double r = (dimensions->plotSize +diamModifier);// +0.1 to make sure we are above lines
 
 	a *= dimensions->pix_per_A;
 	c->x = r * cos((a*M_PI) / r);
@@ -292,7 +302,7 @@ void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dim
 //take coord in space, convert back to a/b by doing the reverse of cylinderCoord
 void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
 {
-	double r = mults->size;
+	double r = mults->plotSize;
 	*a = (((asin(c->z / r) * r) / M_PI) / mults->pix_per_A);
 
 	double tb = c->y;
@@ -346,7 +356,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 
 			//calculate the AB coords of the midpoint of the cylinder
 			cylinderAB(&middleC, &oldMidA, &oldMidB, dimensions);
-			float curveMagnitude = min(eLen / 2, (float)(dimensions->size / 2));
+			float curveMagnitude = min(eLen / 2, (float)(dimensions->plotSize / 2));
 			//recalculate the midpoint coord as if it was inside the cylinder
 			cylinderCoord(oldMidA, oldMidB, &bezierC, dimensions, -curveMagnitude);
 
@@ -559,7 +569,7 @@ void cylinder_graph::plot_wireframe(graphGLWidget *gltarget)
 	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), (float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
 
 
-	long diam = main_scalefactors->size;
+	long diam = main_scalefactors->plotSize;
 	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
 	vector <float> *vcol = wireframe_data->acquire_col_write();
 	//horizontal circles
@@ -854,7 +864,7 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 	else
 		display_static(gltarget);
 
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->size);
+	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
 
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_instructions_text(zmul, pd, gltarget);
