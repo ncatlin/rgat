@@ -88,7 +88,6 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 void basicblock_handler::main_loop()
 {
 	alive = true;
-	pipename = wstring(L"\\\\.\\pipe\\rioThreadBB");
 	pipename.append(runRecord->getModpathID());
 
 	const wchar_t* szName = pipename.c_str();

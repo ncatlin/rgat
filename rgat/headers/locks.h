@@ -30,13 +30,13 @@ namespace rgatlocks {
 		std::atomic_flag locked = ATOMIC_FLAG_INIT;
 	public:
 		void lock() {
-			while (locked.test_and_set()) {
+			while (locked.test_and_set(std::memory_order_acquire)) {
 				std::this_thread::yield();
 			}
 		}
 
 		void unlock() {			
-			locked.clear();
+			locked.clear(std::memory_order_release);
 		}
 	};
 
@@ -45,27 +45,26 @@ namespace rgatlocks {
 		std::atomic<bool> locked = false;
 	public:
 		void lock() {
-			while (locked.load()) {	
+			while (locked.exchange(true, std::memory_order_acquire) != false) {
 				std::this_thread::yield();	
 			}
-			locked.store(true);
-
 			assert(locked.load());
 		}
 
-		bool trylock() {
+		bool trylock() 
+		{
 
-			if (locked.load()) 
-				return false;
-			lock();
+			return (locked.exchange(true, std::memory_order_acquire) == false);
+		}
 
-			assert(locked.load());
-			return true;
+		bool islocked() {
+			return locked.load();
 		}
 
 		void unlock() {
-			assert(locked.load());
-			locked.store(false);
+			if(!locked.load())
+				assert(false);
+			locked.store(false, std::memory_order_release);
 		}
 	};
 

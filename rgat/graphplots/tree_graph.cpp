@@ -85,6 +85,11 @@ void tree_graph::initialise()
 	layout = eTreeLayout;
 }
 
+
+tree_graph::~tree_graph()
+{
+}
+
 /*performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 this is the function that determines how the graph is laid out
 
@@ -734,6 +739,8 @@ void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 //standard animated or static display of the active graph
 void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 {
+	if (!trySetGraphBusy()) return;
+
 	if (isAnimated())
 		display_active(gltarget);
 	else
@@ -758,7 +765,11 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 			if (n && n->external)
 			{
 				DCOORD screenCoord;
-				if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
+				if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) {
+					setGraphBusy(false, 83);
+					return;
+				}
+
 				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
 				{
 					QPainter painter(gltarget);
@@ -769,6 +780,7 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 				}
 			}
 		}
+	setGraphBusy(false, 82);
 }
 
 /*

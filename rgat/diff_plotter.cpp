@@ -59,6 +59,7 @@ diff_plotter::diff_plotter(graphGLWidget *plotwindow, plotted_graph *g1, plotted
 diff_plotter::~diff_plotter()
 {
 	window->glDeleteBuffers(4, diffgraph->graphVBOs);
+	diffgraph->setGraphBusy(true, 1043);
 	delete diffgraph;
 }
 

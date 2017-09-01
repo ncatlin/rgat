@@ -24,7 +24,6 @@ Header for the thread that builds a graph for each trace
 #include "edge_data.h"
 #include "proto_graph.h"
 #include "thread_trace_reader.h"
-//#include "GUIStructs.h"
 #include "timeline.h"
 #include "base_thread.h"
 
@@ -63,15 +62,17 @@ struct PENDING_REPEAT {
 };
 
 
-class thread_trace_handler : public base_thread
+class trace_graph_builder : public base_thread
 {
 public:
-	thread_trace_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, proto_graph *graph)
+	trace_graph_builder(traceRecord* runRecordptr, proto_graph *graph, thread_trace_reader *readerThread)
 		:base_thread()
 	{
-		binary = binaryptr;  runRecord = runRecordptr;
+		runRecord = runRecordptr;
+		binary = (binaryTarget *)runRecord->get_binaryPtr();
 		piddata = runRecord->get_piddata();
 		thisgraph = graph;
+		reader = readerThread;
 		TID = graph->get_TID();
 		basicMode = binary->launchopts.basic;
 		set_max_arg_storage(clientState->config.maxArgStorage);
@@ -80,7 +81,6 @@ public:
 
 	PROCESS_DATA *piddata;
 	timeline *timelinebuilder;
-	thread_trace_reader *reader;
 	bool basicMode = false;
 	void set_max_arg_storage(unsigned int maxargs) { arg_storage_capacity = maxargs; }
 	bool *saveFlag;
@@ -88,6 +88,7 @@ public:
 private:
 	void main_loop();
 
+	thread_trace_reader *reader;
 
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();

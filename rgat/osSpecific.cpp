@@ -169,53 +169,53 @@ bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, 
 	return true;
 }
 
+bool getDRPath(clientConfig *config, boost::filesystem::path *drpath)
+{
+	*drpath = config->DRDir;
+
+	if (boost::filesystem::exists(*drpath))
+		return true;
+
+	*drpath = boost::filesystem::path(getModulePath() + "\\DynamoRIO");
+	if (!boost::filesystem::exists(*drpath))
+		return false;
+
+	config->DRDir = *drpath;
+	config->saveConfig();
+	return true;
+}
+
 bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
 {
-	//get dynamorio exe from path in settings
-	//todo: check this works with spaces in the path
-	boost::filesystem::path DRBase = config->DRDir;
-	boost::filesystem::path DRConfigRunPath = DRBase;
-	boost::filesystem::path DRPathEnd;
-	if (is64Bits)
-		DRPathEnd.append("bin64\\drrun.exe");
-	else
-		DRPathEnd.append("bin32\\drrun.exe");
+	boost::filesystem::path dynamoRioPath;
+	if (!getDRPath(config, &dynamoRioPath))
+	{
+		cerr << "[rgat] Failed to find dynamorio directory." << endl;
+		return false;
+	}
 
-	DRConfigRunPath += DRPathEnd;
+	boost::filesystem::path drrunPath = dynamoRioPath;
+	if (is64Bits)
+		drrunPath.append("bin64\\drrun.exe");
+	else
+		drrunPath.append("bin32\\drrun.exe");
 
 	//not there - try finding it in rgats directory
-	if (!boost::filesystem::exists(DRConfigRunPath))
+	if (!boost::filesystem::exists(drrunPath))
 	{
-		cerr << "[rgat] ERROR: Failed to find DynamoRIO executable at " << DRConfigRunPath << " listed in config file" << endl;
-
-		DRBase = boost::filesystem::path(getModulePath() + "\\DynamoRIO");
-		boost::filesystem::path DRModRunPath(DRBase);
-		if (is64Bits)
-			DRModRunPath.append("bin64\\drrun.exe");
-		else
-			DRModRunPath.append("bin32\\drrun.exe");
-
-		if ((DRModRunPath != DRConfigRunPath) && boost::filesystem::exists(DRModRunPath))
-		{
-			cout << "[rgat] Found DynamoRIO executable at " << DRModRunPath << ", continuing..." << endl;
-			DRConfigRunPath = DRModRunPath;
-		}
-		else
-		{
-			cerr << "[rgat]ERROR: Also failed to find DynamoRIO executable at default " << DRModRunPath << endl;
-			return false;
-		}
+		cerr << "[rgat] ERROR: Failed to find DynamoRIO drrun.exe executable" << endl;
+		return false;
 	}
 
 	//get the rgat instrumentation client
-	boost::filesystem::path samplePath = DRBase;
+	boost::filesystem::path samplePath = dynamoRioPath;
 	if (is64Bits)
 		samplePath += "samples\\bin64\\" + sampleName + ".dll";
 	else
 		samplePath += "samples\\bin32\\" + sampleName + ".dll";
 
 	stringstream finalCommandline;
-	finalCommandline << DRConfigRunPath.string();
+	finalCommandline << drrunPath.string();
 
 	finalCommandline << " -c \"" << samplePath.string() << "\"";
 

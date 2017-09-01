@@ -7,7 +7,9 @@
 #include "render_heatmap_thread.h"
 #include "rgatState.h"
 
+
 struct THREAD_POINTERS {
+	//could probably just put them in a map instead
 	vector <base_thread *> threads;
 	module_handler *modThread;
 	basicblock_handler *BBthread;
@@ -16,8 +18,6 @@ struct THREAD_POINTERS {
 	conditional_renderer *conditionalThread;
 };
 
-
-void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
+void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
 void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState);
-void process_coordinator_thread(rgatState *clientState);
-void openSavedTrace(QWidget *parentWidget, rgatState *clientState, void *widgets);
+void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose);

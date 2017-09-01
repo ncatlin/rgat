@@ -178,7 +178,6 @@ public:
 
 	bool terminationFlag = false;
 
-	unsigned long traceBufferSize = 0;
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);

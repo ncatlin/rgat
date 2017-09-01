@@ -56,6 +56,9 @@ typedef unordered_map<NODEPAIR, edge_data> EDGEMAP;
 
 typedef void * TRACERECORDPTR;
 
+
+
+
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN 
 {

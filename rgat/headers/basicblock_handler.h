@@ -26,12 +26,18 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 class basicblock_handler : public base_thread
 {
 public:
-	basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr)
+	basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
 		int bitwidth = binary->getBitWidth();
 		assert(bitwidth);
 		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
+
+		pipename = wstring(L"\\\\.\\pipe\\");// rioThreadBB");
+
+
+
+		pipename += pipeid;
 	};
 
 	wstring pipename;

@@ -239,8 +239,8 @@ rgat::rgat(QWidget *parent)
 	setupUI();
 	setStatePointers();
 
-	std::thread coordinatorThread(process_coordinator_thread, rgatstate);
-	coordinatorThread.detach();
+	std::thread visualiserThreadLauncher(process_coordinator_thread, rgatstate, eTracePurpose::eVisualiser);
+	visualiserThreadLauncher.detach();
 
 	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)rgatstate->highlightSelectUI;
 	highlightui->addressLabel->setText("Address:");

@@ -59,11 +59,6 @@ public:
 	void initialiseDefaultDimensions(); 
 	void initialiseCustomDimensions(GRAPH_SCALE scale);
 
-	//void adjust_A_edgeSep(float delta);
-	//void adjust_B_edgeSep(float delta);
-	//void reset_edgeSep();
-	//bool pending_rescale() { return rescale; }
-
 	float previewZoom() { return -2550; }
 	int prevScrollYPosition() { return 580; }
 

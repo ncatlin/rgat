@@ -40,7 +40,8 @@ public:
 	LAUNCHOPTIONS launchopts;
 	eExeCheckResult getTraceableStatus();
 	traceRecord *createNewTrace(PID_TID PID, int PIDID, long long timeStarted);
-	traceRecord *getFirstTrace();
+	traceRecord *getFirstTrace(); 
+	traceRecord *getTraceWithID(int ID);
 	list<traceRecord *> *getTraceListPtr(){return &traceRecords;}
 	list<traceRecord *> getTraceList() { return traceRecords; }
 

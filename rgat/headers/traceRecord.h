@@ -24,13 +24,14 @@ Pointers to child processes (traces) are contained in the processdata
 #include "timeline.h"
 #include "locks.h"
 
+enum eTracePurpose { eVisualiser, eFuzzer };
 typedef void * BINARYTARGETPTR;
 
 class traceRecord
 {
 public:
 	traceRecord(PID_TID newPID, int randomNo, int bitWidth);
-	~traceRecord() {};// DeleteCriticalSection(&graphsListCritsec);
+	~traceRecord() {};
 
 	PID_TID getPID() { return processdata->PID; }
 	wstring getModpathID() { return to_wstring(processdata->PID) + to_wstring(processdata->randID); }
@@ -54,7 +55,8 @@ public:
 	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
 	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> *writer) { runtimeline.serialise(writer); };
 	void killTree();
-
+	void setTraceType(eTracePurpose purpose);
+	eTracePurpose getTraceType() { return tracetype; }
 
 	rgatlocks::TestableLock graphListLock;
 
@@ -65,6 +67,7 @@ public:
 	list<traceRecord *> children;
 	bool UIRunningFlag = false;
 	void *processThreads;
+	void *fuzzRunPtr = NULL;
 
 private:
 	bool loadProcessData(const rapidjson::Document& saveJSON);
@@ -77,4 +80,5 @@ private:
 	BINARYTARGETPTR binaryPtr = NULL;
 	bool running = false;
 	PROCESS_DATA *processdata;
+	eTracePurpose tracetype;
 };

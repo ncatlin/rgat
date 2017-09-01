@@ -23,9 +23,10 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "stdafx.h"
 #include "module_handler.h"
 #include "traceMisc.h"
-#include "trace_handler.h"
+#include "trace_graph_builder.h"
 #include "thread_trace_reader.h"
 #include "b64.h"
+#include "fuzzRun.h"
 #include "graphplots/plotted_graph.h"
 
 #include <boost/filesystem.hpp>
@@ -34,10 +35,10 @@ It also launches trace reader and handler threads when the process spawns a thre
 void module_handler::main_loop()
 {
 	alive = true;
-	pipename = wstring(L"\\\\.\\pipe\\rioThreadMod");
 	pipename.append(runRecord->getModpathID());
 
 	const wchar_t* szName = pipename.c_str();
+	wcout << L"[rgat]Opening mode pipe " << pipename << endl;
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 0, NULL);
@@ -57,9 +58,15 @@ void module_handler::main_loop()
 		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
 		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << pipename << endl;
 	}
-	PROCESS_DATA *piddata = runRecord->get_piddata();
+	piddata = runRecord->get_piddata();
 	piddata->set_running(true);
 	clientState->newProcessSeen();
+	/*
+	if (runRecord->getTraceType() == eTracePurpose::eFuzzer)
+	{
+		fuzzRun *fuzzinstance = (fuzzRun *)runRecord->fuzzRunPtr;
+		fuzzinstance->notify_new_process(TID);
+	}*/
 
 	char buf[400] = { 0 };
 
@@ -71,8 +78,8 @@ void module_handler::main_loop()
 		assert(false);
 	}
 
-	vector < base_thread *> threadList;
-	vector < thread_trace_reader *> readerThreadList;
+
+
 	while (!die && !piddata->should_die())
 	{
 
@@ -118,33 +125,19 @@ void module_handler::main_loop()
 					continue;
 				}
 
-				proto_graph *newProtoGraph = new proto_graph(piddata, TID);
-				plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);
-				
-				newPlottedGraph->initialiseDefaultDimensions();
-				newPlottedGraph->set_animation_update_rate(clientState->config.animationUpdateRate);
-
-				thread_trace_reader *TID_reader = new thread_trace_reader(binary, runRecord, newProtoGraph);
-				TID_reader->traceBufMax = clientState->config.traceBufMax;
-				newProtoGraph->setReader(TID_reader);
-
-				threadList.push_back(TID_reader);
-				readerThreadList.push_back(TID_reader);
-				std::thread tracereader(&thread_trace_reader::ThreadEntry, TID_reader);
-				tracereader.detach();
-				
-				thread_trace_handler *TID_processor = new thread_trace_handler(binary, runRecord, newProtoGraph);
-				TID_processor->reader = TID_reader;
-
-				if (!runRecord->insert_new_thread(TID, newPlottedGraph, newProtoGraph))
+				if (runRecord->getTraceType() == eTracePurpose::eVisualiser)
 				{
-					wcerr << "[rgat]ERROR: Trace Thread creation failed" << endl;
-					break;
+					start_thread_rendering(TID);
+					continue;
 				}
 
-				threadList.push_back(TID_processor); 
-				std::thread tracehandler(&thread_trace_handler::ThreadEntry, TID_processor);
-				tracehandler.detach();
+				if (runRecord->getTraceType() == eTracePurpose::eFuzzer)
+				{
+					fuzzRun *fuzzinstance = (fuzzRun *)runRecord->fuzzRunPtr;
+					fuzzinstance->notify_new_thread(TID);
+					continue;
+				}
+
 				continue;
 			}
 
@@ -270,4 +263,34 @@ void module_handler::main_loop()
 	piddata->set_running(false); //the process is done
 	clientState->processEnded();
 	alive = false; //this thread is done
+}
+
+void  module_handler::start_thread_rendering(PID_TID TID)
+{
+	proto_graph *newProtoGraph = new proto_graph(piddata, TID);
+	plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);
+
+	newPlottedGraph->initialiseDefaultDimensions();
+	newPlottedGraph->set_animation_update_rate(clientState->config.animationUpdateRate);
+
+	thread_trace_reader *TID_reader = new thread_trace_reader(runRecord, newProtoGraph);
+	TID_reader->traceBufMax = clientState->config.traceBufMax;
+	newProtoGraph->setReader(TID_reader);
+
+	threadList.push_back(TID_reader);
+	readerThreadList.push_back(TID_reader);
+	std::thread tracereader(&thread_trace_reader::ThreadEntry, TID_reader);
+	tracereader.detach();
+
+	trace_graph_builder *graph_builder = new trace_graph_builder(runRecord, newProtoGraph, TID_reader);
+
+	if (!runRecord->insert_new_thread(TID, newPlottedGraph, newProtoGraph))
+	{
+		wcerr << "[rgat]ERROR: Trace tendering thread creation failed" << endl;
+		return;
+	}
+
+	threadList.push_back(graph_builder);
+	std::thread graph_builder_thread(&trace_graph_builder::ThreadEntry, graph_builder);
+	graph_builder_thread.detach();
 }

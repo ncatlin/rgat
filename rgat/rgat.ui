@@ -237,7 +237,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>4</number>
           </property>
           <property name="iconSize">
            <size>
@@ -2474,19 +2474,22 @@
            <attribute name="title">
             <string>Fuzz</string>
            </attribute>
-           <widget class="QPushButton" name="pushButton">
-            <property name="geometry">
-             <rect>
-              <x>550</x>
-              <y>280</y>
-              <width>75</width>
-              <height>23</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
+           <layout class="QGridLayout" name="gridLayout_11">
+            <item row="0" column="0">
+             <layout class="QVBoxLayout" name="verticalLayout_11">
+              <item>
+               <widget class="QTextEdit" name="fuzzOutput"/>
+              </item>
+             </layout>
+            </item>
+            <item row="1" column="0">
+             <widget class="QPushButton" name="startFuzzBtn">
+              <property name="text">
+               <string>Test</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </widget>
         </item>
@@ -2676,6 +2679,7 @@
     <slot>graphLayoutSelected(int)</slot>
     <slot>startDynamorioTest()</slot>
     <slot>startDrgatTest()</slot>
+    <slot>startFuzz()</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -3396,6 +3400,22 @@
     <hint type="destinationlabel">
      <x>372</x>
      <y>271</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>startFuzzBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>dynamicAnalysisContentsTab</receiver>
+   <slot>startFuzz()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>711</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>599</x>
+     <y>397</y>
     </hint>
    </hints>
   </connection>

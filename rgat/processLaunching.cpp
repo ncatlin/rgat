@@ -5,15 +5,16 @@
 #include "ui_rgat.h"
 #include <thread>
 
+
 #define PIDSTRING_BUFSIZE MAX_PATH + 100
 
 //for each live process we have a thread rendering graph data for previews, heatmaps and conditionals
 //+ module data and disassembly
 
-void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
+void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
 {
 	//spawns trace threads + handles module data for process
-	module_handler *tPIDThread = new module_handler(target, runRecord);
+	module_handler *tPIDThread = new module_handler(target, runRecord, L"rioThreadMod");
 
 	THREAD_POINTERS *processThreads = (THREAD_POINTERS *)runRecord->processThreads;
 	std::thread modthread(&module_handler::ThreadEntry, tPIDThread);
@@ -22,7 +23,7 @@ void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rg
 	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
-	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord);
+	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord, L"rioThreadBB");
 
 	std::thread bbthread(&basicblock_handler::ThreadEntry, tBBHandler);
 	bbthread.detach();
@@ -52,13 +53,35 @@ void launch_new_process_threads(binaryTarget *target, traceRecord *runRecord, rg
 	processThreads->threads.push_back(tCondThread);
 }
 
+void launch_target_fuzzing_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
+{
+	//spawns trace threads + handles module data for process
+	module_handler *tPIDThread = new module_handler(target, runRecord, L"shrikeMod");
+
+	THREAD_POINTERS *processThreads = (THREAD_POINTERS *)runRecord->processThreads;
+	std::thread modthread(&module_handler::ThreadEntry, tPIDThread);
+	modthread.detach();
+	processThreads->modThread = tPIDThread;
+	processThreads->threads.push_back(tPIDThread);
+
+	//handles new disassembly data
+	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord, L"shrikeBB");
+
+	std::thread bbthread(&basicblock_handler::ThreadEntry, tBBHandler);
+	bbthread.detach();
+	processThreads->BBthread = tBBHandler;
+	processThreads->threads.push_back(tBBHandler);
+
+
+}
+
 
 
 #ifdef WIN32
 
 //respond to a new trace notification by creating a target (if not already existing) and a new trace for it 
 //along with threads to process that trace
-void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList, vector <char> *buf)
+void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList, vector <char> *buf, eTracePurpose purpose)
 {
 	PID_TID PID = 0;
 	boost::filesystem::path binarypath;
@@ -74,12 +97,34 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		target->applyBitWidthHint(bitWidth);
 
 		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
+		trace->setTraceType(purpose);
+		if (purpose == eTracePurpose::eFuzzer)
+		{
+			clientState->fuzztarget_connected(PID_ID, trace);
+		}
 		trace->setBinaryPtr(target);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
 		clientState->targets.registerChild(parentPID, trace);
 
-		launch_new_process_threads(target, trace, clientState);
+		//todo: posibly worry about pre-existing if pidthreads dont work
+		HANDLE hPipe;
+
+		switch (purpose)
+		{
+		case eTracePurpose::eVisualiser:
+
+			launch_new_visualiser_threads(target, trace, clientState);
+			break;
+
+		case eTracePurpose::eFuzzer:
+			launch_target_fuzzing_threads(target, trace, clientState);
+			break;
+
+		default:
+			cerr << "invalid trace purpose" << endl;
+			return;
+		}
 		threadsList->push_back((THREAD_POINTERS *)trace->processThreads);
 
 		if (clientState->waitingForNewTrace)
@@ -95,6 +140,8 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		cerr << "[rgat]Bad bitwidth " << bitWidth << " or path " << binarypath << endl;
 	}
 }
+
+
 
 //read notifications of new traces from drgat clients over the bootstrap pipe
 bool read_new_PID_notification_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
@@ -136,13 +183,29 @@ bool read_new_PID_notification_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPP
 }
 
 //listens for traces on the bootstrap pipe
-void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList)
+void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList, eTracePurpose purpose)
 {
 	//todo: posibly worry about pre-existing if pidthreads dont work
+	HANDLE hPipe;
+	switch (purpose)
+	{ 
+	case eTracePurpose::eVisualiser:
+	
+		hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
+			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+			255, 65536, 65536, 0, NULL);
+		break;
 
-	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
-		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
-		255, 65536, 65536, 0, NULL);
+	case eTracePurpose::eFuzzer:
+		hPipe = CreateNamedPipe(L"\\\\.\\pipe\\shrikeBootstrap",
+			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+			255, 65536, 65536, 0, NULL);
+		break;
+
+	default:
+		cerr << "invalid trace purpose" << endl;
+		return;
+	}
 
 	if (hPipe == INVALID_HANDLE_VALUE)
 	{
@@ -160,18 +223,18 @@ void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS
 	{
 		if (read_new_PID_notification_sleepy(&buf, hPipe, &ov))
 		{
-			process_new_PID_notification(clientState, threadsList, &buf);
+			process_new_PID_notification(clientState, threadsList, &buf, purpose);
 		}
 	}
 }
 #endif // WIN32
 
 //spawns the trace handler then cleans up after it on exit
-void process_coordinator_thread(rgatState *clientState)
+void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose)
 {
 
 	vector<THREAD_POINTERS *> threadsList;
-	process_coordinator_listener(clientState, &threadsList);
+	process_coordinator_listener(clientState, &threadsList, purpose);
 	if (threadsList.empty()) return;
 
 	//we get here when rgat is exiting

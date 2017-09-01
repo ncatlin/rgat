@@ -37,7 +37,8 @@ void thread_trace_reader::add_message(string *newMsg)
 	{
 		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for renderer to catch up..." << endl;
 		LeaveCriticalSection(&flagCritsec);
-		thisgraph->setBacklogIn(0);
+		if (thisgraph)
+			thisgraph->setBacklogIn(0);
 		do {
 			
 			Sleep(500);
@@ -62,7 +63,7 @@ void thread_trace_reader::add_message(string *newMsg)
 		LeaveCriticalSection(&flagCritsec);
 }
 
-string *thread_trace_reader::get_message(unsigned long &pendingData)
+string *thread_trace_reader::get_message()
 {
 	
 	if (readingQueue->empty() || readIndex >= readingQueue->size())
@@ -126,7 +127,7 @@ void thread_trace_reader::main_loop()
 {
 	alive = true;
 	wstring pipename(L"\\\\.\\pipe\\rioThread");
-	pipename.append(std::to_wstring(thisgraph->get_TID()));
+	pipename.append(std::to_wstring(threadID));
 
 	const wchar_t* szName = pipename.c_str();
 	HANDLE hPipe = CreateNamedPipe(szName,
@@ -139,7 +140,7 @@ void thread_trace_reader::main_loop()
 
 	if (hPipe == (HANDLE)-1)
 	{
-		cerr << "[rgat]Error: Could not create pipe in thread handler "<< thisgraph->get_TID() <<". error:" << GetLastError() << endl;
+		cerr << "[rgat]Error: Could not create pipe in thread handler "<< threadID <<". error:" << GetLastError() << endl;
 		return;
 	}
 
@@ -160,7 +161,8 @@ void thread_trace_reader::main_loop()
 		if (secondsnow > endwait)
 		{
 			endwait = secondsnow + 1;
-			thisgraph->setBacklogIn(itemsRead);
+			if(thisgraph)
+				thisgraph->setBacklogIn(itemsRead);
 			itemsRead = 0;
 		}
 
@@ -177,7 +179,7 @@ void thread_trace_reader::main_loop()
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				cerr << "[rgat]Error: thread " << thisgraph->get_TID() << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
+				cerr << "[rgat]Error: thread " << threadID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
 			break;
 		}
 
@@ -190,7 +192,7 @@ void thread_trace_reader::main_loop()
 		if (tagReadBuf[bytesRead - 1] != '@')
 		{
 			std::string bufstring(tagReadBuf.begin(), tagReadBuf.end());
-			cerr << "[rgat]ERROR: [tid"<< thisgraph->get_TID() <<"] Improperly terminated trace message recieved ["<< bufstring<<"]. ("<<bytesRead<<" bytes) Terminating." << endl;
+			cerr << "[rgat]ERROR: [tid"<< threadID <<"] Improperly terminated trace message recieved ["<< bufstring<<"]. ("<<bytesRead<<" bytes) Terminating." << endl;
 			die = true;
 			break;
 		}

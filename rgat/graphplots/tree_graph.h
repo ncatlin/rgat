@@ -37,7 +37,7 @@ public:
 		: plotted_graph(protoGraph, coloursPtr) {
 		initialise();
 	};
-	~tree_graph() {};
+	~tree_graph();
 
 	void performMainGraphDrawing(graphGLWidget *gltarget);
 	void render_static_graph();

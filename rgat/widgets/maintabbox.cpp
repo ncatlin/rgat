@@ -29,6 +29,7 @@ This contains much of the functionality for the dynamic analysis tabs
 #include "widgets\highlightWidget.h"
 #include "ui_highlightSelector.h"
 #include "testRun.h"
+#include "fuzzRun.h"
 
 mainTabBox::mainTabBox(QWidget *parent)
 	: QTabWidget(parent)
@@ -626,4 +627,6 @@ void mainTabBox::startDrgatTest()
 	testingRun.beginTests();
 
 }
+
+
 

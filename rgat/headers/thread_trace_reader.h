@@ -26,18 +26,25 @@ Header for the thread that reads trace information from drgat and buffers it
 class thread_trace_reader : public base_thread
 {
 public:
-	thread_trace_reader(binaryTarget *binaryptr, traceRecord* runRecordptr, proto_graph *graph)
+	thread_trace_reader(traceRecord* runRecordptr, proto_graph *graph)
 		: base_thread()
 	{
-
 		thisgraph = graph;
+		threadID = graph->get_TID();
+		InitializeCriticalSection(&flagCritsec);
+	}
+	thread_trace_reader(traceRecord* runRecordptr, PID_TID tid)
+		: base_thread()
+	{
+		thisgraph = NULL;
+		threadID = tid;
 		InitializeCriticalSection(&flagCritsec);
 	}
 	thread_trace_reader(){ DeleteCriticalSection(&flagCritsec); }
 
 
 	unsigned long traceBufMax = 0;
-	string *get_message(unsigned long &pendingData);
+	string *get_message();
 
 	unsigned long pendingData = 0;
 	bool getBufsState(pair <unsigned long, unsigned long> *bufSizes);
@@ -61,5 +68,6 @@ private:
 	proto_graph *thisgraph;
 	binaryTarget *binary;
 	traceRecord* runRecord;
+	PID_TID threadID;
 };
 
