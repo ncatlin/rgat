@@ -120,6 +120,25 @@ traceRecord *binaryTarget::getFirstTrace()
 	return traceRecords.front();
 }
 
+traceRecord *binaryTarget::getTraceWithID(int ID)
+{
+	if (traceRecords.empty()) return NULL;
+
+	traceRecord *result = NULL;
+	binaryLock.lock();
+	for (auto it = traceRecords.begin(); it != traceRecords.end(); it++)
+	{
+		traceRecord *trace = *it;
+		if (trace->get_piddata()->randID == ID)
+		{
+			result = *it;
+			break;
+		}
+	}
+	binaryLock.unlock();
+
+	return result;
+}
 
 traceRecord *binaryTarget::getRecordWithPID(PID_TID PID, int PID_ID = 0)
 {

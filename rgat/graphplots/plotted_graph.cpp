@@ -29,8 +29,6 @@ rgatState *plotted_graph::clientState = NULL;
 
 plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColoursPtr)
 {
-		
-
 		pid = protoGraph->get_piddata()->PID;
 		tid = protoGraph->get_TID();
 
@@ -71,15 +69,15 @@ plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColou
 
 plotted_graph::~plotted_graph()
 {
-	if (!this) return;
-
+	assert(graphBusyLock.islocked());
 	//wait for other threads to finish using this graph
 	dying = true;
 	freeMe = true;
 	beingDeleted = true;
 
+
 	callStackLock.lock();
-	graphBusyLock.lock();
+
 #ifdef XP_COMPATIBLE
 	while (threadRefs) Sleep(10);
 	obtainMutex(threadReferenceMutex);
@@ -170,7 +168,6 @@ void plotted_graph::updateStats(float a, float b, float c)
 
 bool plotted_graph::trySetGraphBusy()
 {
-
 	bool result = graphBusyLock.trylock();
 	return result;
 }
@@ -241,24 +238,23 @@ void plotted_graph::display_active(graphGLWidget *gltarget)
 	GLsizei edgeVertLoadQty = min(animlinevertsQty, mainlinevertsQty);
 
 	//reload buffers if needed and not being written
-	if (needVBOReload_active && trySetGraphBusy())
+	if (needVBOReload_active)
 	{
 		gltarget->load_VBO(VBO_NODE_POS, activeVBOs, POSITION_VERTS_SIZE(nodeLoadQty), mainnodesdata->readonly_pos());
 		gltarget->load_VBO(VBO_NODE_COL, activeVBOs, COLOUR_VERTS_SIZE(nodeLoadQty), animnodesdata->readonly_col());
 		animnodesdata->set_numLoadedVerts(nodeLoadQty);
 
 		GLfloat *buf = mainlinedata->readonly_pos();
-		if (!buf) { setGraphBusy(false, 4); return; }
+		if (!buf) return; 
 		gltarget->load_VBO(VBO_LINE_POS, activeVBOs, POSITION_VERTS_SIZE(edgeVertLoadQty), buf);
 
 		buf = animlinedata->readonly_col();
-		if (!buf) { setGraphBusy(false, 5); return; }
+		if (!buf) return;
 
 		gltarget->load_VBO(VBO_LINE_COL, activeVBOs, COLOUR_VERTS_SIZE(edgeVertLoadQty), buf);
 		animlinedata->set_numLoadedVerts(edgeVertLoadQty);
 
 		needVBOReload_active = false;
-		setGraphBusy(false, 6);
 	}
 
 	if (clientState->showNodes && animnodesdata->get_numLoadedVerts())
@@ -279,13 +275,12 @@ void plotted_graph::display_active(graphGLWidget *gltarget)
 //display graph with everything bright and viewable
 void plotted_graph::display_static(graphGLWidget *gltarget)
 {
-	if (needVBOReload_main && trySetGraphBusy())
+	if (needVBOReload_main)
 	{
 		//lock for reading if corrupt graphics happen occasionally
 		gltarget->loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 	
 		needVBOReload_main = false;
-		setGraphBusy(false, 8);
 	}
 
 	if (clientState->showNodes)
@@ -1655,6 +1650,9 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget)
 {
+	if (this->animnodesdata->get_numVerts() == 0)
+		return;
+
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;

@@ -20,16 +20,19 @@ Header for the thread that manages each instrumented process
 #pragma once
 
 #include "stdafx.h"
-//#include "GUIStructs.h"
 #include "base_thread.h"
 #include "traceStructs.h"
+#include "thread_trace_reader.h"
 
 class module_handler : public base_thread
 {
 public:
-	module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr)
+	module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
+
+		pipename = wstring(L"\\\\.\\pipe\\");
+		pipename += pipeid;
 	};
 
 	wstring pipename;
@@ -37,5 +40,11 @@ public:
 private:
 	binaryTarget *binary;
 	traceRecord* runRecord;
+
+	vector < base_thread *> threadList;	
+	vector < thread_trace_reader *> readerThreadList; 
+	PROCESS_DATA *piddata = NULL;
+
 	void main_loop();
+	void start_thread_rendering(PID_TID TID);
 };

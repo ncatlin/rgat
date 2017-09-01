@@ -63,6 +63,7 @@ void * traceRecord::get_first_graph()
 	{
 		void *result = plottedGraphs.begin()->second;
 		graphListLock.unlock();
+
 		return result;
 	}
 	return NULL;
@@ -304,4 +305,9 @@ void traceRecord::killTree()
 	traceRecord *child;
 	foreach(child, children)
 		child->killTree();
+}
+
+void traceRecord::setTraceType(eTracePurpose purpose)
+{ 
+	tracetype = purpose; 
 }

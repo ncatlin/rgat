@@ -18,7 +18,7 @@ limitations under the License.
 The thread that builds a graph for each trace
 */
 #include "stdafx.h"
-#include "trace_handler.h"
+#include "trace_graph_builder.h"
 #include "traceMisc.h"
 #include "GUIConstants.h"
 #include "traceStructs.h"
@@ -28,7 +28,7 @@ The thread that builds a graph for each trace
 
 //todo move to trace structs
 //waits for the disassembly of instrumented code at the specified address
-bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int attempts)
+bool trace_graph_builder::find_internal_at_address(MEM_ADDRESS address, int attempts)
 {
 	while (!piddata->disassembly.count(address))
 	{
@@ -40,7 +40,7 @@ bool thread_trace_handler::find_internal_at_address(MEM_ADDRESS address, int att
 
 //takes an instruction as input
 //returns whether current thread has executed this instruction, places its vert in vertIdxOut
-bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
+bool trace_graph_builder::set_target_instruction(INS_DATA *instruction)
 {
 	piddata->getDisassemblyReadLock();
 	unordered_map<PID_TID, NODEINDEX>::iterator vertIdIt = instruction->threadvertIdx.find(thisgraph->get_TID());
@@ -55,7 +55,7 @@ bool thread_trace_handler::set_target_instruction(INS_DATA *instruction)
 		return false;
 }
 
-inline void thread_trace_handler::BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats)
+inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats)
 {
 	NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 
@@ -100,7 +100,7 @@ inline void thread_trace_handler::BB_addNewEdge(bool alreadyExecuted, int instru
 }
 
 //place basic block 'tag' on graph 'repeats' times
-void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
+void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 {
 	int numInstructions = tag->insCount;
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, 0);
@@ -163,7 +163,7 @@ void thread_trace_handler::runBB(TAG *tag, int repeats = 1)
 }
 
 //run a basic block which generated an exception (and therefore didn't run to completion)
-void thread_trace_handler::run_faulting_BB(TAG *tag)
+void trace_graph_builder::run_faulting_BB(TAG *tag)
 {
 	BB_DATA *foundExtern = NULL;
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, &foundExtern);
@@ -209,7 +209,7 @@ void thread_trace_handler::run_faulting_BB(TAG *tag)
 }
 
 //decodes argument and places in processing queue, processes if all decoded for that call
-void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
+void trace_graph_builder::handle_arg(char * entry, size_t entrySize) {
 	MEM_ADDRESS funcpc, sourcepc;
 	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
 	int argpos;
@@ -280,7 +280,7 @@ void thread_trace_handler::handle_arg(char * entry, size_t entrySize) {
 }
 
 
-bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
+bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
 	//start by examining our caller
 	node_data *lastNode = thisgraph->safe_get_node(lastVertID);
@@ -371,7 +371,7 @@ bool thread_trace_handler::run_external(MEM_ADDRESS targaddr, unsigned long repe
 	return true;
 }
 
-bool thread_trace_handler::lookup_extern_func_calls(MEM_ADDRESS called_function_address, EDGELIST &callEdges)
+bool trace_graph_builder::lookup_extern_func_calls(MEM_ADDRESS called_function_address, EDGELIST &callEdges)
 {
 	piddata->getExternDictReadLock();
 	piddata->getExternCallerReadLock();
@@ -396,7 +396,7 @@ bool thread_trace_handler::lookup_extern_func_calls(MEM_ADDRESS called_function_
 
 //function call arguments are sent over from drgat seperately from the trace data 
 //this iterates through the arguments we receive and matches them up to their relevant nodes
-void thread_trace_handler::process_new_args()
+void trace_graph_builder::process_new_args()
 {
 	//target function		caller  		args
 	map<MEM_ADDRESS, map <MEM_ADDRESS, vector<ARGLIST>>>::iterator pendingCallArgIt = pendingcallargs.begin();
@@ -471,7 +471,7 @@ void thread_trace_handler::process_new_args()
 }
 
 //#define VERBOSE
-void thread_trace_handler::handle_exception_tag(TAG *thistag)
+void trace_graph_builder::handle_exception_tag(TAG *thistag)
 {
 #ifdef VERBOSE
 	cout << "handling tag 0x" << thistag->blockaddr << " jmpmod:" << thistag->jumpModifier;
@@ -507,7 +507,7 @@ void thread_trace_handler::handle_exception_tag(TAG *thistag)
 }
 
 //#define VERBOSE
-void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
+void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 {
 #ifdef VERBOSE
 	cout << "handling tag 0x"<<std::hex<< thistag->blockaddr <<std::dec
@@ -543,7 +543,7 @@ void thread_trace_handler::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //returns the module starting before and ending after the provided address
 //if that's none of them, assume its a new code area in calling module
 //TODO: this assumption is bad; any self modifying dll may cause problems
-int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
+int trace_graph_builder::find_containing_module(MEM_ADDRESS address)
 {
 	const size_t numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
@@ -564,7 +564,7 @@ int thread_trace_handler::find_containing_module(MEM_ADDRESS address)
 }
 
 //updates graph entry for each tag in the trace loop cache
-void thread_trace_handler::dump_loop()
+void trace_graph_builder::dump_loop()
 {
 	assert(loopState == BUILDING_LOOP);
 
@@ -604,7 +604,7 @@ void thread_trace_handler::dump_loop()
 }
 
 //todo: move this to piddata class
-INSLIST *thread_trace_handler::find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID)
+INSLIST *trace_graph_builder::find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID)
 {
 	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blocklistIt;
 	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
@@ -626,7 +626,7 @@ INSLIST *thread_trace_handler::find_block_disassembly(MEM_ADDRESS blockaddr, BLO
 		return mutationIt->second;
 }
 
-void thread_trace_handler::satisfy_pending_edges()
+void trace_graph_builder::satisfy_pending_edges()
 {
 	vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
 	while (pendIt != pendingEdges.end())
@@ -654,7 +654,7 @@ void thread_trace_handler::satisfy_pending_edges()
 //peforms non-sequence critical graph updates
 //update nodes with cached execution counts and new edges from unchained runs
 //also updates graph with delayed edge notifications
-bool thread_trace_handler::assign_blockrepeats()
+bool trace_graph_builder::assign_blockrepeats()
 {
 	lastRepeatUpdate = GetTickCount64();
 
@@ -743,7 +743,7 @@ bool thread_trace_handler::assign_blockrepeats()
 	return blockRepeatQueue.empty();
 }
 
-void thread_trace_handler::add_unchained_update(char *entry)
+void trace_graph_builder::add_unchained_update(char *entry)
 {
 	MEM_ADDRESS blockAddr;
 	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
@@ -782,7 +782,7 @@ void thread_trace_handler::add_unchained_update(char *entry)
 	thisgraph->push_anim_update(animUpdate);
 }
 
-void thread_trace_handler::add_satisfy_update(char *entry)
+void trace_graph_builder::add_satisfy_update(char *entry)
 {
 	NEW_EDGE_BLOCKDATA edgeNotification;
 
@@ -801,7 +801,7 @@ void thread_trace_handler::add_satisfy_update(char *entry)
 	pendingEdges.push_back(edgeNotification);
 }
 
-void thread_trace_handler::add_exception_update(char *entry)
+void trace_graph_builder::add_exception_update(char *entry)
 {
 	MEM_ADDRESS e_ip;
 	string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
@@ -872,7 +872,7 @@ void thread_trace_handler::add_exception_update(char *entry)
 	thisgraph->push_anim_update(animUpdate);
 }
 
-void thread_trace_handler::add_exec_count_update(char *entry)
+void trace_graph_builder::add_exec_count_update(char *entry)
 {
 	BLOCKREPEAT newRepeat;
 	newRepeat.totalExecs = 0;
@@ -926,7 +926,7 @@ void thread_trace_handler::add_exec_count_update(char *entry)
 	thisgraph->push_anim_update(animUpdate);
 }
 
-void thread_trace_handler::add_unlinking_update(char *entry)
+void trace_graph_builder::add_unlinking_update(char *entry)
 {
 	MEM_ADDRESS sourceAddr;
 	BLOCK_IDENTIFIER sourceID;
@@ -1035,7 +1035,7 @@ void thread_trace_handler::add_unlinking_update(char *entry)
 	thisgraph->push_anim_update(animUpdate);
 }
 
-void thread_trace_handler::process_trace_tag(char *entry)
+void trace_graph_builder::process_trace_tag(char *entry)
 {
 	TAG thistag;
 	MEM_ADDRESS nextBlock;
@@ -1116,7 +1116,7 @@ void thread_trace_handler::process_trace_tag(char *entry)
 
 }
 
-void thread_trace_handler::process_loop_marker(char *entry)
+void trace_graph_builder::process_loop_marker(char *entry)
 {
 	if (entry[1] == LOOP_START_MARKER)
 	{
@@ -1139,25 +1139,25 @@ void thread_trace_handler::process_loop_marker(char *entry)
 }
 
 //build graph for a thread as the trace data arrives from the reader thread
-void thread_trace_handler::main_loop()
+void trace_graph_builder::main_loop()
 {
 	alive = true;
 
 	unsigned long itemsDone = 0;
 
 	string *message;
-	clock_t endwait = clock() + 1;
+	clock_t backlogUpdateTimer = clock() + 1;
 	while (!die)
 	{
 		clock_t timenow = clock();
-		if (timenow > endwait)
+		if (timenow > backlogUpdateTimer)
 		{
-			endwait = timenow + 1;
+			backlogUpdateTimer = timenow + 1;
 			thisgraph->setBacklogOut(itemsDone);
 			itemsDone = 0;
 		}
 
-		message = reader->get_message(thisgraph->traceBufferSize);
+		message = reader->get_message();
 		if (!message)
 		{
 			assign_blockrepeats();

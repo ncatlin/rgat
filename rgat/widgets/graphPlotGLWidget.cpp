@@ -318,6 +318,7 @@ void graphPlotGLWidget::paintGL()
 	if (!activeGraph || activeGraph->needsReleasing())
 		return;
 
+
 	activeGraph->gl_frame_setup(this);
 
 	activeGraph->performMainGraphDrawing(this);

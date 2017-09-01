@@ -143,8 +143,7 @@ void conditional_renderer::main_loop()
 		{
 			Sleep(20); continue;
 		}
-
-		
+				
 		for (graphIt = runRecord->plottedGraphs.begin(); graphIt != runRecord->plottedGraphs.end(); ++graphIt)
 		{
 			plotted_graph *g = (plotted_graph *)graphIt->second;

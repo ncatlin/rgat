@@ -73,7 +73,8 @@ public:
 	virtual void maintain_draw_wireframe(graphGLWidget *gltarget) {};
 
 	virtual bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget) {
-		cerr << "Warning: Virtual gvnp called";		return false; 	};
+		cerr << "Warning: Virtual gvnp called" << endl;		return false;
+	};
 	virtual void render_static_graph() { assert(false); };
 
 	virtual void performMainGraphDrawing(graphGLWidget *gltarget) { cout << "virtual pmgd called" << endl; };
@@ -127,6 +128,8 @@ public:
 	void set_animation_update_rate(int updatesPerFrame) { animEntriesPerFrame = updatesPerFrame; }
 
 	bool setGraphBusy(bool set, int caller);
+	bool trySetGraphBusy();
+
 	void setBeingDeleted() { beingDeleted = true; }
 	bool isBeingDeleted() { return beingDeleted; }
 	bool isreferenced()  { return threadReferences != 0; }
@@ -261,7 +264,6 @@ private:
 	};
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
-	bool trySetGraphBusy();
 	int render_new_preview_edges();
 	void extend_faded_edges();
 	void reset_mainlines();

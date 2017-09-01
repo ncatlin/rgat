@@ -61,6 +61,9 @@ public:
 	int numActiveProcesses() { return activeTraces; }
 	void updateTextDisplayButtons();
 
+	void addFuzzRun(int runid, void *run);
+	void fuzztarget_connected(int runid, traceRecord *trace);
+
 	binaryTargets targets;
 	clientConfig config;
 
@@ -129,6 +132,8 @@ private:
 	bool haveOpenGL = true;
 	int previewAngleDegrees = 0;
 	int activeTraces = 0;
+
+	map<int, void *> pendingFuzzruns;
 
 	CRITICAL_SECTION activeGraphCritsec;
 };

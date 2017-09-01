@@ -23,6 +23,9 @@ of the GUI activity around dynamic analysis
 #include "binaryTargets.h"
 #include "rgatState.h"
 #include "graphplots/plotted_graph.h"
+#include "fuzzRun.h"
+
+#define INCLUDE_FUZZ_CODE 1
 
 #define PLAYICON ":/Resources/playico.ico"
 #define PAUSEICON ":/Resources/pauseico.ico"
@@ -77,13 +80,21 @@ public Q_SLOTS:
 	void startDynamorioTest();
 	void startDrgatTest();
 
+#ifdef INCLUDE_FUZZ_CODE
+	void startFuzz();
+#endif
+
 private:
 	void updateVisualiseStats(bool fullRefresh = false);
 	void refreshProcessesCombo(traceRecord *initialTrace);
 	void updateTimerFired();
 	int addProcessToGUILists(PROCESS_DATA *trace, QTreeWidgetItem *parentitem);
 	void refreshTracesCombo(traceRecord *initialTrace);
+#ifdef INCLUDE_FUZZ_CODE
+	void fuzzUpdateCheck();
+	bool fuzzThreadLauncherRunning = false;
 
+#endif
 
 private:
 	binaryTargets * targets = NULL;
@@ -98,5 +109,7 @@ private:
 
 	GRAPHINFO activeGraphStats;
 	vector<traceRecord *> processComboVec;
+	vector<fuzzRun *> fuzzruns;
+	QTimer *fuzzUpdateTimer = NULL;
 };
 

@@ -216,6 +216,7 @@ void cylinder_graph::initialise()
 
 cylinder_graph::~cylinder_graph() 
 {
+	if (!this) return;
 };
 
 
@@ -859,6 +860,8 @@ void cylinder_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 //standard animated or static display of the active graph
 void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 {
+	if (!trySetGraphBusy()) return;
+
 	if (isAnimated())
 		display_active(gltarget);
 	else
@@ -883,7 +886,12 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 			if (n && n->external)
 			{
 				DCOORD screenCoord;
-				if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) return;
+				if (!get_screen_pos(lastMainNode.lastVertID, get_mainnodes(), pd, &screenCoord)) 
+				{ 
+					setGraphBusy(false, 82);
+					return;
+				}
+
 				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
 				{
 					QPainter painter(gltarget);
@@ -894,6 +902,8 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 				}
 			}
 		}
+
+	setGraphBusy(false, 82);
 }
 
 //returns the screen coordinate of a node if it is on the screen

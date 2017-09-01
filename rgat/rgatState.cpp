@@ -227,9 +227,11 @@ void rgatState::saveTarget(binaryTarget *target)
 //saves the process data (and childprocess) of trace and all of its graphs
 void rgatState::saveTrace(traceRecord *trace)
 {
+	if (trace->getTraceType() != eTracePurpose::eVisualiser) return;
+
 	FILE *savefile = setupSaveFile(&config, trace);
-	if (!savefile)
-		return;
+	if (!savefile) return;
+
 
 	char buffer[65536];
 	rapidjson::FileWriteStream outstream(savefile, buffer, sizeof(buffer));
@@ -349,6 +351,7 @@ bool rgatState::initialiseTrace(rapidjson::Document *saveJSON, traceRecord **tra
 		updateActivityStatus("Trace already loaded", 15000);
 		return false;
 	}
+	(*trace)->setTraceType(eTracePurpose::eVisualiser);
 
 	updateActivityStatus("Loaded saved process: " + QString::number(tracePID), 15000);
 	return true;
@@ -703,4 +706,31 @@ PROTOGRAPH_CASTPTR rgatState::getActiveProtoGraph()
 	LeaveCriticalSection(&activeGraphCritsec);
 
 	return tmp;
+}
+
+
+void rgatState::addFuzzRun(int runid, void *run)
+{
+
+	EnterCriticalSection(&activeGraphCritsec);
+	pendingFuzzruns.emplace(make_pair(runid, run));
+	LeaveCriticalSection(&activeGraphCritsec);
+}
+
+
+void rgatState::fuzztarget_connected(int runid, traceRecord *trace)
+{
+	EnterCriticalSection(&activeGraphCritsec);
+	auto fuzzrunIt = pendingFuzzruns.find(runid);
+	if (fuzzrunIt != pendingFuzzruns.end())
+	{
+		fuzzRun *pendingrun = (fuzzRun *)fuzzrunIt->second;
+		pendingrun->target_connected(trace);
+		pendingFuzzruns.erase(fuzzrunIt);
+	}
+	else
+	{
+		cerr << "[rgat-fuzz] ERROR: unknown fuzz target connected: " << runid << " (pending runs: "<< pendingFuzzruns.size()<<")"<< endl;
+	}
+	LeaveCriticalSection(&activeGraphCritsec);
 }

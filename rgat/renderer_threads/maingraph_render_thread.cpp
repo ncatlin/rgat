@@ -99,8 +99,11 @@ void maingraph_render_thread::main_loop()
 				while (clientState->getActiveGraph(false) == activeGraph)
 					Sleep(25);
 				activeTrace->graphListLock.lock();
+
 				proto_graph *protoGraph = activeGraph->get_protoGraph();
 				
+
+				activeGraph->setGraphBusy(true, 101);
 				delete activeGraph;
 
 				activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
