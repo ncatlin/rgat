@@ -719,6 +719,8 @@ void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 			&clientState->config.mainColours.highlightLine, clientState->config.highlightProtrusion, gltarget);
 	}
 
+
+	labelPositions.clear();
 	if (clientState->heatmapMode)
 	{
 		display_big_heatmap(gltarget);
@@ -751,11 +753,15 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_instructions_text(zmul, pd, gltarget);
 
-	if ((replayState != ePlaying) && clientState->should_show_internal_symbols(zmul))
-		show_internal_symbol_labels(pd, gltarget);
 
-	if ((!isAnimated() || replayState == ePaused) && clientState->should_show_external_symbols(zmul))
-		show_external_symbol_labels(pd, gltarget);
+	if (!isAnimated() || replayState == ePaused)
+	{
+		if (clientState->should_show_external_symbols(zmul))
+			show_external_symbol_labels(pd, gltarget);
+
+		if (clientState->should_show_internal_symbols(zmul))
+			show_internal_symbol_labels(pd, gltarget);
+	}
 	else
 		if (clientState->config.showRisingAnimated)
 		{	//show label of extern we are blocked on
@@ -773,9 +779,19 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
 				{
 					QPainter painter(gltarget);
-					painter.setPen(al_col_red);
 					painter.setFont(clientState->instructionFont);
-					draw_func_args(&painter, screenCoord, n, gltarget);
+					const QFontMetrics fm(clientState->instructionFont);
+
+					TEXTRECT mouseoverNode;
+					bool hasMouseover;
+					hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+
+					if (hasMouseover && mouseoverNode.index == n->index)
+						painter.setPen(al_col_orange);
+					else
+						painter.setPen(al_col_red);
+
+					draw_func_args(&painter, screenCoord, n, gltarget, &fm);
 					painter.end();
 				}
 			}

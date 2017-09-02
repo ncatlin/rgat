@@ -38,7 +38,6 @@ void module_handler::main_loop()
 	pipename.append(runRecord->getModpathID());
 
 	const wchar_t* szName = pipename.c_str();
-	wcout << L"[rgat]Opening mode pipe " << pipename << endl;
 	HANDLE hPipe = CreateNamedPipe(szName,
 		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 0, NULL);

@@ -313,17 +313,38 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 
 }
 
+void graphPlotGLWidget::setMouseoverNode()
+{
+	
+	if (!activeGraph) return;
+	if (activeMouseoverNode && mouseoverNode.rect.contains(mousePos.x(), mousePos.y()))
+		return;
+
+	for each(TEXTRECT tr in activeGraph->labelPositions)
+	{
+		if (tr.rect.contains(mousePos.x(), mousePos.y()))
+		{
+			cout << "mouseover label of node " << tr.index << endl;
+			mouseoverNode = tr;
+			activeMouseoverNode = true;
+			return;
+		}
+	}
+	activeMouseoverNode = false;
+}
+
 void graphPlotGLWidget::paintGL()
 {
 	if (!activeGraph || activeGraph->needsReleasing())
 		return;
-
 
 	activeGraph->gl_frame_setup(this);
 
 	activeGraph->performMainGraphDrawing(this);
 
 	drawHUD();
+
+
 
 }
 
@@ -435,11 +456,7 @@ void graphPlotGLWidget::performIrregularActions()
 		ui->dynamicAnalysisContentsTab->stopAnimation();
 	}
 
-	HIGHLIGHT_DATA *highlightData = &activeGraph->highlightData;
-	if (highlightData->highlightState && activeGraph->get_protoGraph()->active)
-	{
-		//((TraceVisGUI *)widgets)->highlightWindow->updateHighlightNodes(highlightData, graph->get_protoGraph(), activePid);
-	}
+	setMouseoverNode();
 }
 
 #define HEATKEY_POS_Y 25

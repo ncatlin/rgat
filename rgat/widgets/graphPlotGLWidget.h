@@ -62,6 +62,7 @@ public Q_SLOTS:
 	void wheelEvent(QWheelEvent *event);
 	void keyPressEvent(QKeyEvent *event);
 	void keyReleaseEvent(QKeyEvent *event);
+
 	void wireframeButtonToggled(bool state);
 	void stretchHIncrease();
 	void stretchHDecrease();
@@ -88,7 +89,8 @@ private:
 	void performIrregularActions();
 	void switchToGraph(plotted_graph *graph);
 	void selectGraphInActiveTrace();
-	bool chooseGraphToDisplay();
+	bool chooseGraphToDisplay(); 
+	void setMouseoverNode();
 
 	bool performIrregulars = false;
 
