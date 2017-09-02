@@ -158,7 +158,8 @@ void graphGLWidget::mouseMoveEvent(QMouseEvent *event)
 	if (event->buttons() == 0)
 	{
 		//todo:  mouseover nodes
-		mousePos = event->pos();
+		mousePos = event->pos(); 
+
 		return;
 	}
 

@@ -47,8 +47,6 @@ struct HIGHLIGHT_DATA {
 };
 
 
-
-
 struct PLOT_TRACK {
 	NODEINDEX lastVertID = 0;
 	eEdgeNodeType lastVertType = eNodeNonFlow;
@@ -108,6 +106,8 @@ public:
 	//for keeping track of graph dimensions
 	virtual void updateStats(float a, float b, float c);
 
+	virtual int getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node) { return INT_MAX; };
+
 	void updateMainRender();
 	int render_preview_graph();
 	void changeZoom(double delta);
@@ -116,7 +116,7 @@ public:
 	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
 	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
 	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric);
-	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget);
+	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric);
 	void gen_graph_VBOs(graphGLWidget *gltarget);
 	void render_replay_animation(float fadeRate);
 
@@ -202,6 +202,7 @@ public:
 
 	int threadReferences = 0;
 
+	vector <TEXTRECT> labelPositions;
 protected:
 
 #ifdef XP_COMPATIBLE

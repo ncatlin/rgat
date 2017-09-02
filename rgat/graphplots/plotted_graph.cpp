@@ -1541,15 +1541,24 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 
 	string symString;
 	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, &symString);
+	if (symString.empty()) return;
+
 	
 	int textLength = fontMetric->width(symString.c_str());
-	
-	painter->drawText(screenCoord.x - textLength, gltarget->height() - screenCoord.y + INS_Y_OFF, symString.c_str());
+	int textHeight = fontMetric->height();
 
+	TEXTRECT textrect;
+	textrect.rect.setX(screenCoord.x - textLength);
+	textrect.rect.setWidth(textLength);
+	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setHeight(textHeight);
+	textrect.index = n->index;
 
+	labelPositions.push_back(textrect);
+	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, symString.c_str());
 }
 
-void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget)
+void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric)
 {
 	proto_graph * protoGraph = get_protoGraph();
 	if (protoGraph->externalNodeList.empty()) return;
@@ -1615,7 +1624,19 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	}
 	protoGraph->externCallsLock.unlock();
 
-	painter->drawText(screenCoord.x + INS_X_OFF + 10, gltarget->height() - screenCoord.y + INS_Y_OFF, argstring.str().c_str());
+	int textLength = fontMetric->width(argstring.str().c_str());
+	int textHeight = fontMetric->height();
+
+	TEXTRECT textrect;
+	textrect.rect.setX(screenCoord.x + INS_X_OFF + 10);
+	textrect.rect.setWidth(textLength);
+	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setHeight(textHeight);
+	textrect.index = n->index;
+
+	labelPositions.push_back(textrect);
+
+	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, argstring.str().c_str());
 }
 
 //show functions/args for externs in active graph if settings allow
@@ -1629,7 +1650,11 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	QPainter painter(gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextExternal);
 	painter.setFont(clientState->instructionFont);
+	const QFontMetrics fm(clientState->instructionFont);
 
+	TEXTRECT mouseoverNode;
+	bool hasMouseover;
+	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
 
 	vector<NODEINDEX> externalNodeList = internalProtoGraph->copyExternalNodeList();
 
@@ -1642,7 +1667,16 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 		DCOORD screenCoord;
 		if (get_visible_node_pos(n->index, &screenCoord, &screenInfo, gltarget))
-			draw_func_args(&painter, screenCoord, n, gltarget);
+		{
+			if (hasMouseover && mouseoverNode.index == n->index)
+			{
+				painter.setPen(al_col_orange);
+				draw_func_args(&painter, screenCoord, n, gltarget, &fm);
+				painter.setPen(clientState->config.mainColours.symbolTextExternal);
+			}
+			else
+				draw_func_args(&painter, screenCoord, n, gltarget, &fm);
+		}
 	}
 	painter.end();
 
@@ -1665,6 +1699,11 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 	vector<NODEINDEX> internListCopy = internalProtoGraph->copyInternalNodeList();
 
+
+	TEXTRECT mouseoverNode;
+	bool hasMouseover;
+	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+
 	vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
 	for (; internSymIt != internListCopy.end(); ++internSymIt)
 	{
@@ -1673,9 +1712,20 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 		DCOORD screenCoord;
 		if (get_visible_node_pos(n->index, &screenCoord, &screenInfo, gltarget))
-			draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
+		{
+			if (hasMouseover && mouseoverNode.index == n->index)
+			{
+				painter.setPen(al_col_orange);
+				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
+				painter.setPen(clientState->config.mainColours.symbolTextInternal);
+			}
+			else
+				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
+			
+		}
 	}
 	painter.end();
+
 }
 
 

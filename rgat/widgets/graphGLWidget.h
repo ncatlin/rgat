@@ -29,6 +29,11 @@ intended to be inherited eg: (main animated trace display, trace diffs)
 enum eDisplayMode { eStandardGraph, eHeatMap, eConditional, eDiffView };
 enum eDiffMode { eDiffInactive, eDiffSelected, eDiffRendered };
 
+struct TEXTRECT {
+	QRect rect;
+	NODEINDEX index = INT_MAX;
+};
+
 
 class graphGLWidget :
 	public QOpenGLWidget, public QOpenGLFunctions_3_0
@@ -52,7 +57,7 @@ public:
 	void drawBox(float x, float y, float w, float h, int thickness, QColor colour);
 	void drawRect(float x, float y, float w, float h, QColor colour);
 	void drawHighlightLine(FCOORD lineEndPt, QColor *colour);
-
+	bool getMouseoverNode(TEXTRECT *node) { *node = mouseoverNode; return activeMouseoverNode; }
 	static rgatState *clientState;
 
 public Q_SLOTS:
@@ -70,11 +75,13 @@ protected:
 	void clearHighlightNodes(PLOTTEDGRAPH_CASTPTR graphPtr);
 
 	bool acceptsMouseDrag = false;
+	QPoint mousePos;
+	bool activeMouseoverNode = false;
+	TEXTRECT mouseoverNode = { QRect(0,0,0,0), 0 };
 
 private:
 	eDisplayMode displaymode = eStandardGraph;
 	eDiffMode diffMode = eDiffInactive;
-	QPoint mousePos;
 
 	double aspect;
 };

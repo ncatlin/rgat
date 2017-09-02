@@ -270,6 +270,26 @@ CYLINDERCOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 	return 0;
 }
 
+int cylinder_graph::getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node)
+{ 
+	float a;
+	float b;
+	DCOORD mousexy = { 0, 0, 0 };
+	GLint viewport[4];
+	GLdouble modelview[16];
+	GLdouble projection[16];
+	gltarget->glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	gltarget->glGetDoublev(GL_PROJECTION_MATRIX, projection);
+	gltarget->glGetIntegerv(GL_VIEWPORT, viewport);
+	gluUnProject(screenPos.x(), screenPos.y(), 0, modelview, projection, viewport, &mousexy.x, &mousexy.y, &mousexy.z);
+
+	cout << " graphzy: " << mousexy.x << "," << (gltarget->height() - mousexy.y) << "," << mousexy.z << endl;
+	cylinderAB(&mousexy, &a, &b, main_scalefactors);
+	cout << " mouseab: " << a << "," << b << endl;
+	*node = 0;
+	return INT_MAX; 
+}
+
 
 bool cylinder_graph::a_coord_on_screen(int a, float hedgesep)
 {
@@ -402,6 +422,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 	return curvePoints;
 }
 
+//does this get called?
 void cylinder_graph::orient_to_user_view()
 {
 	glTranslatef(0, 0, -cameraZoomlevel);
@@ -446,6 +467,8 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 	painter.setPen(clientState->config.mainColours.symbolTextExternalRising);
 	painter.setFont(clientState->instructionFont);
 	int windowHeight = gltarget->height();
+
+
 
 	vector <pair<NODEINDEX, EXTTEXT>>::iterator displayNodeListIt = displayNodeList.begin();
 	for (; displayNodeListIt != displayNodeList.end(); ++displayNodeListIt)
@@ -628,45 +651,6 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 	cylinderCoord(nodeCoordCyl->a, nodeCoordCyl->b, &result, dimensions, diamModifier);
 	return result;
 }
-
-/*
-//delta is a percentage (0-1) to increase/decrease seperation
-void cylinder_graph::adjust_A_edgeSep(float delta)
-{ 
-	int newPixA = main_scalefactors->pix_per_A * (1 + delta);
-	if (newPixA > 0)
-	{
-		if (newPixA == main_scalefactors->pix_per_A)
-			++newPixA;
-
-		//increase gets a bit too drastic above 25 per step
-		main_scalefactors->pix_per_A = min(newPixA, main_scalefactors->pix_per_A + 25);
-		rescale = true;
-	}
-};
-
-//rule of three!
-//delta is a percentage (0-1) to increase/decrease seperation
-void cylinder_graph::adjust_B_edgeSep(float delta)
-{ 
-	int newPixB = main_scalefactors->pix_per_B * (1 + delta);
-	if (newPixB > 0)
-	{
-		if (newPixB == main_scalefactors->pix_per_B)
-			++newPixB;
-
-		main_scalefactors->pix_per_B = min(newPixB, main_scalefactors->pix_per_B + 25);
-		rescale = true;
-	}
-};
-
-void cylinder_graph::reset_edgeSep()
-{ 
-	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
-	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
-	rescale = true; 
-}
-*/
 
 //IMPORTANT: Must have edge reader lock to call this
 bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate)
@@ -862,6 +846,7 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 {
 	if (!trySetGraphBusy()) return;
 
+	labelPositions.clear();
 	if (isAnimated())
 		display_active(gltarget);
 	else
@@ -872,11 +857,14 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_instructions_text(zmul, pd, gltarget);
 
-	if ((replayState != ePlaying) && clientState->should_show_internal_symbols(zmul))
-		show_internal_symbol_labels(pd, gltarget);
+	if (!isAnimated() || replayState == ePaused)
+	{
+		if (clientState->should_show_external_symbols(zmul))
+			show_external_symbol_labels(pd, gltarget);
 
-	if ((!isAnimated() || replayState == ePaused) && clientState->should_show_external_symbols(zmul))
-		show_external_symbol_labels(pd, gltarget);
+		if (clientState->should_show_internal_symbols(zmul))
+			show_internal_symbol_labels(pd, gltarget);
+	}
 	else 
 		if (clientState->config.showRisingAnimated && internalProtoGraph->active)
 		{	//show label of extern we are blocked on
@@ -895,9 +883,19 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
 				{
 					QPainter painter(gltarget);
-					painter.setPen(al_col_red);
 					painter.setFont(clientState->instructionFont);
-					draw_func_args(&painter, screenCoord, n, gltarget);
+					const QFontMetrics fm(clientState->instructionFont);
+
+					TEXTRECT mouseoverNode;
+					bool hasMouseover;
+					hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+
+					if (hasMouseover && mouseoverNode.index == n->index)
+						painter.setPen(al_col_orange);
+					else
+						painter.setPen(al_col_red);
+
+					draw_func_args(&painter, screenCoord, n, gltarget, &fm);
 					painter.end();
 				}
 			}

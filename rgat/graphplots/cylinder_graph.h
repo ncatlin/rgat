@@ -62,6 +62,8 @@ public:
 	float previewZoom() { return -2550; }
 	int prevScrollYPosition() { return 580; }
 
+	int getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node);
+
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions);
