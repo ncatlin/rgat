@@ -26,6 +26,7 @@ The primary graph display opengl widget
 #include "diff_plotter.h"
 #include "maintabbox.h"
 #include "ui_rgat.h"
+#include "ui_labelMouseoverWidget.h"
 
 graphPlotGLWidget::graphPlotGLWidget(QWidget *parent)
 	: graphGLWidget(parent)
@@ -47,8 +48,92 @@ graphPlotGLWidget::~graphPlotGLWidget()
 {
 }
 
+void graphPlotGLWidget::showMouseoverNodeTooltip()
+{
+	clientState->labelMouseoverWidget->show();
+	QPoint mouseoverPos = window()->pos() + mouseoverNode.rect.topLeft();
+	clientState->labelMouseoverWidget->move(mouseoverPos);
+	clientState->labelMouseoverWidget->raise();
+
+	Ui_mouseoverWidget* tooltipwidget = (Ui_mouseoverWidget*)clientState->labelMouseoverUI;
 
 
+	proto_graph *graph = activeGraph->get_protoGraph();
+	node_data *node = graph->safe_get_node(mouseoverNode.index);
+	PROCESS_DATA *piddata = graph->get_piddata();
+	MEM_ADDRESS moduleBase = piddata->modBounds.at(node->nodeMod).first;
+	MEM_ADDRESS moduleOffset = 0;
+
+	if (node->external || node->ins->hasSymbol)
+	{
+		string symString;
+		MEM_ADDRESS ff;
+		piddata->get_sym(node->nodeMod, node->address, moduleOffset, symString);
+		if (!symString.empty())
+			tooltipwidget->symbolText->setText("Symbol: "+QString::fromStdString(symString));
+	}
+
+	if (!moduleOffset)
+		moduleOffset = node->address - moduleBase;
+
+	QString moduleText = "Module: " + QString::fromStdString(piddata->modpaths.at(node->nodeMod).string());
+	moduleText += "+ 0x";
+	moduleText += QString::number(moduleOffset,16);
+
+	tooltipwidget->moduleLabel->setText(moduleText);
+	tooltipwidget->moduleLabel->adjustSize();
+
+	tooltipwidget->callCount->setText("Total Calls:" + QString::number(node->calls));
+
+	if (!node->callRecordsIndexs.empty())
+	{
+		QAbstractItemModel *model = tooltipwidget->callsText->model();
+		model->removeRows(0, model->rowCount());
+		tooltipwidget->callsText->show();
+
+		int callcount = 0;
+		for each (int callindex in node->callRecordsIndexs)
+		{
+			stringstream argstring;
+			argstring << "#"<<callcount<< "(";
+			vector<ARGIDXDATA> *args = &graph->externCallRecords.at(callindex).argList;
+			vector<ARGIDXDATA>::iterator argIt = args->begin();
+
+			while (argIt != args->end())
+			{
+				argstring << argIt->first << ": " << argIt->second;
+				++argIt;
+			}
+
+			QString itemString = QString::fromStdString(argstring.str() + ")\n");
+
+			QListWidgetItem *item = new QListWidgetItem;
+			item->setText(itemString);
+			item->setSizeHint(QSize(item->sizeHint().width(), 20));
+			tooltipwidget->callsText->addItem(item);
+
+			++callcount;
+		}
+		tooltipwidget->callsText->adjustSize();
+	}
+	else
+		tooltipwidget->callsText->hide();
+
+	clientState->labelMouseoverWidget->adjustSize();
+}
+
+bool graphPlotGLWidget::event(QEvent * event)
+{
+	if (event->type() == QEvent::MouseButtonPress)
+	{
+		if (activeMouseoverNode)
+		{
+			showMouseoverNodeTooltip();
+		}
+	}
+
+	return QWidget::event(event);
+}
 
 //activate a graph in the active trace
 //selects the last one that was active in this trace, or the first seen
@@ -265,7 +350,6 @@ void graphPlotGLWidget::drawHUD()
 		glClearColor(bgColour.redF(), bgColour.greenF(), bgColour.blueF(), bgColour.alphaF());
 	}
 }
-
 bool graphPlotGLWidget::chooseGraphToDisplay()
 {
 
@@ -313,24 +397,29 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 
 }
 
-void graphPlotGLWidget::setMouseoverNode()
+//sets the node the current mouse is over, return true if active node before call is still under mouse
+bool graphPlotGLWidget::setMouseoverNode()
 {
-	
-	if (!activeGraph) return;
-	if (activeMouseoverNode && mouseoverNode.rect.contains(mousePos.x(), mousePos.y()))
-		return;
+	if (!activeGraph)
+		return false;
 
-	for each(TEXTRECT tr in activeGraph->labelPositions)
+	//mouse still over same node?
+	if (activeMouseoverNode && mouseoverNode.rect.contains(mousePos.x(), mousePos.y()))
+		return true;
+
+	//mouse over any node?
+	for each(TEXTRECT nodelabel in activeGraph->labelPositions)
 	{
-		if (tr.rect.contains(mousePos.x(), mousePos.y()))
+		if (nodelabel.rect.contains(mousePos.x(), mousePos.y()))
 		{
-			cout << "mouseover label of node " << tr.index << endl;
-			mouseoverNode = tr;
+			mouseoverNode = nodelabel;
 			activeMouseoverNode = true;
-			return;
+			return false;
 		}
 	}
+
 	activeMouseoverNode = false;
+	return false;
 }
 
 void graphPlotGLWidget::paintGL()
@@ -456,7 +545,10 @@ void graphPlotGLWidget::performIrregularActions()
 		ui->dynamicAnalysisContentsTab->stopAnimation();
 	}
 
-	setMouseoverNode();
+	if (!setMouseoverNode())
+	{
+		clientState->labelMouseoverWidget->hide();
+	}
 }
 
 #define HEATKEY_POS_Y 25

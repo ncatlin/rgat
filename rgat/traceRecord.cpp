@@ -221,7 +221,7 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
 	graph->setAnimated(false);
 
 	protograph->active = false;
-	protograph->assign_modpath(get_piddata());
+	protograph->assign_modpath();
 
 	return true;
 }

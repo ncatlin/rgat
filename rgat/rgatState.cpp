@@ -539,6 +539,16 @@ void rgatState::updateTextDisplayButtons()
 	}
 	textButtons.externalAddress->setChecked(config.externalSymbolVisibility.addresses);
 	
+	if (config.externalSymbolVisibility.offsets)
+	{
+		textButtons.externalOffset->setStatusTip(QCoreApplication::tr("Offset of external symbols from module base shown. Click to hide."));
+	}
+	else
+	{
+		textButtons.externalOffset->setStatusTip(QCoreApplication::tr("Offset of external symbols from module base hidden. Click to show."));
+	}
+	textButtons.externalOffset->setChecked(config.externalSymbolVisibility.offsets);
+
 	if (config.externalSymbolVisibility.fullPaths)
 	{
 		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Full paths of external symbols shown. Click to hide."));

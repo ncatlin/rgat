@@ -36,6 +36,7 @@ struct SYMS_VISIBILITY
 	bool notAnimated;
 	bool fullPaths;
 	bool addresses;
+	bool offsets;
 	bool arguments;
 };
 

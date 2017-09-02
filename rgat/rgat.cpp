@@ -62,6 +62,12 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 	externMenu->addAction(address);
 	connect(address, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternAddress); });
 
+	QAction *offset = new QAction(tr("&Offsets"), this);
+	rgatstate->textButtons.externalOffset = offset;
+	offset->setCheckable(true);
+	externMenu->addAction(offset);
+	connect(offset, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternOffset); });
+
 	QAction *paths = new QAction(tr("&Full Paths"), this);
 	rgatstate->textButtons.externalPath = paths;
 	paths->setCheckable(true);
@@ -113,6 +119,12 @@ void rgat::addInstructionTextBtn(QMenu *labelmenu)
 	mnemonicAction->setCheckable(true);
 	menu->addAction(mnemonicAction);
 	connect(mnemonicAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionMnemonic); });
+
+	QAction *addressAction = new QAction(tr("&Addresses"), this);
+	rgatstate->textButtons.instructionAddress = addressAction;
+	addressAction->setCheckable(true);
+	menu->addAction(addressAction);
+	connect(addressAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionAddress); });
 }
 
 void rgat::textBtnTriggered(int buttonID)
@@ -129,6 +141,14 @@ void rgat::textBtnTriggered(int buttonID)
 
 	case textBtnEnum::eExternAddress:
 		rgatstate->config.externalSymbolVisibility.addresses = !rgatstate->config.externalSymbolVisibility.addresses;
+		if (rgatstate->config.externalSymbolVisibility.addresses)
+			rgatstate->config.externalSymbolVisibility.offsets = false;
+		break;
+
+	case textBtnEnum::eExternOffset:
+		rgatstate->config.externalSymbolVisibility.offsets = !rgatstate->config.externalSymbolVisibility.offsets;
+		if (rgatstate->config.externalSymbolVisibility.offsets)
+			rgatstate->config.externalSymbolVisibility.addresses = false;
 		break;
 
 	case textBtnEnum::eExternPath:
@@ -149,6 +169,10 @@ void rgat::textBtnTriggered(int buttonID)
 
 	case textBtnEnum::eInstructionMnemonic:
 		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
+		break;
+
+	case textBtnEnum::eInstructionAddress:
+		rgatstate->config.instructionTextVisibility.addresses = !rgatstate->config.instructionTextVisibility.addresses;
 		break;
 
 	default:
@@ -175,6 +199,10 @@ void rgat::setupUI()
 	ui.setupUi(this);
 	processSelectui.setupUi(&processSelectorDialog);
 	highlightSelectui.setupUi(&highlightSelectorDialog);
+	mouseoverWidgetui.setupUi(&mouseoverWidget);
+
+	rgatstate->labelMouseoverWidget = &mouseoverWidget;
+	mouseoverWidget.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
 	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
 
@@ -268,6 +296,8 @@ void rgat::setStatePointers()
 	rgatstate->highlightSelectUI = &highlightSelectui;
 	highlightSelectui.highlightDialogWidget->clientState = rgatstate;
 	
+	rgatstate->labelMouseoverUI = &mouseoverWidgetui;
+
 	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);
 	ui.dynamicAnalysisContentsTab->setPtrs(&rgatstate->targets, rgatstate);
 	ui.traceAnalysisTree->setClientState(rgatstate);
@@ -371,5 +401,7 @@ void rgat::closeEvent(QCloseEvent *event)
 		highlightSelectorDialog.hide();
 	if (processSelectorDialog.isVisible())
 		processSelectorDialog.hide();
+	if (mouseoverWidget.isVisible())
+		mouseoverWidget.hide();
 	event->accept();
 }

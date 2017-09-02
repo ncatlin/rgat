@@ -1526,7 +1526,12 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		}
 
 
-		ss << std::dec << i << "-0x" << std::hex << n->ins->address << ":" << displayText;
+		ss << std::dec << i;
+		if (clientState->config.instructionTextVisibility.addresses)
+			ss << " 0x"  << std::hex << n->ins->address;
+		else
+			ss << " +0x" << std::hex << (n->ins->address - get_protoGraph()->moduleBase);
+		ss << ": " << displayText;
 
 		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
 		ss.str("");
@@ -1540,7 +1545,8 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 {
 
 	string symString;
-	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, &symString);
+	MEM_ADDRESS offset;
+	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, offset, symString);
 	if (symString.empty()) return;
 
 	
@@ -1575,19 +1581,25 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 
 	int numCalls = n->calls;
 	string symString;
+	MEM_ADDRESS offset;
 
 	if (!clientState->config.externalSymbolVisibility.addresses)
-		piddata->get_sym(n->nodeMod, n->address, &symString);
+		piddata->get_sym(n->nodeMod, n->address, offset, symString);
 
 
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())
-		argstring << modulePath.filename().string() << ":0x" << std::hex << n->address;
+		argstring << modulePath.filename().string();
+	
+	if (clientState->config.externalSymbolVisibility.addresses)
+		argstring << ": 0x" << std::hex << n->address;
+	else
+		argstring << ": +0x" << std::hex << offset;
 
 	if (numCalls > 1)
-		argstring << symString;
+		argstring << " " << symString;
 	else
-		argstring << n->calls << "x " << symString;
+		argstring << " " << n->calls << " x " << symString;
 
 	protoGraph->externCallsLock.lock();
 	if (n->callRecordsIndexs.empty() || !clientState->config.externalSymbolVisibility.arguments)
@@ -1802,7 +1814,10 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 			itext = n->ins->ins_text;
 
 		stringstream ss;
-		ss << "0x" << std::hex << n->ins->address << ": " << itext;
+		if (clientState->config.instructionTextVisibility.addresses)
+			ss << "0x" << std::hex << n->ins->address << ": " << itext;
+		else
+			ss << "+0x" << std::hex << get_protoGraph()->moduleBase << ": " << itext;
 
 		painter.setPen(textColour);
 		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + COND_INSTEXT_Y_OFF, ss.str().c_str());

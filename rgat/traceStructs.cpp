@@ -91,23 +91,41 @@ void PROCESS_DATA::dropExternCallerWriteLock()
 #endif
 }
 
-bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym)
+bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, MEM_ADDRESS &offset, string &sym)
 {
 	bool found;
 	getDisassemblyWriteLock();
 	if (modsymsPlain[modNum][addr].empty())
 	{
-		*sym = "";
+		sym = "";
 		found = false;
 	}
 	else
 	{
-		*sym = modsymsPlain[modNum][addr];
+		sym = modsymsPlain[modNum][addr];
 		found = true;
 	}
+	MEM_ADDRESS base = modBounds[modNum].first;
 	dropDisassemblyWriteLock();
+	offset = addr - base;
 
 	return found;
+}
+
+
+bool PROCESS_DATA::get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase)
+{
+	getDisassemblyReadLock();
+	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>>::iterator modBoundsIt = modBounds.find(modNum);
+	dropDisassemblyReadLock();	
+	
+	if (modBoundsIt != modBounds.end())
+	{
+		moduleBase = modBoundsIt->second.first;
+		return true;
+	}
+
+	return false;
 }
 
 bool PROCESS_DATA::get_modpath(unsigned int modNum, boost::filesystem::path *path)

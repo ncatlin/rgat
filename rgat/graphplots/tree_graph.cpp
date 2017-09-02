@@ -303,10 +303,10 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
 	for (; displayNodeListIt != displayNodeList.end(); ++displayNodeListIt)
 	{
 		internalProtoGraph->getNodeReadLock();
-		TREECOORD *coord = get_node_coord(displayNodeListIt->first);
+		//TREECOORD *coord = get_node_coord(displayNodeListIt->first);
 		internalProtoGraph->dropNodeReadLock();
 
-		EXTTEXT *extxt = &displayNodeListIt->second;
+		//EXTTEXT *extxt = &displayNodeListIt->second;
 
 
 		if (!get_screen_pos(displayNodeListIt->first, mainnodesdata, pd, &nodepos))
@@ -357,7 +357,7 @@ void recalculate_scale(GRAPH_SCALE *mults)
 //reads the list of nodes/edges, creates opengl vertex/colour data
 void tree_graph::render_static_graph()
 {
-	bool doResize = false;
+	//bool doResize = false;
 	/*
 	if (clientState->rescale)
 	{
@@ -446,7 +446,7 @@ void tree_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor *col
 	FCOORD nodeCoordxyz;
 	if (!nodeCoord) return;
 
-	TREECOORD *treeNodeCoord = (TREECOORD *)nodeCoord;
+//	TREECOORD *treeNodeCoord = (TREECOORD *)nodeCoord;
 	//float adjB = treeNodeCoord->b + float(sphereNodeCoord->bMod * BMODMAG);
 	//sphereCoord(sphereNodeCoord->a, adjB, &nodeCoordxyz, scale, lengthModifier);
 	//drawHighlightLine(nodeCoordxyz, colour);

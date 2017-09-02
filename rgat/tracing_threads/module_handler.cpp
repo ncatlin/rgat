@@ -234,6 +234,7 @@ void module_handler::main_loop()
 					}
 
 				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
+
 				piddata->dropDisassemblyWriteLock();
 
 				continue;

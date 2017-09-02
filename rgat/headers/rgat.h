@@ -23,6 +23,8 @@ The main QT window class
 #include "ui_rgat.h"
 #include "ui_processSelector.h"
 #include "ui_highlightSelector.h"
+#include "ui_labelMouseoverWidget.h"
+
 #include "rgatState.h"
 #include "highlightWidget.h"
 
@@ -31,7 +33,8 @@ The main QT window class
 #define RELEASE_BUILD true
 
 namespace textBtnEnum {
-	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternPath, eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionMnemonic };
+	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternOffset, eExternPath,
+		eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionAddress, eInstructionMnemonic };
 }
 
 class rgat : public QMainWindow
@@ -62,6 +65,9 @@ private:
 	QDialog highlightSelectorDialog;
 	Ui::highlightDialog highlightSelectui;
 	QLabel *tracingStatusLabel, *activityStatusLabel;
+	Ui_mouseoverWidget mouseoverWidgetui;
+	QWidget mouseoverWidget;
+
 
 private:
 	void setStatePointers();

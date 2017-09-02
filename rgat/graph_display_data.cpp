@@ -140,9 +140,9 @@ void GRAPH_DISPLAY_DATA::release_col_read()
 //mutexes are bit dodgy, expect them to be held by caller
 void GRAPH_DISPLAY_DATA::set_numVerts(GLsizei num)
 { 
-	assert(num >= numVerts);
+	assert(num >= (GLsizei)numVerts);
 	numVerts = num;
-	vcolarraySize = vcolarray.size();
+	vcolarraySize = (unsigned long)vcolarray.size();
 }
 
 void GRAPH_DISPLAY_DATA::reset()
@@ -165,7 +165,7 @@ void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColo
 	vector <float> *vcol = acquire_col_write();
 
 	GLsizei numverts = get_numVerts();
-	*arraypos = vcol->size();
+	*arraypos = (long)vcol->size();
 
 	vpos->push_back(startC->x);
 	vpos->push_back(startC->y);
@@ -206,7 +206,7 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 		assert(0);
 		return 0;
 	}
-	*colarraypos = vertcol->size();
+	*colarraypos = (long)vertcol->size();
 
 	vertpos->push_back(startC->x);
 	vertpos->push_back(startC->y);
