@@ -55,7 +55,7 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 	else
 	{
 		writer.StartArray(); //[8] function calls as indexes into call records
-		vector<NODEINDEX>::iterator callIt = callRecordsIndexs.begin();
+		vector<unsigned long>::iterator callIt = callRecordsIndexs.begin();
 		for (; callIt != callRecordsIndexs.end(); callIt++)
 		{
 			writer.Uint64(*callIt);

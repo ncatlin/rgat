@@ -128,8 +128,9 @@ public:
 	PROCESS_DATA(int binaryBitWidth) { bitwidth = binaryBitWidth;  }
 	~PROCESS_DATA() { };
 
-	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string *sym);
-	bool get_modpath(unsigned int modNum, boost::filesystem::path *path);
+	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, MEM_ADDRESS &offset, string &sym);
+	bool get_modpath(unsigned int modNum, boost::filesystem::path *path); 
+	bool get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase);
 
 	void kill() { if (running) { killed = true; } }
 

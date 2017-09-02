@@ -109,12 +109,14 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
-		if (lastNodeType != eFIRST_IN_THREAD && !thisgraph->node_exists(lastVertID))
+		if (lastNodeType != eFIRST_IN_THREAD)
 		{
-			cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
-			assert(0);
+			if (!thisgraph->node_exists(lastVertID))
+			{
+				cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
+				assert(0);
+			}
 		}
-
 
 
 		//target vert already on this threads graph?
@@ -127,9 +129,6 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 		{
 			thisgraph->handle_previous_instruction(targVertID, repeats);
 		}
-
-		if (lastVertID == 6 && targVertID == 8)
-			cout << " f ";
 
 		if (loopState == BUILDING_LOOP)
 		{
@@ -501,7 +500,7 @@ void trace_graph_builder::handle_exception_tag(TAG *thistag)
 	}
 	else
 	{
-		cerr << "[rgat]Error: Bad jump tag" << endl;
+		cerr << "[rgat]Error: Bad jump tag while handling exception" << endl;
 		assert(0);
 	}
 }
@@ -1198,6 +1197,12 @@ void trace_graph_builder::main_loop()
 			if (entry[0] == TRACE_TAG_MARKER)
 			{
 				process_trace_tag((char *)entry.c_str());
+
+				//not thrilled about this being called for every tag but it's the cleanest place to put it
+				//tempted to make process_trace_tag a function pointer and have it point to process_first_trace_tag initially
+				if (thisgraph->exeModuleID == -1 && !thisgraph->nodeList.empty())
+					thisgraph->assign_modpath();
+
 				continue;
 			}
 

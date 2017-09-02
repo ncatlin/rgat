@@ -47,7 +47,7 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	node_data thisnode;
 	thisnode.ins = instruction;
 
-	NODEINDEX targVertID = get_num_nodes();
+	NODEINDEX targVertID = (NODEINDEX)get_num_nodes();
 
 	thisnode.index = targVertID;
 	thisnode.ins = instruction;
@@ -375,7 +375,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	writer.EndArray();
 
 	writer.Key("Module");
-	writer.Uint(baseModule);
+	writer.Uint(exeModuleID);
 
 	externCallsLock.lock();
 	writer.Key("ExternCalls");
@@ -567,7 +567,8 @@ bool proto_graph::loadStats(const Value& graphData)
 
 	Value::ConstMemberIterator statsIt = graphData.FindMember("Module");
 	if (statsIt == graphData.MemberEnd()) return false;
-	baseModule = statsIt->value.GetUint();
+	exeModuleID = statsIt->value.GetUint();
+	moduleBase = get_piddata()->modBounds.at(exeModuleID).first;
 
 	statsIt = graphData.FindMember("TotalInstructions");
 	if (statsIt == graphData.MemberEnd()) return false;
@@ -630,13 +631,14 @@ bool proto_graph::loadEdgeDict(const Value& edgeArray)
 	return true;
 }
 
-//return symbol text if it exists, otherwise return module path+address
+//return symbol text if it exists, otherwise return module path+offset
 string proto_graph::get_node_sym(NODEINDEX idx)
 {
 	node_data *n = safe_get_node(idx);
 	string sym;
+	MEM_ADDRESS offset;
 
-	if (piddata->get_sym(n->nodeMod, n->address, &sym))
+	if (piddata->get_sym(n->nodeMod, n->address, offset, sym))
 		return sym;
 
 	boost::filesystem::path modPath;
@@ -644,16 +646,19 @@ string proto_graph::get_node_sym(NODEINDEX idx)
 		cerr << "[rgat]WARNING: mod " << n->nodeMod << " expected but not found" << endl;
 
 	stringstream nosym;
-	nosym << modPath.filename() << ":0x" << std::hex << n->address;
+	nosym << modPath.filename() << "+0x" << std::hex << offset;
 	return nosym.str();
 }
 
-void proto_graph::assign_modpath(PROCESS_DATA *pidinfo)
+void proto_graph::assign_modpath()
 {
-	baseModule = safe_get_node(0)->nodeMod;
-	if (baseModule >= (int)pidinfo->modpaths.size()) return;
+	exeModuleID = safe_get_node(0)->nodeMod;
+	if (exeModuleID >= (int)piddata->modpaths.size()) return;
+
 	boost::filesystem::path longmodPath;
-	pidinfo->get_modpath(baseModule, &longmodPath);
+	piddata->get_modpath(exeModuleID, &longmodPath);
+	piddata->get_modbase(exeModuleID, moduleBase);
+	
 
 	if (longmodPath.size() > MAX_DIFF_PATH_LENGTH)
 		modulePath = ".." + longmodPath.string().substr(longmodPath.size() - MAX_DIFF_PATH_LENGTH, longmodPath.size());

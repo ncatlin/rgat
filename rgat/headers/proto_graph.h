@@ -99,7 +99,7 @@ public:
 
 	vector<node_data> nodeList; //node id to node data
 
-	bool node_exists(NODEINDEX idx) { if (nodeList.size() > idx) return true; return false; }
+	bool node_exists(NODEINDEX idx) { return (nodeList.size() > idx); }
 	size_t get_num_nodes() { return nodeList.size(); }
 	size_t get_num_edges() { return edgeDict.size(); }
 
@@ -163,7 +163,7 @@ public:
 	//todo rename
 	set<NODEINDEX> exceptionSet;
 
-	void assign_modpath(PROCESS_DATA *);
+	void assign_modpath();
 
 	//updated with backlog input/processing each second for display
 	//dunno if ulong reads are atomic, not vital for this application
@@ -187,7 +187,8 @@ public:
 
 	vector<EXTERNCALLDATA> externCallRecords;
 	unsigned long totalInstructions = 0;
-	int baseModule = -1;
+	int exeModuleID = -1;
+	MEM_ADDRESS moduleBase = 0;
 	boost::filesystem::path modulePath;
 
 	NODEINDEX lastNode = 0;

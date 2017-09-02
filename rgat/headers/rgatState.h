@@ -2,6 +2,7 @@
 
 #include "binaryTargets.h"
 #include "clientConfig.h"
+#include "ui_labelMouseoverWidget.h"
 
 #define NO_ACTIVITY_STATUS -9090
 #define PERSISTANT_ACTIVITY -9091
@@ -12,9 +13,9 @@ enum graphLayouts { eCylinderLayout = 0, eTreeLayout = 1, eLayoutInvalid };
 
 struct TEXT_DISPLAY_BUTTONS
 {
-	QAction *externalShowHide, *externalAuto, *externalPath, *externalAddress;
+	QAction *externalShowHide, *externalAuto, *externalPath, *externalAddress, *externalOffset;
 	QAction *internalShowHide, *internalAuto;
-	QAction *instructionShowHide, *instructionMnemonic;
+	QAction *instructionShowHide, *instructionMnemonic, *instructionAddress;
 };
 
 class rgatState
@@ -95,6 +96,8 @@ public:
 	QDialog *processSelectorDialog = NULL;
 	void *highlightSelectUI = NULL;
 	QDialog *highlightSelectorDialog = NULL;
+	void *labelMouseoverUI = NULL;
+	QWidget *labelMouseoverWidget = NULL;
 
 	PLOTTEDGRAPH_CASTPTR getActiveGraph(bool increaseReferences);
 	void clearActiveGraph();

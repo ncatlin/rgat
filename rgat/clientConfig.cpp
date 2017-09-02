@@ -476,6 +476,7 @@ void clientConfig::setDefaultTextSettings()
 	//hide during animation unless highlighted active areas
 	externalSymbolVisibility.enabled = true;
 	externalSymbolVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
+	externalSymbolVisibility.offsets = true;
 	externalSymbolVisibility.addresses = false;
 	externalSymbolVisibility.fullPaths = false;
 	externalSymbolVisibility.arguments = true;

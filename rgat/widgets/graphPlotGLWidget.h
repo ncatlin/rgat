@@ -72,7 +72,8 @@ public Q_SLOTS:
 	void stretchVSet();
 	void plotSizeIncrease();
 	void plotSizeDecrease();
-	void plotSizeSet();
+	void plotSizeSet(); 
+	bool event(QEvent * event) override;
 
 private:
 
@@ -90,7 +91,8 @@ private:
 	void switchToGraph(plotted_graph *graph);
 	void selectGraphInActiveTrace();
 	bool chooseGraphToDisplay(); 
-	void setMouseoverNode();
+	bool setMouseoverNode(); 
+	void showMouseoverNodeTooltip();
 
 	bool performIrregulars = false;
 
