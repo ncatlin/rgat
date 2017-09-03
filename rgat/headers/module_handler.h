@@ -31,11 +31,12 @@ public:
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
 
-		pipename = wstring(L"\\\\.\\pipe\\");
-		pipename += pipeid;
+		inputpipename = wstring(L"\\\\.\\pipe\\");
+		inputpipename += pipeid;
 	};
 
-	wstring pipename;
+	wstring inputpipename;
+	HANDLE controlPipe;
 
 private:
 	binaryTarget *binary;
