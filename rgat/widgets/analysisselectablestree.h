@@ -34,8 +34,8 @@ class analysisSelectablesTree :
 public:
 	analysisSelectablesTree(QWidget *parent = 0);
 	~analysisSelectablesTree();
-	void updateContents();
-	void setClientState(rgatState *statePtr) { clientState = statePtr; }
+	void updateContents(binaryTarget *binary);
+	void setClientState(rgatState *statePtr) { clientState = statePtr; clientStateSet = true; }
 
 public Q_SLOTS:
 	void analysisItemSelected(QTreeWidgetItem*, int);
@@ -64,6 +64,7 @@ private:
 
 private:
 	rgatState *clientState = NULL;
+	bool clientStateSet = false;
 
 	map <proto_graph *, QTreeWidgetItem*> graphItemsList;
 	map <traceRecord *, QTreeWidgetItem*> traceItemsList;

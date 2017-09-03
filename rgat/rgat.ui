@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1200</width>
-    <height>761</height>
+    <width>995</width>
+    <height>756</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1693,221 +1693,235 @@
                   </widget>
                  </item>
                  <item>
-                  <layout class="QVBoxLayout" name="graphStretchFrameLayout">
-                   <property name="spacing">
-                    <number>0</number>
+                  <widget class="QFrame" name="">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
                    </property>
-                   <property name="sizeConstraint">
-                    <enum>QLayout::SetDefaultConstraint</enum>
+                   <property name="frameShape">
+                    <enum>QFrame::Box</enum>
                    </property>
-                   <property name="leftMargin">
-                    <number>0</number>
+                   <property name="lineWidth">
+                    <number>1</number>
                    </property>
-                   <property name="topMargin">
-                    <number>30</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>70</number>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="horizStertchTitleLabel">
-                     <property name="text">
-                      <string>Horizontal Stretch</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="stertchHLayout">
-                     <property name="leftMargin">
-                      <number>20</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>20</number>
-                     </property>
-                     <item>
-                      <widget class="QPushButton" name="minusHStretchBtn">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>-</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="stretchHEdit">
-                       <property name="minimumSize">
-                        <size>
-                         <width>60</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>60</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="addHStretchBtn">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>+</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="vertStertchTitleLabel">
-                     <property name="text">
-                      <string>Vertical Stretch</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="stertchVLayout">
-                     <property name="leftMargin">
-                      <number>20</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>20</number>
-                     </property>
-                     <item>
-                      <widget class="QPushButton" name="minusVStretchBtn">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>30</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>-</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="stretchVEdit">
-                       <property name="maximumSize">
-                        <size>
-                         <width>60</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="addVStretchBtn">
-                       <property name="minimumSize">
-                        <size>
-                         <width>30</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>+</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="plotSizeTitleLabel">
-                     <property name="text">
-                      <string>Plot Size</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="plotSizeLayout">
-                     <property name="leftMargin">
-                      <number>20</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>20</number>
-                     </property>
-                     <item>
-                      <widget class="QPushButton" name="minusPlotSizeBtn">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>-</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="plotSizeEdit">
-                       <property name="maximumSize">
-                        <size>
-                         <width>60</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="alignment">
-                        <set>Qt::AlignCenter</set>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="addPlotSizeBtn">
-                       <property name="minimumSize">
-                        <size>
-                         <width>30</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>+</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                  </layout>
+                   <layout class="QVBoxLayout" name="graphStretchFrameLayout">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="sizeConstraint">
+                     <enum>QLayout::SetFixedSize</enum>
+                    </property>
+                    <property name="leftMargin">
+                     <number>1</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>30</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>1</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>70</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="horizStertchTitleLabel">
+                      <property name="text">
+                       <string>Horizontal Stretch</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="stertchHLayout">
+                      <property name="leftMargin">
+                       <number>20</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>20</number>
+                      </property>
+                      <item>
+                       <widget class="QPushButton" name="minusHStretchBtn">
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>-</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="stretchHEdit">
+                        <property name="minimumSize">
+                         <size>
+                          <width>60</width>
+                          <height>0</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>60</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="addHStretchBtn">
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>+</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="vertStertchTitleLabel">
+                      <property name="text">
+                       <string>Vertical Stretch</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="stertchVLayout">
+                      <property name="leftMargin">
+                       <number>20</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>20</number>
+                      </property>
+                      <item>
+                       <widget class="QPushButton" name="minusVStretchBtn">
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>30</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>-</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="stretchVEdit">
+                        <property name="maximumSize">
+                         <size>
+                          <width>60</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="addVStretchBtn">
+                        <property name="minimumSize">
+                         <size>
+                          <width>30</width>
+                          <height>0</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>+</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="plotSizeTitleLabel">
+                      <property name="text">
+                       <string>Plot Size</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="plotSizeLayout">
+                      <property name="leftMargin">
+                       <number>20</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>20</number>
+                      </property>
+                      <item>
+                       <widget class="QPushButton" name="minusPlotSizeBtn">
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>-</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="plotSizeEdit">
+                        <property name="maximumSize">
+                         <size>
+                          <width>60</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="addPlotSizeBtn">
+                        <property name="minimumSize">
+                         <size>
+                          <width>30</width>
+                          <height>0</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>30</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>+</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
                  </item>
                  <item>
                   <layout class="QVBoxLayout" name="traceSelectFrame">
@@ -2103,122 +2117,180 @@
             <string>Information about collected traces</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_5">
+            <property name="horizontalSpacing">
+             <number>2</number>
+            </property>
             <item row="0" column="0">
-             <widget class="QSplitter" name="traceAnalysisSplitter">
-              <property name="baseSize">
+             <layout class="QVBoxLayout" name="analysisSplitterLeft">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="analysisSelectablesTree" name="traceAnalysisTree">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>265</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>265</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="baseSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QAbstractScrollArea::AdjustToContents</enum>
+                </property>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="indentation">
+                 <number>26</number>
+                </property>
+                <property name="columnCount">
+                 <number>1</number>
+                </property>
+                <attribute name="headerVisible">
+                 <bool>false</bool>
+                </attribute>
+                <attribute name="headerDefaultSectionSize">
+                 <number>512</number>
+                </attribute>
+                <attribute name="headerMinimumSectionSize">
+                 <number>256</number>
+                </attribute>
+                <column>
+                 <property name="text">
+                  <string notr="true">1</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QFrame" name="horizontalFrame">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>265</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::Box</enum>
+                </property>
+                <layout class="QHBoxLayout" name="treeBtnsLayout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QPushButton" name="expandAll">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>80</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>9</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Expand All</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="collapseAll">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>80</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>9</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Collapse All</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPlainTextEdit" name="traceAnalysisTextBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
                <size>
-                <width>800</width>
+                <width>0</width>
                 <height>0</height>
                </size>
               </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+              <property name="readOnly">
+               <bool>true</bool>
               </property>
-              <property name="handleWidth">
-               <number>2</number>
-              </property>
-              <property name="childrenCollapsible">
-               <bool>false</bool>
-              </property>
-              <widget class="analysisSelectablesTree" name="traceAnalysisTree">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>250</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="baseSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="frameShape">
-                <enum>QFrame::WinPanel</enum>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Sunken</enum>
-               </property>
-               <property name="lineWidth">
-                <number>1</number>
-               </property>
-               <property name="midLineWidth">
-                <number>0</number>
-               </property>
-               <property name="horizontalScrollBarPolicy">
-                <enum>Qt::ScrollBarAsNeeded</enum>
-               </property>
-               <property name="sizeAdjustPolicy">
-                <enum>QAbstractScrollArea::AdjustToContents</enum>
-               </property>
-               <property name="editTriggers">
-                <set>QAbstractItemView::NoEditTriggers</set>
-               </property>
-               <property name="indentation">
-                <number>26</number>
-               </property>
-               <property name="headerHidden">
-                <bool>true</bool>
-               </property>
-               <attribute name="headerVisible">
-                <bool>false</bool>
-               </attribute>
-               <attribute name="headerDefaultSectionSize">
-                <number>512</number>
-               </attribute>
-               <attribute name="headerHighlightSections">
-                <bool>false</bool>
-               </attribute>
-               <attribute name="headerMinimumSectionSize">
-                <number>256</number>
-               </attribute>
-               <attribute name="headerShowSortIndicator" stdset="0">
-                <bool>false</bool>
-               </attribute>
-               <attribute name="headerStretchLastSection">
-                <bool>false</bool>
-               </attribute>
-               <column>
-                <property name="text">
-                 <string>Item</string>
-                </property>
-               </column>
-              </widget>
-              <widget class="QPlainTextEdit" name="traceAnalysisTextBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
-                 <horstretch>1</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>250</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="baseSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="readOnly">
-                <bool>true</bool>
-               </property>
-              </widget>
              </widget>
             </item>
            </layout>
@@ -2505,7 +2577,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1200</width>
+     <width>995</width>
      <height>21</height>
     </rect>
    </property>
@@ -3132,22 +3204,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>traceAnalysisTree</sender>
-   <signal>itemClicked(QTreeWidgetItem*,int)</signal>
-   <receiver>traceAnalysisTree</receiver>
-   <slot>analysisItemSelected(QTreeWidgetItem*,int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>135</x>
-     <y>412</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>135</x>
-     <y>412</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>wireframeBtn</sender>
    <signal>toggled(bool)</signal>
    <receiver>graphPlotGLBox</receiver>
@@ -3260,150 +3316,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>addHStretchBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchHIncrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>696</x>
-     <y>637</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>366</x>
-     <y>296</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>minusHStretchBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchHDecrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>601</x>
-     <y>637</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>366</x>
-     <y>296</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>stretchHEdit</sender>
-   <signal>returnPressed()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchHSet()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>644</x>
-     <y>637</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>366</x>
-     <y>296</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>stretchVEdit</sender>
-   <signal>returnPressed()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchVSet()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>656</x>
-     <y>605</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>minusVStretchBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchVDecrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>603</x>
-     <y>605</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>addVStretchBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>stretchVIncrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>709</x>
-     <y>605</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>plotSizeEdit</sender>
-   <signal>returnPressed()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>plotSizeSet()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>656</x>
-     <y>647</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>addPlotSizeBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>plotSizeIncrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>709</x>
-     <y>647</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>minusPlotSizeBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>graphPlotGLBox</receiver>
-   <slot>plotSizeDecrease()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>603</x>
-     <y>647</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>372</x>
-     <y>271</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>startFuzzBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
@@ -3416,6 +3328,22 @@
     <hint type="destinationlabel">
      <x>599</x>
      <y>397</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>traceAnalysisTree</sender>
+   <signal>itemClicked(QTreeWidgetItem*,int)</signal>
+   <receiver>traceAnalysisTree</receiver>
+   <slot>analysisItemSelected(QTreeWidgetItem*,int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>177</x>
+     <y>384</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>177</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>

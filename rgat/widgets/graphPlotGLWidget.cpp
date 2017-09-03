@@ -67,7 +67,6 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 	if (node->external || node->ins->hasSymbol)
 	{
 		string symString;
-		MEM_ADDRESS ff;
 		piddata->get_sym(node->nodeMod, node->address, moduleOffset, symString);
 		if (!symString.empty())
 			tooltipwidget->symbolText->setText("Symbol: "+QString::fromStdString(symString));
