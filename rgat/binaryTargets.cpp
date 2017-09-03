@@ -78,3 +78,12 @@ vector<binaryTarget *> binaryTargets::getTargetsList()
 	targetsLock.unlock();
 	return tempTargets;
 }
+
+void binaryTargets::clear()
+{
+	targetsLock.lock();
+	targets.clear();
+	targetsList.clear();
+	binaryTarget *activeTarget = NULL;
+	targetsLock.unlock();
+}

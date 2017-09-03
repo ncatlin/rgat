@@ -629,7 +629,7 @@ void mainTabBox::startDrgatTest()
 
 	testRun testingRun(testPath, clientState);
 	testingRun.beginTests();
-
+	clientState->testTargets.clear();
 }
 
 

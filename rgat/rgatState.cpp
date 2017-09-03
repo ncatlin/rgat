@@ -400,8 +400,7 @@ bool rgatState::loadTrace(boost::filesystem::path traceFilePath, traceRecord **t
 	updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
 
 	rapidjson::Document saveJSON;
-	FILE* pFile = getJSON(traceFilePath, &saveJSON);
-	if (!pFile)
+	if (!getJSON(traceFilePath, &saveJSON))
 		return false;
 
 	binaryTarget * target;
@@ -432,8 +431,6 @@ bool rgatState::loadTrace(boost::filesystem::path traceFilePath, traceRecord **t
 	vector<boost::filesystem::path> childrenFiles;
 	extractChildTraceFilenames(saveJSON, &childrenFiles);
 	updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
-
-	fclose(pFile);
 
 	if (!childrenFiles.empty())
 		loadChildTraces(childrenFiles, trace);

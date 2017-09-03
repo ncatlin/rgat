@@ -34,6 +34,7 @@ public:
 
 	size_t count() { return targets.size(); }
 	void registerChild(PID_TID parentPID, traceRecord *trace);
+	void clear();
 
 private:
 	rgatlocks::UntestableLock targetsLock;

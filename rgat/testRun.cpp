@@ -1,18 +1,50 @@
 #include "stdafx.h"
 #include "testRun.h"
 #include "serialise.h"
-#include "proto_graph.h"
 
 testRun::testRun(boost::filesystem::path testsDirectory, rgatState *clistate)
 {
 	_testsDirectory = testsDirectory;
 	_testsDirectory += "\\";
 	clientState = clistate;
+
+	testResults[false];
+	testResults[true];
 }
 
 
 testRun::~testRun()
 {
+}
+
+void testRun::printResults()
+{
+	cout << "------------------------------------------" << endl;
+	cout << "\t\tTests Complete\n" << endl;
+	cout << "\tx86" << endl;
+	cout << "\t\tSucceeded: " << testResults[true]["a86"].size() << endl;
+	cout << "\t\tFailed: " << testResults[false]["a86"].size() << endl;
+	if (!testResults[false]["a86"].empty())
+	{
+		for each(boost::filesystem::path path in testResults[false]["a86"])
+		{
+			cout << "\t\t\t " << path.string() << endl;
+		}
+	}
+	cout << endl;
+
+	cout << "\tx64" << endl;
+	cout << "\t\tSucceeded: " << testResults[true]["a64"].size() << endl;
+	cout << "\t\tFailed: " << testResults[false]["a64"].size() << endl;
+	if (!testResults[false]["a64"].empty())
+	{
+		for each(boost::filesystem::path path in testResults[false]["a64"])
+		{
+			cout << "\t\t\t " << path.string() << endl;
+		}
+	}
+	cout << endl;
+	cout << "------------------------------------------" << endl;
 }
 
 void testRun::beginTests()
@@ -33,36 +65,39 @@ void testRun::beginTests()
 		rapidjson::Value::ConstMemberIterator expectedResults86 = testJSON.FindMember("a86");
 		if (expectedResults86 != testJSON.MemberEnd())
 		{
-			runx86Test(itr->path().stem(), expectedResults86);
+			boost::filesystem::path teststem = itr->path().stem();
+			bool result = runTest(teststem, expectedResults86, "a86");
+
+			testResults[result]["a86"].push_back(teststem);
 		}
 
 		rapidjson::Value::ConstMemberIterator expectedResults64 = testJSON.FindMember("a64");
 		if (expectedResults64 != testJSON.MemberEnd())
 		{
-			runx64Test(itr->path().stem(), expectedResults64);
+			boost::filesystem::path teststem = itr->path().stem();
+			bool result = runTest(teststem, expectedResults64, "a64");
+
+			testResults[result]["a64"].push_back(teststem);
 		}
-
 	}
+
+	printResults();
 }
 
-void testRun::runx86Test(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults)
+bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, string modifier)
 {
 	boost::filesystem::path testExe = _testsDirectory;
 	testExe += testStem;
-	testExe += ".86.exe";
-
-	cout << "Running 32 bit test - " << testExe << endl;
-
-	//execute_tracer(activeTarget, &clientState->config);
-}
-
-void testRun::runx64Test(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults)
-{
-	boost::filesystem::path testExe = _testsDirectory;
-	testExe += testStem;
-	testExe += ".64.exe";
-
-	cout << "Running 64 bit test - " << testExe << endl;
+	if (modifier == "a64")
+	{
+		testExe += ".64.exe";
+		cout << "Running 64 bit test - " << testExe << endl;
+	}
+	else if (modifier == "a86")
+	{
+		testExe += ".86.exe";
+		cout << "Running 32 bit test - " << testExe << endl;
+	}
 
 	binaryTarget *newTarget;
 	clientState->testTargets.getTargetByPath(testExe.generic_path(), &newTarget);
@@ -80,10 +115,13 @@ void testRun::runx64Test(boost::filesystem::path testStem, rapidjson::Value::Con
 		break;
 	}
 
-	if (!validateTestResults(testtrace, expectedResults))
-		cout << "Test for " << testStem.string() << " failed" << endl;
+	bool success = validateTestResults(testtrace, expectedResults);
+	if (!success)
+		cout << "\n ----- \n\t Test for " << testStem.string() << "(" << modifier << ") failed \n ----- " << endl;
 	else
-		cout << "Test for " << testStem.string() << " success" << endl;
+		cout << "Test for " << testStem.string() << "(" << modifier << ") success" << endl;
+
+	return success;
 }
 
 bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::ConstMemberIterator expectedResults)
@@ -112,6 +150,8 @@ bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::Cons
 	for (; expectedResultIt != expectedResults->value.MemberEnd(); expectedResultIt++)
 	{
 		string resultType = expectedResultIt->name.GetString();
+
+		if (resultType == "GRAPHS") continue;
 
 		if (resultType == "EDGES")
 		{
@@ -146,17 +186,6 @@ bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::Cons
 			continue;
 		}
 
-		if (resultType == "BLOCKSRUN")
-		{
-			unsigned long expectedBlocks = expectedResultIt->value.GetUint64();
-			if (firstgraph->savedAnimationData.size() != expectedBlocks)
-			{
-				cout << "Test Failed: Expected (" << expectedBlocks << ") blocks but (" << firstgraph->savedAnimationData.size() << ") blocks traced" << endl;
-				return false;
-			}
-			continue;
-		}
-
 		if (resultType == "EXCEPTIONS")
 		{
 			unsigned long expectedExceptions = expectedResultIt->value.GetUint64();
@@ -168,6 +197,51 @@ bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::Cons
 			continue;
 		}
 
+		if (resultType == "NODEDETAILS")
+		{
+			if (!testNodeDetails(firstgraph, expectedResultIt)) return false;
+			continue;
+		}
+
+		cerr << "Error: Invalid test " << resultType << endl;
+		return false;
 	}
 	return true;
+}
+
+bool testRun::testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberIterator expectedResultIt)
+{
+	rapidjson::Value::ConstValueIterator nodelistIt = expectedResultIt->value.Begin();
+	for (; nodelistIt != expectedResultIt->value.End(); nodelistIt++)
+	{
+		NODEINDEX nodeidx = nodelistIt->FindMember("IDX")->value.GetUint64();
+		node_data *node = graph->safe_get_node(nodeidx);
+		if (!node)
+		{
+			cout << "Test Failed: Expected unique instruction (" << nodeidx << ") but failed to retrieve it. "
+				<< graph->nodeList.size() << " instructions traced" << endl;
+			return false;
+		}
+
+		rapidjson::Value::ConstMemberIterator nodeDetailIt = nodelistIt->MemberBegin();
+		for (; nodeDetailIt != nodelistIt->MemberEnd(); nodeDetailIt++)
+		{
+			string valuename = nodeDetailIt->name.GetString();
+			if (valuename == "IDX") continue;
+			if (valuename == "QTY")
+			{
+				unsigned long expectedQuantity = nodeDetailIt->value.GetUint64();
+				if (node->executionCount != expectedQuantity)
+				{
+					cout << "Test Failed: Expected (" << expectedQuantity << ") executions of node " << nodeidx <<
+						" but (" << node->executionCount << ") executions traced" << endl;
+					return false;
+				}
+				continue;
+			}
+
+			cerr << "Error: Invalid test " << valuename << " in NODEDETAILS" << endl;
+			return false;
+		}
+	}
 }
