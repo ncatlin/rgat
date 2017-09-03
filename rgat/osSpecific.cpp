@@ -23,15 +23,12 @@ Need to migrate all Windows API (and soon Linux) routines here
 #include "OSspecific.h"
 #include "binaryTarget.h"
 
-#include <boost\filesystem.hpp>
-
-
-
 
 #ifdef _WINDOWS
 #include <Windows.h>
 #include <Shlwapi.h>
 #include <TlHelp32.h>
+
 //#pragma comment(lib, "shlwapi.lib")
 
 //this is needed for building timelines. it would be good to get drgat to pass the parent PID
@@ -258,63 +255,7 @@ eExeCheckResult check_excecutable_type(string executable)
 	}
 }
 
-//take the target binary path, feed it into dynamorio with all the required options
-void execute_tracer(void *binaryTargetPtr, clientConfig *config)
-{
-	if (!binaryTargetPtr) return;
-	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
-	LAUNCHOPTIONS *launchopts = &target->launchopts;
-	string runpath;
-	if (!get_dr_path(config, launchopts, &runpath, (target->getBitWidth() == 64))) 
-		return;
-
-	runpath.append(get_options(launchopts));
-	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
-
-	STARTUPINFOA startupinfo;
-	ZeroMemory(&startupinfo, sizeof(startupinfo));
-	startupinfo.cb = sizeof(startupinfo);
-
-	PROCESS_INFORMATION processinfo;
-	ZeroMemory(&processinfo, sizeof(processinfo));
-
-	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
-	bool success = CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &startupinfo, &processinfo);
-	if (!success)
-		cerr << "[rgat]ERROR: Failed to execute target. Windows error code: " << GetLastError() << endl;
-
-	CloseHandle(processinfo.hProcess);
-	CloseHandle(processinfo.hThread);
-}
-
-void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)
-{
-	if (!binaryTargetPtr) return;
-	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
-
-	LAUNCHOPTIONS *launchopts = &target->launchopts;
-	string runpath;
-	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
-		return;
-
-	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
-
-	STARTUPINFOA startupinfo;
-	ZeroMemory(&startupinfo, sizeof(startupinfo));
-	startupinfo.cb = sizeof(startupinfo);
-
-	PROCESS_INFORMATION processinfo;
-	ZeroMemory(&processinfo, sizeof(processinfo));
-
-	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
-	bool success = CreateProcessA(NULL, (char *)runpath.c_str(), NULL, NULL, false, 0, NULL, NULL, &startupinfo, &processinfo);
-	if (!success)
-		cerr << "[rgat]ERROR: Failed to execute target. Windows error code: " << GetLastError() << endl;
-
-	CloseHandle(processinfo.hProcess);
-	CloseHandle(processinfo.hThread);
-}
 #endif // WIN32
 
 #ifdef LINUX
@@ -364,11 +305,6 @@ char check_excecutable_type(string executable)
 {
 	cout << "implement me" << endl;
 	return 0;
-}
-
-void execute_tracer(string executable, string args, void *clientState_ptr, bool is64Bits)
-{
-	cout << "implement me" << endl;
 }
 
 #endif // LINUX

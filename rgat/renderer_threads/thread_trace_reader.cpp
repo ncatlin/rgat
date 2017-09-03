@@ -153,7 +153,6 @@ void thread_trace_reader::main_loop()
 	clock_t endwait = clock() + 1;
 	unsigned long itemsRead = 0;
 
-	int PIDcount = 0;
 	DWORD bytesRead = 0;
 	while (!die)
 	{

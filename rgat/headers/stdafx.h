@@ -5,6 +5,10 @@
 #define RGAT_VERSION_FEATURE 2
 #define RGAT_VERSION_DESCRIPTION "QT-Alpha"
 
+
+#include <boost\process.hpp>
+#include <boost\filesystem.hpp>
+
 using namespace std;
 #include <cstdlib>
 #include <iostream>
@@ -19,6 +23,7 @@ using namespace std;
 #include <math.h>
 #include <queue>
 #include <chrono>
+
 
 #include <capstone.h>
 
