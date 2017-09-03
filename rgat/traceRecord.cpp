@@ -49,7 +49,8 @@ void traceRecord::getProtoGraphs(void *graphPtrVecPtr)
 	for (auto it = protoGraphs.begin(); it != protoGraphs.end(); it++)
 	{
 		proto_graph *currentGraph = (proto_graph *)it->second;
-		graphlist->push_back(currentGraph);
+		if (!currentGraph->nodeList.empty())
+			graphlist->push_back(currentGraph);
 	}
 
 	graphListLock.unlock();

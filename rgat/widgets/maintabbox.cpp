@@ -51,6 +51,7 @@ mainTabBox::~mainTabBox()
 void mainTabBox::changeTarget(binaryTarget *target, dynamicTabs tabToOpen)
 {
 	activeTarget = target;
+
 	lastIndex = -1; //ensure refresh of current tab contents
 
 	setCurrentIndex(tabToOpen);
@@ -149,7 +150,7 @@ void mainTabBox::tabChanged(int newIndex)
 void mainTabBox::updateVisualiserUI(bool fullRefresh = false)
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
-	if (!clientState->activeBinary || !clientState->activeTrace)
+	if (!activeTarget)
 	{
 		ui->animControlsStack->setCurrentIndex(eStackNoTrace);
 		return;
@@ -171,6 +172,8 @@ void mainTabBox::updateVisualiserUI(bool fullRefresh = false)
 	}
 
 	traceRecord * activeTrace = clientState->activeTrace;
+	if (!activeTrace) return;
+
 	if (liveGraph && !activeTrace->isRunning())
 	{
 		//trace terminated - switch to replay controls
@@ -624,7 +627,7 @@ void mainTabBox::startDrgatTest()
 		return;
 	}
 
-	testRun testingRun(testPath);
+	testRun testingRun(testPath, clientState);
 	testingRun.beginTests();
 
 }
