@@ -50,17 +50,17 @@ public:
 	
 	//an index used to lookup the caller/arguments of each instance of this being called
 	vector<unsigned long> callRecordsIndexs;
-	unsigned long calls = 1;
+	unsigned long long calls = 1;
 
 	//number of external functions called
-	unsigned childexterns = 0;
+	unsigned int childexterns = 0;
 	MEM_ADDRESS address = 0; //this is only used in externs. bit big?
 	NODEINDEX parentIdx = 0;
 
-	unsigned long executionCount = 0;
+	unsigned long long executionCount = 0;
+	unsigned long long chain_remaining_in = 0;
+	unsigned long long chain_remaining_out = 0;
 
-	unsigned long chain_remaining_in = 0;
-	unsigned long chain_remaining_out = 0;
 	DWORD heat_run_marker;
 
 	set<NODEINDEX> incomingNeighbours;

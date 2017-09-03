@@ -98,6 +98,11 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 		testExe += ".86.exe";
 		cout << "Running 32 bit test - " << testExe << endl;
 	}
+	else
+	{
+		cerr << "Bad test modifier " << modifier << endl;
+		return false;
+	}
 
 	binaryTarget *newTarget;
 	clientState->testTargets.getTargetByPath(testExe.generic_path(), &newTarget);
