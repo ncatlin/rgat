@@ -129,7 +129,9 @@ void analysisSelectablesTree::analysisItemSelected(QTreeWidgetItem* selectedItem
 
 	case eAC_Timeline:
 	{
+
 	}
+
 	}
 
 }
@@ -137,8 +139,7 @@ void analysisSelectablesTree::analysisItemSelected(QTreeWidgetItem* selectedItem
 
 void addSelectionOptionsInternal(QTreeWidgetItem* parentItem, void *data, vector <pair<QString, analyzeTabCategory>> *optionsList)
 {
-	pair<QString, analyzeTabCategory> option;
-	foreach(option, *optionsList)
+	for each(pair<QString, analyzeTabCategory> option in *optionsList)
 	{
 		QTreeWidgetItem* optionItem = new QTreeWidgetItem();
 		optionItem->setText(0, option.first);

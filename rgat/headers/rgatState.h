@@ -66,6 +66,7 @@ public:
 	void fuzztarget_connected(int runid, traceRecord *trace);
 
 	binaryTargets targets;
+	binaryTargets testTargets;
 	clientConfig config;
 
 public:
@@ -75,6 +76,7 @@ public:
 	bool showEdges = true;
 	bool heatmapMode = false;
 	bool conditionalsMode = false;
+	bool testsRunning = false;
 
 	heatTextDisplayState show_heat_location = eHeatNodes;
 

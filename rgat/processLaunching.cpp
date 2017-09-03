@@ -92,8 +92,17 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		PID_TID parentPID = getParentPID(PID);
 
 		binaryTarget *target;
+		bool isTest = false;
 
-		clientState->targets.getTargetByPath(binarypath, &target);
+		binaryTargets *container;
+
+		if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
+			container = &clientState->testTargets;
+		else
+			container = &clientState->targets;
+
+		container->getTargetByPath(binarypath, &target);
+
 		target->applyBitWidthHint(bitWidth);
 
 		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
@@ -105,7 +114,7 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		trace->setBinaryPtr(target);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
-		clientState->targets.registerChild(parentPID, trace);
+		container->registerChild(parentPID, trace);
 
 		//todo: posibly worry about pre-existing if pidthreads dont work
 		HANDLE hPipe;
