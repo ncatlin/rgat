@@ -307,3 +307,38 @@ void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState
 	std::thread condthread(&conditional_renderer::ThreadEntry, conditional_thread);
 	condthread.detach();
 }
+
+//take the target binary path, feed it into dynamorio with all the required options
+void execute_tracer(void *binaryTargetPtr, clientConfig *config)
+{
+	if (!binaryTargetPtr) return;
+	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
+
+	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	string runpath;
+	if (!get_dr_path(config, launchopts, &runpath, (target->getBitWidth() == 64)))
+		return;
+
+	runpath.append(get_options(launchopts));
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+
+	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
+
+	boost::process::spawn(runpath);
+}
+
+void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)
+{
+	if (!binaryTargetPtr) return;
+	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
+
+	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	string runpath;
+	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
+		return;
+
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+
+	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
+	boost::process::spawn(runpath);
+}

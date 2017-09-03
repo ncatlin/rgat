@@ -37,7 +37,6 @@ enum eExeCheckResult { eNotInitialised, eNotExecutable, eBinary32Bit, eBinary64B
 
 string getModulePath();
 PID_TID getParentPID(PID_TID childPid);
-void execute_tracer(void *binaryTargetPtr, clientConfig *config);
 eExeCheckResult check_excecutable_type(string executable);
-void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
+
 bool getDRPath(clientConfig *config, boost::filesystem::path *drpath);

@@ -18,7 +18,6 @@ Container for a binary target. Contains all traces gathered for the target in a 
 */
 #pragma once
 
-#include <boost\filesystem.hpp>
 #include "traceStructs.h"
 #include "traceRecord.h"
 #include "clientConfig.h"

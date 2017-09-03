@@ -18,6 +18,9 @@ struct THREAD_POINTERS {
 	conditional_renderer *conditionalThread;
 };
 
+
+void execute_tracer(void *binaryTargetPtr, clientConfig *config);
+void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
 void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
 void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState);
 void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose);

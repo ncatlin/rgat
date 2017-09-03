@@ -28,7 +28,6 @@ Intended to be used to provide a visualisation
 #include <rapidjson\writer.h>
 #include <rapidjson\filereadstream.h>
 #include <rapidjson\reader.h>
-#include <boost\filesystem.hpp>
 
 enum eTimelineEvent { eProcessCreate, eProcessTerminate, eThreadCreate, eThreadTerminate};
 

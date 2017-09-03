@@ -1,8 +1,28 @@
+/*
+Copyright 2016-2017 Nia Catlin
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/*
+Header for the fuzzing framework
+*/
+#include "stdafx.h"
 #include "fuzzRun.h"
 #include "OSspecific.h"
 #include "rgat.h"
 #include "processLaunching.h"
-
+#include "boost/process.hpp"
 
 //----------
 //the ui elements of fuzz updating
@@ -117,25 +137,11 @@ void fuzzRun::launch_target(boost::filesystem::path drrunpath, boost::filesystem
 
 	runpath_ss << "	-- " << binary->path();
 
-	STARTUPINFOA startupinfo;
-	ZeroMemory(&startupinfo, sizeof(startupinfo));
-	startupinfo.cb = sizeof(startupinfo);
-
-	PROCESS_INFORMATION processinfo;
-	ZeroMemory(&processinfo, sizeof(processinfo));
-
 	FUZZUPDATE *entry = new FUZZUPDATE;
 	entry->code = fUpdateCode::eFU_String;
 
-	bool success = CreateProcessA(NULL, (char *)runpath_ss.str().c_str(), NULL, NULL, false, 0, NULL, NULL, &startupinfo, &processinfo);
-	if (success)
-	{
-		entry->details = "Started target using command line " + runpath_ss.str();
-	}
-	else
-	{
-		entry->details = "Failed target launch using command line " + runpath_ss.str() + " error code " + to_string(GetLastError());
-	}
+	boost::process::spawn(runpath_ss.str());
+	entry->details = "Started target using command line " + runpath_ss.str();
 	addUpdate(entry);
 }
 
