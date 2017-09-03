@@ -141,6 +141,7 @@ void thread_trace_reader::main_loop()
 	if (hPipe == (HANDLE)-1)
 	{
 		cerr << "[rgat]Error: Could not create pipe in thread handler "<< threadID <<". error:" << GetLastError() << endl;
+		alive = false;
 		return;
 	}
 
