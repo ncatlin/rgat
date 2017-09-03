@@ -35,7 +35,7 @@ void thread_trace_reader::add_message(string *newMsg)
 
 	if (targetQueue->size() >= traceBufMax)
 	{
-		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for renderer to catch up..." << endl;
+		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for processor to catch up..." << endl;
 		LeaveCriticalSection(&flagCritsec);
 		if (thisgraph)
 			thisgraph->setBacklogIn(0);
