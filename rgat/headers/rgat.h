@@ -56,6 +56,10 @@ public Q_SLOTS:
 	void textBtnTriggered(int btnID);
 	void closeEvent(QCloseEvent *event);
 
+	void dropEvent(QDropEvent *event);
+	void dragEnterEvent(QDragEnterEvent *event)
+	{		event->accept();	}
+
 private:
 	rgatState *rgatstate;
 

@@ -53,6 +53,9 @@
    <property name="focusPolicy">
     <enum>Qt::StrongFocus</enum>
    </property>
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
@@ -166,6 +169,9 @@
         <pointsize>10</pointsize>
        </font>
       </property>
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
       <property name="currentIndex">
        <number>1</number>
       </property>
@@ -226,6 +232,9 @@
            <font>
             <pointsize>10</pointsize>
            </font>
+          </property>
+          <property name="acceptDrops">
+           <bool>true</bool>
           </property>
           <property name="statusTip">
            <string/>
@@ -1693,7 +1702,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QFrame" name="">
+                  <widget class="QFrame" name="frame">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                      <horstretch>0</horstretch>
