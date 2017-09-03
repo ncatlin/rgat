@@ -1,5 +1,6 @@
 #pragma once
 #include "rgatState.h"
+#include "proto_graph.h"
 
 
 class testRun
@@ -8,12 +9,15 @@ public:
 	testRun(boost::filesystem::path testsDirectory, rgatState *clistate);
 	~testRun();
 	void beginTests();
+
 private:
 	boost::filesystem::path _testsDirectory;
-	void runx86Test(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults);
-	void runx64Test(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults);
+	bool runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, string modifier);
 	bool validateTestResults(traceRecord *testtrace, rapidjson::Value::ConstMemberIterator expectedResults);
+	bool testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberIterator expectedResultIt);
+	void printResults();
 
 	rgatState *clientState;
+	map <bool, map <string, vector<boost::filesystem::path>>> testResults;
 };
 
