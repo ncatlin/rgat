@@ -3,6 +3,7 @@
 #include "processLaunching.h"
 #include "serialise.h"
 #include "ui_rgat.h"
+#include "osSpecific.h"
 #include <thread>
 
 
@@ -308,6 +309,22 @@ void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState
 	condthread.detach();
 }
 
+string get_options(LAUNCHOPTIONS *launchopts)
+{
+	stringstream optstring;
+
+	//rgat client options
+	if (launchopts->removeSleeps)
+		optstring << " -caffine";
+
+	if (launchopts->pause)
+		optstring << " -sleep";
+
+	//if (launchopts->debugMode)
+	//	optstring << " -blkdebug";
+	return optstring.str();
+}
+
 //take the target binary path, feed it into dynamorio with all the required options
 void execute_tracer(void *binaryTargetPtr, clientConfig *config)
 {
@@ -316,7 +333,7 @@ void execute_tracer(void *binaryTargetPtr, clientConfig *config)
 
 	LAUNCHOPTIONS *launchopts = &target->launchopts;
 	string runpath;
-	if (!get_dr_path(config, launchopts, &runpath, (target->getBitWidth() == 64)))
+	if (!get_dr_drgat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64)))
 		return;
 
 	runpath.append(get_options(launchopts));

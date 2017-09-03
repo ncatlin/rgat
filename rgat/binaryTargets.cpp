@@ -84,6 +84,6 @@ void binaryTargets::clear()
 	targetsLock.lock();
 	targets.clear();
 	targetsList.clear();
-	binaryTarget *activeTarget = NULL;
+	activeTarget = NULL;
 	targetsLock.unlock();
 }

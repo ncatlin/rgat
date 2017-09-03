@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "testRun.h"
 #include "serialise.h"
+#include "processLaunching.h"
 
 testRun::testRun(boost::filesystem::path testsDirectory, rgatState *clistate)
 {

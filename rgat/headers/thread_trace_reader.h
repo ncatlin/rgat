@@ -43,11 +43,11 @@ public:
 	thread_trace_reader(){ DeleteCriticalSection(&flagCritsec); }
 
 
-	unsigned long traceBufMax = 0;
+	size_t traceBufMax = 0;
 	string *get_message();
 
-	unsigned long pendingData = 0;
-	bool getBufsState(pair <unsigned long, unsigned long> *bufSizes);
+	size_t pendingData = 0;
+	bool getBufsState(pair <size_t, size_t> *bufSizes);
 
 private:
 	void main_loop();

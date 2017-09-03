@@ -108,10 +108,10 @@ string *thread_trace_reader::get_message()
 	return nextMessage;
 }
 
-bool thread_trace_reader::getBufsState(pair <unsigned long, unsigned long> *bufSizes)
+bool thread_trace_reader::getBufsState(pair <size_t, size_t> *bufSizes)
 {
-	unsigned long q1Size = firstQueue.size();
-	unsigned long q2Size = secondQueue.size();
+	size_t q1Size = firstQueue.size();
+	size_t q2Size = secondQueue.size();
 
 	if (readingFirstQueue)
 		q1Size -= readIndex;

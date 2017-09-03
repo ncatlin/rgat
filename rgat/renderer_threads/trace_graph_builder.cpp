@@ -327,7 +327,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	piddata->dropExternCallerReadLock();
 
 	lastNode->childexterns += 1;
-	targVertID = thisgraph->get_num_nodes();
+	targVertID = (NODEINDEX)thisgraph->get_num_nodes();
 
 	piddata->getExternCallerWriteLock();
 
