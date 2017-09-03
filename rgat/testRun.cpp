@@ -107,6 +107,7 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	binaryTarget *newTarget;
 	clientState->testTargets.getTargetByPath(testExe.generic_path(), &newTarget);
 
+	clock_t timeend, timestart = clock();
 	execute_tracer(newTarget, &clientState->config);
 
 	traceRecord *testtrace = NULL;
@@ -116,15 +117,24 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 		testtrace = newTarget->getFirstTrace();
 		if (!testtrace) continue;
 		if (testtrace->isRunning()) continue;
+		timeend = clock();
 		Sleep(100);
 		break;
 	}
+
+	clock_t duration = (timeend - timestart)/1000;
 
 	bool success = validateTestResults(testtrace, expectedResults);
 	if (!success)
 		cout << "\n ----- \n\t Test for " << testStem.string() << "(" << modifier << ") failed \n ----- " << endl;
 	else
-		cout << "Test for " << testStem.string() << "(" << modifier << ") success" << endl;
+	{
+		cout << "Test for " << testStem.string() << "(" << modifier << ") success";
+		if (duration > 1)
+			cout << " after " << duration << " seconds" << endl;
+		else
+			cout << endl;
+	}
 
 	return success;
 }
@@ -204,7 +214,8 @@ bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::Cons
 
 		if (resultType == "NODEDETAILS")
 		{
-			if (!testNodeDetails(firstgraph, expectedResultIt)) return false;
+			if (!testNodeDetails(firstgraph, expectedResultIt)) 
+				return false;
 			continue;
 		}
 
@@ -249,4 +260,5 @@ bool testRun::testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberI
 			return false;
 		}
 	}
+	return true;
 }
