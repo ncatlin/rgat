@@ -1597,9 +1597,9 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 		argstring << ": +0x" << std::hex << offset;
 
 	if (numCalls > 1)
-		argstring << " " << symString;
-	else
-		argstring << " " << n->calls << " x " << symString;
+		argstring << " " << n->calls << "x";
+
+	argstring << " " << symString;
 
 	protoGraph->externCallsLock.lock();
 	if (n->callRecordsIndexs.empty() || !clientState->config.externalSymbolVisibility.arguments)
@@ -1620,7 +1620,8 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 			while (argIt != args->end())
 			{
 				argstring << argIt->first << ": " << argIt->second;
-				++argIt;
+				if (argIt++ != args->end())
+					argstring << ", ";
 			}
 		}
 		catch (std::exception const & e) {

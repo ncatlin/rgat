@@ -321,7 +321,7 @@ void analysisSelectablesTree::addTrace(traceRecord * trace, QTreeWidgetItem* par
 	binaryTarget *traceBinary = (binaryTarget *)trace->get_binaryPtr();
 	PID_TID processPid = trace->getPID();
 	QString filename = QString(traceBinary->path().filename().string().c_str());
-	traceItem->setText(0, filename + " PID " + QString::number(processPid));
+	traceItem->setText(0, filename + " (PID " + QString::number(processPid) + ")");
 	traceItem->setData(1, Qt::UserRole, qVariantFromValue((int)eAC_TraceProcess));
 	traceItem->setData(2, Qt::UserRole, qVariantFromValue((void *)trace));
 
@@ -402,10 +402,8 @@ void analysisSelectablesTree::manageTrace(traceRecord * trace, QTreeWidgetItem* 
 	}
 }
 
-void analysisSelectablesTree::updateContents()
+void analysisSelectablesTree::updateContents(binaryTarget *binary)
 {
-	binaryTarget *binary = clientState->activeBinary;
-	if (!binary) return;
 
 	list <traceRecord *> traceList = binary->getTraceList();
 	for (auto it = traceList.begin(); it != traceList.end(); it++)

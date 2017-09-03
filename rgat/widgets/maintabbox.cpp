@@ -124,9 +124,9 @@ void mainTabBox::tabChanged(int newIndex)
 	}
 
 	
-	if (newIndex == eTraceAnalyseTab)
+	if (newIndex == eTraceAnalyseTab && activeTarget)
 	{
-		ui->traceAnalysisTree->updateContents();
+		ui->traceAnalysisTree->updateContents(activeTarget);
 	}
 
 	if (newIndex == eGraphCompareTab)
@@ -291,7 +291,8 @@ void mainTabBox::updateTimerFired()
 		break;
 
 	case eTraceAnalyseTab:
-		ui->traceAnalysisTree->updateContents();
+		if(activeTarget)
+			ui->traceAnalysisTree->updateContents(activeTarget);
 		break;
 	}
 
