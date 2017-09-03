@@ -204,6 +204,7 @@ void rgat::setupUI()
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
 	mouseoverWidget.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
+
 	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
 
 	ui.speedComboBox->addItem("0.5x");
@@ -261,6 +262,7 @@ rgat::rgat(QWidget *parent)
 		std::cerr << "[rgat]Error: rgat already running [Existing BootstrapPipe found]. Exiting..." << endl;
 		return;
 	}
+	setAcceptDrops(true);
 
 	rgatstate = new rgatState;
 
@@ -404,4 +406,28 @@ void rgat::closeEvent(QCloseEvent *event)
 	if (mouseoverWidget.isVisible())
 		mouseoverWidget.hide();
 	event->accept();
+}
+
+void rgat::dropEvent(QDropEvent *event)
+{
+	const QMimeData *mimeData = event->mimeData();
+	if (mimeData->hasUrls())
+	{
+		QStringList pathList;
+		QList<QUrl> urlList = mimeData->urls();
+
+		for (int i = 0; i < urlList.size(); ++i)
+		{
+			string filepathstr = urlList.at(i).toLocalFile().toStdString();
+			boost::filesystem::path filepath;
+			filepath.append(filepathstr);
+
+			binaryTarget *target;
+
+			bool newBinary = rgatstate->targets.getTargetByPath(filepath, &target);
+			ui.targetListCombo->addTargetToInterface(target, newBinary);
+			rgatstate->config.updateLastPath(filepath);
+		}
+
+	}
 }
