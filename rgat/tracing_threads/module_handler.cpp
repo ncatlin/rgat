@@ -35,10 +35,11 @@ It also launches trace reader and handler threads when the process spawns a thre
 void module_handler::main_loop()
 {
 	alive = true;
-	pipename.append(runRecord->getModpathID());
 
-	const wchar_t* szName = pipename.c_str();
-	HANDLE hPipe = CreateNamedPipe(szName,
+
+
+	inputpipename.append(runRecord->getModpathID());
+	HANDLE hPipe = CreateNamedPipe(inputpipename.c_str(),
 		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 0, NULL);
 
@@ -47,7 +48,7 @@ void module_handler::main_loop()
 
 	if (ConnectNamedPipe(hPipe, &ov) || !ov.hEvent)
 	{
-		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << pipename << " for PID "<< runRecord->getPID() << ". Error: " << GetLastError();
+		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << inputpipename << " for PID "<< runRecord->getPID() << ". Error: " << GetLastError();
 		alive = false;
 		return;
 	}
@@ -55,8 +56,17 @@ void module_handler::main_loop()
 	while (!die)
 	{
 		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
-		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << pipename << endl;
+		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << inputpipename << endl;
 	}
+
+	wstring controlpipename = wstring(L"\\\\.\\pipe\\");
+	controlpipename.append(L"rioControl");
+	controlpipename.append(runRecord->getModpathID());
+	controlPipe = CreateNamedPipe(controlpipename.c_str(),
+		PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+		255, 64, 56 * 1024, 0, NULL);
+
+
 	piddata = runRecord->get_piddata();
 	piddata->set_running(true);
 	clientState->newProcessSeen();
@@ -81,7 +91,6 @@ void module_handler::main_loop()
 
 	while (!die && !piddata->should_die())
 	{
-
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, 399, &bread, &ov2);
 		while (true)
@@ -241,6 +250,9 @@ void module_handler::main_loop()
 			}
 		}
 	}
+
+	char termbuf[] = "KT";
+	WriteFile(controlPipe, termbuf, 2, 0, 0);
 
 	//exited loop, first tell readers to terminate
 	vector <thread_trace_reader *>::iterator readerThreadIt = readerThreadList.begin();

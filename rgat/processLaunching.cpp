@@ -93,8 +93,6 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		PID_TID parentPID = getParentPID(PID);
 
 		binaryTarget *target;
-		bool isTest = false;
-
 		binaryTargets *container;
 
 		if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
@@ -116,9 +114,6 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
 		container->registerChild(parentPID, trace);
-
-		//todo: posibly worry about pre-existing if pidthreads dont work
-		HANDLE hPipe;
 
 		switch (purpose)
 		{
@@ -226,7 +221,6 @@ void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS
 	OVERLAPPED ov = { 0 };
 	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
-	DWORD res = 0, bread = 0;
 	vector <char> buf;
 	buf.resize(PIDSTRING_BUFSIZE, 0);
 	while (!clientState->rgatIsExiting())
