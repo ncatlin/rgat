@@ -365,13 +365,9 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 			for (; unfinishedIt != unfinishedEdgeList.end(); unfinishedIt++)
 			{
 				NODEINDEX src = unfinishedIt->first.first;
-				node_data *srcnode = protoGraph->unsafe_get_node(src);
 				NODEINDEX targ = unfinishedIt->first.second;
-				node_data *targnode = protoGraph->unsafe_get_node(targ);
 
 				cout << "(" << src << "->" << targ << ") " << endl;
-				//cout << "\t source n " << src << " remaining out: " << srcnode->chain_remaining_out << endl;
-				//cout << "\t targ n " << targ << " remaining in: " << targnode->chain_remaining_in << endl;
 			}
 			protoGraph->dropNodeReadLock();
 			cout << "[rgat]Heatmap for for thread " << dec << protoGraph->get_TID() << " partially incomplete: Ending solver with " <<
@@ -393,7 +389,6 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 	vector <float> *lineVector = graph->heatmaplines->acquire_col_write();
 	unsigned int edgeindex = 0;
 	unsigned int edgeEnd = graph->get_mainlines()->get_renderedEdges();
-	EDGELIST* edgelist = graph->get_protoGraph()->edgeLptr();
 
 	COLSTRUCT badHeatColour;
 	badHeatColour.a = 1;

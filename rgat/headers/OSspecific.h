@@ -38,5 +38,6 @@ enum eExeCheckResult { eNotInitialised, eNotExecutable, eBinary32Bit, eBinary64B
 string getModulePath();
 PID_TID getParentPID(PID_TID childPid);
 eExeCheckResult check_excecutable_type(string executable);
-
-bool getDRPath(clientConfig *config, boost::filesystem::path *drpath);
+bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName);
+bool get_drdir_path(clientConfig *config, boost::filesystem::path *drpath);
+bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits);

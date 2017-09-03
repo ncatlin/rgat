@@ -149,7 +149,7 @@ void fuzzRun::main_loop()
 {
 	//gather options
 	boost::filesystem::path dynamoRioPath;
-	if (!getDRPath(&clientState->config, &dynamoRioPath)) {
+	if (!get_drdir_path(&clientState->config, &dynamoRioPath)) {
 		cerr << "[rgat] Failed to find dynamorio directory." << endl;
 		return;
 	}

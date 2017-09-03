@@ -651,7 +651,7 @@ void graphPlotGLWidget::stretchHIncrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->stretchA += 0.2;
+	activeGraph->main_scalefactors->stretchA += 0.2f;
 	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
 	activeGraph->needsReplotting = true;
 
@@ -665,7 +665,7 @@ void graphPlotGLWidget::stretchHDecrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->stretchA -= 0.2;
+	activeGraph->main_scalefactors->stretchA -= 0.2f;
 	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
 	activeGraph->needsReplotting = true;
 
@@ -683,7 +683,7 @@ void graphPlotGLWidget::stretchHSet()
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newText = ui->stretchHEdit->text();
 	float newValue = newText.toFloat();
-	if (newValue > 0.09)
+	if (newValue > 0.09f)
 	{
 		activeGraph->main_scalefactors->stretchA = newValue;
 		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
@@ -695,7 +695,7 @@ void graphPlotGLWidget::stretchVIncrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->stretchB += 0.2;
+	activeGraph->main_scalefactors->stretchB += 0.2f;
 	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
 	activeGraph->needsReplotting = true;
 
@@ -709,7 +709,7 @@ void graphPlotGLWidget::stretchVDecrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->stretchB -= 0.2;
+	activeGraph->main_scalefactors->stretchB -= 0.2f;
 	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
 	activeGraph->needsReplotting = true;
 
@@ -727,7 +727,7 @@ void graphPlotGLWidget::stretchVSet()
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newText = ui->stretchVEdit->text();
 	float newValue = newText.toFloat();
-	if (newValue > 0.09)
+	if (newValue > 0.09f)
 	{
 		activeGraph->main_scalefactors->stretchA = newValue;
 		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
@@ -739,7 +739,7 @@ void graphPlotGLWidget::plotSizeIncrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->userSizeModifier += 0.2;
+	activeGraph->main_scalefactors->userSizeModifier += 0.2f;
 	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
 	activeGraph->needsReplotting = true;
 
@@ -753,7 +753,7 @@ void graphPlotGLWidget::plotSizeDecrease()
 {
 	if (!activeGraph) return;
 
-	activeGraph->main_scalefactors->userSizeModifier -= 0.2;
+	activeGraph->main_scalefactors->userSizeModifier -= 0.2f;
 	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
 	activeGraph->needsReplotting = true;
 
@@ -771,7 +771,7 @@ void graphPlotGLWidget::plotSizeSet()
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newText = ui->plotSizeEdit->text();
 	float newValue = newText.toFloat();
-	if (newValue > 0.09)
+	if (newValue > 0.09f)
 	{
 		activeGraph->main_scalefactors->userSizeModifier = newValue;
 		activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * newValue;

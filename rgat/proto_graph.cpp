@@ -331,7 +331,7 @@ unsigned long proto_graph::get_backlog_total()
 	if (!this->trace_reader) return 0;
 
 	thread_trace_reader *reader = (thread_trace_reader *)trace_reader;
-	pair <unsigned long, unsigned long> sizePair;
+	pair <size_t, size_t> sizePair;
 	reader->getBufsState(&sizePair);
 	return sizePair.first + sizePair.second;
 }

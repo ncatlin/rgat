@@ -20,14 +20,14 @@ This contains much of the functionality for the dynamic analysis tabs
 */
 
 #include "stdafx.h"
-#include "widgets\maintabbox.h"
-#include "OSspecific.h"
-#include "graphplots/plotted_graph.h"
-#include "widgets\graphPlotGLWidget.h"
 #include "ui_rgat.h"
 #include "ui_processSelector.h"
-#include "widgets\highlightWidget.h"
 #include "ui_highlightSelector.h"
+#include "widgets\maintabbox.h"
+#include "widgets\graphPlotGLWidget.h"
+#include "widgets\highlightWidget.h"
+#include "graphplots/plotted_graph.h"
+#include "processLaunching.h"
 #include "testRun.h"
 #include "fuzzRun.h"
 

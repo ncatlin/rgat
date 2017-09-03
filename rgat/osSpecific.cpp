@@ -29,8 +29,6 @@ Need to migrate all Windows API (and soon Linux) routines here
 #include <Shlwapi.h>
 #include <TlHelp32.h>
 
-//#pragma comment(lib, "shlwapi.lib")
-
 //this is needed for building timelines. it would be good to get drgat to pass the parent PID
 //along but I don't think dynamorio can do this so we are stuck with it
 //https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4
@@ -78,7 +76,7 @@ string getModulePath()
 }
 
 //get command line string of dr executable + client dll + options
-bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
+bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
 {
 	//get dynamorio exe from path in settings
 	//todo: check this works with spaces in the path
@@ -166,7 +164,7 @@ bool get_dr_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, 
 	return true;
 }
 
-bool getDRPath(clientConfig *config, boost::filesystem::path *drpath)
+bool get_drdir_path(clientConfig *config, boost::filesystem::path *drpath)
 {
 	*drpath = config->DRDir;
 
@@ -185,7 +183,7 @@ bool getDRPath(clientConfig *config, boost::filesystem::path *drpath)
 bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
 {
 	boost::filesystem::path dynamoRioPath;
-	if (!getDRPath(config, &dynamoRioPath))
+	if (!get_drdir_path(config, &dynamoRioPath))
 	{
 		cerr << "[rgat] Failed to find dynamorio directory." << endl;
 		return false;
@@ -220,21 +218,7 @@ bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *p
 	return true;
 }
 
-string get_options(LAUNCHOPTIONS *launchopts)
-{
-	stringstream optstring;
 
-	//rgat client options
-	if (launchopts->removeSleeps)
-		optstring << " -caffine";
-
-	if (launchopts->pause)
-		optstring << " -sleep";
-
-	//if (launchopts->debugMode)
-	//	optstring << " -blkdebug";
-	return optstring.str();
-}
 
 eExeCheckResult check_excecutable_type(string executable)
 {
