@@ -80,7 +80,7 @@ void preview_renderer::main_loop()
 			waitForNextIt += 50;
 		}
 
-		if (dietimer < 0 && !moreRenderingNeeded && !runRecord->get_piddata()->is_running())
+		if (dietimer < 0 && !moreRenderingNeeded && !runRecord->is_running())
 			dietimer = 60;
 		else if (dietimer > 0)
 			dietimer--;

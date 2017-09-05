@@ -5,13 +5,14 @@
 #include "graphplots/cylinder_graph.h"
 #include "processLaunching.h"
 
-traceRecord::traceRecord(PID_TID newPID, int randomNo, int bitWidth)
+traceRecord::traceRecord(PID_TID newPID, int randomNo)
 {
 	processThreads = new THREAD_POINTERS;
-	processdata = new PROCESS_DATA(bitWidth);
-	processdata->PID = newPID;
-	processdata->randID = randomNo;
-	processdata->tracePtr = this;
+	//processdata = new PROCESS_DATA(bitWidth);
+	PID = newPID;
+	randID = randomNo;
+
+	modBounds.resize(255, NULL);
 
 	//InitializeCriticalSection(&graphsListCritsec);
 };
@@ -133,6 +134,8 @@ bool printRGATVersion(const Value& procData)
 
 bool traceRecord::loadProcessData(const rapidjson::Document& saveJSON)
 {
+	//todo: fix this. one target to many traces
+	/*
 	Value::ConstMemberIterator memberIt = saveJSON.FindMember("ProcessData");
 	if (memberIt == saveJSON.MemberEnd())
 	{
@@ -158,14 +161,16 @@ bool traceRecord::loadProcessData(const rapidjson::Document& saveJSON)
 		return false;
 	}
 
-	processdata = new PROCESS_DATA(bitWidth);
+	((binaryTarget *)binaryPtr)->= new PROCESS_DATA(bitWidth);
 	if (!processdata->load(saveJSON, this))
 	{
 		delete processdata;
 		return false;
 	}
-
 	return true;
+	*/
+	return false;
+	
 }
 
 
@@ -210,11 +215,14 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
 
 	//display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
-	proto_graph *protograph = new proto_graph(get_piddata(), graphTID);
+	binaryTarget *target = (binaryTarget *) binaryPtr;
+	PROCESS_DATA *piddata = target->get_piddata();
+
+	proto_graph *protograph = new proto_graph(this, graphTID);
 	protoGraphs.emplace(make_pair(graphTID, protograph));
 
-	cylinder_graph *graph = new cylinder_graph(get_piddata(), graphTID, protograph, colours);
-	if (!graph->get_protoGraph()->deserialise(graphData, &processdata->disassembly))
+	cylinder_graph *graph = new cylinder_graph(graphTID, protograph, colours);
+	if (!graph->get_protoGraph()->deserialise(graphData, &piddata->disassembly))
 		return false;
 
 	plottedGraphs.emplace(graphTID, graph);
@@ -292,7 +300,7 @@ bool traceRecord::insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot
 
 	protoGraphs.insert(make_pair(TID, graph_proto));
 	plottedGraphs.insert(make_pair(TID, graph_plot));
-	runtimeline.notify_new_thread(getPID(), get_piddata()->randID, TID);
+	runtimeline.notify_new_thread(getPID(), randID, TID);
 
 	graphListLock.unlock();
 	return true;
@@ -300,8 +308,7 @@ bool traceRecord::insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot
 
 void traceRecord::killTree()
 {
-	if (processdata)
-		processdata->kill();
+	kill();
 
 	traceRecord *child;
 	foreach(child, children)
@@ -311,4 +318,14 @@ void traceRecord::killTree()
 void traceRecord::setTraceType(eTracePurpose purpose)
 { 
 	tracetype = purpose; 
+}
+
+bool traceRecord::is_process(PID_TID testpid, int testID)
+{
+	if (testpid != PID) return false;
+
+	if (testID == randID || !testID)
+		return true;
+
+	return false;
 }

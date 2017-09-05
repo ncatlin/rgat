@@ -103,6 +103,10 @@ struct INS_DATA
 	string opcodes;
 };
 
+struct TESTDATA {
+
+};
+
 typedef vector<INS_DATA *> INSLIST;
 
 struct BB_DATA {
@@ -115,6 +119,7 @@ struct BB_DATA {
 	map <PID_TID, EDGELIST> thread_callers;
 
 	bool hasSymbol = false;
+	TESTDATA *testdata;
 };
 
 struct FUNCARG {
@@ -125,29 +130,20 @@ struct FUNCARG {
 class PROCESS_DATA 
 {
 public:
-	PROCESS_DATA(int binaryBitWidth) { bitwidth = binaryBitWidth;  }
+	PROCESS_DATA(int binaryBitWidth) { bitwidth = binaryBitWidth;}
 	~PROCESS_DATA() { };
 
-	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, MEM_ADDRESS &offset, string &sym);
+	bool get_sym(unsigned int modNum, MEM_ADDRESS addr, string &sym);
 	bool get_modpath(unsigned int modNum, boost::filesystem::path *path); 
-	bool get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase);
+	//bool get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase);
 
-	void kill() { if (running) { killed = true; } }
 
-	bool should_die() { return killed; }
-	bool is_running() { return running; }
-	void set_running(bool r) { running = r; }
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1);
-	bool is_process(PID_TID testpid, int testID);
 	bool load(const rapidjson::Document& saveJSON, TRACERECORDPTR trace);
 	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, BB_DATA **externBlock);
 
-	PID_TID PID = -1;
-	int randID; //to distinguish between processes with identical PIDs
-
 	map <int, boost::filesystem::path>modpaths;
-	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>> modBounds;
-	map <int, std::map<MEM_ADDRESS, string>>modsymsPlain;
+	map <int, std::map<ADDRESS_OFFSET, string>>modsymsPlain;
 
 #ifdef XP_COMPATIBLE
 	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
@@ -198,11 +194,11 @@ public:
 	void dropExternCallerWriteLock();
 
 	//maps instruction addresses to all data about it
-	map <MEM_ADDRESS, INSLIST> disassembly;
+	map <ADDRESS_OFFSET, INSLIST> disassembly;
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
-	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
+	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
 
 	map <int,int> activeMods;
 	map <MEM_ADDRESS, BB_DATA *> externdict;
@@ -212,7 +208,6 @@ public:
 	//map <PID_TID, PROTOGRAPH_CASTPTR> protoGraphs;
 	//map <PID_TID, PLOTTEDGRAPH_CASTPTR> plottedGraphs;
 	//vector<PROCESS_DATA *> children;
-	TRACERECORDPTR tracePtr = NULL;
 
 private:
 	bool loadSymbols(const rapidjson::Value& saveJSON);

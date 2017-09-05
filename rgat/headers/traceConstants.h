@@ -59,6 +59,7 @@ typedef vector<NODEPAIR> EDGELIST;
 typedef pair<int, string> ARGIDXDATA;
 typedef vector<ARGIDXDATA> ARGLIST;
 typedef UINT64 MEM_ADDRESS;
+typedef MEM_ADDRESS ADDRESS_OFFSET;
 typedef DWORD PID_TID;
 
 //random number generated when the block was first seen in cache

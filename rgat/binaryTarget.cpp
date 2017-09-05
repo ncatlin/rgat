@@ -10,6 +10,7 @@
 binaryTarget::binaryTarget(boost::filesystem::path path)
 { 
 	filepath = path; 
+	processdata = new PROCESS_DATA(getBitWidth());
 }
 
 binaryTarget::~binaryTarget()
@@ -88,7 +89,7 @@ void binaryTarget::performInitialStaticAnalysis()
 
 traceRecord *binaryTarget::createNewTrace(PID_TID PID, int PIDID, long long timeStarted)
 {
-	traceRecord *trace = new traceRecord(PID, PIDID, getBitWidth());
+	traceRecord *trace = new traceRecord(PID, PIDID);
 	traceRecords.push_back(trace);
 	trace->setBinaryPtr(this);
 
@@ -129,7 +130,7 @@ traceRecord *binaryTarget::getTraceWithID(int ID)
 	for (auto it = traceRecords.begin(); it != traceRecords.end(); it++)
 	{
 		traceRecord *trace = *it;
-		if (trace->get_piddata()->randID == ID)
+		if (trace->randID == ID)
 		{
 			result = *it;
 			break;
@@ -147,7 +148,7 @@ traceRecord *binaryTarget::getRecordWithPID(PID_TID PID, int PID_ID = 0)
 	for (auto it = traceRecords.begin(); it != traceRecords.end(); it++)
 	{
 		traceRecord *trace = *it;
-		if (trace->get_piddata()->is_process(PID, PID_ID))
+		if (trace->is_process(PID, PID_ID))
 		{
 			result = *it;
 			break;

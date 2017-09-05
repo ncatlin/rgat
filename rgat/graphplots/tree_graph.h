@@ -33,7 +33,7 @@ class tree_graph : public plotted_graph
 {
 
 public:
-	tree_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<QColor> *coloursPtr)
+	tree_graph(unsigned int threadID, proto_graph *protoGraph, vector<QColor> *coloursPtr)
 		: plotted_graph(protoGraph, coloursPtr) {
 		initialise();
 	};

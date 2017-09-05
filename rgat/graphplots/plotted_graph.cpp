@@ -29,7 +29,7 @@ rgatState *plotted_graph::clientState = NULL;
 
 plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColoursPtr)
 {
-		pid = protoGraph->get_piddata()->PID;
+		pid = protoGraph->get_traceRecord()->PID;
 		tid = protoGraph->get_TID();
 
 		mainnodesdata = new GRAPH_DISPLAY_DATA();
@@ -621,7 +621,6 @@ void plotted_graph::process_live_update()
 		return;
 	}
 
-	NODEINDEX backupLastAnimNode = lastAnimatedNode;
 	if (entry.entryType == eAnimUnchainedDone)
 	{
 		end_unchained(&entry);
@@ -931,8 +930,6 @@ void plotted_graph::darken_nodes(float fadeRate)
 
 void plotted_graph::darken_edges(float fadeRate)
 {
-	unsigned long numLineVerts = animlinedata->get_numVerts();
-
 	//darken fading edges
 	set<NODEPAIR>::iterator edgeIDIt = fadingAnimEdges.begin();
 	while (edgeIDIt != fadingAnimEdges.end())
@@ -1215,7 +1212,6 @@ void plotted_graph::reset_mainlines()
 
 void plotted_graph::display_highlight_lines(vector<NODEINDEX> *nodePtrList, QColor *colour, int lengthModifier, graphGLWidget *gltarget)
 {
-	proto_graph *protograph = get_protoGraph();
 	vector<NODEINDEX>::iterator nodeIt = nodePtrList->begin();
 	for (; nodeIt != nodePtrList->end(); ++nodeIt)
 	{
@@ -1301,8 +1297,6 @@ int plotted_graph::render_new_preview_edges()
 		needVBOReload_preview = true;
 
 	int remainingEdges = clientState->config.preview.edgesPerRender;
-	vector<QColor> *lineColours = &clientState->config.graphColours;
-
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
 		if (edgeIt->first >= previewnodes->get_numVerts())
@@ -1506,7 +1500,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 	QPainter painter(gltarget);
 	painter.setPen(clientState->config.mainColours.instructionText);
 	painter.setFont(clientState->instructionFont);
-	NODEINDEX numVerts = internalProtoGraph->get_num_nodes();
+	NODEINDEX numVerts = (NODEINDEX)internalProtoGraph->get_num_nodes();
 	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(i);
@@ -1545,8 +1539,8 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 {
 
 	string symString;
-	MEM_ADDRESS offset;
-	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, offset, symString);
+	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->nodeMod)->first;
+	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, symString);
 	if (symString.empty()) return;
 
 	
@@ -1581,10 +1575,11 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 
 	int numCalls = n->calls;
 	string symString;
-	MEM_ADDRESS offset;
+
+	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->nodeMod)->first;
 
 	if (!clientState->config.externalSymbolVisibility.addresses)
-		piddata->get_sym(n->nodeMod, n->address, offset, symString);
+		piddata->get_sym(n->nodeMod, offset, symString);
 
 
 	//todo: might be better to find the first symbol in the DLL that has a lower address
@@ -1606,8 +1601,6 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 		argstring << " ()";
 	else
 	{
-		//(fixed?)TODO: crash here with argIt->second or first == <NULL>. 
-		//not sure why because funcargs accesses seem to be guarded
 		try
 		{
 
@@ -1625,8 +1618,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 			}
 		}
 		catch (std::exception const & e) {
-			//seems to have been fixed by use of externguardmutex - remove
-			cerr << "[rgat]Warning: Known argument handling race encountered. Ignoring." << endl;
+			cerr << "[rgat]Warning: Exception building argstring." << endl;
 		}
 
 		int remainingCalls = n->callRecordsIndexs.size() - 1;

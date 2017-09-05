@@ -245,12 +245,12 @@ void rgatState::saveTrace(traceRecord *trace)
 
 	//duplicated from process data, but important for loading
 	writer.Key("PID");
-	writer.Uint64(trace->getPID());
+	writer.Uint64(trace->PID);
 	writer.Key("PID_ID");
-	writer.Int(trace->get_piddata()->randID);
+	writer.Int(trace->randID);
 
-	writer.Key("ProcessData");
-	saveProcessData(trace->get_piddata(), writer);
+	//writer.Key("ProcessData");
+	//saveProcessData(trace->get_piddata(), writer);
 
 	writer.Key("BinaryPath");
 	writer.String(target->path().string().c_str());
@@ -615,7 +615,7 @@ PLOTTEDGRAPH_CASTPTR rgatState::createNewPlottedGraph(PROTOGRAPH_CASTPTR protoGr
 	{
 	case eCylinderLayout:
 		{
-			newGraph = new cylinder_graph(protoGraph->get_piddata(), protoGraph->get_TID(), protoGraph, &config.graphColours);
+			newGraph = new cylinder_graph(protoGraph->get_TID(), protoGraph, &config.graphColours);
 			break;
 		}
 	//deprecated
@@ -626,7 +626,7 @@ PLOTTEDGRAPH_CASTPTR rgatState::createNewPlottedGraph(PROTOGRAPH_CASTPTR protoGr
 		}*/
 	case eTreeLayout:
 		{
-			newGraph = new tree_graph(protoGraph->get_piddata(), protoGraph->get_TID(), protoGraph, &config.graphColours);
+			newGraph = new tree_graph(protoGraph->get_TID(), protoGraph, &config.graphColours);
 			break;
 		}
 	default:

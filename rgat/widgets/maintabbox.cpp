@@ -67,7 +67,6 @@ void mainTabBox::toggleGraphAnimated(bool state)
 
 	graph->setAnimated(true);
 	graph->decrease_thread_references(33);
-	cout << "[-1: " << graph->threadReferences << "] toggle graph anim decreased references " << endl;
 }
 
 void mainTabBox::toggleGraphStatic(bool state)
@@ -78,7 +77,6 @@ void mainTabBox::toggleGraphStatic(bool state)
 
 	graph->setAnimated(false);
 	graph->decrease_thread_references(44);
-	cout << "[-1: " << graph->threadReferences << "]  toggleGraphStatic decreased references " << endl;
 }
 
 #ifdef DEBUG
@@ -192,13 +190,8 @@ void mainTabBox::updateVisualiserUI(bool fullRefresh = false)
 void mainTabBox::killActiveTrace()
 {
 	traceRecord *trace = clientState->activeTrace;
-	if (!trace) return;
-
-	PROCESS_DATA *piddata = trace->get_piddata();
-	if (piddata)
-	{
-		piddata->kill();
-	}
+	if (trace) 
+		trace->kill();
 }
 
 
@@ -305,18 +298,17 @@ void mainTabBox::updateTimerFired()
 }
 
 
-int mainTabBox::addProcessToGUILists(PROCESS_DATA *process, QTreeWidgetItem *parentitem)
+int mainTabBox::addProcessToGUILists(traceRecord * trace, QTreeWidgetItem *parentitem)
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 
-	traceRecord * trace = (traceRecord *)process->tracePtr;
 	binaryTarget *binary = (binaryTarget *)(trace->get_binaryPtr());
 	string filename = binary->path().filename().string();
 
 	int activeProcesses;
 	stringstream combostring;
-	combostring << process->PID << "  (" << filename << ")";
-	if (process->is_running())
+	combostring << trace->PID << "  (" << filename << ")";
+	if (trace->is_running())
 	{
 		activeProcesses = 1;
 		combostring << "[Active]";
@@ -325,11 +317,11 @@ int mainTabBox::addProcessToGUILists(PROCESS_DATA *process, QTreeWidgetItem *par
 		activeProcesses = 0;
 
 	ui->processesCombo->addItem(QString::fromStdString(combostring.str()));
-	if (process->PID == clientState->activeTrace->getPID())
+	if (trace->PID == clientState->activeTrace->getPID())
 		ui->processesCombo->setCurrentIndex(ui->processesCombo->count()-1);
 	processComboVec.push_back(trace);
 
-	QString pidstring = QString::number(process->PID);
+	QString pidstring = QString::number(trace->PID);
 
 	QTreeWidgetItem *procitem = new QTreeWidgetItem;
 	procitem->setText(0, pidstring);
@@ -343,7 +335,7 @@ int mainTabBox::addProcessToGUILists(PROCESS_DATA *process, QTreeWidgetItem *par
 		psui->treeWidget->addTopLevelItem(procitem);
 
 	for (auto it = trace->children.begin(); it != trace->children.end(); it++)
-		activeProcesses += addProcessToGUILists((*it)->get_piddata(), procitem);
+		activeProcesses += addProcessToGUILists(*it, procitem);
 	psui->treeWidget->expandAll();
 
 	return activeProcesses;
@@ -363,7 +355,7 @@ void mainTabBox::refreshProcessesCombo(traceRecord *initialTrace)
 	stringstream labelStringStream;
 	int processesQty = initialTrace->countDescendants();
 
-	int activeProcesses = addProcessToGUILists(initialTrace->get_piddata(), NULL); //recursively add each to process combo
+	int activeProcesses = addProcessToGUILists(initialTrace, NULL); //recursively add each to process combo
 	if (initialTrace->UIRunningFlag && activeProcesses == 0)
 		initialTrace->UIRunningFlag = false;
 	else if(!initialTrace->UIRunningFlag && activeProcesses != 0)

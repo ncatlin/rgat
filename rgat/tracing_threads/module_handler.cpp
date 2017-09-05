@@ -67,8 +67,8 @@ void module_handler::main_loop()
 		255, 64, 56 * 1024, 0, NULL);
 
 
-	piddata = runRecord->get_piddata();
-	piddata->set_running(true);
+	piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
+	runRecord->set_running(true);
 	clientState->newProcessSeen();
 	/*
 	if (runRecord->getTraceType() == eTracePurpose::eFuzzer)
@@ -89,7 +89,7 @@ void module_handler::main_loop()
 
 
 
-	while (!die && !piddata->should_die())
+	while (!die && !runRecord->should_die())
 	{
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, 399, &bread, &ov2);
@@ -101,9 +101,9 @@ void module_handler::main_loop()
 			if (gle == ERROR_BROKEN_PIPE)
 			{
 				die = true;
-				piddata->set_running(false);
+				runRecord->set_running(false);
 			}
-			if (die || piddata->should_die() || clientState->rgatIsExiting()) {
+			if (die || runRecord->should_die() || clientState->rgatIsExiting()) {
 				die = true;
 				break;
 			}
@@ -161,17 +161,12 @@ void module_handler::main_loop()
 				}
 
 				char *offset_s = strtok_s(next_token, "@", &next_token);
-				MEM_ADDRESS address;
-				sscanf_s(offset_s, "%llx", &address);
-
-				if(!piddata->modBounds.count(modnum)) 
-					wcerr << "[rgat]Warning: sym before module. handle me"<<endl; //fail if sym came before module
-				else
-					address += piddata->modBounds[modnum].first;
+				ADDRESS_OFFSET offset;
+				sscanf_s(offset_s, "%llx", &offset);
 
 				string symname = string(next_token);
 				piddata->getDisassemblyWriteLock();
-				piddata->modsymsPlain[modnum][address] = symname;
+				piddata->modsymsPlain[modnum][offset] = symname;
 				piddata->dropDisassemblyWriteLock();
 				continue;
 			}
@@ -196,7 +191,7 @@ void module_handler::main_loop()
 				piddata->getDisassemblyReadLock();
 				if (piddata->modpaths.count(modnum) > 0) 
 				{
-					wcerr<< "[rgat]ERROR: PID:"<<piddata->PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
+					wcerr<< "[rgat]ERROR: PID:"<< runRecord->PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
 						buf<<"]. current is:" << piddata->modpaths.at(modnum) << endl;
 					assert(0);
 				}
@@ -233,18 +228,14 @@ void module_handler::main_loop()
 				else
 					path_plain = "";
 
+				assert(runRecord->modBounds.at(modnum) == NULL);
+				runRecord->modBounds[modnum] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
+
 				piddata->getDisassemblyWriteLock();
 				piddata->modpaths[modnum] = path_plain;
-				
-				if (!piddata->modBounds.count(modnum) && piddata->modsymsPlain.count(modnum))
-					{
-						wcerr << "[rgat]ERROR: module after sym - add address to all relevant syms" << endl;
-						assert(0);
-					}
-
-				piddata->modBounds[modnum] = make_pair(startaddr, endaddr);
-
 				piddata->dropDisassemblyWriteLock();
+
+				runRecord->loadedModuleCount++;
 
 				continue;
 			}
@@ -271,15 +262,15 @@ void module_handler::main_loop()
 			Sleep(5);
 	}
 
-	runRecord->notify_pid_end(piddata->PID, piddata->randID);
-	piddata->set_running(false); //the process is done
+	runRecord->notify_pid_end(runRecord->PID, runRecord->randID);
+	runRecord->set_running(false); //the process is done
 	clientState->processEnded();
 	alive = false; //this thread is done
 }
 
 void  module_handler::start_thread_rendering(PID_TID TID)
 {
-	proto_graph *newProtoGraph = new proto_graph(piddata, TID);
+	proto_graph *newProtoGraph = new proto_graph(runRecord, TID);
 	plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);
 
 	newPlottedGraph->initialiseDefaultDimensions();

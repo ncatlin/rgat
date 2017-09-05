@@ -45,7 +45,7 @@ void analysisSelectablesTree::fillAnalysisLog_ExternCalls(proto_graph *graph, bo
 	{
 		ui->traceAnalysisTextBox->clear();
 		text_cursor.movePosition(QTextCursor::Start);
-		traceRecord *trace = (traceRecord *)graph->get_piddata()->tracePtr;
+		traceRecord *trace = (traceRecord *)graph->get_traceRecord();
 		binaryTarget *targ = (binaryTarget *)trace->get_binaryPtr();
 
 		QString header = "External calls from " + QString::fromStdString(targ->path().string()) + ", thread ID " + QString::number(graph->get_TID());
@@ -81,7 +81,8 @@ void analysisSelectablesTree::fillAnalysisLog_Modules(traceRecord *trace, bool a
 	if (!appendNewUpdates)
 		ui->traceAnalysisTextBox->clear();
 
-	map <int, boost::filesystem::path> modpaths = trace->get_piddata()->modpaths;
+	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+	map <int, boost::filesystem::path> modpaths = piddata->modpaths;
 
 	size_t recordsCount = modpaths.size();
 	unsigned long startPosition = appendNewUpdates ? currentLogLines : 0;
@@ -164,8 +165,10 @@ void analysisSelectablesTree::addSelectionOptions(QTreeWidgetItem* threadItem, p
 //add a process and its options to the analysis option selection pane
 void analysisSelectablesTree::addTraceAnalysisSelectables(QTreeWidgetItem* traceItem, traceRecord *trace)
 {
+	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+
 	QTreeWidgetItem* optionItem = new QTreeWidgetItem();
-	QString symCallsString = "Loaded Modules (" + QString::number(trace->get_piddata()->modpaths.size()) + ")";
+	QString symCallsString = "Loaded Modules (" + QString::number(piddata->modpaths.size()) + ")";
 	optionItem->setText(0, symCallsString);
 	optionItem->setData(1, Qt::UserRole, qVariantFromValue((int)eAC_Modules));
 	optionItem->setData(2, Qt::UserRole, qVariantFromValue((void *)trace));
@@ -345,6 +348,8 @@ void analysisSelectablesTree::addTrace(traceRecord * trace, QTreeWidgetItem* par
 //adding trace from scratch
 void analysisSelectablesTree::updateTraceSelectables(traceRecord * trace, QTreeWidgetItem* traceItem)
 {
+	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+
 	QTreeWidgetItem *item;
 	for (int i = 0; i < traceItem->childCount(); ++i)
 	{
@@ -356,7 +361,7 @@ void analysisSelectablesTree::updateTraceSelectables(traceRecord * trace, QTreeW
 		{
 		case eAC_Modules:
 			{
-				size_t moduleQty = trace->get_piddata()->modpaths.size();
+				size_t moduleQty = trace->loadedModuleCount;
 				QString newText = "Loaded Modules (" + QString::number(moduleQty) + ")";
 				item->setText(0, newText);
 

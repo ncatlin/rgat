@@ -70,7 +70,7 @@ public:
 	{
 		runRecord = runRecordptr;
 		binary = (binaryTarget *)runRecord->get_binaryPtr();
-		piddata = runRecord->get_piddata();
+		piddata = binary->get_piddata();
 		thisgraph = graph;
 		reader = readerThread;
 		TID = graph->get_TID();
@@ -117,7 +117,7 @@ private:
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void handle_exception_tag(TAG *thistag);
 
-	int find_containing_module(MEM_ADDRESS address);
+	int find_containing_module(MEM_ADDRESS address, int &modnum);
 	void dump_loop();
 	bool assign_blockrepeats();
 

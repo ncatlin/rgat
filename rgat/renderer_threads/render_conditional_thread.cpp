@@ -47,23 +47,23 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 				continue;
 			}
 
-			//jump only seen to succeed
-			if (condStatus & CONDTAKEN)
+			if (condStatus == CONDCOMPLETE)
+				nodeCol->insert(nodeCol->end(), bothPathsCol, end(bothPathsCol));
+
+			else if (((condStatus & CONDTAKEN) == CONDTAKEN)  && 			//jump only seen to succeed
+				((condStatus & CONDFELLTHROUGH) != CONDFELLTHROUGH))
 			{
 				nodeCol->insert(nodeCol->end(), succeedOnlyCol, end(succeedOnlyCol));
 				++graph->condCounts.first;
 			}
 
 			//jump only seen to fail
-			else if (condStatus & CONDFELLTHROUGH)
+			else if (((condStatus & CONDTAKEN) != CONDTAKEN) &&
+				((condStatus & CONDFELLTHROUGH) == CONDFELLTHROUGH))
 			{
 				nodeCol->insert(nodeCol->end(), failOnlyCol, end(failOnlyCol));
 				++graph->condCounts.second;
 			}
-
-			//jump seen to both fail and succeed. added for completeness sake.
-			else if (condStatus == CONDCOMPLETE)
-				nodeCol->insert(nodeCol->end(), bothPathsCol, end(bothPathsCol));
 
 			//ignore CONDPENDING for this iteration, not worth dealing with
 			continue;
@@ -134,7 +134,7 @@ void conditional_renderer::main_loop()
 	map<plotted_graph *,bool> finishedGraphs;
 	vector<plotted_graph *> graphlist;
 	map <PID_TID, void *>::iterator graphIt;
-	PROCESS_DATA *piddata = runRecord->get_piddata();
+	PROCESS_DATA *piddata = binary->get_piddata();
 
 	while (!clientState->rgatIsExiting())
 	{
@@ -154,7 +154,7 @@ void conditional_renderer::main_loop()
 		runRecord->graphListLock.unlock();
 		
 		//process terminated, all graphs fully rendered, now can head off to valhalla
-		if (!piddata->is_running() && (finishedGraphs.size() == graphlist.size()))
+		if (!runRecord->is_running() && (finishedGraphs.size() == graphlist.size()))
 		{
 			for (auto graph : graphlist)
 				graph->decrease_thread_references(2);
