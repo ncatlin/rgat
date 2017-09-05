@@ -32,7 +32,7 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 
 	writer.Uint64(index); //[0]
 	writer.Uint(conditional);//[1]
-	writer.Uint(nodeMod);//[2]
+	writer.Uint(globalModID);//[2]
 	writer.Uint64(address);//[3]
 	writer.Uint64(executionCount);//[4]
 
@@ -85,7 +85,7 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 	if (!nodeData[1].IsUint()) return errorAtIndex(1);
 	conditional = nodeData[1].GetUint();
 	if (!nodeData[2].IsUint()) return errorAtIndex(2);
-	nodeMod = nodeData[2].GetUint();
+	globalModID = nodeData[2].GetUint();
 	if (!nodeData[3].IsUint64()) return errorAtIndex(3);
 	address = nodeData[3].GetUint64();
 	if (!nodeData[4].IsUint64()) return errorAtIndex(4);

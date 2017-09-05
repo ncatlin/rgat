@@ -287,7 +287,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	assert(lastNode->ins->numbytes);
 	
 	//if caller is also external then we are not interested in this
-	if (piddata->activeMods.at(lastNode->nodeMod) == UNINSTRUMENTED_MODULE)
+	if (runRecord->activeMods.at(lastNode->globalModID) == UNINSTRUMENTED_MODULE)
 		return false;
 
 	BB_DATA *thisbb = 0;
@@ -344,11 +344,11 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 
 	piddata->dropExternCallerWriteLock();
 
-	int module = thisbb->modnum;
+	int module = thisbb->globalmodnum;
 
 	//make new external/library call node
 	node_data newTargNode;
-	newTargNode.nodeMod = module;
+	newTargNode.globalModID = module;
 	newTargNode.external = true;
 	newTargNode.address = targaddr;
 	newTargNode.index = targVertID;
@@ -542,17 +542,16 @@ void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //returns the module starting before and ending after the provided address
 //if that's none of them, assume its a new code area in calling module
 //TODO: this assumption is bad; any self modifying dll may cause problems
-int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &modnum)
+int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &localmodID)
 {
 	const size_t numModules = runRecord->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-
 		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = runRecord->modBounds.at(modNo);
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
-			modnum = modNo;
-			if (piddata->activeMods.at(modNo) == INSTRUMENTED_MODULE)
+			localmodID = modNo;
+			if (runRecord->activeMods.at(modNo) == INSTRUMENTED_MODULE)
 				return INSTRUMENTED_MODULE;
 			else 
 				return UNINSTRUMENTED_MODULE;
@@ -1009,7 +1008,9 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 				}
 			}
 			if (!targetFound)
-				cerr << "[rgat]Warning: 0x" << std::hex << targ2 << " in " << piddata->modpaths.at(foundExtern->modnum) << " not found. Heatmap accuracy may suffer." << endl;
+			{
+				cerr << "[rgat]Warning: 0x" << std::hex << targ2 << " in " << piddata->modpaths.at(foundExtern->globalmodnum) << " not found. Heatmap accuracy may suffer." << endl;
+			}
 		}
 		else
 		{
@@ -1027,13 +1028,13 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 				but this is not reliable outside of my runtime environment
 			*/
 
-			ADDRESS_OFFSET offset = targ2 - runRecord->modBounds.at(foundExtern->modnum)->first;
+			ADDRESS_OFFSET offset = targ2 - runRecord->modBounds.at(foundExtern->globalmodnum)->first;
 			string sym;
 			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
 			bool foundsym = false;
 			for (int i = 0; i < 4096; i++)
 			{
-				if (piddata->get_sym(foundExtern->modnum, offset - i, sym))
+				if (piddata->get_sym(foundExtern->globalmodnum, offset - i, sym))
 				{
 					foundsym = true;
 					break;
@@ -1044,7 +1045,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 			if (sym != "BaseThreadInitThunk")
 			{
 				cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: "
-					<< piddata->modpaths.at(foundExtern->modnum) << " +0x" << std::hex << offset << "): '" << sym << "'"<< endl;
+					<< piddata->modpaths.at(foundExtern->globalmodnum) << " +0x" << std::hex << offset << "): '" << sym << "'"<< endl;
 
 				cerr << endl << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
 			}

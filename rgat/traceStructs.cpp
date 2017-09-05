@@ -91,18 +91,18 @@ void PROCESS_DATA::dropExternCallerWriteLock()
 #endif
 }
 
-bool PROCESS_DATA::get_sym(unsigned int modNum, ADDRESS_OFFSET offset, string &sym)
+bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, string &sym)
 {
 	bool found;
 	getDisassemblyWriteLock();
-	if (modsymsPlain[modNum][offset].empty())
+	if (modsymsPlain[globalmodNum][offset].empty())
 	{
 		sym = "";
 		found = false;
 	}
 	else
 	{
-		sym = modsymsPlain[modNum][offset];
+		sym = modsymsPlain[globalmodNum][offset];
 		found = true;
 	}
 	dropDisassemblyWriteLock();
@@ -127,20 +127,16 @@ bool PROCESS_DATA::get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase)
 }
 */
 
-bool PROCESS_DATA::get_modpath(unsigned int modNum, boost::filesystem::path *path)
+bool PROCESS_DATA::get_modpath(unsigned int globalmodnum, boost::filesystem::path *path)
 {
 
+	if (globalmodnum >= modpaths.size()) return false;
+
 	getDisassemblyReadLock();
-	map<int, boost::filesystem::path>::iterator modPathIt = modpaths.find(modNum);
+	*path = modpaths.at(globalmodnum);
 	dropDisassemblyReadLock();
 
-	if (modPathIt != modpaths.end())
-	{
-		*path = modPathIt->second;
-		return true;
-	}
-	
-	return false;
+	return true;
 }
 
 bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts) {
@@ -189,7 +185,7 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 		delete BBEntry;
 		return false;
 	}
-	BBEntry->modnum = externIt->value.GetUint();
+	BBEntry->globalmodnum = externIt->value.GetUint();
 
 	externIt = externEntry.FindMember("S");
 	if (externIt == externEntry.MemberEnd())
@@ -270,18 +266,12 @@ bool PROCESS_DATA::loadModulePaths(const Value& processDataJSON)
 	cout << "[rgat]" << pathLoadMsg.str() << endl;
 	//display_only_status_message(pathLoadMsg.str(), clientState);
 
+	int globalmoduleID = 0;
 	Value::ConstValueIterator modPathIt = modPathArray.Begin();
 	for (; modPathIt != procDataIt->value.End(); modPathIt++)
 	{
-		Value::ConstMemberIterator pathDataIt = modPathIt->FindMember("ID");
-		if (pathDataIt == modPathIt->MemberEnd())
-		{
-			cout << "[rgat]ERROR: Module Paths load failed: No module ID" << endl;
-			return false;
-		}
-		int moduleID = pathDataIt->value.GetInt();
 
-		pathDataIt = modPathIt->FindMember("B64");
+		Value::ConstMemberIterator pathDataIt = modPathIt->FindMember("B64");
 		if (pathDataIt == modPathIt->MemberEnd())
 		{
 			cout << "[rgat]ERROR: Module Paths load failed: No path string" << endl;
@@ -291,12 +281,13 @@ bool PROCESS_DATA::loadModulePaths(const Value& processDataJSON)
 		string b64path = pathDataIt->value.GetString();
 		string plainpath = base64_decode(b64path);
 
-		modpaths.emplace(moduleID, plainpath);
+		modpaths.at(globalmoduleID) = plainpath;
+		globalmoduleID++;
 	}
 	return true;
 }
 
-bool unpackModuleSymbolArray(const Value& modSymArray, int moduleID, PROCESS_DATA *piddata)
+bool unpackModuleSymbolArray(const Value& modSymArray, int globalmodNum, PROCESS_DATA *piddata)
 {
 	Value::ConstValueIterator modSymArrIt = modSymArray.Begin();
 	for (; modSymArrIt != modSymArray.End(); modSymArrIt++)
@@ -306,14 +297,14 @@ bool unpackModuleSymbolArray(const Value& modSymArray, int moduleID, PROCESS_DAT
 			!symbolsArray[0].IsUint64() ||
 			!symbolsArray[1].IsString())
 		{
-			cout << "[rgat]ERROR: Symbols load failed: bad symbol entry in module" << moduleID << endl;
+			cout << "[rgat]ERROR: Symbols load failed: bad symbol entry in module" << globalmodNum << endl;
 			return false;
 		}
 
 		MEM_ADDRESS symAddress = symbolsArray[0].GetUint64();
 		string symPlain = symbolsArray[1].GetString();
 
-		piddata->modsymsPlain[moduleID][symAddress] = symPlain;
+		piddata->modsymsPlain[globalmodNum][symAddress] = symPlain;
 	}
 	return true;
 }
@@ -383,7 +374,7 @@ bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *a
 
 
 		INS_DATA *ins = new INS_DATA;
-		ins->modnum = addressdata->moduleID;
+		ins->globalmodnum = addressdata->moduleID;
 		ins->hasSymbol = addressdata->hasSym;
 
 		disassemble_ins(hCapstone, opcodesString, ins, addressdata->address);

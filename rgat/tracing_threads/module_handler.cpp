@@ -166,7 +166,7 @@ void module_handler::main_loop()
 
 				string symname = string(next_token);
 				piddata->getDisassemblyWriteLock();
-				piddata->modsymsPlain[modnum][offset] = symname;
+				piddata->modsymsPlain[runRecord->modIDTranslationVec.at(modnum)][offset] = symname;
 				piddata->dropDisassemblyWriteLock();
 				continue;
 			}
@@ -184,18 +184,45 @@ void module_handler::main_loop()
 				else 
 					b64path = string(strtok_s(buf + 2, "@", &next_token));
 
-				char *modnum_s = strtok_s(next_token, "@", &next_token);
-				long modnum = -1;
-				sscanf_s(modnum_s, "%d", &modnum);
+				boost::filesystem::path path_plain;
+				if (!b64path.empty())
+					path_plain = boost::filesystem::path((base64_decode(b64path)));
+				else
+					path_plain = "";
 
-				piddata->getDisassemblyReadLock();
-				if (piddata->modpaths.count(modnum) > 0) 
+
+				//todo: problem. module numbers can differ between runs. need to translate them on a per trace basis.
+				char *localmodnum_s = strtok_s(next_token, "@", &next_token);
+				long localmodID = -1;
+				sscanf_s(localmodnum_s, "%d", &localmodID);
+
+
+				piddata->getDisassemblyWriteLock();
+
+				if (runRecord->modIDTranslationVec.at(localmodID) != -1)
 				{
-					wcerr<< "[rgat]ERROR: PID:"<< runRecord->PID<<" Bad(prexisting) module number "<<modnum<<" in mn ["<<
-						buf<<"]. current is:" << piddata->modpaths.at(modnum) << endl;
+					wcerr << "[rgat]ERROR: PID:" << runRecord->PID << " Bad(prexisting) module number " << localmodID << " in mn [" <<
+						buf << "]. current is:" << piddata->modpaths.at(localmodID) << endl;
 					assert(0);
 				}
-				piddata->dropDisassemblyReadLock();
+
+				long globalModID;
+				auto modIDIt = piddata->globalModuleIDs.find(path_plain); //first time we have seen this module in any run of target
+				if (modIDIt == piddata->globalModuleIDs.end())
+				{
+					globalModID = piddata->modpaths.size();
+					piddata->modpaths.push_back(path_plain);
+					piddata->globalModuleIDs[path_plain] = globalModID;
+					runRecord->modIDTranslationVec[localmodID] = globalModID;
+				}
+				else
+				{
+					globalModID = modIDIt->second;
+					runRecord->modIDTranslationVec[localmodID] = globalModID;
+				}
+
+				piddata->dropDisassemblyWriteLock();
+
 
 				//todo: safe stol? if this is safe whytf have i implented safe stol
 				char *startaddr_s = strtok_s(next_token, "@", &next_token);
@@ -211,9 +238,9 @@ void module_handler::main_loop()
 				piddata->getDisassemblyWriteLock();
 
 				if (*skipped_s == '1')
-					piddata->activeMods[modnum] = UNINSTRUMENTED_MODULE;
+					runRecord->activeMods[globalModID] = UNINSTRUMENTED_MODULE;
 				else
-					piddata->activeMods[modnum] = INSTRUMENTED_MODULE;
+					runRecord->activeMods[globalModID] = INSTRUMENTED_MODULE;
 
 				piddata->dropDisassemblyWriteLock();
 
@@ -221,20 +248,9 @@ void module_handler::main_loop()
 					wcerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
-				
-				boost::filesystem::path path_plain;
-				if (!b64path.empty())
-					path_plain = boost::filesystem::path((base64_decode(b64path)));
-				else
-					path_plain = "";
 
-				assert(runRecord->modBounds.at(modnum) == NULL);
-				runRecord->modBounds[modnum] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
-
-				piddata->getDisassemblyWriteLock();
-				piddata->modpaths[modnum] = path_plain;
-				piddata->dropDisassemblyWriteLock();
-
+				assert(runRecord->modBounds.at(globalModID) == NULL);
+				runRecord->modBounds[globalModID] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
 				runRecord->loadedModuleCount++;
 
 				continue;

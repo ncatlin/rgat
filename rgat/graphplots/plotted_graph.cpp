@@ -1073,7 +1073,7 @@ void plotted_graph::brighten_new_active_extern_nodes()
 		}
 
 		MEM_ADDRESS insaddr = externNode->address;
-		int nodeModule = externNode->nodeMod;
+		int globalModIDule = externNode->globalModID;
 
 		internalProtoGraph->dropNodeReadLock();
 
@@ -1081,7 +1081,7 @@ void plotted_graph::brighten_new_active_extern_nodes()
 		internalProtoGraph->externCallsLock.unlock();
 
 		boost::filesystem::path modulePath;
-		piddata->get_modpath(nodeModule, &modulePath);
+		piddata->get_modpath(globalModIDule, &modulePath);
 
 		stringstream callLogEntry;
 		callLogEntry << "0x" << std::hex << insaddr << ": ";
@@ -1539,8 +1539,8 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 {
 
 	string symString;
-	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->nodeMod)->first;
-	get_protoGraph()->get_piddata()->get_sym(n->nodeMod, n->address, symString);
+	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
+	get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symString);
 	if (symString.empty()) return;
 
 	
@@ -1566,7 +1566,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	PROCESS_DATA *piddata = protoGraph->get_piddata();
 
 	boost::filesystem::path modulePath;
-	piddata->get_modpath(n->nodeMod, &modulePath);
+	piddata->get_modpath(n->globalModID, &modulePath);
 
 	stringstream argstring;
 	argstring << "(" << n->index << ")";
@@ -1576,10 +1576,10 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	int numCalls = n->calls;
 	string symString;
 
-	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->nodeMod)->first;
+	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
 
 	if (!clientState->config.externalSymbolVisibility.addresses)
-		piddata->get_sym(n->nodeMod, offset, symString);
+		piddata->get_sym(n->globalModID, offset, symString);
 
 
 	//todo: might be better to find the first symbol in the DLL that has a lower address

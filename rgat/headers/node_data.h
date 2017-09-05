@@ -44,7 +44,7 @@ public:
 	INS_DATA* ins = NULL;
 	bool external = false;
 	bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
-	int nodeMod;
+	long globalModID;
 
 	BLOCK_IDENTIFIER blockID;
 	

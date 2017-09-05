@@ -124,14 +124,14 @@ void highlightWidget::updateModSyms(proto_graph *graph)
 	foreach(nodeIndex, externalnodes)
 	{
 		node_data* node = graph->safe_get_node(nodeIndex);
-		moduleEntry *moduleData = getModuleHighlightData(piddata, node->nodeMod);
+		moduleEntry *moduleData = getModuleHighlightData(piddata, node->globalModID);
 
 		map <MEM_ADDRESS, symbolInfo>::iterator symIt = moduleData->symbols.find(node->address);
 		if (symIt == moduleData->symbols.end())
 		{
 			string symName;
-			MEM_ADDRESS offset = node->address - graph->get_traceRecord()->modBounds.at(node->nodeMod)->first;
-			if(piddata->get_sym(node->nodeMod, offset, symName))
+			MEM_ADDRESS offset = node->address - graph->get_traceRecord()->modBounds.at(node->globalModID)->first;
+			if(piddata->get_sym(node->globalModID, offset, symName))
 				addSymbolToTree(moduleData, QString::fromStdString(symName), node);
 			else
 				addSymbolToTree(moduleData, "[No Symbol]", node);
