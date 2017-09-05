@@ -33,7 +33,7 @@ class cylinder_graph : public plotted_graph
 {
 
 public:
-	cylinder_graph(PROCESS_DATA* processdata, unsigned int threadID, proto_graph *protoGraph, vector<QColor> *coloursPtr)
+	cylinder_graph(unsigned int threadID, proto_graph *protoGraph, vector<QColor> *coloursPtr)
 		: plotted_graph(protoGraph, coloursPtr) {
 		layout = eCylinderLayout;
 	};

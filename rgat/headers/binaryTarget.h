@@ -43,6 +43,7 @@ public:
 	traceRecord *getTraceWithID(int ID);
 	list<traceRecord *> *getTraceListPtr(){return &traceRecords;}
 	list<traceRecord *> getTraceList() { return traceRecords; }
+	PROCESS_DATA *get_piddata() { return processdata; }
 
 	bool createTraceAtTime(traceRecord ** tracePtr, long long timeStarted, PID_TID PID, int PIDID);
 	traceRecord *getRecordWithPID(PID_TID PID, int PID_ID);
@@ -64,5 +65,7 @@ private:
 	list<traceRecord *> traceRecords;
 	map <long long, traceRecord *> runRecordTimes;
 	traceRecord *activeTrace = NULL;
+
+	PROCESS_DATA *processdata;
 };
 

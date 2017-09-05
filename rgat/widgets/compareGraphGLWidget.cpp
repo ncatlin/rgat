@@ -60,6 +60,8 @@ void compareGraphGLWidget::plotComparison()
 {
 
 	plotted_graph *graph1 = (plotted_graph *)clientState->getCompareGraph(1);
+	traceRecord *graph1trace = graph1->get_protoGraph()->get_traceRecord();
+
 	plotted_graph *graph2 = (plotted_graph *)clientState->getCompareGraph(2);
 	if (!graph1 || !graph2) return;
 
@@ -87,8 +89,8 @@ void compareGraphGLWidget::plotComparison()
 			if (diffNode->external)
 			{
 				string symString;
-				MEM_ADDRESS offset;
-				graph1->get_protoGraph()->get_piddata()->get_sym(diffNode->nodeMod, diffNode->address, offset, symString);
+				MEM_ADDRESS offset = diffNode->address - graph1trace->modBounds.at(diffNode->nodeMod)->first;
+				graph1->get_protoGraph()->get_piddata()->get_sym(diffNode->nodeMod, offset, symString);
 				infostring = " - " + QString::fromStdString(symString) + "(*)";
 				ui->lastCommonInsLabel->setText("Divergence at external address 0x" + QString::number(diffNode->address, 16) + infostring);
 			}

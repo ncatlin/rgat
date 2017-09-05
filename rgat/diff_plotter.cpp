@@ -35,13 +35,13 @@ diff_plotter::diff_plotter(graphGLWidget *plotwindow, plotted_graph *g1, plotted
 	{
 		case eCylinderLayout:
 		{
-			diffgraph = new cylinder_graph(0, 0, graph1->get_protoGraph(), &clientState->config.graphColours);
+			diffgraph = new cylinder_graph(0, graph1->get_protoGraph(), &clientState->config.graphColours);
 			break;
 		}
 
 		case eTreeLayout:
 		{
-			diffgraph = new tree_graph(0, 0, graph1->get_protoGraph(), &clientState->config.graphColours);
+			diffgraph = new tree_graph(0, graph1->get_protoGraph(), &clientState->config.graphColours);
 			break;
 		}
 		default:

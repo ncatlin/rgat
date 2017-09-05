@@ -88,7 +88,7 @@ private:
 	void updateVisualiseStats(bool fullRefresh = false);
 	void refreshProcessesCombo(traceRecord *initialTrace);
 	void updateTimerFired();
-	int addProcessToGUILists(PROCESS_DATA *trace, QTreeWidgetItem *parentitem);
+	int addProcessToGUILists(traceRecord *trace, QTreeWidgetItem *parentitem);
 	void refreshTracesCombo(traceRecord *initialTrace);
 #ifdef INCLUDE_FUZZ_CODE
 	void fuzzUpdateCheck();

@@ -27,11 +27,12 @@ The final graphs (sphere, linear, etc are built using this data)
 
 using namespace rapidjson;
 
-proto_graph::proto_graph(PROCESS_DATA *processdata, unsigned int threadID)
+proto_graph::proto_graph(traceRecord *tracerecPtr, unsigned int threadID)
 {
 	constructedTime = TIMENOW_IN_MS;
 
-	piddata = processdata;
+	runRecord = (traceRecord *)tracerecPtr;
+	piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
 	tid = threadID;
 }
 
@@ -120,13 +121,13 @@ void proto_graph::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
 	edge_data newEdge;
 
 	if (targNode->external)
-		newEdge.edgeClass = eEdgeLib;
-	else if (sourceNode->ins->itype == eInsCall)
-		newEdge.edgeClass = eEdgeCall;
-	else if (sourceNode->ins->itype == eInsReturn)
-		newEdge.edgeClass = eEdgeReturn;
+		newEdge.edgeClass = eEdgeNodeType::eEdgeLib;
+	else if (sourceNode->ins->itype == eNodeType::eInsCall)
+		newEdge.edgeClass = eEdgeNodeType::eEdgeCall;
+	else if (sourceNode->ins->itype == eNodeType::eInsReturn)
+		newEdge.edgeClass = eEdgeNodeType::eEdgeReturn;
 	else
-		newEdge.edgeClass = eEdgeOld;
+		newEdge.edgeClass = eEdgeNodeType::eEdgeOld;
 
 	add_edge(newEdge, sourceNode, targNode);
 
@@ -171,7 +172,7 @@ edge_data *proto_graph::get_edge_create(node_data *source, node_data *target)
 		return &edgeDIt->second;
 
 	edge_data edgeData;
-	edgeData.edgeClass = eEdgeNew;
+	edgeData.edgeClass = eEdgeNodeType::eEdgeNew;
 	edgeData.chainedWeight = 0;
 	add_edge(edgeData, source, target);
 
@@ -568,7 +569,7 @@ bool proto_graph::loadStats(const Value& graphData)
 	Value::ConstMemberIterator statsIt = graphData.FindMember("Module");
 	if (statsIt == graphData.MemberEnd()) return false;
 	exeModuleID = statsIt->value.GetUint();
-	moduleBase = get_piddata()->modBounds.at(exeModuleID).first;
+	moduleBase = runRecord->modBounds.at(exeModuleID)->first;
 
 	statsIt = graphData.FindMember("TotalInstructions");
 	if (statsIt == graphData.MemberEnd()) return false;
@@ -636,9 +637,9 @@ string proto_graph::get_node_sym(NODEINDEX idx)
 {
 	node_data *n = safe_get_node(idx);
 	string sym;
-	MEM_ADDRESS offset;
 
-	if (piddata->get_sym(n->nodeMod, n->address, offset, sym))
+	MEM_ADDRESS offset = n->address - get_traceRecord()->modBounds.at(n->nodeMod)->first;
+	if (piddata->get_sym(n->nodeMod, offset, sym))
 		return sym;
 
 	boost::filesystem::path modPath;
@@ -657,7 +658,7 @@ void proto_graph::assign_modpath()
 
 	boost::filesystem::path longmodPath;
 	piddata->get_modpath(exeModuleID, &longmodPath);
-	piddata->get_modbase(exeModuleID, moduleBase);
+	moduleBase = runRecord->modBounds.at(exeModuleID)->first;
 	
 
 	if (longmodPath.size() > MAX_DIFF_PATH_LENGTH)

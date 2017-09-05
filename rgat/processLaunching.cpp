@@ -134,7 +134,7 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 
 		if (clientState->waitingForNewTrace)
 		{
-			clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->get_piddata()->PID), 5000);
+			clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->PID), 5000);
 			clientState->switchTrace = trace;
 			clientState->waitingForNewTrace = false;
 		}

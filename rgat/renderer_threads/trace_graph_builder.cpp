@@ -28,9 +28,9 @@ The thread that builds a graph for each trace
 
 //todo move to trace structs
 //waits for the disassembly of instrumented code at the specified address
-bool trace_graph_builder::find_internal_at_address(MEM_ADDRESS address, int attempts)
+bool trace_graph_builder::find_internal_at_address(ADDRESS_OFFSET offset, int attempts)
 {
-	while (!piddata->disassembly.count(address))
+	while (!piddata->disassembly.count(offset))
 	{
 		Sleep(1);
 		if (!attempts--) return false;
@@ -542,17 +542,16 @@ void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //returns the module starting before and ending after the provided address
 //if that's none of them, assume its a new code area in calling module
 //TODO: this assumption is bad; any self modifying dll may cause problems
-int trace_graph_builder::find_containing_module(MEM_ADDRESS address)
+int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &modnum)
 {
-	const size_t numModules = piddata->modBounds.size();
+	const size_t numModules = runRecord->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-		piddata->getDisassemblyReadLock();
-		//todo: bug: sometimes modNo not in modBounds
-		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = &piddata->modBounds.at(modNo);
-		piddata->dropDisassemblyReadLock();
+
+		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = runRecord->modBounds.at(modNo);
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
+			modnum = modNo;
 			if (piddata->activeMods.at(modNo) == INSTRUMENTED_MODULE)
 				return INSTRUMENTED_MODULE;
 			else 
@@ -967,20 +966,22 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 		assert(0);
 	}
 
-	id_count = stoll(entry, 0, 16);
+	block_id_count_string = string(strtok_s(entry, ",", &entry)); //string(entry);
+	id_count = stoll(block_id_count_string, 0, 16);
 	thistag.insCount = id_count & 0xffffffff;
 	thistag.blockID = id_count >> 32;
 	thistag.jumpModifier = 1;
 	handle_tag(&thistag);
 
-	string targ2_s = string(entry);
+	string targ2_s = string(strtok_s(entry, ",", &entry)); //string(entry);
 	MEM_ADDRESS targ2;
 	if (!caught_stoull(targ2_s, &targ2, 16)) {
 		cerr << "[rgat]ERROR: BX handling addr STOL: " << targ2_s << endl;
 		assert(0);
 	}
 
-	if (find_containing_module(targ2) == UNINSTRUMENTED_MODULE)
+	int modnum;
+	if (find_containing_module(targ2, modnum) == UNINSTRUMENTED_MODULE)
 	{
 		BB_DATA* foundExtern = 0;
 		bool addressFound = piddata->get_extern_at_address(targ2, &foundExtern, 3);
@@ -989,6 +990,8 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 		bool targetFound = false;
 		piddata->getExternCallerReadLock();
 		map <PID_TID, EDGELIST>::iterator callerIt = foundExtern->thread_callers.find(TID);
+		if (callerIt == foundExtern->thread_callers.end())
+			cout << " no";
 
 		if (callerIt != foundExtern->thread_callers.end())
 		{
@@ -1017,12 +1020,34 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 					for (many iterations){ do a thing; }
 					return 0;  <- targ2 points to address outside program... can't draw an edge to it
 				}
-			which is not a problem.
-			could come up with a way to only warn if the thread continues but it will be messy
+			which is not a problem. this happens in the nestedloops tests
+
+			Could come up with a way to only warn if the thread continues (eg: if anything at all comes after this from the trace pipe).
+			For now as it hasn't been a problem i've improvised by checking if we return to code after the BaseThreadInitThunk symbol, 
+				but this is not reliable outside of my runtime environment
 			*/
-			cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: " 
-				 << piddata->modpaths.at(foundExtern->modnum) <<" Addr: " << std::hex << targ2 << ")" << endl;
-			cerr << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
+
+			ADDRESS_OFFSET offset = targ2 - runRecord->modBounds.at(foundExtern->modnum)->first;
+			string sym;
+			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+			bool foundsym = false;
+			for (int i = 0; i < 4096; i++)
+			{
+				if (piddata->get_sym(foundExtern->modnum, offset - i, sym))
+				{
+					foundsym = true;
+					break;
+				}
+			}
+			if (!foundsym) sym = "Unknown Symbol";
+
+			if (sym != "BaseThreadInitThunk")
+			{
+				cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: "
+					<< piddata->modpaths.at(foundExtern->modnum) << " +0x" << std::hex << offset << "): '" << sym << "'"<< endl;
+
+				cerr << endl << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
+			}
 		}
 		piddata->dropExternCallerReadLock();
 	}
@@ -1063,7 +1088,8 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	//fallen through/failed conditional jump
 	if (nextBlock == 0) return;
 
-	int modType = find_containing_module(nextBlock);
+	int modnum;
+	int modType = find_containing_module(nextBlock, modnum);
 	if (modType == INSTRUMENTED_MODULE) return;
 
 	//modType could be known unknown here

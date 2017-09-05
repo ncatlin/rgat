@@ -24,6 +24,7 @@ The final graphs (cylinder, tree, etc are built using this data)
 #include <traceMisc.h>
 #include "node_data.h"
 #include "locks.h"
+#include "traceRecord.h"
 
 #include <rapidjson\document.h>
 #include <rapidjson\filewritestream.h>
@@ -57,6 +58,7 @@ private:
 
 	void *trace_reader = NULL;
 	PROCESS_DATA* piddata = NULL;
+	traceRecord* runRecord = NULL;
 	HANDLE disassemblyMutex;
 
 #ifdef XP_COMPATIBLE
@@ -83,7 +85,7 @@ protected:
 	
 
 public:
-	proto_graph(PROCESS_DATA *processdata, unsigned int threadID);
+	proto_graph(traceRecord *runrecord, unsigned int threadID);
 	~proto_graph();
 
 	void insert_edge_between_BBs(INSLIST *source, INSLIST *target);
@@ -109,6 +111,7 @@ public:
 	unsigned int handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
 	void handle_previous_instruction(NODEINDEX targVertID, unsigned long repeats);
 
+	traceRecord* get_traceRecord() { return runRecord; }
 	PROCESS_DATA* get_piddata() { return piddata; }
 	PID_TID get_TID() { return tid; }
 

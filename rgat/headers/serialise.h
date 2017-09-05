@@ -27,7 +27,7 @@ Graph/Process Saving/Loading routines
 #include <rapidjson\writer.h>
 #include <boost\filesystem.hpp>
 
-void saveProcessData(PROCESS_DATA *piddata, rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+void saveTargetData(PROCESS_DATA *piddata, rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 
 FILE * setupSaveFile(clientConfig *config, traceRecord *trace);
 wstring time_string(time_t startedTime);

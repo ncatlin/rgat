@@ -257,6 +257,51 @@ bool testRun::testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberI
 				continue;
 			}
 
+			if (valuename == "COND")
+			{
+
+				string expectedCond = nodeDetailIt->value.GetString();
+				if (expectedCond == "NONE" && (node->conditional == 0)) continue;
+				if (expectedCond != "NONE" && ((node->conditional & ISCONDITIONAL) != ISCONDITIONAL))
+				{
+					cout << "Test Failed: Expected node (" << nodeidx << ") to be conditional, but it is not. Flags: " << node->conditional << endl;
+					return false;
+				}
+
+				if (expectedCond == "BOTH")
+				{
+					if (node->conditional & CONDCOMPLETE != CONDCOMPLETE)
+					{
+						cout << "Test Failed: Expected conditional node (" << nodeidx << ") to be taken and not-taken, but this was false. Flags: " << node->conditional << endl;
+						return false;
+					}
+					continue;
+				}
+
+				if (expectedCond == "TAKEN")
+				{
+					if ((node->conditional & CONDTAKEN) != CONDTAKEN)
+					{
+						cout << "Test Failed: Expected conditional node (" << nodeidx << ") to only be taken but this was false. Flags: " << node->conditional << endl;
+						return false;
+					}
+					continue;
+				}
+
+				if (expectedCond == "FELLTHROUGH")
+				{
+					if ((node->conditional & CONDFELLTHROUGH) != CONDFELLTHROUGH)
+					{
+						cout << "Test Failed: Expected conditional node (" << nodeidx << ") to only fall through but this was false. Flags: " << node->conditional << endl;
+						return false;
+					}
+					continue;
+				}
+
+				cerr << "Error: Invalid conditional test " << expectedCond << " in NODEDETAILS" << endl;
+				return false;
+			}
+
 			cerr << "Error: Invalid test " << valuename << " in NODEDETAILS" << endl;
 			return false;
 		}

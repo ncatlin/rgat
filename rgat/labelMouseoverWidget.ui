@@ -66,6 +66,13 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QCheckBox" name="checkBox">
+     <property name="text">
+      <string>Taint</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

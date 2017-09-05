@@ -63,14 +63,14 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 	insdata->address  = insaddr;
 	
 	if (insdata->mnemonic == "call")
-		insdata->itype = eInsCall;
+		insdata->itype = eNodeType::eInsCall;
 	else if (insdata->mnemonic == "ret") //todo: iret
-		insdata->itype = eInsReturn;
+		insdata->itype = eNodeType::eInsReturn;
 	else if (insdata->mnemonic == "jmp")
-		insdata->itype = eInsJump;
+		insdata->itype = eNodeType::eInsJump;
 	else
 	{
-		insdata->itype = eInsUndefined;
+		insdata->itype = eNodeType::eInsUndefined;
 		//assume all j+ instructions asside from jmp are conditional
 		if (insdata->mnemonic[0] == 'j')
 		{
@@ -137,15 +137,15 @@ void basicblock_handler::main_loop()
 	}
 
 	//string savedbuf;
-	PROCESS_DATA *piddata = runRecord->get_piddata();
-	while (!die && !piddata->should_die())
+	PROCESS_DATA *piddata = binary->get_piddata();
+	while (!die && !runRecord->should_die())
 	{
 		DWORD bread = 0;
 		ReadFile(hPipe, &buf.at(0), BBBUFSIZE, &bread, &ov2);
 		while (!die)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
-			if (!runRecord->isRunning() || piddata->should_die()) break;
+			if (!runRecord->isRunning() || runRecord->should_die()) break;
 		}
 
 		if (GetLastError() != ERROR_IO_PENDING) continue;
@@ -184,11 +184,10 @@ void basicblock_handler::main_loop()
 			char *next_token = &buf.at(1);
 			size_t i = 0;
 			/*
-			important TODO: these char->string->long/int operations are very very slow. use something better
+			important TODO: these char*->string->long/int operations are very very slow. use something better
 			see http://stackoverflow.com/questions/16826422/c-most-efficient-way-to-convert-string-to-int-faster-than-atoi
 			...but 16 bit
 			*/
-
 			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
 			MEM_ADDRESS targetaddr;
 			targetaddr = atol(start_s);
@@ -203,6 +202,9 @@ void basicblock_handler::main_loop()
 				cerr << "[rgat]bb modnum stoi error: " << modnum_s << endl;
 				assert(0);
 			}
+
+			MEM_ADDRESS modulestart = runRecord->modBounds.at(modnum)->first;
+			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);
 			bool instrumented, dataExecution = false;
@@ -229,14 +231,18 @@ void basicblock_handler::main_loop()
 				BB_DATA *bbdata = new BB_DATA;
 				bbdata->modnum = modnum;
 
-				piddata->getDisassemblyReadLock();
-				if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr))
-					bbdata->hasSymbol = true;
-				piddata->dropDisassemblyReadLock();
-
 				piddata->getExternDictWriteLock();
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 				piddata->dropExternDictWriteLock();
+
+				piddata->getDisassemblyReadLock();
+				if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(modoffset))
+					bbdata->hasSymbol = true;
+				piddata->dropDisassemblyReadLock();
+
+				//if (bbdata->hasSymbol)
+				//	fill_taint_data_for_symbol(bbdata);
+
 				continue;
 			}
 
@@ -274,7 +280,8 @@ void basicblock_handler::main_loop()
 					instruction->modnum = modnum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
-					if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr)) //todo find instead of count
+
+					if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr))
 						instruction->hasSymbol = true;
 
 					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) 

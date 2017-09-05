@@ -288,14 +288,9 @@ void saveMetaData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 	writer.Uint(RGAT_VERSION_FEATURE);
 }
 
-void saveProcessData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
+void saveTargetData(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 {
 	writer.StartObject();
-
-	writer.Key("PID");
-	writer.Uint64(piddata->PID);
-	writer.Key("PID_ID");
-	writer.Int(piddata->randID);
 
 	saveMetaData(piddata, writer);
 	saveModulePaths(piddata, writer);

@@ -94,7 +94,7 @@ void maingraph_render_thread::main_loop()
 
 				clientState->clearActiveGraph();
 
-				traceRecord *activeTrace = (traceRecord *)activeGraph->get_protoGraph()->get_piddata()->tracePtr;
+				traceRecord *activeTrace = (traceRecord *)activeGraph->get_protoGraph()->get_traceRecord();
 
 				while (clientState->getActiveGraph(false) == activeGraph)
 					Sleep(25);

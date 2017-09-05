@@ -91,28 +91,26 @@ void PROCESS_DATA::dropExternCallerWriteLock()
 #endif
 }
 
-bool PROCESS_DATA::get_sym(unsigned int modNum, MEM_ADDRESS addr, MEM_ADDRESS &offset, string &sym)
+bool PROCESS_DATA::get_sym(unsigned int modNum, ADDRESS_OFFSET offset, string &sym)
 {
 	bool found;
 	getDisassemblyWriteLock();
-	if (modsymsPlain[modNum][addr].empty())
+	if (modsymsPlain[modNum][offset].empty())
 	{
 		sym = "";
 		found = false;
 	}
 	else
 	{
-		sym = modsymsPlain[modNum][addr];
+		sym = modsymsPlain[modNum][offset];
 		found = true;
 	}
-	MEM_ADDRESS base = modBounds[modNum].first;
 	dropDisassemblyWriteLock();
-	offset = addr - base;
 
 	return found;
 }
 
-
+/*
 bool PROCESS_DATA::get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase)
 {
 	getDisassemblyReadLock();
@@ -127,6 +125,7 @@ bool PROCESS_DATA::get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase)
 
 	return false;
 }
+*/
 
 bool PROCESS_DATA::get_modpath(unsigned int modNum, boost::filesystem::path *path)
 {
@@ -166,15 +165,7 @@ bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int 
 	return true;
 }
 
-bool PROCESS_DATA::is_process(PID_TID testpid, int testID)
-{ 
-	if (testpid != PID) return false;
 
-	if (testID == randID || !testID)
-		return true;
-
-	return false;
-}
 
 using namespace rapidjson;
 
@@ -579,6 +570,7 @@ bool PROCESS_DATA::loadBasicBlocks(const Value& saveJSON)
 
 bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trace)
 {
+	/*
 	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("PID");
 	if (procDataIt == saveJSON.MemberEnd())
 	{
@@ -608,7 +600,6 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trac
 		cerr << "[rgat]ERROR: Failed to load module paths" << endl;
 		return false;
 	}
-
 	if (!loadSymbols(procDataJSON))
 	{
 		cerr << "[rgat]ERROR: Failed to load symbols" << endl;
@@ -635,6 +626,7 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trac
 
 	tracePtr = trace;
 
+	*/
 	return true;
 }
 

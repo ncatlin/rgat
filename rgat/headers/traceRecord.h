@@ -30,17 +30,17 @@ typedef void * BINARYTARGETPTR;
 class traceRecord
 {
 public:
-	traceRecord(PID_TID newPID, int randomNo, int bitWidth);
+	traceRecord(PID_TID newPID, int randomNo);
 	~traceRecord() {};
 
-	PID_TID getPID() { return processdata->PID; }
-	wstring getModpathID() { return to_wstring(processdata->PID) + to_wstring(processdata->randID); }
-	PROCESS_DATA * get_piddata() { return processdata; }
+	PID_TID getPID() { return PID; }
+	wstring getModpathID() { return to_wstring(PID) + to_wstring(randID); }
 	BINARYTARGETPTR get_binaryPtr() { return binaryPtr; }
 	void notify_new_pid(PID_TID pid, int PID_ID, PID_TID parentPid) { runtimeline.notify_new_pid(pid, PID_ID, parentPid); running = true; }
 	void notify_pid_end(PID_TID pid, int PID_ID) { running = runtimeline.notify_pid_end(pid, PID_ID); }
-	void notify_tid_end(PID_TID tid) { runtimeline.notify_thread_end(getPID(), get_piddata()->randID, tid); }
+	void notify_tid_end(PID_TID tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
 	bool insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot, PROTOGRAPH_CASTPTR graph_proto);
+	bool is_process(PID_TID testpid, int testID);
 
 	void *get_first_graph();
 	bool getStartedTime(time_t *result) { return runtimeline.getFirstEventTime(result); }
@@ -54,6 +54,10 @@ public:
 	bool load(const rapidjson::Document& saveJSON, vector<QColor> *colours);
 	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
 	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> *writer) { runtimeline.serialise(writer); };
+	void kill() { if (running) { killed = true; } }
+	bool should_die() { return killed; }
+	bool is_running() { return running; }
+	void set_running(bool r) { running = r; }
 	void killTree();
 	void setTraceType(eTracePurpose purpose);
 	eTracePurpose getTraceType() { return tracetype; }
@@ -69,6 +73,11 @@ public:
 	void *processThreads;
 	void *fuzzRunPtr = NULL;
 
+	PID_TID PID = -1;
+	int randID; //to distinguish between processes with identical PIDs
+	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *> modBounds;
+	int loadedModuleCount = 0;
+
 private:
 	bool loadProcessData(const rapidjson::Document& saveJSON);
 	bool loadProcessGraphs(const rapidjson::Document& saveJSON, vector<QColor> *colours);
@@ -79,6 +88,6 @@ private:
 	timeline runtimeline;
 	BINARYTARGETPTR binaryPtr = NULL;
 	bool running = false;
-	PROCESS_DATA *processdata;
+	bool killed = false;
 	eTracePurpose tracetype;
 };
