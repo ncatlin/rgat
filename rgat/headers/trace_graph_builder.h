@@ -117,7 +117,8 @@ private:
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void handle_exception_tag(TAG *thistag);
 
-	int find_containing_module(MEM_ADDRESS address, int &modnum);
+	//todo an enum for the result
+	int find_containing_module(MEM_ADDRESS address, int &localmodID);
 	void dump_loop();
 	bool assign_blockrepeats();
 

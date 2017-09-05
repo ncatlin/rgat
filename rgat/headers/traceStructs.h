@@ -96,7 +96,7 @@ struct INS_DATA
 	MEM_ADDRESS condDropAddress;
 	//thread id, vert idx TODO: make unsigned
 	unordered_map<PID_TID, NODEINDEX> threadvertIdx;
-	unsigned int modnum;
+	unsigned int globalmodnum;
 	unsigned int mutationIndex;
 
 	//this was added later, might be worth ditching other stuff in exchange
@@ -111,7 +111,7 @@ typedef vector<INS_DATA *> INSLIST;
 
 struct BB_DATA {
 	INSLIST inslist;
-	unsigned int modnum;
+	unsigned int globalmodnum;
 	//list of threads that call this BB
 	//inside is list of the threads verts that call it
 	//it can exist multiple times on map so caller->this is listed
@@ -142,7 +142,8 @@ public:
 	bool load(const rapidjson::Document& saveJSON, TRACERECORDPTR trace);
 	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, BB_DATA **externBlock);
 
-	map <int, boost::filesystem::path>modpaths;
+	vector<boost::filesystem::path> modpaths;
+	map <boost::filesystem::path, long> globalModuleIDs;
 	map <int, std::map<ADDRESS_OFFSET, string>>modsymsPlain;
 
 #ifdef XP_COMPATIBLE
@@ -200,7 +201,7 @@ public:
 	//   address		    blockID			instructionlist
 	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
 
-	map <int,int> activeMods;
+
 	map <MEM_ADDRESS, BB_DATA *> externdict;
 	int bitwidth;
 

@@ -82,9 +82,8 @@ void analysisSelectablesTree::fillAnalysisLog_Modules(traceRecord *trace, bool a
 		ui->traceAnalysisTextBox->clear();
 
 	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
-	map <int, boost::filesystem::path> modpaths = piddata->modpaths;
 
-	size_t recordsCount = modpaths.size();
+	size_t recordsCount = piddata->modpaths.size();
 	unsigned long startPosition = appendNewUpdates ? currentLogLines : 0;
 	//check if symbols in graph > previous count
 	//if it is, add extras to log
@@ -93,7 +92,7 @@ void analysisSelectablesTree::fillAnalysisLog_Modules(traceRecord *trace, bool a
 		QTextCursor text_cursor = QTextCursor(ui->traceAnalysisTextBox->document());
 		text_cursor.movePosition(QTextCursor::End);
 
-		text_cursor.insertText(QString::fromStdString(modpaths.at(currentLogLines).string()) + "\n");
+		text_cursor.insertText(QString::fromStdString(piddata->modpaths.at(currentLogLines).string()) + "\n");
 	}
 }
 

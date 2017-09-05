@@ -62,18 +62,18 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 	node_data *node = graph->safe_get_node(mouseoverNode.index);
 	traceRecord *trace = graph->get_traceRecord();
 	PROCESS_DATA *piddata = graph->get_piddata();
-	MEM_ADDRESS moduleBase = trace->modBounds.at(node->nodeMod)->first;
+	MEM_ADDRESS moduleBase = trace->modBounds.at(node->globalModID)->first;
 	MEM_ADDRESS moduleOffset = node->address - moduleBase;
 
 	if (node->external || node->ins->hasSymbol)
 	{
 		string symString;
-		piddata->get_sym(node->nodeMod, moduleOffset, symString);
+		piddata->get_sym(node->globalModID, moduleOffset, symString);
 		if (!symString.empty())
 			tooltipwidget->symbolText->setText("Symbol: "+QString::fromStdString(symString));
 	}
 
-	QString moduleText = "Module: " + QString::fromStdString(piddata->modpaths.at(node->nodeMod).string());
+	QString moduleText = "Module: " + QString::fromStdString(piddata->modpaths.at(node->globalModID).string());
 	moduleText += "+ 0x";
 	moduleText += QString::number(moduleOffset,16);
 

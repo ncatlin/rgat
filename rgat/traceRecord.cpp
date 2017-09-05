@@ -12,6 +12,7 @@ traceRecord::traceRecord(PID_TID newPID, int randomNo)
 	PID = newPID;
 	randID = randomNo;
 
+	modIDTranslationVec.resize(255, -1);
 	modBounds.resize(255, NULL);
 
 	//InitializeCriticalSection(&graphsListCritsec);

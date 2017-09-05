@@ -197,13 +197,14 @@ void basicblock_handler::main_loop()
 			}
 			
 			char *modnum_s = strtok_s(next_token, "@", &next_token);
-			int modnum;
-			if (!caught_stoi(string(modnum_s), &modnum, 10)) {
+			int localmodnum;
+			if (!caught_stoi(string(modnum_s), &localmodnum, 10)) {
 				cerr << "[rgat]bb modnum stoi error: " << modnum_s << endl;
 				assert(0);
 			}
+			long globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 
-			MEM_ADDRESS modulestart = runRecord->modBounds.at(modnum)->first;
+			MEM_ADDRESS modulestart = runRecord->modBounds.at(localmodnum)->first;
 			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);
@@ -229,14 +230,14 @@ void basicblock_handler::main_loop()
 			if (!instrumented)
 			{
 				BB_DATA *bbdata = new BB_DATA;
-				bbdata->modnum = modnum;
+				bbdata->globalmodnum = globalModNum;
 
 				piddata->getExternDictWriteLock();
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 				piddata->dropExternDictWriteLock();
 
 				piddata->getDisassemblyReadLock();
-				if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(modoffset))
+				if (piddata->modsymsPlain.count(globalModNum) && piddata->modsymsPlain.at(globalModNum).count(modoffset))
 					bbdata->hasSymbol = true;
 				piddata->dropDisassemblyReadLock();
 
@@ -277,11 +278,11 @@ void basicblock_handler::main_loop()
 				{
 					instruction = new INS_DATA;
 					instruction->opcodes = opcodes;
-					instruction->modnum = modnum;
+					instruction->globalmodnum = globalModNum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
 
-					if (piddata->modsymsPlain.count(modnum) && piddata->modsymsPlain.at(modnum).count(targetaddr))
+					if (piddata->modsymsPlain.count(globalModNum) && piddata->modsymsPlain.at(globalModNum).count(targetaddr))
 						instruction->hasSymbol = true;
 
 					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) 

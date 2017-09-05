@@ -76,6 +76,12 @@ public:
 	PID_TID PID = -1;
 	int randID; //to distinguish between processes with identical PIDs
 	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *> modBounds;
+
+	//index of this vec == client reference to each module. returned value is our static reference to the module
+	//needed because each trace drgat can come up with a new ID for each module
+	vector<long> modIDTranslationVec;
+	map <long, int> activeMods;
+
 	int loadedModuleCount = 0;
 
 private:

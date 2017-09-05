@@ -56,7 +56,7 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	thisnode.address = instruction->address;
 	thisnode.blockID = blockID;
 	thisnode.executionCount = repeats;
-	thisnode.nodeMod = instruction->modnum;
+	thisnode.globalModID = instruction->globalmodnum;
 
 	assert(!node_exists(targVertID));
 	insert_node(targVertID, thisnode);
@@ -638,13 +638,13 @@ string proto_graph::get_node_sym(NODEINDEX idx)
 	node_data *n = safe_get_node(idx);
 	string sym;
 
-	MEM_ADDRESS offset = n->address - get_traceRecord()->modBounds.at(n->nodeMod)->first;
-	if (piddata->get_sym(n->nodeMod, offset, sym))
+	MEM_ADDRESS offset = n->address - get_traceRecord()->modBounds.at(n->globalModID)->first;
+	if (piddata->get_sym(n->globalModID, offset, sym))
 		return sym;
 
 	boost::filesystem::path modPath;
-	if (!piddata->get_modpath(n->nodeMod, &modPath))
-		cerr << "[rgat]WARNING: mod " << n->nodeMod << " expected but not found" << endl;
+	if (!piddata->get_modpath(n->globalModID, &modPath))
+		cerr << "[rgat]WARNING: mod " << n->globalModID << " expected but not found" << endl;
 
 	stringstream nosym;
 	nosym << modPath.filename() << "+0x" << std::hex << offset;
@@ -653,7 +653,7 @@ string proto_graph::get_node_sym(NODEINDEX idx)
 
 void proto_graph::assign_modpath()
 {
-	exeModuleID = safe_get_node(0)->nodeMod;
+	exeModuleID = safe_get_node(0)->globalModID;
 	if (exeModuleID >= (int)piddata->modpaths.size()) return;
 
 	boost::filesystem::path longmodPath;

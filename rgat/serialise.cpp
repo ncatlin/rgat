@@ -60,16 +60,14 @@ void saveModulePaths(PROCESS_DATA *piddata, Writer<rapidjson::FileWriteStream>& 
 	writer.Key("ModulePaths");
 	writer.StartArray();
 
-	map <int, boost::filesystem::path>::iterator pathIt = piddata->modpaths.begin();
+	vector<boost::filesystem::path>::iterator pathIt = piddata->modpaths.begin();
 	for (; pathIt != piddata->modpaths.end(); pathIt++)
 	{
-		string pathstr = pathIt->second.string();
+		string pathstr = pathIt->string();
 		const unsigned char* cus_pathstring = reinterpret_cast<const unsigned char*>(pathstr.c_str());
 		writer.StartObject();
-		writer.Key("ID");
-		writer.Int(pathIt->first);
 		writer.Key("B64");
-		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->second.size()).c_str());
+		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->size()).c_str());
 		writer.EndObject();
 	}
 
@@ -121,7 +119,7 @@ void saveDisassembly(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 
 		writer.Int64(disasIt->first); //address
 
-		writer.Int(disasIt->second.front()->modnum); //module
+		writer.Int(disasIt->second.front()->globalmodnum); //module
 		
 		writer.StartArray(); //opcode data for each mutation found at address
 		INSLIST::iterator mutationIt = disasIt->second.begin();
@@ -171,7 +169,7 @@ void saveExternDict(PROCESS_DATA *piddata, Writer<FileWriteStream>& writer)
 		writer.Int64(externIt->first); 
 
 		writer.Key("M");	//module number
-		writer.Int(externIt->second->modnum);
+		writer.Int(externIt->second->globalmodnum);
 
 		writer.Key("S");	//has symbol?
 		writer.Bool(externIt->second->hasSymbol);
