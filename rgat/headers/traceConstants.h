@@ -27,6 +27,12 @@ Constants used to interpret and plot the trace data
 #define LOOP_MARKER 'R'
 #define LOOP_START_MARKER 'S'
 #define LOOP_END_MARKER 'E'
+#define ARG_MARKER 'A'
+#define UNLINK_MARKER 'U'
+#define UNCHAIN_MARKER 'u'
+#define EXECUTECOUNT_MARKER 'B'
+#define SATISFY_MARKER 's'
+#define EXCEPTION_MARKER 'X'
 
 #define MUTEXWAITPERIOD 6000
 
