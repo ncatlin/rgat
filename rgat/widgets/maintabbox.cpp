@@ -454,7 +454,13 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 	labelStringStream << "Nodes: " << protoGraph->nodeList.size();
 	ui->nodesLabel->setText(QString::fromStdString(labelStringStream.str()));
 
+	labelStringStream.str("");
+	labelStringStream << "Updates: " << protoGraph->getAnimDataSize();
+	ui->updatesLabel->setText(QString::fromStdString(labelStringStream.str()));
 
+	labelStringStream.str("");
+	labelStringStream << "Backlog: " << protoGraph->get_backlog_total();
+	ui->backlogLabel->setText(QString::fromStdString(labelStringStream.str()));
 }
 
 void mainTabBox::processSelectBtnClicked()

@@ -123,10 +123,12 @@ Instruction indexes are now 64bits in save files. Support for >4gb trace sizes i
 Bugfix: Fixed a deadlock caused by new locks being non-recursive
 Code change: platform independent threading
 
-next version
+next version [PREVIOUS SAVES OBSOLETE]
 -----------------
 Feature: Added drgat tests
 Feature: Added plot size/stretch adjustment buttons in the visualiser tab
 Feature: Added mouseover menus for node labels
 Feature: Binary targets can be added by drag and dropping onto the interface
 Fix: Instructions executed more than 4 billion times are now counted correctly
+Fix: Conditionals that have been both taken and fallen through no longer display as only taken in the conditionals render
+Movment of offset based binary information out of each trace, into the parent target data object. This supports upcoming functionality and reduces trace sizes.

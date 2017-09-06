@@ -1444,7 +1444,7 @@
                    </property>
                    <property name="minimumSize">
                     <size>
-                     <width>500</width>
+                     <width>438</width>
                      <height>170</height>
                     </size>
                    </property>
@@ -1639,7 +1639,7 @@
                       <rect>
                        <x>170</x>
                        <y>10</y>
-                       <width>291</width>
+                       <width>251</width>
                        <height>151</height>
                       </rect>
                      </property>
@@ -2083,18 +2083,32 @@
                        <number>4</number>
                       </property>
                       <item row="1" column="0">
-                       <layout class="QVBoxLayout" name="verticalLayout_6">
-                        <item>
+                       <layout class="QGridLayout" name="gridLayout_12">
+                        <item row="0" column="0">
                          <widget class="QLabel" name="edgesLabel">
                           <property name="text">
                            <string>Edges:</string>
                           </property>
                          </widget>
                         </item>
-                        <item>
+                        <item row="1" column="0">
                          <widget class="QLabel" name="nodesLabel">
                           <property name="text">
                            <string>Nodes:</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item row="2" column="0">
+                         <widget class="QLabel" name="updatesLabel">
+                          <property name="text">
+                           <string>Updates:</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item row="3" column="0">
+                         <widget class="QLabel" name="backlogLabel">
+                          <property name="text">
+                           <string>Backlog:</string>
                           </property>
                          </widget>
                         </item>

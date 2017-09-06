@@ -743,7 +743,7 @@ bool trace_graph_builder::assign_blockrepeats()
 void trace_graph_builder::add_unchained_update(char *entry)
 {
 	MEM_ADDRESS blockAddr;
-	string block_ip_s = string(strtok_s(entry + 3, ",", &entry));
+	string block_ip_s = string(strtok_s(entry + 1, ",", &entry));
 	if (!caught_stoull(block_ip_s, &blockAddr, 16)) {
 		cerr << "[rgat]ERROR: UC handling addr STOL: " << block_ip_s << endl;
 		assert(0);
@@ -783,7 +783,7 @@ void trace_graph_builder::add_satisfy_update(char *entry)
 {
 	NEW_EDGE_BLOCKDATA edgeNotification;
 
-	string s_ip_s = string(strtok_s(entry + 4, ",", &entry));
+	string s_ip_s = string(strtok_s(entry + 1, ",", &entry));
 	if (!caught_stoull(s_ip_s, &edgeNotification.sourceAddr, 16)) assert(0);
 
 	string s_ID_s = string(strtok_s(entry, ",", &entry));
@@ -801,7 +801,7 @@ void trace_graph_builder::add_satisfy_update(char *entry)
 void trace_graph_builder::add_exception_update(char *entry)
 {
 	MEM_ADDRESS e_ip;
-	string e_ip_s = string(strtok_s(entry + 4, ",", &entry));
+	string e_ip_s = string(strtok_s(entry + 1, ",", &entry));
 	if (!caught_stoull(e_ip_s, &e_ip, 16)) {
 
 		assert(0);
@@ -874,7 +874,7 @@ void trace_graph_builder::add_exec_count_update(char *entry)
 	BLOCKREPEAT newRepeat;
 	newRepeat.totalExecs = 0;
 
-	string block_address_string = string(strtok_s(entry + 3, ",", &entry));
+	string block_address_string = string(strtok_s(entry + 1, ",", &entry));
 	if (!caught_stoull(block_address_string, &newRepeat.blockaddr, 16)) {
 		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_address_string << endl;
 		assert(0);
@@ -929,7 +929,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	BLOCK_IDENTIFIER sourceID;
 	unsigned long long id_count;
 
-	string block_address_string = string(strtok_s(entry + 3, ",", &entry));
+	string block_address_string = string(strtok_s(entry + 1, ",", &entry));
 	if (!caught_stoull(block_address_string, &sourceAddr, 16)) {
 		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_address_string << endl;
 		assert(0);
@@ -989,8 +989,6 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 		bool targetFound = false;
 		piddata->getExternCallerReadLock();
 		map <PID_TID, EDGELIST>::iterator callerIt = foundExtern->thread_callers.find(TID);
-		if (callerIt == foundExtern->thread_callers.end())
-			cout << " no";
 
 		if (callerIt != foundExtern->thread_callers.end())
 		{
@@ -1191,7 +1189,7 @@ void trace_graph_builder::main_loop()
 			continue;
 		}
 
-		if(repeatsUpdateDue())
+		if (repeatsUpdateDue())
 			assign_blockrepeats();
 
 		if ((int)message == -1) //thread pipe closed
@@ -1201,13 +1199,13 @@ void trace_graph_builder::main_loop()
 				loopState = BUILDING_LOOP;
 				dump_loop();
 			}
-			
+
 			thisgraph->set_terminated();
 			thisgraph->updated = true;
 			break;
 		}
 
-		while (*saveFlag && !die) 
+		while (*saveFlag && !die)
 			Sleep(20); //writing while saving -> corrupt save
 
 		++itemsDone;
@@ -1220,9 +1218,10 @@ void trace_graph_builder::main_loop()
 			if (entry.empty()) break;
 
 			//cout << "TID"<<TID<<" Processing entry: ["<<entry<<"]"<<endl;
-
-			if (entry[0] == TRACE_TAG_MARKER)
+			char entrytag = entry[0];
+			switch (entrytag)
 			{
+			case TRACE_TAG_MARKER:
 				process_trace_tag((char *)entry.c_str());
 
 				//not thrilled about this being called for every tag but it's the cleanest place to put it
@@ -1231,57 +1230,43 @@ void trace_graph_builder::main_loop()
 					thisgraph->assign_modpath();
 
 				continue;
-			}
 
-			if (entry[0] == LOOP_MARKER)
-			{	
+			case LOOP_MARKER:
 				process_loop_marker((char *)entry.c_str());
 				continue;
-			}
 
-			//wrapped function arguments
-			if (entry.substr(0, 3) == "ARG")
-			{
+				//wrapped function arguments
+			case ARG_MARKER:
 				handle_arg((char *)entry.c_str(), entry.size());
 				continue;
-			}
 
-			//unchained ended - link last unchained block to new block
-			if (entry.substr(0, 2) == "UL")
-			{
+				//unchained ended - link last unchained block to new block
+			case UNLINK_MARKER:
 				add_unlinking_update((char *)entry.c_str());
 				continue;
-			}
 
-			//block unchaining notification
-			if (entry.substr(0, 2) == "UC")
-			{
+				//block unchaining notification
+			case UNCHAIN_MARKER:
 				add_unchained_update((char *)entry.c_str());
 				continue;
-			}
 
-			//block execution count + targets after end of unchained execution
-			if (entry.substr(0, 2) == "BX")
-			{
+				//block execution count + targets after end of unchained execution
+			case EXECUTECOUNT_MARKER:
 				add_exec_count_update((char *)entry.c_str());
 				continue;
-			}
 
-			if (entry.substr(0, 3) == "SAT")
-			{
+			case SATISFY_MARKER:
 				add_satisfy_update((char *)entry.c_str());
 				continue;
-			}
 
-			if (entry.substr(0, 3) == "EXC")
-			{
+			case EXCEPTION_MARKER:
 				add_exception_update((char *)entry.c_str());
 				continue;
-			}
 
-			cerr << "[rgat]ERROR: Trace handler TID " <<dec<< TID << " unhandled line " << 
-				entry << " ("<<entry.size()<<" bytes)"<<endl;
-			assert(0);
+				cerr << "[rgat]ERROR: Trace handler TID " << dec << TID << " unhandled line " <<
+					entry << " (" << entry.size() << " bytes)" << endl;
+				assert(0);
+			}
 		}
 	}
 

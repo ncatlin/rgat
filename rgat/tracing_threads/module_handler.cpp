@@ -88,8 +88,9 @@ void module_handler::main_loop()
 	}
 
 
+	bool pendingControlCommand = false;
 
-	while (!die && !runRecord->should_die())
+	while (true)
 	{
 		DWORD bread = 0;
 		ReadFile(hPipe, buf, 399, &bread, &ov2);
@@ -100,11 +101,12 @@ void module_handler::main_loop()
 			int gle = GetLastError();
 			if (gle == ERROR_BROKEN_PIPE)
 			{
-				die = true;
+				die = true; 
 				runRecord->set_running(false);
 			}
 			if (die || runRecord->should_die() || clientState->rgatIsExiting()) {
 				die = true;
+				pendingControlCommand = true;
 				break;
 			}
 		}
@@ -255,11 +257,28 @@ void module_handler::main_loop()
 
 				continue;
 			}
+
+			//request for commands
+			//dynamorio has fairly crappy support for sending data to the client
+			//doesnt like blocking either so client polls for commands
+			if (buf[0] == 'C')
+			{
+				if (!pendingControlCommand) //no command, send a heartbeat
+				{
+					char heartbeatbuf[] = "HB";
+					WriteFile(controlPipe, heartbeatbuf, 2, 0, 0);
+					continue;
+				}
+
+				if (die)
+				{
+					char heartbeatbuf[] = "KT";
+					WriteFile(controlPipe, heartbeatbuf, 2, 0, 0);
+					break;
+				}
+			}
 		}
 	}
-
-	char termbuf[] = "KT";
-	WriteFile(controlPipe, termbuf, 2, 0, 0);
 
 	//exited loop, first tell readers to terminate
 	vector <thread_trace_reader *>::iterator readerThreadIt = readerThreadList.begin();
