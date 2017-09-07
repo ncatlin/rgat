@@ -212,7 +212,7 @@ bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *p
 	stringstream finalCommandline;
 	finalCommandline << drrunPath.string();
 
-	finalCommandline << " -c \"" << samplePath.string() << "\"";
+	finalCommandline << " -debug -c \"" << samplePath.string() << "\"";
 
 	*path = finalCommandline.str();
 	return true;

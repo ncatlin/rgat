@@ -55,9 +55,11 @@ void module_handler::main_loop()
 
 	while (!die)
 	{
-		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) break;
+		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) 
+			break;
 		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << inputpipename << endl;
 	}
+	if (die) {	alive = false;  return;	}
 
 	wstring controlpipename = wstring(L"\\\\.\\pipe\\");
 	controlpipename.append(L"rioControl");

@@ -1224,7 +1224,7 @@ void trace_graph_builder::main_loop()
 			case TRACE_TAG_MARKER:
 				process_trace_tag((char *)entry.c_str());
 
-				//not thrilled about this being called for every tag but it's the cleanest place to put it
+				//not thrilled about this comparison being done for every tag but it's the cleanest place to put it
 				//tempted to make process_trace_tag a function pointer and have it point to process_first_trace_tag initially
 				if (thisgraph->exeModuleID == -1 && !thisgraph->nodeList.empty())
 					thisgraph->assign_modpath();
@@ -1263,6 +1263,7 @@ void trace_graph_builder::main_loop()
 				add_exception_update((char *)entry.c_str());
 				continue;
 
+			default:
 				cerr << "[rgat]ERROR: Trace handler TID " << dec << TID << " unhandled line " <<
 					entry << " (" << entry.size() << " bytes)" << endl;
 				assert(0);
