@@ -64,10 +64,15 @@ void module_handler::main_loop()
 	wstring controlpipename = wstring(L"\\\\.\\pipe\\");
 	controlpipename.append(L"rioControl");
 	controlpipename.append(runRecord->getModpathID());
-	controlPipe = CreateNamedPipe(controlpipename.c_str(),
-		PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+	controlPipe = CreateNamedPipe(controlpipename.c_str(), PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
 		255, 64, 56 * 1024, 0, NULL);
 
+	if (!WaitNamedPipe(controlpipename.c_str(), 20000))
+	{
+		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << controlpipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
+		alive = false;
+		return;
+	}
 
 	piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
 	runRecord->set_running(true);
@@ -268,7 +273,8 @@ void module_handler::main_loop()
 				if (!pendingControlCommand) //no command, send a heartbeat
 				{
 					char heartbeatbuf[] = "HB";
-					WriteFile(controlPipe, heartbeatbuf, 2, 0, 0);
+					DWORD sent; //crashes on win7 without this here
+					WriteFile(controlPipe, heartbeatbuf, 2, &sent, 0);
 					continue;
 				}
 

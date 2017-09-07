@@ -99,7 +99,7 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 	//cout << "added internal edge from " << lastVertID << "->" << targVertID << endl;
 }
 
-//place basic block 'tag' on graph 'repeats' times
+//place basic block [tag] on graph [repeats] times
 void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 {
 	int numInstructions = tag->insCount;
@@ -109,6 +109,7 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
+		//start possible #ifdef DEBUG  candidate
 		if (lastNodeType != eFIRST_IN_THREAD)
 		{
 			if (!thisgraph->node_exists(lastVertID))
@@ -117,7 +118,7 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 				assert(0);
 			}
 		}
-
+		//end possible  #ifdef DEBUG candidate
 
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
@@ -208,9 +209,11 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 }
 
 //decodes argument and places in processing queue, processes if all decoded for that call
-void trace_graph_builder::handle_arg(char * entry, size_t entrySize) {
+void trace_graph_builder::handle_arg(char * entry, size_t entrySize) 
+{
+
 	MEM_ADDRESS funcpc, sourcepc;
-	string argidx_s = string(strtok_s(entry + 4, ",", &entry));
+	string argidx_s = string(strtok_s(entry + 1, ",", &entry));
 	int argpos;
 	if (!caught_stoi(argidx_s, &argpos, 10)) {
 		cerr << "[rgat]ERROR: Trace corruption. handle_arg index int ERROR: " << argidx_s << endl;
