@@ -106,6 +106,7 @@ void targetCombo::addTargetToInterface(binaryTarget *target, bool newBinary)
 
 void targetCombo::addNewTarget()
 {
+	//crash when right click in this dialog https://bugreports.qt.io/browse/QTBUG-33119?page=com.atlassian.jira.plugin.system.issuetabpanels%3Aall-tabpanel
 	QString fileName = QFileDialog::getOpenFileName(this,
 		tr("Select new target"), clientState->config.getLastPathString(),
 		tr("Executable (*.exe);;Library (*.dll);;All Files (*.*)"));
