@@ -47,6 +47,8 @@ Try to execute something. If you get an error then you likely need to install th
 
 See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://github.com/ncatlin/rgat/wiki#limitations)
 
+Unfortunately the Windows release cycle is a lot faster than the DynamoRIO release cycle so it breaks often. At the time of writing the [last release](https://github.com/DynamoRIO/dynamorio/releases/tag/release_7_0_0_rc1) was in Feb 2017, which makes it (and rgat) practically unusuable for complex applications - at least on the AMD CPU i'm using. If in doubt, load a target and press the dynamorio button in the trace launching tab - if the binary doesn't launch then it's not going to work and there isn't a lot I can do about it - short of migrating to Intels Pin.
+
 ## Excuses
 
 This is an unstable preview release. I promise not to use that excuse when the basic functionality has been done. 
