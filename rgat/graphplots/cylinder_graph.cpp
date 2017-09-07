@@ -533,27 +533,11 @@ void cylinder_graph::regenerate_wireframe_if_needed()
 //resizes when it wraps too far around the cylinder (lower than lowB, farther than farA)
 void cylinder_graph::render_static_graph()
 {
-	if (rescale)
-	{
-		needVBOReload_main = true;
-
-		if (wireframe_data)
-			remakeWireframe = true;
-	}
-
-	if (vertResizeIndex > 0 || rescale)
-	{
-		assert(false);
-		rescale_nodes(false);
-	}
-
-	int drawCount = render_new_edges(rescale);
+	int drawCount = render_new_edges();
 	if (drawCount)
 		needVBOReload_main = true;
 
 	redraw_anim_edges();
-	rescale = false;
-
 	regenerate_wireframe_if_needed();
 }
 

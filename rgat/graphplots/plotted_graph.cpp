@@ -321,24 +321,16 @@ void plotted_graph::extend_faded_edges()
 }
 
 //create edges in opengl buffers
-int plotted_graph::render_new_edges(bool doResize)
+int plotted_graph::render_new_edges()
 {
 	GRAPH_DISPLAY_DATA *lines = get_mainlines();
 	EDGELIST::iterator edgeIt;
 	int edgesDrawn = 0;
 
 	internalProtoGraph->getEdgeReadLock();
-	if (doResize)
-	{
-		reset_mainlines();
-		lines = get_mainlines();
-		edgeIt = internalProtoGraph->edgeList.begin();
-	}
-	else
-	{
-		edgeIt = internalProtoGraph->edgeList.begin();
-		std::advance(edgeIt, lines->get_renderedEdges());
-	}
+
+	edgeIt = internalProtoGraph->edgeList.begin();
+	std::advance(edgeIt, lines->get_renderedEdges());
 
 	EDGELIST::iterator end = internalProtoGraph->edgeList.end();
 	if (edgeIt == end)
@@ -1239,51 +1231,6 @@ void plotted_graph::set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata,
 	edgesdata->release_col_write();
 }
 
-//rescale all drawn verts to new dimensions by altering the vertex data
-//this is unused with the deprecation of the sphere
-void plotted_graph::rescale_nodes(bool isPreview)
-{
-
-	GRAPH_SCALE *scalefactors = isPreview ? preview_scalefactors : main_scalefactors;
-
-	GRAPH_DISPLAY_DATA *vertsdata;
-	unsigned long targetIdx, nodeIdx;
-
-	if (isPreview)
-	{
-		nodeIdx = 0;
-		vertsdata = previewnodes;
-		targetIdx = vertsdata->get_numVerts();
-	}
-	else
-	{
-		//only resize 250 nodes per call to stop it hanging
-		nodeIdx = vertResizeIndex;
-		vertResizeIndex += NODES_PER_RESCALE_ITERATION;
-		vertsdata = get_mainnodes();
-		targetIdx = vertsdata->get_numVerts();// min(vertResizeIndex, vertsdata->get_numVerts());
-		if (targetIdx == vertsdata->get_numVerts()) 
-			vertResizeIndex = 0;
-	}
-
-	if (!targetIdx) return;
-
-	GLfloat *vpos = &vertsdata->acquire_pos_write(152)->at(0);
-
-	for (; nodeIdx != targetIdx; ++nodeIdx)
-	{
-		FCOORD newCoord = nodeIndexToXYZ(nodeIdx, scalefactors, 0);
-
-		const int arrayIndex = nodeIdx * POSELEMS;
-		vpos[arrayIndex + XOFF] = newCoord.x;
-		vpos[arrayIndex + YOFF] = newCoord.y;
-		vpos[arrayIndex + ZOFF] = newCoord.z;
-	}
-
-	vertsdata->release_pos_write();
-}
-
-
 //renders edgePerRender edges of graph onto the preview data
 int plotted_graph::render_new_preview_edges()
 {
@@ -1451,7 +1398,6 @@ int plotted_graph::render_preview_graph()
 	if (previewNeedsResize)
 	{
 		assert(false);
-		rescale_nodes(true);
 		previewlines->reset();
 		previewNeedsResize = false;
 	}

@@ -118,8 +118,6 @@ enum eUIEventCode { EV_NONE = 0, EV_MOUSE, EV_KEYBOARD, EV_EXIT, EV_BTN_STEPPING
 //max length to display in diff summary
 #define MAX_DIFF_PATH_LENGTH 50
 
-#define NODES_PER_RESCALE_ITERATION 250
-
 #define LAYOUT_ICONS_W 48
 #define LAYOUT_ICONS_H 48
 #define LAYOUT_ICONS_X1 15

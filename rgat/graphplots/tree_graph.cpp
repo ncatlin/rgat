@@ -342,85 +342,10 @@ void tree_graph::treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *m
 	*c = coord->y;
 }
 
-void recalculate_scale(GRAPH_SCALE *mults)
-{
-	//mults->plotSize = mults->basePlotSize * mults->userSizeModifier;
-
-	//float HMULTIPLIER = mults->plotSize;
-	//mults->AEDGESEP = (HMULTIPLIER / mults->plotSize) + (mults->userAEDGESEP - 1);
-
-	//float VMULTIPLIER = mults->plotSize;
-	//mults->BEDGESEP = (VMULTIPLIER / mults->plotSize) + (mults->userBEDGESEP - 1);
-}
-
-
 //reads the list of nodes/edges, creates opengl vertex/colour data
 void tree_graph::render_static_graph()
 {
-	//bool doResize = false;
-	/*
-	if (clientState->rescale)
-	{
-		recalculate_scale(main_scalefactors);
-		recalculate_scale(preview_scalefactors);
-		clientState->rescale = false;
-		doResize = true;
-	}
-
-	if (clientState->autoscale)
-	{
-		//doesn't take bmod into account
-		//keeps graph away from the south pole
-		int lowestPoint = maxB * main_scalefactors->BEDGESEP;
-		if (lowestPoint > clientState->config->lowB)
-		{
-			float startB = lowestPoint;
-			while (lowestPoint > clientState->config->lowB)
-			{
-				main_scalefactors->userBEDGESEP *= 0.98;
-				preview_scalefactors->userBEDGESEP *= 0.98;
-				recalculate_scale(main_scalefactors);
-				lowestPoint = maxB * main_scalefactors->BEDGESEP;
-			}
-			//cout << "[rgat]Max B coord too high, shrinking graph vertically from "<< startB <<" to "<< lowestPoint << endl;
-
-			recalculate_scale(preview_scalefactors);
-			doResize = true;
-			vertResizeIndex = 0;
-		}
-
-		//more straightforward, stops graph from wrapping around the globe
-		int widestPoint = maxA * main_scalefactors->AEDGESEP;
-		if (widestPoint > clientState->config->farA)
-		{
-			float startA = widestPoint;
-			while (widestPoint > clientState->config->farA)
-			{
-				main_scalefactors->userAEDGESEP *= 0.99;
-				preview_scalefactors->userAEDGESEP *= 0.99;
-				recalculate_scale(main_scalefactors);
-				widestPoint = maxB * main_scalefactors->AEDGESEP;
-			}
-			//cout << "[rgat]Max A coord too wide, shrinking graph horizontally from " << startA << " to " << widestPoint << endl;
-			recalculate_scale(preview_scalefactors);
-			doResize = true;
-			vertResizeIndex = 0;
-		}
-	}
-	
-
-	if (doResize) previewNeedsResize = true;
-
-	if (doResize || vertResizeIndex > 0)
-	{
-		rescale_nodes(false);
-
-
-		zoomLevel = main_scalefactors->size;
-		needVBOReload_main = true;
-	}
-	*/
-	int drawCount = render_new_edges(false);
+	int drawCount = render_new_edges();
 	if (drawCount)
 		needVBOReload_main = true;
 

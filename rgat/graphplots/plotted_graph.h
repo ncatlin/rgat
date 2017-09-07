@@ -84,8 +84,6 @@ public:
 	virtual unsigned int get_graph_size() { return 0; };
 	virtual void *get_node_coord_ptr(NODEINDEX idx) { return 0; }
 
-	virtual void toggle_autoscale() {};
-	virtual bool pending_rescale() { return false; }
 	virtual void adjust_A_edgeSep(float delta) {};
 	virtual void adjust_B_edgeSep(float delta) {};
 	virtual void reset_edgeSep() {};
@@ -221,10 +219,9 @@ protected:
 
 	void display_active(graphGLWidget *gltarget);
 	void display_static(graphGLWidget *gltarget);
-	void rescale_nodes(bool isPreview);
 	void display_big_conditional(graphGLWidget *gltarget);
 	void display_big_heatmap(graphGLWidget *gltarget);
-	int render_new_edges(bool doResize);
+	int render_new_edges();
 	void redraw_anim_edges();
 
 	void acquire_nodecoord_read();
