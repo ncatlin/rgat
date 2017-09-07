@@ -15,8 +15,9 @@ limitations under the License.
 */
 
 /*
-The thread that builds a graph for each trace
+The thread that builds a graph for each trace from the drgat trace stream (which is delivered by the trace_reader thread). 
 */
+
 #include "stdafx.h"
 #include "trace_graph_builder.h"
 #include "traceMisc.h"

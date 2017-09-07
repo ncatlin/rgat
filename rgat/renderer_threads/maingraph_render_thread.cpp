@@ -35,7 +35,7 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	if (
 		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||
 		(graph->get_mainlines()->get_renderedEdges() < protoGraph->get_num_edges()) ||
-		graph->pending_rescale() || graph->vertResizeIndex)
+		graph->vertResizeIndex)
 	{
 		graph->updateMainRender();
 	}
