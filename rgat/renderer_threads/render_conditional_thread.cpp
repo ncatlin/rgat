@@ -40,7 +40,10 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 		{
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
-			int condStatus = graph->get_protoGraph()->safe_get_node(nodeIdx++)->conditional;
+			node_data *node = graph->get_protoGraph()->safe_get_node(nodeIdx++);
+			if (!node) break;
+
+			int condStatus = node->conditional;
 			if (!condStatus)
 			{
 				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
