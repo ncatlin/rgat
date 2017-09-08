@@ -119,7 +119,9 @@ public:
 	void render_replay_animation(float fadeRate);
 
 
-	void reset_animation();
+	void schedule_animation_reset() { animation_needs_reset = true; }
+	void reset_animation_if_scheduled();
+
 	float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph->savedAnimationData.size()); }
 	void render_live_animation(float fadeRate);
 	void highlight_last_active_node();
@@ -334,7 +336,7 @@ private:
 	bool beingDeleted = false;
 	//int threadReferences = 0;
 	bool animated = false;
-	
+	bool animation_needs_reset = false;
 };
 
 struct constructed_before

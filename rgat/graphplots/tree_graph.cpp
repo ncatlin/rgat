@@ -36,8 +36,8 @@ Creates a tree layout for a plotted graph
 #define AMULT 1
 #define BMULT 1
 
-#define CALLA 4
-#define CALLB 3
+#define CALLA 20
+#define CALLB 15
 
 #define JUMPA 4
 #define JUMPB 3
