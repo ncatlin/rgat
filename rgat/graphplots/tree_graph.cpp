@@ -26,32 +26,36 @@ Creates a tree layout for a plotted graph
 
 //A: Horizontal separation 
 //B: Vertical separation
-#define DEFAULT_PIX_PER_A_COORD 80
-#define DEFAULT_PIX_PER_B_COORD 120
 #define PREVIEW_PIX_PER_A_COORD 3
 #define PREVIEW_PIX_PER_B_COORD 4
 
 
-#define CMULT 30
-#define CAdj 35
+#define DEFAULT_PIX_PER_A_COORD 80
+#define DEFAULT_PIX_PER_B_COORD 50
 
-#define JUMPA 400
-#define JUMPC 60
-#define JUMPA_CLASH 15
-#define CALLB 20
+#define AMULT 1
+#define BMULT 1
 
-//how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
-#define CALLA_CLASH 30
-#define CALLB_CLASH 30
+#define CALLA 4
+#define CALLB 3
+
+#define JUMPA 4
+#define JUMPB 3
 
 //placement of external nodes, relative to the first caller
-#define EXTERNA -200
-#define EXTERNB -200
+#define EXTERNA 2
+#define EXTERNB 2
 
 //controls placement of the node after a return
-#define RETURNA_OFFSET 400
-#define RETURNB_OFFSET 130
+#define RETURNA_OFFSET 0
+#define RETURNB_OFFSET 5
 
+
+//how to adjust placement if node would be place on prexisting node
+#define JUMPA_CLASH 1
+#define JUMPB_CLASH -1
+#define CALLA_CLASH 3
+#define CALLB_CLASH 3
 
 void tree_graph::initialiseDefaultDimensions()
 {
@@ -70,14 +74,14 @@ void tree_graph::initialiseDefaultDimensions()
 	preview_scalefactors->pix_per_A = PREVIEW_PIX_PER_A_COORD;
 	preview_scalefactors->pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
-	main_scalefactors->plotSize = 20000;
-	main_scalefactors->basePlotSize = 20000;
+	main_scalefactors->plotSize = 2000;
+	main_scalefactors->basePlotSize = 2000;
 	main_scalefactors->pix_per_A = DEFAULT_PIX_PER_A_COORD;
 	main_scalefactors->pix_per_B = DEFAULT_PIX_PER_B_COORD;
 
-	view_shift_x = 96;
-	view_shift_y = -25;
-	cameraZoomlevel = 60000;
+	view_shift_x = 0;
+	view_shift_y = 0;
+	cameraZoomlevel = 10000;
 }
 
 void tree_graph::initialise()
@@ -123,7 +127,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		position->a = a + 2 * lastNodeData->childexterns + EXTERNA;
-		position->b = b + lastNodeData->childexterns + EXTERNB;
+		position->b = b + lastNodeData->childexterns + EXTERNB * -1;
 		position->c = c;
 		return;
 	}
@@ -134,7 +138,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//small vertical distance between instructions in a basic block	
 	case eNodeNonFlow:
 	{
-		c += -1 * CMULT;
+		b += -1 * BMULT;
 		break;
 	}
 
@@ -144,7 +148,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
-			c += -1 * CMULT;
+			b += -1 * BMULT;
 			break;
 		}
 		//notice lack of break
@@ -152,8 +156,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	case eNodeException:
 	{
-		a += JUMPA;
-		c += JUMPC * CMULT * -1;
+		a += JUMPA * AMULT;
+		b += JUMPB * BMULT * -1;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
@@ -170,12 +174,14 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeCall:
 	{
 		//note: b sometimes huge after this?
-		c += CALLB * CMULT * -1;
+		a += CALLA * AMULT;
+		b += CALLB * BMULT * -1;
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
-			a += CALLA_CLASH;
-			c += CALLB_CLASH * CMULT * -1;
+			cout << "clash in nodecall for node " << n->index << endl;
+			a += CALLA_CLASH * AMULT;
+			b += CALLB_CLASH * BMULT * -1;
 			++clash;
 		}
 
@@ -217,7 +223,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			TREECOORD *caller = get_node_coord(result);
 			assert(caller);
 			a = caller->a + RETURNA_OFFSET;
-			b = caller->b + RETURNB_OFFSET;
+			b = caller->b + RETURNB_OFFSET * -1;
 
 			//may not have returned to the last item in the callstack
 			//delete everything inbetween
@@ -225,15 +231,16 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		}
 		else
 		{
-			a += EXTERNA;
-			c += EXTERNB * CMULT * -1;
+			a += EXTERNA * AMULT;
+			b += EXTERNB * BMULT * -1;
 		}
 		callStackLock.unlock();
 
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
+			cout << "clash in ext/return for node " << n->index << endl;
 			a += JUMPA_CLASH;
-			c += -1 * CMULT;
+			b += JUMPB_CLASH;
 			++clash;
 		}
 
@@ -252,6 +259,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	position->a = a;
 	position->b = b;
 	position->c = c;
+	cout << "placing node " << n->index << " at " << a << "," << b << endl;
 }
 
 TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)
@@ -326,20 +334,19 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
 void tree_graph::treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions)
 {
 	float a = ia*dimensions->pix_per_A;
-	c *= dimensions->pix_per_B;
-	c += CAdj; //offset start down on tree
+	b *= dimensions->pix_per_B;
 
 	coord->x = a;
-	coord->z = b;
-	coord->y = c;
+	coord->y = b;
+	//coord->z = c;
 }
 
 //take coord in space, convert back to a/b/c
 void tree_graph::treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults)
 {
 	*a = coord->x;
-	*b = coord->z;
-	*c = coord->y;
+	*b = coord->y;
+	//*c = coord->z;
 }
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
@@ -482,7 +489,7 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 		return 0;
 	}
 
-	if (curvePoints == LONGCURVEPTS)
+	if(false)//if (curvePoints == LONGCURVEPTS)
 	{
 		int vertsdrawn = linedata->drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, arraypos);
 		return vertsdrawn;
@@ -571,9 +578,9 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 
 				callStackLock.lock();
 				if (mainnodesdata->isPreview())
-					previewCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+					previewCallStack.push_back(make_pair(nextAddress, n->index));
 				else
-					mainCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
+					mainCallStack.push_back(make_pair(nextAddress, n->index));
 				callStackLock.unlock();
 
 				break;
@@ -622,7 +629,7 @@ void tree_graph::orient_to_user_view()
 {
 	glTranslatef(0, 0, -cameraZoomlevel);
 	glTranslatef(0, view_shift_y * 160, 0); //todo: make this depend on zoom level
-	glRotatef(-view_shift_x, 0, 1, 0);
+	glTranslatef(-view_shift_x * 1000, 0, 0);
 }
 
 void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
