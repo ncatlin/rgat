@@ -379,8 +379,10 @@ int plotted_graph::render_new_edges()
 	return edgesDrawn;
 }
 
-void plotted_graph::reset_animation()
+void plotted_graph::reset_animation_if_scheduled()
 {
+	if (!animation_needs_reset) return;
+
 	//deactivate any active nodes/edges
 	clear_active();
 
@@ -398,6 +400,8 @@ void plotted_graph::reset_animation()
 	lastAnimatedNode = 0;
 	animationIndex = 0;
 
+	animnodesdata->acquire_col_write()->at(0);
+
 	newAnimEdgeTimes.clear();
 	newAnimNodeTimes.clear();
 	activeAnimEdgeTimes.clear();
@@ -406,6 +410,9 @@ void plotted_graph::reset_animation()
 	currentUnchainedBlocks.clear();
 	animBuildingLoop = false;
 	animated = false;
+
+	animnodesdata->release_col_write();
+	animation_needs_reset = false;
 }
 
 
@@ -692,13 +699,14 @@ void plotted_graph::process_replay_update()
 		unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
 		if (unchainedWaitFrames > maxWait)
 			unchainedWaitFrames = maxWait;
+
 		return;
 	}
 
 	//all consecutive unchained areas finished, wait until animation paused appropriate frames
 	if (entry.entryType == eAnimUnchainedDone)
 	{
-		if (unchainedWaitFrames-- > 1) return;
+		if (unchainedWaitFrames-- > 1)  return;
 
 		remove_unchained_from_animation();
 		end_unchained(&entry);
@@ -809,19 +817,25 @@ void plotted_graph::clear_active()
 {
 	if (!animnodesdata->get_numVerts()) return;
 
-	map<NODEINDEX, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
-	GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
-
-	for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
-		ncol[nodeAPosTimeIt->first] = ANIM_INACTIVE_NODE_ALPHA;
-	animnodesdata->release_col_write();
-
-	map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
-	for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
+	if (!activeAnimNodeTimes.empty())
 	{
-		edge_data *pulsingEdge;
-		if (internalProtoGraph->edge_exists(edgeIDIt->first, &pulsingEdge))
-			set_edge_alpha(edgeIDIt->first, animlinedata, ANIM_INACTIVE_EDGE_ALPHA);
+		map<NODEINDEX, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
+		GLfloat *ncol = &animnodesdata->acquire_col_write()->at(0);
+
+		for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
+			ncol[nodeAPosTimeIt->first] = ANIM_INACTIVE_NODE_ALPHA;
+		animnodesdata->release_col_write();
+	}
+
+	if (!activeAnimEdgeTimes.empty())
+	{
+		map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
+		for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
+		{
+			edge_data *pulsingEdge;
+			if (internalProtoGraph->edge_exists(edgeIDIt->first, &pulsingEdge))
+				set_edge_alpha(edgeIDIt->first, animlinedata, ANIM_INACTIVE_EDGE_ALPHA);
+		}
 	}
 }
 
@@ -1035,7 +1049,10 @@ void plotted_graph::brighten_new_active_nodes()
 void plotted_graph::setAnimated(bool newState)
 {
 	if (isAnimated())
-		reset_animation();
+	{
+		animation_needs_reset = true;
+	}
+
 	animated = newState;
 }
 
@@ -1127,6 +1144,7 @@ void plotted_graph::brighten_new_active_edges()
 			fadingAnimEdges.insert(nodePair);
 
 		edgeIDIt = newAnimEdgeTimes.erase(edgeIDIt);
+
 	}
 }
 
@@ -1172,7 +1190,7 @@ void plotted_graph::render_replay_animation(float fadeRate)
 
 	if (userSelectedAnimPosition != -1)
 	{
-		reset_animation();
+		schedule_animation_reset();
 		setAnimated(true);
 
 		int selectionDiff;

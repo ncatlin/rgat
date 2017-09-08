@@ -31,6 +31,8 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	if (!graph->get_mainnodes() || !graph->setGraphBusy(true, 2))
 		return;
 
+	graph->reset_animation_if_scheduled();
+
 	//update the render if there are more verts/edges or graph is being resized
 	if (
 		(graph->get_mainnodes()->get_numVerts() < protoGraph->get_num_nodes()) ||
@@ -49,7 +51,8 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	}
 	else if (protoGraph->terminated)
 	{
-		graph->reset_animation();
+		graph->schedule_animation_reset();	
+		graph->reset_animation_if_scheduled();
 		protoGraph->terminated = false;
 	}
 
