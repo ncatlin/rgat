@@ -43,7 +43,7 @@ Creates a tree layout for a plotted graph
 #define JUMPB 3
 
 //placement of external nodes, relative to the first caller
-#define EXTERNA 2
+#define EXTERNA -4
 #define EXTERNB 2
 
 //controls placement of the node after a return
@@ -102,6 +102,9 @@ spacing is done by spreading out in x/z axes
 */
 void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
+	if (n->index > 17 && n->index < 20)
+		cout << 2;
+	cout << "finding pos of node " << n->index << endl;
 
 	TREECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
@@ -173,6 +176,19 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//long purple line to show possible distinct functional blocks of the program
 	case eNodeCall:
 	{
+		if (!n->external)
+		{
+			if (!n->ins->hasSymbol)
+			{
+				callStackLock.lock();
+				if (internalPlaceholderFuncNames.find(n->address) == internalPlaceholderFuncNames.end())
+				{
+					string symstring = "InternalFunc_" + to_string(internalPlaceholderFuncNames.size() + 1);
+					internalPlaceholderFuncNames[n->address] = make_pair(n, symstring);
+				}
+				callStackLock.unlock();
+			}
+		}
 		//note: b sometimes huge after this?
 		a += CALLA * AMULT;
 		b += CALLB * BMULT * -1;
@@ -257,7 +273,9 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << endl;
 	position->a = a;
-	position->b = b;
+	if (!n->external)
+		position->b = -1 *n->index;
+	//position->b = b;
 	position->c = c;
 	cout << "placing node " << n->index << " at " << a << "," << b << endl;
 }
@@ -548,54 +566,11 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 	mainNpos->push_back(screenc.z);
 
 	QColor *active_col = 0;
-	if (n->external)
-		lastNode->lastVertType = eNodeExternal;
-	else
-	{
-		switch (n->ins->itype)
-		{
-			case eInsUndefined:
-			{
-				lastNode->lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
-				break;
-			}
-			case eInsJump:
-			{
-				lastNode->lastVertType = eNodeJump;
-				break;
-			}
-			case eInsReturn:
-			{
-				lastNode->lastVertType = eNodeReturn;
-				break;
-			}
-			case eInsCall:
-			{
-				lastNode->lastVertType = eNodeCall;
 
-				//let returns find their caller if they have one
-				MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-
-				callStackLock.lock();
-				if (mainnodesdata->isPreview())
-					previewCallStack.push_back(make_pair(nextAddress, n->index));
-				else
-					mainCallStack.push_back(make_pair(nextAddress, n->index));
-				callStackLock.unlock();
-
-				break;
-			}
-			//case ISYS: //todo: never used - intended for syscalls
-			//	active_col = &al_col_grey;
-			//	break;
-			default:
-				cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
-				assert(0);
-		}
-	}
-
+	*lastNode = setLastNode(n->index);
 	active_col = &graphColours->at(lastNode->lastVertType);
-	lastNode->lastVertID = n->index;
+
+
 
 	mainNcol->push_back(active_col->redF());
 	mainNcol->push_back(active_col->greenF());

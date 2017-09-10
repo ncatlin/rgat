@@ -2084,29 +2084,50 @@
                       </property>
                       <item row="1" column="0">
                        <layout class="QGridLayout" name="gridLayout_12">
-                        <item row="0" column="0">
-                         <widget class="QLabel" name="edgesLabel">
-                          <property name="text">
-                           <string>Edges:</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item row="1" column="0">
+                        <item row="1" column="1">
                          <widget class="QLabel" name="nodesLabel">
                           <property name="text">
                            <string>Nodes:</string>
                           </property>
                          </widget>
                         </item>
+                        <item row="1" column="0">
+                         <widget class="QLabel" name="edgesLabel">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="minimumSize">
+                           <size>
+                            <width>144</width>
+                            <height>0</height>
+                           </size>
+                          </property>
+                          <property name="text">
+                           <string>Edges:</string>
+                          </property>
+                          <property name="alignment">
+                           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                          </property>
+                         </widget>
+                        </item>
                         <item row="2" column="0">
                          <widget class="QLabel" name="updatesLabel">
+                          <property name="statusTip">
+                           <string>Trace updates integrated into the graph</string>
+                          </property>
                           <property name="text">
                            <string>Updates:</string>
                           </property>
                          </widget>
                         </item>
-                        <item row="3" column="0">
+                        <item row="2" column="1">
                          <widget class="QLabel" name="backlogLabel">
+                          <property name="statusTip">
+                           <string>Trace updates queued for integration into the graph</string>
+                          </property>
                           <property name="text">
                            <string>Backlog:</string>
                           </property>
@@ -3367,6 +3388,102 @@
     <hint type="destinationlabel">
      <x>177</x>
      <y>384</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>addPlotSizeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>plotSizeIncrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>586</x>
+     <y>641</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>addVStretchBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>stretchVIncrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>586</x>
+     <y>599</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>addHStretchBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>stretchHIncrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>586</x>
+     <y>557</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>minusHStretchBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>stretchHDecrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>484</x>
+     <y>557</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>minusPlotSizeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>plotSizeDecrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>484</x>
+     <y>641</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>minusVStretchBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>graphPlotGLBox</receiver>
+   <slot>stretchVDecrease()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>484</x>
+     <y>599</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>362</x>
+     <y>267</y>
     </hint>
    </hints>
   </connection>

@@ -320,6 +320,62 @@ void plotted_graph::extend_faded_edges()
 	animlinedata->release_col_write();
 }
 
+PLOT_TRACK plotted_graph::setLastNode(NODEINDEX nodeIdx)
+{
+	PLOT_TRACK lastnode;
+
+	node_data *n;
+	n = internalProtoGraph->safe_get_node(nodeIdx);
+	lastnode.lastVertID = nodeIdx;
+
+	if (n->external)
+		lastnode.lastVertType = eNodeExternal;
+	else
+	{
+		switch (n->ins->itype)
+		{
+		case eInsUndefined:
+		{
+			lastnode.lastVertType = n->conditional ? eNodeJump : eNodeNonFlow;
+			break;
+		}
+		case eInsJump:
+		{
+			lastnode.lastVertType = eNodeJump;
+			break;
+		}
+		case eInsReturn:
+		{
+			lastnode.lastVertType = eNodeReturn;
+			break;
+		}
+		case eInsCall:
+		{
+			lastnode.lastVertType = eNodeCall;
+
+			//let returns find their caller if they have one
+			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
+
+			callStackLock.lock();
+			if (mainnodesdata->isPreview())
+				previewCallStack.push_back(make_pair(nextAddress, n->index));
+			else
+				mainCallStack.push_back(make_pair(nextAddress, n->index));
+			callStackLock.unlock();
+
+			break;
+		}
+		//case ISYS: //todo: never used - intended for syscalls
+		//	active_col = &al_col_grey;
+		//	break;
+		default:
+			cerr << "[rgat]Error: add_node unknown itype " << n->ins->itype << endl;
+			assert(0);
+		}
+	}
+	return lastnode;
+}
+
 //create edges in opengl buffers
 int plotted_graph::render_new_edges()
 {
@@ -343,6 +399,9 @@ int plotted_graph::render_new_edges()
 
 	for (; edgeIt != end && !dying; ++edgeIt)
 	{
+		if (edgeIt->second == 85)
+			cout << "d";
+
 		//render source node if not already done
 		if (edgeIt->first >= (NODEINDEX)mainnodesdata->get_numVerts())
 		{
@@ -350,6 +409,9 @@ int plotted_graph::render_new_edges()
 			n = internalProtoGraph->safe_get_node(edgeIt->first);
 			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 		}
+		else
+			lastMainNode = setLastNode(edgeIt->first);
+
 
 		//render target node if not already done
 		if (edgeIt->second >= (NODEINDEX)mainnodesdata->get_numVerts())
@@ -361,6 +423,8 @@ int plotted_graph::render_new_edges()
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->second);
 			add_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 		}
+		else
+			lastMainNode = setLastNode(edgeIt->second);
 		
 		if (!render_edge(*edgeIt, lines, 0, false, false))
 		{
@@ -1191,6 +1255,8 @@ void plotted_graph::render_replay_animation(float fadeRate)
 	if (userSelectedAnimPosition != -1)
 	{
 		schedule_animation_reset();
+		reset_animation_if_scheduled();
+
 		setAnimated(true);
 
 		int selectionDiff;
@@ -1483,6 +1549,11 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 				displayText = n->ins->mnemonic;
 		}
 
+		if (n->ins->itype == eNodeType::eInsCall || n->ins->itype == eNodeType::eInsJump)
+		{
+			//extract instruction address?
+		}
+
 
 		ss << std::dec << i;
 		if (clientState->config.instructionTextVisibility.addresses)
@@ -1490,6 +1561,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		else
 			ss << " +0x" << std::hex << (n->ins->address - get_protoGraph()->moduleBase);
 		ss << ": " << displayText;
+
 
 		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
 		ss.str("");
@@ -1501,11 +1573,16 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 
 void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric)
 {
-
 	string symString;
 	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
 	get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symString);
-	if (symString.empty()) return;
+	if (symString.empty()) 
+	{
+		auto placeholderNameIt = internalPlaceholderFuncNames.find(n->address);
+		if (placeholderNameIt == internalPlaceholderFuncNames.end()) return;
+
+		symString = placeholderNameIt->second.second;
+	}
 
 	
 	int textLength = fontMetric->width(symString.c_str());
@@ -1520,6 +1597,22 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 
 	labelPositions.push_back(textrect);
 	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, symString.c_str());
+}
+
+void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText)
+{
+	int textLength = fontMetric->width(symbolText.c_str());
+	int textHeight = fontMetric->height();
+
+	TEXTRECT textrect;
+	textrect.rect.setX(screenCoord.x - textLength);
+	textrect.rect.setWidth(textLength);
+	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setHeight(textHeight);
+	textrect.index = n->index;
+
+	labelPositions.push_back(textrect);
+	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, symbolText.c_str());
 }
 
 void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric)
@@ -1666,13 +1759,12 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	painter.setFont(clientState->instructionFont);
 	const QFontMetrics fm(clientState->instructionFont);
 
-	vector<NODEINDEX> internListCopy = internalProtoGraph->copyInternalNodeList();
-
-
 	TEXTRECT mouseoverNode;
 	bool hasMouseover;
 	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
 
+
+	vector<NODEINDEX> internListCopy = internalProtoGraph->copyInternalNodeList();
 	vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
 	for (; internSymIt != internListCopy.end(); ++internSymIt)
 	{
@@ -1693,6 +1785,33 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 			
 		}
 	}
+
+	callStackLock.lock();
+	map <MEM_ADDRESS, pair<node_data *, string>> placeholderListCopy;
+	placeholderListCopy.insert(internalPlaceholderFuncNames.begin(), internalPlaceholderFuncNames.end());
+	callStackLock.unlock();
+
+	auto internPlaceholderSymIt = placeholderListCopy.begin();
+	for (; internPlaceholderSymIt != placeholderListCopy.end(); ++internPlaceholderSymIt)
+	{
+		node_data *n = internPlaceholderSymIt->second.first;
+		assert(!n->external);
+
+		DCOORD screenCoord;
+		if (get_visible_node_pos(n->index, &screenCoord, &screenInfo, gltarget))
+		{
+			if (hasMouseover && mouseoverNode.index == n->index)
+			{
+				painter.setPen(al_col_orange);
+				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
+				painter.setPen(clientState->config.mainColours.symbolTextInternal);
+			}
+			else
+				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
+
+		}
+	}
+
 	painter.end();
 
 }
