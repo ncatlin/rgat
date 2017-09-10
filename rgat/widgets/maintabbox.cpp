@@ -551,7 +551,7 @@ void mainTabBox::nodeBtnPress()
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 
-	bool newState = ui->nodesVisibleButton->isChecked();
+	bool newState = ui->toolb_nodesVisibleBtn->isChecked();
 	clientState->setNodesShown(newState);
 }
 
@@ -559,7 +559,7 @@ void mainTabBox::edgeBtnPress()
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 
-	bool newState = ui->edgesVisibleButton->isChecked();
+	bool newState = ui->toolb_edgesVisibleBtn->isChecked();
 	clientState->showEdges = newState;
 }
 

@@ -180,18 +180,20 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
-	ui->wireframeBtn->setCheckable(graph->isWireframeSupported());
-	ui->wireframeBtn->setChecked(graph->isWireframeActive());
+	ui->toolb_wireframeBtn->setCheckable(graph->isWireframeSupported());
+	ui->toolb_wireframeBtn->setChecked(graph->isWireframeActive());
 
 
-		QString val;
-		val.setNum(graph->main_scalefactors->stretchA);
-		ui->stretchHEdit->setText(val);
-		val.setNum(graph->main_scalefactors->stretchB);
-		ui->stretchVEdit->setText(val);
-		val.setNum(graph->main_scalefactors->userSizeModifier);
-		ui->plotSizeEdit->setText(val);
+	QString val;
+	val.setNum(graph->main_scalefactors->stretchA);
+	ui->stretchHEdit->setText(val);
+	val.setNum(graph->main_scalefactors->stretchB);
+	ui->stretchVEdit->setText(val);
+	val.setNum(graph->main_scalefactors->userSizeModifier);
+	ui->plotSizeEdit->setText(val);
 
+	float zmul = zoomFactor(graph->cameraZoomlevel, graph->main_scalefactors->plotSize);
+	ui->zoomLabel->setText("Zoom: "+QString::number(zmul));
 }
 
 
@@ -274,13 +276,18 @@ void graphPlotGLWidget::keyReleaseEvent(QKeyEvent *event)
 
 void graphPlotGLWidget::wheelEvent(QWheelEvent *event)
 {
-	if(activeGraph)
+	if (activeGraph)
+	{
 		activeGraph->changeZoom((double)event->delta());
+
+		float zmul = zoomFactor(activeGraph->cameraZoomlevel, activeGraph->main_scalefactors->plotSize);
+		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+		ui->zoomLabel->setText("Zoom: " + QString::number(zmul));
+	}
 }
 
 void graphPlotGLWidget::frameTimerFired()
 {
-	//set to true if displaying the colour picking sphere
 	if (performIrregulars)
 	{
 		performIrregularActions();

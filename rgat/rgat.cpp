@@ -35,96 +35,85 @@ bool checkAlreadyRunning()
 
 void rgat::addExternTextBtn(QMenu *labelmenu)
 {
-	QMenu *externMenu = new QMenu(this);
+	labelmenu->setToolTipsVisible(true);
+	labelmenu->setToolTipDuration(500);
+	labelmenu->setStatusTip(tr("Symbols outside of instrumented code"));
+	labelmenu->setToolTip(tr("Symbols outside of instrumented code"));
 
-	externMenu->setTitle("External Symbols");
-	externMenu->setToolTipsVisible(true);
-	externMenu->setToolTipDuration(500);
-	externMenu->setStatusTip(tr("Symbols outside of instrumented code"));
-	externMenu->setToolTip(tr("Symbols outside of instrumented code"));
-	labelmenu->addMenu(externMenu);
-
-	QAction *showHideAction = new QAction(tr("&Enabled"), this);
+	QAction *showHideAction = new QAction(tr("&External Symbols"), this);
 	rgatstate->textButtons.externalShowHide = showHideAction;
-	externMenu->addAction(showHideAction);
+	labelmenu->addAction(showHideAction);
 	//note to future porting efforts: if this doesn't compile, use qtsignalmapper
 	connect(showHideAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternToggle); });
 
-	QAction *autoAction = new QAction(tr("&Auto"), this);
-	rgatstate->textButtons.externalAuto = autoAction;
-	autoAction->setCheckable(true);
-	externMenu->addAction(autoAction);
-	connect(autoAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternAuto); });
+	labelmenu->addSeparator();
 
 	QAction *address = new QAction(tr("&Addresses"), this);
+	address->setStatusTip(QCoreApplication::tr("Displaying absolute memory address of symbols."));
+	rgatstate->textButtons.externalAddress = address;
 	rgatstate->textButtons.externalAddress = address;
 	address->setCheckable(true);
-	externMenu->addAction(address);
+	labelmenu->addAction(address);
 	connect(address, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternAddress); });
 
 	QAction *offset = new QAction(tr("&Offsets"), this);
+	offset->setStatusTip(QCoreApplication::tr("Displaying offset of symbols from module base."));
 	rgatstate->textButtons.externalOffset = offset;
 	offset->setCheckable(true);
-	externMenu->addAction(offset);
+	labelmenu->addAction(offset);
 	connect(offset, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternOffset); });
 
-	QAction *paths = new QAction(tr("&Full Paths"), this);
+	labelmenu->addSeparator();
+
+	QAction *paths = new QAction(tr("&Paths"), this);
 	rgatstate->textButtons.externalPath = paths;
 	paths->setCheckable(true);
-	externMenu->addAction(paths);
+	labelmenu->addAction(paths);
 	connect(paths, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternPath); });
 }
 
 void rgat::addInternalTextBtn(QMenu *labelmenu)
 {
-	QMenu *menu = new QMenu(this);
-
-	menu->setTitle("Internal Symbols");
-	menu->setToolTipsVisible(true);
-	menu->setToolTipDuration(500);
-	menu->setStatusTip(tr("Symbols outside of instrumented code"));
-	menu->setToolTip(tr("Symbols outside of instrumented code"));
-	labelmenu->addMenu(menu);
-
-	QAction *showAction = new QAction(tr("&Enabled"), this);
+	QAction *showAction = new QAction(tr("&Internal Symbols"), this);
 	rgatstate->textButtons.internalShowHide = showAction;
-	menu->addAction(showAction);
+	labelmenu->addAction(showAction);
 	connect(showAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInternalToggle); });
-
-	QAction *autoAction = new QAction(tr("&Auto"), this);
-	rgatstate->textButtons.internalAuto = autoAction;
-	autoAction->setCheckable(true);
-	menu->addAction(autoAction);
-	connect(autoAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInternalAuto); });
 }
 
 void rgat::addInstructionTextBtn(QMenu *labelmenu)
 {
-	QMenu *menu = new QMenu(this);
-
-	menu->setTitle("Instructions");
-	menu->setToolTipsVisible(true);
-	menu->setToolTipDuration(500);
-	menu->setStatusTip(tr("Instruction Text"));
-	menu->setToolTip(tr("Instruction Text"));
-	labelmenu->addMenu(menu);
-
 	QAction *showAction = new QAction(tr("&Enabled"), this);
 	rgatstate->textButtons.instructionShowHide = showAction;
-	menu->addAction(showAction);
+	labelmenu->addAction(showAction);
 	connect(showAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionToggle); });
 
-	QAction *mnemonicAction = new QAction(tr("&Mnemonics"), this);
-	rgatstate->textButtons.instructionMnemonic = mnemonicAction;
-	mnemonicAction->setCheckable(true);
-	menu->addAction(mnemonicAction);
-	connect(mnemonicAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionMnemonic); });
+	labelmenu->addSeparator();
 
-	QAction *addressAction = new QAction(tr("&Addresses"), this);
+	QAction *offsetAction = new QAction(tr("&Offset"), this);
+	rgatstate->textButtons.instructionOffset = offsetAction;
+	offsetAction->setCheckable(true);
+	labelmenu->addAction(offsetAction);
+	connect(offsetAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionOffset); });
+
+	QAction *addressAction = new QAction(tr("&Address"), this);
 	rgatstate->textButtons.instructionAddress = addressAction;
 	addressAction->setCheckable(true);
-	menu->addAction(addressAction);
+	labelmenu->addAction(addressAction);
 	connect(addressAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionAddress); });
+
+	QAction *noaddressAction = new QAction(tr("&None"), this);
+	rgatstate->textButtons.instructionAddressOff = noaddressAction;
+	noaddressAction->setCheckable(true);
+	labelmenu->addAction(noaddressAction);
+	connect(noaddressAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionNoAddress); });
+
+	labelmenu->addSeparator();
+
+	QAction *targlabel = new QAction(tr("&Target Label"), this);
+	rgatstate->textButtons.instructionTargLabel = targlabel;
+	targlabel->setCheckable(true);
+	labelmenu->addAction(targlabel);
+	connect(targlabel, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionTargLabel); });
 }
 
 void rgat::textBtnTriggered(int buttonID)
@@ -167,12 +156,33 @@ void rgat::textBtnTriggered(int buttonID)
 		rgatstate->config.instructionTextVisibility.enabled = !rgatstate->config.instructionTextVisibility.enabled;
 		break;
 
-	case textBtnEnum::eInstructionMnemonic:
-		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
+	case textBtnEnum::eInstructionOffset:
+		if (!rgatstate->config.instructionTextVisibility.offsets)
+		{
+			rgatstate->config.instructionTextVisibility.addresses = true;
+			rgatstate->config.instructionTextVisibility.offsets = true;
+		}
 		break;
 
 	case textBtnEnum::eInstructionAddress:
-		rgatstate->config.instructionTextVisibility.addresses = !rgatstate->config.instructionTextVisibility.addresses;
+		if ((rgatstate->config.instructionTextVisibility.offsets == true) || 
+			(rgatstate->config.instructionTextVisibility.addresses == false))
+		{
+			rgatstate->config.instructionTextVisibility.offsets = false;
+			rgatstate->config.instructionTextVisibility.addresses = true;
+		}
+		break;
+
+	case textBtnEnum::eInstructionNoAddress:
+		if (rgatstate->config.instructionTextVisibility.addresses == true)
+		{
+			rgatstate->config.instructionTextVisibility.addresses = false;
+			rgatstate->config.instructionTextVisibility.offsets = false;
+		}
+		break;
+
+	case textBtnEnum::eInstructionTargLabel:
+		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
 		break;
 
 	default:
@@ -182,16 +192,21 @@ void rgat::textBtnTriggered(int buttonID)
 	rgatstate->updateTextDisplayButtons();
 }
 
-void rgat::addLabelBtnMenu()
+void rgat::addLabelBtnMenus()
 {
-	QMenu *labelmenu = new QMenu(this);
-	ui.labelSelectBtn->setMenu(labelmenu);
-	ui.labelSelectBtn->setPopupMode(QToolButton::InstantPopup);
-	labelmenu->setToolTipsVisible(true);
+	QMenu *symLabelMenu = new QMenu(this);
+	ui.toolb_symbolSelectBtn->setMenu(symLabelMenu);
+	ui.toolb_symbolSelectBtn->setPopupMode(QToolButton::InstantPopup);
+	symLabelMenu->setToolTipsVisible(true);
 
-	addExternTextBtn(labelmenu);
-	addInternalTextBtn(labelmenu);
-	addInstructionTextBtn(labelmenu);
+	addExternTextBtn(symLabelMenu);
+	addInternalTextBtn(symLabelMenu);
+
+	QMenu *insLabelMenu = new QMenu(this);
+	ui.toolb_instructionSelectBtn->setMenu(insLabelMenu);
+	ui.toolb_instructionSelectBtn->setPopupMode(QToolButton::InstantPopup);
+	insLabelMenu->setToolTipsVisible(true);
+	addInstructionTextBtn(insLabelMenu);
 }
 
 void rgat::setupUI()
@@ -234,7 +249,7 @@ void rgat::setupUI()
 	tracingStatusLabel->setText("Traces Active: 0");
 
 	rgatstate->widgetStyle = style();
-	addLabelBtnMenu();
+	addLabelBtnMenus();
 	rgatstate->updateTextDisplayButtons();
 
 #ifdef RELEASE

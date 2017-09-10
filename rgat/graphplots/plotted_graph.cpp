@@ -1470,68 +1470,6 @@ void plotted_graph::gen_graph_VBOs(graphGLWidget *gltarget)
 	VBOsGenned = true;
 }
 
-
-//iterate through all the nodes, draw instruction text for the ones in view
-//TODO: in animation mode don't show text for inactive nodes
-void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
-{
-
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	stringstream ss;
-	DCOORD screenCoord;
-	string displayText("?");
-
-	SCREEN_QUERY_PTRS screenInfo;
-	screenInfo.mainverts = get_mainnodes();
-	screenInfo.pd = pd;
-	screenInfo.show_all_always = clientState->config.instructionTextVisibility.fullPaths;
-
-	int pp = 0;
-	QPainter painter(gltarget);
-	painter.setPen(clientState->config.mainColours.instructionText);
-	painter.setFont(clientState->instructionFont);
-	NODEINDEX numVerts = (NODEINDEX)internalProtoGraph->get_num_nodes();
-	for (NODEINDEX i = 0; i < numVerts; ++i)
-	{
-		node_data *n = internalProtoGraph->safe_get_node(i);
-
-		if (n->external) continue;
-		if (!get_visible_node_pos(i, &screenCoord, &screenInfo, gltarget)) continue;
-
-		if (screenInfo.show_all_always)
-			displayText = n->ins->ins_text;
-		else
-		{
-			//if zoomed in close show the full instruction, else show a mnemonic
-			if (zdist < 5)
-				displayText = n->ins->ins_text;
-			else
-				displayText = n->ins->mnemonic;
-		}
-
-		if (n->ins->itype == eNodeType::eInsCall || n->ins->itype == eNodeType::eInsJump)
-		{
-			//extract instruction address?
-		}
-
-
-		ss << std::dec << i;
-		if (clientState->config.instructionTextVisibility.addresses)
-			ss << " 0x"  << std::hex << n->ins->address;
-		else
-			ss << " +0x" << std::hex << (n->ins->address - get_protoGraph()->moduleBase);
-		ss << ": " << displayText;
-
-
-		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
-		ss.str("");
-		pp++;
-	}
-	painter.end();
-	//cout << "drew " << pp << " ins texts" << endl;
-}
-
 void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric)
 {
 	string symString;
@@ -1778,25 +1716,80 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 }
 
-
-void plotted_graph::apply_drag(double dx, double dy)
+//iterate through all the nodes, draw instruction text for the ones in view
+//TODO: in animation mode don't show text for inactive nodes
+void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
 {
-	dx = min(1.0, max(dx, -1.0));
-	dy = min(1.0, max(dy, -1.0));
 
-	// here we tailor drag speed to the zoom level
-	float cameraDistance = abs(get_graph_size() - cameraZoomlevel);
-	float slowdown = cameraDistance / 1000;
-	if (slowdown > 0)
+	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	stringstream ss;
+	DCOORD screenCoord;
+	string displayText("?");
+
+	SCREEN_QUERY_PTRS screenInfo;
+	screenInfo.mainverts = get_mainnodes();
+	screenInfo.pd = pd;
+	screenInfo.show_all_always = false; 
+
+	int pp = 0;
+	QPainter painter(gltarget);
+	painter.setPen(clientState->config.mainColours.instructionText);
+	painter.setFont(clientState->instructionFont);
+	NODEINDEX numVerts = (NODEINDEX)internalProtoGraph->get_num_nodes();
+	for (NODEINDEX i = 0; i < numVerts; ++i)
 	{
-		//reduce movement this much for every 1000 pixels camera is away
-		float slowdownfactor = (float)0.035; 
-		if (dx != 0) dx *= (slowdown * slowdownfactor);
-		if (dy != 0) dy *= (slowdown * slowdownfactor);
-	}
+		node_data *n = internalProtoGraph->safe_get_node(i);
 
-	view_shift_x -= dx;
-	view_shift_y -= dy;
+		if (n->external) continue;
+		if (!get_visible_node_pos(i, &screenCoord, &screenInfo, gltarget)) continue;
+
+		bool compactDisplay;
+
+		if (screenInfo.show_all_always)
+			compactDisplay = false;
+		else
+		{
+			//if zoomed in close show the full instruction, else show a mnemonic
+			if (zdist < clientState->config.insTextCompactThreshold || n->ins->itype != eNodeType::eInsUndefined || !n->label.empty())
+				compactDisplay = false; 
+			else
+				compactDisplay = true;
+		}
+
+
+		if (compactDisplay && n->ins->itype == eNodeType::eInsUndefined) continue;
+
+		
+
+		if (n->ins->itype == eNodeType::eInsCall || n->ins->itype == eNodeType::eInsJump)
+		{
+			if (clientState->config.instructionTextVisibility.fullPaths)
+				displayText = n->ins->mnemonic + " [targsym]";
+			else
+				displayText = n->ins->ins_text;
+		}
+		else
+			displayText = n->ins->ins_text;
+
+
+		ss << std::dec << i;
+
+		if (!compactDisplay && clientState->config.instructionTextVisibility.addresses)
+		{
+			if (clientState->config.instructionTextVisibility.offsets)
+				ss << " +0x" << std::hex << (n->ins->address - get_protoGraph()->moduleBase); 
+			else
+				ss << " 0x" << std::hex << n->ins->address;
+		}
+		ss << ": " << displayText;
+
+
+		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
+		ss.str("");
+		pp++;
+	}
+	painter.end();
 }
 
 //only draws text for instructions with unsatisfied conditions
@@ -1958,6 +1951,25 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 	}
 }
 
+void plotted_graph::apply_drag(double dx, double dy)
+{
+	dx = min(1.0, max(dx, -1.0));
+	dy = min(1.0, max(dy, -1.0));
+
+	// here we tailor drag speed to the zoom level
+	float cameraDistance = abs(get_graph_size() - cameraZoomlevel);
+	float slowdown = cameraDistance / 1000;
+	if (slowdown > 0)
+	{
+		//reduce movement this much for every 1000 pixels camera is away
+		float slowdownfactor = (float)0.035;
+		if (dx != 0) dx *= (slowdown * slowdownfactor);
+		if (dy != 0) dy *= (slowdown * slowdownfactor);
+	}
+
+	view_shift_x -= dx;
+	view_shift_y -= dy;
+}
 
 void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
 {
@@ -2059,10 +2071,10 @@ void plotted_graph::changeZoom(double delta)
 	else
 		delta = 500;
 
-
 	cameraZoomlevel += delta;
 	if (cameraZoomlevel < 0)
 		cameraZoomlevel = 1;
+
 }
 
 void plotted_graph::copy_node_data(GRAPH_DISPLAY_DATA *nodes)

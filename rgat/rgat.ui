@@ -1022,7 +1022,7 @@
                  <item>
                   <layout class="QHBoxLayout" name="toolbarComponentsLayout">
                    <property name="spacing">
-                    <number>0</number>
+                    <number>14</number>
                    </property>
                    <property name="sizeConstraint">
                     <enum>QLayout::SetFixedSize</enum>
@@ -1094,225 +1094,271 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QToolButton" name="nodesVisibleButton">
-                     <property name="minimumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
+                    <layout class="QHBoxLayout" name="horizontalLayout_4">
+                     <property name="spacing">
+                      <number>0</number>
                      </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="toolTip">
-                      <string>Toggle Nodes</string>
-                     </property>
-                     <property name="statusTip">
-                      <string>Show/Hide instruction nodes</string>
-                     </property>
-                     <property name="text">
-                      <string>...</string>
-                     </property>
-                     <property name="icon">
-                      <iconset resource="rgat.qrc">
-                       <normaloff>:/Resources/nodesOff.png</normaloff>
-                       <normalon>:/Resources/nodesOn.png</normalon>
-                       <disabledoff>:/Resources/nodesOff.png</disabledoff>:/Resources/nodesOff.png</iconset>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>24</width>
-                       <height>24</height>
-                      </size>
-                     </property>
-                     <property name="checkable">
-                      <bool>true</bool>
-                     </property>
-                     <property name="checked">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QToolButton" name="edgesVisibleButton">
-                     <property name="minimumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="toolTip">
-                      <string>Toggle Edges</string>
-                     </property>
-                     <property name="statusTip">
-                      <string>Show/Hide edges between nodes</string>
-                     </property>
-                     <property name="text">
-                      <string>...</string>
-                     </property>
-                     <property name="icon">
-                      <iconset resource="rgat.qrc">
-                       <normaloff>:/Resources/edgesOff.png</normaloff>
-                       <normalon>:/Resources/edgesOn.png</normalon>:/Resources/edgesOff.png</iconset>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>24</width>
-                       <height>24</height>
-                      </size>
-                     </property>
-                     <property name="checkable">
-                      <bool>true</bool>
-                     </property>
-                     <property name="checked">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QToolButton" name="wireframeBtn">
-                     <property name="minimumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="toolTip">
-                      <string>Toggle Wireframe</string>
-                     </property>
-                     <property name="statusTip">
-                      <string>Toggle display of wireframe on supported graph plots</string>
-                     </property>
-                     <property name="text">
-                      <string>...</string>
-                     </property>
-                     <property name="icon">
-                      <iconset resource="rgat.qrc">
-                       <normaloff>:/Resources/wireframeOff.png</normaloff>
-                       <normalon>:/Resources/wireframeOn.png</normalon>:/Resources/wireframeOff.png</iconset>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>32</width>
-                       <height>32</height>
-                      </size>
-                     </property>
-                     <property name="checkable">
-                      <bool>true</bool>
-                     </property>
-                     <property name="checked">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QToolButton" name="labelSelectBtn">
-                     <property name="minimumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>30</width>
-                       <height>30</height>
-                      </size>
-                     </property>
-                     <property name="baseSize">
-                      <size>
-                       <width>0</width>
-                       <height>0</height>
-                      </size>
-                     </property>
-                     <property name="palette">
-                      <palette>
-                       <active>
-                        <colorrole role="ButtonText">
-                         <brush brushstyle="SolidPattern">
-                          <color alpha="255">
-                           <red>255</red>
-                           <green>0</green>
-                           <blue>0</blue>
-                          </color>
-                         </brush>
-                        </colorrole>
-                       </active>
-                       <inactive>
-                        <colorrole role="ButtonText">
-                         <brush brushstyle="SolidPattern">
-                          <color alpha="255">
-                           <red>255</red>
-                           <green>0</green>
-                           <blue>0</blue>
-                          </color>
-                         </brush>
-                        </colorrole>
-                       </inactive>
-                       <disabled>
-                        <colorrole role="ButtonText">
-                         <brush brushstyle="SolidPattern">
-                          <color alpha="255">
-                           <red>120</red>
-                           <green>120</green>
-                           <blue>120</blue>
-                          </color>
-                         </brush>
-                        </colorrole>
-                       </disabled>
-                      </palette>
-                     </property>
-                     <property name="font">
-                      <font>
-                       <family>Arial</family>
-                       <pointsize>12</pointsize>
-                       <weight>75</weight>
-                       <italic>false</italic>
-                       <bold>true</bold>
-                       <underline>false</underline>
-                       <kerning>false</kerning>
-                      </font>
-                     </property>
-                     <property name="toolTip">
-                      <string>Trace label options</string>
-                     </property>
-                     <property name="statusTip">
-                      <string>Toggle display of trace labels such as symbols and instructions</string>
-                     </property>
-                     <property name="text">
-                      <string>f()</string>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>24</width>
-                       <height>24</height>
-                      </size>
-                     </property>
-                     <property name="popupMode">
-                      <enum>QToolButton::InstantPopup</enum>
-                     </property>
-                     <property name="toolButtonStyle">
-                      <enum>Qt::ToolButtonTextOnly</enum>
-                     </property>
-                     <property name="arrowType">
-                      <enum>Qt::NoArrow</enum>
-                     </property>
-                    </widget>
+                     <item>
+                      <widget class="QToolButton" name="toolb_edgesVisibleBtn">
+                       <property name="minimumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="toolTip">
+                        <string>Toggle Edges</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Show/Hide edges between nodes</string>
+                       </property>
+                       <property name="text">
+                        <string>...</string>
+                       </property>
+                       <property name="icon">
+                        <iconset resource="rgat.qrc">
+                         <normaloff>:/Resources/edgesOff.png</normaloff>
+                         <normalon>:/Resources/edgesOn.png</normalon>:/Resources/edgesOff.png</iconset>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>24</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="checkable">
+                        <bool>true</bool>
+                       </property>
+                       <property name="checked">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolb_nodesVisibleBtn">
+                       <property name="minimumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="toolTip">
+                        <string>Toggle Nodes</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Show/Hide instruction nodes</string>
+                       </property>
+                       <property name="text">
+                        <string>...</string>
+                       </property>
+                       <property name="icon">
+                        <iconset resource="rgat.qrc">
+                         <normaloff>:/Resources/nodesOff.png</normaloff>
+                         <normalon>:/Resources/nodesOn.png</normalon>
+                         <disabledoff>:/Resources/nodesOff.png</disabledoff>:/Resources/nodesOff.png</iconset>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>24</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="checkable">
+                        <bool>true</bool>
+                       </property>
+                       <property name="checked">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolb_wireframeBtn">
+                       <property name="minimumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="toolTip">
+                        <string>Toggle Wireframe</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Toggle display of wireframe on supported graph plots</string>
+                       </property>
+                       <property name="text">
+                        <string>...</string>
+                       </property>
+                       <property name="icon">
+                        <iconset resource="rgat.qrc">
+                         <normaloff>:/Resources/wireframeOff.png</normaloff>
+                         <normalon>:/Resources/wireframeOn.png</normalon>:/Resources/wireframeOff.png</iconset>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>32</width>
+                         <height>32</height>
+                        </size>
+                       </property>
+                       <property name="checkable">
+                        <bool>true</bool>
+                       </property>
+                       <property name="checked">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolb_symbolSelectBtn">
+                       <property name="minimumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="baseSize">
+                        <size>
+                         <width>0</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="palette">
+                        <palette>
+                         <active>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>255</red>
+                             <green>0</green>
+                             <blue>0</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </active>
+                         <inactive>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>255</red>
+                             <green>0</green>
+                             <blue>0</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </inactive>
+                         <disabled>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>120</red>
+                             <green>120</green>
+                             <blue>120</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </disabled>
+                        </palette>
+                       </property>
+                       <property name="font">
+                        <font>
+                         <family>Arial</family>
+                         <pointsize>12</pointsize>
+                         <weight>75</weight>
+                         <italic>false</italic>
+                         <bold>true</bold>
+                         <underline>false</underline>
+                         <kerning>false</kerning>
+                        </font>
+                       </property>
+                       <property name="toolTip">
+                        <string>Options for displaying symbols and user defined labels</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Options for displaying symbols and user defined labels</string>
+                       </property>
+                       <property name="text">
+                        <string>f()</string>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>24</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="popupMode">
+                        <enum>QToolButton::InstantPopup</enum>
+                       </property>
+                       <property name="toolButtonStyle">
+                        <enum>Qt::ToolButtonTextOnly</enum>
+                       </property>
+                       <property name="arrowType">
+                        <enum>Qt::NoArrow</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolb_instructionSelectBtn">
+                       <property name="minimumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>30</width>
+                         <height>30</height>
+                        </size>
+                       </property>
+                       <property name="font">
+                        <font>
+                         <pointsize>12</pointsize>
+                         <weight>50</weight>
+                         <italic>true</italic>
+                         <bold>false</bold>
+                        </font>
+                       </property>
+                       <property name="toolTip">
+                        <string>Instruction text display options</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Instruction text display options</string>
+                       </property>
+                       <property name="text">
+                        <string>i</string>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>24</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </item>
                    <item>
                     <widget class="QComboBox" name="graphModeCombo">
@@ -1709,6 +1755,18 @@
                      <verstretch>0</verstretch>
                     </sizepolicy>
                    </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>190</height>
+                    </size>
+                   </property>
                    <property name="frameShape">
                     <enum>QFrame::Box</enum>
                    </property>
@@ -1717,7 +1775,7 @@
                    </property>
                    <layout class="QVBoxLayout" name="graphStretchFrameLayout">
                     <property name="spacing">
-                     <number>0</number>
+                     <number>2</number>
                     </property>
                     <property name="sizeConstraint">
                      <enum>QLayout::SetFixedSize</enum>
@@ -1726,13 +1784,13 @@
                      <number>1</number>
                     </property>
                     <property name="topMargin">
-                     <number>30</number>
+                     <number>9</number>
                     </property>
                     <property name="rightMargin">
                      <number>1</number>
                     </property>
                     <property name="bottomMargin">
-                     <number>70</number>
+                     <number>28</number>
                     </property>
                     <item>
                      <widget class="QLabel" name="horizStertchTitleLabel">
@@ -1928,6 +1986,31 @@
                        </widget>
                       </item>
                      </layout>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="zoomLabel">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="baseSize">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Zoom: -</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                      <property name="margin">
+                       <number>0</number>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </widget>
@@ -3088,7 +3171,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>nodesVisibleButton</sender>
+   <sender>toolb_nodesVisibleBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
    <slot>nodeBtnPress()</slot>
@@ -3104,7 +3187,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>edgesVisibleButton</sender>
+   <sender>toolb_edgesVisibleBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
    <slot>edgeBtnPress()</slot>
@@ -3248,7 +3331,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>wireframeBtn</sender>
+   <sender>toolb_wireframeBtn</sender>
    <signal>toggled(bool)</signal>
    <receiver>graphPlotGLBox</receiver>
    <slot>wireframeButtonToggled(bool)</slot>

@@ -65,5 +65,7 @@ public:
 
 	set<NODEINDEX> incomingNeighbours;
 	set<NODEINDEX> outgoingNeighbours;
+
+	string label; //todo serialise
 };
 
