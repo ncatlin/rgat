@@ -193,7 +193,7 @@ void rgatState::setNodesShown(bool state)
 	showNodes = state;
 
 	Ui::rgatClass *myui = (Ui::rgatClass *)ui;
-	myui->nodesVisibleButton->setChecked(state);
+	myui->toolb_nodesVisibleBtn->setChecked(state);
 }
 
 void rgatState::saveAll()
@@ -506,53 +506,25 @@ void rgatState::updateTextDisplayButtons()
 	if (config.externalSymbolVisibility.enabled)
 	{
 		textButtons.externalShowHide->setIcon(widgetStyle->standardIcon(QStyle::SP_DialogYesButton));
-		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols being displayed. Click to disable."));
+		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols being displayed. Click to hide."));
 	}
 	else
 	{
 		textButtons.externalShowHide->setIcon(widgetStyle->standardIcon(QStyle::SP_DialogNoButton));
-		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols not displayed. Click to enable."));
+		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols hidden. Click to display."));
 	}
 
-	if (config.externalSymbolVisibility.showWhenZoomed)
-	{
-		textButtons.externalAuto->setStatusTip(QCoreApplication::tr("External symbols hidden when zoomed out. Click to disable."));
-	}
-	else
-	{
-		textButtons.externalAuto->setStatusTip(QCoreApplication::tr("Click to hide external symbols at distant zoom levels."));
-	}
-	textButtons.externalAuto->setEnabled(config.externalSymbolVisibility.enabled);
-	textButtons.externalAuto->setChecked(config.externalSymbolVisibility.showWhenZoomed);
 
-	
-	if (config.externalSymbolVisibility.addresses)
-	{
-		textButtons.externalAddress->setStatusTip(QCoreApplication::tr("Address of external symbols shown. Click to hide."));
-	}
-	else
-	{
-		textButtons.externalAddress->setStatusTip(QCoreApplication::tr("Address of external symbols hidden. Click to show."));
-	}
 	textButtons.externalAddress->setChecked(config.externalSymbolVisibility.addresses);
-	
-	if (config.externalSymbolVisibility.offsets)
-	{
-		textButtons.externalOffset->setStatusTip(QCoreApplication::tr("Offset of external symbols from module base shown. Click to hide."));
-	}
-	else
-	{
-		textButtons.externalOffset->setStatusTip(QCoreApplication::tr("Offset of external symbols from module base hidden. Click to show."));
-	}
 	textButtons.externalOffset->setChecked(config.externalSymbolVisibility.offsets);
 
 	if (config.externalSymbolVisibility.fullPaths)
 	{
-		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Full paths of external symbols shown. Click to hide."));
+		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Full paths of external symbols displayed. Click to show module name."));
 	}
 	else
 	{
-		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Full paths of external symbols hidden. Click to show."));
+		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Module of external symbols displayed. Click to show full path."));
 	}
 	textButtons.externalPath->setChecked(config.externalSymbolVisibility.fullPaths);
 
@@ -568,18 +540,6 @@ void rgatState::updateTextDisplayButtons()
 		textButtons.internalShowHide->setIcon(widgetStyle->standardIcon(QStyle::SP_DialogNoButton));
 		textButtons.internalShowHide->setStatusTip(QCoreApplication::tr("Internal symbols not being displayed. Click to show."));
 	}
-	textButtons.internalAuto->setEnabled(config.internalSymbolVisibility.enabled);
-
-	if (config.internalSymbolVisibility.showWhenZoomed)
-	{
-		textButtons.internalAuto->setStatusTip(QCoreApplication::tr("External symbols displayed only when zoomed in. Click to change."));
-	}
-	else
-	{
-		textButtons.internalAuto->setStatusTip(QCoreApplication::tr("External symbols display unaffected by zoom. Click to change."));
-	}
-	textButtons.internalAuto->setChecked(config.internalSymbolVisibility.showWhenZoomed);
-
 
 	//-------------------instruction text----------------
 	if (config.instructionTextVisibility.enabled)
@@ -595,15 +555,41 @@ void rgatState::updateTextDisplayButtons()
 	textButtons.instructionShowHide->setChecked(config.instructionTextVisibility.enabled);
 
 
-	if (config.instructionTextVisibility.fullPaths)
+	if (config.instructionTextVisibility.addresses)
 	{
-		textButtons.instructionMnemonic->setStatusTip(QCoreApplication::tr("Full Instructions displayed at medium distances. Click to display in short form."));
+		if (config.instructionTextVisibility.offsets)
+		{
+			textButtons.instructionOffset->setStatusTip(QCoreApplication::tr("Display offset of instructions from the module base."));
+			textButtons.instructionOffset->setChecked(true);
+			textButtons.instructionAddress->setChecked(false);
+			textButtons.instructionAddressOff->setChecked(false);
+
+		}
+		else
+		{
+			textButtons.instructionAddress->setStatusTip(QCoreApplication::tr("Display address of instructions."));
+			textButtons.instructionOffset->setChecked(false);
+			textButtons.instructionAddress->setChecked(true);
+			textButtons.instructionAddressOff->setChecked(false);
+		}
 	}
 	else
 	{
-		textButtons.instructionMnemonic->setStatusTip(QCoreApplication::tr("Instructions displayed in a short form at medium distances. Click to force full display."));
+		textButtons.instructionAddressOff->setStatusTip(QCoreApplication::tr("Disable display of instruction location."));
+		textButtons.instructionOffset->setChecked(false);
+		textButtons.instructionAddress->setChecked(false);
+		textButtons.instructionAddressOff->setChecked(true);
 	}
-	textButtons.instructionMnemonic->setChecked(!config.instructionTextVisibility.fullPaths);
+
+	if (config.instructionTextVisibility.fullPaths)
+	{
+		textButtons.instructionTargLabel->setStatusTip(QCoreApplication::tr("Displaying label of jump/call targets, if available. Click to show address."));
+	}
+	else
+	{
+		textButtons.instructionTargLabel->setStatusTip(QCoreApplication::tr("Displaying address of jump/call targets. Click to show label, if available"));
+	}
+	textButtons.instructionTargLabel->setChecked(config.instructionTextVisibility.fullPaths);
 }
 
 PLOTTEDGRAPH_CASTPTR rgatState::createNewPlottedGraph(PROTOGRAPH_CASTPTR protoGraphPtr)

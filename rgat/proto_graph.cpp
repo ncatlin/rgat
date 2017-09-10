@@ -65,14 +65,12 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	instruction->threadvertIdx[tid] = targVertID;
 	piddata->dropDisassemblyWriteLock();
 
-	cout << "handle new node " << targVertID << endl;
 	lastNode = targVertID; //obsolete
 	return targVertID;
 }
 
 void proto_graph::handle_previous_instruction(NODEINDEX newTargVertID, unsigned long repeats)
 {
-	cout << "handle prev node " << newTargVertID << endl;
 	safe_get_node(newTargVertID)->executionCount += repeats;
 	lastNode = newTargVertID;
 }

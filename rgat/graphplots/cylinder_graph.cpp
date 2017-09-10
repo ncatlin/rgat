@@ -852,7 +852,6 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 		display_static(gltarget);
 
 	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
-
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_instructions_text(zmul, pd, gltarget);
 

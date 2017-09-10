@@ -116,6 +116,7 @@ public:
 	bool show_ins_text = true;
 	heatTextDisplayState show_heat_location = eHeatNodes;
 	bool showNodeIndex = false;
+	float insTextCompactThreshold;
 
 	int highlightProtrusion;
 

@@ -223,11 +223,12 @@ void clientConfig::loadTextSettings()
 		area.first->enabled = QSettingsObj->value(area.second + "Enabled").value<bool>();
 		area.first->fullPaths = QSettingsObj->value(area.second + "FullPaths").value<bool>();
 		area.first->notAnimated = QSettingsObj->value(area.second + "NotAnimated").value<bool>();
+		area.first->offsets = QSettingsObj->value(area.second + "Offsets").value<bool>();
 	}
 
 	showRisingAnimated = QSettingsObj->value("LabelDisplay/ShowRisingAnimated").value<bool>();
 	showNodeIndex = QSettingsObj->value("LabelDisplay/ShowNodeIndex").value<bool>();
-
+	insTextCompactThreshold = QSettingsObj->value("LabelDisplay/InstextCompactThreshold").value<float>();
 }
 
 void clientConfig::loadSettings()
@@ -352,10 +353,12 @@ void clientConfig::saveTextSettings()
 		QSettingsObj->setValue(area.second + "Enabled", area.first->enabled);
 		QSettingsObj->setValue(area.second + "FullPaths", area.first->fullPaths);
 		QSettingsObj->setValue(area.second + "NotAnimated", area.first->notAnimated);
+		QSettingsObj->setValue(area.second + "Offsets", area.first->offsets);
 	}
 
 	QSettingsObj->setValue("LabelDisplay/ShowRisingAnimated", showRisingAnimated);
 	QSettingsObj->setValue("LabelDisplay/ShowNodeIndex", showNodeIndex);
+	QSettingsObj->setValue("LabelDisplay/InstextCompactThreshold", insTextCompactThreshold);
 }
 
 
@@ -495,11 +498,11 @@ void clientConfig::setDefaultTextSettings()
 	internalSymbolVisibility.notAnimated = true;
 
 	instructionTextVisibility.enabled = true;
-	//always hidden when zoomed out far, this is if zoom decides between mnemonic (mov) or full instruction (mov rax, 0x100000001)
 	instructionTextVisibility.autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR;
+	instructionTextVisibility.addresses = true;
+	instructionTextVisibility.offsets = true;
+	instructionTextVisibility.fullPaths = true; //label for targets of calls/jmps
 	//meaningless
-	instructionTextVisibility.addresses = false;
-	instructionTextVisibility.fullPaths = false;
 	instructionTextVisibility.arguments = false;
 	//if we are zoomed in this far we will probably always want to see the text
 	instructionTextVisibility.duringAnimationFaded = true;
@@ -508,4 +511,5 @@ void clientConfig::setDefaultTextSettings()
 
 	showRisingAnimated = true;
 	showNodeIndex = false;
+	insTextCompactThreshold = INSTEXT_COMPACT_THRESHOLD;
 }
