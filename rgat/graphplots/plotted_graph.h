@@ -114,6 +114,7 @@ public:
 	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
 	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
 	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric);
+	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText);
 	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric);
 	void gen_graph_VBOs(graphGLWidget *gltarget);
 	void render_replay_animation(float fadeRate);
@@ -231,6 +232,9 @@ protected:
 	void release_nodecoord_read();
 	void release_nodecoord_write();
 
+
+	PLOT_TRACK setLastNode(NODEINDEX nodeIdx);
+
 	//keep track of which a,b coords are occupied
 	std::map<pair<long, long>, bool> usedCoords;
 	vector<pair<MEM_ADDRESS, NODEINDEX>> mainCallStack;
@@ -244,6 +248,7 @@ protected:
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 	vector <QColor> *graphColours = NULL;
+	map <MEM_ADDRESS, pair<node_data *,string>> internalPlaceholderFuncNames;
 
 	bool wireframeSupported = false;
 	bool wireframeActive = false;
@@ -262,6 +267,8 @@ private:
 		cerr << "Warning: Virtual add_node called\n" << endl;
 		return 0;
 	};
+
+
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }
 	int render_new_preview_edges();
@@ -330,6 +337,7 @@ private:
 	map <NODEPAIR, int> newAnimEdgeTimes;
 	map <NODEPAIR, int> activeAnimEdgeTimes;
 	set <NODEPAIR> fadingAnimEdges;
+
 
 	bool animBuildingLoop = false;
 	bool dying = false;

@@ -473,18 +473,18 @@ void mainTabBox::processSelectBtnClicked()
 
 void mainTabBox::highlightDialogBtnClicked()
 {
-	if (!clientState->highlightSelectorDialog->isVisible())
+	if (clientState->highlightSelectorDialog->isVisible())
+		clientState->highlightSelectorDialog->hide();
+	else
 	{
 		clientState->highlightSelectorDialog->show();
 		clientState->highlightSelectorDialog->raise();
 		clientState->highlightSelectorDialog->activateWindow();
 
 		Ui::highlightDialog *highlightui = (Ui::highlightDialog *)clientState->highlightSelectUI;
-		//highlightui->addressLabel->setText("A");
 		highlightui->highlightDialogWidget->setup();
 	}
-	else
-		clientState->highlightSelectorDialog->hide();
+
 }
 
 void mainTabBox::processComboIndexChange(int index)

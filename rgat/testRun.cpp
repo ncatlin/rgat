@@ -270,7 +270,7 @@ bool testRun::testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberI
 
 				if (expectedCond == "BOTH")
 				{
-					if (node->conditional & CONDCOMPLETE != CONDCOMPLETE)
+					if ((node->conditional & CONDCOMPLETE) != CONDCOMPLETE)
 					{
 						cout << "Test Failed: Expected conditional node (" << nodeidx << ") to be taken and not-taken, but this was false. Flags: " << node->conditional << endl;
 						return false;
