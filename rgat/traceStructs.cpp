@@ -21,74 +21,42 @@ using namespace rapidjson;
 
 void PROCESS_DATA::getExternDictReadLock()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(externDictMutex, 6396);
-#else
 	AcquireSRWLockShared(&externDictRWLock);
-#endif
 }
 
 void PROCESS_DATA::getExternDictWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	obtainMutex(externDictMutex, 1002);
-#else
 	AcquireSRWLockExclusive(&externDictRWLock);
-#endif
 }
 
 void PROCESS_DATA::dropExternDictReadLock()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(externDictMutex);
-#else
 	ReleaseSRWLockShared(&externDictRWLock);
-#endif
 }
 
 void PROCESS_DATA::dropExternDictWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	dropMutex(externDictMutex);
-#else
 	ReleaseSRWLockExclusive(&externDictRWLock);
-#endif
 }
 
 void PROCESS_DATA::getExternCallerReadLock()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(externCallerMutex, 6366);
-#else
 	AcquireSRWLockShared(&externCallerRWLock);
-#endif
 }
 
 void PROCESS_DATA::getExternCallerWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	obtainMutex(externCallerMutex, 1602);
-#else
 	AcquireSRWLockExclusive(&externCallerRWLock);
-#endif
 }
 
 void PROCESS_DATA::dropExternCallerReadLock()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(externCallerMutex);
-#else
 	ReleaseSRWLockShared(&externCallerRWLock);
-#endif
 }
 
 void PROCESS_DATA::dropExternCallerWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	dropMutex(externCallerMutex);
-#else
 	ReleaseSRWLockExclusive(&externCallerRWLock);
-#endif
 }
 
 bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, string &sym)
@@ -109,23 +77,6 @@ bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, str
 
 	return found;
 }
-
-/*
-bool PROCESS_DATA::get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase)
-{
-	getDisassemblyReadLock();
-	map <int, pair<MEM_ADDRESS, MEM_ADDRESS>>::iterator modBoundsIt = modBounds.find(modNum);
-	dropDisassemblyReadLock();	
-	
-	if (modBoundsIt != modBounds.end())
-	{
-		moduleBase = modBoundsIt->second.first;
-		return true;
-	}
-
-	return false;
-}
-*/
 
 bool PROCESS_DATA::get_modpath(unsigned int globalmodnum, boost::filesystem::path *path)
 {

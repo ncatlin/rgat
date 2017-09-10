@@ -63,7 +63,9 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 	insdata->address  = insaddr;
 	
 	if (insdata->mnemonic == "call")
+	{
 		insdata->itype = eNodeType::eInsCall;
+	}
 	else if (insdata->mnemonic == "ret") //todo: iret
 		insdata->itype = eNodeType::eInsReturn;
 	else if (insdata->mnemonic == "jmp")

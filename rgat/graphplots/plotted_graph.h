@@ -206,13 +206,8 @@ public:
 	vector <TEXTRECT> labelPositions;
 protected:
 
-#ifdef XP_COMPATIBLE
-	HANDLE nodeCoordMutex;
-	HANDLE threadReferenceMutex;
-#else
 	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
 	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
-#endif
 
 	rgatlocks::UntestableLock callStackLock;
 
@@ -248,7 +243,7 @@ protected:
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 	vector <QColor> *graphColours = NULL;
-	map <MEM_ADDRESS, pair<node_data *,string>> internalPlaceholderFuncNames;
+	map <ADDRESS_OFFSET, pair<NODEINDEX,string>> internalPlaceholderFuncNames;
 
 	bool wireframeSupported = false;
 	bool wireframeActive = false;

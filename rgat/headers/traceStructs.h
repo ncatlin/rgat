@@ -146,44 +146,14 @@ public:
 	map <boost::filesystem::path, long> globalModuleIDs;
 	map <int, std::map<ADDRESS_OFFSET, string>>modsymsPlain;
 
-#ifdef XP_COMPATIBLE
-	HANDLE disassemblyMutex = CreateMutex(NULL, false, NULL);
-#else
 	SRWLOCK disassemblyRWLock = SRWLOCK_INIT;
 	SRWLOCK externCallerRWLock = SRWLOCK_INIT;
-#endif
 
 	//https://msdn.microsoft.com/en-us/library/78t98006.aspx
-	inline void getDisassemblyReadLock(){
-#ifdef XP_COMPATIBLE
-			obtainMutex(disassemblyMutex, 6396);
-#else
-			AcquireSRWLockShared(&disassemblyRWLock);
-#endif
-		}
-	inline void dropDisassemblyReadLock()	{
-#ifdef XP_COMPATIBLE
-		dropMutex(disassemblyMutex);
-#else
-		ReleaseSRWLockShared(&disassemblyRWLock);
-#endif
-	}
-	inline void getDisassemblyWriteLock()	{
-
-#ifdef XP_COMPATIBLE 
-		obtainMutex(disassemblyMutex, 1002);
-#else
-		AcquireSRWLockExclusive(&disassemblyRWLock);
-#endif
-	}
-
-	inline void dropDisassemblyWriteLock()	{
-#ifdef XP_COMPATIBLE 
-		dropMutex(disassemblyMutex);
-#else
-		ReleaseSRWLockExclusive(&disassemblyRWLock);
-#endif
-	}
+	inline void getDisassemblyReadLock(){	AcquireSRWLockShared(&disassemblyRWLock);	}
+	inline void dropDisassemblyReadLock()	{ReleaseSRWLockShared(&disassemblyRWLock);	}
+	inline void getDisassemblyWriteLock()	{AcquireSRWLockExclusive(&disassemblyRWLock); }
+	inline void dropDisassemblyWriteLock()	{ReleaseSRWLockExclusive(&disassemblyRWLock);	}
 
 	void getExternDictReadLock();
 	void getExternDictWriteLock();
@@ -218,11 +188,8 @@ private:
 	bool loadExterns(const rapidjson::Value& processDataJSON);
 
 private:
-#ifdef XP_COMPATIBLE
-	HANDLE externDictMutex = CreateMutex(NULL, false, NULL);
-#else
+
 	SRWLOCK externDictRWLock = SRWLOCK_INIT;
-#endif
 
 	bool running = true;
 	bool killed = false;

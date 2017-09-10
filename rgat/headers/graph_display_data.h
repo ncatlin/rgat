@@ -62,13 +62,9 @@ public:
 
 private:
 
-#ifdef XP_COMPATIBLE
-	HANDLE posmutex;
-	HANDLE colmutex;
-#else
+
 	SRWLOCK poslock = SRWLOCK_INIT;
 	SRWLOCK collock = SRWLOCK_INIT;
-#endif
 
 	unsigned long numVerts = 0;
 	unsigned long loadedVerts = 0;

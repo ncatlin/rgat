@@ -29,42 +29,37 @@ rgatState *plotted_graph::clientState = NULL;
 
 plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColoursPtr)
 {
-		pid = protoGraph->get_traceRecord()->PID;
-		tid = protoGraph->get_TID();
+	pid = protoGraph->get_traceRecord()->PID;
+	tid = protoGraph->get_TID();
 
-		mainnodesdata = new GRAPH_DISPLAY_DATA();
-		mainlinedata = new GRAPH_DISPLAY_DATA();
+	mainnodesdata = new GRAPH_DISPLAY_DATA();
+	mainlinedata = new GRAPH_DISPLAY_DATA();
 
-		animlinedata = new GRAPH_DISPLAY_DATA();
-		animnodesdata = new GRAPH_DISPLAY_DATA();
+	animlinedata = new GRAPH_DISPLAY_DATA();
+	animnodesdata = new GRAPH_DISPLAY_DATA();
 
-		previewlines = new GRAPH_DISPLAY_DATA(true);
-		previewnodes = new GRAPH_DISPLAY_DATA(true);
+	previewlines = new GRAPH_DISPLAY_DATA(true);
+	previewnodes = new GRAPH_DISPLAY_DATA(true);
 
-		conditionallines = new GRAPH_DISPLAY_DATA();
-		conditionalnodes = new GRAPH_DISPLAY_DATA();
-		heatmaplines = new GRAPH_DISPLAY_DATA();
+	conditionallines = new GRAPH_DISPLAY_DATA();
+	conditionalnodes = new GRAPH_DISPLAY_DATA();
+	heatmaplines = new GRAPH_DISPLAY_DATA();
 
-		needVBOReload_conditional = true;
-		needVBOReload_heatmap = true;
-		needVBOReload_main = true;
-		needVBOReload_preview = true;
+	needVBOReload_conditional = true;
+	needVBOReload_heatmap = true;
+	needVBOReload_main = true;
+	needVBOReload_preview = true;
 
-		main_scalefactors = new GRAPH_SCALE;
-		preview_scalefactors = new GRAPH_SCALE;
+	main_scalefactors = new GRAPH_SCALE;
+	preview_scalefactors = new GRAPH_SCALE;
 
-		internalProtoGraph = protoGraph;
-		if (internalProtoGraph->active)
-			animated = true;
-		else
-			animated = false;
+	internalProtoGraph = protoGraph;
+	if (internalProtoGraph->active)
+		animated = true;
+	else
+		animated = false;
 
-		graphColours = graphColoursPtr;
-
-#ifdef XP_COMPATIBLE
-		nodeCoordMutex = CreateMutex(NULL, FALSE, NULL);
-		threadReferenceMutex = CreateMutex(NULL, FALSE, NULL);
-#endif
+	graphColours = graphColoursPtr;
 }
 
 plotted_graph::~plotted_graph()
@@ -78,11 +73,6 @@ plotted_graph::~plotted_graph()
 
 	callStackLock.lock();
 
-#ifdef XP_COMPATIBLE
-	while (threadRefs) Sleep(10);
-	obtainMutex(threadReferenceMutex);
-#else
-	
 	int failedWaits = 0;
 	while (isreferenced())
 	{
@@ -96,7 +86,6 @@ plotted_graph::~plotted_graph()
 		}
 	}
 	AcquireSRWLockExclusive(&threadReferenceLock);
-#endif
 
 	delete mainnodesdata;
 	delete mainlinedata;
@@ -113,11 +102,6 @@ plotted_graph::~plotted_graph()
 
 	delete animlinedata;
 	delete animnodesdata;
-	
-#ifdef XP_COMPATIBLE
-	CloseHandle(nodeCoordMutex);
-	CloseHandle(threadReferenceMutex);
-#endif
 }
 
 //this is called by threads to indicate it is being used to prevent deletion
@@ -125,16 +109,13 @@ plotted_graph::~plotted_graph()
 bool plotted_graph::increase_thread_references(int caller)
 {
 	if (dying || freeMe || beingDeleted) return false;
-#ifdef XP_COMPATIBLE
-	//todo xp
-#else
+
 	if (TryAcquireSRWLockShared(&threadReferenceLock))
 	{
 		++threadReferences;
 		//cout << "thread refs increased by caller " << caller << " to " << threadReferences << endl;
 		return true;
 	}
-#endif
 	return false;
 }
 
@@ -145,11 +126,8 @@ void plotted_graph::decrease_thread_references(int caller)
 		cerr << "Assert in graph " << this << " due to decreasing refs from 0 " << endl;
 		assert(threadReferences > 0);
 	}
-#ifdef XP_COMPATIBLE
-	//todo xp
-#else
+
 	ReleaseSRWLockShared(&threadReferenceLock);
-#endif
 	--threadReferences;
 
 	//cout << "thread refs decreased by caller " << caller << " to " << threadReferences << endl;
@@ -168,8 +146,7 @@ void plotted_graph::updateStats(float a, float b, float c)
 
 bool plotted_graph::trySetGraphBusy()
 {
-	bool result = graphBusyLock.trylock();
-	return result;
+	return graphBusyLock.trylock();
 }
 
 bool plotted_graph::setGraphBusy(bool set, int caller)
@@ -192,38 +169,22 @@ bool plotted_graph::setGraphBusy(bool set, int caller)
 
 void plotted_graph::acquire_nodecoord_read()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(nodeCoordMutex, 1107);
-#else
 	AcquireSRWLockShared(&nodeCoordLock);
-#endif
 }
 
 void plotted_graph::acquire_nodecoord_write()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(nodeCoordMutex, 1107);
-#else
 	AcquireSRWLockExclusive(&nodeCoordLock);
-#endif
 }
 
 void plotted_graph::release_nodecoord_read()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(nodeCoordMutex, 1107);
-#else
 	ReleaseSRWLockShared(&nodeCoordLock);
-#endif
 }
 
 void plotted_graph::release_nodecoord_write()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(nodeCoordMutex, 1107);
-#else
 	ReleaseSRWLockExclusive(&nodeCoordLock);
-#endif
 }
 
 //display live or animated graph with active areas on faded areas
@@ -1578,7 +1539,8 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symString);
 	if (symString.empty()) 
 	{
-		auto placeholderNameIt = internalPlaceholderFuncNames.find(n->address);
+		ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
+		auto placeholderNameIt = internalPlaceholderFuncNames.find(nodeoffset);
 		if (placeholderNameIt == internalPlaceholderFuncNames.end()) return;
 
 		symString = placeholderNameIt->second.second;
@@ -1787,14 +1749,14 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	}
 
 	callStackLock.lock();
-	map <MEM_ADDRESS, pair<node_data *, string>> placeholderListCopy;
+	map <ADDRESS_OFFSET, pair<NODEINDEX, string>> placeholderListCopy;
 	placeholderListCopy.insert(internalPlaceholderFuncNames.begin(), internalPlaceholderFuncNames.end());
 	callStackLock.unlock();
 
 	auto internPlaceholderSymIt = placeholderListCopy.begin();
 	for (; internPlaceholderSymIt != placeholderListCopy.end(); ++internPlaceholderSymIt)
 	{
-		node_data *n = internPlaceholderSymIt->second.first;
+		node_data *n = internalProtoGraph->safe_get_node(internPlaceholderSymIt->second.first);
 		assert(!n->external);
 
 		DCOORD screenCoord;

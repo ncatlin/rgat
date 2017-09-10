@@ -61,13 +61,8 @@ private:
 	traceRecord* runRecord = NULL;
 	HANDLE disassemblyMutex;
 
-#ifdef XP_COMPATIBLE
-	HANDLE nodeLMutex = CreateMutex(NULL, FALSE, NULL);
-	HANDLE edMutex = CreateMutex(NULL, FALSE, NULL);
-#else
 	SRWLOCK nodeLock = SRWLOCK_INIT;
 	SRWLOCK edgeLock = SRWLOCK_INIT;
-#endif
 
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
@@ -209,32 +204,14 @@ public:
 	}
 
 
-	inline void getEdgeReadLock()	{
-#ifdef XP_COMPATIBLE 
-		obtainMutex(edMutex, 10001);
-#else
-		AcquireSRWLockShared(&edgeLock);
-#endif
-	}
-	inline void dropEdgeReadLock()	{
-#ifdef XP_COMPATIBLE 
-		dropMutex(edMutex);
-#else
-		ReleaseSRWLockShared(&edgeLock);
-#endif
-	}
+	inline void getEdgeReadLock()	{ AcquireSRWLockShared(&edgeLock);	}
+	inline void dropEdgeReadLock()	{ ReleaseSRWLockShared(&edgeLock);  }
 
 	inline void dropEdgeWriteLock();
 	inline void getEdgeWriteLock();
 
 	void getNodeReadLock();
-	inline void dropNodeReadLock(){
-#ifdef XP_COMPATIBLE 
-		dropMutex(nodeLMutex);
-#else
-		ReleaseSRWLockShared(&nodeLock);
-#endif
-	}
+	inline void dropNodeReadLock(){ ReleaseSRWLockShared(&nodeLock); }
 
 	inline void getNodeWriteLock();
 	inline void dropNodeWriteLock();
