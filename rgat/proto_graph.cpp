@@ -225,50 +225,30 @@ inline edge_data *proto_graph::unsafe_get_edge(NODEPAIR edgePair)
 
 inline void proto_graph::getEdgeWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	obtainMutex(edMutex, 10002);
-#else
 	AcquireSRWLockExclusive(&edgeLock);
-#endif
 }
 
 
 
 inline void proto_graph::dropEdgeWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	dropMutex(edMutex);
-#else
 	ReleaseSRWLockExclusive(&edgeLock);
-#endif
 }
 
 void proto_graph::getNodeReadLock()
 {
-#ifdef XP_COMPATIBLE 
-	obtainMutex(nodeLMutex, 10005);
-#else
 	AcquireSRWLockShared(&nodeLock);
-#endif
 }
 
 
 inline void proto_graph::getNodeWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	obtainMutex(nodeLMutex, 10006);
-#else
 	AcquireSRWLockExclusive(&nodeLock);
-#endif
 }
 
 inline void proto_graph::dropNodeWriteLock()
 {
-#ifdef XP_COMPATIBLE 
-	dropMutex(nodeLMutex);
-#else
 	ReleaseSRWLockExclusive(&nodeLock);
-#endif
 }
 
 

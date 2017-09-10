@@ -126,6 +126,21 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		//long purple line to show possible distinct functional blocks of the program
 		case eNodeCall:
 		{
+			if (!n->external)
+			{
+				if (!n->ins->hasSymbol)
+				{
+					ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
+					callStackLock.lock();
+					if (internalPlaceholderFuncNames.find(nodeoffset) == internalPlaceholderFuncNames.end())
+					{
+						string symstring = "InternalFunc_" + to_string(internalPlaceholderFuncNames.size() + 1);
+						internalPlaceholderFuncNames[nodeoffset] = make_pair(n->index, symstring);
+					}
+					callStackLock.unlock();
+				}
+			}
+
 			//note: b sometimes huge after this?
 			b += CALLB;
 

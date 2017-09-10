@@ -29,10 +29,6 @@ GRAPH_DISPLAY_DATA::GRAPH_DISPLAY_DATA(bool prev)
 {
 	if (prev) preview = true;
 
-#ifdef XP_COMPATIBLE
-	posmutex = CreateMutex(NULL, FALSE, NULL);
-	colmutex = CreateMutex(NULL, FALSE, NULL);
-#endif
 	numVerts = 0;
 	edgesRendered = 0;
 }
@@ -60,79 +56,47 @@ bool GRAPH_DISPLAY_DATA::get_coord(NODEINDEX index, FCOORD* result)
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_read(int holder)
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(posmutex, 1007);
-#else
 	AcquireSRWLockShared(&poslock);
-#endif
-
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_write(int holder)
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(posmutex, 1007);
-#else
+
 	AcquireSRWLockExclusive(&poslock);
-#endif
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col_read()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(colmutex, 1007);
-#else
 	AcquireSRWLockShared(&collock);
-#endif
 	return &vcolarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col_write()
 {
-#ifdef XP_COMPATIBLE
-	obtainMutex(colmutex, 1007);
-#else
 	AcquireSRWLockExclusive(&collock);
-#endif
 	return &vcolarray;
 }
 
 void GRAPH_DISPLAY_DATA::release_pos_write()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(posmutex);
-#else
 	ReleaseSRWLockExclusive(&poslock);
-#endif
 }
 
 void GRAPH_DISPLAY_DATA::release_pos_read()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(posmutex);
-#else
 	ReleaseSRWLockShared(&poslock);
-#endif
 }
 
 void GRAPH_DISPLAY_DATA::release_col_write()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(posmutex);
-#else
 	ReleaseSRWLockExclusive(&collock);
-#endif
 }
 
 void GRAPH_DISPLAY_DATA::release_col_read()
 {
-#ifdef XP_COMPATIBLE
-	dropMutex(posmutex);
-#else
 	ReleaseSRWLockShared(&collock);
-#endif
 }
 
 //TODO: this is awful. need to add to vector vert by vert

@@ -180,11 +180,12 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		{
 			if (!n->ins->hasSymbol)
 			{
+				ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
 				callStackLock.lock();
-				if (internalPlaceholderFuncNames.find(n->address) == internalPlaceholderFuncNames.end())
+				if (internalPlaceholderFuncNames.find(nodeoffset) == internalPlaceholderFuncNames.end())
 				{
 					string symstring = "InternalFunc_" + to_string(internalPlaceholderFuncNames.size() + 1);
-					internalPlaceholderFuncNames[n->address] = make_pair(n, symstring);
+					internalPlaceholderFuncNames[nodeoffset] = make_pair(n->index, symstring);
 				}
 				callStackLock.unlock();
 			}
@@ -417,7 +418,6 @@ FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, floa
 //IMPORTANT: Must have edge reader lock to call this
 bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor *forceColour, bool preview, bool noUpdate)
 {
-
 	size_t nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
 		return false;
@@ -454,12 +454,9 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor
 int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
 	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
 {
-	//describe the normal
-	FCOORD middleC;
-	midpoint(startC, endC, &middleC);
-	float eLen = linedist(startC, endC);
 
-	FCOORD bezierC;
+	float edgeLen = linedist(startC, endC);
+
 	int curvePoints;
 
 	switch (edgeType)
@@ -467,29 +464,14 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 	case eEdgeNew:
 	{
 		//todo: make this number much smaller for previews
-		curvePoints = eLen < 80 ? 1 : LONGCURVEPTS;
-		bezierC = middleC;
+		curvePoints = edgeLen < 80 ? 1 : LONGCURVEPTS;
 		break;
 	}
 
 	case eEdgeOld:
 	case eEdgeReturn:
 	{
-		curvePoints = LONGCURVEPTS;
-
-		if (eLen < 2)
-			bezierC = middleC;
-		else
-		{
-			long oldMidA, oldMidB, oldMidC;
-			FCOORD bezierC2;
-			treeAB(&middleC, &oldMidA, &oldMidB, &oldMidC, dimensions);
-			treeCoord(oldMidA, oldMidB, oldMidC, &bezierC, dimensions);
-
-			//i dont know why this problem happens or why this fixes it
-			if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
-				bezierC.x = -bezierC.x;
-		}
+		curvePoints = edgeLen < 80 ? 1 : LONGCURVEPTS;
 		break;
 	}
 
@@ -498,7 +480,6 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 	case eEdgeException:
 	{
 		curvePoints = LONGCURVEPTS;
-		bezierC = middleC;
 		break;
 	}
 
@@ -507,8 +488,15 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 		return 0;
 	}
 
-	if(false)//if (curvePoints == LONGCURVEPTS)
+	if (curvePoints == LONGCURVEPTS)
 	{
+
+		FCOORD bezierC;
+		midpoint(startC, endC, &bezierC);
+		float lineMiddleShift = edgeLen / 10;
+		bezierC.x -= lineMiddleShift;
+		bezierC.y += lineMiddleShift;
+		bezierC.z -= lineMiddleShift;
 		int vertsdrawn = linedata->drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, arraypos);
 		return vertsdrawn;
 	}
