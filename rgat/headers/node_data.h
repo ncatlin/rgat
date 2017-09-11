@@ -37,6 +37,7 @@ public:
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, PROTOGRAPH_CASTPTR graphPtr);
 	//takes a file with a pointer next to a node entry, loads it into the node
 	int deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly);
+	void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr);
 
 	NODEINDEX index = 0;
 	
@@ -66,6 +67,6 @@ public:
 	set<NODEINDEX> incomingNeighbours;
 	set<NODEINDEX> outgoingNeighbours;
 
-	string label; //todo serialise
+	QString label; //todo serialise
 };
 

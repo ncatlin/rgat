@@ -57,7 +57,7 @@ public:
 	void drawBox(float x, float y, float w, float h, int thickness, QColor colour);
 	void drawRect(float x, float y, float w, float h, QColor colour);
 	void drawHighlightLine(FCOORD lineEndPt, QColor *colour);
-	bool getMouseoverNode(TEXTRECT *node) { *node = mouseoverNode; return activeMouseoverNode; }
+	bool getMouseoverNode(TEXTRECT *node) { *node = mouseoverNodeRect; return activeMouseoverNode; }
 	static rgatState *clientState;
 
 public Q_SLOTS:
@@ -77,7 +77,7 @@ protected:
 	bool acceptsMouseDrag = false;
 	QPoint mousePos;
 	bool activeMouseoverNode = false;
-	TEXTRECT mouseoverNode = { QRect(0,0,0,0), 0 };
+	TEXTRECT mouseoverNodeRect = { QRect(0,0,0,0), 0 };
 
 private:
 	eDisplayMode displaymode = eStandardGraph;

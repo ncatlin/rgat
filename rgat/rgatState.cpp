@@ -515,18 +515,29 @@ void rgatState::updateTextDisplayButtons()
 	}
 
 
-	textButtons.externalAddress->setChecked(config.externalSymbolVisibility.addresses);
-	textButtons.externalOffset->setChecked(config.externalSymbolVisibility.offsets);
-
-	if (config.externalSymbolVisibility.fullPaths)
+	if (config.externalSymbolVisibility.addresses)
 	{
-		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Full paths of external symbols displayed. Click to show module name."));
+		if (config.externalSymbolVisibility.offsets)
+		{
+
+			textButtons.externalOffset->setChecked(true);
+			textButtons.externalAddress->setChecked(false);
+			textButtons.externalAddressOff->setChecked(false);
+
+		}
+		else
+		{
+			textButtons.externalOffset->setChecked(false);
+			textButtons.externalAddress->setChecked(true);
+			textButtons.externalAddressOff->setChecked(false);
+		}
 	}
 	else
 	{
-		textButtons.externalPath->setStatusTip(QCoreApplication::tr("Module of external symbols displayed. Click to show full path."));
+		textButtons.externalOffset->setChecked(false);
+		textButtons.externalAddress->setChecked(false);
+		textButtons.externalAddressOff->setChecked(true);
 	}
-	textButtons.externalPath->setChecked(config.externalSymbolVisibility.fullPaths);
 
 
 	//-------------------internal/debugging symbols----------------
@@ -559,7 +570,7 @@ void rgatState::updateTextDisplayButtons()
 	{
 		if (config.instructionTextVisibility.offsets)
 		{
-			textButtons.instructionOffset->setStatusTip(QCoreApplication::tr("Display offset of instructions from the module base."));
+
 			textButtons.instructionOffset->setChecked(true);
 			textButtons.instructionAddress->setChecked(false);
 			textButtons.instructionAddressOff->setChecked(false);
@@ -567,7 +578,6 @@ void rgatState::updateTextDisplayButtons()
 		}
 		else
 		{
-			textButtons.instructionAddress->setStatusTip(QCoreApplication::tr("Display address of instructions."));
 			textButtons.instructionOffset->setChecked(false);
 			textButtons.instructionAddress->setChecked(true);
 			textButtons.instructionAddressOff->setChecked(false);
@@ -575,7 +585,6 @@ void rgatState::updateTextDisplayButtons()
 	}
 	else
 	{
-		textButtons.instructionAddressOff->setStatusTip(QCoreApplication::tr("Disable display of instruction location."));
 		textButtons.instructionOffset->setChecked(false);
 		textButtons.instructionAddress->setChecked(false);
 		textButtons.instructionAddressOff->setChecked(true);

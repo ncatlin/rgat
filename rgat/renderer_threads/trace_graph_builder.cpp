@@ -115,7 +115,8 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 		{
 			if (!thisgraph->node_exists(lastVertID))
 			{
-				cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found" << endl;
+				//had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
+				cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found. Node list size is: " << thisgraph->nodeList.size() << endl;
 				assert(0);
 			}
 		}

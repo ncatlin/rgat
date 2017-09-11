@@ -13,7 +13,7 @@ enum graphLayouts { eCylinderLayout = 0, eTreeLayout = 1, eLayoutInvalid };
 
 struct TEXT_DISPLAY_BUTTONS
 {
-	QAction *externalShowHide, *externalPath, *externalAddress, *externalOffset;
+	QAction *externalShowHide, *externalPath, *externalAddress, *externalAddressOff, *externalOffset;
 	QAction *internalShowHide;
 	QAction *instructionShowHide, *instructionOffset, *instructionAddress, *instructionAddressOff, *instructionTargLabel;
 };

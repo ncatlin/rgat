@@ -24,6 +24,7 @@ Class describing each node
 #include "GUIConstants.h"
 #include "traceMisc.h"
 #include "proto_graph.h"
+#include "binaryTarget.h"
 
 
 bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, PROTOGRAPH_CASTPTR graphPtr)
@@ -147,4 +148,30 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 	unreliableCount = nodeData[9].GetBool();
 
 	return true;
+}
+
+void node_data::setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
+{
+
+	traceRecord *runRecord = (traceRecord *)traceRecPtr;
+	PROCESS_DATA *piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
+
+	ADDRESS_OFFSET offset = address - runRecord->modBounds.at(globalModID)->first;
+	string sym;
+	//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+	bool foundsym = false;
+	int symOffset;
+	for (symOffset = 0; symOffset < 4096; symOffset++)
+	{
+		if (piddata->get_sym(globalModID, offset - symOffset, sym))
+		{
+			foundsym = true;
+			break;
+		}
+	}
+
+	if (foundsym)
+		label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
+	else
+		label = "[Unknown Symbol]";
 }
