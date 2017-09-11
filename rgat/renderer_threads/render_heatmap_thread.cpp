@@ -35,9 +35,6 @@ proto_graph * check_graph_ready(plotted_graph *graph, rgatState* clientState)
 
 		//graph never been rendered so we cant get the edge vertex data to colourise it
 		if (!numLineVerts)
-			if (!protoGraph->active)// && graph != clientState->activeGraph) //todo: restore me?
-				graph->render_static_graph(); //got final data so may as well force rendering
-			else
 				return NULL;
 	}
 	else

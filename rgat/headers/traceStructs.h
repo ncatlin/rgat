@@ -92,7 +92,7 @@ struct INS_DATA
 
 	MEM_ADDRESS address;
 	unsigned int numbytes;
-	MEM_ADDRESS condTakenAddress;
+	MEM_ADDRESS branchAddress = NULL;
 	MEM_ADDRESS condDropAddress;
 	//thread id, vert idx TODO: make unsigned
 	unordered_map<PID_TID, NODEINDEX> threadvertIdx;
