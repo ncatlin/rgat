@@ -27,6 +27,7 @@ The main QT window class
 
 #include "rgatState.h"
 #include "highlightWidget.h"
+#include "mouseoverFrame.h"
 
 //Q_IMPORT_PLUGIN(qico);
 
@@ -72,8 +73,7 @@ private:
 	Ui::highlightDialog highlightSelectui;
 	QLabel *tracingStatusLabel, *activityStatusLabel;
 	Ui_mouseoverWidget mouseoverWidgetui;
-	QWidget mouseoverWidget;
-
+	mouseoverFrame mouseoverWidget;
 
 private:
 	void setStatePointers();

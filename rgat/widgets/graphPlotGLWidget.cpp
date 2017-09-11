@@ -66,8 +66,11 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 	MEM_ADDRESS moduleOffset = node->address - trace->modBounds.at(node->globalModID)->first;
 
 	if (!node->label.isEmpty())
-		tooltipwidget->symbolText->setText("Label: " + node->label);
-	else if (node->external || node->ins->hasSymbol)
+		tooltipwidget->labelEdit->setText(node->label);
+	else
+		tooltipwidget->labelEdit->setText("");
+
+	if (node->external || node->ins->hasSymbol)
 	{
 		string symString;
 
@@ -76,15 +79,17 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 			tooltipwidget->symbolText->setText("Symbol: " + QString::fromStdString(symString));
 		else
 		{
-			if (node->external)
+			if (node->external && node->label.isEmpty())
 			{
 				node->setLabelFromNearestSymbol(trace);
-				tooltipwidget->symbolText->setText("Label: " + node->label);
+				tooltipwidget->symbolText->setText("Symbol: " + node->label);
 			}
 			else
-				tooltipwidget->symbolText->setText("Label: ?");
+				tooltipwidget->symbolText->setText("");
 		}
 	}
+	else
+		tooltipwidget->symbolText->setText("");
 
 	QString moduleText = "Module: " + QString::fromStdString(piddata->modpaths.at(node->globalModID).string());
 	moduleText += "+ 0x";
