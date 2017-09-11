@@ -99,12 +99,13 @@ public:
 	void *highlightSelectUI = NULL;
 	QDialog *highlightSelectorDialog = NULL;
 	void *labelMouseoverUI = NULL;
-	QWidget *labelMouseoverWidget = NULL;
+	mouseoverFrame *labelMouseoverWidget = NULL;
 
 	PLOTTEDGRAPH_CASTPTR getActiveGraph(bool increaseReferences);
 	void clearActiveGraph();
 	bool setActiveGraph(PLOTTEDGRAPH_CASTPTR graph);
 	PROTOGRAPH_CASTPTR getActiveProtoGraph();
+	void mouseoverLabelChanged();
 
 	PLOTTEDGRAPH_CASTPTR switchGraph = NULL;
 	binaryTarget *activeBinary = NULL;

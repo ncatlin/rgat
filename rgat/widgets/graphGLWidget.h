@@ -59,6 +59,7 @@ public:
 	void drawHighlightLine(FCOORD lineEndPt, QColor *colour);
 	bool getMouseoverNode(TEXTRECT *node) { *node = mouseoverNodeRect; return activeMouseoverNode; }
 	static rgatState *clientState;
+	NODEINDEX mouseoverNode() { return mouseoverNodeRect.index; }
 
 public Q_SLOTS:
 	void mouseMoveEvent(QMouseEvent *event);

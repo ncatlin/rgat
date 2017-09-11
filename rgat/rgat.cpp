@@ -255,6 +255,7 @@ void rgat::setupUI()
 	mouseoverWidgetui.setupUi(&mouseoverWidget);
 
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
+	rgatstate->labelMouseoverWidget->clientState = rgatstate;
 	mouseoverWidget.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
 

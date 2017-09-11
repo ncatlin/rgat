@@ -736,3 +736,18 @@ void rgatState::fuzztarget_connected(int runid, traceRecord *trace)
 	}
 	LeaveCriticalSection(&activeGraphCritsec);
 }
+
+void rgatState::mouseoverLabelChanged()
+{
+	plotted_graph *graph = (plotted_graph *)activeGraph;
+	if (!graph) return;
+
+	Ui_mouseoverWidget* tooltipwidget = (Ui_mouseoverWidget*)labelMouseoverUI;
+	QString newNodeText = tooltipwidget->labelEdit->text();
+	node_data *n = graph->get_protoGraph()->safe_get_node(((Ui::rgatClass *)ui)->graphPlotGLBox->mouseoverNode());
+
+	if (!newNodeText.isEmpty())
+		n->label = newNodeText;
+	else
+		n->label = "[ ]";
+}
