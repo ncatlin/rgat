@@ -33,8 +33,9 @@ The main QT window class
 #define RELEASE_BUILD true
 
 namespace textBtnEnum {
-	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternOffset, eExternPath,
-		eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionAddress, eInstructionOffset, eInstructionNoAddress, eInstructionTargLabel
+	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternOffset, eExternAddressNone, eExternPath,
+		eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionAddress, eInstructionOffset,
+		eInstructionNoAddress, eInstructionTargLabel, eResolveExterns
 	};
 }
 

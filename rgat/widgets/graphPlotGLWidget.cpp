@@ -51,7 +51,8 @@ graphPlotGLWidget::~graphPlotGLWidget()
 void graphPlotGLWidget::showMouseoverNodeTooltip()
 {
 	clientState->labelMouseoverWidget->show();
-	QPoint mouseoverPos = window()->pos() + mouseoverNode.rect.topLeft();
+	QPoint mouseoverPos = window()->pos() + mouseoverNodeRect.rect.topLeft();
+	mouseoverPos.setY(mouseoverPos.y() + clientState->labelMouseoverWidget->height());
 	clientState->labelMouseoverWidget->move(mouseoverPos);
 	clientState->labelMouseoverWidget->raise();
 
@@ -59,18 +60,30 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 
 
 	proto_graph *graph = activeGraph->get_protoGraph();
-	node_data *node = graph->safe_get_node(mouseoverNode.index);
+	node_data *node = graph->safe_get_node(mouseoverNodeRect.index);
 	traceRecord *trace = graph->get_traceRecord();
 	PROCESS_DATA *piddata = graph->get_piddata();
-	MEM_ADDRESS moduleBase = trace->modBounds.at(node->globalModID)->first;
-	MEM_ADDRESS moduleOffset = node->address - moduleBase;
+	MEM_ADDRESS moduleOffset = node->address - trace->modBounds.at(node->globalModID)->first;
 
-	if (node->external || node->ins->hasSymbol)
+	if (!node->label.isEmpty())
+		tooltipwidget->symbolText->setText("Label: " + node->label);
+	else if (node->external || node->ins->hasSymbol)
 	{
 		string symString;
+
 		piddata->get_sym(node->globalModID, moduleOffset, symString);
 		if (!symString.empty())
-			tooltipwidget->symbolText->setText("Symbol: "+QString::fromStdString(symString));
+			tooltipwidget->symbolText->setText("Symbol: " + QString::fromStdString(symString));
+		else
+		{
+			if (node->external)
+			{
+				node->setLabelFromNearestSymbol(trace);
+				tooltipwidget->symbolText->setText("Label: " + node->label);
+			}
+			else
+				tooltipwidget->symbolText->setText("Label: ?");
+		}
 	}
 
 	QString moduleText = "Module: " + QString::fromStdString(piddata->modpaths.at(node->globalModID).string());
@@ -410,7 +423,7 @@ bool graphPlotGLWidget::setMouseoverNode()
 		return false;
 
 	//mouse still over same node?
-	if (activeMouseoverNode && mouseoverNode.rect.contains(mousePos.x(), mousePos.y()))
+	if (activeMouseoverNode && mouseoverNodeRect.rect.contains(mousePos.x(), mousePos.y()))
 		return true;
 
 	//mouse over any node?
@@ -418,7 +431,7 @@ bool graphPlotGLWidget::setMouseoverNode()
 	{
 		if (nodelabel.rect.contains(mousePos.x(), mousePos.y()))
 		{
-			mouseoverNode = nodelabel;
+			mouseoverNodeRect = nodelabel;
 			activeMouseoverNode = true;
 			return false;
 		}

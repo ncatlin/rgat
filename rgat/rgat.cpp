@@ -48,7 +48,14 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 
 	labelmenu->addSeparator();
 
-	QAction *address = new QAction(tr("&Addresses"), this);
+	QAction *offset = new QAction(tr("&Offset"), this);
+	offset->setStatusTip(QCoreApplication::tr("Displaying offset of symbols from module base."));
+	rgatstate->textButtons.externalOffset = offset;
+	offset->setCheckable(true);
+	labelmenu->addAction(offset);
+	connect(offset, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternOffset); });
+
+	QAction *address = new QAction(tr("&Address"), this);
 	address->setStatusTip(QCoreApplication::tr("Displaying absolute memory address of symbols."));
 	rgatstate->textButtons.externalAddress = address;
 	rgatstate->textButtons.externalAddress = address;
@@ -56,12 +63,12 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 	labelmenu->addAction(address);
 	connect(address, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternAddress); });
 
-	QAction *offset = new QAction(tr("&Offsets"), this);
-	offset->setStatusTip(QCoreApplication::tr("Displaying offset of symbols from module base."));
-	rgatstate->textButtons.externalOffset = offset;
-	offset->setCheckable(true);
-	labelmenu->addAction(offset);
-	connect(offset, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternOffset); });
+	QAction *addressOff = new QAction(tr("&None"), this);
+	addressOff->setStatusTip(QCoreApplication::tr("Disable displaying of symbol location."));
+	rgatstate->textButtons.externalAddressOff = addressOff;
+	addressOff->setCheckable(true);
+	labelmenu->addAction(addressOff);
+	connect(addressOff, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternAddressNone); });
 
 	labelmenu->addSeparator();
 
@@ -70,6 +77,13 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 	paths->setCheckable(true);
 	labelmenu->addAction(paths);
 	connect(paths, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternPath); });
+	paths->setStatusTip(QCoreApplication::tr("Display the full path of the module each external symbol belongs to."));
+
+	QAction *performResolve = new QAction(tr("&Resolve Symbols"), this);
+	performResolve->setCheckable(false);
+	labelmenu->addAction(performResolve);
+	connect(performResolve, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eResolveExterns); });
+	performResolve->setStatusTip(QCoreApplication::tr("Attempt to resolve (existing) unresolved external nodes back to their nearest symbol."));
 }
 
 void rgat::addInternalTextBtn(QMenu *labelmenu)
@@ -94,18 +108,21 @@ void rgat::addInstructionTextBtn(QMenu *labelmenu)
 	offsetAction->setCheckable(true);
 	labelmenu->addAction(offsetAction);
 	connect(offsetAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionOffset); });
+	offsetAction->setStatusTip(QCoreApplication::tr("Display offset of instructions from the module base."));
 
 	QAction *addressAction = new QAction(tr("&Address"), this);
 	rgatstate->textButtons.instructionAddress = addressAction;
 	addressAction->setCheckable(true);
 	labelmenu->addAction(addressAction);
 	connect(addressAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionAddress); });
+	addressAction->setStatusTip(QCoreApplication::tr("Display absolute address of instructions."));
 
 	QAction *noaddressAction = new QAction(tr("&None"), this);
 	rgatstate->textButtons.instructionAddressOff = noaddressAction;
 	noaddressAction->setCheckable(true);
 	labelmenu->addAction(noaddressAction);
 	connect(noaddressAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInstructionNoAddress); });
+	noaddressAction->setStatusTip(QCoreApplication::tr("Disable display of instruction location."));
 
 	labelmenu->addSeparator();
 
@@ -128,16 +145,29 @@ void rgat::textBtnTriggered(int buttonID)
 		rgatstate->config.externalSymbolVisibility.showWhenZoomed = !rgatstate->config.externalSymbolVisibility.showWhenZoomed;
 		break;
 
-	case textBtnEnum::eExternAddress:
-		rgatstate->config.externalSymbolVisibility.addresses = !rgatstate->config.externalSymbolVisibility.addresses;
-		if (rgatstate->config.externalSymbolVisibility.addresses)
-			rgatstate->config.externalSymbolVisibility.offsets = false;
+	case textBtnEnum::eExternOffset:
+		if (!rgatstate->config.externalSymbolVisibility.offsets)
+		{
+			rgatstate->config.externalSymbolVisibility.addresses = true;
+			rgatstate->config.externalSymbolVisibility.offsets = true;
+		}
 		break;
 
-	case textBtnEnum::eExternOffset:
-		rgatstate->config.externalSymbolVisibility.offsets = !rgatstate->config.externalSymbolVisibility.offsets;
-		if (rgatstate->config.externalSymbolVisibility.offsets)
+	case textBtnEnum::eExternAddress:
+		if ((rgatstate->config.externalSymbolVisibility.offsets == true) ||
+			(rgatstate->config.externalSymbolVisibility.addresses == false))
+		{
+			rgatstate->config.externalSymbolVisibility.offsets = false;
+			rgatstate->config.externalSymbolVisibility.addresses = true;
+		}
+		break;
+
+	case textBtnEnum::eExternAddressNone:
+		if (rgatstate->config.externalSymbolVisibility.addresses == true)
+		{
 			rgatstate->config.externalSymbolVisibility.addresses = false;
+			rgatstate->config.externalSymbolVisibility.offsets = false;
+		}
 		break;
 
 	case textBtnEnum::eExternPath:
@@ -183,6 +213,14 @@ void rgat::textBtnTriggered(int buttonID)
 
 	case textBtnEnum::eInstructionTargLabel:
 		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
+		break;
+
+	case textBtnEnum::eResolveExterns:
+		{
+			plotted_graph *activeGraph = ((plotted_graph*)rgatstate->getActiveGraph(false));
+			if (activeGraph)
+				activeGraph->schedule_performSymbolResolve = true; 
+		}
 		break;
 
 	default:

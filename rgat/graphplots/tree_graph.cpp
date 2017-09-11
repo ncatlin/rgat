@@ -102,9 +102,6 @@ spacing is done by spreading out in x/z axes
 */
 void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
-	if (n->index > 17 && n->index < 20)
-		cout << 2;
-	cout << "finding pos of node " << n->index << endl;
 
 	TREECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
@@ -178,15 +175,12 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	{
 		if (!n->external)
 		{
-			if (!n->ins->hasSymbol)
+			if (!n->ins->hasSymbol && n->label.isEmpty())
 			{
 				ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
+				n->label = "[InternalFunc_" + QString::number(internalPlaceholderFuncNames.size() + 1) + "]";
 				callStackLock.lock();
-				if (internalPlaceholderFuncNames.find(nodeoffset) == internalPlaceholderFuncNames.end())
-				{
-					string symstring = "InternalFunc_" + to_string(internalPlaceholderFuncNames.size() + 1);
-					internalPlaceholderFuncNames[nodeoffset] = make_pair(n->index, symstring);
-				}
+				internalPlaceholderFuncNames[nodeoffset] = n->index;
 				callStackLock.unlock();
 			}
 		}
@@ -272,13 +266,11 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		break;
 	}
 
-	//cout << "Position of node " << n->index << " = " << a << " , " << b << endl;
 	position->a = a;
 	if (!n->external)
 		position->b = -1 *n->index;
-	//position->b = b;
 	position->c = c;
-	cout << "placing node " << n->index << " at " << a << "," << b << endl;
+	//cout << "Position of node " << n->index << " = " << a << " , " << b << "," << c << endl;
 }
 
 TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)

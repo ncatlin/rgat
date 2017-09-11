@@ -201,6 +201,7 @@ public:
 
 
 	int threadReferences = 0;
+	bool schedule_performSymbolResolve = false;
 
 	vector <TEXTRECT> labelPositions;
 protected:
@@ -242,7 +243,7 @@ protected:
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 	vector <QColor> *graphColours = NULL;
-	map <ADDRESS_OFFSET, pair<NODEINDEX,string>> internalPlaceholderFuncNames;
+	map <ADDRESS_OFFSET, NODEINDEX> internalPlaceholderFuncNames;
 
 	bool wireframeSupported = false;
 	bool wireframeActive = false;
@@ -336,6 +337,7 @@ private:
 	//int threadReferences = 0;
 	bool animated = false;
 	bool animation_needs_reset = false;
+	bool performSymbolResolve = false;
 };
 
 struct constructed_before

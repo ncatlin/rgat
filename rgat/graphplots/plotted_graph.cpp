@@ -1472,20 +1472,15 @@ void plotted_graph::gen_graph_VBOs(graphGLWidget *gltarget)
 
 void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric)
 {
-	string symString;
-	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
-	get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symString);
-	if (symString.empty()) 
+	if (n->label.isEmpty()) 
 	{
-		ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
-		auto placeholderNameIt = internalPlaceholderFuncNames.find(nodeoffset);
-		if (placeholderNameIt == internalPlaceholderFuncNames.end()) return;
-
-		symString = placeholderNameIt->second.second;
+		string symStdString;
+		MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
+		get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symStdString);
+		n->label = QString::fromStdString(symStdString);;
 	}
 
-	
-	int textLength = fontMetric->width(symString.c_str());
+	int textLength = fontMetric->width(n->label);
 	int textHeight = fontMetric->height();
 
 	TEXTRECT textrect;
@@ -1496,7 +1491,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	textrect.index = n->index;
 
 	labelPositions.push_back(textrect);
-	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, symString.c_str());
+	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, n->label);
 }
 
 void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText)
@@ -1541,12 +1536,22 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())
+	{
 		argstring << modulePath.filename().string();
+		if (performSymbolResolve)
+			n->setLabelFromNearestSymbol(this->get_protoGraph()->get_traceRecord());
+	}
 	
 	if (clientState->config.externalSymbolVisibility.addresses)
-		argstring << ": 0x" << std::hex << n->address;
-	else
-		argstring << ": +0x" << std::hex << offset;
+	{
+		if(clientState->config.externalSymbolVisibility.offsets)
+			argstring << ": +0x" << std::hex << offset;
+		else
+			argstring << ": 0x" << std::hex << n->address;
+	}
+
+	if (!n->label.isEmpty())
+		argstring << " " << n->label.toStdString();
 
 	if (numCalls > 1)
 		argstring << " " << n->calls << "x";
@@ -1620,6 +1625,12 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 	vector<NODEINDEX> externalNodeList = internalProtoGraph->copyExternalNodeList();
 
+	if (schedule_performSymbolResolve)
+	{
+		schedule_performSymbolResolve = false;
+		performSymbolResolve = true;
+	}
+
 	vector<NODEINDEX>::iterator externCallIt = externalNodeList.begin();
 	for (; externCallIt != externalNodeList.end(); ++externCallIt)
 	{
@@ -1641,7 +1652,8 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 		}
 	}
 	painter.end();
-
+	
+	performSymbolResolve = false;
 }
 
 void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget)
@@ -1687,14 +1699,14 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	}
 
 	callStackLock.lock();
-	map <ADDRESS_OFFSET, pair<NODEINDEX, string>> placeholderListCopy;
+	map <ADDRESS_OFFSET, NODEINDEX> placeholderListCopy;
 	placeholderListCopy.insert(internalPlaceholderFuncNames.begin(), internalPlaceholderFuncNames.end());
 	callStackLock.unlock();
 
 	auto internPlaceholderSymIt = placeholderListCopy.begin();
 	for (; internPlaceholderSymIt != placeholderListCopy.end(); ++internPlaceholderSymIt)
 	{
-		node_data *n = internalProtoGraph->safe_get_node(internPlaceholderSymIt->second.first);
+		node_data *n = internalProtoGraph->safe_get_node(internPlaceholderSymIt->second);
 		assert(!n->external);
 
 		DCOORD screenCoord;
@@ -1751,7 +1763,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		else
 		{
 			//if zoomed in close show the full instruction, else show a mnemonic
-			if (zdist < clientState->config.insTextCompactThreshold || n->ins->itype != eNodeType::eInsUndefined || !n->label.empty())
+			if (zdist < clientState->config.insTextCompactThreshold || n->ins->itype != eNodeType::eInsUndefined || !n->label.isEmpty())
 				compactDisplay = false; 
 			else
 				compactDisplay = true;
