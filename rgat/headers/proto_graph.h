@@ -64,6 +64,7 @@ private:
 	SRWLOCK nodeLock = SRWLOCK_INIT;
 	SRWLOCK edgeLock = SRWLOCK_INIT;
 
+
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
 	double constructedTime;
@@ -188,6 +189,7 @@ public:
 	int exeModuleID = -1;
 	MEM_ADDRESS moduleBase = 0;
 	boost::filesystem::path modulePath;
+	map <ADDRESS_OFFSET, NODEINDEX> internalPlaceholderFuncNames;
 
 	NODEINDEX lastNode = 0;
 	//used by heatmap solver

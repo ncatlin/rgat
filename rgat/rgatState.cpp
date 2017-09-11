@@ -713,7 +713,6 @@ PROTOGRAPH_CASTPTR rgatState::getActiveProtoGraph()
 
 void rgatState::addFuzzRun(int runid, void *run)
 {
-
 	EnterCriticalSection(&activeGraphCritsec);
 	pendingFuzzruns.emplace(make_pair(runid, run));
 	LeaveCriticalSection(&activeGraphCritsec);
@@ -746,8 +745,8 @@ void rgatState::mouseoverLabelChanged()
 	QString newNodeText = tooltipwidget->labelEdit->text();
 	node_data *n = graph->get_protoGraph()->safe_get_node(((Ui::rgatClass *)ui)->graphPlotGLBox->mouseoverNode());
 
-	if (!newNodeText.isEmpty())
-		n->label = newNodeText;
+	if (newNodeText.isEmpty())
+		n->label = "[ ]"; 
 	else
-		n->label = "[ ]";
+		n->label = newNodeText;	
 }

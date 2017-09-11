@@ -243,7 +243,6 @@ protected:
 	map <NODEINDEX, EXTTEXT> activeExternTimes;
 	vector <ANIMATIONENTRY> currentUnchainedBlocks;
 	vector <QColor> *graphColours = NULL;
-	map <ADDRESS_OFFSET, NODEINDEX> internalPlaceholderFuncNames;
 
 	bool wireframeSupported = false;
 	bool wireframeActive = false;

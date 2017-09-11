@@ -90,7 +90,7 @@ void proto_graph::add_edge(edge_data e, node_data *source, node_data *target)
 	{
 		if (source->ins->condDropAddress == target->address)
 			source->conditional |= CONDFELLTHROUGH;
-		else if (source->ins->condTakenAddress == target->address)
+		else if (source->ins->branchAddress == target->address)
 			source->conditional |= CONDTAKEN;
 	}
 

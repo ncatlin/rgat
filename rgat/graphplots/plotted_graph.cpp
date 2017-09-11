@@ -357,11 +357,8 @@ int plotted_graph::render_new_edges()
 	}
 
 	needVBOReload_main = true;
-
 	for (; edgeIt != end && !dying; ++edgeIt)
 	{
-		if (edgeIt->second == 85)
-			cout << "d";
 
 		//render source node if not already done
 		if (edgeIt->first >= (NODEINDEX)mainnodesdata->get_numVerts())
@@ -400,7 +397,6 @@ int plotted_graph::render_new_edges()
 	}
 
 	internalProtoGraph->dropEdgeReadLock();
-
 	return edgesDrawn;
 }
 
@@ -1700,7 +1696,7 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 	callStackLock.lock();
 	map <ADDRESS_OFFSET, NODEINDEX> placeholderListCopy;
-	placeholderListCopy.insert(internalPlaceholderFuncNames.begin(), internalPlaceholderFuncNames.end());
+	placeholderListCopy.insert(internalProtoGraph->internalPlaceholderFuncNames.begin(), internalProtoGraph->internalPlaceholderFuncNames.end());
 	callStackLock.unlock();
 
 	auto internPlaceholderSymIt = placeholderListCopy.begin();
@@ -1762,7 +1758,6 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 			compactDisplay = false;
 		else
 		{
-			//if zoomed in close show the full instruction, else show a mnemonic
 			if (zdist < clientState->config.insTextCompactThreshold || n->ins->itype != eNodeType::eInsUndefined || !n->label.isEmpty())
 				compactDisplay = false; 
 			else
@@ -1770,14 +1765,30 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		}
 
 
-		if (compactDisplay && n->ins->itype == eNodeType::eInsUndefined) continue;
-
-		
+		if (compactDisplay && n->ins->itype == eNodeType::eInsUndefined) continue; //dont want to see add,mov,etc from far away
 
 		if (n->ins->itype == eNodeType::eInsCall || n->ins->itype == eNodeType::eInsJump)
 		{
-			if (clientState->config.instructionTextVisibility.fullPaths)
-				displayText = n->ins->mnemonic + " [targsym]";
+			if (clientState->config.instructionTextVisibility.fullPaths && n->ins->branchAddress)
+			{
+				get_protoGraph()->getNodeReadLock();
+				set<NODEINDEX> outnodes = set<NODEINDEX>(n->outgoingNeighbours);
+				get_protoGraph()->dropNodeReadLock();
+				
+				for each (NODEINDEX nidx in outnodes)
+				{
+					node_data *possibleTargN = get_protoGraph()->safe_get_node(nidx);
+					if (possibleTargN->address == n->ins->branchAddress)
+					{
+						if (possibleTargN->label.isEmpty())
+							displayText = n->ins->ins_text;
+						else
+							displayText = n->ins->mnemonic + " " + possibleTargN->label.toStdString();
+						break;
+					}
+				}
+
+			}
 			else
 				displayText = n->ins->ins_text;
 		}
