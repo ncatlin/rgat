@@ -51,7 +51,7 @@ public:
 	
 	//an index used to lookup the caller/arguments of each instance of this being called
 	vector<unsigned long> callRecordsIndexs;
-	unsigned long long calls = 1;
+	unsigned long long currentCallIndex = 1; //need to review how this works and if it achieves anything
 
 	//number of external functions called
 	unsigned int childexterns = 0;

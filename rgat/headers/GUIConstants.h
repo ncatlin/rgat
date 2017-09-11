@@ -36,6 +36,7 @@ Lots of GUI related constants
 #define al_col_grey QColor(77, 77, 77, 255)
 #define al_col_black QColor(0, 0, 0, 255)
 #define al_col_cyan QColor(0, 255, 255, 255)
+#define al_col_light_grey QColor(195, 195, 195, 255)
 
 #define PREVIEW_GRAPH_PADDING_X 6
 #define PREVIEW_GRAPH_PADDING_Y 6

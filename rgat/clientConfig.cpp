@@ -329,7 +329,7 @@ void clientConfig::saveColours()
 
 	QSettingsObj->setValue("MainGraph/INSTRUCTION_TEXT_RGBA", mainColours.instructionText);
 	QSettingsObj->setValue("MainGraph/SYMBOL_TEXT_RGBA", mainColours.symbolTextExternal);
-	QSettingsObj->setValue("MainGraph/SYMBOL_TEXT_RGBA", mainColours.symbolTextInternal);
+	QSettingsObj->setValue("MainGraph/INTERNAL_SYM_TEXT_RGBA", mainColours.symbolTextInternal);
 	QSettingsObj->setValue("MainGraph/MAIN_BACKGROUND_RGBA", mainColours.background);
 	QSettingsObj->setValue("MainGraph/HIGHLIGHT_RGBA", mainColours.highlightLine);
 	QSettingsObj->setValue("MainGraph/ACTIVITY_MARKER_RGBA", mainColours.activityLine);

@@ -98,7 +98,7 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 	tooltipwidget->moduleLabel->setText(moduleText);
 	tooltipwidget->moduleLabel->adjustSize();
 
-	tooltipwidget->callCount->setText("Total Calls:" + QString::number(node->calls));
+	tooltipwidget->callCount->setText("Total Calls:" + QString::number(node->executionCount));
 
 	if (!node->callRecordsIndexs.empty())
 	{
