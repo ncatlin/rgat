@@ -1521,7 +1521,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	if (clientState->config.externalSymbolVisibility.fullPaths)
 		argstring << modulePath << ":";
 
-	int numCalls = n->calls;
+	int numCalls = n->currentCallIndex;
 	string symString;
 
 	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
@@ -1550,7 +1550,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 		argstring << " " << n->label.toStdString();
 
 	if (numCalls > 1)
-		argstring << " " << n->calls << "x";
+		argstring << " " << n->currentCallIndex << "x";
 
 	argstring << " " << symString;
 

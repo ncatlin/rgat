@@ -219,7 +219,7 @@ void module_handler::main_loop()
 				auto modIDIt = piddata->globalModuleIDs.find(path_plain); //first time we have seen this module in any run of target
 				if (modIDIt == piddata->globalModuleIDs.end())
 				{
-					globalModID = piddata->modpaths.size();
+					globalModID = (long)piddata->modpaths.size();
 					piddata->modpaths.push_back(path_plain);
 					piddata->globalModuleIDs[path_plain] = globalModID;
 					runRecord->modIDTranslationVec[localmodID] = globalModID;

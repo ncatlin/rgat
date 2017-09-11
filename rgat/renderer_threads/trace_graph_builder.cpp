@@ -320,7 +320,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 
 			node_data *targNode = thisgraph->safe_get_node(targVertID);
 			targNode->executionCount += repeats;
-			targNode->calls += repeats;
+			targNode->currentCallIndex += repeats;
 			lastVertID = targVertID;
 
 			return true;
@@ -997,8 +997,8 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 
 		if (callerIt != foundExtern->thread_callers.end())
 		{
-			int num = foundExtern->thread_callers.at(TID).size();
-			for (int i = 0; i < num; i++)
+			size_t num = foundExtern->thread_callers.at(TID).size();
+			for (size_t i = 0; i < num; i++)
 			{
 				NODEPAIR edge = foundExtern->thread_callers.at(TID).at(i);
 				if (edge.first == targVertID)
