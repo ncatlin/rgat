@@ -1555,7 +1555,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	argstring << " " << symString;
 
 	protoGraph->externCallsLock.lock();
-	if (n->callRecordsIndexs.empty() || !clientState->config.externalSymbolVisibility.arguments)
+	if (n->callRecordsIndexs.empty() || !clientState->config.externalSymbolVisibility.extraDetail)
 		argstring << " ()";
 	else
 	{
@@ -1608,7 +1608,6 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
-	screenInfo.show_all_always = false;
 
 	QPainter painter(gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextExternal);
@@ -1660,7 +1659,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
-	screenInfo.show_all_always = false;
 
 	QPainter painter(gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextInternal);
@@ -1703,7 +1701,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	for (; internPlaceholderSymIt != placeholderListCopy.end(); ++internPlaceholderSymIt)
 	{
 		node_data *n = internalProtoGraph->safe_get_node(internPlaceholderSymIt->second);
-		assert(!n->external);
 
 		DCOORD screenCoord;
 		if (get_visible_node_pos(n->index, &screenCoord, &screenInfo, gltarget))
@@ -1716,7 +1713,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 			}
 			else
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
-
 		}
 	}
 
@@ -1738,7 +1734,6 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
-	screenInfo.show_all_always = false; 
 
 	int pp = 0;
 	QPainter painter(gltarget);
@@ -1754,16 +1749,15 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 
 		bool compactDisplay;
 
-		if (screenInfo.show_all_always)
-			compactDisplay = false;
-		else
+		if (!clientState->config.instructionTextVisibility.extraDetail || zdist > clientState->config.insTextCompactThreshold)
 		{
-			if (zdist < clientState->config.insTextCompactThreshold || n->ins->itype != eNodeType::eInsUndefined || !n->label.isEmpty())
-				compactDisplay = false; 
+			if (n->ins->itype != eNodeType::eInsUndefined || !n->label.isEmpty())
+				compactDisplay = false;
 			else
 				compactDisplay = true;
 		}
-
+		else
+			compactDisplay = false;
 
 		if (compactDisplay && n->ins->itype == eNodeType::eInsUndefined) continue; //dont want to see add,mov,etc from far away
 
@@ -1821,7 +1815,6 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
-	screenInfo.show_all_always = false;
 
 	DCOORD screenCoord;
 
@@ -1888,7 +1881,6 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
-	screenInfo.show_all_always = false;
 
 
 	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work

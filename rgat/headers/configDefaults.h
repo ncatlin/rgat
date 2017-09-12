@@ -100,5 +100,5 @@ Defaults for using when a config file exist
 
 //higher number -> visible at more distant zoom levels
 #define EXTERN_VISIBLE_ZOOM_FACTOR 40
-#define INSTEXT_VISIBLE_ZOOMFACTOR 20
-#define INSTEXT_COMPACT_THRESHOLD 5
+#define INSTEXT_VISIBLE_ZOOMFACTOR 5
+#define INSTEXT_COMPACT_THRESHOLD 2.5

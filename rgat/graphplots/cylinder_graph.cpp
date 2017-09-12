@@ -775,7 +775,7 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 	mainNcol->push_back(active_col->redF());
 	mainNcol->push_back(active_col->greenF());
 	mainNcol->push_back(active_col->blueF());
-	mainNcol->push_back(1);
+	mainNcol->push_back(1.0f);
 
 	vertdata->set_numVerts(vertdata->get_numVerts() + 1);
 
@@ -911,7 +911,7 @@ bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCR
 	on screen but on the other side of the cylinder
 	*/
 
-	if (!screenInfo->show_all_always && !a_coord_on_screen(nodeCoord->a, 1)) //needs reimplementing
+	if (!a_coord_on_screen(nodeCoord->a, 1)) //needs reimplementing
 		return false;
 
 	DCOORD screenCoord;

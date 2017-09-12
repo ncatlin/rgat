@@ -55,7 +55,6 @@ struct PLOT_TRACK {
 struct SCREEN_QUERY_PTRS {
 	GRAPH_DISPLAY_DATA *mainverts;
 	PROJECTDATA *pd;
-	bool show_all_always; //obsolete now but i'm considering adding a force display option
 };
 
 class plotted_graph

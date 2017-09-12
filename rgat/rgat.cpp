@@ -126,6 +126,13 @@ void rgat::addInstructionTextBtn(QMenu *labelmenu)
 
 	labelmenu->addSeparator();
 
+	QAction *controlonly = new QAction(tr("&Control flow only"), this);
+	rgatstate->textButtons.controlOnlyLabel = controlonly;
+	controlonly->setCheckable(true);
+	labelmenu->addAction(controlonly);
+	connect(controlonly, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eControlOnlyLabel); });
+	controlonly->setStatusTip(QCoreApplication::tr("Only display control flow instructions (eg: jump, ret, call...)"));
+
 	QAction *targlabel = new QAction(tr("&Target Label"), this);
 	rgatstate->textButtons.instructionTargLabel = targlabel;
 	targlabel->setCheckable(true);
@@ -211,9 +218,15 @@ void rgat::textBtnTriggered(int buttonID)
 		}
 		break;
 
+	case textBtnEnum::eControlOnlyLabel:
+		rgatstate->config.instructionTextVisibility.extraDetail = !rgatstate->config.instructionTextVisibility.extraDetail;
+		break;
+
 	case textBtnEnum::eInstructionTargLabel:
 		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
 		break;
+
+
 
 	case textBtnEnum::eResolveExterns:
 		{

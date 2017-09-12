@@ -64,20 +64,24 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 	
 	if (insdata->mnemonic == "call")
 	{
-		insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+		try {
+			insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+		}
+		catch (...) { insdata->branchAddress = NULL; }
 		insdata->itype = eNodeType::eInsCall;
 	}
 	else if (insdata->mnemonic == "ret") //todo: iret
 		insdata->itype = eNodeType::eInsReturn;
 	else if (insdata->mnemonic == "jmp")
 	{
-		insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+		try { insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);	} //todo: not a great idea actually... just point to the outgoing neighbours for labels
+		catch(...)	{	insdata->branchAddress = NULL;	}
 		insdata->itype = eNodeType::eInsJump;
 	}
 	else
 	{
 		insdata->itype = eNodeType::eInsUndefined;
-		//assume all j+ instructions asside from jmp are conditional
+		//assume all j+ instructions aside from jmp are conditional (todo: bother to check)
 		if (insdata->mnemonic[0] == 'j')
 		{
 			insdata->conditional = true;

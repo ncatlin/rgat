@@ -15,7 +15,8 @@ struct TEXT_DISPLAY_BUTTONS
 {
 	QAction *externalShowHide, *externalPath, *externalAddress, *externalAddressOff, *externalOffset;
 	QAction *internalShowHide;
-	QAction *instructionShowHide, *instructionOffset, *instructionAddress, *instructionAddressOff, *instructionTargLabel;
+	QAction *instructionShowHide, *instructionOffset, *instructionAddress, *instructionAddressOff, *instructionTargLabel,
+		*controlOnlyLabel;
 };
 
 class rgatState
