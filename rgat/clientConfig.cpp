@@ -216,7 +216,7 @@ void clientConfig::loadTextSettings()
 			return;
 		}
 		area.first->addresses = QSettingsObj->value(area.second + "Addresses").value<bool>();
-		area.first->arguments = QSettingsObj->value(area.second + "Arguments").value<bool>();
+		area.first->extraDetail = QSettingsObj->value(area.second + "Arguments").value<bool>();
 		area.first->autoVisibleZoom = QSettingsObj->value(area.second + "AutoVisibleZoom").value<float>();
 		area.first->duringAnimationFaded = QSettingsObj->value(area.second + "AnimationFaded").value<bool>();
 		area.first->duringAnimationHighlighted = QSettingsObj->value(area.second + "AnimationActive").value<bool>();
@@ -346,7 +346,7 @@ void clientConfig::saveTextSettings()
 	foreach(area, displayAreas)
 	{
 		QSettingsObj->setValue(area.second + "Addresses", area.first->addresses);
-		QSettingsObj->setValue(area.second + "Arguments", area.first->arguments);
+		QSettingsObj->setValue(area.second + "Arguments", area.first->extraDetail);
 		QSettingsObj->setValue(area.second + "AutoVisibleZoom", area.first->autoVisibleZoom);
 		QSettingsObj->setValue(area.second + "AnimationFaded", area.first->duringAnimationFaded);
 		QSettingsObj->setValue(area.second + "AnimationActive", area.first->duringAnimationHighlighted);
@@ -482,7 +482,7 @@ void clientConfig::setDefaultTextSettings()
 	externalSymbolVisibility.offsets = true;
 	externalSymbolVisibility.addresses = false;
 	externalSymbolVisibility.fullPaths = false;
-	externalSymbolVisibility.arguments = true;
+	externalSymbolVisibility.extraDetail = true;
 	externalSymbolVisibility.duringAnimationFaded = false;
 	externalSymbolVisibility.duringAnimationHighlighted = true;
 	externalSymbolVisibility.notAnimated = true;
@@ -492,7 +492,7 @@ void clientConfig::setDefaultTextSettings()
 	internalSymbolVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
 	internalSymbolVisibility.addresses = false;
 	internalSymbolVisibility.fullPaths = false;
-	internalSymbolVisibility.arguments = true;
+	internalSymbolVisibility.extraDetail = true;
 	internalSymbolVisibility.duringAnimationFaded = false;
 	internalSymbolVisibility.duringAnimationHighlighted = true;
 	internalSymbolVisibility.notAnimated = true;
@@ -502,8 +502,8 @@ void clientConfig::setDefaultTextSettings()
 	instructionTextVisibility.addresses = true;
 	instructionTextVisibility.offsets = true;
 	instructionTextVisibility.fullPaths = true; //label for targets of calls/jmps
-	//meaningless
-	instructionTextVisibility.arguments = false;
+	instructionTextVisibility.extraDetail = true; //only show control flow
+
 	//if we are zoomed in this far we will probably always want to see the text
 	instructionTextVisibility.duringAnimationFaded = true;
 	instructionTextVisibility.duringAnimationHighlighted = true;

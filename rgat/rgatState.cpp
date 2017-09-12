@@ -599,6 +599,8 @@ void rgatState::updateTextDisplayButtons()
 		textButtons.instructionTargLabel->setStatusTip(QCoreApplication::tr("Displaying address of jump/call targets. Click to show label, if available"));
 	}
 	textButtons.instructionTargLabel->setChecked(config.instructionTextVisibility.fullPaths);
+
+	textButtons.controlOnlyLabel->setChecked(!config.instructionTextVisibility.extraDetail);
 }
 
 PLOTTEDGRAPH_CASTPTR rgatState::createNewPlottedGraph(PROTOGRAPH_CASTPTR protoGraphPtr)

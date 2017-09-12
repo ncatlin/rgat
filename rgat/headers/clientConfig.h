@@ -37,7 +37,7 @@ struct SYMS_VISIBILITY
 	bool fullPaths;
 	bool addresses;
 	bool offsets;
-	bool arguments;
+	bool extraDetail;
 };
 
 struct LAUNCHOPTIONS {

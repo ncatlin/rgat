@@ -36,7 +36,7 @@ Creates a tree layout for a plotted graph
 #define AMULT 1
 #define BMULT 1
 
-#define CALLA 20
+#define CALLA 40
 #define CALLB 15
 
 #define JUMPA 4
@@ -44,7 +44,7 @@ Creates a tree layout for a plotted graph
 
 //placement of external nodes, relative to the first caller
 #define EXTERNA -4
-#define EXTERNB 2
+#define EXTERNB 8
 
 //controls placement of the node after a return
 #define RETURNA_OFFSET 0
@@ -118,16 +118,21 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	}
 
 	long a = oldPosition->a;
-	long b = oldPosition->b;
 	long c = oldPosition->c;
 	int clash = 0;
+
+	long oldb = oldPosition->b;
+	long extraB = oldb - (-1*lastNode->lastVertID);
 
 	TREECOORD *position = (TREECOORD *)positionStruct;
 	if (n->external)
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
+
+		extraB = extraB + lastNodeData->childexterns + EXTERNB * -1;
+
 		position->a = a + 2 * lastNodeData->childexterns + EXTERNA;
-		position->b = b + lastNodeData->childexterns + EXTERNB * -1;
+		position->b = -1 *n->index + extraB;
 		position->c = c;
 		return;
 	}
@@ -138,7 +143,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//small vertical distance between instructions in a basic block	
 	case eNodeNonFlow:
 	{
-		b += -1 * BMULT;
+		//extraB += -1 * BMULT;
 		break;
 	}
 
@@ -148,7 +153,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
-			b += -1 * BMULT;
+			extraB = extraB + -1 * BMULT;
 			break;
 		}
 		//notice lack of break
@@ -157,13 +162,13 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeException:
 	{
 		a += JUMPA * AMULT;
-		b += JUMPB * BMULT * -1;
-
+		extraB = extraB + (JUMPB * BMULT * -1);
+		/*
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			a += JUMPA_CLASH;
 			++clash;
-		}
+		}*/
 
 		//if (clash > 15)
 		//	cerr << "[rgat]WARNING: Dense Graph Clash (jump) - " << clash << " attempts" << endl;
@@ -186,13 +191,14 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		}
 		//note: b sometimes huge after this?
 		a += CALLA * AMULT;
-		b += CALLB * BMULT * -1;
-
+		extraB += CALLB * BMULT * -1;
+		
+		/*
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			cout << "clash in nodecall for node " << n->index << endl;
 			a += CALLA_CLASH * AMULT;
-			b += CALLB_CLASH * BMULT * -1;
+			//b += CALLB_CLASH * BMULT * -1;
 			++clash;
 		}
 
@@ -202,6 +208,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			//if (clash > 15)
 			//	cerr << "[rgat]WARNING: Dense Graph Clash (call) - " << clash <<" attempts"<<endl;
 		}
+		*/
 		break;
 	}
 
@@ -210,7 +217,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeExternal:
 	{
 		//returning to address in call stack?
-		long long result = -1;
+		NODEINDEX resultNodeIDX = -1;
 		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
 		if (mainnodesdata->isPreview())
 			callStack = &previewCallStack;
@@ -219,22 +226,25 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		vector<pair<MEM_ADDRESS, NODEINDEX>>::iterator stackIt;
 
 		callStackLock.lock();
-
+		bool foundCallerOnStack = false;
 		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
 			if (stackIt->first == n->address)
 			{
-				result = stackIt->second;
+				resultNodeIDX = stackIt->second;
+				foundCallerOnStack = true;
 				break;
 			}
 		
 
 		//if so, position next node near caller
-		if (result != -1)
+		if (foundCallerOnStack)
 		{
-			TREECOORD *caller = get_node_coord(result);
+			TREECOORD *caller = get_node_coord(resultNodeIDX);
 			assert(caller);
 			a = caller->a + RETURNA_OFFSET;
-			b = caller->b + RETURNB_OFFSET * -1;
+			extraB = caller->b - (-1 * resultNodeIDX);
+			//b = caller->b + RETURNB_OFFSET * -1;
+			extraB += RETURNB_OFFSET * -1;
 
 			//may not have returned to the last item in the callstack
 			//delete everything inbetween
@@ -243,17 +253,17 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		else
 		{
 			a += EXTERNA * AMULT;
-			b += EXTERNB * BMULT * -1;
+			extraB += EXTERNB * BMULT * -1;
 		}
 		callStackLock.unlock();
-
+		/*
 		while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 		{
 			cout << "clash in ext/return for node " << n->index << endl;
 			a += JUMPA_CLASH;
-			b += JUMPB_CLASH;
+			//b += JUMPB_CLASH;
 			++clash;
-		}
+		}*/
 
 		//if (clash > 15)
 		//	cerr << "[rgat]WARNING: Dense Graph Clash (extern) - " << clash << " attempts" << endl;
@@ -267,8 +277,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	}
 
 	position->a = a;
-	if (!n->external)
-		position->b = -1 *n->index;
+	position->b = -1 *n->index + extraB;
 	position->c = c;
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << "," << c << endl;
 }

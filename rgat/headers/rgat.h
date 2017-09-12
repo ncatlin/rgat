@@ -36,7 +36,7 @@ The main QT window class
 namespace textBtnEnum {
 	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternOffset, eExternAddressNone, eExternPath,
 		eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionAddress, eInstructionOffset,
-		eInstructionNoAddress, eInstructionTargLabel, eResolveExterns
+		eInstructionNoAddress, eInstructionTargLabel, eControlOnlyLabel, eResolveExterns
 	};
 }
 
