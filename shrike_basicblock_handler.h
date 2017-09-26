@@ -15,37 +15,34 @@ limitations under the License.
 */
 
 /*
-Header for the thread that manages each instrumented process
+Header for the thread that processes basic block data
 */
 #pragma once
-
-#include "stdafx.h"
-#include "base_thread.h"
 #include "traceStructs.h"
-#include "thread_trace_reader.h"
+#include "base_thread.h"
 
-class module_handler : public base_thread
+class shrike_basicblock_handler : public base_thread
 {
 public:
-	module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
+	shrike_basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
+		int bitwidth = binary->getBitWidth();
+		assert(bitwidth);
+		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
 
-		inputpipename = wstring(L"\\\\.\\pipe\\");
-		inputpipename += pipeid;
+		pipename = wstring(L"\\\\.\\pipe\\");// rioThreadBB");
+
+
+
+		pipename += pipeid;
 	};
 
-	wstring inputpipename;
-	HANDLE controlPipe;
+	wstring pipename;
 
 private:
 	binaryTarget *binary;
 	traceRecord* runRecord;
-
-	vector < base_thread *> threadList;	
-	vector < thread_trace_reader *> readerThreadList; 
-	PROCESS_DATA *piddata = NULL;
-
+	cs_mode disassemblyBitwidth;
 	void main_loop();
-	void start_thread_rendering(PID_TID TID);
 };

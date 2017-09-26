@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Nia Catlin
+Copyright 2017 Nia Catlin
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,36 +15,37 @@ limitations under the License.
 */
 
 /*
-Header for the thread that processes basic block data
+Header for the thread that manages each instrumented process
 */
 #pragma once
-#include "traceStructs.h"
+
+#include "stdafx.h"
 #include "base_thread.h"
+#include "traceStructs.h"
+#include "thread_trace_reader.h"
 
-size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr);
-
-class basicblock_handler : public base_thread
+class drgat_module_handler : public base_thread
 {
 public:
-	basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
+	drgat_module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
-		int bitwidth = binary->getBitWidth();
-		assert(bitwidth);
-		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
 
-		pipename = wstring(L"\\\\.\\pipe\\");// rioThreadBB");
-
-
-
-		pipename += pipeid;
+		inputpipename = wstring(L"\\\\.\\pipe\\");
+		inputpipename += pipeid;
 	};
 
-	wstring pipename;
+	wstring inputpipename;
+	HANDLE controlPipe;
 
 private:
 	binaryTarget *binary;
 	traceRecord* runRecord;
-	cs_mode disassemblyBitwidth;
+
+	vector < base_thread *> threadList;	
+	vector < thread_trace_reader *> readerThreadList; 
+	PROCESS_DATA *piddata = NULL;
+
 	void main_loop();
+	void start_thread_rendering(PID_TID TID);
 };

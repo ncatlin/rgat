@@ -21,7 +21,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 */
 
 #include "stdafx.h"
-#include "module_handler.h"
+#include "drgat_module_handler.h"
 #include "traceMisc.h"
 #include "trace_graph_builder.h"
 #include "thread_trace_reader.h"
@@ -32,7 +32,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include <boost/filesystem.hpp>
 
 //listen to module data for given process
-void module_handler::main_loop()
+void drgat_module_handler::main_loop()
 {
 	alive = true;
 
@@ -311,7 +311,7 @@ void module_handler::main_loop()
 	alive = false; //this thread is done
 }
 
-void  module_handler::start_thread_rendering(PID_TID TID)
+void  drgat_module_handler::start_thread_rendering(PID_TID TID)
 {
 	proto_graph *newProtoGraph = new proto_graph(runRecord, TID);
 	plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);

@@ -2,17 +2,9 @@
 #include "binaryTarget.h"
 #include "boost\lockfree\spsc_queue.hpp"
 #include <mutex>
-#include "base_thread.h"
-#include "module_handler.h"
-#include "basicblock_handler.h"
-
-
-enum fUpdateCode {eFU_String, eFU_NewThread};
-
-struct FUZZUPDATE {
-	int code;
-	string details;
-};
+#include "shrike_module_handler.h"
+#include "shrike_basicblock_handler.h"
+#include "shrike_structs.h"
 
 void launch_target_fuzzing_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
 

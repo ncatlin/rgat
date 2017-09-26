@@ -47,7 +47,7 @@ Creates a tree layout for a plotted graph
 #define EXTERNB 8
 
 //controls placement of the node after a return
-#define RETURNA_OFFSET 0
+#define RETURNA_OFFSET 5
 #define RETURNB_OFFSET 5
 
 

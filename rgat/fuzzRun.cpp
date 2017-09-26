@@ -21,8 +21,12 @@ Header for the fuzzing framework
 #include "fuzzRun.h"
 #include "OSspecific.h"
 #include "rgat.h"
-#include "processLaunching.h"
+#include "shrike_module_handler.h"
+#include "shrike_basicblock_handler.h"
 #include "boost/process.hpp"
+#include "fuzz_spawner.h"
+
+
 
 //----------
 //the ui elements of fuzz updating
@@ -59,8 +63,8 @@ void mainTabBox::startFuzz()
 {
 	if (!fuzzThreadLauncherRunning)
 	{
-		std::thread fuzzThreadLauncher(process_coordinator_thread, clientState, eTracePurpose::eFuzzer);
-		fuzzThreadLauncher.detach();
+		std::thread shrikeInstanceListener(shrike_process_coordinator, clientState);
+		shrikeInstanceListener.detach();
 		fuzzThreadLauncherRunning = true;
 	}
 
@@ -130,12 +134,16 @@ void fuzzRun::launch_target(boost::filesystem::path drrunpath, boost::filesystem
 
 	stringstream runpath_ss;
 	runpath_ss << drrunpath.string();
-	runpath_ss << " -debug -thread_private -c ";
+	runpath_ss << " -debug ";
+	runpath_ss << " -thread_private -c ";
 	runpath_ss << "\"" << shrikepath.string() << "\" -ID "<< runID;
 
 	//	runpath_ss << " -stage1";
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	string targetCmdlineArgs = ui->fuzzCmdlineArgs->text().toStdString();
 
 	runpath_ss << "	-- " << binary->path();
+	runpath_ss << " " << targetCmdlineArgs;
 
 	FUZZUPDATE *entry = new FUZZUPDATE;
 	entry->code = fUpdateCode::eFU_String;
@@ -165,7 +173,7 @@ void fuzzRun::main_loop()
 		return;
 	}
 
-	boost::filesystem::path shrikepath("C:\\Users\\nia\\Source\\Repos\\shrike\\x64\\Debug\\shrike.dll");
+	boost::filesystem::path shrikepath("C:\\Users\\nia\\Source\\Repos\\shrike\\x64\\Release\\shrike.dll");
 	if (!boost::filesystem::exists(shrikepath))	{
 		cerr << "shrike.dll library at " << shrikepath.string() << " does not exist. Quitting." << endl;
 		return;

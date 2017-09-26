@@ -49,5 +49,16 @@ loop5:
 	dec ecx
 	jnz loop5    
 	
+	inc ecx
+	inc ecx
+	inc ecx
+	inc ecx
+	jmp end
+	inc esi
+	inc esi
+	inc esi
+	inc esi
+end:
+
 	xor   ecx, ecx		
 	ret    

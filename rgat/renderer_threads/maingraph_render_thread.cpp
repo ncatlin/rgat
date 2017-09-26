@@ -125,7 +125,7 @@ void maingraph_render_thread::main_loop()
 
 				activeTrace->graphListLock.unlock();
 
-				THREAD_POINTERS *processThreads = (THREAD_POINTERS *)activeTrace->processThreads;
+				RGAT_THREADS_STRUCT *processThreads = (RGAT_THREADS_STRUCT *)activeTrace->processThreads;
 				if (!processThreads->previewThread->is_alive())
 				{
 					std::thread prevthread(&preview_renderer::ThreadEntry, processThreads->previewThread);

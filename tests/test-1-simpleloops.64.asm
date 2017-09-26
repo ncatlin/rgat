@@ -49,6 +49,17 @@ loop5:
 	dec rcx
 	jnz loop5    
 	
+	;this is so the end of the loop is not the last basic block
+	inc rcx
+	inc rcx
+	inc rcx
+	inc rcx
+	jmp end
+	inc rsi
+	inc rsi
+	inc rsi
+	inc rsi
+end:
 	
 	;basic blocks 6-9
 	xor   RCX, RCX		;sequential node 14

@@ -15,18 +15,19 @@
 void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
 {
 	//spawns trace threads + handles module data for process
-	module_handler *tPIDThread = new module_handler(target, runRecord, L"rioThreadMod");
+	drgat_module_handler *tPIDThread = new drgat_module_handler(target, runRecord, L"rioThreadMod");
 
-	THREAD_POINTERS *processThreads = (THREAD_POINTERS *)runRecord->processThreads;
-	std::thread modthread(&module_handler::ThreadEntry, tPIDThread);
+	RGAT_THREADS_STRUCT *processThreads = new RGAT_THREADS_STRUCT;
+	runRecord->processThreads = processThreads;
+	std::thread modthread(&drgat_module_handler::ThreadEntry, tPIDThread);
 	modthread.detach();
 	processThreads->modThread = tPIDThread;
 	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
-	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord, L"rioThreadBB");
+	drgat_basicblock_handler *tBBHandler = new drgat_basicblock_handler(target, runRecord, L"rioThreadBB");
 
-	std::thread bbthread(&basicblock_handler::ThreadEntry, tBBHandler);
+	std::thread bbthread(&drgat_basicblock_handler::ThreadEntry, tBBHandler);
 	bbthread.detach();
 	processThreads->BBthread = tBBHandler;
 	processThreads->threads.push_back(tBBHandler);
@@ -54,35 +55,13 @@ void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord,
 	processThreads->threads.push_back(tCondThread);
 }
 
-void launch_target_fuzzing_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
-{
-	//spawns trace threads + handles module data for process
-	module_handler *tPIDThread = new module_handler(target, runRecord, L"shrikeMod");
-
-	THREAD_POINTERS *processThreads = (THREAD_POINTERS *)runRecord->processThreads;
-	std::thread modthread(&module_handler::ThreadEntry, tPIDThread);
-	modthread.detach();
-	processThreads->modThread = tPIDThread;
-	processThreads->threads.push_back(tPIDThread);
-
-	//handles new disassembly data
-	basicblock_handler *tBBHandler = new basicblock_handler(target, runRecord, L"shrikeBB");
-
-	std::thread bbthread(&basicblock_handler::ThreadEntry, tBBHandler);
-	bbthread.detach();
-	processThreads->BBthread = tBBHandler;
-	processThreads->threads.push_back(tBBHandler);
-
-
-}
-
 
 
 #ifdef WIN32
 
 //respond to a new trace notification by creating a target (if not already existing) and a new trace for it 
 //along with threads to process that trace
-void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList, vector <char> *buf, eTracePurpose purpose)
+void process_new_drgat_connection(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList, vector <char> *buf)
 {
 	PID_TID PID = 0;
 	boost::filesystem::path binarypath;
@@ -105,32 +84,15 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 		target->applyBitWidthHint(bitWidth);
 
 		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
-		trace->setTraceType(purpose);
-		if (purpose == eTracePurpose::eFuzzer)
-		{
-			clientState->fuzztarget_connected(PID_ID, trace);
-		}
+		trace->setTraceType(eTracePurpose::eVisualiser);
 		trace->setBinaryPtr(target);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
 		container->registerChild(parentPID, trace);
 
-		switch (purpose)
-		{
-		case eTracePurpose::eVisualiser:
+		launch_new_visualiser_threads(target, trace, clientState);
 
-			launch_new_visualiser_threads(target, trace, clientState);
-			break;
-
-		case eTracePurpose::eFuzzer:
-			launch_target_fuzzing_threads(target, trace, clientState);
-			break;
-
-		default:
-			cerr << "invalid trace purpose" << endl;
-			return;
-		}
-		threadsList->push_back((THREAD_POINTERS *)trace->processThreads);
+		threadsList->push_back((RGAT_THREADS_STRUCT *)trace->processThreads);
 
 		if (clientState->waitingForNewTrace)
 		{
@@ -148,8 +110,9 @@ void process_new_PID_notification(rgatState *clientState, vector<THREAD_POINTERS
 
 
 
+
 //read notifications of new traces from drgat clients over the bootstrap pipe
-bool read_new_PID_notification_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
+bool read_drgat_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 {
 
 	bool conFail = ConnectNamedPipe(hPipe, ov);
@@ -188,29 +151,12 @@ bool read_new_PID_notification_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPP
 }
 
 //listens for traces on the bootstrap pipe
-void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS *> *threadsList, eTracePurpose purpose)
+void process_coordinator_listener(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList)
 {
 	//todo: posibly worry about pre-existing if pidthreads dont work
-	HANDLE hPipe;
-	switch (purpose)
-	{ 
-	case eTracePurpose::eVisualiser:
-	
-		hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
+	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
 			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
 			255, 65536, 65536, 0, NULL);
-		break;
-
-	case eTracePurpose::eFuzzer:
-		hPipe = CreateNamedPipe(L"\\\\.\\pipe\\shrikeBootstrap",
-			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
-			255, 65536, 65536, 0, NULL);
-		break;
-
-	default:
-		cerr << "invalid trace purpose" << endl;
-		return;
-	}
 
 	if (hPipe == INVALID_HANDLE_VALUE)
 	{
@@ -225,28 +171,28 @@ void process_coordinator_listener(rgatState *clientState, vector<THREAD_POINTERS
 	buf.resize(PIDSTRING_BUFSIZE, 0);
 	while (!clientState->rgatIsExiting())
 	{
-		if (read_new_PID_notification_sleepy(&buf, hPipe, &ov))
+		if (read_drgat_newPID_sleepy(&buf, hPipe, &ov))
 		{
-			process_new_PID_notification(clientState, threadsList, &buf, purpose);
+			process_new_drgat_connection(clientState, threadsList, &buf);
 		}
 	}
 }
 #endif // WIN32
 
 //spawns the trace handler then cleans up after it on exit
-void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose)
+void process_coordinator_thread(rgatState *clientState)
 {
 
-	vector<THREAD_POINTERS *> threadsList;
-	process_coordinator_listener(clientState, &threadsList, purpose);
+	vector<RGAT_THREADS_STRUCT *> threadsList;
+	process_coordinator_listener(clientState, &threadsList);
 	if (threadsList.empty()) return;
 
 	//we get here when rgat is exiting
 	//this tells all the child threads to die
-	vector<THREAD_POINTERS *>::iterator processIt;
+	vector<RGAT_THREADS_STRUCT *>::iterator processIt;
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
 	{
-		THREAD_POINTERS *p = ((THREAD_POINTERS *)*processIt);
+		RGAT_THREADS_STRUCT *p = ((RGAT_THREADS_STRUCT *)*processIt);
 		vector<base_thread *>::iterator threadIt = p->threads.begin();
 		for (; threadIt != p->threads.end(); ++threadIt)
 		{
@@ -259,7 +205,7 @@ void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose)
 	//wait for all children to terminate
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
 	{
-		THREAD_POINTERS *p = ((THREAD_POINTERS *)*processIt);
+		RGAT_THREADS_STRUCT *p = ((RGAT_THREADS_STRUCT *)*processIt);
 		vector<base_thread *>::iterator threadIt = p->threads.begin();
 
 		for (; threadIt != p->threads.end(); ++threadIt)
@@ -279,10 +225,10 @@ void process_coordinator_thread(rgatState *clientState, eTracePurpose purpose)
 
 	//now safe to kill the disassembler threads
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
-		((THREAD_POINTERS *)*processIt)->BBthread->kill();
+		((RGAT_THREADS_STRUCT *)*processIt)->BBthread->kill();
 
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
-		while (((THREAD_POINTERS *)*processIt)->BBthread->is_alive())
+		while (((RGAT_THREADS_STRUCT *)*processIt)->BBthread->is_alive())
 			Sleep(1);
 }
 
