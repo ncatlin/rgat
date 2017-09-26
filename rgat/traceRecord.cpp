@@ -7,15 +7,13 @@
 
 traceRecord::traceRecord(PID_TID newPID, int randomNo)
 {
-	processThreads = new THREAD_POINTERS;
-	//processdata = new PROCESS_DATA(bitWidth);
+	//processThreads = new THREAD_POINTERS;
+
 	PID = newPID;
 	randID = randomNo;
 
 	modIDTranslationVec.resize(255, -1);
 	modBounds.resize(255, NULL);
-
-	//InitializeCriticalSection(&graphsListCritsec);
 };
 
 //fill vector ptr with pointers to all trace graphs (which have nodes)

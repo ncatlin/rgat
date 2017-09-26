@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include <traceStructs.h>
 #include "serialise.h"
-#include "basicblock_handler.h"
 
 #include <rapidjson\document.h>
 #include <rapidjson\filewritestream.h>
@@ -13,6 +12,8 @@
 using namespace rapidjson;
 
 
+#pragma comment(lib, "legacy_stdio_definitions.lib") //capstone uses _sprintf
+#pragma comment(lib, "capstone.lib")
 
 
 
@@ -305,6 +306,73 @@ struct ADDR_DATA
 	int moduleID;
 	bool hasSym;
 };
+
+
+size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr)
+{
+	cs_insn *insn;
+	unsigned int pairs = 0;
+	unsigned char opcodes_u[MAX_OPCODES];
+	while (pairs * 2 < opcodes.length())
+	{
+		if (!caught_stoi(opcodes.substr(pairs * 2, 2), (int *)(opcodes_u + pairs), 16))
+		{
+			cerr << "[rgat]ERROR: BADOPCODE! " << opcodes << endl;
+			return NULL;
+		}
+		++pairs;
+		if (pairs >= MAX_OPCODES)
+		{
+			cerr << "[rgat]ERROR: Error, instruction too long! (" << pairs << " pairs)" << endl;
+			return NULL;
+		}
+	}
+
+	size_t count;
+	count = cs_disasm(hCapstone, opcodes_u, pairs, insaddr, 0, &insn);
+	if (count != 1) {
+		cerr << "[rgat]ERROR: BB thread failed disassembly for opcodes: " << opcodes << " count: " << count << " error: " << cs_errno(hCapstone) << endl;
+		return NULL;
+	}
+
+	insdata->mnemonic = string(insn->mnemonic);
+	insdata->op_str = string(insn->op_str);
+	insdata->ins_text = string(insdata->mnemonic + " " + insdata->op_str);
+	insdata->numbytes = (int)floor(opcodes.length() / 2);
+	insdata->address = insaddr;
+
+	if (insdata->mnemonic == "call")
+	{
+		try {
+			insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+		}
+		catch (...) { insdata->branchAddress = NULL; }
+		insdata->itype = eNodeType::eInsCall;
+	}
+	else if (insdata->mnemonic == "ret") //todo: iret
+		insdata->itype = eNodeType::eInsReturn;
+	else if (insdata->mnemonic == "jmp")
+	{
+		try { insdata->branchAddress = std::stoull(insdata->op_str, 0, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+		catch (...) { insdata->branchAddress = NULL; }
+		insdata->itype = eNodeType::eInsJump;
+	}
+	else
+	{
+		insdata->itype = eNodeType::eInsUndefined;
+		//assume all j+ instructions aside from jmp are conditional (todo: bother to check)
+		if (insdata->mnemonic[0] == 'j')
+		{
+			insdata->conditional = true;
+			insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+			insdata->condDropAddress = insaddr + insdata->numbytes;
+		}
+	}
+
+	cs_free(insn, count);
+	return count;
+}
+
 
 bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *addressdata, INSLIST *mutationVector, csh hCapstone)
 {

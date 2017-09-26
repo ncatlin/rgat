@@ -58,7 +58,6 @@ typedef void * TRACERECORDPTR;
 
 
 
-
 //extern nodes this node calls. useful for 'call eax' situations
 struct CHILDEXTERN 
 {
@@ -201,4 +200,7 @@ struct EXTTEXT {
 	float yOffset;
 	string displayString;
 };
+
+
+size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr);
 

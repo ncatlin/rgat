@@ -336,7 +336,7 @@ rgat::rgat(QWidget *parent)
 	setupUI();
 	setStatePointers();
 
-	std::thread visualiserThreadLauncher(process_coordinator_thread, rgatstate, eTracePurpose::eVisualiser);
+	std::thread visualiserThreadLauncher(process_coordinator_thread, rgatstate);
 	visualiserThreadLauncher.detach();
 
 	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)rgatstate->highlightSelectUI;

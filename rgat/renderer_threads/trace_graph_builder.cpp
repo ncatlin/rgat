@@ -553,6 +553,7 @@ int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &localm
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
 		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = runRecord->modBounds.at(modNo);
+		if (!moduleBounds) continue;
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
 			localmodID = modNo;

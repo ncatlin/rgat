@@ -157,8 +157,10 @@ void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColo
 int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, long *colarraypos)
 {
 	//bold start, faded end (convey direction)
-	float fadeArray[] = { 1, 1, 1, (float)0.7, (float)0.9, (float)0.9, (float)0.9, (float)0.7, (float)0.8, (float)0.8,
-		(float)0.6, (float)0.7, (float)0.7, (float)0.5, (float)0.5, (float)0.4, (float)0.4 };
+	//float fadeArray[] = { 1, 1, 1, (float)0.7, (float)0.9, (float)0.9, (float)0.9, (float)0.7, (float)0.8, (float)0.8,
+	//	(float)0.6, (float)0.7, (float)0.7, (float)0.5, (float)0.5, (float)0.4, (float)0.4 };
+	//faded start, bold end (convey direction)
+	float fadeArray[] = { 0.4f, 0.4f, 0.5f, 0.5f, 0.7f, 0.7f, 0.6f, 0.8f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, 0.7f,  1, 1, 1, };
 
 	int vsadded = 0;
 	int curvePoints = LONGCURVEPTS + 2;

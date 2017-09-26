@@ -51,10 +51,6 @@ graphPlotGLWidget::~graphPlotGLWidget()
 void graphPlotGLWidget::showMouseoverNodeTooltip()
 {
 	clientState->labelMouseoverWidget->show();
-	QPoint mouseoverPos = window()->pos() + mouseoverNodeRect.rect.topLeft();
-	mouseoverPos.setY(mouseoverPos.y() + clientState->labelMouseoverWidget->height());
-	clientState->labelMouseoverWidget->move(mouseoverPos);
-	clientState->labelMouseoverWidget->raise();
 
 	Ui_mouseoverWidget* tooltipwidget = (Ui_mouseoverWidget*)clientState->labelMouseoverUI;
 
@@ -100,7 +96,9 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 
 	tooltipwidget->callCount->setText("Total Calls:" + QString::number(node->executionCount));
 
-	if (!node->callRecordsIndexs.empty())
+	if (node->callRecordsIndexs.empty())
+		tooltipwidget->callsText->hide();
+	else
 	{
 		QAbstractItemModel *model = tooltipwidget->callsText->model();
 		model->removeRows(0, model->rowCount());
@@ -133,10 +131,14 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 		}
 		tooltipwidget->callsText->adjustSize();
 	}
-	else
-		tooltipwidget->callsText->hide();
 
 	clientState->labelMouseoverWidget->adjustSize();
+
+	QPoint mouseoverPos = window()->pos() + mouseoverNodeRect.rect.topLeft();
+	mouseoverPos.setY(mouseoverPos.y() + (clientState->labelMouseoverWidget->height()/3) + 10);
+	clientState->labelMouseoverWidget->move(mouseoverPos);
+	clientState->labelMouseoverWidget->raise();
+
 }
 
 bool graphPlotGLWidget::event(QEvent * event)
@@ -166,24 +168,19 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 		vector <plotted_graph *> traceGraphs;
 		selectedTrace->getPlottedGraphs(&traceGraphs);
 		plotted_graph *tmp;
+		bool found = false;
 		if (std::find(traceGraphs.begin(), traceGraphs.end(), lastGraphIt->second) != traceGraphs.end())
 		{
 			switchToGraph(lastGraphIt->second);
-			
-			foreach(tmp, traceGraphs)
-			{
-				tmp->decrease_thread_references(144);
-			}
-			return;
+			found = true;
 		}
-		foreach(tmp, traceGraphs)
-		{
-			tmp->decrease_thread_references(144);
-		}
+		foreach(tmp, traceGraphs){tmp->decrease_thread_references(144);	}
+		if (found) return;
 	}
 
-	plotted_graph *tmp = (plotted_graph*)selectedTrace->get_first_graph();
-	switchToGraph(tmp);
+	plotted_graph *firstgraph = (plotted_graph*)selectedTrace->get_first_graph();
+	if(firstgraph)
+		switchToGraph(firstgraph);
 }
 
 void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
