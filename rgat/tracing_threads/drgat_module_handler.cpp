@@ -319,7 +319,7 @@ void  drgat_module_handler::start_thread_rendering(PID_TID TID)
 	newPlottedGraph->initialiseDefaultDimensions();
 	newPlottedGraph->set_animation_update_rate(clientState->config.animationUpdateRate);
 
-	thread_trace_reader *TID_reader = new thread_trace_reader(runRecord, newProtoGraph);
+	thread_trace_reader *TID_reader = new thread_trace_reader(newProtoGraph);
 	TID_reader->traceBufMax = clientState->config.traceBufMax;
 	newProtoGraph->setReader(TID_reader);
 
@@ -332,7 +332,7 @@ void  drgat_module_handler::start_thread_rendering(PID_TID TID)
 
 	if (!runRecord->insert_new_thread(TID, newPlottedGraph, newProtoGraph))
 	{
-		wcerr << "[rgat]ERROR: Trace tendering thread creation failed" << endl;
+		wcerr << "[rgat]ERROR: Trace rendering thread creation failed" << endl;
 		return;
 	}
 

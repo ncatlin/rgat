@@ -24,11 +24,10 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include "stdafx.h"
 #include "shrike_module_handler.h"
 #include "traceMisc.h"
-#include "trace_graph_builder.h"
+#include "fuzz_feedback_processor.h"
 #include "thread_trace_reader.h"
 #include "b64.h"
 #include "fuzzRun.h"
-#include "graphplots/plotted_graph.h"
 
 #include <boost/filesystem.hpp>
 
@@ -314,30 +313,19 @@ void shrike_module_handler::main_loop()
 
 void  shrike_module_handler::start_thread_rendering(PID_TID TID)
 {
-	proto_graph *newProtoGraph = new proto_graph(runRecord, TID);
-	plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);
 
-	newPlottedGraph->initialiseDefaultDimensions();
-	newPlottedGraph->set_animation_update_rate(clientState->config.animationUpdateRate);
-
-	thread_trace_reader *TID_reader = new thread_trace_reader(runRecord, newProtoGraph);
+	thread_trace_reader *TID_reader = new thread_trace_reader();
 	TID_reader->traceBufMax = clientState->config.traceBufMax;
-	newProtoGraph->setReader(TID_reader);
 
 	threadList.push_back(TID_reader);
 	readerThreadList.push_back(TID_reader);
 	std::thread tracereader(&thread_trace_reader::ThreadEntry, TID_reader);
 	tracereader.detach();
 
-	trace_graph_builder *graph_builder = new trace_graph_builder(runRecord, newProtoGraph, TID_reader);
 
-	if (!runRecord->insert_new_thread(TID, newPlottedGraph, newProtoGraph))
-	{
-		wcerr << "[rgat]ERROR: Trace tendering thread creation failed" << endl;
-		return;
-	}
 
-	threadList.push_back(graph_builder);
-	std::thread graph_builder_thread(&trace_graph_builder::ThreadEntry, graph_builder);
-	graph_builder_thread.detach();
+	fuzz_feedback_processor *feedback_processor = new fuzz_feedback_processor(runRecord, TID_reader);
+	threadList.push_back(feedback_processor);
+	std::thread feedback_reader_thread(&fuzz_feedback_processor::ThreadEntry, feedback_processor);
+	feedback_reader_thread.detach();
 }

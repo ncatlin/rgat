@@ -180,6 +180,30 @@ bool get_drdir_path(clientConfig *config, boost::filesystem::path *drpath)
 	return true;
 }
 
+bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath)
+{
+	*pinpath = config->PinDir;
+
+	//if (boost::filesystem::exists(*pinpath))
+	//	return true;
+
+	*pinpath = boost::filesystem::path(getModulePath() + "\\Pin");
+	if (!boost::filesystem::exists(*pinpath))
+	{
+		//leave here until pin in release dir
+		//*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.2");
+		*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.4-97438-gf90d1f746-msvc-windows");
+		if (!boost::filesystem::exists(*pinpath))
+			return false;
+	}
+
+
+
+	config->PinDir = *pinpath;
+	config->saveConfig();
+	return true;
+}
+
 bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
 {
 	boost::filesystem::path dynamoRioPath;

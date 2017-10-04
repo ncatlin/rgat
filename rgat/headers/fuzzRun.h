@@ -21,7 +21,7 @@ public:
 
 private:
 	void addUpdate(FUZZUPDATE *);
-	void launch_target(boost::filesystem::path drrunpath, boost::filesystem::path shrikepath);
+	void launch_target(boost::filesystem::path pinpath, boost::filesystem::path shrikepath);
 	void main_loop();
 
 	binaryTarget *binary;

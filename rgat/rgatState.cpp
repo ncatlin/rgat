@@ -733,7 +733,7 @@ void rgatState::fuzztarget_connected(int runid, traceRecord *trace)
 	}
 	else
 	{
-		cerr << "[rgat-fuzz] ERROR: unknown fuzz target connected: " << runid << " (pending runs: "<< pendingFuzzruns.size()<<")"<< endl;
+		cerr << "[rgat-fuzz] ERROR: unknown fuzz session connected: " << runid << " (pending runs: "<< pendingFuzzruns.size()<<")"<< endl;
 	}
 	LeaveCriticalSection(&activeGraphCritsec);
 }
