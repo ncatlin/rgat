@@ -21,7 +21,7 @@ Header for the thread that manages each instrumented process
 
 #include "stdafx.h"
 #include "base_thread.h"
-#include "traceStructs.h"
+//#include "traceStructs.h"
 #include "thread_trace_reader.h"
 
 class shrike_module_handler : public base_thread

@@ -7,8 +7,6 @@
 
 traceRecord::traceRecord(PID_TID newPID, int randomNo)
 {
-	//processThreads = new THREAD_POINTERS;
-
 	PID = newPID;
 	randID = randomNo;
 

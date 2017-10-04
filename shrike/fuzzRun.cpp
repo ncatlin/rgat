@@ -127,16 +127,16 @@ void fuzzRun::addUpdate(FUZZUPDATE *entry)
 	QMutex.unlock();
 }
 
-void fuzzRun::launch_target(boost::filesystem::path drrunpath, boost::filesystem::path shrikepath)
+void fuzzRun::launch_target(boost::filesystem::path pinpath, boost::filesystem::path shrikepath)
 {
 	runID = rand();
 	clientState->addFuzzRun(runID, this);
 
 	stringstream runpath_ss;
-	runpath_ss << drrunpath.string();
-	runpath_ss << " -debug ";
-	runpath_ss << " -thread_private -c ";
-	runpath_ss << "\"" << shrikepath.string() << "\" -ID "<< runID;
+	runpath_ss << pinpath.string();
+	//runpath_ss << " -debug ";
+	//runpath_ss << " -thread_private -c ";
+	runpath_ss << " -t \"" << shrikepath.string() << "\"";// -ID "<< runID;
 
 	//	runpath_ss << " -stage1";
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
@@ -156,31 +156,29 @@ void fuzzRun::launch_target(boost::filesystem::path drrunpath, boost::filesystem
 void fuzzRun::main_loop()
 {
 	//gather options
-	boost::filesystem::path dynamoRioPath;
-	if (!get_drdir_path(&clientState->config, &dynamoRioPath)) {
+	boost::filesystem::path pinDirPath;
+	if (!get_pindir_path(&clientState->config, &pinDirPath)) {
 		cerr << "[rgat] Failed to find dynamorio directory." << endl;
 		return;
 	}
 
-	boost::filesystem::path drrunPath = dynamoRioPath;
-	if (binary->getBitWidth() == 64)
-		drrunPath.append("bin64\\drrun.exe");
-	else
-		drrunPath.append("bin32\\drrun.exe");
+	boost::filesystem::path pinExePath = pinDirPath;
+	pinExePath.append("pin.exe");
 
-	if (!boost::filesystem::exists(drrunPath))	{
-		cerr << "[rgat] ERROR: Failed to find DynamoRIO drrun.exe executable at " << drrunPath.string() << endl;
+
+	if (!boost::filesystem::exists(pinExePath))	{
+		cerr << "[rgat] ERROR: Failed to find Pin binary pin.exe executable at " << pinExePath.string() << endl;
 		return;
 	}
 
-	boost::filesystem::path shrikepath("C:\\Users\\nia\\Source\\Repos\\shrike\\x64\\Release\\shrike.dll");
+	boost::filesystem::path shrikepath("C:\\Users\\nia\\Documents\\Visual Studio 2017\\Projects\\shrikePinTool\\x64\\Release\\shrikePin.dll");
 	if (!boost::filesystem::exists(shrikepath))	{
 		cerr << "shrike.dll library at " << shrikepath.string() << " does not exist. Quitting." << endl;
 		return;
 	}
 
 
-	launch_target(drrunPath, shrikepath);
+	launch_target(pinExePath, shrikepath);
 
 
 	while (true)

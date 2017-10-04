@@ -126,10 +126,10 @@ public:
 	unsigned long long traceBufMax;
 	unsigned int maxWaitFrames;
 
-	boost::filesystem::path saveDir;
-	boost::filesystem::path DRDir;
-	boost::filesystem::path clientPath;
-	boost::filesystem::path lastPath;
+	boost::filesystem::path saveDir;	//where traces get saved
+	boost::filesystem::path DRDir, PinDir; //instrumentation tools
+	boost::filesystem::path clientPath; //the drgat client
+	boost::filesystem::path lastPath; //last folder navigated to
 
 	float animationFadeRate;
 	int animationUpdateRate;
