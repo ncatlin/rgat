@@ -83,7 +83,8 @@ void process_new_drgat_connection(rgatState *clientState, vector<RGAT_THREADS_ST
 
 		target->applyBitWidthHint(bitWidth);
 
-		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
+
+		traceRecord *trace = target->createNewTrace(PID, PID_ID, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 		trace->setTraceType(eTracePurpose::eVisualiser);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 

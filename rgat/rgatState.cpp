@@ -198,18 +198,18 @@ void rgatState::setNodesShown(bool state)
 
 void rgatState::saveAll()
 {
-	int i = 0;
+	int saveCount = 0;
 	vector<binaryTarget *> targetsList = targets.getTargetsList();
 	for(auto targetIt = targetsList.begin(); targetIt != targetsList.end(); targetIt++)
 	{
 		binaryTarget *target = *targetIt;
 		updateActivityStatus("Saving Target: " + QString::fromStdString(target->path().string()), 10000);
 		saveTarget(target);
-		i++;
+		saveCount++;
 	}
 
-	string savemsg ("Finished saving " + to_string(i) + " targets");
-	updateActivityStatus(QString::fromStdString(savemsg), 7000);
+	QString savemsg ("Finished saving " + QString::number(saveCount) + " targets");
+	updateActivityStatus(savemsg, 7000);
 }
 
 
@@ -279,6 +279,7 @@ bool rgatState::initialiseTrace(rapidjson::Document *saveJSON, traceRecord **tra
 	if (!newTrace)
 	{
 		updateActivityStatus("Trace already loaded", 15000);
+		cout << "[rgat] Trace already loaded" << endl;
 		return false;
 	}
 	(*trace)->setTraceType(eTracePurpose::eVisualiser);
@@ -345,11 +346,10 @@ bool rgatState::loadTrace(boost::filesystem::path traceFilePath, traceRecord **t
 	{
 		if (trace) //already existed
 		{
-			
 			switchTrace = trace;
 		}
-		else
-			return false;
+
+		return false;
 	}
 
 	if (!trace->load(saveJSON, &config.graphColours))
@@ -444,16 +444,13 @@ void rgatState::updateTextDisplayButtons()
 		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols hidden. Click to display."));
 	}
 
-
 	if (config.externalSymbolVisibility.addresses)
 	{
 		if (config.externalSymbolVisibility.offsets)
 		{
-
 			textButtons.externalOffset->setChecked(true);
 			textButtons.externalAddress->setChecked(false);
 			textButtons.externalAddressOff->setChecked(false);
-
 		}
 		else
 		{

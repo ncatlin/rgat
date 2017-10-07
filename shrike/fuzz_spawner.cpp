@@ -129,7 +129,9 @@ void process_new_shrike_connection(rgatState *clientState, vector<SHRIKE_THREADS
 
 		target->applyBitWidthHint(bitWidth);
 
-		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
+
+		time_t timenow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		traceRecord *trace = target->createNewTrace(PID, PID_ID, timenow);
 		trace->setTraceType(eTracePurpose::eFuzzer);
 
 		clientState->fuzztarget_connected(PID_ID, trace);

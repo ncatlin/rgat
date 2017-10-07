@@ -21,10 +21,6 @@ Misc disassembly and conversion functions
 #include "stdafx.h"
 #include "traceStructs.h"
 
-
-
-#define TIMENOW_IN_MS chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count()
-
 //input: char buffer containing it, number ends, target pointer to fill
 cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TID *pid, int *PID_ID, boost::filesystem::path *binarypath);
 int extract_tid(char *char_buf, string marker, PID_TID *tid);

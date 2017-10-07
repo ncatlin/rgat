@@ -30,6 +30,7 @@ This contains much of the functionality for the dynamic analysis tabs
 #include "processLaunching.h"
 #include "testRun.h"
 #include "fuzzRun.h"
+#include <iomanip>
 
 mainTabBox::mainTabBox(QWidget *parent)
 	: QTabWidget(parent)
@@ -381,19 +382,13 @@ void mainTabBox::refreshTracesCombo(traceRecord *initialTrace)
 	{
 		traceRecord *trace = *traceit;
 		stringstream entrySS;
+		const time_t startTime = trace->getStartedTime();
 
-		time_t startTime;
-		if (!trace->getStartedTime(&startTime))
-			continue;
+		std::stringstream timess;
+		tm* mush = std::localtime(&startTime);
+		timess << std::put_time(mush, " (%H:%M : %S %d / %m / %Y)");
 
-		struct tm * timeinfo;
-		char buffer[80];
-		timeinfo = localtime(&startTime);
-
-		strftime(buffer, sizeof(buffer), " (%H:%M:%S %d/%m/%Y)", timeinfo);
-		std::string timeString(buffer);
-
-		entrySS << "First PID: " << trace->getPID() << timeString;
+		entrySS << "First PID: " << trace->getPID() << timess.str();
 		if (trace->UIRunningFlag) //set while iterating through the child processes if any are running
 		{
 			++activeTraceCount;

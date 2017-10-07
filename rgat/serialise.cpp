@@ -69,9 +69,8 @@ FILE * setupSaveFile(clientConfig *config, traceRecord *trace)
 {
 	binaryTarget *target = (binaryTarget *)trace->get_binaryPtr();
 	boost::filesystem::path path;
-	time_t startedTime;
-	trace->getStartedTime(&startedTime);
-	boost::filesystem::path filename = getSaveFilename(target->path().filename(), startedTime, trace->getPID());
+	boost::filesystem::path filename = getSaveFilename(target->path().filename(), trace->getStartedTime(), trace->getPID());
+
 	if (!getSavePath(config->saveDir, filename,  &path))
 	{
 		cerr << "[rgat]WARNING: Couldn't save to " << config->saveDir << endl;

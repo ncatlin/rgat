@@ -110,13 +110,11 @@ void binaryTarget::performInitialStaticAnalysis()
 }
 
 
-traceRecord *binaryTarget::createNewTrace(PID_TID PID, int PIDID, long long timeStarted)
+traceRecord *binaryTarget::createNewTrace(PID_TID PID, int PIDID, time_t timeStarted)
 {
-	traceRecord *trace = new traceRecord(PID, PIDID, this);
+	traceRecord *trace = new traceRecord(PID, PIDID, this, timeStarted);
 	traceRecords.push_back(trace);
-
 	runRecordTimes.emplace(make_pair(timeStarted, trace));
-
 	return trace;
 }
 

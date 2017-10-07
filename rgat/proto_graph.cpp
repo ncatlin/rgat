@@ -29,7 +29,7 @@ using namespace rapidjson;
 
 proto_graph::proto_graph(traceRecord *tracerecPtr, unsigned int threadID)
 {
-	constructedTime = TIMENOW_IN_MS;
+	constructedTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 	runRecord = (traceRecord *)tracerecPtr;
 	piddata = runRecord->get_piddata();

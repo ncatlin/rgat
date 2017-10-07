@@ -30,7 +30,7 @@ typedef void * BINARYTARGETPTR;
 class traceRecord
 {
 public:
-	traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary);
+	traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary, time_t timeStarted);
 	~traceRecord() {};
 
 	PID_TID getPID() { return PID; }
@@ -45,7 +45,7 @@ public:
 	bool is_process(PID_TID testpid, int testID);
 
 	void *get_first_graph();
-	bool getStartedTime(time_t *result) { return runtimeline.getFirstEventTime(result); }
+	time_t getStartedTime() { return launchedTime; }
 
 	void getPlottedGraphs(void *graphPtrVecPtr);
 	void getProtoGraphs(void *graphPtrVecPtr);
@@ -56,6 +56,7 @@ public:
 	bool load(const rapidjson::Document& saveJSON, vector<QColor> *colours);
 	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
 	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> *writer) { runtimeline.serialise(writer); };
+
 	void kill() { if (running) { killed = true; } }
 	bool should_die() { return killed; }
 	bool is_running() { return running; }
@@ -93,6 +94,8 @@ private:
 	PROCESS_DATA *dynamicDisassemblyData = NULL; //the first disassembly of each address
 
 	timeline runtimeline;
+	time_t launchedTime; //the time the user pressed start, not when the first process was seen
+
 	BINARYTARGETPTR binaryPtr = NULL;
 	bool running = false;
 	bool killed = false;

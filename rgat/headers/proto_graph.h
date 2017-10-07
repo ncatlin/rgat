@@ -67,7 +67,7 @@ private:
 
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
-	double constructedTime;
+	time_t constructedTime;
 
 	bool loadNodes(const rapidjson::Value& nodesArray, map <MEM_ADDRESS, INSLIST> *disassembly);
 	bool loadExceptions(const rapidjson::Value& exceptionsArray);

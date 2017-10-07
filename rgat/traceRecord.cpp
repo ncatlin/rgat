@@ -6,10 +6,11 @@
 #include "processLaunching.h"
 #include "clientConfig.h"
 
-traceRecord::traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary)
+traceRecord::traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary, time_t timeStarted)
 {
 	PID = newPID;
 	randID = randomNo;
+	launchedTime = timeStarted;
 
 	modIDTranslationVec.resize(255, -1);
 
@@ -81,11 +82,9 @@ void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream>
 	for (; graphit != plottedGraphs.end(); graphit++)
 	{
 		proto_graph *graph = ((plotted_graph *)graphit->second)->get_protoGraph();
-		if (!graph->get_num_nodes()) {
-			cout << "[rgat]Ignoring empty graph TID " << graph->get_TID() << endl;
-			continue;
-		}
-		cout << "[rgat]Serialising graph: " << graphit->first << endl;
+		if (!graph->get_num_nodes()) continue; //empty graph, ignore
+
+		cout << "[rgat]Serialising graph: " << std::dec<< graphit->first << endl;
 		graph->serialise(*writer);
 	}
 	graphListLock.unlock();
@@ -142,7 +141,7 @@ bool traceRecord::loadProcessGraphs(const Document& saveJSON, vector<QColor> *co
 	const Value& graphArray = procDataIt->value;
 
 	stringstream graphLoadMsg;
-	graphLoadMsg << "Loading " << graphArray.Capacity() << " thread graphs";
+	graphLoadMsg << "Loading " << std::dec << graphArray.Capacity() << " thread graphs";
 
 	cout << "[rgat]" << graphLoadMsg.str() << endl;
 	//display_only_status_message(graphLoadMsg.str(), clientState);
@@ -317,10 +316,8 @@ void traceRecord::save(void *configPtr)
 	writer.Key("BinaryPath");
 	writer.String(target->path().string().c_str());
 
-	time_t startedTime;
-	getStartedTime(&startedTime);
 	writer.Key("StartTime");
-	writer.Uint64(startedTime);
+	writer.Uint64(getStartedTime());
 
 	writer.Key("Threads");
 	serialiseThreads(&writer);
@@ -335,13 +332,7 @@ void traceRecord::save(void *configPtr)
 	{
 		binaryTarget *childTarget = (binaryTarget *)childTrace->get_binaryPtr();
 
-		time_t startedTime;
-		if (!childTrace->getStartedTime(&startedTime))
-		{
-			cerr << "[rgat]Warning: Failed to get start time for " << childTarget->path().filename() << " (pid: " << childTrace->getPID() << ")" << endl;
-		}
-
-		boost::filesystem::path filename = getSaveFilename(childTarget->path().filename(), startedTime, childTrace->getPID());
+		boost::filesystem::path filename = getSaveFilename(childTarget->path().filename(), childTrace->getStartedTime(), childTrace->getPID());
 		writer.String(filename.string().c_str());
 	}
 	writer.EndArray();
