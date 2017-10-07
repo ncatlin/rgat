@@ -130,7 +130,7 @@ void highlightWidget::updateModSyms(proto_graph *graph)
 		if (symIt == moduleData->symbols.end())
 		{
 			string symName;
-			MEM_ADDRESS offset = node->address - graph->get_traceRecord()->modBounds.at(node->globalModID)->first;
+			MEM_ADDRESS offset = node->address - piddata->modBounds.at(node->globalModID)->first;
 			if(piddata->get_sym(node->globalModID, offset, symName))
 				addSymbolToTree(moduleData, QString::fromStdString(symName), node);
 			else

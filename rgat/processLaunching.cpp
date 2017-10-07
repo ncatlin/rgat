@@ -85,7 +85,6 @@ void process_new_drgat_connection(rgatState *clientState, vector<RGAT_THREADS_ST
 
 		traceRecord *trace = target->createNewTrace(PID, PID_ID, TIMENOW_IN_MS);
 		trace->setTraceType(eTracePurpose::eVisualiser);
-		trace->setBinaryPtr(target);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
 		container->registerChild(parentPID, trace);

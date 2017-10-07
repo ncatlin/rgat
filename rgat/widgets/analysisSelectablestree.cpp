@@ -81,7 +81,7 @@ void analysisSelectablesTree::fillAnalysisLog_Modules(traceRecord *trace, bool a
 	if (!appendNewUpdates)
 		ui->traceAnalysisTextBox->clear();
 
-	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+	PROCESS_DATA *piddata = trace->get_piddata();
 
 	size_t recordsCount = piddata->modpaths.size();
 	unsigned long startPosition = appendNewUpdates ? currentLogLines : 0;
@@ -164,7 +164,7 @@ void analysisSelectablesTree::addSelectionOptions(QTreeWidgetItem* threadItem, p
 //add a process and its options to the analysis option selection pane
 void analysisSelectablesTree::addTraceAnalysisSelectables(QTreeWidgetItem* traceItem, traceRecord *trace)
 {
-	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+	PROCESS_DATA *piddata = trace->get_piddata();
 
 	QTreeWidgetItem* optionItem = new QTreeWidgetItem();
 	QString symCallsString = "Loaded Modules (" + QString::number(piddata->modpaths.size()) + ")";
@@ -347,7 +347,7 @@ void analysisSelectablesTree::addTrace(traceRecord * trace, QTreeWidgetItem* par
 //adding trace from scratch
 void analysisSelectablesTree::updateTraceSelectables(traceRecord * trace, QTreeWidgetItem* traceItem)
 {
-	PROCESS_DATA *piddata = ((binaryTarget *)trace->get_binaryPtr())->get_piddata();
+	//PROCESS_DATA *piddata = trace->get_piddata();
 
 	QTreeWidgetItem *item;
 	for (int i = 0; i < traceItem->childCount(); ++i)

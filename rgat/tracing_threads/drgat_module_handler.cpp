@@ -74,7 +74,7 @@ void drgat_module_handler::main_loop()
 		return;
 	}
 
-	piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
+	piddata = runRecord->get_piddata();
 	runRecord->set_running(true);
 	clientState->newProcessSeen();
 	/*
@@ -258,8 +258,8 @@ void drgat_module_handler::main_loop()
 					assert(0);
 				}
 
-				assert(runRecord->modBounds.at(globalModID) == NULL);
-				runRecord->modBounds[globalModID] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
+				assert(runRecord->get_piddata()->modBounds.at(globalModID) == NULL);
+				runRecord->get_piddata()->modBounds[globalModID] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
 				runRecord->loadedModuleCount++;
 
 				continue;

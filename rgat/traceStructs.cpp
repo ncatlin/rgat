@@ -201,45 +201,7 @@ bool PROCESS_DATA::loadExterns(const Value& processDataJSON)
 
 
 
-bool PROCESS_DATA::loadModulePaths(const Value& processDataJSON)
-{
-	//display_only_status_message("Loading Modules", clientState);
-	cout << "[rgat]Loading Module Paths" << endl;
-
-	Value::ConstMemberIterator procDataIt = processDataJSON.FindMember("ModulePaths");
-	if (procDataIt == processDataJSON.MemberEnd())
-		return false;
-
-	const Value& modPathArray = procDataIt->value;
-
-	stringstream pathLoadMsg;
-	pathLoadMsg << "Loading path of " << modPathArray.Capacity() << " modules";
-
-	cout << "[rgat]" << pathLoadMsg.str() << endl;
-	//display_only_status_message(pathLoadMsg.str(), clientState);
-
-	int globalmoduleID = 0;
-	Value::ConstValueIterator modPathIt = modPathArray.Begin();
-	for (; modPathIt != procDataIt->value.End(); modPathIt++)
-	{
-
-		Value::ConstMemberIterator pathDataIt = modPathIt->FindMember("B64");
-		if (pathDataIt == modPathIt->MemberEnd())
-		{
-			cout << "[rgat]ERROR: Module Paths load failed: No path string" << endl;
-			return false;
-		}
-
-		string b64path = pathDataIt->value.GetString();
-		string plainpath = base64_decode(b64path);
-
-		modpaths.at(globalmoduleID) = plainpath;
-		globalmoduleID++;
-	}
-	return true;
-}
-
-bool unpackModuleSymbolArray(const Value& modSymArray, int globalmodNum, PROCESS_DATA *piddata)
+bool PROCESS_DATA::unpackModuleSymbolArray(const rapidjson::Value& modSymArray, int globalmodNum)
 {
 	Value::ConstValueIterator modSymArrIt = modSymArray.Begin();
 	for (; modSymArrIt != modSymArray.End(); modSymArrIt++)
@@ -256,7 +218,7 @@ bool unpackModuleSymbolArray(const Value& modSymArray, int globalmodNum, PROCESS
 		MEM_ADDRESS symAddress = symbolsArray[0].GetUint64();
 		string symPlain = symbolsArray[1].GetString();
 
-		piddata->modsymsPlain[globalmodNum][symAddress] = symPlain;
+		modsymsPlain[globalmodNum][symAddress] = symPlain;
 	}
 	return true;
 }
@@ -295,7 +257,7 @@ bool PROCESS_DATA::loadSymbols(const Value& saveJSON)
 		}
 		const Value& modSymArray = symDataIt->value;
 
-		if (!unpackModuleSymbolArray(modSymArray, moduleID, this)) return false;
+		if (!unpackModuleSymbolArray(modSymArray, moduleID)) return false;
 	}
 	return true;
 }
@@ -578,26 +540,11 @@ bool PROCESS_DATA::loadBasicBlocks(const Value& saveJSON)
 }
 
 
-bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trace)
+bool PROCESS_DATA::load(const rapidjson::Document& saveJSON)
 {
-	/*
-	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("PID");
-	if (procDataIt == saveJSON.MemberEnd())
-	{
-		cout << "[rgat]ERROR: Failed to find process ID" << endl;
-		return false;
-	}
-	PID = procDataIt->value.GetUint64();
+	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("ProcessData");
 
-	procDataIt = saveJSON.FindMember("PID_ID");
-	if (procDataIt == saveJSON.MemberEnd())
-	{
-		cout << "[rgat]ERROR: Failed to find process random ID" << endl;
-		return false;
-	}
-	randID = procDataIt->value.GetInt();
 
-	procDataIt = saveJSON.FindMember("ProcessData");
 	if (procDataIt == saveJSON.MemberEnd())
 	{
 		cout << "[rgat]ERROR: Process data load failed" << endl;
@@ -605,7 +552,8 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trac
 	}
 	const Value& procDataJSON = procDataIt->value;
 
-	if (!loadModulePaths(procDataJSON))
+
+	if (!loadModules(procDataJSON))
 	{
 		cerr << "[rgat]ERROR: Failed to load module paths" << endl;
 		return false;
@@ -634,9 +582,6 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON, TRACERECORDPTR trac
 		return false;
 	}
 
-	tracePtr = trace;
-
-	*/
 	return true;
 }
 
@@ -707,4 +652,335 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 	}
 
 	return resultPtr;
+}
+
+void PROCESS_DATA::save(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.StartObject();
+
+	saveMetaData(writer);
+	saveModules(writer);
+	saveSymbols(writer);
+	saveDisassembly(writer);
+	saveBlockData(writer);
+	saveExternDict(writer);
+
+	writer.EndObject();
+}
+
+
+
+void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("Disassembly");
+	writer.StartArray();
+
+	getDisassemblyReadLock();
+	map <MEM_ADDRESS, INSLIST>::iterator disasIt = disassembly.begin();
+	for (; disasIt != disassembly.end(); ++disasIt)
+	{
+		writer.StartArray();
+
+		writer.Int64(disasIt->first); //address
+
+		writer.Int(disasIt->second.front()->globalmodnum); //module
+
+		writer.StartArray(); //opcode data for each mutation found at address
+		INSLIST::iterator mutationIt = disasIt->second.begin();
+		for (; mutationIt != disasIt->second.end(); ++mutationIt)
+		{
+			INS_DATA *ins = *mutationIt;
+			writer.StartArray();
+
+			writer.String(ins->opcodes.c_str());
+
+			//threads containing it
+			writer.StartArray();
+			unordered_map<PID_TID, NODEINDEX>::iterator threadVertIt = ins->threadvertIdx.begin();
+			for (; threadVertIt != ins->threadvertIdx.end(); ++threadVertIt)
+			{
+				writer.StartArray();
+
+				writer.Int64(threadVertIt->first); //could make file smaller by doing a lookup table.
+				writer.Uint64(threadVertIt->second);
+
+				writer.EndArray();
+			}
+			writer.EndArray(); //end array of indexes for this mutation
+
+			writer.EndArray(); //end mutation
+		}
+		writer.EndArray(); //end array of mutations for this address
+
+		writer.EndArray(); //end address
+
+	}
+	dropDisassemblyReadLock();
+	writer.EndArray(); // end array of disassembly data for trace
+}
+
+void PROCESS_DATA::saveExternDict(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("Externs");
+	writer.StartArray();
+
+	map <MEM_ADDRESS, BB_DATA *>::iterator externIt = externdict.begin();
+	for (; externIt != externdict.end(); ++externIt)
+	{
+		writer.StartObject();
+
+		writer.Key("A");	//address
+		writer.Int64(externIt->first);
+
+		writer.Key("M");	//module number
+		writer.Int(externIt->second->globalmodnum);
+
+		writer.Key("S");	//has symbol?
+		writer.Bool(externIt->second->hasSymbol);
+
+		//todo: should this object even be written if empty?
+		if (!externIt->second->thread_callers.empty())
+		{
+			writer.Key("C");	//thread callers
+			writer.StartArray();
+			map<DWORD, EDGELIST>::iterator threadCallIt = externIt->second->thread_callers.begin();
+			for (; threadCallIt != externIt->second->thread_callers.end(); ++threadCallIt)
+			{
+				writer.StartArray();
+
+				//thread id
+				writer.Uint64(threadCallIt->first);
+
+				//edges
+				writer.StartArray();
+				EDGELIST::iterator edgeIt = threadCallIt->second.begin();
+				for (; edgeIt != threadCallIt->second.end(); ++edgeIt)
+				{
+					writer.StartArray();
+					//source, target
+					writer.Uint64(edgeIt->first);
+					writer.Uint64(edgeIt->second);
+
+					writer.EndArray();
+				}
+				writer.EndArray(); //end edge array
+
+				writer.EndArray(); //end thread callers object for this thread
+			}
+			writer.EndArray(); //end thread callers array for this address
+		}
+		writer.EndObject(); //end object for this extern entry
+	}
+
+	writer.EndArray(); //end externs array
+}
+
+void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("BasicBlocks");
+	writer.StartArray();
+
+	getDisassemblyReadLock();
+	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt = blocklist.begin();
+	for (; blockIt != blocklist.end(); ++blockIt)
+	{
+		writer.StartArray();
+
+		//block address
+		writer.Uint64(blockIt->first);
+
+		//instructions 
+		writer.StartArray();
+		map<BLOCK_IDENTIFIER, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
+		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
+		{
+			writer.StartArray();
+
+			INSLIST *blockInstructions = blockIDIt->second;
+
+			writer.Uint64(blockIDIt->first); //block ID
+
+			writer.StartArray(); //mutations for each instruction
+
+			INSLIST::iterator blockInsIt = blockInstructions->begin();
+			for (; blockInsIt != blockInstructions->end(); ++blockInsIt)
+			{
+				//write instruction address+mutation loader can look them up in disassembly
+				INS_DATA* ins = *blockInsIt;
+
+				writer.StartArray();
+
+				writer.Uint64(ins->address);
+				writer.Uint64(ins->mutationIndex);
+
+				writer.EndArray();
+			}
+
+			writer.EndArray(); //end mutations array for this instruction
+
+			writer.EndArray(); //end this instruction
+		}
+
+		writer.EndArray();	//end instructions array for this address
+
+		writer.EndArray(); //end basic block object for this address
+	}
+	dropDisassemblyReadLock();
+	writer.EndArray(); //end array of basic blocks
+}
+
+void PROCESS_DATA::saveMetaData(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("BitWidth");
+	if (bitwidth == 32)
+	{
+		writer.Uint(32);
+	}
+	else if (bitwidth == 64)
+	{
+		writer.Uint(64);
+	}
+	else
+	{
+		cerr << "[rgat] Error: Trace not locked while saving. Proto-graph has invalid bitwidth marker " << bitwidth << endl;
+		assert(false);
+		return;
+	}
+
+	writer.Key("RGATVersionMaj");
+	writer.Uint(RGAT_VERSION_MAJ);
+	writer.Key("RGATVersionMin");
+	writer.Uint(RGAT_VERSION_MIN);
+	writer.Key("RGATVersionFeature");
+	writer.Uint(RGAT_VERSION_FEATURE);
+}
+
+void PROCESS_DATA::saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("ModulePaths");
+	writer.StartArray();
+
+	vector<boost::filesystem::path>::iterator pathIt = modpaths.begin();
+	for (; pathIt != modpaths.end(); pathIt++)
+	{
+		string pathstr = pathIt->string();
+		const unsigned char* cus_pathstring = reinterpret_cast<const unsigned char*>(pathstr.c_str());
+		writer.StartObject();
+		writer.Key("B64");
+		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->size()).c_str());
+		writer.EndObject();
+	}
+
+	writer.EndArray();
+
+
+	writer.Key("ModuleBounds");
+	writer.StartArray();
+
+	int numMods = modpaths.size();
+	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *>::iterator modBoundsIt = modBounds.begin();
+	for (int i = 0; i < numMods; i++)
+	{
+		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = *modBoundsIt;
+		assert(bounds != NULL);
+		writer.StartArray();
+		writer.Int64(bounds->first);
+		writer.Int64(bounds->second);
+		writer.EndArray();
+	}
+
+	writer.EndArray();
+
+}
+
+//big, but worth doing in case environments differ
+void PROCESS_DATA::saveSymbols(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("ModuleSymbols");
+	writer.StartArray();
+
+	map <int, std::map<MEM_ADDRESS, string>>::iterator modSymIt = modsymsPlain.begin();
+	for (; modSymIt != modsymsPlain.end(); ++modSymIt)
+	{
+		writer.StartObject();
+
+		writer.Key("ModuleID");
+		writer.Int(modSymIt->first);
+
+		writer.Key("Symbols");
+		writer.StartArray();
+		map<MEM_ADDRESS, string> ::iterator symIt = modSymIt->second.begin();
+		for (; symIt != modSymIt->second.end(); symIt++)
+		{
+			writer.StartArray();
+			writer.Uint64(symIt->first); //symbol address
+			writer.String(symIt->second.c_str()); //symbol string
+			writer.EndArray();
+		}
+		writer.EndArray();
+
+		writer.EndObject();
+	}
+
+	writer.EndArray();
+}
+
+bool PROCESS_DATA::loadModules(const rapidjson::Value& processDataJSON)
+{
+	//display_only_status_message("Loading Modules", clientState);
+	cout << "[rgat]Loading Module Paths" << endl;
+
+	Value::ConstMemberIterator procDataIt = processDataJSON.FindMember("ModulePaths");
+	if (procDataIt == processDataJSON.MemberEnd())
+	{
+		cerr << "[rgat] Failed to find ModulePaths in trace" << endl;
+		return false;
+	}
+
+	const Value& modPathArray = procDataIt->value;
+
+	stringstream pathLoadMsg;
+	pathLoadMsg << "Loading " << modPathArray.Capacity() << " modules";
+
+	cout << "[rgat]" << pathLoadMsg.str() << endl;
+	//display_only_status_message(pathLoadMsg.str(), clientState);
+
+	Value::ConstValueIterator modPathIt = modPathArray.Begin();
+	for (; modPathIt != modPathArray.End(); modPathIt++)
+	{
+
+		Value::ConstMemberIterator pathDataIt = modPathIt->FindMember("B64");
+		if (pathDataIt == modPathIt->MemberEnd())
+		{
+			cout << "[rgat]ERROR: Module Paths load failed: No path string" << endl;
+			return false;
+		}
+
+		string b64path = pathDataIt->value.GetString();
+		string plainpath = base64_decode(b64path);
+
+		modpaths.push_back(plainpath);
+	}
+
+
+	procDataIt = processDataJSON.FindMember("ModuleBounds");
+	if (procDataIt == processDataJSON.MemberEnd())
+	{
+		cerr << "[rgat] Failed to find ModuleBounds in trace" << endl;
+		return false;
+	}
+	const Value& modsBoundArray = procDataIt->value;
+
+	modBounds.clear();
+	Value::ConstValueIterator modsBoundIt = modsBoundArray.Begin();
+	for (; modsBoundIt != modsBoundArray.End(); modsBoundIt++)
+	{
+		const Value& moduleBounds = *modsBoundIt;
+		auto boundPair = new pair<MEM_ADDRESS, MEM_ADDRESS>;
+		boundPair->first = moduleBounds[0].GetUint64();
+		boundPair->second = moduleBounds[1].GetUint64();
+		modBounds.push_back(boundPair);
+	}
+
+	return true;
 }

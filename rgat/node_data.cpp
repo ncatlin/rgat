@@ -154,9 +154,9 @@ void node_data::setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
 {
 
 	traceRecord *runRecord = (traceRecord *)traceRecPtr;
-	PROCESS_DATA *piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
+	PROCESS_DATA *piddata = runRecord->get_piddata();
 
-	ADDRESS_OFFSET offset = address - runRecord->modBounds.at(globalModID)->first;
+	ADDRESS_OFFSET offset = address - runRecord->get_piddata()->modBounds.at(globalModID)->first;
 	string sym;
 	//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
 	bool foundsym = false;

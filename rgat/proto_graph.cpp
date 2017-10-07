@@ -32,7 +32,7 @@ proto_graph::proto_graph(traceRecord *tracerecPtr, unsigned int threadID)
 	constructedTime = TIMENOW_IN_MS;
 
 	runRecord = (traceRecord *)tracerecPtr;
-	piddata = ((binaryTarget *)runRecord->get_binaryPtr())->get_piddata();
+	piddata = runRecord->get_piddata();
 	tid = threadID;
 }
 
@@ -549,7 +549,7 @@ bool proto_graph::loadStats(const Value& graphData)
 	Value::ConstMemberIterator statsIt = graphData.FindMember("Module");
 	if (statsIt == graphData.MemberEnd()) return false;
 	exeModuleID = statsIt->value.GetUint();
-	moduleBase = runRecord->modBounds.at(exeModuleID)->first;
+	moduleBase = runRecord->get_piddata()->modBounds.at(exeModuleID)->first;
 
 	statsIt = graphData.FindMember("TotalInstructions");
 	if (statsIt == graphData.MemberEnd()) return false;
@@ -618,7 +618,7 @@ string proto_graph::get_node_sym(NODEINDEX idx)
 	node_data *n = safe_get_node(idx);
 	string sym;
 
-	MEM_ADDRESS offset = n->address - get_traceRecord()->modBounds.at(n->globalModID)->first;
+	MEM_ADDRESS offset = n->address - get_piddata()->modBounds.at(n->globalModID)->first;
 	if (piddata->get_sym(n->globalModID, offset, sym))
 		return sym;
 
@@ -638,7 +638,7 @@ void proto_graph::assign_modpath()
 
 	boost::filesystem::path longmodPath;
 	piddata->get_modpath(exeModuleID, &longmodPath);
-	moduleBase = runRecord->modBounds.at(exeModuleID)->first;
+	moduleBase = runRecord->get_piddata()->modBounds.at(exeModuleID)->first;
 	
 
 	if (longmodPath.size() > MAX_DIFF_PATH_LENGTH)

@@ -138,12 +138,14 @@ public:
 
 
 	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1);
-	bool load(const rapidjson::Document& saveJSON, TRACERECORDPTR trace);
+	void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	bool load(const rapidjson::Document& saveJSON);
 	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, BB_DATA **externBlock);
 
 	vector<boost::filesystem::path> modpaths;
 	map <boost::filesystem::path, long> globalModuleIDs;
 	map <int, std::map<ADDRESS_OFFSET, string>>modsymsPlain;
+	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *> modBounds;
 
 	SRWLOCK disassemblyRWLock = SRWLOCK_INIT;
 	SRWLOCK externCallerRWLock = SRWLOCK_INIT;
@@ -174,17 +176,22 @@ public:
 	map <MEM_ADDRESS, BB_DATA *> externdict;
 	int bitwidth;
 
-	//graph data for each thread in process, void* because t_g_d header causes build freakout
-	//map <PID_TID, PROTOGRAPH_CASTPTR> protoGraphs;
-	//map <PID_TID, PLOTTEDGRAPH_CASTPTR> plottedGraphs;
-	//vector<PROCESS_DATA *> children;
 
 private:
+	void saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	void saveExternDict(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	void saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	void saveMetaData(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	void saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+	void saveSymbols(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+
 	bool loadSymbols(const rapidjson::Value& saveJSON);
-	bool loadModulePaths(const rapidjson::Value& processDataJSON);
+	bool loadModules(const rapidjson::Value& processDataJSON);
 	bool loadDisassembly(const rapidjson::Value& saveJSON);
 	bool loadBasicBlocks(const rapidjson::Value& saveJSON);
 	bool loadExterns(const rapidjson::Value& processDataJSON);
+
+	bool unpackModuleSymbolArray(const rapidjson::Value& modSymArray, int globalmodNum);
 
 private:
 

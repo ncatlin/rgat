@@ -30,12 +30,14 @@ typedef void * BINARYTARGETPTR;
 class traceRecord
 {
 public:
-	traceRecord(PID_TID newPID, int randomNo);
+	traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary);
 	~traceRecord() {};
 
 	PID_TID getPID() { return PID; }
 	wstring getModpathID() { return to_wstring(PID) + to_wstring(randID); }
 	BINARYTARGETPTR get_binaryPtr() { return binaryPtr; }
+	PROCESS_DATA *get_piddata() { return dynamicDisassemblyData;  }
+
 	void notify_new_pid(PID_TID pid, int PID_ID, PID_TID parentPid) { runtimeline.notify_new_pid(pid, PID_ID, parentPid); running = true; }
 	void notify_pid_end(PID_TID pid, int PID_ID) { running = runtimeline.notify_pid_end(pid, PID_ID); }
 	void notify_tid_end(PID_TID tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
@@ -48,9 +50,9 @@ public:
 	void getPlottedGraphs(void *graphPtrVecPtr);
 	void getProtoGraphs(void *graphPtrVecPtr);
 	bool isRunning() { return running; }
-	void setBinaryPtr(BINARYTARGETPTR binptr) { binaryPtr = binptr; }
 	int countDescendants();
 	
+	void save(void *clientConfigPtr);
 	bool load(const rapidjson::Document& saveJSON, vector<QColor> *colours);
 	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
 	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> *writer) { runtimeline.serialise(writer); };
@@ -75,7 +77,6 @@ public:
 
 	PID_TID PID = -1;
 	int randID; //to distinguish between processes with identical PIDs
-	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *> modBounds;
 
 	//index of this vec == client reference to each module. returned value is our static reference to the module
 	//needed because each trace drgat can come up with a new ID for each module
@@ -85,11 +86,11 @@ public:
 	int loadedModuleCount = 0;
 
 private:
-	bool loadProcessData(const rapidjson::Document& saveJSON);
 	bool loadProcessGraphs(const rapidjson::Document& saveJSON, vector<QColor> *colours);
 	bool loadGraph(const rapidjson::Value& graphData, vector<QColor> *colours);
 	bool loadTimeline(const rapidjson::Value& saveJSON);
 
+	PROCESS_DATA *dynamicDisassemblyData = NULL; //the first disassembly of each address
 
 	timeline runtimeline;
 	BINARYTARGETPTR binaryPtr = NULL;

@@ -219,82 +219,12 @@ void rgatState::saveTarget(binaryTarget *target)
 	list<traceRecord *> traces = target->getTraceList();
 	foreach(trace, traces)
 	{
-		saveTrace(trace);
+		trace->save(&config);
 	}
 }
 
 
-//saves the process data (and childprocess) of trace and all of its graphs
-void rgatState::saveTrace(traceRecord *trace)
-{
-	if (trace->getTraceType() != eTracePurpose::eVisualiser) return;
 
-	FILE *savefile = setupSaveFile(&config, trace);
-	if (!savefile) return;
-
-
-	char buffer[65536];
-	rapidjson::FileWriteStream outstream(savefile, buffer, sizeof(buffer));
-	rapidjson::Writer<rapidjson::FileWriteStream> writer{ outstream };
-
-	binaryTarget *target = (binaryTarget *)trace->get_binaryPtr();
-
-	if (trace->protoGraphs.size() < 1) return; //trace not even started
-
-	writer.StartObject();
-
-	//duplicated from process data, but important for loading
-	writer.Key("PID");
-	writer.Uint64(trace->PID);
-	writer.Key("PID_ID");
-	writer.Int(trace->randID);
-
-	//writer.Key("ProcessData");
-	//saveProcessData(trace->get_piddata(), writer);
-
-	writer.Key("BinaryPath");
-	writer.String(target->path().string().c_str());
-
-	time_t startedTime;
-	trace->getStartedTime(&startedTime);
-	writer.Key("StartTime");
-	writer.Uint64(startedTime);
-
-	writer.Key("Threads");
-	trace->serialiseThreads(&writer);
-
-	writer.Key("Timeline");
-	trace->serialiseTimeline(&writer);
-
-	writer.Key("Children");
-	writer.StartArray();
-	traceRecord *childTrace;
-	foreach(childTrace, trace->children)
-	{
-		binaryTarget *childTarget = (binaryTarget *)childTrace->get_binaryPtr();
-
-		time_t startedTime;
-		if (!childTrace->getStartedTime(&startedTime))
-		{
-			cerr << "[rgat]Warning: Failed to get start time for " << childTarget->path().filename() << " (pid: " << childTrace->getPID() << ")" << endl;
-		}
-
-		boost::filesystem::path filename = getSaveFilename(childTarget->path().filename(), startedTime, childTrace->getPID());
-		writer.String(filename.string().c_str());
-	}
-	writer.EndArray();
-
-	writer.EndObject();
-	fclose(savefile);
-
-
-	traceRecord *child;
-	foreach(child, trace->children)
-	{
-		saveTrace(child);
-	}
-
-}
 
 
 

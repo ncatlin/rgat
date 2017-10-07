@@ -458,7 +458,7 @@ void heatmap_renderer::main_loop()
 	for (int i = 0; i < 10; i++)
 		colourRange.insert(colourRange.begin(), *col_to_colstruct(&clientState->config.heatmap.edgeFrequencyCol[i]));
 
-	PROCESS_DATA *piddata = binary->get_piddata();
+	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while ((!piddata || runRecord->plottedGraphs.empty()) && !die)
 		Sleep(100);
 	Sleep(500);

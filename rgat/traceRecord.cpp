@@ -4,14 +4,18 @@
 #include "serialise.h"
 #include "graphplots/cylinder_graph.h"
 #include "processLaunching.h"
+#include "clientConfig.h"
 
-traceRecord::traceRecord(PID_TID newPID, int randomNo)
+traceRecord::traceRecord(PID_TID newPID, int randomNo, BINARYTARGETPTR binary)
 {
 	PID = newPID;
 	randID = randomNo;
 
 	modIDTranslationVec.resize(255, -1);
-	modBounds.resize(255, NULL);
+
+	binaryPtr = binary;
+	dynamicDisassemblyData = new PROCESS_DATA(((binaryTarget *)binaryPtr)->getBitWidth());
+	dynamicDisassemblyData->modBounds.resize(255, NULL);
 };
 
 //fill vector ptr with pointers to all trace graphs (which have nodes)
@@ -128,49 +132,6 @@ bool printRGATVersion(const Value& procData)
 	return true;
 }
 
-
-bool traceRecord::loadProcessData(const rapidjson::Document& saveJSON)
-{
-	//todo: fix this. one target to many traces
-	/*
-	Value::ConstMemberIterator memberIt = saveJSON.FindMember("ProcessData");
-	if (memberIt == saveJSON.MemberEnd())
-	{
-		cout << "[rgat]ERROR: Process data load failed" << endl;
-		return false;
-	}
-	const Value& processDataJSON = memberIt->value;
-
-	if (!printRGATVersion(processDataJSON))
-		return false;
-
-	Value::ConstMemberIterator procDataIt = processDataJSON.FindMember("BitWidth");
-	if (procDataIt == processDataJSON.MemberEnd())
-	{
-		cout << "[rgat]ERROR: Failed to find bitwidth" << endl;
-		return false;
-	}
-
-	int bitWidth = procDataIt->value.GetInt();
-	if (bitWidth != 32 && bitWidth != 64)
-	{
-		cout << "[rgat]ERROR: Bad bitwidth: " << bitWidth << endl;
-		return false;
-	}
-
-	((binaryTarget *)binaryPtr)->= new PROCESS_DATA(bitWidth);
-	if (!processdata->load(saveJSON, this))
-	{
-		delete processdata;
-		return false;
-	}
-	return true;
-	*/
-	return false;
-	
-}
-
-
 //load each graph saved for the process
 bool traceRecord::loadProcessGraphs(const Document& saveJSON, vector<QColor> *colours)
 {
@@ -212,14 +173,11 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
 
 	//display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
-	binaryTarget *target = (binaryTarget *) binaryPtr;
-	PROCESS_DATA *piddata = target->get_piddata();
-
 	proto_graph *protograph = new proto_graph(this, graphTID);
 	protoGraphs.emplace(make_pair(graphTID, protograph));
 
 	cylinder_graph *graph = new cylinder_graph(graphTID, protograph, colours);
-	if (!graph->get_protoGraph()->deserialise(graphData, &piddata->disassembly))
+	if (!graph->get_protoGraph()->deserialise(graphData, &dynamicDisassemblyData->disassembly))
 		return false;
 
 	plottedGraphs.emplace(graphTID, graph);
@@ -247,9 +205,11 @@ bool traceRecord::loadTimeline(const rapidjson::Value& saveJSON)
 	return true;
 }
 
+
 bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> *colours)
 {
-	if (!loadProcessData(saveJSON))
+
+	if (!dynamicDisassemblyData->load(saveJSON)) //todo - get the relevant dynamic bit for this trace
 	{
 		cout << "[rgat]ERROR: Process data load failed" << endl;
 		return false;
@@ -265,7 +225,7 @@ bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> *colo
 
 	if (!loadTimeline(saveJSON))
 	{
-		cout << "[rgat]Process Graph load failed" << endl;
+		cout << "[rgat]Timeline load failed" << endl;
 		return false;
 	}
 	return true;
@@ -326,3 +286,75 @@ bool traceRecord::is_process(PID_TID testpid, int testID)
 
 	return false;
 }
+
+//saves the process data (and childprocess) of trace and all of its graphs
+void traceRecord::save(void *configPtr)
+{
+	if (tracetype != eTracePurpose::eVisualiser) return;
+
+	FILE *savefile = setupSaveFile((clientConfig*)configPtr, this);
+	if (!savefile) return;
+
+
+	char buffer[65536];
+	rapidjson::FileWriteStream outstream(savefile, buffer, sizeof(buffer));
+	rapidjson::Writer<rapidjson::FileWriteStream> writer{ outstream };
+
+	binaryTarget *target = (binaryTarget *)binaryPtr;
+
+	if (protoGraphs.size() < 1) return; //trace not even started
+
+	writer.StartObject();
+
+	writer.Key("PID");
+	writer.Uint64(PID);
+	writer.Key("PID_ID");
+	writer.Int(randID);
+
+	writer.Key("ProcessData");
+	dynamicDisassemblyData->save(writer);
+
+	writer.Key("BinaryPath");
+	writer.String(target->path().string().c_str());
+
+	time_t startedTime;
+	getStartedTime(&startedTime);
+	writer.Key("StartTime");
+	writer.Uint64(startedTime);
+
+	writer.Key("Threads");
+	serialiseThreads(&writer);
+
+	writer.Key("Timeline");
+	serialiseTimeline(&writer);
+
+	writer.Key("Children");
+	writer.StartArray();
+	traceRecord *childTrace;
+	foreach(childTrace, children)
+	{
+		binaryTarget *childTarget = (binaryTarget *)childTrace->get_binaryPtr();
+
+		time_t startedTime;
+		if (!childTrace->getStartedTime(&startedTime))
+		{
+			cerr << "[rgat]Warning: Failed to get start time for " << childTarget->path().filename() << " (pid: " << childTrace->getPID() << ")" << endl;
+		}
+
+		boost::filesystem::path filename = getSaveFilename(childTarget->path().filename(), startedTime, childTrace->getPID());
+		writer.String(filename.string().c_str());
+	}
+	writer.EndArray();
+
+	writer.EndObject();
+	fclose(savefile);
+
+
+	traceRecord *child;
+	foreach(child, children)
+	{
+		child->save((clientConfig*)configPtr);
+	}
+
+}
+

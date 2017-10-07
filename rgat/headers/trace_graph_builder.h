@@ -70,7 +70,7 @@ public:
 	{
 		runRecord = runRecordptr;
 		binary = (binaryTarget *)runRecord->get_binaryPtr();
-		piddata = binary->get_piddata();
+		piddata = runRecord->get_piddata();
 		thisgraph = graph;
 		reader = readerThread;
 		TID = graph->get_TID();

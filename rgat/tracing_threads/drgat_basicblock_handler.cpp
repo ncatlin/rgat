@@ -80,7 +80,7 @@ void drgat_basicblock_handler::main_loop()
 	}
 
 	//string savedbuf;
-	PROCESS_DATA *piddata = binary->get_piddata();
+	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while (!die && !runRecord->should_die())
 	{
 		DWORD bread = 0;
@@ -147,7 +147,7 @@ void drgat_basicblock_handler::main_loop()
 			}
 			long globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 
-			MEM_ADDRESS modulestart = runRecord->modBounds.at(localmodnum)->first;
+			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(localmodnum)->first;
 			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);

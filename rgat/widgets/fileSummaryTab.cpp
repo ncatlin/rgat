@@ -35,6 +35,7 @@ fileSummaryTab::~fileSummaryTab()
 {
 }
 
+
 //https://stackoverflow.com/a/24192835
 template<class T> QString FormatWithCommas(T value)
 {
@@ -97,6 +98,16 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 	uintmax_t exesize = boost::filesystem::file_size(target->path());
 	QString filesize = FormatWithCommas(exesize);
 	ui->tgt_sizeLineEdit->setText(filesize + " bytes");
+
+	string hashDigest;
+	if (!target->get_sha256hash().empty())
+	{
+		ui->tgt_hashLineEdit->setText(QString::fromStdString(target->get_sha256hash()));
+	}
+	else
+	{
+		ui->tgt_hashLineEdit->setText("Failed to calculate hash");
+	}
 
 	peparse::parsed_pe *header = peparse::ParsePEFromFile(target->path().string().c_str());
 	if (!header)

@@ -2,9 +2,9 @@
 #include "binaryTarget.h"
 #include "boost\lockfree\spsc_queue.hpp"
 #include <mutex>
-#include "shrike_module_handler.h"
-#include "shrike_basicblock_handler.h"
-#include "shrike_structs.h"
+#include <shrike\shrike_module_handler.h>
+#include <shrike\shrike_basicblock_handler.h>
+#include <shrike\shrike_structs.h>
 
 void launch_target_fuzzing_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
 

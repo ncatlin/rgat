@@ -109,7 +109,7 @@ void shrike_basicblock_handler::main_loop()
 
 	if (hPipe == (HANDLE)-1)
 	{
-		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
+		std::cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
 		alive = false;
 		return;
 	}
@@ -119,7 +119,7 @@ void shrike_basicblock_handler::main_loop()
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, disassemblyBitwidth, &hCapstone) != CS_ERR_OK)
 	{
-		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << runRecord->getPID() << endl;
+		std::cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << runRecord->getPID() << endl;
 		alive = false;
 		return;
 	}
@@ -135,7 +135,7 @@ void shrike_basicblock_handler::main_loop()
 	{
 		int result = WaitForSingleObject(ov.hEvent, 3000);
 		if (result != WAIT_TIMEOUT) break;
-		cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
+		std::cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
 	}
 	vector<char> buf;
 	buf.resize(BBBUFSIZE, 0);
@@ -144,12 +144,14 @@ void shrike_basicblock_handler::main_loop()
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 	if (!ov2.hEvent)
 	{
-		cerr << "RGAT: ERROR - Failed to create overlapped event in basic block handler" << endl;
+		std::cerr << "RGAT: ERROR - Failed to create overlapped event in basic block handler" << endl;
 		assert(false);
 	}
 
 	//string savedbuf;
-	PROCESS_DATA *piddata = binary->get_piddata();
+	assert(false);
+
+	PROCESS_DATA *piddata = NULL;//todo//binary->get_piddata();
 	while (!die && !runRecord->should_die())
 	{
 		DWORD bread = 0;
@@ -216,7 +218,7 @@ void shrike_basicblock_handler::main_loop()
 			}
 			long globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 
-			MEM_ADDRESS modulestart = runRecord->modBounds.at(localmodnum)->first;
+			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(localmodnum)->first;
 			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char *instrumented_s = strtok_s(next_token, "@", &next_token);

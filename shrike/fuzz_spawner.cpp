@@ -133,8 +133,6 @@ void process_new_shrike_connection(rgatState *clientState, vector<SHRIKE_THREADS
 		trace->setTraceType(eTracePurpose::eFuzzer);
 
 		clientState->fuzztarget_connected(PID_ID, trace);
-
-		trace->setBinaryPtr(target);
 		trace->notify_new_pid(PID, PID_ID, parentPID);
 
 		container->registerChild(parentPID, trace);

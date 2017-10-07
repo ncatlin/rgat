@@ -421,7 +421,7 @@ void plotted_graph::reset_animation_if_scheduled()
 	lastAnimatedNode = 0;
 	animationIndex = 0;
 
-	animnodesdata->acquire_col_write()->at(0);
+	animnodesdata->acquire_col_write();
 
 	newAnimEdgeTimes.clear();
 	newAnimNodeTimes.clear();
@@ -1471,7 +1471,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	if (n->label.isEmpty()) 
 	{
 		string symStdString;
-		MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
+		MEM_ADDRESS offset = n->address - get_protoGraph()->get_piddata()->modBounds.at(n->globalModID)->first;
 		get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symStdString);
 		n->label = QString::fromStdString(symStdString);;
 	}
@@ -1524,7 +1524,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	int numCalls = n->currentCallIndex;
 	string symString;
 
-	MEM_ADDRESS offset = n->address - get_protoGraph()->get_traceRecord()->modBounds.at(n->globalModID)->first;
+	MEM_ADDRESS offset = n->address - piddata->modBounds.at(n->globalModID)->first;
 
 	if (!clientState->config.externalSymbolVisibility.addresses)
 		piddata->get_sym(n->globalModID, offset, symString);

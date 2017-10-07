@@ -549,10 +549,11 @@ void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 //TODO: this assumption is bad; any self modifying dll may cause problems
 int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &localmodID)
 {
-	const size_t numModules = runRecord->modBounds.size();
+	PROCESS_DATA *piddata = runRecord->get_piddata();
+	const size_t numModules = piddata->modBounds.size();
 	for (int modNo = 0; modNo < numModules; ++modNo)
 	{
-		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = runRecord->modBounds.at(modNo);
+		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = piddata->modBounds.at(modNo);
 		if (!moduleBounds) continue;
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
@@ -1032,7 +1033,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 				but this is not reliable outside of my runtime environment
 			*/
 
-			ADDRESS_OFFSET offset = targ2 - runRecord->modBounds.at(foundExtern->globalmodnum)->first;
+			ADDRESS_OFFSET offset = targ2 - runRecord->get_piddata()->modBounds.at(foundExtern->globalmodnum)->first;
 			string sym;
 			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
 			bool foundsym = false;

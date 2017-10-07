@@ -24,6 +24,7 @@ Container for a binary target. Contains all traces gathered for the target in a 
 #include "osSpecific.h"
 #include "locks.h"
 
+#include "rapidjson/document.h"
 #define MAGIC_BYTES_LENGTH 4
 
 
@@ -43,20 +44,25 @@ public:
 	traceRecord *getTraceWithID(int ID);
 	list<traceRecord *> *getTraceListPtr(){return &traceRecords;}
 	list<traceRecord *> getTraceList() { return traceRecords; }
-	PROCESS_DATA *get_piddata() { return processdata; }
+
 
 	bool createTraceAtTime(traceRecord ** tracePtr, long long timeStarted, PID_TID PID, int PIDID);
 	traceRecord *getRecordWithPID(PID_TID PID, int PID_ID);
 	void applyBitWidthHint(cs_mode bitWidth);
 	int getBitWidth();
 	size_t traceCount() { return traceRecords.size(); }
+	string get_sha256hash() {	if (sha256hash.empty()) computeHash(); return sha256hash;	}
+
+	bool loadProcessData(const rapidjson::Document& saveJSON);
 
 private:
 	rgatlocks::UntestableLock binaryLock;
 
 	bool initialAnalysisCompleted = false;
+	string savePath;
 
 	boost::filesystem::path filepath;
+	void computeHash();
 
 	uintmax_t filesize;
 	vector<char> magicBytes;
@@ -66,6 +72,6 @@ private:
 	map <long long, traceRecord *> runRecordTimes;
 	traceRecord *activeTrace = NULL;
 
-	PROCESS_DATA *processdata;
+	string sha256hash;
 };
 

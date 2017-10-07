@@ -416,7 +416,7 @@ void rgat::startSaveTrace()
 		while (originalTrace->parentTrace)
 			originalTrace = originalTrace->parentTrace;
 
-		rgatstate->saveTrace(originalTrace);
+		originalTrace->save(&rgatstate->config);
 	}
 }
 

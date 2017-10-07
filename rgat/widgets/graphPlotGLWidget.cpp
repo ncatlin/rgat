@@ -59,7 +59,7 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 	node_data *node = graph->safe_get_node(mouseoverNodeRect.index);
 	traceRecord *trace = graph->get_traceRecord();
 	PROCESS_DATA *piddata = graph->get_piddata();
-	MEM_ADDRESS moduleOffset = node->address - trace->modBounds.at(node->globalModID)->first;
+	MEM_ADDRESS moduleOffset = node->address - piddata->modBounds.at(node->globalModID)->first;
 
 	if (!node->label.isEmpty())
 		tooltipwidget->labelEdit->setText(node->label);

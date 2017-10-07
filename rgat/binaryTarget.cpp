@@ -6,15 +6,40 @@
 #include <sys/types.h>  
 #include <sys/stat.h>  
 #include <fstream>
+#include <openssl\sha.h>
+#include <iomanip>
+
 
 binaryTarget::binaryTarget(boost::filesystem::path path)
 { 
 	filepath = path; 
-	processdata = new PROCESS_DATA(getBitWidth());
+	sha256hash = "";
 }
 
 binaryTarget::~binaryTarget()
 {
+}
+
+void binaryTarget::computeHash()
+{
+	SHA256_CTX context;
+	if (!SHA256_Init(&context)) return;
+
+	ifstream ifs(filepath.c_str(), std::ios::binary);
+	if (ifs.bad()) return;
+
+	char buf[4096];
+	while (ifs.read(buf, sizeof(buf)) || ifs.gcount()) {
+		SHA256_Update(&context, buf, ifs.gcount());
+	}
+	unsigned char digest[SHA256_DIGEST_LENGTH] = {};
+	SHA256_Final(digest, &context);
+
+	stringstream shahash_SS;
+	for (unsigned i = 0; i <SHA256_DIGEST_LENGTH; i++) {
+		shahash_SS << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[i]);
+	}
+	sha256hash = shahash_SS.str();
 }
 
 eExeCheckResult binaryTarget::getTraceableStatus()
@@ -29,8 +54,6 @@ eExeCheckResult binaryTarget::getTraceableStatus()
 		exeType = eNotExecutable;
 		return exeType;
 	}
-
-	//todo: .NET detection
 
 	switch (theType)
 	{
@@ -89,9 +112,8 @@ void binaryTarget::performInitialStaticAnalysis()
 
 traceRecord *binaryTarget::createNewTrace(PID_TID PID, int PIDID, long long timeStarted)
 {
-	traceRecord *trace = new traceRecord(PID, PIDID);
+	traceRecord *trace = new traceRecord(PID, PIDID, this);
 	traceRecords.push_back(trace);
-	trace->setBinaryPtr(this);
 
 	runRecordTimes.emplace(make_pair(timeStarted, trace));
 
@@ -173,4 +195,3 @@ bool binaryTarget::createTraceAtTime(traceRecord ** tracePtr, long long timeStar
 	*tracePtr = createNewTrace(PID, PIDID, timeStarted);
 	return true;
 }
-
