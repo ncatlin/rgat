@@ -83,7 +83,7 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 	performResolve->setCheckable(false);
 	labelmenu->addAction(performResolve);
 	connect(performResolve, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eResolveExterns); });
-	performResolve->setStatusTip(QCoreApplication::tr("Attempt to resolve (existing) unresolved external nodes back to their nearest symbol."));
+	performResolve->setStatusTip(QCoreApplication::tr("Attempt to determine the symbol unresolved externals belong to."));
 }
 
 void rgat::addInternalTextBtn(QMenu *labelmenu)

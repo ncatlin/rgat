@@ -385,8 +385,7 @@ void mainTabBox::refreshTracesCombo(traceRecord *initialTrace)
 		const time_t startTime = trace->getStartedTime();
 
 		std::stringstream timess;
-		tm* mush = std::localtime(&startTime);
-		timess << std::put_time(mush, " (%H:%M : %S %d / %m / %Y)");
+		timess << std::put_time(std::localtime(&startTime), " (%H:%M:%S %d/%m/%Y)");
 
 		entrySS << "First PID: " << trace->getPID() << timess.str();
 		if (trace->UIRunningFlag) //set while iterating through the child processes if any are running
