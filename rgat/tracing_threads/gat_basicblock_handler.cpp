@@ -20,7 +20,7 @@ disassembles it using Capstone and makes it available to the graph renderer
 */
 
 #include "stdafx.h"
-#include "drgat_basicblock_handler.h"
+#include "gat_basicblock_handler.h"
 #include "traceConstants.h"
 #include "traceMisc.h"
 #include "traceStructs.h"
@@ -28,24 +28,46 @@ disassembles it using Capstone and makes it available to the graph renderer
 
 
 //listen to BB data for given PID
-void drgat_basicblock_handler::main_loop()
+void gat_basicblock_handler::main_loop()
 {
 	alive = true;
-	pipename.append(runRecord->getModpathID());
 
-	const wchar_t* szName = pipename.c_str();
-	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE ,
-		255, 64, 56 * 1024, 300, NULL);
 
-	if (hPipe == (HANDLE)-1)
+
+	if (!inputPipe) //if using pin the connection was established earlier
 	{
-		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
-		alive = false;
-		return;
+		pipename.append(runRecord->getModpathID());
+		const wchar_t* szName = pipename.c_str();
+		inputPipe = CreateNamedPipe(szName,
+			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+			255, 64, 56 * 1024, 300, NULL);
+
+		if (inputPipe == INVALID_HANDLE_VALUE)
+		{
+			cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
+			alive = false;
+			return;
+		}
+
+		OVERLAPPED ov = { 0 };
+		ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+		if (ConnectNamedPipe(inputPipe, &ov))
+		{
+			wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
+			alive = false;
+			return;
+		}
+
+		while (!die)
+		{
+			int result = WaitForSingleObject(ov.hEvent, 3000);
+			if (result != WAIT_TIMEOUT) break;
+			cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
+		}
 	}
-	OVERLAPPED ov = { 0 };
-	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, disassemblyBitwidth, &hCapstone) != CS_ERR_OK)
@@ -55,19 +77,6 @@ void drgat_basicblock_handler::main_loop()
 		return;
 	}
 
-	if (ConnectNamedPipe(hPipe, &ov))
-	{
-		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
-		alive = false;
-		return;
-	}
-	
-	while (!die)
-	{
-		int result = WaitForSingleObject(ov.hEvent, 3000);
-		if (result != WAIT_TIMEOUT) break;
-		cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
-	}
 	vector<char> buf;
 	buf.resize(BBBUFSIZE, 0);
 
@@ -84,7 +93,7 @@ void drgat_basicblock_handler::main_loop()
 	while (!die && !runRecord->should_die())
 	{
 		DWORD bread = 0;
-		ReadFile(hPipe, &buf.at(0), BBBUFSIZE, &bread, &ov2);
+		ReadFile(inputPipe, &buf.at(0), BBBUFSIZE, &bread, &ov2);
 		while (!die)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
@@ -92,7 +101,7 @@ void drgat_basicblock_handler::main_loop()
 		}
 
 		if (GetLastError() != ERROR_IO_PENDING) continue;
-		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
+		int res2 = GetOverlappedResult(inputPipe, &ov2, &bread, false);
 		buf[bread] = 0;
 
 		if (!bread)
@@ -260,5 +269,6 @@ void drgat_basicblock_handler::main_loop()
 	}
 
 	cs_close(&hCapstone);
+	CloseHandle(inputPipe);
 	alive = false;
 }

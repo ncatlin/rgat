@@ -174,6 +174,7 @@ private:
 	void setDefaultPaths();
 	void setDefaultSavePath();
 	void setDefaultDRPath();
+	void setDefaultPinPath();
 	void setDefaultClientPath();
 	void setDefaultTextSettings();
 };

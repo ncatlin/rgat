@@ -107,7 +107,7 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	return true;
 }
 
-void process_new_shrike_connection(rgatState *clientState, vector<SHRIKE_THREADS_STRUCT *> *threadsList, vector <char> *buf)
+void process_new_shrike_connection(rgatState *clientState, vector<SHRIKE_THREADS_STRUCT *> *threadsList, string buf)
 {
 	PID_TID PID = 0;
 	boost::filesystem::path binarypath;
@@ -182,7 +182,7 @@ void fuzz_spawner_listener(rgatState *clientState, vector<SHRIKE_THREADS_STRUCT 
 	{
 		bool valid = read_shrike_newPID_sleepy(&buf, hPipe, &ov);
 		if (valid)
-			process_new_shrike_connection(clientState, threadsList, &buf);
+			process_new_shrike_connection(clientState, threadsList, string(buf.begin(), buf.end()));
 	}
 }
 

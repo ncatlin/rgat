@@ -2,6 +2,7 @@
 #include "testRun.h"
 #include "serialise.h"
 #include "processLaunching.h"
+#include "rgat.h"
 
 testRun::testRun(boost::filesystem::path testsDirectory, rgatState *clistate)
 {
@@ -109,7 +110,8 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	clientState->testTargets.getTargetByPath(testExe.generic_path(), &newTarget);
 
 	clock_t timeend, timestart = clock();
-	execute_tracer(newTarget, &clientState->config);
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	execute_tracer(newTarget, &clientState->config, ui->tracePinRadio->isChecked());
 
 	traceRecord *testtrace = NULL;
 	while (true)

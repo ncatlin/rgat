@@ -529,7 +529,7 @@ void mainTabBox::startNewTrace()
 
 	ui->traceGatherTab->refreshLaunchOptionsFromUI(activeTarget);
 
-	execute_tracer(activeTarget, &clientState->config);
+	execute_tracer(activeTarget, &clientState->config, ui->tracePinRadio->isChecked());
 	clientState->waitingForNewTrace = true;
 }
 

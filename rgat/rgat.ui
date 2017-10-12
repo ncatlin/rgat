@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>995</width>
+    <width>1006</width>
     <height>756</height>
    </rect>
   </property>
@@ -663,20 +663,80 @@
                       <number>6</number>
                      </property>
                      <item>
-                      <widget class="QCheckBox" name="showVisCheck">
-                       <property name="toolTip">
-                        <string>Check to immediately switch to the visualiser pane on launch</string>
-                       </property>
-                       <property name="statusTip">
-                        <string>Check to immediately switch to the visualiser pane on launch</string>
-                       </property>
-                       <property name="text">
-                        <string>Switch to visualiser</string>
-                       </property>
-                       <property name="checked">
-                        <bool>true</bool>
-                       </property>
-                      </widget>
+                      <layout class="QVBoxLayout" name="verticalLayout_6">
+                       <item>
+                        <widget class="QGroupBox" name="groupBox">
+                         <property name="minimumSize">
+                          <size>
+                           <width>0</width>
+                           <height>44</height>
+                          </size>
+                         </property>
+                         <property name="maximumSize">
+                          <size>
+                           <width>155</width>
+                           <height>80</height>
+                          </size>
+                         </property>
+                         <property name="title">
+                          <string>Instrumentation Engine</string>
+                         </property>
+                         <layout class="QVBoxLayout" name="verticalLayout_12">
+                          <item>
+                           <widget class="QRadioButton" name="tracePinRadio">
+                            <property name="minimumSize">
+                             <size>
+                              <width>100</width>
+                              <height>0</height>
+                             </size>
+                            </property>
+                            <property name="text">
+                             <string>Pin</string>
+                            </property>
+                            <property name="checked">
+                             <bool>true</bool>
+                            </property>
+                           </widget>
+                          </item>
+                          <item>
+                           <widget class="QRadioButton" name="traceDRRadio">
+                            <property name="minimumSize">
+                             <size>
+                              <width>120</width>
+                              <height>0</height>
+                             </size>
+                            </property>
+                            <property name="maximumSize">
+                             <size>
+                              <width>120</width>
+                              <height>16777215</height>
+                             </size>
+                            </property>
+                            <property name="text">
+                             <string>DynamoRIO</string>
+                            </property>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QCheckBox" name="showVisCheck">
+                         <property name="toolTip">
+                          <string>Check to immediately switch to the visualiser pane on launch</string>
+                         </property>
+                         <property name="statusTip">
+                          <string>Check to immediately switch to the visualiser pane on launch</string>
+                         </property>
+                         <property name="text">
+                          <string>Switch to visualiser</string>
+                         </property>
+                         <property name="checked">
+                          <bool>true</bool>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
                      </item>
                      <item>
                       <widget class="QFrame" name="warnTraceBtnFrame">
@@ -2728,7 +2788,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>995</width>
+     <width>1006</width>
      <height>21</height>
     </rect>
    </property>

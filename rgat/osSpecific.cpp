@@ -204,6 +204,89 @@ bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath)
 	return true;
 }
 
+
+//get command line string of pin executable + client dll + options
+bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
+{
+	//get dynamorio exe from path in settings
+	//todo: check this works with spaces in the path
+	boost::filesystem::path PINPath = config->PinDir;
+	PINPath.append("pin.exe");
+
+	//not there - try finding it in rgats directory
+	if (!boost::filesystem::exists(PINPath))
+	{
+		cerr << "[rgat] ERROR: Failed to find pin executable at " << PINPath << " listed in config file" << endl;
+
+		boost::filesystem::path modPathPin = getModulePath() + "\\pin\\pin.exe";
+		if ((modPathPin != PINPath) && boost::filesystem::exists(modPathPin))
+		{
+			PINPath = modPathPin;
+			cout << "[rgat] Found pin executable at " << PINPath << ", continuing..." << endl;
+		}
+		else
+		{
+			cerr << "[rgat]ERROR: Also failed to find DynamoRIO executable at default " << modPathPin << endl;
+			return false;
+		}
+	}
+
+	//get the rgat instrumentation client
+	boost::filesystem::path pingatPath = config->clientPath;
+	if (is64Bits)
+		pingatPath += "pingat64";
+	else
+		pingatPath += "pingat";
+
+	if (launchopts->debugLogging)
+		pingatPath += "-debug";
+	pingatPath += ".dll";
+
+	if (!boost::filesystem::exists(pingatPath))
+	{
+		cerr << "Unable to find pingat dll at " << pingatPath << " listed in config file" << endl;
+		string pingatPath2 = getModulePath();
+
+		if (is64Bits)
+			pingatPath2 += "\\pingat64";
+		else
+			pingatPath2 += "\\pingat";
+
+		if (launchopts->debugLogging)
+			pingatPath2 += "-debug";
+
+		pingatPath2 += ".dll";
+
+		if ((pingatPath2 != pingatPath) && boost::filesystem::exists(pingatPath2))
+		{
+			pingatPath = pingatPath2;
+			cout << "[rgat] Succeeded in finding pingat dll at " << pingatPath2 << endl;
+		}
+		else
+		{
+			cerr << "[rgat] Failed to find pingat dll in default path " << pingatPath2 << endl;
+			return false;
+		}
+	}
+
+
+	stringstream finalCommandline;
+	finalCommandline << PINPath.string();	
+
+	if (launchopts->pause)
+		finalCommandline << " -pause_tool 10 ";
+
+	string pinArgs = "";// " -thread_private "; //todo: allow user to tweak dr options
+						//string drrunArgs = " -debug -thread_private "; //todo: allow user to tweak dr options
+	finalCommandline << pinArgs;
+
+	finalCommandline << " -t \"" << pingatPath.string() << "\"";
+
+	*path = finalCommandline.str();
+	return true;
+}
+
+
 bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
 {
 	boost::filesystem::path dynamoRioPath;
@@ -263,6 +346,82 @@ eExeCheckResult check_excecutable_type(string executable)
 	}
 }
 
+bool createHandleInProcess(PID_TID targetpid, HANDLE localhandle, HANDLE &remotehandle)
+{
+	HANDLE thisprocess = OpenProcess(PROCESS_DUP_HANDLE, false, GetCurrentProcessId());
+	HANDLE thatprocess = OpenProcess(PROCESS_DUP_HANDLE, false, targetpid);
+
+	return DuplicateHandle(thisprocess, localhandle, thatprocess, &remotehandle, 0, 0, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
+}
+
+bool createInputOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle)
+{
+	localHandle = CreateNamedPipe(pipepath.c_str(),
+		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+		255, 65536, 65536, 0, NULL);
+
+	HANDLE pipeOtherEnd = CreateFile(pipepath.c_str(), GENERIC_WRITE | GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+
+	if (localHandle == INVALID_HANDLE_VALUE || pipeOtherEnd == INVALID_HANDLE_VALUE)
+	{
+		cerr << "[rgat]createInputPipe failed with error " << GetLastError() << endl;
+		return false;
+	}
+
+	if (!createHandleInProcess(pid, pipeOtherEnd, remoteHandle))
+	{
+		cerr << "Failed to create handles in process " << pid << " err: " << GetLastError() << endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool createInputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle, DWORD inputsize)
+{
+	localHandle = CreateNamedPipe(pipepath.c_str(),
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+		255, inputsize, 1, 0, NULL);
+
+	HANDLE pipeOtherEnd = CreateFile(pipepath.c_str(), GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
+
+	if (localHandle == INVALID_HANDLE_VALUE || pipeOtherEnd == INVALID_HANDLE_VALUE)
+	{
+		cerr << "[rgat]createInputPipe failed with error " << GetLastError() << endl;
+		return false;
+	}
+
+	if (!createHandleInProcess(pid, pipeOtherEnd, remoteHandle))
+	{
+		cerr << "Failed to create handles in process " << pid << " err: " << GetLastError() << endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool createOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle)
+{
+	localHandle = CreateNamedPipe(pipepath.c_str(),
+		PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE,
+		255, 65536, 65536, 0, NULL);
+
+	HANDLE pipeOtherEnd = CreateFile(pipepath.c_str(), GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+
+	if (localHandle == INVALID_HANDLE_VALUE || pipeOtherEnd == INVALID_HANDLE_VALUE)
+	{
+		cerr << "[rgat]createOutputPipe failed with error " << GetLastError() << endl;
+		return false;
+	}
+
+	if (!createHandleInProcess(pid, pipeOtherEnd, remoteHandle))
+	{
+		cerr << "Failed to create handles in process " << pid << " err: " << GetLastError() << endl;
+		return false;
+	}
+
+	return true;
+}
 
 #endif // WIN32
 

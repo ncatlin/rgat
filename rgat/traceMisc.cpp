@@ -50,14 +50,12 @@ string generate_funcArg_string(string sym, ARGLIST *args)
 //takes "MARKERBXXXX" char buf
 //if "MARKER" matches marker, converts XXXX to integer and places in pid
 //returns bitwidth or 0 for failure
-cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TID *pid, int *PID_ID, boost::filesystem::path* binarypath)
+cs_mode extract_pid_bitwidth_path(string inputbuf, string marker, PID_TID *pid, int *PID_ID, boost::filesystem::path* binarypath)
 {
-
-	std::string pipeinput(char_buf->begin(), char_buf->end());
-	if (pipeinput.substr(0, marker.length()) != marker) return (cs_mode)0;
+	if (inputbuf.substr(0, marker.length()) != marker) return (cs_mode)0;
 
 	cs_mode bitWidth;
-	char bitWidthChar = pipeinput.at(marker.length());
+	char bitWidthChar = inputbuf.at(marker.length());
 	if (bitWidthChar == '3')
 		bitWidth = CS_MODE_32;
 	else if (bitWidthChar == '6')
@@ -67,13 +65,13 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 
 	int pos;
 	//go to the PID string
-	for (pos = marker.length() + 1; pos < pipeinput.length(); pos++)
+	for (pos = marker.length() + 1; pos < inputbuf.length(); pos++)
 	{
-		if (pipeinput.at(pos) == 'r') { break; }
+		if (inputbuf.at(pos) == 'r') { break; }
 	}
 
 	std::string::size_type sz = 0;
-	string pidstring = pipeinput.substr(marker.length() + 1, pos);
+	string pidstring = inputbuf.substr(marker.length() + 1, pos);
 	try {
 		*pid = std::stoul(pidstring, &sz);
 	}
@@ -81,14 +79,14 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 		sz = 0;
 	}
 
-	if (sz == 0) return (cs_mode)0;
+	if (sz == 0 || (PID_ID == NULL)) return (cs_mode)0;
 
 	//go to the random int ID string
 	int pos2 = pos + 1;
-	for (; pos2 < pipeinput.length(); pos2++)
-		if (pipeinput.at(pos2) == 'p') { break; }
+	for (; pos2 < inputbuf.length(); pos2++)
+		if (inputbuf.at(pos2) == 'p') { break; }
 
-	string randstring = pipeinput.substr(pos + 1, pos2 - pos - 1);
+	string randstring = inputbuf.substr(pos + 1, pos2 - pos - 1);
 	try {
 		*PID_ID = std::stoi(randstring);
 	}
@@ -98,7 +96,7 @@ cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TI
 
 	if (sz == 0) return (cs_mode)0;
 
-	string pathstring = pipeinput.substr(pos2 + 1, pipeinput.length());
+	string pathstring = inputbuf.substr(pos2 + 1, inputbuf.length());
 	boost::filesystem::path boostpath(pathstring);
 	*binarypath = boostpath.generic_path();
 	return bitWidth;

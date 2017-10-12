@@ -21,7 +21,7 @@ It also launches trace reader and handler threads when the process spawns a thre
 */
 
 #include "stdafx.h"
-#include "drgat_module_handler.h"
+#include "gat_module_handler.h"
 #include "traceMisc.h"
 #include "trace_graph_builder.h"
 #include "thread_trace_reader.h"
@@ -32,47 +32,55 @@ It also launches trace reader and handler threads when the process spawns a thre
 #include <boost/filesystem.hpp>
 
 //listen to module data for given process
-void drgat_module_handler::main_loop()
+void gat_module_handler::main_loop()
 {
 	alive = true;
 
-
-
-	inputpipename.append(runRecord->getModpathID());
-	HANDLE hPipe = CreateNamedPipe(inputpipename.c_str(),
-		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-		255, 64, 56 * 1024, 0, NULL);
-
-	OVERLAPPED ov = { 0 };
-	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-
-	if (ConnectNamedPipe(hPipe, &ov) || !ov.hEvent)
+	if (!inputPipe)
 	{
-		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << inputpipename << " for PID "<< runRecord->getPID() << ". Error: " << GetLastError();
-		alive = false;
-		return;
+		inputpipename.append(runRecord->getModpathID());
+		inputPipe = CreateNamedPipe(inputpipename.c_str(),
+			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+			255, 64, 56 * 1024, 0, NULL);
+		if (inputPipe == INVALID_HANDLE_VALUE)
+		{
+			wcerr << "[rgat]ERROR: module handler could not create named pipe " << inputpipename << " err: "<< GetLastError() << endl;
+			return;
+		}
+
+		OVERLAPPED ov = { 0 };
+		ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+		if (ConnectNamedPipe(inputPipe, &ov) || !ov.hEvent)
+		{
+			wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << inputpipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
+			alive = false;
+			return;
+		}
+
+		while (!die)
+		{
+			if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT)
+				break;
+			wcerr << "[rgat]WARNING: Long wait for module handler pipe " << inputpipename << endl;
+		}
+		if (die) { alive = false;  return; }
+
+
+		wstring controlpipename = wstring(L"\\\\.\\pipe\\");
+		controlpipename.append(L"rioControl");
+		controlpipename.append(runRecord->getModpathID());
+		controlPipe = CreateNamedPipe(controlpipename.c_str(), PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
+			255, 64, 56 * 1024, 0, NULL);
+
+		if (!WaitNamedPipe(controlpipename.c_str(), 20000))
+		{
+			wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << controlpipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
+			alive = false;
+			return;
+		}
 	}
 
-	while (!die)
-	{
-		if (WaitForSingleObject(ov.hEvent, 1000) != WAIT_TIMEOUT) 
-			break;
-		wcerr << "[rgat]WARNING: Long wait for module handler pipe " << inputpipename << endl;
-	}
-	if (die) {	alive = false;  return;	}
-
-	wstring controlpipename = wstring(L"\\\\.\\pipe\\");
-	controlpipename.append(L"rioControl");
-	controlpipename.append(runRecord->getModpathID());
-	controlPipe = CreateNamedPipe(controlpipename.c_str(), PIPE_ACCESS_OUTBOUND, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-		255, 64, 56 * 1024, 0, NULL);
-
-	if (!WaitNamedPipe(controlpipename.c_str(), 20000))
-	{
-		wcerr << "[rgat]ERROR: Failed to ConnectNamedPipe to " << controlpipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
-		alive = false;
-		return;
-	}
 
 	piddata = runRecord->get_piddata();
 	runRecord->set_running(true);
@@ -100,7 +108,7 @@ void drgat_module_handler::main_loop()
 	while (true)
 	{
 		DWORD bread = 0;
-		ReadFile(hPipe, buf, 399, &bread, &ov2);
+		ReadFile(inputPipe, buf, 399, &bread, &ov2);
 		while (true)
 		{
 			int res = WaitForSingleObject(ov2.hEvent, 300);
@@ -118,7 +126,7 @@ void drgat_module_handler::main_loop()
 			}
 		}
 		
-		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
+		int res2 = GetOverlappedResult(inputPipe, &ov2, &bread, false);
 		buf[bread] = 0;
 	
 		if (!bread)
@@ -144,7 +152,29 @@ void drgat_module_handler::main_loop()
 
 				if (runRecord->getTraceType() == eTracePurpose::eVisualiser)
 				{
-					start_thread_rendering(TID);
+
+					wstring pipename(L"\\\\.\\pipe\\rioThread");
+					pipename.append(std::to_wstring(TID));
+
+					const wchar_t* szName = pipename.c_str();
+					HANDLE threadpipeThisEnd, threadpipeTheirEnd;
+
+					createInputPipe(runRecord->getPID(), pipename, threadpipeThisEnd, threadpipeTheirEnd, 1024 * 1024);
+
+					const int returnbufsize = sizeof(HANDLE) + 2;
+					char returnBuf[returnbufsize];
+					returnBuf[0] = '@';
+					returnBuf[1 + sizeof(HANDLE)] = '@';
+					memcpy(returnBuf + 1, &threadpipeTheirEnd, sizeof(HANDLE));
+
+					DWORD byteswritten = 0;
+					WriteFile(inputPipe, returnBuf, returnbufsize, &byteswritten, &ov2);
+
+					if (byteswritten == returnbufsize)
+						start_thread_rendering(TID, threadpipeThisEnd);
+					else
+						cerr << "[rgat] Error: Failed to send remote handle to thread function" << endl;
+
 					continue;
 				}
 
@@ -308,10 +338,12 @@ void drgat_module_handler::main_loop()
 	runRecord->notify_pid_end(runRecord->PID, runRecord->randID);
 	runRecord->set_running(false); //the process is done
 	clientState->processEnded();
+
+	CloseHandle(inputPipe);
 	alive = false; //this thread is done
 }
 
-void  drgat_module_handler::start_thread_rendering(PID_TID TID)
+void gat_module_handler::start_thread_rendering(PID_TID TID, HANDLE threadpipe)
 {
 	proto_graph *newProtoGraph = new proto_graph(runRecord, TID);
 	plotted_graph* newPlottedGraph = (plotted_graph *)clientState->createNewPlottedGraph(newProtoGraph);
@@ -319,7 +351,7 @@ void  drgat_module_handler::start_thread_rendering(PID_TID TID)
 	newPlottedGraph->initialiseDefaultDimensions();
 	newPlottedGraph->set_animation_update_rate(clientState->config.animationUpdateRate);
 
-	thread_trace_reader *TID_reader = new thread_trace_reader(newProtoGraph);
+	thread_trace_reader *TID_reader = new thread_trace_reader(newProtoGraph, threadpipe);
 	TID_reader->traceBufMax = clientState->config.traceBufMax;
 	newProtoGraph->setReader(TID_reader);
 

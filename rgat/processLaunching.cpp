@@ -5,7 +5,9 @@
 #include "ui_rgat.h"
 #include "osSpecific.h"
 #include <thread>
-
+//#include <QtNetwork\qnetworkdatagram.h>
+#include <QtNetwork\qtcpsocket.h>
+#include <QtNetwork\qtcpserver.h>
 
 #define PIDSTRING_BUFSIZE MAX_PATH + 100
 
@@ -14,20 +16,26 @@
 
 void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState)
 {
+	PIN_PIPES localhandles = { NULL, NULL, NULL };
+	launch_new_visualiser_threads(target, runRecord, clientState, localhandles);
+}
+
+void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState, PIN_PIPES localhandles)
+{
 	//spawns trace threads + handles module data for process
-	drgat_module_handler *tPIDThread = new drgat_module_handler(target, runRecord, L"rioThreadMod");
+	gat_module_handler *tPIDThread = new gat_module_handler(target, runRecord, L"rgatThreadMod", localhandles.modpipe, localhandles.controlpipe);
 
 	RGAT_THREADS_STRUCT *processThreads = new RGAT_THREADS_STRUCT;
 	runRecord->processThreads = processThreads;
-	std::thread modthread(&drgat_module_handler::ThreadEntry, tPIDThread);
+	std::thread modthread(&gat_module_handler::ThreadEntry, tPIDThread);
 	modthread.detach();
 	processThreads->modThread = tPIDThread;
 	processThreads->threads.push_back(tPIDThread);
 
 	//handles new disassembly data
-	drgat_basicblock_handler *tBBHandler = new drgat_basicblock_handler(target, runRecord, L"rioThreadBB");
+	gat_basicblock_handler *tBBHandler = new gat_basicblock_handler(target, runRecord, L"rgatThreadBB", localhandles.bbpipe);
 
-	std::thread bbthread(&drgat_basicblock_handler::ThreadEntry, tBBHandler);
+	std::thread bbthread(&gat_basicblock_handler::ThreadEntry, tBBHandler);
 	bbthread.detach();
 	processThreads->BBthread = tBBHandler;
 	processThreads->threads.push_back(tBBHandler);
@@ -61,58 +69,59 @@ void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord,
 
 //respond to a new trace notification by creating a target (if not already existing) and a new trace for it 
 //along with threads to process that trace
-void process_new_drgat_connection(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList, vector <char> *buf)
+void process_new_drgat_connection(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList, string buf)
 {
 	PID_TID PID = 0;
 	boost::filesystem::path binarypath;
 	int PID_ID;
 	cs_mode bitWidth = extract_pid_bitwidth_path(buf, string("PID"), &PID, &PID_ID, &binarypath);
-	if (bitWidth)
-	{
-		PID_TID parentPID = getParentPID(PID);
-
-		binaryTarget *target;
-		binaryTargets *container;
-
-		if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
-			container = &clientState->testTargets;
-		else
-			container = &clientState->targets;
-
-		container->getTargetByPath(binarypath, &target);
-
-		target->applyBitWidthHint(bitWidth);
-
-
-		traceRecord *trace = target->createNewTrace(PID, PID_ID, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-		trace->setTraceType(eTracePurpose::eVisualiser);
-		trace->notify_new_pid(PID, PID_ID, parentPID);
-
-		container->registerChild(parentPID, trace);
-
-		launch_new_visualiser_threads(target, trace, clientState);
-
-		threadsList->push_back((RGAT_THREADS_STRUCT *)trace->processThreads);
-
-		if (clientState->waitingForNewTrace)
-		{
-			clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->PID), 5000);
-			clientState->switchTrace = trace;
-			clientState->waitingForNewTrace = false;
-		}
-
-	}
-	else
+	if (!bitWidth)
 	{
 		cerr << "[rgat]Bad bitwidth " << bitWidth << " or path " << binarypath << endl;
+		return;
 	}
+
+	PID_TID parentPID = getParentPID(PID);
+
+	binaryTarget *target;
+	binaryTargets *container;
+
+	if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
+		container = &clientState->testTargets;
+	else
+		container = &clientState->targets;
+
+	container->getTargetByPath(binarypath, &target);
+
+	target->applyBitWidthHint(bitWidth);
+
+	traceRecord *trace = target->createNewTrace(PID, PID_ID, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+	trace->setTraceType(eTracePurpose::eVisualiser);
+	trace->notify_new_pid(PID, PID_ID, parentPID);
+
+	container->registerChild(parentPID, trace);
+
+
+	launch_new_visualiser_threads(target, trace, clientState);
+
+	threadsList->push_back((RGAT_THREADS_STRUCT *)trace->processThreads);
+
+	if (clientState->waitingForNewTrace)
+	{
+		clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->PID), 5000);
+		clientState->switchTrace = trace;
+		clientState->waitingForNewTrace = false;
+	}
+
 }
 
 
 
 
+
+
 //read notifications of new traces from drgat clients over the bootstrap pipe
-bool read_drgat_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
+bool readpipe_drgat_newPID(string &resultstring, HANDLE hPipe, OVERLAPPED *ov)
 {
 
 	bool conFail = ConnectNamedPipe(hPipe, ov);
@@ -126,19 +135,18 @@ bool read_drgat_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	int err = GetLastError();
 	if (err == ERROR_IO_PENDING || err == ERROR_PIPE_LISTENING) 
 	{
-		if (WaitForSingleObject(ov->hEvent, 3000) == WAIT_TIMEOUT)
+		if (WaitForSingleObject(ov->hEvent, 500) == WAIT_TIMEOUT)
 		{
-			Sleep(100);
 			return false;
 		}
 	}
 
-	buf->clear();
-	buf->resize(PIDSTRING_BUFSIZE-1, 0);
+	vector <char> inbuf;
+	inbuf.resize(PIDSTRING_BUFSIZE-1, 0);
 	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &buf->at(0), buf->size(), &bread, NULL);
+	bool success = ReadFile(hPipe, &inbuf.at(0), inbuf.size(), &bread, NULL);
 	DisconnectNamedPipe(hPipe);
-	buf->resize(bread, 0);
+	inbuf.resize(bread, 0);
 
 	if (!success || !bread)
 	{
@@ -147,36 +155,141 @@ bool read_drgat_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 		return false;
 	}
 
+	resultstring = string(inbuf.begin(), inbuf.end());
 	return true;
 }
+
+#define SHAREDMEM_READY_FOR_USE 4
+void create_pipes_for_pin(PID_TID PID, int PID_ID, void *sharedMem, PIN_PIPES &localHandles)
+{
+	CreateNamedPipe(L"\\\\.\\pipe\\mushington",
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
+		255, 65536, 65536, 0, NULL);
+
+	wstring pipeNameBase = L"\\\\.\\pipe\\";
+	pipeNameBase += to_wstring(PID_ID);
+	HANDLE remoteModpipeHandle, remoteBBpipeHandle, remoteCtrlPipeHandle;
+
+	wstring pipepath = pipeNameBase + L"mod";
+	if (!createInputOutputPipe(PID, pipepath, localHandles.modpipe, remoteModpipeHandle))
+		return;
+
+	pipepath = pipeNameBase + L"bb";
+	if (!createInputPipe(PID, pipepath, localHandles.bbpipe, remoteBBpipeHandle))
+		return;
+
+	pipepath = pipeNameBase + L"ctrl";
+	if (!createOutputPipe(PID, pipepath, localHandles.controlpipe, remoteCtrlPipeHandle))
+		return;
+
+	//copy the remote handles to mapped file for pin to use
+	int memoffset = 1;
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteModpipeHandle, sizeof(HANDLE));
+	memoffset += sizeof(HANDLE);
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteBBpipeHandle, sizeof(HANDLE));
+	memoffset += sizeof(HANDLE);
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteCtrlPipeHandle, sizeof(HANDLE));
+
+	//tell pin we are done writing the handles
+	(*((char *)sharedMem + 0)) = SHAREDMEM_READY_FOR_USE;
+}
+
+
+void process_new_pin_connection(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList, void *sharedMem)
+{
+
+	string connectString = string((char *)sharedMem + 1);
+
+	PID_TID PID = 0;
+	boost::filesystem::path binarypath;
+	int PID_ID;
+	cs_mode bitWidth = extract_pid_bitwidth_path(connectString, string("PID"), &PID, &PID_ID, &binarypath);
+
+	PIN_PIPES localHandles;
+	create_pipes_for_pin(PID, PID_ID, sharedMem, localHandles);
+
+	PID_TID parentPID = getParentPID(PID); //todo: pin can do this
+
+	binaryTarget *target;
+	binaryTargets *container;
+
+	if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
+		container = &clientState->testTargets;
+	else
+		container = &clientState->targets;
+
+	container->getTargetByPath(binarypath, &target);
+
+	target->applyBitWidthHint(bitWidth);
+
+	traceRecord *trace = target->createNewTrace(PID, PID_ID, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+	trace->setTraceType(eTracePurpose::eVisualiser);
+	trace->notify_new_pid(PID, PID_ID, parentPID);
+
+	container->registerChild(parentPID, trace);
+
+
+	launch_new_visualiser_threads(target, trace, clientState, localHandles);
+
+	threadsList->push_back((RGAT_THREADS_STRUCT *)trace->processThreads);
+
+	if (clientState->waitingForNewTrace)
+	{
+		clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->PID), 5000);
+		clientState->switchTrace = trace;
+		clientState->waitingForNewTrace = false;
+	}
+
+}
+
 
 //listens for traces on the bootstrap pipe
 void process_coordinator_listener(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList)
 {
-	//todo: posibly worry about pre-existing if pidthreads dont work
-	HANDLE hPipe = CreateNamedPipe(L"\\\\.\\pipe\\BootstrapPipe",
-			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
-			255, 65536, 65536, 0, NULL);
+	
+	HANDLE hMapFile;
+	void* pBuf;
+	cout << "pcl - " << getModulePath() << endl;
 
-	if (hPipe == INVALID_HANDLE_VALUE)
+	boost::filesystem::path lockpath = clientState->config.clientPath;
+	lockpath += "\\bootstrapMap";
+
+	HANDLE diskfile = CreateFileA(lockpath.string().c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (diskfile == INVALID_HANDLE_VALUE)
 	{
-		cerr << "[rgat]CreateNamedPipe failed with error " << GetLastError() << endl;
+		cerr << "[rgat] Error: Failed to create mapfile on disk" << endl;
 		return;
 	}
+	hMapFile = CreateFileMappingA(
+		diskfile,    // use paging file
+		NULL,                    // default security
+		PAGE_READWRITE,          // read/write access
+		0,                       // maximum object size (high-order DWORD)
+		1024,                // maximum object size (low-order DWORD)
+		NULL);                 // name of mapping object, pin can't access it
 
-	OVERLAPPED ov = { 0 };
-	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+	if (hMapFile == NULL)
+	{
+		cout << "Could not create file mapping object (" << GetLastError() << ")" << endl;
+		return;
+	}
+	
+	pBuf = MapViewOfFile(hMapFile,  FILE_MAP_ALL_ACCESS,0,0,1024);
+	memset(pBuf, 31, 1024);
 
-	vector <char> buf;
+	string buf;
 	buf.resize(PIDSTRING_BUFSIZE, 0);
 	while (!clientState->rgatIsExiting())
 	{
-		if (read_drgat_newPID_sleepy(&buf, hPipe, &ov))
+		int statusc = (char)(*((char *)pBuf));
+		if (statusc == 2)
 		{
-			process_new_drgat_connection(clientState, threadsList, &buf);
+			process_new_pin_connection(clientState, threadsList, pBuf);
 		}
+		Sleep(500);
 	}
 }
+
 #endif // WIN32
 
 //spawns the trace handler then cleans up after it on exit
@@ -266,15 +379,22 @@ string get_options(LAUNCHOPTIONS *launchopts)
 }
 
 //take the target binary path, feed it into dynamorio with all the required options
-void execute_tracer(void *binaryTargetPtr, clientConfig *config)
+void execute_tracer(void *binaryTargetPtr, clientConfig *config, bool pin = true)
 {
 	if (!binaryTargetPtr) return;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
 	LAUNCHOPTIONS *launchopts = &target->launchopts;
 	string runpath;
-	if (!get_dr_drgat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64)))
+
+	bool success;
+	if (pin)
+		success = get_pin_pingat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64));
+	else
+		success = get_dr_drgat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64));
+	if(!success)
 		return;
+	
 
 	runpath.append(get_options(launchopts));
 	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;

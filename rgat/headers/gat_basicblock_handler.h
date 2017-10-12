@@ -21,21 +21,27 @@ Header for the thread that processes basic block data
 #include "traceStructs.h"
 #include "base_thread.h"
 
-class drgat_basicblock_handler : public base_thread
+class gat_basicblock_handler : public base_thread
 {
 public:
-	drgat_basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
+	gat_basicblock_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid, HANDLE bbpipe)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
 		int bitwidth = binary->getBitWidth();
 		assert(bitwidth);
 		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
 
-		pipename = wstring(L"\\\\.\\pipe\\");// rioThreadBB");
 
+		if (bbpipe)
+		{
+			inputPipe = bbpipe;
+		}
+		else
+		{
+			pipename = wstring(L"\\\\.\\pipe\\");
+			pipename += pipeid;
+		}
 
-
-		pipename += pipeid;
 	};
 
 	wstring pipename;
@@ -45,4 +51,6 @@ private:
 	traceRecord* runRecord;
 	cs_mode disassemblyBitwidth;
 	void main_loop();
+
+	HANDLE inputPipe = NULL;
 };

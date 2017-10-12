@@ -158,7 +158,7 @@ void fuzzRun::main_loop()
 	//gather options
 	boost::filesystem::path pinDirPath;
 	if (!get_pindir_path(&clientState->config, &pinDirPath)) {
-		cerr << "[rgat] Failed to find dynamorio directory." << endl;
+		cerr << "[rgat] Failed to find pin directory." << endl;
 		return;
 	}
 
@@ -171,7 +171,7 @@ void fuzzRun::main_loop()
 		return;
 	}
 
-	boost::filesystem::path shrikepath("C:\\Users\\nia\\Documents\\Visual Studio 2017\\Projects\\shrikePinTool\\x64\\Release\\shrikePin.dll");
+	boost::filesystem::path shrikepath("C:\\Users\\nia\\Documents\\Visual Studio 2017\\Projects\\rgatPinClients\\shrikePinTool\\x64\\Release\\shrikePin.dll");
 	if (!boost::filesystem::exists(shrikepath))	{
 		cerr << "shrike.dll library at " << shrikepath.string() << " does not exist. Quitting." << endl;
 		return;

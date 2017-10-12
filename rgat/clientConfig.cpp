@@ -68,6 +68,10 @@ void clientConfig::loadPaths()
 	if (DRDir.empty() || !boost::filesystem::is_directory(DRDir))
 		setDefaultDRPath();
 
+	PinDir = QSettingsObj->value("Paths/PIN_PATH").toString().toStdString();
+	if (PinDir.empty() || !boost::filesystem::is_directory(PinDir))
+		setDefaultPinPath();
+
 	clientPath = QSettingsObj->value("Paths/CLIENT_PATH").toString().toStdString();
 	if (clientPath.empty() || !boost::filesystem::is_directory(clientPath))
 		setDefaultClientPath();
@@ -407,6 +411,7 @@ void clientConfig::saveConfig()
 	QSettingsObj->setValue("Paths/DYNAMORIO_PATH", QString::fromStdString(DRDir.string()));
 	QSettingsObj->setValue("Paths/CLIENT_PATH", QString::fromStdString(clientPath.string()));
 	QSettingsObj->setValue("Paths/LAST_PATH", QString::fromStdString(lastPath.string()));
+	QSettingsObj->setValue("Paths/PIN_PATH", QString::fromStdString(PinDir.string()));
 
 
 	saveColours();
@@ -456,6 +461,12 @@ void clientConfig::setDefaultDRPath()
 {
 	DRDir = getModulePath();
 	DRDir.append("\\DynamoRIO\\");
+}
+
+void clientConfig::setDefaultPinPath()
+{
+	PinDir = getModulePath();
+	PinDir.append("\\Pin\\");
 }
 
 void clientConfig::setDefaultClientPath()

@@ -24,21 +24,30 @@ Header for the thread that manages each instrumented process
 #include "traceStructs.h"
 #include "thread_trace_reader.h"
 
-class drgat_module_handler : public base_thread
+class gat_module_handler : public base_thread
 {
 public:
-	drgat_module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid)
+	gat_module_handler(binaryTarget *binaryptr, traceRecord* runRecordptr, wstring pipeid, HANDLE modpipeHandle, HANDLE controlpipeHandle)
 		: base_thread() {
 		binary = binaryptr;  runRecord = runRecordptr;
 
-		inputpipename = wstring(L"\\\\.\\pipe\\");
-		inputpipename += pipeid;
+		if (modpipeHandle && controlpipeHandle)
+		{
+			inputPipe = modpipeHandle;
+			controlPipe = controlpipeHandle;
+		}
+		else
+		{
+			inputpipename = wstring(L"\\\\.\\pipe\\");
+			inputpipename += pipeid;
+		}
 	};
 
 	wstring inputpipename;
 	HANDLE controlPipe;
 
 private:
+	HANDLE inputPipe;
 	binaryTarget *binary;
 	traceRecord* runRecord;
 
@@ -47,5 +56,5 @@ private:
 	PROCESS_DATA *piddata = NULL;
 
 	void main_loop();
-	void start_thread_rendering(PID_TID TID);
+	void start_thread_rendering(PID_TID TID, HANDLE threadpipe);
 };

@@ -27,12 +27,13 @@ class thread_trace_reader : public base_thread
 {
 public:
 
-	thread_trace_reader(proto_graph *graph)
+	thread_trace_reader(proto_graph *graph, HANDLE pipe)
 		: base_thread()
 	{
 		thisgraph = graph;
 		threadID = graph->get_TID();
 		InitializeCriticalSection(&flagCritsec);
+		threadpipe = pipe;
 	}
 
 	thread_trace_reader(PID_TID tid)
@@ -68,6 +69,7 @@ private:
 	bool pipeClosed = false;
 	unsigned int processedData = 0;
 	proto_graph *thisgraph;
+	HANDLE threadpipe = NULL;
 
 	PID_TID threadID;
 };

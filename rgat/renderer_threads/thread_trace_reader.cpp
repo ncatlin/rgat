@@ -126,26 +126,29 @@ bool thread_trace_reader::getBufsState(pair <size_t, size_t> *bufSizes)
 void thread_trace_reader::main_loop()
 {
 	alive = true;
-	wstring pipename(L"\\\\.\\pipe\\rioThread");
-	pipename.append(std::to_wstring(threadID));
-
-	const wchar_t* szName = pipename.c_str();
-	HANDLE hPipe = CreateNamedPipe(szName,
-		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
-		1, //max instances
-		1, //outbuffer
-		1024 * 1024, //inbuffermax
-		1, //timeout?
-		NULL);
-
-	if (hPipe == (HANDLE)-1)
+	if (!threadpipe)
 	{
-		cerr << "[rgat]Error: Could not create pipe in thread handler "<< threadID <<". error:" << GetLastError() << endl;
-		alive = false;
-		return;
-	}
+		wstring pipename(L"\\\\.\\pipe\\rioThread");
+		pipename.append(std::to_wstring(threadID));
 
-	ConnectNamedPipe(hPipe, NULL);
+		const wchar_t* szName = pipename.c_str();
+		threadpipe = CreateNamedPipe(szName,
+			PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
+			1, //max instances
+			1, //outbuffer
+			1024 * 1024, //inbuffermax
+			1, //timeout?
+			NULL);
+
+		if (threadpipe == (HANDLE)-1)
+		{
+			cerr << "[rgat]Error: Could not create pipe in thread handler " << threadID << ". error:" << GetLastError() << endl;
+			alive = false;
+			return;
+		}
+
+		ConnectNamedPipe(threadpipe, NULL);
+	}
 
 	vector <char> tagReadBuf;
 	tagReadBuf.resize(TAGCACHESIZE);
@@ -167,7 +170,7 @@ void thread_trace_reader::main_loop()
 		}
 
 		DWORD available;
-		if(!PeekNamedPipe(hPipe, NULL, NULL, NULL, &available, NULL) || !available)
+		if(!PeekNamedPipe(threadpipe, NULL, NULL, NULL, &available, NULL) || !available)
 		{
 			int GLE = GetLastError();
 			if (GLE == ERROR_BROKEN_PIPE) break;
@@ -175,7 +178,7 @@ void thread_trace_reader::main_loop()
 			continue;
 		}
 
-		if (!ReadFile(hPipe, &tagReadBuf.at(0), tagReadBuf.size(), &bytesRead, NULL))
+		if (!ReadFile(threadpipe, &tagReadBuf.at(0), tagReadBuf.size(), &bytesRead, NULL))
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
@@ -191,7 +194,7 @@ void thread_trace_reader::main_loop()
 		tagReadBuf[bytesRead] = 0;
 		if (tagReadBuf[bytesRead - 1] != '@')
 		{
-			std::string bufstring(tagReadBuf.begin(), tagReadBuf.end());
+			std::string bufstring(tagReadBuf.begin(), tagReadBuf.begin()+ bytesRead);
 			cerr << "[rgat]ERROR: [tid"<< threadID <<"] Improperly terminated trace message recieved ["<< bufstring<<"]. ("<<bytesRead<<" bytes) Terminating." << endl;
 			die = true;
 			break;

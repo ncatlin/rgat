@@ -22,7 +22,7 @@ Misc disassembly and conversion functions
 #include "traceStructs.h"
 
 //input: char buffer containing it, number ends, target pointer to fill
-cs_mode extract_pid_bitwidth_path(vector <char> *char_buf, string marker, PID_TID *pid, int *PID_ID, boost::filesystem::path *binarypath);
+cs_mode extract_pid_bitwidth_path(string inputbuf, string marker, PID_TID *pid, int *PID_ID, boost::filesystem::path *binarypath);
 int extract_tid(char *char_buf, string marker, PID_TID *tid);
 
 int caught_stoi(string s, int *result, int base);
