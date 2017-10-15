@@ -26,6 +26,7 @@ disassembles it using Capstone and makes it available to the graph renderer
 #include "traceStructs.h"
 #include "OSspecific.h"
 
+#define LARGEST_INSTRUCTION_SIZE 15
 
 //listen to BB data for given PID
 void gat_basicblock_handler::main_loop()
@@ -88,6 +89,8 @@ void gat_basicblock_handler::main_loop()
 		assert(false);
 	}
 
+	const int pointerSize = (binary->getBitWidth() == 64) ? 8 : 4;
+
 	//string savedbuf;
 	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while (!die && !runRecord->should_die())
@@ -131,57 +134,46 @@ void gat_basicblock_handler::main_loop()
 
 		//savedbuf = buf;
 		buf[bread] = 0;
-		if (buf[0] == 'B')
+		int bufPos = 0;
+		if (buf[bufPos++] == 'B')
 		{
-			char *next_token = &buf.at(1);
-			size_t i = 0;
-			/*
-			important TODO: these char*->string->long/int operations are very very slow. use something better
-			see http://stackoverflow.com/questions/16826422/c-most-efficient-way-to-convert-string-to-int-faster-than-atoi
-			...but 16 bit
-			*/
-			char *start_s = strtok_s(next_token, "@", &next_token); //start addr
-			MEM_ADDRESS targetaddr;
-			targetaddr = atol(start_s);
-			if (!caught_stoull(string(start_s), &targetaddr, 16)) {
-				cerr << "[rgat]bb start_s stol error: " << start_s << endl;
-				assert(0);
-			}
-			
-			char *modnum_s = strtok_s(next_token, "@", &next_token);
-			int localmodnum;
-			if (!caught_stoi(string(modnum_s), &localmodnum, 10)) {
-				cerr << "[rgat]bb modnum stoi error: " << modnum_s << endl;
-				assert(0);
-			}
-			long globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
+			MEM_ADDRESS targetaddr;			
+			UINT32 localmodnum;
+			long globalModNum;
+			uint8_t InsOpcodesBuf[15];
 
+			memcpy(&targetaddr, &buf.at(bufPos), pointerSize);			
+			bufPos += pointerSize;
+			assert(buf.at(bufPos++) == '@');
+			memcpy(&localmodnum, &buf.at(bufPos), sizeof(UINT32));
+			bufPos += sizeof(UINT32);
+			assert(buf.at(bufPos++) == '@');
+
+			globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(localmodnum)->first;
 			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
-			char *instrumented_s = strtok_s(next_token, "@", &next_token);
+			char instrumentedStatusByte = buf[bufPos++];
+
 			bool instrumented, dataExecution = false;
-			if (instrumented_s[0] == UNINSTRUMENTED_CODE)
+			if (instrumentedStatusByte == UNINSTRUMENTED_CODE)
 				instrumented = false;
 			else 
 			{
 				instrumented = true;
-				if (instrumented_s[0] == CODE_IN_DATA_AREA)
+				if (instrumentedStatusByte == CODE_IN_DATA_AREA)
 					dataExecution = true;
 			}
 			
-			char *blockID_s = strtok_s(next_token, "@", &next_token);
 			BLOCK_IDENTIFIER blockID;
-			if (!caught_stoul(string(blockID_s), &blockID, 16)) {
-				cerr << "[rgat]bb blockID stoi error: " << blockID_s << endl;
-				assert(0);
-			};
+			memcpy(&blockID, &buf.at(bufPos), sizeof(BLOCK_IDENTIFIER));
+			bufPos += sizeof(BLOCK_IDENTIFIER);
 
 			//logf << "blockaddr: " << start_s << " module : " <<modnum << " instrumented: "<<instrumented<<endl;
 
 			if (!instrumented)
 			{
-				BB_DATA *bbdata = new BB_DATA;
+				ROUTINE_STRUCT *bbdata = new ROUTINE_STRUCT;
 				bbdata->globalmodnum = globalModNum;
 
 				piddata->getExternDictWriteLock();
@@ -203,11 +195,14 @@ void gat_basicblock_handler::main_loop()
 			MEM_ADDRESS insaddr = targetaddr;
 			while (true)
 			{
-				if (!next_token || next_token[0] == NULL) 
+
+				if (buf.at(bufPos++) != '@')
 					break;
+				char insByteCount = buf.at(bufPos++);
+				assert(insByteCount < 16);
+
 				INS_DATA *instruction = NULL;
 
-				string opcodes(strtok_s(next_token, "@", &next_token));
 
 				piddata->getDisassemblyWriteLock();
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
@@ -216,7 +211,10 @@ void gat_basicblock_handler::main_loop()
 					instruction = addressDissasembly->second.back();
 					//if address has been seen but opcodes are not same as most recent, disassemble again
 					//might be a better to check all mutations instead of most recent
-					if (instruction->opcodes != opcodes) 
+
+					bool differentInstruction = ((instruction->numbytes != insByteCount) || 
+													!memcmp(instruction->opcodes, &buf.at(bufPos), insByteCount));
+					if (differentInstruction)
 						instruction = NULL;
 				}
 				else
@@ -229,7 +227,9 @@ void gat_basicblock_handler::main_loop()
 				if (!instruction)
 				{
 					instruction = new INS_DATA;
-					instruction->opcodes = opcodes;
+					instruction->opcodes = (uint8_t *)malloc(insByteCount);
+					memcpy(instruction->opcodes, &buf.at(bufPos), insByteCount);
+					instruction->numbytes = insByteCount;
 					instruction->globalmodnum = globalModNum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));
@@ -237,7 +237,7 @@ void gat_basicblock_handler::main_loop()
 					if (piddata->modsymsPlain.count(globalModNum) && piddata->modsymsPlain.at(globalModNum).count(targetaddr))
 						instruction->hasSymbol = true;
 
-					if (!disassemble_ins(hCapstone, opcodes, instruction, insaddr)) 
+					if (!disassemble_ins(hCapstone, instruction, insaddr)) 
 					{
 						cerr << "[rgat]ERROR: Bad dissasembly in PID: " << runRecord->getPID() << ". Corrupt trace?" << endl;
 						assert(0);
@@ -251,12 +251,20 @@ void gat_basicblock_handler::main_loop()
 				piddata->dropDisassemblyWriteLock();
 
 				insaddr += instruction->numbytes;
-				if (next_token >= &buf.at(bread)) break;
-				++i;
+				bufPos += instruction->numbytes;
 			}
 
 			piddata->getDisassemblyWriteLock();
-			piddata->blocklist[targetaddr][blockID] = blockInstructions;
+			piddata->addressBlockMap[targetaddr][blockID] = blockInstructions;
+			if (blockID == piddata->blockList.size())
+			{
+				BLOCK_DESCRIPTOR *bd = new BLOCK_DESCRIPTOR;
+				bd->blockType = eBlockInternal;
+				bd->inslist = blockInstructions;
+				piddata->blockList.push_back(make_pair(targetaddr, bd));
+			}
+			else
+				cout << "other size" << endl;
 			piddata->dropDisassemblyWriteLock();
 			continue;
 		}

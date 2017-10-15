@@ -451,8 +451,10 @@ void plotted_graph::set_node_alpha(NODEINDEX nIdx, GRAPH_DISPLAY_DATA *nodesdata
 bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *nodelist)
 {
 	PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
-	BB_DATA *externBlock = 0;
+	ROUTINE_STRUCT *externBlock = 0;
 	INSLIST * block = piddata->getDisassemblyBlock(blockAddr, blockID, &internalProtoGraph->terminationFlag, &externBlock);
+	if (internalProtoGraph->terminationFlag) return false;
+
 	if (!block && externBlock)
 	{
 		//assume it's an external block, find node in extern call list
@@ -571,7 +573,7 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 		NODEINDEX nextNode;
 		NODEPAIR linkingPair;
 
-		BB_DATA *externBlock = NULL;
+		ROUTINE_STRUCT *externBlock = NULL;
 		INSLIST* nextBlock = piddata->getDisassemblyBlock(entry->targetAddr, entry->targetID, &internalProtoGraph->terminationFlag, &externBlock);
 		//if next block is external code, find its vert
 		if (externBlock)

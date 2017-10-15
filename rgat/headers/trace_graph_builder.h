@@ -38,7 +38,7 @@ struct TAG {
 	unsigned long insCount;
 	//used internally
 	int jumpModifier;
-	BB_DATA* foundExtern = 0;
+	ROUTINE_STRUCT* foundExtern = 0;
 };
 struct FAILEDARGS {
 	int caller;
@@ -112,7 +112,7 @@ private:
 
 	bool find_internal_at_address(MEM_ADDRESS address, int attempts);
 
-	INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);
+	//INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);
 
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void handle_exception_tag(TAG *thistag);

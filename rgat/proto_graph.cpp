@@ -61,10 +61,12 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	assert(!node_exists(targVertID));
 	insert_node(targVertID, thisnode);
 
+	cout << "1";
 	piddata->getDisassemblyWriteLock();
-	instruction->threadvertIdx[tid] = targVertID;
+	instruction->threadvertIdx.insert(make_pair(tid,targVertID));
 	piddata->dropDisassemblyWriteLock();
 
+	cout << "2";
 	lastNode = targVertID; //obsolete
 	return targVertID;
 }

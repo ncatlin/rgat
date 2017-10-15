@@ -90,16 +90,15 @@ struct INS_DATA
 	bool hasSymbol = false;
 
 	MEM_ADDRESS address;
-	unsigned int numbytes;
 	MEM_ADDRESS branchAddress = NULL;
 	MEM_ADDRESS condDropAddress;
-	//thread id, vert idx TODO: make unsigned
 	unordered_map<PID_TID, NODEINDEX> threadvertIdx;
 	unsigned int globalmodnum;
 	unsigned int mutationIndex;
 
 	//this was added later, might be worth ditching other stuff in exchange
-	string opcodes;
+	uint8_t *opcodes;
+	unsigned int numbytes;
 };
 
 struct TESTDATA {
@@ -108,7 +107,7 @@ struct TESTDATA {
 
 typedef vector<INS_DATA *> INSLIST;
 
-struct BB_DATA {
+struct ROUTINE_STRUCT {
 	INSLIST inslist;
 	unsigned int globalmodnum;
 	//list of threads that call this BB
@@ -126,6 +125,15 @@ struct FUNCARG {
 	char *argstr; //content
 };
 
+enum eBlockType{ eBlockInternal, eBlockExernal};
+struct BLOCK_DESCRIPTOR {
+	eBlockType blockType;
+	union {
+		INSLIST * inslist;
+		ROUTINE_STRUCT *externBlock;
+	};
+};
+
 class PROCESS_DATA 
 {
 public:
@@ -137,10 +145,10 @@ public:
 	//bool get_modbase(unsigned int modNum, MEM_ADDRESS &moduleBase);
 
 
-	bool get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts = 1);
+	bool get_extern_at_address(MEM_ADDRESS address, int moduleNum, ROUTINE_STRUCT **BB);
 	void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 	bool load(const rapidjson::Document& saveJSON);
-	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, BB_DATA **externBlock);
+	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, ROUTINE_STRUCT **externBlock);
 
 	vector<boost::filesystem::path> modpaths;
 	map <boost::filesystem::path, long> globalModuleIDs;
@@ -170,10 +178,11 @@ public:
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
-	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> blocklist;
+	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
+	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>> blockList;
 
 
-	map <MEM_ADDRESS, BB_DATA *> externdict;
+	map <MEM_ADDRESS, ROUTINE_STRUCT *> externdict;
 	int bitwidth;
 
 
@@ -210,4 +219,5 @@ struct EXTTEXT {
 
 
 size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr);
+size_t disassemble_ins(csh hCapstone, INS_DATA *insdata, MEM_ADDRESS insaddr);
 

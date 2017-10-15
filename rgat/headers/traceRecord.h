@@ -82,7 +82,7 @@ public:
 	//index of this vec == client reference to each module. returned value is our static reference to the module
 	//needed because each trace drgat can come up with a new ID for each module
 	vector<long> modIDTranslationVec;
-	map <long, int> activeMods;
+	map <long, bool> activeMods;
 
 	int loadedModuleCount = 0;
 

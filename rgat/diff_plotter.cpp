@@ -114,7 +114,7 @@ void diff_plotter::mark_divergence(NODEINDEX instructionIndex)
 NODEPAIR diff_plotter::firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, PROCESS_DATA *processdata, PID_TID thread)
 {
 	bool die = false;
-	BB_DATA *foundExtern = NULL;
+	ROUTINE_STRUCT *foundExtern = NULL;
 	INSLIST *block = processdata->getDisassemblyBlock(blockAddr, blockID, &die, &foundExtern);
 	if (foundExtern)
 	{

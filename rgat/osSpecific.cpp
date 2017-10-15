@@ -274,7 +274,7 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 	finalCommandline << PINPath.string();	
 
 	if (launchopts->pause)
-		finalCommandline << " -pause_tool 10 ";
+		finalCommandline << " -pause_tool 25 ";
 
 	string pinArgs = "";// " -thread_private "; //todo: allow user to tweak dr options
 						//string drrunArgs = " -debug -thread_private "; //todo: allow user to tweak dr options

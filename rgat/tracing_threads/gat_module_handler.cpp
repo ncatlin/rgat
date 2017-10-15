@@ -159,7 +159,12 @@ void gat_module_handler::main_loop()
 					const wchar_t* szName = pipename.c_str();
 					HANDLE threadpipeThisEnd, threadpipeTheirEnd;
 
-					createInputPipe(runRecord->getPID(), pipename, threadpipeThisEnd, threadpipeTheirEnd, 1024 * 1024);
+					if (!createInputPipe(runRecord->getPID(), pipename, threadpipeThisEnd, threadpipeTheirEnd, 1024 * 1024))
+					{
+						cerr << "[rgat] Failed to create pipe for thread " << TID << ". Failing. " << endl;
+						alive = false;
+						return;
+					}
 
 					const int returnbufsize = sizeof(HANDLE) + 2;
 					char returnBuf[returnbufsize];
@@ -214,20 +219,21 @@ void gat_module_handler::main_loop()
 			if (buf[0] == 'm' && buf[1] == 'n' && bread > 8)
 			{
 				char *next_token = NULL;
-				string b64path;
+				boost::filesystem::path path_plain;
+				//string b64path;
 				//null path
 				if (buf[2] == '@' && buf[3] == '@')
 				{
 					next_token = buf + 4; //skip past 'mn@@'
 				}
 				else 
-					b64path = string(strtok_s(buf + 2, "@", &next_token));
+					path_plain = string(strtok_s(buf + 2, "@", &next_token));
 
-				boost::filesystem::path path_plain;
-				if (!b64path.empty())
-					path_plain = boost::filesystem::path((base64_decode(b64path)));
-				else
-					path_plain = "";
+
+				//if (!b64path.empty())
+				//	path_plain = boost::filesystem::path((base64_decode(b64path)));
+				//else
+				//	path_plain = "";
 
 
 				//todo: problem. module numbers can differ between runs. need to translate them on a per trace basis.
@@ -273,14 +279,9 @@ void gat_module_handler::main_loop()
 				sscanf_s(endaddr_s, "%llx", &endaddr);
 
 
-				char *skipped_s = strtok_s(next_token, "@", &next_token);
+				char *is_instrumented_s = strtok_s(next_token, "@", &next_token);
 				piddata->getDisassemblyWriteLock();
-
-				if (*skipped_s == '1')
-					runRecord->activeMods[globalModID] = UNINSTRUMENTED_MODULE;
-				else
-					runRecord->activeMods[globalModID] = INSTRUMENTED_MODULE;
-
+				runRecord->activeMods[globalModID] = (*is_instrumented_s == INSTRUMENTED_CODE);
 				piddata->dropDisassemblyWriteLock();
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {

@@ -243,14 +243,9 @@ void shrike_module_handler::main_loop()
 				sscanf_s(endaddr_s, "%llx", &endaddr);
 
 
-				char *skipped_s = strtok_s(next_token, "@", &next_token);
+				char *is_instrumented_s = strtok_s(next_token, "@", &next_token);
 				piddata->getDisassemblyWriteLock();
-
-				if (*skipped_s == '1')
-					runRecord->activeMods[globalModID] = UNINSTRUMENTED_MODULE;
-				else
-					runRecord->activeMods[globalModID] = INSTRUMENTED_MODULE;
-
+				runRecord->activeMods[globalModID] = (*is_instrumented_s == INSTRUMENTED_CODE);
 				piddata->dropDisassemblyWriteLock();
 
 				if (!startaddr | !endaddr | (next_token - buf != bread)) {

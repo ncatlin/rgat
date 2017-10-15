@@ -91,20 +91,23 @@ bool PROCESS_DATA::get_modpath(unsigned int globalmodnum, boost::filesystem::pat
 	return true;
 }
 
-bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, BB_DATA **BB, int attempts) {
-
+bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, int moduleNum, ROUTINE_STRUCT **BB)
+{
 	getExternDictReadLock();
-	map<MEM_ADDRESS, BB_DATA*>::iterator externIt = externdict.find(address);
-	while (externIt == externdict.end())
+	map<MEM_ADDRESS, ROUTINE_STRUCT*>::iterator externIt = externdict.find(address);
+	if (externIt == externdict.end())
 	{
-		if (!attempts--) {
-			dropExternDictReadLock();
-			return false;
-		}
 		dropExternDictReadLock();
-		Sleep(1);
-		getExternDictReadLock();
-		externIt = externdict.find(address);
+		if (!BB) 
+			return false;
+
+		getExternDictWriteLock();
+		ROUTINE_STRUCT *newExtern = new ROUTINE_STRUCT;
+		newExtern->globalmodnum = moduleNum; 
+		dropExternDictWriteLock();
+
+		*BB = newExtern;
+		return true;
 	}
 
 	if (BB)
@@ -128,7 +131,7 @@ bool unpackExtern(PROCESS_DATA * piddata, const Value& externEntry)
 	}
 	MEM_ADDRESS externAddr = externIt->value.GetUint64();
 
-	BB_DATA *BBEntry = new BB_DATA;
+	ROUTINE_STRUCT *BBEntry = new ROUTINE_STRUCT;
 
 	externIt = externEntry.FindMember("M");
 	if (externIt == externEntry.MemberEnd())
@@ -336,6 +339,52 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 }
 
 
+size_t disassemble_ins(csh hCapstone, INS_DATA *insdata, MEM_ADDRESS insaddr)
+{
+	cs_insn *insn;
+	size_t count = cs_disasm(hCapstone, insdata->opcodes, insdata->numbytes, insaddr, 0, &insn);
+	if (count != 1) {
+		cerr << "[rgat]ERROR: BB thread failed disassembly for opcodes:? "  << " count: " << count << " error: " << cs_errno(hCapstone) << endl;
+		return NULL;
+	}
+
+	insdata->mnemonic = string(insn->mnemonic);
+	insdata->op_str = string(insn->op_str);
+	insdata->ins_text = string(insdata->mnemonic + " " + insdata->op_str);
+	insdata->address = insaddr;
+
+	if (insdata->mnemonic == "call")
+	{
+		try {
+			insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+		}
+		catch (...) { insdata->branchAddress = NULL; }
+		insdata->itype = eNodeType::eInsCall;
+	}
+	else if (insdata->mnemonic == "ret") //todo: iret
+		insdata->itype = eNodeType::eInsReturn;
+	else if (insdata->mnemonic == "jmp")
+	{
+		try { insdata->branchAddress = std::stoull(insdata->op_str, 0, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+		catch (...) { insdata->branchAddress = NULL; }
+		insdata->itype = eNodeType::eInsJump;
+	}
+	else
+	{
+		insdata->itype = eNodeType::eInsUndefined;
+		//assume all j+ instructions aside from jmp are conditional (todo: bother to check)
+		if (insdata->mnemonic[0] == 'j')
+		{
+			insdata->conditional = true;
+			insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+			insdata->condDropAddress = insaddr + insdata->numbytes;
+		}
+	}
+
+	cs_free(insn, count);
+	return count;
+}
+
 bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *addressdata, INSLIST *mutationVector, csh hCapstone)
 {
 
@@ -482,7 +531,9 @@ bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockInstructions)
 		BLOCK_IDENTIFIER blockID = blockVariation[0].GetUint64();
 		INSLIST *blockInsList = new INSLIST;
 
-		piddata->blocklist[blockaddress][blockID] = blockInsList;
+		piddata->addressBlockMap[blockaddress][blockID] = blockInsList;
+		assert(false);
+		//piddata->blockList.push_back(make_pair(blockaddress, blockInsList));
 
 		const Value& blockVariationInstructions = blockVariation[1];
 		Value::ConstValueIterator instructionsIt = blockVariationInstructions.Begin();
@@ -507,7 +558,7 @@ bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockInstructions)
 
 
 			INS_DATA* disassembledIns = disasIt->second.at(mutationIdx);
-			piddata->blocklist[blockaddress][blockID]->push_back(disassembledIns);
+			piddata->addressBlockMap[blockaddress][blockID]->push_back(disassembledIns); //todo: obvious performance improvement here
 		}
 	}
 	return true;
@@ -591,29 +642,27 @@ If it doesn't exist it will loop for a bit waiting for the disassembly to appear
 If the address is instrumented code, the mutation matching blockID will similarly be looked up and returned
 If the address is uninstrumented code, the extern block will be retrieved and its address placed in [*externBlock]
 */
-INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, BB_DATA **externBlock)
+INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, ROUTINE_STRUCT **externBlock)
 {
 	int iterations = 0;
 
-	map<MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt;
 	while (true)
 	{
-		getDisassemblyReadLock();
-		blockIt = blocklist.find(blockaddr);
-		dropDisassemblyReadLock();
-
-		if (blockIt != blocklist.end()) break;
-
-		getExternDictReadLock();
-		auto externIt = externdict.find(blockaddr);
-		dropExternDictReadLock();
-
-		if (externIt != externdict.end()) 
-		{ 
-			if (externBlock)
-				*externBlock = externIt->second;
-
-			return 0; 
+		
+		if (blockID < blockList.size())
+		{
+			getDisassemblyReadLock();
+			INSLIST *result;
+			BLOCK_DESCRIPTOR *blkd = blockList.at(blockID).second;
+			if (blkd->blockType == eBlockType::eBlockInternal)
+				result = blkd->inslist;
+			else
+			{
+				*externBlock = blkd->externBlock;
+				return 0;
+			}
+			dropDisassemblyReadLock();
+			return result;
 		}
 
 		if (iterations++ > 20)
@@ -622,36 +671,6 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 		Sleep(1);
 		if (*dieFlag) return 0;
 	}
-
-	INSLIST *resultPtr;
-	map<BLOCK_IDENTIFIER, INSLIST *>::iterator mutationIt;
-
-	while (true)
-	{
-		getDisassemblyReadLock();
-		if (blockID == 0 && !blockIt->second.empty())
-		{
-			resultPtr = blockIt->second.begin()->second;
-			dropDisassemblyReadLock();
-			break;
-		}
-
-		mutationIt = blockIt->second.find(blockID);
-		dropDisassemblyReadLock();
-
-		if (mutationIt != blockIt->second.end())
-		{
-			resultPtr = mutationIt->second;
-			break;
-		}
-
-		if (iterations++ > 20)
-			cerr << "[rgat]Warning... long wait for blockID " << std::hex << blockID << "of address 0x" << blockaddr << endl;
-		Sleep(1);
-		if (*dieFlag) return 0;
-	}
-
-	return resultPtr;
 }
 
 void PROCESS_DATA::save(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
@@ -692,7 +711,7 @@ void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>
 			INS_DATA *ins = *mutationIt;
 			writer.StartArray();
 
-			writer.String(ins->opcodes.c_str());
+			//writer.String(ins->opcodes.c_str()); //todo
 
 			//threads containing it
 			writer.StartArray();
@@ -724,7 +743,7 @@ void PROCESS_DATA::saveExternDict(rapidjson::Writer<rapidjson::FileWriteStream>&
 	writer.Key("Externs");
 	writer.StartArray();
 
-	map <MEM_ADDRESS, BB_DATA *>::iterator externIt = externdict.begin();
+	map <MEM_ADDRESS, ROUTINE_STRUCT *>::iterator externIt = externdict.begin();
 	for (; externIt != externdict.end(); ++externIt)
 	{
 		writer.StartObject();
@@ -781,7 +800,9 @@ void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& 
 	writer.StartArray();
 
 	getDisassemblyReadLock();
-	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, INSLIST *>>::iterator blockIt = blocklist.begin();
+	assert(false);
+	/*
+	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, BLOCK_DESCRIPTOR *>>::iterator blockIt = blockList.begin();
 	for (; blockIt != blocklist.end(); ++blockIt)
 	{
 		writer.StartArray();
@@ -825,6 +846,7 @@ void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& 
 
 		writer.EndArray(); //end basic block object for this address
 	}
+	*/
 	dropDisassemblyReadLock();
 	writer.EndArray(); //end array of basic blocks
 }

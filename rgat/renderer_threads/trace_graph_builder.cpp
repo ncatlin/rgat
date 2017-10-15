@@ -103,8 +103,10 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 //place basic block [tag] on graph [repeats] times
 void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 {
-	int numInstructions = tag->insCount;
+	cout << "in runbb " << tag->blockID << endl;
+
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, 0);
+	int numInstructions = block->size();
 
 	for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
 	{
@@ -167,7 +169,7 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 //run a basic block which generated an exception (and therefore didn't run to completion)
 void trace_graph_builder::run_faulting_BB(TAG *tag)
 {
-	BB_DATA *foundExtern = NULL;
+	ROUTINE_STRUCT *foundExtern = NULL;
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, &foundExtern);
 	if (!block)
 	{ 
@@ -292,13 +294,14 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	assert(lastNode->ins->numbytes);
 	
 	//if caller is also external then we are not interested in this
-	if (runRecord->activeMods.at(lastNode->globalModID) == UNINSTRUMENTED_MODULE)
+	if (!runRecord->activeMods.at(lastNode->globalModID))
 		return false;
 
-	BB_DATA *thisbb = 0;
-	do { 
-		piddata->get_extern_at_address(targaddr, &thisbb);
-		} while (!thisbb);
+	ROUTINE_STRUCT *thisbb = 0;
+	int modnum;
+	bool found = find_containing_module(targaddr, modnum);
+	assert(found);
+	piddata->get_extern_at_address(targaddr, modnum, &thisbb);
 
 	//see if caller already called this
 	//if so, get the destination node so we can just increase edge weight
@@ -380,7 +383,7 @@ bool trace_graph_builder::lookup_extern_func_calls(MEM_ADDRESS called_function_a
 	piddata->getExternDictReadLock();
 	piddata->getExternCallerReadLock();
 
-	map<MEM_ADDRESS, BB_DATA*>::iterator externIt;
+	map<MEM_ADDRESS, ROUTINE_STRUCT*>::iterator externIt;
 	externIt = piddata->externdict.find(called_function_address);
 	if (externIt == piddata->externdict.end() || !externIt->second->thread_callers.count(TID))
 	{
@@ -483,7 +486,7 @@ void trace_graph_builder::handle_exception_tag(TAG *thistag)
 		cout << " - sym: " << piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr];
 	cout << endl;
 #endif
-	if (thistag->jumpModifier == INSTRUMENTED_MODULE)
+	if (thistag->jumpModifier == INSTRUMENTED_CODE)
 	{
 		run_faulting_BB(thistag);
 
@@ -492,7 +495,7 @@ void trace_graph_builder::handle_exception_tag(TAG *thistag)
 		thisgraph->set_active_node(lastVertID);
 	}
 
-	else if (thistag->jumpModifier == UNINSTRUMENTED_MODULE) //call to (uninstrumented) external library
+	else if (thistag->jumpModifier == UNINSTRUMENTED_CODE) //call to (uninstrumented) external library
 	{
 		if (!lastVertID) return;
 
@@ -520,17 +523,17 @@ void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	//	cout << " - sym: "<< piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr];
 	cout << endl;
 #endif
-	if (thistag->jumpModifier == INSTRUMENTED_MODULE)
+	if (thistag->jumpModifier == INSTRUMENTED_CODE)
 	{
 		runBB(thistag, repeats);
 		thisgraph->totalInstructions += thistag->insCount*repeats;
 		thisgraph->set_active_node(lastVertID);
 	}
 
-	else if (thistag->jumpModifier == UNINSTRUMENTED_MODULE) //call to (uninstrumented) external library
+	else if (thistag->jumpModifier == UNINSTRUMENTED_CODE)
 	{
 		if (!lastVertID) return;
-
+		
 		//find caller,external vertids if old + add node to graph if new
 		NODEPAIR resultPair;
 		run_external(thistag->blockaddr, repeats, &resultPair);
@@ -558,13 +561,12 @@ int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &localm
 		if (address >= moduleBounds->first && address <= moduleBounds->second)
 		{
 			localmodID = modNo;
-			if (runRecord->activeMods.at(modNo) == INSTRUMENTED_MODULE)
-				return INSTRUMENTED_MODULE;
-			else 
-				return UNINSTRUMENTED_MODULE;
+			return runRecord->activeMods.at(modNo) ? INSTRUMENTED_CODE : UNINSTRUMENTED_CODE;
 		}
 	}
-	return UNKNOWN_MODULE;
+
+	cerr << "Error: Unknown module in f_c_m" << endl;
+	return -1;
 }
 
 //updates graph entry for each tag in the trace loop cache
@@ -589,7 +591,9 @@ void trace_graph_builder::dump_loop()
 		animUpdate.blockID = thistag->blockID;
 		animUpdate.count = loopIterations;
 		animUpdate.entryType = eAnimLoop;
-		if (piddata->get_extern_at_address(animUpdate.blockAddr, 0, 0))
+
+		int module;
+		if (find_containing_module(animUpdate.blockAddr, module) == UNINSTRUMENTED_CODE)
 		{
 			pair<MEM_ADDRESS, BLOCK_IDENTIFIER> uniqueExternID = make_pair(thistag->blockaddr, thistag->blockID);
 			animUpdate.callCount = externFuncCallCounter[uniqueExternID]++;
@@ -607,6 +611,7 @@ void trace_graph_builder::dump_loop()
 	loopState = NO_LOOP;
 }
 
+/*
 //todo: move this to piddata class
 INSLIST *trace_graph_builder::find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID)
 {
@@ -629,23 +634,26 @@ INSLIST *trace_graph_builder::find_block_disassembly(MEM_ADDRESS blockaddr, BLOC
 	else
 		return mutationIt->second;
 }
+*/
 
 void trace_graph_builder::satisfy_pending_edges()
 {
 	vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
 	while (pendIt != pendingEdges.end())
 	{
-		INSLIST *source = find_block_disassembly(pendIt->sourceAddr, pendIt->sourceID);
-		if (!source) {
+		if (piddata->blockList.size() <= pendIt->sourceID) {
 			++pendIt;
 			continue;
 		}
+		INSLIST *source = piddata->blockList.at(pendIt->sourceID).second->inslist;
 
-		INSLIST *targ = find_block_disassembly(pendIt->targAddr, pendIt->targID);
-		if (!targ) {
+		
+		if (piddata->blockList.size() <= pendIt->targID) {
 			++pendIt;
 			continue;
 		}
+		assert(piddata->blockList.at(pendIt->targID).second->blockType == eBlockInternal);
+		INSLIST *targ = piddata->blockList.at(pendIt->targID).second->inslist;
 
 		thisgraph->insert_edge_between_BBs(source, targ);
 		pendIt = pendingEdges.erase(pendIt);
@@ -677,10 +685,11 @@ bool trace_graph_builder::assign_blockrepeats()
 
 		if(!repeatIt->blockInslist)
 		{
-			repeatIt->blockInslist = find_block_disassembly(blockaddr, blockID);
-			if (!repeatIt->blockInslist) {
+			if (piddata->blockList.size() <= blockID) {
 				++repeatIt; continue;
 			}
+			assert(piddata->blockList.at(blockID).second->blockType == eBlockInternal);
+			repeatIt->blockInslist = piddata->blockList.at(blockID).second->inslist;
 
 			//first/last vert not on drawn yet? skip until it is
 			if (repeatIt->blockInslist->front()->threadvertIdx.count(TID) == 0 || repeatIt->blockInslist->back()->threadvertIdx.count(TID) == 0) {
@@ -709,8 +718,8 @@ bool trace_graph_builder::assign_blockrepeats()
 		vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>>::iterator targCallIt = repeatIt->targBlocks.begin();
 		while (targCallIt != repeatIt->targBlocks.end())
 		{
-			INSLIST* targetBlock = find_block_disassembly(targCallIt->first, targCallIt->second);
-			if (!targetBlock)
+			
+			if (piddata->blockList.size() <= targCallIt->second)
 			{
 				//external libraries will not be found by find_block_disassembly, but will be handled by run_external
 				//this notices it has been handled and drops it from pending list
@@ -731,6 +740,8 @@ bool trace_graph_builder::assign_blockrepeats()
 				continue;
 			}
 
+			assert(piddata->blockList.at(targCallIt->second).second->blockType == eBlockInternal);
+			INSLIST* targetBlock = piddata->blockList.at(targCallIt->second).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
 			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIt; continue; }
 
@@ -865,7 +876,7 @@ void trace_graph_builder::add_exception_update(char *entry)
 	interruptedBlockTag.blockaddr = faultingBB->first;
 	interruptedBlockTag.insCount = instructionsUntilFault;
 	interruptedBlockTag.blockID = faultingBB->second;
-	interruptedBlockTag.jumpModifier = INSTRUMENTED_MODULE;
+	interruptedBlockTag.jumpModifier = INSTRUMENTED_CODE;
 	handle_exception_tag(&interruptedBlockTag);
 
 	ANIMATIONENTRY animUpdate;
@@ -945,13 +956,16 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	id_count = stoll(block_id_count_string, 0, 16);
 	sourceID = id_count >> 32;
 
-	INSLIST* lastBB = find_block_disassembly(sourceAddr, sourceID);
-	if (!lastBB) {
+
+
+	if (piddata->blockList.size() <= sourceID) {
 		Sleep(50);
 		if (die || thisgraph->terminated) return;
 		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 		assert(0);
 	}
+	assert(piddata->blockList.at(sourceID).second->blockType == eBlockInternal);
+	INSLIST* lastBB = piddata->blockList.at(sourceID).second->inslist;
 	INS_DATA* lastIns = lastBB->back();
 
 	unordered_map<PID_TID, NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
@@ -987,11 +1001,10 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	}
 
 	int modnum;
-	if (find_containing_module(targ2, modnum) == UNINSTRUMENTED_MODULE)
+	if (find_containing_module(targ2, modnum) == UNINSTRUMENTED_CODE)
 	{
-		BB_DATA* foundExtern = 0;
-		bool addressFound = piddata->get_extern_at_address(targ2, &foundExtern, 3);
-		assert(addressFound);
+		ROUTINE_STRUCT* foundExtern = 0;
+		piddata->get_extern_at_address(targ2, modnum, &foundExtern);
 
 		bool targetFound = false;
 		piddata->getExternCallerReadLock();
@@ -1067,17 +1080,16 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 
 void trace_graph_builder::process_trace_tag(char *entry)
 {
+	cout << "process_trace_tagb " <<entry << endl;
+
 	TAG thistag;
-	MEM_ADDRESS nextBlock;
+	MEM_ADDRESS nextBlockAddress;
 
-	thistag.blockaddr = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
-	nextBlock = stoull(strtok_s(entry, ",", &entry), 0, 16);
+	thistag.blockID = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
+	thistag.blockaddr = piddata->blockList.at(thistag.blockID).first;
+	nextBlockAddress = stoull(strtok_s(entry, ",", &entry), 0, 16);
 
-	unsigned long long id_count = stoll(strtok_s(entry, ",", &entry), 0, 16);
-	thistag.insCount = id_count & 0xffffffff;
-	thistag.blockID = id_count >> 32;
-
-	thistag.jumpModifier = INSTRUMENTED_MODULE;
+	thistag.jumpModifier = INSTRUMENTED_CODE;
 	if (loopState == BUILDING_LOOP)
 		loopCache.push_back(thistag);
 	else
@@ -1092,43 +1104,61 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	}
 
 	//fallen through/failed conditional jump
-	if (nextBlock == 0) return;
+	if (nextBlockAddress == 0) return;
 
 	int modnum;
-	int modType = find_containing_module(nextBlock, modnum);
-	if (modType == INSTRUMENTED_MODULE) return;
+	int modType = find_containing_module(nextBlockAddress, modnum);
+	if (modType == INSTRUMENTED_CODE) return;
 
 	//modType could be known unknown here
 	//in case of unknown, this waits until we know. hopefully rare.
 	int attempts = 1;
-	while (!die)
-	{
-		//this is most likely to be called and looping is rare - usually
-		if (piddata->get_extern_at_address(nextBlock, &thistag.foundExtern, attempts))
-		{
-			modType = UNINSTRUMENTED_MODULE;
-			break;
-		}
-		if (find_internal_at_address(nextBlock, attempts))
-		{
-			modType = INSTRUMENTED_MODULE;
-			break;
-		}
 
-		if (attempts++ > 10)
-		{
-			cerr << "[rgat] (tid:" << TID << " pid:" << runRecord->getPID() << ")Warning: Failing to find address " <<
-				std::hex << nextBlock << " in instrumented or external code. Block tag(addr: " <<
-				thistag.blockaddr << " insQty: " << thistag.insCount << "id: " <<
-				thistag.blockID << " modtype: " << modType << endl;
-			Sleep(60);
-		}
+	TAG externTag;
+	externTag.jumpModifier = UNINSTRUMENTED_CODE;
+	externTag.blockaddr = nextBlockAddress;
+
+	if (loopState == BUILDING_LOOP)
+		loopCache.push_back(externTag);
+	else
+	{
+		handle_tag(&externTag);
+
+		ANIMATIONENTRY animUpdate;
+		animUpdate.blockAddr = thistag.blockaddr;
+		animUpdate.entryType = eAnimExecTag;
+		animUpdate.callCount = externFuncCallCounter[make_pair(thistag.blockaddr, thistag.blockID)]++;
+		thisgraph->push_anim_update(animUpdate);
 	}
 
-	if (modType == INSTRUMENTED_MODULE) return;
+	/*
+	//this is most likely to be called and looping is rare - usually
+	if (piddata->get_extern_at_address(nextBlockAddress, &thistag.foundExtern, attempts))
+	{
+		modType = UNINSTRUMENTED_CODE;
 
-	thistag.blockaddr = nextBlock;
-	thistag.jumpModifier = UNINSTRUMENTED_MODULE;
+		//run a known external
+	}
+	else
+	{
+		//create a new external
+	}
+	*/
+
+	//delete below here
+	if (attempts++ > 10)
+	{
+		cerr << "[rgat] (tid:" << TID << " pid:" << runRecord->getPID() << ")Warning: Failing to find address " <<
+			std::hex << nextBlockAddress << " in instrumented or external code. Block tag(addr: " <<
+			thistag.blockaddr << " insQty: " << thistag.insCount << "id: " <<
+			thistag.blockID << " modtype: " << modType << endl;
+		Sleep(60);
+	}
+
+	if (modType == INSTRUMENTED_CODE) return;
+
+	thistag.blockaddr = nextBlockAddress;
+	thistag.jumpModifier = UNINSTRUMENTED_CODE;
 	thistag.insCount = 0;
 
 	if (loopState == BUILDING_LOOP)
@@ -1178,7 +1208,7 @@ void trace_graph_builder::main_loop()
 
 	string *message;
 	clock_t backlogUpdateTimer = clock() + 1;
-	while (!die)
+	while (true) //todo: 'killed'
 	{
 		clock_t timenow = clock();
 		if (timenow > backlogUpdateTimer)

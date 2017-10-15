@@ -243,7 +243,7 @@ void shrike_basicblock_handler::main_loop()
 
 			if (!instrumented)
 			{
-				BB_DATA *bbdata = new BB_DATA;
+				ROUTINE_STRUCT *bbdata = new ROUTINE_STRUCT;
 				bbdata->globalmodnum = globalModNum;
 
 				piddata->getExternDictWriteLock();
@@ -261,6 +261,7 @@ void shrike_basicblock_handler::main_loop()
 				continue;
 			}
 
+			/*
 			INSLIST *blockInstructions = new INSLIST;
 			MEM_ADDRESS insaddr = targetaddr;
 			while (true)
@@ -278,8 +279,8 @@ void shrike_basicblock_handler::main_loop()
 					instruction = addressDissasembly->second.back();
 					//if address has been seen but opcodes are not same as most recent, disassemble again
 					//might be a better to check all mutations instead of most recent
-					if (instruction->opcodes != opcodes)
-						instruction = NULL;
+					//if (instruction->opcodes != opcodes)
+					//	instruction = NULL;
 				}
 				else
 				{
@@ -316,10 +317,11 @@ void shrike_basicblock_handler::main_loop()
 				if (next_token >= &buf.at(bread)) break;
 				++i;
 			}
-
+			
 			piddata->getDisassemblyWriteLock();
 			piddata->blocklist[targetaddr][blockID] = blockInstructions;
 			piddata->dropDisassemblyWriteLock();
+			*/
 			continue;
 		}
 

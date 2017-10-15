@@ -227,7 +227,7 @@ void graphGLWidget::selectHighlightedAddressNodes(PLOTTEDGRAPH_CASTPTR graphPtr)
 	if (externIt != processdata->externdict.end())
 	{
 		//find external nodes from this thread in matching address
-		BB_DATA *block = externIt->second;
+		ROUTINE_STRUCT *block = externIt->second;
 		auto threadIt = block->thread_callers.find(graph->get_tid());
 		if (threadIt == block->thread_callers.end()) 
 		{

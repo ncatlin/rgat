@@ -40,10 +40,6 @@ enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
 enum eEdgeNodeType { eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
 	eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99};
 
-#define UNKNOWN_MODULE 0 
-#define INSTRUMENTED_MODULE 1	//plot this
-#define UNINSTRUMENTED_MODULE 2 //client didn't instrument further - usually windows dlls
-
 //can leave a conditional 2 ways, keep record of what has happened
 #define ISCONDITIONAL 1
 #define CONDFELLTHROUGH 2
