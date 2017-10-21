@@ -679,3 +679,15 @@ void rgatState::mouseoverLabelChanged()
 	else
 		n->label = newNodeText;	
 }
+
+boost::filesystem::path rgatState::getTempDir()
+{
+	if (tempDir.empty())
+	{
+		if (!createTempDir(tempDir))
+		{
+			cerr << "[rgat] Failed to create temporary IPC directory. Error: 0x" << std::hex << GetLastError() << endl;
+		}
+	}
+	return tempDir;
+}

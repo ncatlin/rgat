@@ -64,6 +64,7 @@ public:
 	void killTree();
 	void setTraceType(eTracePurpose purpose);
 	eTracePurpose getTraceType() { return tracetype; }
+	int find_containing_module(MEM_ADDRESS address, int &localmodID);
 
 	rgatlocks::TestableLock graphListLock;
 

@@ -77,8 +77,11 @@ public Q_SLOTS:
 	void renderModeSelected(int index);
 	void graphLayoutSelected(int index);
 	void highlightDialogBtnClicked();
+
 	void startDynamorioTest();
 	void startDrgatTest();
+	void startPinTest();
+	void startPingatTest();
 
 #ifdef INCLUDE_FUZZ_CODE
 	void startFuzz();

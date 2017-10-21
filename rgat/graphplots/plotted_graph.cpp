@@ -453,16 +453,26 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 	PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
 	ROUTINE_STRUCT *externBlock = 0;
 	INSLIST * block = piddata->getDisassemblyBlock(blockAddr, blockID, &internalProtoGraph->terminationFlag, &externBlock);
-	if (internalProtoGraph->terminationFlag) return false;
+	
+	//if (internalProtoGraph->terminationFlag) return false;
 
 	if (!block && externBlock)
 	{
+		//cout << "fill block nodelist with extern addr " << std::hex << blockAddr << " mod " << std::dec << externBlock->globalmodnum << endl;
 		//assume it's an external block, find node in extern call list
 		piddata->getExternDictReadLock();
-		EDGELIST callvs = externBlock->thread_callers.at(tid);
+		auto callvsEdgeIt = externBlock->thread_callers.find(tid);
+		if (callvsEdgeIt == externBlock->thread_callers.end())
+		{
+			piddata->dropExternDictReadLock();
+			Sleep(10);
+			cerr << "Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
+			return false;
+		}
 
-		EDGELIST::iterator callvsIt = callvs.begin();
-		for (; callvsIt != callvs.end(); ++callvsIt) //record each call by caller
+		EDGELIST calls = callvsEdgeIt->second;
+		EDGELIST::iterator callvsIt = calls.begin();
+		for (; callvsIt != calls.end(); ++callvsIt) //record each call by caller
 		{
 			if (callvsIt->first == lastAnimatedNode)
 				nodelist->push_back(callvsIt->second);
@@ -780,7 +790,7 @@ void plotted_graph::process_replay_update()
 		while (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
 		{
 			Sleep(5);
-			cout << "[rgat] Waiting for vertlist block 0x" << hex << entry.blockAddr << endl;
+			cout << "[rgat] ANst block 0x" << hex << entry.blockAddr << endl;
 		}
 	}
 

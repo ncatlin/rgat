@@ -103,8 +103,6 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 //place basic block [tag] on graph [repeats] times
 void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 {
-	cout << "in runbb " << tag->blockID << endl;
-
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, 0);
 	int numInstructions = block->size();
 
@@ -299,7 +297,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 
 	ROUTINE_STRUCT *thisbb = 0;
 	int modnum;
-	bool found = find_containing_module(targaddr, modnum);
+	bool found = runRecord->find_containing_module(targaddr, modnum);
 	assert(found);
 	piddata->get_extern_at_address(targaddr, modnum, &thisbb);
 
@@ -344,6 +342,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	if (callersIt == thisbb->thread_callers.end())
 	{
 		EDGELIST callervec;
+		//cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
 		callervec.push_back(make_pair(lastVertID, targVertID));
 		thisbb->thread_callers.emplace(TID, callervec);
 	}
@@ -367,6 +366,13 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	lastNode = &newTargNode;
 
 	*resultPair = std::make_pair(lastVertID, targVertID);
+
+	piddata->getExternDictWriteLock();
+	piddata->externdict.insert(make_pair(targaddr, thisbb));
+	piddata->dropExternDictWriteLock();
+
+
+
 
 	edge_data newEdge;
 	newEdge.chainedWeight = 0;
@@ -547,27 +553,7 @@ void trace_graph_builder::handle_tag(TAG *thistag, unsigned long repeats = 1)
 	}
 }
 
-//returns the module starting before and ending after the provided address
-//if that's none of them, assume its a new code area in calling module
-//TODO: this assumption is bad; any self modifying dll may cause problems
-int trace_graph_builder::find_containing_module(MEM_ADDRESS address, int &localmodID)
-{
-	PROCESS_DATA *piddata = runRecord->get_piddata();
-	const size_t numModules = piddata->modBounds.size();
-	for (int modNo = 0; modNo < numModules; ++modNo)
-	{
-		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = piddata->modBounds.at(modNo);
-		if (!moduleBounds) continue;
-		if (address >= moduleBounds->first && address <= moduleBounds->second)
-		{
-			localmodID = modNo;
-			return runRecord->activeMods.at(modNo) ? INSTRUMENTED_CODE : UNINSTRUMENTED_CODE;
-		}
-	}
 
-	cerr << "Error: Unknown module in f_c_m" << endl;
-	return -1;
-}
 
 //updates graph entry for each tag in the trace loop cache
 void trace_graph_builder::dump_loop()
@@ -593,7 +579,7 @@ void trace_graph_builder::dump_loop()
 		animUpdate.entryType = eAnimLoop;
 
 		int module;
-		if (find_containing_module(animUpdate.blockAddr, module) == UNINSTRUMENTED_CODE)
+		if (runRecord->find_containing_module(animUpdate.blockAddr, module) == UNINSTRUMENTED_CODE)
 		{
 			pair<MEM_ADDRESS, BLOCK_IDENTIFIER> uniqueExternID = make_pair(thistag->blockaddr, thistag->blockID);
 			animUpdate.callCount = externFuncCallCounter[uniqueExternID]++;
@@ -715,37 +701,37 @@ bool trace_graph_builder::assign_blockrepeats()
 		}
 		
 		//create any new edges between unchained nodes
-		vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>>::iterator targCallIt = repeatIt->targBlocks.begin();
-		while (targCallIt != repeatIt->targBlocks.end())
+		vector<BLOCK_IDENTIFIER>::iterator targCallIDIt = repeatIt->targBlocks.begin();
+		while (targCallIDIt != repeatIt->targBlocks.end())
 		{
 			
-			if (piddata->blockList.size() <= targCallIt->second)
+			if (piddata->blockList.size() <= *targCallIDIt)
 			{
 				//external libraries will not be found by find_block_disassembly, but will be handled by run_external
 				//this notices it has been handled and drops it from pending list
 				bool alreadyPresent = false;
 				set<NODEINDEX>::iterator calledIt = n->outgoingNeighbours.begin();
 				for (; calledIt != n->outgoingNeighbours.end(); ++calledIt)
-					if (thisgraph->safe_get_node(*calledIt)->address == targCallIt->first)
+					if (thisgraph->safe_get_node(*calledIt)->blockID == *targCallIDIt)
 					{
 						alreadyPresent = true;
 						break;
 					}
 
 				if (alreadyPresent)
-					targCallIt = repeatIt->targBlocks.erase(targCallIt);
+					targCallIDIt = repeatIt->targBlocks.erase(targCallIDIt);
 				else
-					++targCallIt;
+					++targCallIDIt;
 	
 				continue;
 			}
 
-			assert(piddata->blockList.at(targCallIt->second).second->blockType == eBlockInternal);
-			INSLIST* targetBlock = piddata->blockList.at(targCallIt->second).second->inslist;
+			assert(piddata->blockList.at(*targCallIDIt).second->blockType == eBlockInternal);
+			INSLIST* targetBlock = piddata->blockList.at(*targCallIDIt).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
-			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIt; continue; }
+			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIDIt; continue; }
 
-			targCallIt = repeatIt->targBlocks.erase(targCallIt);
+			targCallIDIt = repeatIt->targBlocks.erase(targCallIDIt);
 		}
 
 		if (repeatIt->targBlocks.empty())
@@ -892,17 +878,11 @@ void trace_graph_builder::add_exec_count_update(char *entry)
 	BLOCKREPEAT newRepeat;
 	newRepeat.totalExecs = 0;
 
-	string block_address_string = string(strtok_s(entry + 1, ",", &entry));
-	if (!caught_stoull(block_address_string, &newRepeat.blockaddr, 16)) {
-		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_address_string << endl;
+	string block_ID_string = string(strtok_s(entry + 1, ",", &entry));
+	if (!caught_stoul(block_ID_string, &newRepeat.blockID, 16)) {
+		cerr << "[rgat]ERROR: BX handling addr STOL: " << block_ID_string << endl;
 		assert(0);
 	}
-
-	unsigned long long id_count;
-	string block_id_count_string = string(strtok_s(entry, ",", &entry));
-	id_count = stoll(block_id_count_string, 0, 16);
-	newRepeat.insCount = id_count & 0xffffffff;
-	newRepeat.blockID = id_count >> 32;
 
 	string executions_s = string(strtok_s(entry, ",", &entry));
 	if (!caught_stoul(executions_s, &newRepeat.totalExecs, 16)) {
@@ -913,22 +893,14 @@ void trace_graph_builder::add_exec_count_update(char *entry)
 	while (true)
 	{
 		if (!entry || !entry[0]) break;
-		MEM_ADDRESS targ;
-		string targ_s = string(strtok_s(entry, ",", &entry));
-		if (!caught_stoull(targ_s, &targ, 16)) {
-			cerr << "[rgat]ERROR: BX handling addr STOL: " << targ_s << endl;
+		BLOCK_IDENTIFIER targblockID;
+		string targ_ID_s = string(strtok_s(entry, ",", &entry));
+		if (!caught_stoul(targ_ID_s, &targblockID, 16)) {
+			cerr << "[rgat]ERROR: BX handling ID STOL: " << targblockID << endl;
 			assert(0);
 		}
 
-		//not happy to be using ulong and casting it to BLOCK_IDENTIFIER
-		//std:stoi is throwing out of range on <=0xffffffff though?
-		unsigned long blockID;
-		string BID_s = string(strtok_s(entry, ",", &entry));
-		if (!caught_stoul(BID_s, &blockID, 16)) {
-			cerr << "[rgat]ERROR: BX handling count STOI: " << BID_s << endl;
-			assert(0);
-		}
-		newRepeat.targBlocks.push_back(make_pair(targ, (BLOCK_IDENTIFIER)blockID));
+		newRepeat.targBlocks.push_back(targblockID);
 	}
 
 	blockRepeatQueue.push_back(newRepeat);
@@ -990,7 +962,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	id_count = stoll(block_id_count_string, 0, 16);
 	thistag.insCount = id_count & 0xffffffff;
 	thistag.blockID = id_count >> 32;
-	thistag.jumpModifier = 1;
+	thistag.jumpModifier = INSTRUMENTED_CODE;
 	handle_tag(&thistag);
 
 	string targ2_s = string(strtok_s(entry, ",", &entry)); //string(entry);
@@ -1001,7 +973,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	}
 
 	int modnum;
-	if (find_containing_module(targ2, modnum) == UNINSTRUMENTED_CODE)
+	if (runRecord->find_containing_module(targ2, modnum) == UNINSTRUMENTED_CODE)
 	{
 		ROUTINE_STRUCT* foundExtern = 0;
 		piddata->get_extern_at_address(targ2, modnum, &foundExtern);
@@ -1080,7 +1052,6 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 
 void trace_graph_builder::process_trace_tag(char *entry)
 {
-	cout << "process_trace_tagb " <<entry << endl;
 
 	TAG thistag;
 	MEM_ADDRESS nextBlockAddress;
@@ -1089,7 +1060,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	thistag.blockaddr = piddata->blockList.at(thistag.blockID).first;
 	nextBlockAddress = stoull(strtok_s(entry, ",", &entry), 0, 16);
 
-	thistag.jumpModifier = INSTRUMENTED_CODE;
+	thistag.jumpModifier = INSTRUMENTED_CODE; //todo enum
 	if (loopState == BUILDING_LOOP)
 		loopCache.push_back(thistag);
 	else
@@ -1107,7 +1078,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	if (nextBlockAddress == 0) return;
 
 	int modnum;
-	int modType = find_containing_module(nextBlockAddress, modnum);
+	int modType = runRecord->find_containing_module(nextBlockAddress, modnum);
 	if (modType == INSTRUMENTED_CODE) return;
 
 	//modType could be known unknown here
@@ -1125,8 +1096,9 @@ void trace_graph_builder::process_trace_tag(char *entry)
 		handle_tag(&externTag);
 
 		ANIMATIONENTRY animUpdate;
-		animUpdate.blockAddr = thistag.blockaddr;
+		animUpdate.blockAddr = nextBlockAddress;
 		animUpdate.entryType = eAnimExecTag;
+		animUpdate.blockID = -1;
 		animUpdate.callCount = externFuncCallCounter[make_pair(thistag.blockaddr, thistag.blockID)]++;
 		thisgraph->push_anim_update(animUpdate);
 	}
@@ -1321,9 +1293,9 @@ void trace_graph_builder::main_loop()
 			cerr << "\t Block Addr: 0x" << hex << repeatIt->blockaddr << endl;
 			cerr << "\t Targeted unavailable blocks: ";
 
-			vector<pair<MEM_ADDRESS, unsigned long>>::iterator targIt = repeatIt->targBlocks.begin();
+			vector<BLOCK_IDENTIFIER>::iterator targIt = repeatIt->targBlocks.begin();
 			for (; targIt != repeatIt->targBlocks.end(); ++targIt)
-				cerr << "[0x" << targIt->first << "] " << endl;
+				cerr << "[ID " << *targIt << "] " << endl;
 			cerr << endl;
 		}
 	}

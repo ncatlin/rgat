@@ -160,35 +160,37 @@ bool readpipe_drgat_newPID(string &resultstring, HANDLE hPipe, OVERLAPPED *ov)
 }
 
 #define SHAREDMEM_READY_FOR_USE 4
-void create_pipes_for_pin(PID_TID PID, int PID_ID, void *sharedMem, PIN_PIPES &localHandles)
+void create_pipes_for_pin(PID_TID PID, int PID_ID, void *sharedMem, PIN_PIPES &localHandles, cs_mode bitWidth)
 {
-	CreateNamedPipe(L"\\\\.\\pipe\\mushington",
-		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE,
-		255, 65536, 65536, 0, NULL);
-
-	wstring pipeNameBase = L"\\\\.\\pipe\\";
-	pipeNameBase += to_wstring(PID_ID);
 	HANDLE remoteModpipeHandle, remoteBBpipeHandle, remoteCtrlPipeHandle;
+	wstring pipepath;
 
-	wstring pipepath = pipeNameBase + L"mod";
+	boost::filesystem::path pipeNameBase("\\\\.\\pipe\\");
+	pipeNameBase += boost::filesystem::unique_path();
+	pipeNameBase += "\\";
+
+	pipeNameBase += to_wstring(PID_ID);
+	pipepath = pipeNameBase.wstring() + L"mod";
 	if (!createInputOutputPipe(PID, pipepath, localHandles.modpipe, remoteModpipeHandle))
 		return;
 
-	pipepath = pipeNameBase + L"bb";
+	pipepath = pipeNameBase.wstring() + L"bb";
 	if (!createInputPipe(PID, pipepath, localHandles.bbpipe, remoteBBpipeHandle))
 		return;
 
-	pipepath = pipeNameBase + L"ctrl";
+	pipepath = pipeNameBase.wstring() + L"ctrl";
 	if (!createOutputPipe(PID, pipepath, localHandles.controlpipe, remoteCtrlPipeHandle))
 		return;
 
+	size_t handleSize = (bitWidth == CS_MODE_32) ? 4 : 8;
+
 	//copy the remote handles to mapped file for pin to use
 	int memoffset = 1;
-	memcpy((void *)((char *)sharedMem + memoffset), &remoteModpipeHandle, sizeof(HANDLE));
-	memoffset += sizeof(HANDLE);
-	memcpy((void *)((char *)sharedMem + memoffset), &remoteBBpipeHandle, sizeof(HANDLE));
-	memoffset += sizeof(HANDLE);
-	memcpy((void *)((char *)sharedMem + memoffset), &remoteCtrlPipeHandle, sizeof(HANDLE));
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteModpipeHandle, handleSize);
+	memoffset += handleSize;
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteBBpipeHandle, handleSize);
+	memoffset += handleSize;
+	memcpy((void *)((char *)sharedMem + memoffset), &remoteCtrlPipeHandle, handleSize);
 
 	//tell pin we are done writing the handles
 	(*((char *)sharedMem + 0)) = SHAREDMEM_READY_FOR_USE;
@@ -206,7 +208,7 @@ void process_new_pin_connection(rgatState *clientState, vector<RGAT_THREADS_STRU
 	cs_mode bitWidth = extract_pid_bitwidth_path(connectString, string("PID"), &PID, &PID_ID, &binarypath);
 
 	PIN_PIPES localHandles;
-	create_pipes_for_pin(PID, PID_ID, sharedMem, localHandles);
+	create_pipes_for_pin(PID, PID_ID, sharedMem, localHandles, bitWidth);
 
 	PID_TID parentPID = getParentPID(PID); //todo: pin can do this
 
@@ -247,34 +249,32 @@ void process_new_pin_connection(rgatState *clientState, vector<RGAT_THREADS_STRU
 void process_coordinator_listener(rgatState *clientState, vector<RGAT_THREADS_STRUCT *> *threadsList)
 {
 	
-	HANDLE hMapFile;
+	HANDLE hFileMap, diskfile;
 	void* pBuf;
-	cout << "pcl - " << getModulePath() << endl;
 
-	boost::filesystem::path lockpath = clientState->config.clientPath;
-	lockpath += "\\bootstrapMap";
+	boost::filesystem::path bootstrapPath = clientState->getTempDir();
 
-	HANDLE diskfile = CreateFileA(lockpath.string().c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	bootstrapPath += "\\bootstrapMap";
+
+	diskfile = CreateFileA(bootstrapPath.string().c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (diskfile == INVALID_HANDLE_VALUE)
 	{
 		cerr << "[rgat] Error: Failed to create mapfile on disk" << endl;
 		return;
 	}
-	hMapFile = CreateFileMappingA(
-		diskfile,    // use paging file
-		NULL,                    // default security
-		PAGE_READWRITE,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		1024,                // maximum object size (low-order DWORD)
-		NULL);                 // name of mapping object, pin can't access it
+	else
+	{
+		cout << "opened bootstrap map " << bootstrapPath.string() << endl;
+	}
 
-	if (hMapFile == NULL)
+	hFileMap = CreateFileMappingA(diskfile,	NULL,	PAGE_READWRITE,  0,  1024, NULL);
+	if (hFileMap == NULL)
 	{
 		cout << "Could not create file mapping object (" << GetLastError() << ")" << endl;
 		return;
 	}
 	
-	pBuf = MapViewOfFile(hMapFile,  FILE_MAP_ALL_ACCESS,0,0,1024);
+	pBuf = MapViewOfFile(hFileMap,  FILE_MAP_ALL_ACCESS,0,0,1024);
 	memset(pBuf, 31, 1024);
 
 	string buf;
@@ -288,6 +288,9 @@ void process_coordinator_listener(rgatState *clientState, vector<RGAT_THREADS_ST
 		}
 		Sleep(500);
 	}
+
+	CloseHandle(hFileMap);
+	CloseHandle(diskfile);
 }
 
 #endif // WIN32
@@ -379,9 +382,9 @@ string get_options(LAUNCHOPTIONS *launchopts)
 }
 
 //take the target binary path, feed it into dynamorio with all the required options
-void execute_tracer(void *binaryTargetPtr, clientConfig *config, bool pin = true)
+bool execute_tracer(void *binaryTargetPtr, clientConfig *config, boost::filesystem::path tmpDir, bool pin = true)
 {
-	if (!binaryTargetPtr) return;
+	if (!binaryTargetPtr) return false;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
 	LAUNCHOPTIONS *launchopts = &target->launchopts;
@@ -389,11 +392,11 @@ void execute_tracer(void *binaryTargetPtr, clientConfig *config, bool pin = true
 
 	bool success;
 	if (pin)
-		success = get_pin_pingat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64));
+		success = get_pin_pingat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64), tmpDir);
 	else
 		success = get_dr_drgat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64));
 	if(!success)
-		return;
+		return false;
 	
 
 	runpath.append(get_options(launchopts));
@@ -402,6 +405,7 @@ void execute_tracer(void *binaryTargetPtr, clientConfig *config, bool pin = true
 	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
 
 	boost::process::spawn(runpath);
+	return true;
 }
 
 void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)

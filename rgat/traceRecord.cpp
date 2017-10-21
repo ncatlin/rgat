@@ -205,6 +205,34 @@ bool traceRecord::loadTimeline(const rapidjson::Value& saveJSON)
 }
 
 
+//returns the module starting before and ending after the provided address
+//if that's none of them, assume its a new code area in calling module
+//TODO: this assumption is bad; any self modifying dll may cause problems
+int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
+{
+	localmodID = dynamicDisassemblyData->find_containing_module(address);
+	if (localmodID == -1)
+	{
+		cerr << "Error: Unknown module in f_c_m" << endl;
+		int attempts = 100;
+		while (attempts--)
+		{
+			Sleep(30);
+			localmodID = dynamicDisassemblyData->find_containing_module(address);
+			if (localmodID != -1)
+			{
+				cout << "found!" << endl;
+
+				break;
+			}
+		}
+		assert(localmodID != -1);
+	}
+
+	return activeMods.at(localmodID) ? INSTRUMENTED_CODE : UNINSTRUMENTED_CODE;
+}
+
+
 bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> *colours)
 {
 

@@ -636,6 +636,24 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON)
 	return true;
 }
 
+
+int PROCESS_DATA::find_containing_module(MEM_ADDRESS address)
+{
+	const size_t numModules = modBounds.size();
+	for (int modNo = 0; modNo < numModules; ++modNo)
+	{
+		pair<MEM_ADDRESS, MEM_ADDRESS> *moduleBounds = modBounds.at(modNo);
+		if (!moduleBounds) continue;
+		if (address >= moduleBounds->first && address <= moduleBounds->second)
+		{
+			return modNo;
+		}
+	}
+
+	cerr << "Error: Unknown module in f_c_m" << endl;
+	return -1;
+}
+
 /*
 Find the disassembly for [blockaddr]
 If it doesn't exist it will loop for a bit waiting for the disassembly to appear, unless [diegflag] becomes true
@@ -648,7 +666,14 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 
 	while (true)
 	{
-		
+
+		if (blockID == -1)
+		{
+			int moduleNo = find_containing_module(blockaddr);
+			get_extern_at_address(blockaddr, moduleNo, externBlock);
+			return NULL;
+		}
+
 		if (blockID < blockList.size())
 		{
 			getDisassemblyReadLock();

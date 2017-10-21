@@ -529,7 +529,7 @@ void mainTabBox::startNewTrace()
 
 	ui->traceGatherTab->refreshLaunchOptionsFromUI(activeTarget);
 
-	execute_tracer(activeTarget, &clientState->config, ui->tracePinRadio->isChecked());
+	execute_tracer(activeTarget, &clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked());
 	clientState->waitingForNewTrace = true;
 }
 
@@ -605,6 +605,19 @@ void mainTabBox::startDynamorioTest()
 	execute_dynamorio_test(activeTarget, &clientState->config);
 }
 
+void mainTabBox::startPinTest()
+{
+	binaryTarget *activeTarget = clientState->activeBinary;
+	if (!activeTarget)
+	{
+		cerr << " No target to test... ignoring" << endl;
+		return;
+	}
+	if (!activeTarget->getBitWidth())
+		return;
+
+	//execute_dynamorio_test(activeTarget, &clientState->config);
+}
 
 
 void mainTabBox::startDrgatTest()
@@ -624,5 +637,19 @@ void mainTabBox::startDrgatTest()
 	clientState->testTargets.clear();
 }
 
+void mainTabBox::startPingatTest()
+{
+	boost::filesystem::path testPath = clientState->config.clientPath;
+	testPath.append("tests");
+	if (!boost::filesystem::exists(testPath))
+	{
+		string errMsg = "Directory " + testPath.string() + " not found - aborting tests";
+		clientState->updateActivityStatus(QString::fromStdString(errMsg), 10);
+		cerr << errMsg << endl;
+		return;
+	}
 
-
+	testRun testingRun(testPath, clientState);
+	testingRun.beginTests();
+	clientState->testTargets.clear();
+}

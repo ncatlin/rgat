@@ -50,7 +50,7 @@ struct BLOCKREPEAT {
 	MEM_ADDRESS blockaddr;
 	BLOCK_IDENTIFIER blockID;
 	unsigned int insCount = 0;
-	vector<pair<MEM_ADDRESS, BLOCK_IDENTIFIER>> targBlocks;
+	vector<BLOCK_IDENTIFIER> targBlocks;
 	unsigned long totalExecs;
 	INSLIST *blockInslist = 0;
 };
@@ -116,9 +116,6 @@ private:
 
 	void handle_tag(TAG *thistag, unsigned long repeats);
 	void handle_exception_tag(TAG *thistag);
-
-	//todo an enum for the result
-	int find_containing_module(MEM_ADDRESS address, int &localmodID);
 	void dump_loop();
 	bool assign_blockrepeats();
 

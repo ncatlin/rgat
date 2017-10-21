@@ -206,7 +206,7 @@ bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath)
 
 
 //get command line string of pin executable + client dll + options
-bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
+bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, boost::filesystem::path tmpDir)
 {
 	//get dynamorio exe from path in settings
 	//todo: check this works with spaces in the path
@@ -281,6 +281,7 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 	finalCommandline << pinArgs;
 
 	finalCommandline << " -t \"" << pingatPath.string() << "\"";
+	finalCommandline << " -D " << tmpDir << " ";
 
 	*path = finalCommandline.str();
 	return true;
@@ -421,6 +422,40 @@ bool createOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE
 	}
 
 	return true;
+}
+
+bool createTempDir(boost::filesystem::path &tmpPath)
+{
+	TCHAR lpTempPathBuffer[MAX_PATH];
+	TCHAR szTempFileName[MAX_PATH];
+	DWORD dwRetVal;
+	bool success = false;
+
+	int attempts = 4;
+	while (attempts--)
+	{
+		DWORD dwRetVal = GetTempPath(MAX_PATH, lpTempPathBuffer);
+		if (dwRetVal > MAX_PATH || (dwRetVal == 0))
+		{
+			continue;
+		}
+
+		tmpPath = boost::filesystem::path(lpTempPathBuffer);
+		tmpPath += boost::filesystem::unique_path();
+
+		if (!CreateDirectory(tmpPath.wstring().c_str(), NULL))
+		{
+			continue;
+		}
+		
+		success = true;
+		break;
+	}
+
+	if (!success)
+		tmpPath = "";
+
+	return success;
 }
 
 #endif // WIN32

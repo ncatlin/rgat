@@ -23,7 +23,6 @@ Need to migrate all Windows API (and -soon- Linux) routines here
 
 #include "clientConfig.h"
 #include "locks.h"
-
 #include "traceConstants.h"
 
 
@@ -36,10 +35,11 @@ bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *p
 bool get_drdir_path(clientConfig *config, boost::filesystem::path *drpath);
 bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath);
 bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits);
-bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits);
+bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, boost::filesystem::path tmpDir);
 
 bool createHandleInProcess(PID_TID targetpid, HANDLE localhandle, HANDLE &remotehandle);
 bool createInputOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle);
 bool createInputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle, DWORD inputsize = 65336);
 bool createOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE &remoteHandle);
 
+bool createTempDir(boost::filesystem::path &tmpPath);

@@ -78,7 +78,7 @@ void gat_basicblock_handler::main_loop()
 		return;
 	}
 
-	vector<char> buf;
+	vector<uint8_t> buf;
 	buf.resize(BBBUFSIZE, 0);
 
 	OVERLAPPED ov2 = { 0 };
@@ -137,8 +137,8 @@ void gat_basicblock_handler::main_loop()
 		int bufPos = 0;
 		if (buf[bufPos++] == 'B')
 		{
-			MEM_ADDRESS targetaddr;			
-			UINT32 localmodnum;
+			MEM_ADDRESS targetaddr = 0;			
+			UINT32 localmodnum = 0;
 			long globalModNum;
 			uint8_t InsOpcodesBuf[15];
 
@@ -171,8 +171,9 @@ void gat_basicblock_handler::main_loop()
 
 			//logf << "blockaddr: " << start_s << " module : " <<modnum << " instrumented: "<<instrumented<<endl;
 
-			if (!instrumented)
+			if (!instrumented) //should nolonger happen
 			{
+				assert(false);
 				ROUTINE_STRUCT *bbdata = new ROUTINE_STRUCT;
 				bbdata->globalmodnum = globalModNum;
 
@@ -193,6 +194,7 @@ void gat_basicblock_handler::main_loop()
 
 			INSLIST *blockInstructions = new INSLIST;
 			MEM_ADDRESS insaddr = targetaddr;
+			
 			while (true)
 			{
 
@@ -203,7 +205,6 @@ void gat_basicblock_handler::main_loop()
 
 				INS_DATA *instruction = NULL;
 
-
 				piddata->getDisassemblyWriteLock();
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
@@ -213,7 +214,7 @@ void gat_basicblock_handler::main_loop()
 					//might be a better to check all mutations instead of most recent
 
 					bool differentInstruction = ((instruction->numbytes != insByteCount) || 
-													!memcmp(instruction->opcodes, &buf.at(bufPos), insByteCount));
+													memcmp(instruction->opcodes, &buf.at(bufPos), insByteCount));
 					if (differentInstruction)
 						instruction = NULL;
 				}

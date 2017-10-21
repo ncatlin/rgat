@@ -111,7 +111,11 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 
 	clock_t timeend, timestart = clock();
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
-	execute_tracer(newTarget, &clientState->config, ui->tracePinRadio->isChecked());
+	if (!execute_tracer(newTarget, &clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked()))
+	{
+		cerr << "error executing tests tracer" << endl;
+		return false;
+	}
 
 	traceRecord *testtrace = NULL;
 	while (true)

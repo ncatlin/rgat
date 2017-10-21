@@ -368,19 +368,19 @@
                 <item>
                  <layout class="QVBoxLayout" name="diagnosticsBtnsLayout">
                   <property name="spacing">
-                   <number>6</number>
+                   <number>15</number>
                   </property>
                   <property name="leftMargin">
                    <number>12</number>
                   </property>
                   <property name="topMargin">
-                   <number>18</number>
+                   <number>19</number>
                   </property>
                   <property name="rightMargin">
                    <number>12</number>
                   </property>
                   <property name="bottomMargin">
-                   <number>55</number>
+                   <number>11</number>
                   </property>
                   <item>
                    <widget class="QLabel" name="label_2">
@@ -399,32 +399,82 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="dynamorioDiagnoseBtn">
-                    <property name="toolTip">
-                     <string>If this fails the DynamoRIO backend cannot run the target binary</string>
+                   <widget class="QGroupBox" name="compat_gb">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>90</height>
+                     </size>
                     </property>
-                    <property name="statusTip">
-                     <string>Test if the DynamoRIO backend can run the target binary. A dialog with a basic block count means success.</string>
+                    <property name="title">
+                     <string>Compatibility</string>
                     </property>
-                    <property name="text">
-                     <string>DynamoRIO</string>
-                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_14">
+                     <item>
+                      <widget class="QPushButton" name="DRPlatformTestsBtn">
+                       <property name="enabled">
+                        <bool>true</bool>
+                       </property>
+                       <property name="toolTip">
+                        <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Run tests on the rgat instrumentation client</string>
+                       </property>
+                       <property name="text">
+                        <string>DR - Platform</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="PinPlatformTestsBtn">
+                       <property name="text">
+                        <string>Pin - Platform</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QPushButton" name="drgatDiagnoseBtn">
-                    <property name="enabled">
-                     <bool>true</bool>
+                   <widget class="QGroupBox" name="groupBox_3">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>90</height>
+                     </size>
                     </property>
-                    <property name="toolTip">
-                     <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
+                    <property name="title">
+                     <string>Instrumentation</string>
                     </property>
-                    <property name="statusTip">
-                     <string>Run tests on the rgat instrumentation client</string>
-                    </property>
-                    <property name="text">
-                     <string>drgat</string>
-                    </property>
+                    <layout class="QVBoxLayout" name="verticalLayout_13">
+                     <property name="topMargin">
+                      <number>9</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>1</number>
+                     </property>
+                     <item>
+                      <widget class="QPushButton" name="DRTargetTestsBtn">
+                       <property name="toolTip">
+                        <string>If this fails the DynamoRIO backend cannot run the target binary</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>Test if the DynamoRIO backend can run the target binary. A dialog with a basic block count means success.</string>
+                       </property>
+                       <property name="text">
+                        <string>DR - Target</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="PinTargetTestsBtn">
+                       <property name="text">
+                        <string>Pin - Target</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
                    </widget>
                   </item>
                  </layout>
@@ -2963,6 +3013,8 @@
     <slot>startDynamorioTest()</slot>
     <slot>startDrgatTest()</slot>
     <slot>startFuzz()</slot>
+    <slot>startPinTest()</slot>
+    <slot>startPingatTest()</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -3479,7 +3531,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>dynamorioDiagnoseBtn</sender>
+   <sender>DRTargetTestsBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
    <slot>startDynamorioTest()</slot>
@@ -3495,7 +3547,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>drgatDiagnoseBtn</sender>
+   <sender>DRPlatformTestsBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
    <slot>startDrgatTest()</slot>
@@ -3651,6 +3703,38 @@
     <hint type="destinationlabel">
      <x>362</x>
      <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>PinPlatformTestsBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>dynamicAnalysisContentsTab</receiver>
+   <slot>startPinTest()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>931</x>
+     <y>243</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>394</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>PinTargetTestsBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>dynamicAnalysisContentsTab</receiver>
+   <slot>startPingatTest()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>931</x>
+     <y>273</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>394</y>
     </hint>
    </hints>
   </connection>

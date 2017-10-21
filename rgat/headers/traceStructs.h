@@ -149,6 +149,7 @@ public:
 	void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 	bool load(const rapidjson::Document& saveJSON);
 	INSLIST* getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID, bool *dieFlag, ROUTINE_STRUCT **externBlock);
+	int find_containing_module(MEM_ADDRESS address);
 
 	vector<boost::filesystem::path> modpaths;
 	map <boost::filesystem::path, long> globalModuleIDs;

@@ -65,6 +65,7 @@ public:
 
 	void addFuzzRun(int runid, void *run);
 	void fuzztarget_connected(int runid, traceRecord *trace);
+	boost::filesystem::path getTempDir();
 
 	binaryTargets targets;
 	binaryTargets testTargets;
@@ -143,4 +144,6 @@ private:
 	map<int, void *> pendingFuzzruns;
 
 	CRITICAL_SECTION activeGraphCritsec;
+
+	boost::filesystem::path tempDir;
 };

@@ -61,12 +61,10 @@ unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_ID
 	assert(!node_exists(targVertID));
 	insert_node(targVertID, thisnode);
 
-	cout << "1";
 	piddata->getDisassemblyWriteLock();
 	instruction->threadvertIdx.insert(make_pair(tid,targVertID));
 	piddata->dropDisassemblyWriteLock();
 
-	cout << "2";
 	lastNode = targVertID; //obsolete
 	return targVertID;
 }
@@ -303,6 +301,9 @@ void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 
 void proto_graph::push_anim_update(ANIMATIONENTRY entry)
 {
+	if (entry.blockAddr == 0x7ff751c91050 && entry.blockID == -1)
+		cout << "here";
+
 	AcquireSRWLockExclusive(&animationListsSRWLOCK);
 	savedAnimationData.push_back(entry);
 	ReleaseSRWLockExclusive(&animationListsSRWLOCK);

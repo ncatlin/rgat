@@ -166,14 +166,20 @@ void gat_module_handler::main_loop()
 						return;
 					}
 
-					const int returnbufsize = sizeof(HANDLE) + 2;
-					char returnBuf[returnbufsize];
+					cout << "Sizeofhandle = " << sizeof(HANDLE) << endl;
+					uint8_t handlesize = (binary->getBitWidth() == 32) ? 4 : 8;
+					const int returnbufsize = handlesize + 2;
+					char returnBuf[10];
 					returnBuf[0] = '@';
-					returnBuf[1 + sizeof(HANDLE)] = '@';
-					memcpy(returnBuf + 1, &threadpipeTheirEnd, sizeof(HANDLE));
+					memcpy(returnBuf + 1, &threadpipeTheirEnd, handlesize);
+					if (handlesize == 4)
+						returnBuf[1 + 4] = '@';
+					else
+						returnBuf[1 + 8] = '@';
 
 					DWORD byteswritten = 0;
 					WriteFile(inputPipe, returnBuf, returnbufsize, &byteswritten, &ov2);
+					cout << "wrote " << byteswritten << " bytes to trheadhandle" << endl;
 
 					if (byteswritten == returnbufsize)
 						start_thread_rendering(TID, threadpipeThisEnd);
@@ -229,6 +235,13 @@ void gat_module_handler::main_loop()
 				else 
 					path_plain = string(strtok_s(buf + 2, "@", &next_token));
 
+				//could understand it happening if loaded unloaded loaded...
+				if (std::find(piddata->modpaths.begin(), piddata->modpaths.end(), path_plain) != piddata->modpaths.end())
+				{
+					cout << "dupe module " <<path_plain << " ignored :" << buf << endl;
+					continue;
+
+				}
 
 				//if (!b64path.empty())
 				//	path_plain = boost::filesystem::path((base64_decode(b64path)));
@@ -288,6 +301,8 @@ void gat_module_handler::main_loop()
 					wcerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
+
+				//cout << "load module " << std::hex << path_plain << " addr  0x" << startaddr << "-" << endaddr << " locmodid " << localmodID << " globmodid " << globalModID << endl;
 
 				assert(runRecord->get_piddata()->modBounds.at(globalModID) == NULL);
 				runRecord->get_piddata()->modBounds[globalModID] = new pair<MEM_ADDRESS, MEM_ADDRESS>(startaddr, endaddr);
