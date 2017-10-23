@@ -479,7 +479,7 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 		}
 		piddata->dropExternDictReadLock();
 
-		return true;
+		return true; //had a crash here, deallocating vector of edges?
 	}
 
 	INSLIST::iterator blockIt = block->begin();
@@ -1781,6 +1781,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 				set<NODEINDEX> outnodes = set<NODEINDEX>(n->outgoingNeighbours);
 				get_protoGraph()->dropNodeReadLock();
 				
+				bool expectedTarget = false;
 				for each (NODEINDEX nidx in outnodes)
 				{
 					node_data *possibleTargN = get_protoGraph()->safe_get_node(nidx);
@@ -1790,9 +1791,12 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 							displayText = n->ins->ins_text;
 						else
 							displayText = n->ins->mnemonic + " " + possibleTargN->label.toStdString();
+						expectedTarget = true;
 						break;
 					}
 				}
+				if (!expectedTarget)
+					displayText = n->ins->ins_text;
 
 			}
 			else

@@ -96,6 +96,8 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 				break;
 			}
 	}
+
+
 	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
 	//cout << "added internal edge from " << lastVertID << "->" << targVertID << endl;
 }
@@ -192,8 +194,9 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, 1);
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
-
 		BB_addNewEdge(alreadyExecuted, instructionIndex, 1);
+		
+		//BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
 
 		//setup conditions for next instruction
 		if (instructionIndex < tag->insCount)
@@ -300,6 +303,7 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	bool found = runRecord->find_containing_module(targaddr, modnum);
 	assert(found);
 	piddata->get_extern_at_address(targaddr, modnum, &thisbb);
+	assert(thisbb != NULL);
 
 	//see if caller already called this
 	//if so, get the destination node so we can just increase edge weight
@@ -665,7 +669,6 @@ bool trace_graph_builder::assign_blockrepeats()
 	while (repeatIt != blockRepeatQueue.end())
 	{
 		//first find the blocks instruction list
-		MEM_ADDRESS blockaddr = repeatIt->blockaddr;
 		BLOCK_IDENTIFIER blockID = repeatIt->blockID;
 		node_data *n = 0;
 
@@ -726,10 +729,14 @@ bool trace_graph_builder::assign_blockrepeats()
 				continue;
 			}
 
-			assert(piddata->blockList.at(*targCallIDIt).second->blockType == eBlockInternal);
-			INSLIST* targetBlock = piddata->blockList.at(*targCallIDIt).second->inslist;
+			BLOCK_IDENTIFIER blockid = *targCallIDIt;
+			assert(piddata->blockList.at(blockid).second->blockType == eBlockInternal);
+			INSLIST* targetBlock = piddata->blockList.at(blockid).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
-			if (!firstIns->threadvertIdx.count(TID)) { ++targCallIDIt; continue; }
+			if (!firstIns->threadvertIdx.count(TID)) {
+				++targCallIDIt; 
+				cout << "block " <<dec << blockid << " addr " << hex << firstIns->address << " not on graph " << endl;
+			continue; }
 
 			targCallIDIt = repeatIt->targBlocks.erase(targCallIDIt);
 		}
@@ -1116,7 +1123,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 		//create a new external
 	}
 	*/
-
+	return;
 	//delete below here
 	if (attempts++ > 10)
 	{
@@ -1286,16 +1293,16 @@ void trace_graph_builder::main_loop()
 
 	if (!assign_blockrepeats())
 	{
-		cerr << "[rgat] WARNING: " << blockRepeatQueue.size() << " unsatisfied blocks!\n" << endl;
+		cerr << "[rgat] WARNING: " << blockRepeatQueue.size() << " unsatisfied blocks! blocklist size: " << piddata->blockList.size() << endl;
 		std::vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
 		for (; repeatIt != blockRepeatQueue.end(); ++repeatIt)
 		{
-			cerr << "\t Block Addr: 0x" << hex << repeatIt->blockaddr << endl;
+			cerr << "\t Block ID: " << dec << repeatIt->blockID << " addr: "<< hex << piddata->blockList.at(repeatIt->blockID).second->inslist->front()->address <<  endl;
 			cerr << "\t Targeted unavailable blocks: ";
 
 			vector<BLOCK_IDENTIFIER>::iterator targIt = repeatIt->targBlocks.begin();
 			for (; targIt != repeatIt->targBlocks.end(); ++targIt)
-				cerr << "[ID " << *targIt << "] " << endl;
+				cerr << std::dec<< "[ID " << *targIt << " addr: "<<hex<< piddata->blockList.at(*targIt).second->inslist->front()->address<<"] " << endl;
 			cerr << endl;
 		}
 	}

@@ -97,7 +97,7 @@ private:
 
 	void runBB(TAG *tag, int repeats);
 	void run_faulting_BB(TAG *tag);
-	void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats);
+	void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats); 
 
 	void process_trace_tag(char *entry);
 	void process_loop_marker(char *entry);

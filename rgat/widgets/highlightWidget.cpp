@@ -154,6 +154,14 @@ void highlightWidget::setup()
 	if (activeProto)
 	{
 		updateModSyms(activeProto);
+
+		Ui::highlightDialog *highlightui = (Ui::highlightDialog *)clientState->highlightSelectUI;
+
+		size_t exceptionQty = activeProto->exceptionSet.size();
+		if (exceptionQty == 1)
+			highlightui->exceptionsHighlightLabel->setText("1 Exception");
+		else
+			highlightui->exceptionsHighlightLabel->setText(QString::number(exceptionQty) + " Exceptions");
 	}
 }
 

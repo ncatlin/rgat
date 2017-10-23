@@ -98,7 +98,7 @@ bool PROCESS_DATA::get_extern_at_address(MEM_ADDRESS address, int moduleNum, ROU
 	if (externIt == externdict.end())
 	{
 		dropExternDictReadLock();
-		if (!BB) 
+		if (BB == NULL) 
 			return false;
 
 		getExternDictWriteLock();

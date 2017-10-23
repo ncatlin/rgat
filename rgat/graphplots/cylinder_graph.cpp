@@ -34,30 +34,32 @@ Creates a cylinder layout for a plotted graph - grows down the y axis
 #define PREVIEW_PIX_PER_A_COORD 3
 #define PREVIEW_PIX_PER_B_COORD 4
 
-#define JUMPA 3
+#define JUMPA -3
 #define JUMPB 3
 #define JUMPA_CLASH 1.5
-#define CALLB 3
+
+#define CALLA 5
+#define CALLB 3//3
+
 #define B_BETWEEN_BLOCKNODES 0.25
 
 //how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
-#define CALLA_CLASH 12
-#define CALLB_CLASH -12
+#define CALLA_CLASH 0
+#define CALLB_CLASH 12
 
 //placement of external nodes, relative to the first caller
 #define EXTERNA -0.5
 #define EXTERNB 0.5
 
 //controls placement of the node after a return
-#define RETURNA_OFFSET -7
-#define RETURNB_OFFSET 5
+#define RETURNA_OFFSET 0
+#define RETURNB_OFFSET 3
 
 
 //performs an action (call,jump,etc) from lastNode, places new position in positionStruct
 //this is the function that determines how the graph is laid out
 void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
-
 	CYLINDERCOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
 	{
@@ -139,11 +141,12 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 			}
 
 			//note: b sometimes huge after this?
+			a -= CALLA;
 			b += CALLB;
 
 			while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
 			{
-				a += CALLA_CLASH;
+				a -= CALLA_CLASH;
 				b += CALLB_CLASH;
 				++clash;
 			}
@@ -179,6 +182,8 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 					result = stackIt->second;
 					break;
 				}
+			//testing
+			result = -1;
 
 			//if so, position next node near caller
 			if (result != -1)

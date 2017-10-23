@@ -144,10 +144,12 @@ void gat_basicblock_handler::main_loop()
 
 			memcpy(&targetaddr, &buf.at(bufPos), pointerSize);			
 			bufPos += pointerSize;
-			assert(buf.at(bufPos++) == '@');
+			assert(buf.at(bufPos) == '@');			
+			bufPos++;
 			memcpy(&localmodnum, &buf.at(bufPos), sizeof(UINT32));
 			bufPos += sizeof(UINT32);
-			assert(buf.at(bufPos++) == '@');
+			assert(buf.at(bufPos) == '@');
+			bufPos++;
 
 			globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(localmodnum)->first;
@@ -197,6 +199,7 @@ void gat_basicblock_handler::main_loop()
 			
 			while (true)
 			{
+
 
 				if (buf.at(bufPos++) != '@')
 					break;

@@ -109,10 +109,14 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 		ui->tgt_hashLineEdit->setText("Failed to calculate hash");
 	}
 
-	peparse::parsed_pe *header = peparse::ParsePEFromFile(target->path().string().c_str());
+	string cpath = target->path().string();
+	peparse::parsed_pe *header = peparse::ParsePEFromFile(cpath.c_str());
 	if (!header)
 	{
-		ui->tgt_typeLineEdit->setText("Non-PE file");
+		cout << "parse error " << peparse::GetPEErrString() << endl;
+		stringstream peerror;
+		peerror << "Potentially incompatible binary <peparse error " << peparse::GetPEErr() << " - '" << peparse::GetPEErrString() << "' " << " at " <<hex<< peparse::GetPEErrLoc() << ">";
+		ui->tgt_typeLineEdit->setText(QString::fromStdString(peerror.str()));
 		ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}");
 	}
 	else

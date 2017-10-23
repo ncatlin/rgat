@@ -202,6 +202,9 @@ bool testRun::validateTestResults(traceRecord *testtrace, rapidjson::Value::Cons
 			unsigned long expectedExterns = expectedResultIt->value.GetUint64();
 			if (firstgraph->externalNodeList.size() != expectedExterns)
 			{
+				if ((firstgraph->nodeList.back().external == true) && (firstgraph->externalNodeList.size() == (expectedExterns + 1)))
+					continue; //returning to the threadinitthunk is technically entering external code, but shouldn't count
+
 				cout << "Test Failed: Expected (" << expectedExterns << ") externs but (" << firstgraph->externalNodeList.size() << ") external nodes traced" << endl;
 				return false;
 			}

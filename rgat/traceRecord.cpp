@@ -214,7 +214,7 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 	if (localmodID == -1)
 	{
 		cerr << "Error: Unknown module in f_c_m" << endl;
-		int attempts = 100;
+		int attempts = 20;
 		while (attempts--)
 		{
 			Sleep(30);
@@ -226,7 +226,10 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 				break;
 			}
 		}
-		assert(localmodID != -1);
+
+		cout << "Warning: Unknown module containing address 0x" << std::hex << address << endl;
+		return UNINSTRUMENTED_CODE;
+		//assert(localmodID != -1);
 	}
 
 	return activeMods.at(localmodID) ? INSTRUMENTED_CODE : UNINSTRUMENTED_CODE;
