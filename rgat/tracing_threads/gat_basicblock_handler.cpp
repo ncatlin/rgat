@@ -113,7 +113,14 @@ void gat_basicblock_handler::main_loop()
 			if (err == ERROR_BROKEN_PIPE)
 				break;
 			else
-				cerr << "[rgat]Basic block pipe read for PID "<< runRecord->getPID() <<" failed, error:"<<err;
+				cerr << "[rgat]Basic block pipe read for PID "<< runRecord->getPID() <<" failed, error: " << dec << err << " ";
+
+			switch (err)
+			{
+			case ERROR_IO_INCOMPLETE:
+				cout << "IO INCOMPLETE";
+				break;
+			}
 
 			break;
 		}

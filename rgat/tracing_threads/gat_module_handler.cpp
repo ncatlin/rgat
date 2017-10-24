@@ -166,7 +166,7 @@ void gat_module_handler::main_loop()
 						return;
 					}
 
-					cout << "Sizeofhandle = " << sizeof(HANDLE) << endl;
+
 					uint8_t handlesize = (binary->getBitWidth() == 32) ? 4 : 8;
 					const int returnbufsize = handlesize + 2;
 					char returnBuf[10];
@@ -179,7 +179,7 @@ void gat_module_handler::main_loop()
 
 					DWORD byteswritten = 0;
 					WriteFile(inputPipe, returnBuf, returnbufsize, &byteswritten, &ov2);
-					cout << "wrote " << byteswritten << " bytes to trheadhandle" << endl;
+					cout << "wrote " << byteswritten << " bytes of handles for thread " << TID << endl;
 
 					if (byteswritten == returnbufsize)
 						start_thread_rendering(TID, threadpipeThisEnd);
@@ -235,14 +235,6 @@ void gat_module_handler::main_loop()
 				else 
 					path_plain = string(strtok_s(buf + 2, "@", &next_token));
 
-				//could understand it happening if loaded unloaded loaded...
-				if (std::find(piddata->modpaths.begin(), piddata->modpaths.end(), path_plain) != piddata->modpaths.end())
-				{
-					cout << "dupe module " <<path_plain << " ignored :" << buf << endl;
-					continue;
-
-				}
-
 				//if (!b64path.empty())
 				//	path_plain = boost::filesystem::path((base64_decode(b64path)));
 				//else
@@ -265,19 +257,19 @@ void gat_module_handler::main_loop()
 				}
 
 				long globalModID;
-				auto modIDIt = piddata->globalModuleIDs.find(path_plain); //first time we have seen this module in any run of target
-				if (modIDIt == piddata->globalModuleIDs.end())
-				{
+				//auto modIDIt = piddata->globalModuleIDs.find(path_plain); //first time we have seen this module in any run of target
+				//if (modIDIt == piddata->globalModuleIDs.end())
+				//{
 					globalModID = (long)piddata->modpaths.size();
 					piddata->modpaths.push_back(path_plain);
 					piddata->globalModuleIDs[path_plain] = globalModID;
 					runRecord->modIDTranslationVec[localmodID] = globalModID;
-				}
-				else
-				{
-					globalModID = modIDIt->second;
-					runRecord->modIDTranslationVec[localmodID] = globalModID;
-				}
+				//}
+				//else
+				//{
+				//	globalModID = modIDIt->second;
+				//	runRecord->modIDTranslationVec[localmodID] = globalModID;
+				//}
 
 				piddata->dropDisassemblyWriteLock();
 
@@ -331,6 +323,16 @@ void gat_module_handler::main_loop()
 					break;
 				}
 			}
+
+			if (buf[0] == '!')
+			{
+				cout <<"[Msg from instrumentation]:"<< buf << endl;
+				continue;
+			}
+
+			cerr << "[rgat]ERROR: Bad module handler input from instrumentation: " << buf << endl;
+			break;
+
 		}
 	}
 
