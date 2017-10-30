@@ -320,3 +320,4 @@ rgat*.7z
 rgat*.zip
 /debuglogs
 *.exe
+/releasedebug/output

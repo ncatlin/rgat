@@ -78,7 +78,6 @@ public Q_SLOTS:
 private:
 
 	//debugging stuff
-	float delmeCtr1 = 0;
 	Qt::Key lastkey = Qt::Key_0;
 
 private:

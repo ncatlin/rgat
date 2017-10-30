@@ -518,6 +518,7 @@ void cylinder_graph::draw_wireframe(graphGLWidget *gltarget)
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
 	gltarget->glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), wireframe_loop_count);
+	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
@@ -689,6 +690,15 @@ bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, Q
 	return true;
 }
 
+inline void cylinder_graph::add_to_callstack(bool isPreview, MEM_ADDRESS address, NODEINDEX idx)
+{
+	callStackLock.lock();
+	if (isPreview)
+		previewCallStack.push_back(make_pair(address, idx));
+	else
+		mainCallStack.push_back(make_pair(address, idx));
+	callStackLock.unlock();
+}
 
 //converts a single node into node vertex data
 int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -760,12 +770,7 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 			lastNode->lastVertType = eNodeCall;
 			//if code arrives to next instruction after a return then arrange as a function
 			MEM_ADDRESS nextAddress = n->ins->address + n->ins->numbytes;
-			callStackLock.lock();
-			if (vertdata->isPreview())
-				previewCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-			else
-				mainCallStack.push_back(make_pair(nextAddress, lastNode->lastVertID));
-			callStackLock.unlock();
+			add_to_callstack(vertdata->isPreview(), nextAddress, lastNode->lastVertID);
 			break;
 		}
 		default:

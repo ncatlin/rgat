@@ -317,13 +317,14 @@ void previewPlotGLWidget::drawPreviewInfo(plotted_graph *graph, int imageWidth, 
 	
 
 	proto_graph *proto = graph->get_protoGraph();
-	unsigned long newIn = proto->getBacklogIn();
-	if (newIn > 5)
-		infoTxt << "  in:" << newIn;
 
 	unsigned long backlog = proto->get_backlog_total();
 	if (backlog > 200)
 		infoTxt << " Q:" << backlog;
+
+	unsigned long newIn = proto->getBacklogIn();
+	if (newIn > 5)
+		infoTxt << "  in:" << newIn;
 
 	painter->drawText(10, yPos + 15, QString::fromStdString(infoTxt.str()));
 

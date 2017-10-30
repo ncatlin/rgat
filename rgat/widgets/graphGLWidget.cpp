@@ -55,7 +55,8 @@ void graphGLWidget::gather_projection_data(PROJECTDATA *pd)
 void graphGLWidget::load_VBO(int index, GLuint *VBOs, int bufsize, float *data)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBOs[index]);
-	glBufferData(GL_ARRAY_BUFFER, bufsize, data, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, bufsize, data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void graphGLWidget::load_edge_VBOS(GLuint *VBOs, GRAPH_DISPLAY_DATA *lines)
@@ -228,12 +229,16 @@ void graphGLWidget::selectHighlightedAddressNodes(PLOTTEDGRAPH_CASTPTR graphPtr)
 	{
 		//find external nodes from this thread in matching address
 		ROUTINE_STRUCT *block = externIt->second;
+		processdata->getExternCallerReadLock();
 		auto threadIt = block->thread_callers.find(graph->get_tid());
 		if (threadIt == block->thread_callers.end()) 
 		{
 			processdata->dropExternDictReadLock();
+			processdata->dropExternCallerReadLock();
 			return;
 		}
+
+		processdata->dropExternCallerReadLock();
 
 		EDGELIST edges = threadIt->second;
 		NODEPAIR edge;

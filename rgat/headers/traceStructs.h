@@ -174,13 +174,18 @@ public:
 	void dropExternCallerReadLock();
 	void dropExternCallerWriteLock();
 
+	pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> blockDetails(BLOCK_IDENTIFIER blockid);
+	size_t numBlocksSeen() { return blockList.size(); }
+	//must already have disassembly write lock
+	void addBlock_HaveLock(ADDRESS_OFFSET addr, BLOCK_DESCRIPTOR *blk) { blockList.push_back(make_pair(addr, blk)); }
+
 	//maps instruction addresses to all data about it
 	map <ADDRESS_OFFSET, INSLIST> disassembly;
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
 	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
-	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>> blockList;
+
 
 
 	map <MEM_ADDRESS, ROUTINE_STRUCT *> externdict;
@@ -204,6 +209,7 @@ private:
 	bool unpackModuleSymbolArray(const rapidjson::Value& modSymArray, int globalmodNum);
 
 private:
+	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>> blockList;
 
 	SRWLOCK externDictRWLock = SRWLOCK_INIT;
 

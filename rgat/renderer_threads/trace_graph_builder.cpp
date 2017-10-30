@@ -628,28 +628,27 @@ INSLIST *trace_graph_builder::find_block_disassembly(MEM_ADDRESS blockaddr, BLOC
 
 void trace_graph_builder::satisfy_pending_edges()
 {
+	size_t blockQty = piddata->numBlocksSeen();
 	vector<NEW_EDGE_BLOCKDATA>::iterator pendIt = pendingEdges.begin();
 	while (pendIt != pendingEdges.end())
 	{
-		if (piddata->blockList.size() <= pendIt->sourceID) {
+		if (blockQty <= pendIt->sourceID) {
 			++pendIt;
 			continue;
 		}
-		INSLIST *source = piddata->blockList.at(pendIt->sourceID).second->inslist;
+		INSLIST *source = piddata->blockDetails(pendIt->sourceID).second->inslist;
 
-		
-		if (piddata->blockList.size() <= pendIt->targID) {
+		if (blockQty <= pendIt->targID) {
 			++pendIt;
 			continue;
 		}
 		assert(piddata->blockList.at(pendIt->targID).second->blockType == eBlockInternal);
-		INSLIST *targ = piddata->blockList.at(pendIt->targID).second->inslist;
+		cout << "Satisfying an edge request! source ID: 0x" <<hex<< pendIt->sourceID << " addr: 0x"<<pendIt->sourceAddr<<
+			" targID: "<< pendIt->targID << " addr: 0x" << pendIt->targAddr << endl;
+		INSLIST *targ = piddata->blockDetails(pendIt->targID).second->inslist;
 
 		thisgraph->insert_edge_between_BBs(source, targ);
 		pendIt = pendingEdges.erase(pendIt);
-
-		//not sure what causes these to happen but haven't seen any get satisfied
-		cout << "Satisfied an edge request!" << endl;
 	}
 }
 
@@ -664,6 +663,7 @@ bool trace_graph_builder::assign_blockrepeats()
 		satisfy_pending_edges();
 
 	if (blockRepeatQueue.empty()) return true;
+	size_t numBlocks = piddata->numBlocksSeen();
 
 	vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
 	while (repeatIt != blockRepeatQueue.end())
@@ -674,11 +674,11 @@ bool trace_graph_builder::assign_blockrepeats()
 
 		if(!repeatIt->blockInslist)
 		{
-			if (piddata->blockList.size() <= blockID) {
+			if (numBlocks <= blockID) {
 				++repeatIt; continue;
 			}
 			assert(piddata->blockList.at(blockID).second->blockType == eBlockInternal);
-			repeatIt->blockInslist = piddata->blockList.at(blockID).second->inslist;
+			repeatIt->blockInslist = piddata->blockDetails(blockID).second->inslist;
 
 			//first/last vert not on drawn yet? skip until it is
 			if (repeatIt->blockInslist->front()->threadvertIdx.count(TID) == 0 || repeatIt->blockInslist->back()->threadvertIdx.count(TID) == 0) {
@@ -708,7 +708,7 @@ bool trace_graph_builder::assign_blockrepeats()
 		while (targCallIDIt != repeatIt->targBlocks.end())
 		{
 			
-			if (piddata->blockList.size() <= *targCallIDIt)
+			if (numBlocks <= *targCallIDIt)
 			{
 				//external libraries will not be found by find_block_disassembly, but will be handled by run_external
 				//this notices it has been handled and drops it from pending list
@@ -731,11 +731,21 @@ bool trace_graph_builder::assign_blockrepeats()
 
 			BLOCK_IDENTIFIER blockid = *targCallIDIt;
 			assert(piddata->blockList.at(blockid).second->blockType == eBlockInternal);
-			INSLIST* targetBlock = piddata->blockList.at(blockid).second->inslist;
+			INSLIST* targetBlock = piddata->blockDetails(blockid).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
 			if (!firstIns->threadvertIdx.count(TID)) {
 				++targCallIDIt; 
-				cout << "block " <<dec << blockid << " addr " << hex << firstIns->address << " not on graph " << endl;
+
+
+
+				//todo - lots of this
+				//cout << "assign block repeats. block id " <<dec << blockid << " / addr 0x" << hex << 
+				//	firstIns->address << " not on graph in thread " << dec << TID << endl;
+
+
+
+
+
 			continue; }
 
 			targCallIDIt = repeatIt->targBlocks.erase(targCallIDIt);
@@ -922,6 +932,7 @@ void trace_graph_builder::add_exec_count_update(char *entry)
 
 void trace_graph_builder::add_unlinking_update(char *entry)
 {
+	string bkbk = string(entry);
 	MEM_ADDRESS sourceAddr;
 	BLOCK_IDENTIFIER sourceID;
 	unsigned long long id_count;
@@ -937,14 +948,14 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 
 
 
-	if (piddata->blockList.size() <= sourceID) {
+	if (piddata->numBlocksSeen() <= sourceID) {
 		Sleep(50);
 		if (die || thisgraph->terminated) return;
 		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 		assert(0);
 	}
 	assert(piddata->blockList.at(sourceID).second->blockType == eBlockInternal);
-	INSLIST* lastBB = piddata->blockList.at(sourceID).second->inslist;
+	INSLIST* lastBB = piddata->blockDetails(sourceID).second->inslist;
 	INS_DATA* lastIns = lastBB->back();
 
 	unordered_map<PID_TID, NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
@@ -1024,28 +1035,38 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 			For now as it hasn't been a problem i've improvised by checking if we return to code after the BaseThreadInitThunk symbol, 
 				but this is not reliable outside of my runtime environment
 			*/
-
-			ADDRESS_OFFSET offset = targ2 - runRecord->get_piddata()->modBounds.at(foundExtern->globalmodnum)->first;
-			string sym;
-			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
 			bool foundsym = false;
-			for (int i = 0; i < 4096; i++)
+			string sym;
+			ADDRESS_OFFSET offset;
+
+			if (foundExtern->globalmodnum != -1)
 			{
-				if (piddata->get_sym(foundExtern->globalmodnum, offset - i, sym))
+				offset = targ2 - runRecord->get_piddata()->modBounds.at(foundExtern->globalmodnum)->first;
+
+				//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+
+				for (int i = 0; i < 4096; i++)
 				{
-					foundsym = true;
-					break;
+					if (piddata->get_sym(foundExtern->globalmodnum, offset - i, sym))
+					{
+						foundsym = true;
+						break;
+					}
+				}
+				if (!foundsym) sym = "Unknown Symbol";
+
+				if (sym != "BaseThreadInitThunk")
+				{
+					cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: "
+						<< piddata->modpaths.at(foundExtern->globalmodnum) << " +0x" << std::hex << offset << "): '" << sym << "'" << endl;
+	
+					cerr << endl << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
 				}
 			}
-			if (!foundsym) sym = "Unknown Symbol";
+			else
+				cerr << "[rgat]Warning, unknown module" << endl;
 
-			if (sym != "BaseThreadInitThunk")
-			{
-				cerr << "[rgat]Warning,  unseen code executed after a busy block. (Module: "
-					<< piddata->modpaths.at(foundExtern->globalmodnum) << " +0x" << std::hex << offset << "): '" << sym << "'"<< endl;
 
-				cerr << endl << "\t If this happened at a thread exit it is not a problem and can be ignored" << std::dec << endl;
-			}
 		}
 		piddata->dropExternCallerReadLock();
 	}
@@ -1064,7 +1085,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	MEM_ADDRESS nextBlockAddress;
 
 	thistag.blockID = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
-	thistag.blockaddr = piddata->blockList.at(thistag.blockID).first;
+	thistag.blockaddr = piddata->blockDetails(thistag.blockID).first;
 	nextBlockAddress = stoull(strtok_s(entry, ",", &entry), 0, 16);
 
 	thistag.jumpModifier = INSTRUMENTED_CODE; //todo enum
@@ -1293,16 +1314,16 @@ void trace_graph_builder::main_loop()
 
 	if (!assign_blockrepeats())
 	{
-		cerr << "[rgat] WARNING: " << blockRepeatQueue.size() << " unsatisfied blocks! blocklist size: " << piddata->blockList.size() << endl;
+		cerr << "[rgat] WARNING: " << blockRepeatQueue.size() << " unsatisfied blocks! blocklist size: " << piddata->numBlocksSeen() << endl;
 		std::vector<BLOCKREPEAT>::iterator repeatIt = blockRepeatQueue.begin();
 		for (; repeatIt != blockRepeatQueue.end(); ++repeatIt)
 		{
-			cerr << "\t Block ID: " << dec << repeatIt->blockID << " addr: "<< hex << piddata->blockList.at(repeatIt->blockID).second->inslist->front()->address <<  endl;
+			cerr << "\t Block ID: " << dec << repeatIt->blockID << " addr: "<< hex << piddata->blockDetails(repeatIt->blockID).second->inslist->front()->address <<  endl;
 			cerr << "\t Targeted unavailable blocks: ";
 
 			vector<BLOCK_IDENTIFIER>::iterator targIt = repeatIt->targBlocks.begin();
 			for (; targIt != repeatIt->targBlocks.end(); ++targIt)
-				cerr << std::dec<< "[ID " << *targIt << " addr: "<<hex<< piddata->blockList.at(*targIt).second->inslist->front()->address<<"] " << endl;
+				cerr << std::dec<< "[ID " << *targIt << " addr: "<<hex<< piddata->blockDetails(*targIt).second->inslist->front()->address<<"] " << endl;
 			cerr << endl;
 		}
 	}

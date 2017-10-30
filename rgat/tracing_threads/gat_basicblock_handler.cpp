@@ -159,7 +159,7 @@ void gat_basicblock_handler::main_loop()
 			bufPos++;
 
 			globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
-			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(localmodnum)->first;
+			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(globalModNum)->first;
 			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char instrumentedStatusByte = buf[bufPos++];
@@ -267,16 +267,19 @@ void gat_basicblock_handler::main_loop()
 
 			piddata->getDisassemblyWriteLock();
 			piddata->addressBlockMap[targetaddr][blockID] = blockInstructions;
-			if (blockID == piddata->blockList.size())
+			
+
+			if (blockID == piddata->numBlocksSeen())
 			{
 				BLOCK_DESCRIPTOR *bd = new BLOCK_DESCRIPTOR;
 				bd->blockType = eBlockInternal;
 				bd->inslist = blockInstructions;
-				piddata->blockList.push_back(make_pair(targetaddr, bd));
+				piddata->addBlock_HaveLock(targetaddr, bd);
 			}
 			else
 				cout << "other size" << endl;
 			piddata->dropDisassemblyWriteLock();
+
 			continue;
 		}
 

@@ -194,13 +194,21 @@ void thread_trace_reader::main_loop()
 		tagReadBuf[bytesRead] = 0;
 		if (tagReadBuf[bytesRead - 1] != '@')
 		{
-			std::string bufstring(tagReadBuf.begin(), tagReadBuf.begin()+ bytesRead);
-			cerr << "[rgat]ERROR: [tid"<< threadID <<"] Improperly terminated trace message recieved ["<< bufstring<<"]. ("<<bytesRead<<" bytes) Terminating." << endl;
 			die = true;
+			if (!bytesRead) break;
+			if (tagReadBuf.at(0) != 'X')
+			{
+				std::string bufstring(tagReadBuf.begin(), tagReadBuf.begin() + bytesRead);
+				cerr << "[rgat]ERROR: [threadid" << threadID << "] Improperly terminated trace message recieved [" 
+					<< bufstring << "]. (" << bytesRead << " bytes) Terminating." << endl;
+			}
+			
 			break;
 		}
 		
+
 		string *msgbuf = new string(tagReadBuf.begin(), tagReadBuf.begin() + bytesRead);
+
 		add_message(msgbuf);
 		++itemsRead;
 	}

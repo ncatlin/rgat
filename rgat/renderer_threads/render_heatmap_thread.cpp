@@ -364,7 +364,7 @@ bool heatmap_renderer::render_graph_heatmap(plotted_graph *graph, bool lastRun)
 				NODEINDEX src = unfinishedIt->first.first;
 				NODEINDEX targ = unfinishedIt->first.second;
 
-				cout << "(" << src << "->" << targ << ") " << endl;
+				cout << "(" << dec << src << "->" << dec << targ << ") " << endl;
 			}
 			protoGraph->dropNodeReadLock();
 			cout << "[rgat]Heatmap for for thread " << dec << protoGraph->get_TID() << " partially incomplete: Ending solver with " <<

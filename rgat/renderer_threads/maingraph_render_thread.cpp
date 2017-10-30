@@ -107,6 +107,8 @@ void maingraph_render_thread::main_loop()
 				
 
 				activeGraph->setGraphBusy(true, 101);
+
+				activeTrace->plottedGraphs.at(protoGraph->get_TID()) = NULL;
 				delete activeGraph;
 
 				activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
@@ -146,7 +148,9 @@ void maingraph_render_thread::main_loop()
 				continue;
 			}
 
+			//cout << "start pmgrpg " << hex << activeGraph << " in thread " << GetCurrentThreadId() << endl;
 			performMainGraphRendering(activeGraph);
+			//cout << "end pmgrpg " << hex << activeGraph << " in thread " << GetCurrentThreadId() << endl;
 			activeGraph->decrease_thread_references(1);
 		}
 		activeGraph = NULL;

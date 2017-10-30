@@ -90,6 +90,8 @@ private:
 	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
 
+	void add_to_callstack(bool isPreview, MEM_ADDRESS address, NODEINDEX idx);
+
 private:
 	int wireframe_loop_count = 0;
 	GRAPH_DISPLAY_DATA *wireframe_data = NULL;

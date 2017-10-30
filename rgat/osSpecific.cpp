@@ -428,7 +428,7 @@ bool createTempDir(boost::filesystem::path &tmpPath)
 {
 	TCHAR lpTempPathBuffer[MAX_PATH];
 	TCHAR szTempFileName[MAX_PATH];
-	DWORD dwRetVal;
+
 	bool success = false;
 
 	int attempts = 4;

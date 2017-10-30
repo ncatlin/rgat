@@ -213,8 +213,9 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 	localmodID = dynamicDisassemblyData->find_containing_module(address);
 	if (localmodID == -1)
 	{
-		cerr << "Error: Unknown module in f_c_m" << endl;
-		int attempts = 20;
+
+		cerr << "Warning: Unknown module in traceRecord::find_containing_module for address 0x" << hex << address << endl;
+		int attempts = 1;
 		while (attempts--)
 		{
 			Sleep(30);
@@ -227,7 +228,6 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 			}
 		}
 
-		cout << "Warning: Unknown module containing address 0x" << std::hex << address << endl;
 		return UNINSTRUMENTED_CODE;
 		//assert(localmodID != -1);
 	}

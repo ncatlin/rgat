@@ -190,33 +190,52 @@ void plotted_graph::release_nodecoord_write()
 //display live or animated graph with active areas on faded areas
 void plotted_graph::display_active(graphGLWidget *gltarget)
 {
-	GLsizei animnodesverts = animnodesdata->get_numVerts();
-	GLsizei staticnodesverts = mainnodesdata->get_numVerts();
-	GLsizei nodeLoadQty = min(animnodesverts, staticnodesverts);
-
-	GLsizei animlinevertsQty = animlinedata->get_numVerts();
-	GLsizei mainlinevertsQty = mainlinedata->get_numVerts();
-	GLsizei edgeVertLoadQty = min(animlinevertsQty, mainlinevertsQty);
-
 	//reload buffers if needed and not being written
-	if (needVBOReload_active)
+	if (needVBOReload_active) 
 	{
+		GLsizei mainlinevertsQty = mainlinedata->get_numVerts();
+		if (mainlinevertsQty == 0) return;
+
+		GLsizei animnodesverts = animnodesdata->get_numVerts();
+		GLsizei staticnodesverts = mainnodesdata->get_numVerts();
+		GLsizei nodeLoadQty = min(animnodesverts, staticnodesverts);
+		GLsizei animlinevertsQty = animlinedata->get_numVerts();
+		GLsizei edgeVertLoadQty = min(animlinevertsQty, mainlinevertsQty);
+
+		mainnodesdata->acquire_pos_read();
+		animnodesdata->acquire_col_read();
+
 		gltarget->load_VBO(VBO_NODE_POS, activeVBOs, POSITION_VERTS_SIZE(nodeLoadQty), mainnodesdata->readonly_pos());
 		gltarget->load_VBO(VBO_NODE_COL, activeVBOs, COLOUR_VERTS_SIZE(nodeLoadQty), animnodesdata->readonly_col());
+
 		animnodesdata->set_numLoadedVerts(nodeLoadQty);
 
-		GLfloat *buf = mainlinedata->readonly_pos();
-		if (!buf) return; 
+		mainnodesdata->release_pos_read();
+		animnodesdata->release_col_read();
+
+
+		vector<float> *vecPtr = mainlinedata->acquire_pos_read();
+		if (vecPtr->empty())
+		{
+			mainlinedata->release_pos_read();
+			return;
+		}
+		GLfloat *buf = &vecPtr->at(0);
 		gltarget->load_VBO(VBO_LINE_POS, activeVBOs, POSITION_VERTS_SIZE(edgeVertLoadQty), buf);
-
-		buf = animlinedata->readonly_col();
-		if (!buf) return;
-
+		mainlinedata->release_pos_read();
+		
+		buf = &animlinedata->acquire_col_read()->at(0);
 		gltarget->load_VBO(VBO_LINE_COL, activeVBOs, COLOUR_VERTS_SIZE(edgeVertLoadQty), buf);
+		animlinedata->release_col_read();
+
+		GLenum result = gltarget->glGetError();
+		if (result)
+			cout << "error :" << result << endl;
 		animlinedata->set_numLoadedVerts(edgeVertLoadQty);
 
 		needVBOReload_active = false;
 	}
+
 
 	if (clientState->showNodes && animnodesdata->get_numLoadedVerts())
 	{
@@ -240,7 +259,6 @@ void plotted_graph::display_static(graphGLWidget *gltarget)
 	{
 		//lock for reading if corrupt graphics happen occasionally
 		gltarget->loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
-	
 		needVBOReload_main = false;
 	}
 
@@ -255,27 +273,28 @@ void plotted_graph::display_static(graphGLWidget *gltarget)
 void plotted_graph::extend_faded_edges()
 {
 
-	vector<GLfloat> *animecol = animlinedata->acquire_col_write();
-	vector<GLfloat> *mainecol = mainlinedata->acquire_col_write();
 	unsigned int drawnVerts = mainlinedata->get_numVerts();
 	unsigned int animatedVerts = animlinedata->get_numVerts();
 
 	assert(drawnVerts >= animatedVerts);
 	int pendingVerts = drawnVerts - animatedVerts;
 	if (!pendingVerts) return;
+	
+	vector<GLfloat> *animEdgeColours = animlinedata->acquire_col_write();
+	vector<GLfloat> *staticEdgeColours = mainlinedata->acquire_col_read();
 
 	//copy the colours over
 	unsigned int fadedIndex = animlinedata->get_numVerts() *COLELEMS;
-	vector<float>::iterator mainEIt = mainecol->begin();
+	vector<float>::iterator mainEIt = staticEdgeColours->begin();
 	advance(mainEIt, fadedIndex);
-	animecol->insert(animecol->end(), mainEIt, mainecol->end());
-	mainlinedata->release_col_write();
+	animEdgeColours->insert(animEdgeColours->end(), mainEIt, staticEdgeColours->end());
+	mainlinedata->release_col_read();
 
-	//fade new colours alpha
+	//fade alpha of new colours
 	unsigned int index2 = (animlinedata->get_numVerts() *COLELEMS);
 	unsigned int end = drawnVerts*COLELEMS;
 	for (; index2 < end; index2 += COLELEMS)
-		animecol->at(index2 + AOFF) = (float)0.01; //TODO: config file entry for anim inactive
+		animEdgeColours->at(index2 + AOFF) = (float)0.01; //TODO: config entry for anim inactive
 
 	animlinedata->set_numVerts(drawnVerts);
 	animlinedata->release_col_write();
@@ -359,7 +378,6 @@ int plotted_graph::render_new_edges()
 	needVBOReload_main = true;
 	for (; edgeIt != end && !dying; ++edgeIt)
 	{
-
 		//render source node if not already done
 		if (edgeIt->first >= (NODEINDEX)mainnodesdata->get_numVerts())
 		{
@@ -384,18 +402,16 @@ int plotted_graph::render_new_edges()
 		else
 			lastMainNode = setLastNode(edgeIt->second);
 		
-		if (!render_edge(*edgeIt, lines, 0, false, false))
+		if (render_edge(*edgeIt, lines, 0, false, false))
 		{
-			internalProtoGraph->dropEdgeReadLock();
-			return edgesDrawn;
+			++edgesDrawn;
+			lines->inc_edgesRendered();
 		}
-
-		++edgesDrawn;
-
-		extend_faded_edges();
-		lines->inc_edgesRendered();
+		else 
+			break;
 	}
 
+	extend_faded_edges();
 	internalProtoGraph->dropEdgeReadLock();
 	return edgesDrawn;
 }
@@ -460,26 +476,31 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 	{
 		//cout << "fill block nodelist with extern addr " << std::hex << blockAddr << " mod " << std::dec << externBlock->globalmodnum << endl;
 		//assume it's an external block, find node in extern call list
-		piddata->getExternDictReadLock();
+		piddata->getExternCallerReadLock();
 		auto callvsEdgeIt = externBlock->thread_callers.find(tid);
 		if (callvsEdgeIt == externBlock->thread_callers.end())
 		{
-			piddata->dropExternDictReadLock();
+			piddata->dropExternCallerReadLock();
 			Sleep(10);
 			cerr << "Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
 			return false;
 		}
 
+
 		EDGELIST calls = callvsEdgeIt->second;
+		piddata->dropExternCallerReadLock();
+
 		EDGELIST::iterator callvsIt = calls.begin();
 		for (; callvsIt != calls.end(); ++callvsIt) //record each call by caller
 		{
 			if (callvsIt->first == lastAnimatedNode)
+			{
 				nodelist->push_back(callvsIt->second);
+			}
 		}
-		piddata->dropExternDictReadLock();
 
-		return true; //had a crash here, deallocating vector of edges?
+		
+		return true; //TODO: had multiple crashes here, saved as crash1 dump. think its fixed now
 	}
 
 	INSLIST::iterator blockIt = block->begin();
@@ -975,7 +996,7 @@ void plotted_graph::darken_edges(float fadeRate)
 	{
 		NODEPAIR nodePair = *edgeIDIt;
 
-		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
+		
 
 		edge_data *linkingEdge = 0;
 		if (!internalProtoGraph->edge_exists(nodePair, &linkingEdge))
@@ -989,6 +1010,7 @@ void plotted_graph::darken_edges(float fadeRate)
 		unsigned int arrayPos = edgeIt->second.arraypos;
 		unsigned int colArrIndex = arrayPos + AOFF;
 		
+		GLfloat *ecol = &animlinedata->acquire_col_write()->at(0);
 		if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 		{
 			edgeIDIt++;
@@ -996,6 +1018,7 @@ void plotted_graph::darken_edges(float fadeRate)
 			if (edgeIDIt == fadingAnimEdges.end()) break;
 			continue;
 		}
+
 
 		float currentAlpha = ecol[colArrIndex];
 		currentAlpha = fmax(ANIM_INACTIVE_EDGE_ALPHA, currentAlpha - fadeRate);
@@ -1008,7 +1031,6 @@ void plotted_graph::darken_edges(float fadeRate)
 			const unsigned int colArrIndex = arrayPos + i*COLELEMS + AOFF;
 			if (colArrIndex >= animlinedata->col_buf_capacity_floats())
 			{
-				animlinedata->release_col_write();
 				break;
 			}
 			ecol[colArrIndex] = currentAlpha;
@@ -1187,6 +1209,7 @@ void plotted_graph::brighten_new_active()
 
 	brighten_new_active_nodes();
 	brighten_new_active_extern_nodes();
+
 	brighten_new_active_edges();
 }
 

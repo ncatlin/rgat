@@ -179,7 +179,6 @@ void gat_module_handler::main_loop()
 
 					DWORD byteswritten = 0;
 					WriteFile(inputPipe, returnBuf, returnbufsize, &byteswritten, &ov2);
-					cout << "wrote " << byteswritten << " bytes of handles for thread " << TID << endl;
 
 					if (byteswritten == returnbufsize)
 						start_thread_rendering(TID, threadpipeThisEnd);

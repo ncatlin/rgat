@@ -169,6 +169,7 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 
 	if (!vertpos || !vertcol)
 	{
+		cerr << "Error, failed to acquire vertpos/col lock" << endl;
 		assert(0);
 		return 0;
 	}
@@ -216,7 +217,7 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 	vertpos->push_back(endC->y);
 	vertpos->push_back(endC->z);
 	++vsadded;
-	colours[3] = 1;
+	colours[3] = 1.0f;
 	vertcol->insert(vertcol->end(), colours, end(colours));
 
 	GLsizei numverts = get_numVerts();

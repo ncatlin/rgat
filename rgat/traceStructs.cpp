@@ -79,6 +79,17 @@ bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, str
 	return found;
 }
 
+pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> PROCESS_DATA::blockDetails(BLOCK_IDENTIFIER blockid)
+{
+	pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> blockPair;
+
+	getDisassemblyReadLock();
+	blockPair = blockList.at(blockid);
+	dropDisassemblyReadLock();
+
+	return blockPair;
+}
+
 bool PROCESS_DATA::get_modpath(unsigned int globalmodnum, boost::filesystem::path *path)
 {
 
@@ -650,7 +661,6 @@ int PROCESS_DATA::find_containing_module(MEM_ADDRESS address)
 		}
 	}
 
-	cerr << "Error: Unknown module in f_c_m" << endl;
 	return -1;
 }
 
