@@ -1041,3 +1041,35 @@ bool PROCESS_DATA::loadModules(const rapidjson::Value& processDataJSON)
 
 	return true;
 }
+
+#define LARGEST_X86_INSTRUCTION 15
+MEM_ADDRESS PROCESS_DATA::instruction_before(MEM_ADDRESS addr)
+{
+	//first lookup in cache
+	auto prevInsIt = previousInstructionsCache.find(addr);
+	if (prevInsIt != previousInstructionsCache.end())
+		return prevInsIt->second;
+
+	//x86 has variable length instructions so we have to 
+	//search backwards, byte by byte
+	getDisassemblyReadLock();
+	MEM_ADDRESS testaddr, addrMinus;
+	for (addrMinus = 1; addrMinus < (LARGEST_X86_INSTRUCTION+1); addrMinus++)
+	{
+		testaddr = addr - addrMinus;
+		if (disassembly.count(testaddr) > 0)
+		{
+			break;
+		}
+	}
+	dropDisassemblyReadLock();
+
+	if (addrMinus > LARGEST_X86_INSTRUCTION)
+	{
+		cerr << "Error: Unable to find instruction before 0x" << hex << addr << endl;
+		return NULL;
+	}
+
+	previousInstructionsCache[addr] = testaddr;
+	return testaddr;
+}

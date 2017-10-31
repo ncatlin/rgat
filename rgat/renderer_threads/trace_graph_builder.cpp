@@ -217,7 +217,7 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 void trace_graph_builder::handle_arg(char * entry, size_t entrySize) 
 {
 
-	MEM_ADDRESS funcpc, sourcepc;
+	MEM_ADDRESS funcpc, returnpc;
 	string argidx_s = string(strtok_s(entry + 1, ",", &entry));
 	int argpos;
 	if (!caught_stoi(argidx_s, &argpos, 10)) {
@@ -231,30 +231,28 @@ void trace_graph_builder::handle_arg(char * entry, size_t entrySize)
 		assert(0);
 	}
 
-	string source_s = string(strtok_s(entry, ",", &entry));
-	if (!caught_stoull(source_s, &sourcepc, 16)) {
-		cerr << "[rgat]ERROR:Trace corruption. handle_arg returnpc address ERROR: " << source_s << endl;
+	string return_s = string(strtok_s(entry, ",", &entry));
+	if (!caught_stoull(return_s, &returnpc, 16)) {
+		cerr << "[rgat]ERROR:Trace corruption. handle_arg returnpc address ERROR: " << returnpc << endl;
 		assert(0);
 	}
 
 	if (!pendingCalledFunc) {
 		pendingCalledFunc = funcpc;
-		pendingFuncCaller = sourcepc;
+		pendingFuncCaller = piddata->instruction_before(returnpc);
 	}
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
 	bool callDone = moreargs_s.at(0) == 'E' ? true : false;
-	char b64Marker = strtok_s(entry, ",", &entry)[0];
+	int arglen;
 
 	string contents;
 	if (entry && entry < entry + entrySize)
 	{
 		contents = string(entry).substr(0, entrySize - (size_t)entry);
-		if (b64Marker == ARG_BASE64)
-			contents = base64_decode(contents);
 	}
 	else
-		contents = string("NULL");
+		contents = string("<NULLARG>");
 
 	pendingArgs.push_back(make_pair(argpos, contents));
 	if (!callDone) return;

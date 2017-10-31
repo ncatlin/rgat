@@ -174,6 +174,8 @@ public:
 	void dropExternCallerReadLock();
 	void dropExternCallerWriteLock();
 
+	MEM_ADDRESS instruction_before(MEM_ADDRESS addr);
+
 	pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> blockDetails(BLOCK_IDENTIFIER blockid);
 	size_t numBlocksSeen() { return blockList.size(); }
 	//must already have disassembly write lock
@@ -181,6 +183,8 @@ public:
 
 	//maps instruction addresses to all data about it
 	map <ADDRESS_OFFSET, INSLIST> disassembly;
+	//useful for mapping return addresses to callers without a locking search
+	map <MEM_ADDRESS, MEM_ADDRESS> previousInstructionsCache;
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
