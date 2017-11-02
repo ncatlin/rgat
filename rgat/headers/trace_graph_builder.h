@@ -92,6 +92,7 @@ private:
 
 	void handle_arg(char * entry, size_t entrySize);
 	void process_new_args();
+	void build_functioncall_from_args();
 	bool lookup_extern_func_calls(MEM_ADDRESS called_function_address, EDGELIST &callEdges);
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 

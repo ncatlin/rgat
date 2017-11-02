@@ -213,6 +213,35 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 	}
 }
 
+void trace_graph_builder::build_functioncall_from_args()
+{
+	//func been called in thread already? if not, have to place args in holding buffer
+	if (pendingcallargs.count(pendingCalledFunc) == 0)
+	{
+		map <MEM_ADDRESS, vector<ARGLIST>> *newmap = new map <MEM_ADDRESS, vector<ARGLIST>>;
+		pendingcallargs.emplace(pendingCalledFunc, *newmap);
+	}
+
+	if (pendingcallargs.at(pendingCalledFunc).count(pendingFuncCaller) == 0)
+	{
+		vector<ARGLIST> *newvec = new vector<ARGLIST>;
+		pendingcallargs.at(pendingCalledFunc).emplace(make_pair(pendingFuncCaller, *newvec));
+	}
+
+	ARGLIST::iterator pendcaIt = pendingArgs.begin();
+	ARGLIST thisCallArgs;
+	for (; pendcaIt != pendingArgs.end(); ++pendcaIt)
+		thisCallArgs.push_back(*pendcaIt);
+
+	pendingcallargs.at(pendingCalledFunc).at(pendingFuncCaller).push_back(thisCallArgs);
+
+	pendingArgs.clear();
+	pendingCalledFunc = 0;
+	pendingFuncCaller = 0;
+
+	process_new_args();
+}
+
 //decodes argument and places in processing queue, processes if all decoded for that call
 void trace_graph_builder::handle_arg(char * entry, size_t entrySize) 
 {
@@ -247,43 +276,20 @@ void trace_graph_builder::handle_arg(char * entry, size_t entrySize)
 	int arglen;
 
 	string contents;
-	if (entry && entry < entry + entrySize)
+	if (entry && entry < (entry + entrySize))
 	{
 		contents = string(entry).substr(0, entrySize - (size_t)entry);
 	}
 	else
+	{
 		contents = string("<NULLARG>");
+	}
 
 	pendingArgs.push_back(make_pair(argpos, contents));
-	if (!callDone) return;
 
-	//func been called in thread already? if not, have to place args in holding buffer
-	if (pendingcallargs.count(pendingCalledFunc) == 0)
-	{
-		map <MEM_ADDRESS, vector<ARGLIST>> *newmap = new map <MEM_ADDRESS, vector<ARGLIST>>;
-		pendingcallargs.emplace(pendingCalledFunc, *newmap);
-	}
-
-	if (pendingcallargs.at(pendingCalledFunc).count(pendingFuncCaller) == 0)
-	{
-		vector<ARGLIST> *newvec = new vector<ARGLIST>;
-		pendingcallargs.at(pendingCalledFunc).emplace(make_pair(pendingFuncCaller, *newvec));
-	}
-		
-	ARGLIST::iterator pendcaIt = pendingArgs.begin();
-	ARGLIST thisCallArgs;
-	for (; pendcaIt != pendingArgs.end(); ++pendcaIt)
-		thisCallArgs.push_back(*pendcaIt);
-
-	pendingcallargs.at(pendingCalledFunc).at(pendingFuncCaller).push_back(thisCallArgs);
-
-	pendingArgs.clear();
-	pendingCalledFunc = 0;
-	pendingFuncCaller = 0;
-
-	process_new_args();
+	if (callDone) 
+		build_functioncall_from_args();
 }
-
 
 bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair)
 {
