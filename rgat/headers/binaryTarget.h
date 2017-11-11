@@ -45,6 +45,7 @@ public:
 	list<traceRecord *> *getTraceListPtr(){return &traceRecords;}
 	list<traceRecord *> getTraceList() { return traceRecords; }
 	BWPATHLISTS binaryTarget::getBWListPaths();
+	void setIncludelistData(BWPATHLISTS newBlackWhiteLists);
 
 	bool createTraceAtTime(traceRecord ** tracePtr, long long timeStarted, PID_TID PID, int PIDID);
 	traceRecord *getRecordWithPID(PID_TID PID, int PID_ID);

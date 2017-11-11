@@ -131,19 +131,7 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 		peparse::DestructParsedPE(header);
 	}
 
-	BWPATHLISTS includelists = target->getBWListPaths();
-	if (includelists.inWhitelistMode)
-	{
-		ui->mIncludeModeLabel->setText("Whitelist");
-		ui->mIncludeDirsLab->setText("Directories: " + QString::number(includelists.WLDirs.size()));
-		ui->mIncludeFilesLAb->setText("Files: " + QString::number(includelists.WLFiles.size()));
-	}
-	else
-	{
-		ui->mIncludeModeLabel->setText("Blacklist");
-		ui->mIncludeDirsLab->setText("Directories: " + QString::number(includelists.BLDirs.size()));
-		ui->mIncludeFilesLAb->setText("Files: " + QString::number(includelists.BLFiles.size()));
-	}
+
 	lastExaminedBinary = target;
 }
 

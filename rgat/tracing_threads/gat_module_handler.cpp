@@ -41,7 +41,7 @@ void gat_module_handler::main_loop()
 		inputpipename.append(runRecord->getModpathID());
 		inputPipe = CreateNamedPipe(inputpipename.c_str(),
 			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_WAIT,
-			255, 64, 56 * 1024, 0, NULL);
+			255, 64, 1024 * 1024, 0, NULL);
 		if (inputPipe == INVALID_HANDLE_VALUE)
 		{
 			wcerr << "[rgat]ERROR: module handler could not create named pipe " << inputpipename << " err: "<< GetLastError() << endl;
@@ -101,6 +101,9 @@ void gat_module_handler::main_loop()
 		wcerr << "[rgat]ERROR - Failed to create overlapped event in module handler" << endl;
 		assert(false);
 	}
+
+
+	sendIncludeLists();
 
 
 	bool pendingControlCommand = false;
@@ -309,10 +312,10 @@ void gat_module_handler::main_loop()
 			//doesnt like blocking either so client polls for commands
 			if (buf[0] == 'C')
 			{
+				DWORD sent; //crashes on win7 without this
 				if (!pendingControlCommand) //no command, send a heartbeat
 				{
 					char heartbeatbuf[] = "HB";
-					DWORD sent; //crashes on win7 without this here
 					WriteFile(controlPipe, heartbeatbuf, 2, &sent, 0);
 					continue;
 				}
@@ -320,7 +323,7 @@ void gat_module_handler::main_loop()
 				if (die)
 				{
 					char heartbeatbuf[] = "KT";
-					WriteFile(controlPipe, heartbeatbuf, 2, 0, 0);
+					WriteFile(controlPipe, heartbeatbuf, 2, &sent, 0);
 					break;
 				}
 			}
@@ -330,6 +333,8 @@ void gat_module_handler::main_loop()
 				cout <<"[Msg from instrumentation]:"<< buf << endl;
 				continue;
 			}
+
+
 
 			cerr << "[rgat]ERROR: Bad module handler input from instrumentation: " << buf << endl;
 			break;
@@ -390,4 +395,46 @@ void gat_module_handler::start_thread_rendering(PID_TID TID, HANDLE threadpipe)
 	threadList.push_back(graph_builder);
 	std::thread graph_builder_thread(&trace_graph_builder::ThreadEntry, graph_builder);
 	graph_builder_thread.detach();
+}
+
+void gat_module_handler::sendIncludeLists()
+{
+
+	string buf;	
+	DWORD bread;
+	BWPATHLISTS includelists = binary->getBWListPaths();
+
+	if (includelists.inWhitelistMode)
+	{
+		buf = "@W";
+		for each (boost::filesystem::path path in includelists.WLDirs)
+		{
+			buf.append("@D@");
+			buf.append(path.string());
+		}
+		for each (boost::filesystem::path path in includelists.WLFiles)
+		{
+			buf.append("@F@");
+			buf.append(path.string());
+		}
+	}
+	else
+	{
+		buf = "@B";
+		for each (boost::filesystem::path path in includelists.BLDirs)
+		{
+			buf.append("@D@");
+			buf.append(path.string());
+		}
+		for each (boost::filesystem::path path in includelists.BLFiles)
+		{
+			buf.append("@F@");
+			buf.append(path.string());
+		}
+	}
+
+	buf.append("@X");
+
+	cout << "sendinglist data" << endl;
+	WriteFile(inputPipe, &buf.at(0), buf.size(), &bread, 0);
 }

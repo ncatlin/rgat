@@ -1616,7 +1616,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 
 		int remainingCalls = n->callRecordsIndexs.size() - 1;
 		if (remainingCalls)
-			argstring << ") +" << remainingCalls << "saved";
+			argstring << ") + " << remainingCalls << " saved";
 		else
 			argstring << ")";
 	}
@@ -1717,13 +1717,13 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 		{
 			if (hasMouseover && mouseoverNode.index == n->index)
 			{
+				//highlight the mouseover node in a different colour
 				painter.setPen(al_col_orange);
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
 				painter.setPen(clientState->config.mainColours.symbolTextInternal);
 			}
 			else
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
-			
 		}
 	}
 
@@ -1759,7 +1759,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 //TODO: in animation mode don't show text for inactive nodes
 void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
 {
-
 	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	stringstream ss;
@@ -1770,7 +1769,6 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
 
-	int pp = 0;
 	QPainter painter(gltarget);
 	painter.setPen(clientState->config.mainColours.instructionText);
 	painter.setFont(clientState->instructionFont);
@@ -1828,7 +1826,8 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		else
 			displayText = n->ins->ins_text;
 
-
+		ss.str("");
+		ss.clear();
 		ss << std::dec << i;
 
 		if (!compactDisplay && clientState->config.instructionTextVisibility.addresses)
@@ -1840,10 +1839,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		}
 		ss << ": " << displayText;
 
-
 		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
-		ss.str("");
-		pp++;
 	}
 	painter.end();
 }
@@ -1869,8 +1865,6 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 	textColour.setAlphaF(1);
 
 	bool showMnemonic;
-
-	
 	if (clientState->config.instructionTextVisibility.fullPaths)
 		showMnemonic = false; //force full instruction always
 	else if (zdist > clientState->config.instructionTextVisibility.autoVisibleZoom)

@@ -56,5 +56,6 @@ private:
 	PROCESS_DATA *piddata = NULL;
 
 	void main_loop();
-	void start_thread_rendering(PID_TID TID, HANDLE threadpipe);
+	void start_thread_rendering(PID_TID TID, HANDLE threadpipe); 
+	void sendIncludeLists();
 };

@@ -67,7 +67,7 @@ private:
 	void add_message(string *);
 	vector<string *> *get_read_queue();
 	bool pipeClosed = false;
-	unsigned int processedData = 0;
+	size_t processedData = 0;
 	proto_graph *thisgraph;
 	HANDLE threadpipe = NULL;
 

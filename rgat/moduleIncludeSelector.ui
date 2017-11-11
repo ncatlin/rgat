@@ -325,7 +325,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="closeBtn">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -526,6 +526,22 @@
     <hint type="destinationlabel">
      <x>290</x>
      <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>closeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>moduleIncludeSelectDialog</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>290</x>
+     <y>476</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>245</y>
     </hint>
    </hints>
   </connection>

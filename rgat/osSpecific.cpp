@@ -411,13 +411,13 @@ bool createOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE
 
 	if (localHandle == INVALID_HANDLE_VALUE || pipeOtherEnd == INVALID_HANDLE_VALUE)
 	{
-		cerr << "[rgat]createOutputPipe failed with error " << GetLastError() << endl;
+		cerr << "[rgat]createOutputPipe failed with error " << dec << GetLastError() << endl;
 		return false;
 	}
 
 	if (!createHandleInProcess(pid, pipeOtherEnd, remoteHandle))
 	{
-		cerr << "Failed to create handles in process " << pid << " err: " << GetLastError() << endl;
+		cerr << "Failed to create handles in process " << dec << pid << " err: " << GetLastError() << endl;
 		return false;
 	}
 

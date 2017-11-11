@@ -12,7 +12,6 @@ public:
 	~moduleIncludeWidget() {} ;
 
 	rgatState *clientState = NULL;
-	void updateIncludeSummary();
 	void refresh();
 	size_t blackDirsCount() { return BLDirs.size(); }
 	size_t blackFilesCount() { return BLFiles.size(); }
@@ -37,6 +36,8 @@ private:
 	void clearAll();
 	void addItem(QListWidget *target,
 		vector <boost::filesystem::path> *pathlist, QString filename);
+	void refreshLauncherUI();
+	void syncBinaryToUI();
 
 	vector <boost::filesystem::path> WLDirs;
 	vector <boost::filesystem::path> BLDirs;

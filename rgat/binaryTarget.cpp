@@ -124,6 +124,12 @@ BWPATHLISTS binaryTarget::getBWListPaths()
 	return result;
 }
 
+void binaryTarget::setIncludelistData(BWPATHLISTS newBlackWhiteLists)
+{
+	binaryLock.lock();
+	blackwhitelists = newBlackWhiteLists;
+	binaryLock.unlock();
+}
 
 traceRecord *binaryTarget::createNewTrace(PID_TID PID, int PIDID, time_t timeStarted)
 {
