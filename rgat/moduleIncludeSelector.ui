@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>moduleIncludeSelectDialog</class>
+ <widget class="QDialog" name="moduleIncludeSelectDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>581</width>
+    <height>492</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>9</number>
+   </property>
+   <property name="bottomMargin">
+    <number>3</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="moduleModeLayout">
+     <property name="leftMargin">
+      <number>5</number>
+     </property>
+     <property name="topMargin">
+      <number>6</number>
+     </property>
+     <property name="rightMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="maximumSize">
+        <size>
+         <width>110</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Inclusion Mode:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="blacklistRadio">
+       <property name="toolTip">
+        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
+       </property>
+       <property name="statusTip">
+        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
+       </property>
+       <property name="whatsThis">
+        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
+       </property>
+       <property name="text">
+        <string>Instrument all except blacklisted</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="whitelistRadio">
+       <property name="toolTip">
+        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
+       </property>
+       <property name="statusTip">
+        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
+       </property>
+       <property name="whatsThis">
+        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
+       </property>
+       <property name="text">
+        <string>Instrument only whitelisted</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="moduleIncludeWidget" name="blackWhiteListStack">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="blacklistPage">
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QLabel" name="excludeDirLabel">
+         <property name="text">
+          <string>Blacklisted Directories - Recursively exclude binaries within from instrumentation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="blacklistDirsFrame">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QListWidget" name="blacklistDirsList"/>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="excludeDirBtnsLayout">
+            <item>
+             <widget class="QPushButton" name="excludeDirAdd">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="excludeDirRemove">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>-</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="excludeFileLabel">
+         <property name="text">
+          <string>Blacklisted Binaries - Individual non-instrumented files</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="blacklistFilesFrame">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>9</number>
+         </property>
+         <item>
+          <widget class="QListWidget" name="blacklistFilesList"/>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="excludeFileBtnsLayout">
+           <item>
+            <widget class="QPushButton" name="excludeFileAdd">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="excludeFileRemove">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="whitelistPage">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QLabel" name="includeDirsLabel">
+         <property name="text">
+          <string>Whitelisted Directories - Binaries within these directories and subdirectories will be instrumented.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="whitelistDirsFrame">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QListWidget" name="whitelistDirsList">
+            <item>
+             <property name="text">
+              <string>Directory Path</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ds</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="includeDirBtnsLayout">
+            <item>
+             <widget class="QPushButton" name="includeDirAdd">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="includeDirRemove">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>-</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="includeFilesLabel">
+         <property name="text">
+          <string>Whitelisted Binaries - These will be instrumented</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="whitelistFilesFrame">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QListWidget" name="whitelistFilesList"/>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="includeFileBtnsLayout">
+            <item>
+             <widget class="QPushButton" name="includeFileAdd">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>+</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="includeFileRemove">
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>-</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="closeDialogLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="pushButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>50</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>moduleIncludeWidget</class>
+   <extends>QStackedWidget</extends>
+   <header>moduleincludewidget.h</header>
+   <container>1</container>
+   <slots>
+    <slot>whitelistRadioToggle(bool)</slot>
+    <slot>blacklistRadioToggle(bool)</slot>
+    <slot>addWhiteDir()</slot>
+    <slot>addBlackDir()</slot>
+    <slot>addWhiteFile()</slot>
+    <slot>addBlackFile()</slot>
+    <slot>removeSelectedWhiteDir()</slot>
+    <slot>removeSelectedBlackDir()</slot>
+    <slot>removeSelectedWhiteFile()</slot>
+    <slot>removeSelectedBlackFile()</slot>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>blacklistRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>blacklistRadioToggle(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>290</x>
+     <y>23</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>whitelistRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>whitelistRadioToggle(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>476</x>
+     <y>23</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>excludeFileAdd</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>addBlackFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>330</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>excludeFileRemove</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedBlackFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>395</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>includeDirRemove</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedWhiteDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>excludeDirRemove</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedBlackDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>188</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>includeFileAdd</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>addWhiteFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>331</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>includeFileRemove</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedWhiteFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>396</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>includeDirAdd</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>addWhiteDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>124</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>excludeDirAdd</sender>
+   <signal>clicked()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>addBlackDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>123</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>250</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -24,6 +24,7 @@ The main QT window class
 #include "ui_processSelector.h"
 #include "ui_highlightSelector.h"
 #include "ui_labelMouseoverWidget.h"
+#include "ui_moduleIncludeSelector.h"
 
 #include "rgatState.h"
 #include "highlightWidget.h"
@@ -71,6 +72,9 @@ private:
 	Ui::processSelector processSelectui;
 	QDialog highlightSelectorDialog;
 	Ui::highlightDialog highlightSelectui;
+	QDialog blacklistSelectDialog;
+	Ui::moduleIncludeSelectDialog blacklistSelectUi;
+
 	QLabel *tracingStatusLabel, *activityStatusLabel;
 	Ui_mouseoverWidget mouseoverWidgetui;
 	mouseoverFrame mouseoverWidget;

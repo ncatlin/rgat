@@ -60,7 +60,6 @@ void compareGraphGLWidget::plotComparison()
 {
 
 	plotted_graph *graph1 = (plotted_graph *)clientState->getCompareGraph(1);
-	traceRecord *graph1trace = graph1->get_protoGraph()->get_traceRecord();
 	PROCESS_DATA *graph1piddata = graph1->get_protoGraph()->get_piddata();
 
 	plotted_graph *graph2 = (plotted_graph *)clientState->getCompareGraph(2);

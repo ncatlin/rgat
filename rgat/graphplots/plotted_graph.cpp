@@ -1095,7 +1095,7 @@ void plotted_graph::brighten_new_active_nodes()
 				fadingAnimNodes.erase(fadeIt);
 		}
 		else
-			fadingAnimNodes.insert(arrIndexNodeAlpha);
+			fadingAnimNodes.insert((NODEINDEX)arrIndexNodeAlpha);
 
 		vertIDIt = newAnimNodeTimes.erase(vertIDIt);
 	}
@@ -1230,7 +1230,7 @@ void plotted_graph::render_animation(float fadeRate)
 //makes the active highlight line point to the last instruction executed
 void plotted_graph::highlight_last_active_node()
 {
-	if (internalProtoGraph->lastNode < mainnodesdata->get_numVerts())
+	if (internalProtoGraph->lastNode < (NODEINDEX)mainnodesdata->get_numVerts())
 		lastAnimatedNode = internalProtoGraph->lastNode;
 }
 

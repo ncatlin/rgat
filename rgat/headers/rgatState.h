@@ -96,10 +96,11 @@ public:
 	void *maingraphRenderer = NULL;
 
 	void *ui = NULL;
-	void *processSelectUI = NULL;
-	QDialog *processSelectorDialog = NULL;
-	void *highlightSelectUI = NULL;
-	QDialog *highlightSelectorDialog = NULL;
+	void *processSelectUI = NULL, *highlightSelectUI = NULL, 
+		*includesSelectorUI = NULL;
+	QDialog *processSelectorDialog = NULL, *highlightSelectorDialog = NULL, 
+		*includesSelectorDialog = NULL;
+
 	void *labelMouseoverUI = NULL;
 	mouseoverFrame *labelMouseoverWidget = NULL;
 

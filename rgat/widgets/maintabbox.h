@@ -68,6 +68,7 @@ public Q_SLOTS:
 	void speedComboChanged(int index);
 	void sliderChanged(int value);
 	void processSelectBtnClicked();
+	void moduleIncludeSelectBtnClicked();
 	void processComboIndexChange(int index);
 	void traceComboIndexChange(int index);
 	void startNewTrace();

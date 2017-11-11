@@ -185,7 +185,7 @@ void create_pipes_for_pin(PID_TID PID, int PID_ID, void *sharedMem, PIN_PIPES &l
 	size_t handleSize = (bitWidth == CS_MODE_32) ? 4 : 8;
 
 	//copy the remote handles to mapped file for pin to use
-	int memoffset = 1;
+	size_t memoffset = 1;
 	memcpy((void *)((char *)sharedMem + memoffset), &remoteModpipeHandle, handleSize);
 	memoffset += handleSize;
 	memcpy((void *)((char *)sharedMem + memoffset), &remoteBBpipeHandle, handleSize);

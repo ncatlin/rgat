@@ -30,6 +30,7 @@ This contains much of the functionality for the dynamic analysis tabs
 #include "processLaunching.h"
 #include "testRun.h"
 #include "fuzzRun.h"
+#include "ui_moduleIncludeSelector.h"
 #include <iomanip>
 
 mainTabBox::mainTabBox(QWidget *parent)
@@ -44,9 +45,7 @@ mainTabBox::mainTabBox(QWidget *parent)
 }
 
 
-mainTabBox::~mainTabBox()
-{
-}
+mainTabBox::~mainTabBox() { delete updateTimer; }
 
 
 void mainTabBox::changeTarget(binaryTarget *target, dynamicTabs tabToOpen)
@@ -123,13 +122,7 @@ void mainTabBox::tabChanged(int newIndex)
 		updateVisualiseStats(true);
 	}
 
-	
-	if (newIndex == eTraceAnalyseTab && activeTarget)
-	{
-		ui->traceAnalysisTree->updateContents(activeTarget);
-	}
-
-	if (newIndex == eGraphCompareTab)
+	if (newIndex == dynamicTabs::eGraphCompareTab)
 	{
 		if (clientState->getCompareGraph(1) == NULL)
 			clientState->emptyComparePane1();
@@ -138,9 +131,16 @@ void mainTabBox::tabChanged(int newIndex)
 			clientState->emptyComparePane2();
 	}
 
-	if (newIndex == eTraceAnalyseTab)
+	if (newIndex == dynamicTabs::eStartTraceTab)
 	{
+		((Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI)->blackWhiteListStack->refresh();
 		ui->traceGatherTab->fillAnalyseTab(clientState->activeBinary);
+	}
+
+	if (newIndex == dynamicTabs::eTraceAnalyseTab)
+	{
+		if(activeTarget)
+			ui->traceAnalysisTree->updateContents(activeTarget);
 	}
 
 	lastIndex = newIndex;
@@ -151,22 +151,22 @@ void mainTabBox::updateVisualiserUI(bool fullRefresh = false)
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	if (!activeTarget)
 	{
-		ui->animControlsStack->setCurrentIndex(eStackNoTrace);
+		ui->animControlsStack->setCurrentIndex(controlStacks::eStackNoTrace);
 		return;
 	}
 
 	//this ensures the controls update when a saved graph is loaded
 	if (fullRefresh)
 	{
-		if (ui->animControlsStack->currentIndex() == eStackLive)
+		if (ui->animControlsStack->currentIndex() == controlStacks::eStackLive)
 		{
 			liveGraph = true;
-			ui->animControlsStack->setCurrentIndex(eStackLive);
+			ui->animControlsStack->setCurrentIndex(controlStacks::eStackLive);
 		}
 		else
 		{
 			liveGraph = false;
-			ui->animControlsStack->setCurrentIndex(eStackReplay);
+			ui->animControlsStack->setCurrentIndex(controlStacks::eStackReplay);
 		}
 	}
 
@@ -176,13 +176,13 @@ void mainTabBox::updateVisualiserUI(bool fullRefresh = false)
 	if (liveGraph && !activeTrace->isRunning())
 	{
 		//trace terminated - switch to replay controls
-		ui->animControlsStack->setCurrentIndex(eStackReplay);
+		ui->animControlsStack->setCurrentIndex(controlStacks::eStackReplay);
 		liveGraph = false;
 	}
 	else if (!liveGraph && activeTrace->isRunning())
 	{
 		liveGraph = true;
-		ui->animControlsStack->setCurrentIndex(eStackLive);
+		ui->animControlsStack->setCurrentIndex(controlStacks::eStackLive);
 	}
 	updateVisualiseStats(fullRefresh);
 }
@@ -262,7 +262,7 @@ void mainTabBox::sliderChanged(int value)
 	if (!graph) return;
 	if (graph->get_protoGraph()->active) { graph->decrease_thread_references(77);  return; }
 
-	if (graph->replayState == eStopped)
+	if (graph->replayState == REPLAY_STATE::eStopped)
 	{
 		playPauseClicked(); //pretend play was pressed
 		playPauseClicked(); //now pause it
@@ -455,6 +455,18 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 	labelStringStream.str("");
 	labelStringStream << "Backlog: " << protoGraph->get_backlog_total();
 	ui->backlogLabel->setText(QString::fromStdString(labelStringStream.str()));
+}
+
+void mainTabBox::moduleIncludeSelectBtnClicked()
+{
+	if (!clientState->includesSelectorDialog->isVisible())
+	{
+		Ui::moduleIncludeSelectDialog *includesDlg = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+		includesDlg->blackWhiteListStack->refresh();
+		clientState->includesSelectorDialog->show();
+	}
+	else
+		clientState->includesSelectorDialog->hide();
 }
 
 void mainTabBox::processSelectBtnClicked()

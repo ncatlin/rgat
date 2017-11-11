@@ -415,7 +415,7 @@ bool trace_graph_builder::lookup_extern_func_calls(MEM_ADDRESS called_function_a
 	return true;
 }
 
-//function call arguments are sent over from drgat seperately from the trace data 
+//function call arguments are sent over from instrumentation seperately from the trace data 
 //this iterates through the arguments we receive and matches them up to their relevant nodes
 void trace_graph_builder::process_new_args()
 {
@@ -646,7 +646,8 @@ void trace_graph_builder::satisfy_pending_edges()
 			++pendIt;
 			continue;
 		}
-		assert(piddata->blockList.at(pendIt->targID).second->blockType == eBlockInternal);
+		
+		assert(piddata->blockDetails(pendIt->targID).second->blockType == eBlockInternal);
 		cout << "Satisfying an edge request! source ID: 0x" <<hex<< pendIt->sourceID << " addr: 0x"<<pendIt->sourceAddr<<
 			" targID: "<< pendIt->targID << " addr: 0x" << pendIt->targAddr << endl;
 		INSLIST *targ = piddata->blockDetails(pendIt->targID).second->inslist;
@@ -681,7 +682,7 @@ bool trace_graph_builder::assign_blockrepeats()
 			if (numBlocks <= blockID) {
 				++repeatIt; continue;
 			}
-			assert(piddata->blockList.at(blockID).second->blockType == eBlockInternal);
+			assert(piddata->blockDetails(blockID).second->blockType == eBlockInternal);
 			repeatIt->blockInslist = piddata->blockDetails(blockID).second->inslist;
 
 			//first/last vert not on drawn yet? skip until it is
@@ -734,7 +735,7 @@ bool trace_graph_builder::assign_blockrepeats()
 			}
 
 			BLOCK_IDENTIFIER blockid = *targCallIDIt;
-			assert(piddata->blockList.at(blockid).second->blockType == eBlockInternal);
+			assert(piddata->blockDetails(blockid).second->blockType == eBlockInternal);
 			INSLIST* targetBlock = piddata->blockDetails(blockid).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
 			if (!firstIns->threadvertIdx.count(TID)) {
@@ -958,7 +959,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 		assert(0);
 	}
-	assert(piddata->blockList.at(sourceID).second->blockType == eBlockInternal);
+	assert(piddata->blockDetails(sourceID).second->blockType == eBlockInternal);
 	INSLIST* lastBB = piddata->blockDetails(sourceID).second->inslist;
 	INS_DATA* lastIns = lastBB->back();
 

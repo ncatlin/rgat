@@ -126,7 +126,11 @@ void gat_module_handler::main_loop()
 			}
 		}
 		
-		int res2 = GetOverlappedResult(inputPipe, &ov2, &bread, false);
+		BOOL GOResult = GetOverlappedResult(inputPipe, &ov2, &bread, false);
+		if (!GOResult)
+		{
+			cout << "Get overlapped failed" << endl;
+		}
 		buf[bread] = 0;
 	
 		if (!bread)
@@ -156,9 +160,7 @@ void gat_module_handler::main_loop()
 					wstring pipename(L"\\\\.\\pipe\\rioThread");
 					pipename.append(std::to_wstring(TID));
 
-					const wchar_t* szName = pipename.c_str();
 					HANDLE threadpipeThisEnd, threadpipeTheirEnd;
-
 					if (!createInputPipe(runRecord->getPID(), pipename, threadpipeThisEnd, threadpipeTheirEnd, 1024 * 1024))
 					{
 						cerr << "[rgat] Failed to create pipe for thread " << TID << ". Failing. " << endl;

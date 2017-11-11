@@ -14,6 +14,10 @@ binaryTarget::binaryTarget(boost::filesystem::path path)
 { 
 	filepath = path; 
 	sha256hash = "";
+
+	//todo: read from defaults
+	blackwhitelists.inWhitelistMode = false;
+	blackwhitelists.BLDirs.push_back(boost::filesystem::path("C:\\"));
 }
 
 binaryTarget::~binaryTarget()
@@ -107,6 +111,17 @@ void binaryTarget::performInitialStaticAnalysis()
 	filein.read(&magicBytes.at(0), bytesToRead);
 
 	initialAnalysisCompleted = true;
+}
+
+BWPATHLISTS binaryTarget::getBWListPaths()
+{
+
+	BWPATHLISTS result;
+	binaryLock.lock();
+	result = blackwhitelists;
+	binaryLock.unlock();
+
+	return result;
 }
 
 

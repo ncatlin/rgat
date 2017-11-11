@@ -137,7 +137,6 @@ void conditional_renderer::main_loop()
 	map<plotted_graph *,bool> finishedGraphs;
 	vector<plotted_graph *> graphlist;
 	map <PID_TID, void *>::iterator graphIt;
-	PROCESS_DATA *piddata = runRecord->get_piddata();
 
 	while (!clientState->rgatIsExiting())
 	{

@@ -266,6 +266,7 @@ void rgat::setupUI()
 	processSelectui.setupUi(&processSelectorDialog);
 	highlightSelectui.setupUi(&highlightSelectorDialog);
 	mouseoverWidgetui.setupUi(&mouseoverWidget);
+	blacklistSelectUi.setupUi(&blacklistSelectDialog);
 
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
 	rgatstate->labelMouseoverWidget->clientState = rgatstate;
@@ -365,6 +366,10 @@ void rgat::setStatePointers()
 	rgatstate->highlightSelectUI = &highlightSelectui;
 	highlightSelectui.highlightDialogWidget->clientState = rgatstate;
 	
+	rgatstate->includesSelectorDialog = &blacklistSelectDialog;
+	rgatstate->includesSelectorUI = &blacklistSelectUi;
+	blacklistSelectUi.blackWhiteListStack->clientState = rgatstate;
+
 	rgatstate->labelMouseoverUI = &mouseoverWidgetui;
 
 	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);

@@ -228,6 +228,13 @@ struct EXTTEXT {
 	string displayString;
 };
 
+struct BWPATHLISTS {
+	bool inWhitelistMode;
+	vector <boost::filesystem::path> WLDirs;
+	vector <boost::filesystem::path> BLDirs;
+	vector <boost::filesystem::path> WLFiles;
+	vector <boost::filesystem::path> BLFiles;
+};
 
 size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr);
 size_t disassemble_ins(csh hCapstone, INS_DATA *insdata, MEM_ADDRESS insaddr);

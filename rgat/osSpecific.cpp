@@ -427,8 +427,6 @@ bool createOutputPipe(PID_TID pid, wstring pipepath, HANDLE &localHandle, HANDLE
 bool createTempDir(boost::filesystem::path &tmpPath)
 {
 	TCHAR lpTempPathBuffer[MAX_PATH];
-	TCHAR szTempFileName[MAX_PATH];
-
 	bool success = false;
 
 	int attempts = 4;

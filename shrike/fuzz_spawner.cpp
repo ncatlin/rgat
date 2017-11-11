@@ -54,7 +54,7 @@ bool read_shrike_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	buf->clear();
 	buf->resize(PIDSTRING_BUFSIZE - 1, 0);
 	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &buf->at(0), buf->size(), &bread, NULL);
+	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bread, NULL);
 	DisconnectNamedPipe(hPipe);
 	buf->resize(bread, 0);
 
@@ -93,7 +93,7 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	buf->clear();
 	buf->resize(PIDSTRING_BUFSIZE - 1, 0);
 	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &buf->at(0), buf->size(), &bread, NULL);
+	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bread, NULL);
 	DisconnectNamedPipe(hPipe);
 	buf->resize(bread, 0);
 
