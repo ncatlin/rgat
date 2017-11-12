@@ -273,7 +273,6 @@ void trace_graph_builder::handle_arg(char * entry, size_t entrySize)
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));
 	bool callDone = moreargs_s.at(0) == 'E' ? true : false;
-	int arglen;
 
 	string contents;
 	if (entry && entry < (entry + entrySize))

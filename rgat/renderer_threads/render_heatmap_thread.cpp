@@ -317,7 +317,7 @@ void heatmap_renderer::build_colour_mapping(vector<edge_data *> *finishedEdgeLis
 	
 
 	//create blue->red value for each numerical 'heat'
-	int numColours = colourRange.size();
+	int numColours = (int)colourRange.size();
 	heatColours->emplace(make_pair(heatDistances.begin()->first, *colourRange.begin()));
 	if (maxDist > 1)
 	{

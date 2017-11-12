@@ -147,7 +147,6 @@ void gat_basicblock_handler::main_loop()
 			MEM_ADDRESS targetaddr = 0;			
 			UINT32 localmodnum = 0;
 			long globalModNum;
-			uint8_t InsOpcodesBuf[15];
 
 			memcpy(&targetaddr, &buf.at(bufPos), pointerSize);			
 			bufPos += pointerSize;

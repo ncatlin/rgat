@@ -178,7 +178,7 @@ void thread_trace_reader::main_loop()
 			continue;
 		}
 
-		if (!ReadFile(threadpipe, &tagReadBuf.at(0), tagReadBuf.size(), &bytesRead, NULL))
+		if (!ReadFile(threadpipe, &tagReadBuf.at(0), (DWORD)tagReadBuf.size(), &bytesRead, NULL))
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)

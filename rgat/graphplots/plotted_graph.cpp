@@ -1506,6 +1506,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	if (n->label.isEmpty()) 
 	{
 		string symStdString;
+		//why is this here. check it before deleting
 		MEM_ADDRESS offset = n->address - get_protoGraph()->get_piddata()->modBounds.at(n->globalModID)->first;
 		get_protoGraph()->get_piddata()->get_sym(n->globalModID, n->address, symStdString);
 		n->label = QString::fromStdString(symStdString);;
