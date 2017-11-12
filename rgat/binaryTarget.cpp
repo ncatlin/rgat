@@ -17,7 +17,7 @@ binaryTarget::binaryTarget(boost::filesystem::path path)
 
 	//todo: read from defaults
 	blackwhitelists.inWhitelistMode = false;
-	blackwhitelists.BLDirs.push_back(boost::filesystem::path("C:\\"));
+	blackwhitelists.BLDirs.push_back(boost::filesystem::path("C:\\windows"));
 }
 
 binaryTarget::~binaryTarget()

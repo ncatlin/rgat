@@ -100,6 +100,54 @@
         <number>3</number>
        </property>
        <item>
+        <widget class="QToolButton" name="fileToolBtn">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="rgat.qrc">
+           <normaloff>:/Resources/volume.png</normaloff>:/Resources/volume.png</iconset>
+         </property>
+         <property name="popupMode">
+          <enum>QToolButton::MenuButtonPopup</enum>
+         </property>
+         <property name="toolButtonStyle">
+          <enum>Qt::ToolButtonTextBesideIcon</enum>
+         </property>
+         <property name="arrowType">
+          <enum>Qt::NoArrow</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="settingsUiBtn">
+         <property name="minimumSize">
+          <size>
+           <width>25</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="targetListLabel">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -109,8 +157,8 @@
          </property>
          <property name="minimumSize">
           <size>
-           <width>79</width>
-           <height>0</height>
+           <width>76</width>
+           <height>25</height>
           </size>
          </property>
          <property name="font">
@@ -125,7 +173,7 @@
           <number>0</number>
          </property>
          <property name="indent">
-          <number>9</number>
+          <number>7</number>
          </property>
         </widget>
        </item>
@@ -136,6 +184,12 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>25</height>
+          </size>
          </property>
          <property name="font">
           <font>
@@ -2962,18 +3016,12 @@
     <addaction name="actionSave_Target_traces"/>
     <addaction name="actionSave_All_Traces"/>
     <addaction name="separator"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
-   <widget class="QMenu" name="menuSettings">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="title">
-     <string>Settings</string>
-    </property>
-   </widget>
    <addaction name="menuoption1"/>
-   <addaction name="menuSettings"/>
   </widget>
   <action name="actionNew_Target_File">
    <property name="text">
@@ -3057,6 +3105,16 @@
    </property>
    <property name="statusTip">
     <string>Save all traces collected</string>
+   </property>
+  </action>
+  <action name="settingsBtn">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>
@@ -3863,6 +3921,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>settingsBtn</sender>
+   <signal>triggered()</signal>
+   <receiver>rgatClass</receiver>
+   <slot>settingsMenuBtnPressed()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>377</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>activateDynamicStack()</slot>
@@ -3871,5 +3945,6 @@
   <slot>startSaveTrace()</slot>
   <slot>startSaveTarget()</slot>
   <slot>loadSavedTrace()</slot>
+  <slot>settingsMenuBtnPressed()</slot>
  </slots>
 </ui>

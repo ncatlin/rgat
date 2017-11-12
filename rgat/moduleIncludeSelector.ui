@@ -90,7 +90,7 @@
    <item>
     <widget class="moduleIncludeWidget" name="blackWhiteListStack">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="blacklistPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -217,18 +217,7 @@
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
-           <widget class="QListWidget" name="whitelistDirsList">
-            <item>
-             <property name="text">
-              <string>Directory Path</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>ds</string>
-             </property>
-            </item>
-           </widget>
+           <widget class="QListWidget" name="whitelistDirsList"/>
           </item>
           <item>
            <layout class="QVBoxLayout" name="includeDirBtnsLayout">

@@ -263,10 +263,11 @@ void rgat::addLabelBtnMenus()
 void rgat::setupUI()
 {
 	ui.setupUi(this);
-	processSelectui.setupUi(&processSelectorDialog);
-	highlightSelectui.setupUi(&highlightSelectorDialog);
-	mouseoverWidgetui.setupUi(&mouseoverWidget);
-	blacklistSelectUi.setupUi(&blacklistSelectDialog);
+	processSelectUI.setupUi(&processSelectorDialog);
+	highlightSelectUI.setupUi(&highlightSelectorDialog);
+	mouseoverWidgetUI.setupUi(&mouseoverWidget);
+	blacklistSelectUI.setupUi(&blacklistSelectDialog);
+	settingsDialogUI.setupUi(&settingsDialog);
 
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
 	rgatstate->labelMouseoverWidget->clientState = rgatstate;
@@ -286,6 +287,8 @@ void rgat::setupUI()
 	ui.speedComboBox->addItem("64x");
 	ui.speedComboBox->addItem("128x");
 
+	ui.fileToolBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
+	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
 	ui.playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
 	ui.stopBtn->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
 
@@ -315,7 +318,6 @@ void rgat::setupUI()
 		//disable fuzzing tab
 		ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);
 
-		ui.menuSettings->menuAction()->setEnabled(false);
 		ui.pauseBreakBtn->setEnabled(false);
 #endif
 
@@ -359,18 +361,18 @@ void rgat::setStatePointers()
 {
 	rgatstate->ui = &ui;
 	rgatstate->processSelectorDialog = &processSelectorDialog;
-	rgatstate->processSelectUI = &processSelectui;
-	processSelectui.treeWidget->clientState = rgatstate;
+	rgatstate->processSelectUI = &processSelectUI;
+	processSelectUI.treeWidget->clientState = rgatstate;
 
 	rgatstate->highlightSelectorDialog = &highlightSelectorDialog;
-	rgatstate->highlightSelectUI = &highlightSelectui;
-	highlightSelectui.highlightDialogWidget->clientState = rgatstate;
+	rgatstate->highlightSelectUI = &highlightSelectUI;
+	highlightSelectUI.highlightDialogWidget->clientState = rgatstate;
 	
 	rgatstate->includesSelectorDialog = &blacklistSelectDialog;
-	rgatstate->includesSelectorUI = &blacklistSelectUi;
-	blacklistSelectUi.blackWhiteListStack->clientState = rgatstate;
+	rgatstate->includesSelectorUI = &blacklistSelectUI;
+	blacklistSelectUI.blackWhiteListStack->clientState = rgatstate;
 
-	rgatstate->labelMouseoverUI = &mouseoverWidgetui;
+	rgatstate->labelMouseoverUI = &mouseoverWidgetUI;
 
 	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);
 	ui.dynamicAnalysisContentsTab->setPtrs(&rgatstate->targets, rgatstate);
@@ -502,4 +504,12 @@ void rgat::dropEvent(QDropEvent *event)
 		}
 
 	}
+}
+
+void rgat::settingsMenuBtnPressed()
+{
+	if (rgatstate->settingsDialog->isVisible())
+		rgatstate->settingsDialog->hide();
+	else
+		rgatstate->settingsDialog->show();
 }

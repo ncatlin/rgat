@@ -23,12 +23,14 @@ The main QT window class
 #include "ui_rgat.h"
 #include "ui_processSelector.h"
 #include "ui_highlightSelector.h"
+#include "ui_settingsDialog.h"
 #include "ui_labelMouseoverWidget.h"
 #include "ui_moduleIncludeSelector.h"
 
 #include "rgatState.h"
 #include "highlightWidget.h"
 #include "mouseoverFrame.h"
+#include "settingsdialog.h"
 
 //Q_IMPORT_PLUGIN(qico);
 
@@ -64,19 +66,24 @@ public Q_SLOTS:
 	void dragEnterEvent(QDragEnterEvent *event)
 	{		event->accept();	}
 
+	void settingsMenuBtnPressed();
+
 private:
 	rgatState *rgatstate;
 
 	Ui::rgatClass ui;
 	QDialog processSelectorDialog;
-	Ui::processSelector processSelectui;
+	Ui::processSelector processSelectUI;
 	QDialog highlightSelectorDialog;
-	Ui::highlightDialog highlightSelectui;
+	Ui::highlightDialog highlightSelectUI;
 	QDialog blacklistSelectDialog;
-	Ui::moduleIncludeSelectDialog blacklistSelectUi;
+	Ui::moduleIncludeSelectDialog blacklistSelectUI;
+	QDialog settingsDialog;
+	Ui::SettingsDialog settingsDialogUI;
+	
 
 	QLabel *tracingStatusLabel, *activityStatusLabel;
-	Ui_mouseoverWidget mouseoverWidgetui;
+	Ui_mouseoverWidget mouseoverWidgetUI;
 	mouseoverFrame mouseoverWidget;
 
 private:

@@ -144,7 +144,7 @@ bool readpipe_drgat_newPID(string &resultstring, HANDLE hPipe, OVERLAPPED *ov)
 	vector <char> inbuf;
 	inbuf.resize(PIDSTRING_BUFSIZE-1, 0);
 	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &inbuf.at(0), inbuf.size(), &bread, NULL);
+	bool success = ReadFile(hPipe, &inbuf.at(0), (DWORD)inbuf.size(), &bread, NULL);
 	DisconnectNamedPipe(hPipe);
 	inbuf.resize(bread, 0);
 
