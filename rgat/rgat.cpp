@@ -477,12 +477,12 @@ void rgat::closeEvent(QCloseEvent *event)
 		event->accept();
 	}*/
 
-	if (highlightSelectorDialog.isVisible())
-		highlightSelectorDialog.hide();
-	if (processSelectorDialog.isVisible())
-		processSelectorDialog.hide();
-	if (mouseoverWidget.isVisible())
-		mouseoverWidget.hide();
+	if (highlightSelectorDialog.isVisible())		highlightSelectorDialog.hide();
+	if (processSelectorDialog.isVisible())		processSelectorDialog.hide();
+	if (mouseoverWidget.isVisible())		mouseoverWidget.hide();
+	if (highlightSelectorDialog.isVisible())		highlightSelectorDialog.hide();
+	if (settingsDialog.isVisible())		settingsDialog.hide();
+
 	event->accept();
 }
 
