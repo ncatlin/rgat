@@ -276,16 +276,13 @@ void rgat::setupUI()
 
 	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
 
-	ui.speedComboBox->addItem("0.5x");
-	ui.speedComboBox->addItem("1x");
+	vector <QString> supportedPlaybackSpeeds =
+		{ "0.5x","1x", "2x", "4x", "8x", "16x", "32x", "64x", "128x" };
+	for each (QString speed in supportedPlaybackSpeeds)
+	{
+		ui.speedComboBox->addItem(speed);
+	}
 	ui.speedComboBox->setCurrentIndex(1);
-	ui.speedComboBox->addItem("2x");
-	ui.speedComboBox->addItem("4x");
-	ui.speedComboBox->addItem("8x");
-	ui.speedComboBox->addItem("16x");
-	ui.speedComboBox->addItem("32x");
-	ui.speedComboBox->addItem("64x");
-	ui.speedComboBox->addItem("128x");
 
 	ui.fileToolBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
 	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
@@ -319,6 +316,7 @@ void rgat::setupUI()
 		//disable fuzzing tab
 		ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);
 
+		//pausing/breaking process not supported yet
 		ui.pauseBreakBtn->setEnabled(false);
 #endif
 
@@ -486,6 +484,7 @@ void rgat::closeEvent(QCloseEvent *event)
 	event->accept();
 }
 
+//drag and drop support
 void rgat::dropEvent(QDropEvent *event)
 {
 	const QMimeData *mimeData = event->mimeData();
@@ -521,6 +520,7 @@ void rgat::addFileMenuBtn()
 	fileLabelMenu->addAction(selectTargAction);
 	connect(selectTargAction, SIGNAL(triggered()), ui.targetListCombo, SLOT(addNewTarget()));
 
+	//for when attaching to a process is supported (which is not now)
 	//QAction *selectTargAction = new QAction(tr("Select Target From Process"), this);
 	//fileLabelMenu->addAction(selectTargAction);
 	//connect(selectTargAction, SIGNAL(triggered()), ui.targetListCombo, SLOT(addNewTarget()));
@@ -529,7 +529,6 @@ void rgat::addFileMenuBtn()
 	fileLabelMenu->addAction(openSavedTraceAction);
 	connect(openSavedTraceAction, SIGNAL(triggered()), this, SLOT(loadSavedTrace()));
 	
-
 	fileLabelMenu->addSeparator();
 
 	QAction *saveCurrentTraceAction = new QAction(tr("&Save Current Trace"), this);
