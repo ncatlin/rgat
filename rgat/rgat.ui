@@ -300,7 +300,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>4</number>
           </property>
           <property name="iconSize">
            <size>
@@ -2995,34 +2995,6 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1006</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuoption1">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <addaction name="actionNew_Target_File"/>
-    <addaction name="actionOpen_Target_From_Process"/>
-    <addaction name="actionOpen_Saved_Trace"/>
-    <addaction name="separator"/>
-    <addaction name="actionSave_Current_Trace"/>
-    <addaction name="actionSave_Target_traces"/>
-    <addaction name="actionSave_All_Traces"/>
-    <addaction name="separator"/>
-    <addaction name="actionSettings"/>
-    <addaction name="separator"/>
-    <addaction name="separator"/>
-    <addaction name="actionExit"/>
-   </widget>
-   <addaction name="menuoption1"/>
-  </widget>
   <action name="actionNew_Target_File">
    <property name="text">
     <string>Select Target Executable</string>
@@ -3922,14 +3894,30 @@
    </hints>
   </connection>
   <connection>
-   <sender>settingsBtn</sender>
+   <sender>settingsUiBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>rgatClass</receiver>
+   <slot>settingsMenuBtnPressed()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>82</x>
+     <y>37</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>377</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSettings</sender>
    <signal>triggered()</signal>
    <receiver>rgatClass</receiver>
    <slot>settingsMenuBtnPressed()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>101</x>
-     <y>43</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
      <x>502</x>

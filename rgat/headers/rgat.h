@@ -94,5 +94,6 @@ private:
 	void addExternTextBtn(QMenu *labelmenu);
 	void addInternalTextBtn(QMenu *labelmenu);
 	void addInstructionTextBtn(QMenu *labelmenu);
+	void addFileMenuBtn();
 
 };

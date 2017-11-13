@@ -307,6 +307,7 @@ void rgat::setupUI()
 	rgatstate->widgetStyle = style();
 	addLabelBtnMenus();
 	rgatstate->updateTextDisplayButtons();
+	addFileMenuBtn();
 
 #ifdef RELEASE
 		//disable various stubs until implemented
@@ -504,6 +505,53 @@ void rgat::dropEvent(QDropEvent *event)
 		}
 
 	}
+}
+
+void rgat::addFileMenuBtn()
+{
+	QMenu *fileLabelMenu = new QMenu(this);
+	ui.fileToolBtn->setMenu(fileLabelMenu);
+	ui.fileToolBtn->setPopupMode(QToolButton::InstantPopup);
+	fileLabelMenu->setToolTipsVisible(true);
+
+	QAction *selectTargAction = new QAction(tr("&Select Target Executable"), this);
+	fileLabelMenu->addAction(selectTargAction);
+	connect(selectTargAction, SIGNAL(triggered()), ui.targetListCombo, SLOT(addNewTarget()));
+
+	//QAction *selectTargAction = new QAction(tr("Select Target From Process"), this);
+	//fileLabelMenu->addAction(selectTargAction);
+	//connect(selectTargAction, SIGNAL(triggered()), ui.targetListCombo, SLOT(addNewTarget()));
+	
+	QAction *openSavedTraceAction = new QAction(tr("&Open Saved Trace"), this);
+	fileLabelMenu->addAction(openSavedTraceAction);
+	connect(openSavedTraceAction, SIGNAL(triggered()), this, SLOT(loadSavedTrace()));
+	
+
+	fileLabelMenu->addSeparator();
+
+	QAction *saveCurrentTraceAction = new QAction(tr("&Save Current Trace"), this);
+	fileLabelMenu->addAction(saveCurrentTraceAction);
+	connect(saveCurrentTraceAction, SIGNAL(triggered()), this, SLOT(startSaveTrace()));
+
+	QAction *saveTargetTraceAction = new QAction(tr("&Save Target Traces"), this);
+	fileLabelMenu->addAction(saveTargetTraceAction);
+	connect(saveTargetTraceAction, SIGNAL(triggered()), this, SLOT(startSaveTarget()));
+
+	QAction *saveAllTracesAction = new QAction(tr("&Save All Traces"), this);
+	fileLabelMenu->addAction(saveAllTracesAction);
+	connect(saveAllTracesAction, SIGNAL(triggered()), this, SLOT(startSaveAll()));
+
+	fileLabelMenu->addSeparator();
+
+	QAction *settingsAction = new QAction(tr("&Settings"), this);
+	fileLabelMenu->addAction(settingsAction);
+	connect(settingsAction, SIGNAL(triggered()), this, SLOT(settingsMenuBtnPressed()));
+
+	fileLabelMenu->addSeparator();
+
+	QAction *exitAction = new QAction(tr("&Exit"), this);
+	fileLabelMenu->addAction(exitAction);
+	connect(exitAction, SIGNAL(triggered()), this, SLOT(close()));
 }
 
 void rgat::settingsMenuBtnPressed()
