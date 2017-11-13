@@ -373,6 +373,9 @@ void rgat::setStatePointers()
 	rgatstate->includesSelectorUI = &blacklistSelectUI;
 	blacklistSelectUI.blackWhiteListStack->clientState = rgatstate;
 
+	rgatstate->settingsDialog = &settingsDialog;
+	rgatstate->settingsDialogUI = &settingsDialogUI;
+
 	rgatstate->labelMouseoverUI = &mouseoverWidgetUI;
 
 	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);

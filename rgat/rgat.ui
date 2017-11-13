@@ -107,6 +107,12 @@
            <height>25</height>
           </size>
          </property>
+         <property name="toolTip">
+          <string>Open Menu</string>
+         </property>
+         <property name="statusTip">
+          <string>Actions menu including Open binaries, Save Traces, Exit</string>
+         </property>
          <property name="layoutDirection">
           <enum>Qt::LeftToRight</enum>
          </property>
@@ -141,6 +147,12 @@
            <width>32</width>
            <height>32</height>
           </size>
+         </property>
+         <property name="toolTip">
+          <string>Settings Menu</string>
+         </property>
+         <property name="statusTip">
+          <string>Show Settings Dialog</string>
          </property>
          <property name="text">
           <string/>
@@ -300,7 +312,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>4</number>
+           <number>1</number>
           </property>
           <property name="iconSize">
            <size>
@@ -402,7 +414,14 @@
                       </widget>
                      </item>
                      <item row="2" column="1">
-                      <widget class="QLineEdit" name="tgt_sizeLineEdit"/>
+                      <widget class="QLineEdit" name="tgt_sizeLineEdit">
+                       <property name="toolTip">
+                        <string>The size of the target</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>The size of the target</string>
+                       </property>
+                      </widget>
                      </item>
                      <item row="3" column="0">
                       <widget class="QLabel" name="sha256label">
@@ -412,7 +431,14 @@
                       </widget>
                      </item>
                      <item row="3" column="1">
-                      <widget class="QLineEdit" name="tgt_hashLineEdit"/>
+                      <widget class="QLineEdit" name="tgt_hashLineEdit">
+                       <property name="toolTip">
+                        <string>The SHA 256 hash of the target</string>
+                       </property>
+                       <property name="statusTip">
+                        <string>The SHA 256 hash of the target</string>
+                       </property>
+                      </widget>
                      </item>
                     </layout>
                    </item>
@@ -651,6 +677,12 @@
                              <underline>false</underline>
                             </font>
                            </property>
+                           <property name="toolTip">
+                            <string>Current module instrumentation mode for this target</string>
+                           </property>
+                           <property name="statusTip">
+                            <string>Current module instrumentation mode for this target</string>
+                           </property>
                            <property name="text">
                             <string>Whitelist</string>
                            </property>
@@ -663,6 +695,12 @@
                              <width>25</width>
                              <height>16777215</height>
                             </size>
+                           </property>
+                           <property name="toolTip">
+                            <string>Open whitelist/blacklist configuration dialog for this target</string>
+                           </property>
+                           <property name="statusTip">
+                            <string>Open whitelist/blacklist configuration dialog for this target</string>
                            </property>
                            <property name="text">
                             <string>...</string>
@@ -902,6 +940,9 @@
                               <height>0</height>
                              </size>
                             </property>
+                            <property name="statusTip">
+                             <string>Use Intel Pin to generate the trace</string>
+                            </property>
                             <property name="text">
                              <string>Pin</string>
                             </property>
@@ -924,8 +965,14 @@
                               <height>16777215</height>
                              </size>
                             </property>
+                            <property name="statusTip">
+                             <string>Use DynamoRIO  to generate the trace. Disabled</string>
+                            </property>
                             <property name="text">
                              <string>DynamoRIO</string>
+                            </property>
+                            <property name="checkable">
+                             <bool>false</bool>
                             </property>
                            </widget>
                           </item>
@@ -1023,6 +1070,12 @@
                             <width>0</width>
                             <height>40</height>
                            </size>
+                          </property>
+                          <property name="toolTip">
+                           <string>Start the target executable and begin trace processing</string>
+                          </property>
+                          <property name="statusTip">
+                           <string>Start the target executable and begin trace processing</string>
                           </property>
                           <property name="text">
                            <string>Generate Trace</string>
