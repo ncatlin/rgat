@@ -436,5 +436,5 @@ void gat_module_handler::sendIncludeLists()
 	buf.append("@X");
 
 	cout << "sendinglist data" << endl;
-	WriteFile(inputPipe, &buf.at(0), buf.size(), &bread, 0);
+	WriteFile(inputPipe, &buf.at(0), (DWORD)buf.size(), &bread, 0);
 }

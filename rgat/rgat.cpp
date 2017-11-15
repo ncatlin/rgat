@@ -145,11 +145,13 @@ void rgat::textBtnTriggered(int buttonID)
 	switch ((textBtnEnum::textBtnID)buttonID)
 	{
 	case textBtnEnum::eExternToggle:
-		rgatstate->config.externalSymbolVisibility.enabled = !rgatstate->config.externalSymbolVisibility.enabled;
+		rgatstate->config.externalSymbolVisibility.enabled = 
+			!rgatstate->config.externalSymbolVisibility.enabled;
 		break;
 
 	case textBtnEnum::eExternAuto:
-		rgatstate->config.externalSymbolVisibility.showWhenZoomed = !rgatstate->config.externalSymbolVisibility.showWhenZoomed;
+		rgatstate->config.externalSymbolVisibility.showWhenZoomed = 
+			!rgatstate->config.externalSymbolVisibility.showWhenZoomed;
 		break;
 
 	case textBtnEnum::eExternOffset:
@@ -178,19 +180,23 @@ void rgat::textBtnTriggered(int buttonID)
 		break;
 
 	case textBtnEnum::eExternPath:
-		rgatstate->config.externalSymbolVisibility.fullPaths = !rgatstate->config.externalSymbolVisibility.fullPaths;
+		rgatstate->config.externalSymbolVisibility.fullPaths = 
+			!rgatstate->config.externalSymbolVisibility.fullPaths;
 		break;
 
 	case textBtnEnum::eInternalToggle:
-		rgatstate->config.internalSymbolVisibility.enabled = !rgatstate->config.internalSymbolVisibility.enabled;
+		rgatstate->config.internalSymbolVisibility.enabled = 
+			!rgatstate->config.internalSymbolVisibility.enabled;
 		break;
 
 	case textBtnEnum::eInternalAuto:
-		rgatstate->config.internalSymbolVisibility.showWhenZoomed = !rgatstate->config.internalSymbolVisibility.showWhenZoomed;
+		rgatstate->config.internalSymbolVisibility.showWhenZoomed = 
+			!rgatstate->config.internalSymbolVisibility.showWhenZoomed;
 		break;
 
 	case textBtnEnum::eInstructionToggle:
-		rgatstate->config.instructionTextVisibility.enabled = !rgatstate->config.instructionTextVisibility.enabled;
+		rgatstate->config.instructionTextVisibility.enabled = 
+			!rgatstate->config.instructionTextVisibility.enabled;
 		break;
 
 	case textBtnEnum::eInstructionOffset:
@@ -219,11 +225,13 @@ void rgat::textBtnTriggered(int buttonID)
 		break;
 
 	case textBtnEnum::eControlOnlyLabel:
-		rgatstate->config.instructionTextVisibility.extraDetail = !rgatstate->config.instructionTextVisibility.extraDetail;
+		rgatstate->config.instructionTextVisibility.extraDetail = 
+			!rgatstate->config.instructionTextVisibility.extraDetail;
 		break;
 
 	case textBtnEnum::eInstructionTargLabel:
-		rgatstate->config.instructionTextVisibility.fullPaths = !rgatstate->config.instructionTextVisibility.fullPaths;
+		rgatstate->config.instructionTextVisibility.fullPaths = 
+			!rgatstate->config.instructionTextVisibility.fullPaths;
 		break;
 
 
@@ -267,7 +275,7 @@ void rgat::setupUI()
 	highlightSelectUI.setupUi(&highlightSelectorDialog);
 	mouseoverWidgetUI.setupUi(&mouseoverWidget);
 	blacklistSelectUI.setupUi(&blacklistSelectDialog);
-	settingsDialogUI.setupUi(&settingsDialog);
+	settingsDialogUI.setupUi(&settingsWindowDialog);
 
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
 	rgatstate->labelMouseoverWidget->clientState = rgatstate;
@@ -282,7 +290,7 @@ void rgat::setupUI()
 	{
 		ui.speedComboBox->addItem(speed);
 	}
-	ui.speedComboBox->setCurrentIndex(1);
+	ui.speedComboBox->setCurrentIndex(1); //1x is standard
 
 	ui.fileToolBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
 	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
@@ -371,8 +379,11 @@ void rgat::setStatePointers()
 	rgatstate->includesSelectorUI = &blacklistSelectUI;
 	blacklistSelectUI.blackWhiteListStack->clientState = rgatstate;
 
-	rgatstate->settingsDialog = &settingsDialog;
+	rgatstate->settingsDialog = &settingsWindowDialog;
 	rgatstate->settingsDialogUI = &settingsDialogUI;
+	settingsDialogUI.mainSettingsFrame->settingsUIPtr = &settingsDialogUI;
+	settingsDialogUI.mainSettingsFrame->clientState = rgatstate;
+	settingsDialogUI.mainSettingsFrame->connectWidgets();
 
 	rgatstate->labelMouseoverUI = &mouseoverWidgetUI;
 
@@ -479,7 +490,7 @@ void rgat::closeEvent(QCloseEvent *event)
 	if (processSelectorDialog.isVisible())		processSelectorDialog.hide();
 	if (mouseoverWidget.isVisible())		mouseoverWidget.hide();
 	if (highlightSelectorDialog.isVisible())		highlightSelectorDialog.hide();
-	if (settingsDialog.isVisible())		settingsDialog.hide();
+	if (settingsWindowDialog.isVisible())		settingsWindowDialog.hide();
 
 	event->accept();
 }

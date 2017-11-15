@@ -106,9 +106,9 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 {
 	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, 0);
-	int numInstructions = block->size();
+	size_t numInstructions = (int)block->size();
 
-	for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
+	for (size_t instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
@@ -467,7 +467,7 @@ void trace_graph_builder::process_new_args()
 						callRecord.argList = args;
 
 						thisgraph->externCallRecords.push_back(callRecord);
-						functionNode->callRecordsIndexs.push_back(thisgraph->externCallRecords.size() - 1);
+						functionNode->callRecordsIndexs.push_back((unsigned long)thisgraph->externCallRecords.size() - 1);
 					}
 					else
 						break;

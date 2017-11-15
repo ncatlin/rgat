@@ -120,7 +120,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="rgat.qrc">
+          <iconset>
            <normaloff>:/Resources/volume.png</normaloff>:/Resources/volume.png</iconset>
          </property>
          <property name="popupMode">
@@ -1413,7 +1413,7 @@
                        <string>Cylinder</string>
                       </property>
                       <property name="icon">
-                       <iconset resource="rgat.qrc">
+                       <iconset>
                         <normaloff>:/Resources/volume.png</normaloff>:/Resources/volume.png</iconset>
                       </property>
                      </item>
@@ -1422,7 +1422,7 @@
                        <string>Tree (development)</string>
                       </property>
                       <property name="icon">
-                       <iconset resource="rgat.qrc">
+                       <iconset>
                         <normaloff>:/Resources/treeIcon.png</normaloff>:/Resources/treeIcon.png</iconset>
                       </property>
                      </item>
@@ -1457,7 +1457,7 @@
                         <string>...</string>
                        </property>
                        <property name="icon">
-                        <iconset resource="rgat.qrc">
+                        <iconset>
                          <normaloff>:/Resources/edgesOff.png</normaloff>
                          <normalon>:/Resources/edgesOn.png</normalon>:/Resources/edgesOff.png</iconset>
                        </property>
@@ -1499,7 +1499,7 @@
                         <string>...</string>
                        </property>
                        <property name="icon">
-                        <iconset resource="rgat.qrc">
+                        <iconset>
                          <normaloff>:/Resources/nodesOff.png</normaloff>
                          <normalon>:/Resources/nodesOn.png</normalon>
                          <disabledoff>:/Resources/nodesOff.png</disabledoff>:/Resources/nodesOff.png</iconset>
@@ -1542,7 +1542,7 @@
                         <string>...</string>
                        </property>
                        <property name="icon">
-                        <iconset resource="rgat.qrc">
+                        <iconset>
                          <normaloff>:/Resources/wireframeOff.png</normaloff>
                          <normalon>:/Resources/wireframeOn.png</normalon>:/Resources/wireframeOff.png</iconset>
                        </property>
@@ -1738,7 +1738,7 @@
                        <string>Trace</string>
                       </property>
                       <property name="icon">
-                       <iconset resource="rgat.qrc">
+                       <iconset>
                         <normaloff>:/Resources/traceIcon.png</normaloff>:/Resources/traceIcon.png</iconset>
                       </property>
                      </item>
@@ -1747,7 +1747,7 @@
                        <string>Heatmap</string>
                       </property>
                       <property name="icon">
-                       <iconset resource="rgat.qrc">
+                       <iconset>
                         <normaloff>:/Resources/heatIcon.png</normaloff>:/Resources/heatIcon.png</iconset>
                       </property>
                      </item>
@@ -1756,7 +1756,7 @@
                        <string>Conditionals</string>
                       </property>
                       <property name="icon">
-                       <iconset resource="rgat.qrc">
+                       <iconset>
                         <normaloff>:/Resources/conditionalIcon.png</normaloff>:/Resources/conditionalIcon.png</iconset>
                       </property>
                      </item>

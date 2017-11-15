@@ -78,8 +78,8 @@ private:
 	Ui::highlightDialog highlightSelectUI;
 	QDialog blacklistSelectDialog;
 	Ui::moduleIncludeSelectDialog blacklistSelectUI;
-	QDialog settingsDialog;
-	Ui::SettingsDialog settingsDialogUI;
+	QDialog settingsWindowDialog;
+	Ui::SettingsWindow settingsDialogUI;
 	
 
 	QLabel *tracingStatusLabel, *activityStatusLabel;

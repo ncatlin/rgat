@@ -748,7 +748,7 @@ void plotted_graph::process_replay_update()
 	{
 		PROCESS_DATA *piddata = internalProtoGraph->get_piddata();
 		INSLIST *block = piddata->getDisassemblyBlock(entry.blockAddr, entry.blockID, &internalProtoGraph->terminationFlag, NULL);
-		unchainedWaitFrames += calculate_wait_frames(entry.count*block->size());
+		unchainedWaitFrames += calculate_wait_frames(entry.count*(unsigned long)block->size());
 
 		unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
 		if (unchainedWaitFrames > maxWait)
@@ -1615,8 +1615,8 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 			cerr << "[rgat]Warning: Exception building argstring." << endl;
 		}
 
-		int remainingCalls = n->callRecordsIndexs.size() - 1;
-		if (remainingCalls)
+		size_t remainingCalls = n->callRecordsIndexs.size() - 1;
+		if (remainingCalls > 0)
 			argstring << ") + " << remainingCalls << " saved";
 		else
 			argstring << ")";
