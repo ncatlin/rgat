@@ -144,18 +144,18 @@ void clientConfig::loadMaingraphColours()
 
 	graphColours.resize(eENLAST);
 
-	graphColours.at(eEdgeCall) = QSettingsObj->value("MainGraph/EDGE_CALL_RGBA").value<QColor>();
-	graphColours.at(eEdgeOld) = QSettingsObj->value("MainGraph/EDGE_CALL_RGBA").value<QColor>();
-	graphColours.at(eEdgeReturn) = QSettingsObj->value("MainGraph/EDGE_RET_RGBA").value<QColor>();
-	graphColours.at(eEdgeLib) = QSettingsObj->value("MainGraph/EDGE_LIB_RGBA").value<QColor>();
-	graphColours.at(eEdgeNew) = QSettingsObj->value("MainGraph/EDGE_NEW_RGBA").value<QColor>();
-	graphColours.at(eEdgeException) = QSettingsObj->value("MainGraph/EDGE_EXCEPT_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeCall) = QSettingsObj->value("MainGraph/EDGE_CALL_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeOld) = QSettingsObj->value("MainGraph/EDGE_CALL_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeReturn) = QSettingsObj->value("MainGraph/EDGE_RET_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeLib) = QSettingsObj->value("MainGraph/EDGE_LIB_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeNew) = QSettingsObj->value("MainGraph/EDGE_NEW_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eEdgeException) = QSettingsObj->value("MainGraph/EDGE_EXCEPT_RGBA").value<QColor>();
 
-	graphColours.at(eNodeNonFlow) = QSettingsObj->value("MainGraph/NODE_NONFLOW_RGBA").value<QColor>();
-	graphColours.at(eNodeJump) = QSettingsObj->value("MainGraph/NODE_JUMP_RGBA").value<QColor>();
-	graphColours.at(eNodeCall) = QSettingsObj->value("MainGraph/NODE_CALL_RGBA").value<QColor>();
-	graphColours.at(eNodeReturn) = QSettingsObj->value("MainGraph/NODE_RET_RGBA").value<QColor>();
-	graphColours.at(eNodeExternal) = QSettingsObj->value("MainGraph/NODE_EXTERNAL_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eNodeNonFlow) = QSettingsObj->value("MainGraph/NODE_NONFLOW_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eNodeJump) = QSettingsObj->value("MainGraph/NODE_JUMP_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eNodeCall) = QSettingsObj->value("MainGraph/NODE_CALL_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eNodeReturn) = QSettingsObj->value("MainGraph/NODE_RET_RGBA").value<QColor>();
+	graphColours.at(eEdgeNodeType::eNodeExternal) = QSettingsObj->value("MainGraph/NODE_EXTERNAL_RGBA").value<QColor>();
 }
 
 void clientConfig::loadColours()

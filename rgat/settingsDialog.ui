@@ -90,6 +90,9 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
           <widget class="QWidget" name="traceRenderStack">
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <item>
@@ -446,34 +449,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_19">
-                   <property name="minimumSize">
-                    <size>
-                     <width>150</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(218, 218, 218)</string>
-                   </property>
-                   <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
-                   </property>
-                   <property name="frameShadow">
-                    <enum>QFrame::Plain</enum>
-                   </property>
-                   <property name="lineWidth">
-                    <number>1</number>
-                   </property>
-                   <property name="text">
-                    <string>Conditional Instruction Text</string>
-                   </property>
-                   <property name="indent">
-                    <number>10</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QLabel" name="label_15">
                    <property name="minimumSize">
                     <size>
@@ -784,7 +759,7 @@
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>40</width>
-                     <height>20</height>
+                     <height>12</height>
                     </size>
                    </property>
                   </spacer>
@@ -816,7 +791,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_19" native="true">
+                  <widget class="colorDemoWidget" name="instext_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
@@ -826,40 +801,10 @@
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_7">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="instext_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>inc eax; inc ebx; inc ecx; pop; pop; ret;</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_20" native="true">
+                  <widget class="colorDemoWidget" name="extsym_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
@@ -869,40 +814,10 @@
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_8">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="condtext_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>inc eax; inc ebx; inc ecx; pop; pop; ret;</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_14" native="true">
+                  <widget class="colorDemoWidget" name="extsymrising_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
@@ -912,41 +827,10 @@
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_12">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="extsym_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                        <kerning>true</kerning>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE,Z)</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_13" native="true">
+                  <widget class="colorDemoWidget" name="intsym_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
@@ -956,41 +840,10 @@
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_9">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="extsymrising_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                        <kerning>true</kerning>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE,Z)</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_16" native="true">
+                  <widget class="colorDemoWidget" name="intsymrising_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
@@ -1000,81 +853,6 @@
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_10">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="intsym_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                        <kerning>true</kerning>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE,Z)</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QWidget" name="widget_15" native="true">
-                   <property name="minimumSize">
-                    <size>
-                     <width>190</width>
-                     <height>15</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">border: 1px dotted grey;</string>
-                   </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_11">
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="intsymrising_tracecollab">
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <weight>75</weight>
-                        <bold>true</bold>
-                        <kerning>true</kerning>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE,Z)</string>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
                   </widget>
                  </item>
                 </layout>
@@ -1091,12 +869,11 @@
                 <zorder>uninsnode_tracecol</zorder>
                 <zorder>highlightline_tracecol</zorder>
                 <zorder>activline_tracecol</zorder>
-                <zorder>widget_19</zorder>
-                <zorder>widget_20</zorder>
-                <zorder>widget_14</zorder>
-                <zorder>widget_13</zorder>
-                <zorder>widget_16</zorder>
-                <zorder>widget_15</zorder>
+                <zorder>instext_tracecol</zorder>
+                <zorder>extsym_tracecol</zorder>
+                <zorder>extsymrising_tracecol</zorder>
+                <zorder>intsym_tracecol</zorder>
+                <zorder>intsymrising_tracecol</zorder>
                 <zorder>bg_tracecol</zorder>
                </widget>
               </item>
