@@ -65,7 +65,16 @@ void * traceRecord::get_first_graph()
 
 	if (graphListLock.trylock())
 	{
-		void *result = plottedGraphs.begin()->second;
+		void *result = NULL;
+		for (auto it = plottedGraphs.begin(); it != plottedGraphs.end(); it++)
+		{
+			plotted_graph *graph = (plotted_graph *)it->second;
+			if (!graph->get_protoGraph()->nodeList.empty())
+			{
+				result = graph;
+				break;
+			}
+		}
 		graphListLock.unlock();
 
 		return result;

@@ -225,7 +225,9 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 	ui->plotSizeEdit->setText(val);
 
 	float zmul = zoomFactor(graph->cameraZoomlevel, graph->main_scalefactors->plotSize);
-	ui->zoomLabel->setText("Zoom: "+QString::number(zmul));
+	QString zoomText;
+	zoomText.sprintf("Zoom: %.1f", zmul);
+	ui->zoomLabel->setText(zoomText);
 }
 
 
@@ -314,7 +316,10 @@ void graphPlotGLWidget::wheelEvent(QWheelEvent *event)
 
 		float zmul = zoomFactor(activeGraph->cameraZoomlevel, activeGraph->main_scalefactors->plotSize);
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
-		ui->zoomLabel->setText("Zoom: " + QString::number(zmul));
+
+		QString zoomText;
+		zoomText.sprintf("Zoom: %.1f", zmul);
+		ui->zoomLabel->setText(zoomText);
 	}
 }
 
