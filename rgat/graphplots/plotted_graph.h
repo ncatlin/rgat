@@ -26,6 +26,7 @@ Requires inheriting to give it a layout (eg: cylinder_graph)
 #include "GUIConstants.h"
 #include "rgatState.h"
 #include "graphGLWidget.h"
+#include "graphicsMaths.h"
 #include "locks.h"
 
 #define KEEP_BRIGHT -1
@@ -140,6 +141,7 @@ public:
 	void copy_node_data(GRAPH_DISPLAY_DATA *nodes);
 	void scheduleRedraw() { replotScheduled = true; }
 	bool needsReplotting() {	return replotScheduled;	}
+	float zoomMultiplier() { return zoomFactor(cameraZoomlevel, main_scalefactors->plotSize); }
 
 	PID_TID get_pid() { return pid; }
 	PID_TID get_tid() { return tid; }

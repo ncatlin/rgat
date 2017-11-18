@@ -76,12 +76,6 @@ public Q_SLOTS:
 	bool event(QEvent * event) override;
 
 private:
-
-	//debugging stuff
-	Qt::Key lastkey = Qt::Key_0;
-
-private:
-	
 	inline void setupHUDMode();
 	inline void drawHUD();
 	void draw_heatmap_key_blocks(int x, int y);
@@ -92,8 +86,14 @@ private:
 	bool chooseGraphToDisplay(); 
 	bool setMouseoverNode(); 
 	void showMouseoverNodeTooltip();
+	void setGraphUIControls(plotted_graph *graph);
 
-	bool performIrregulars = false;
+private:
+
+	//debugging stuff
+	Qt::Key lastkey = Qt::Key_0;
+
+	bool performIrregularTimerFired = false;
 
 	QTimer *frameTimer = NULL;
 	QTimer *irregularActionTimer = NULL;

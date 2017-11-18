@@ -794,7 +794,7 @@ void plotted_graph::process_replay_update()
 		if (!block)
 			unchainedWaitFrames += calculate_wait_frames(entry.count); //external
 		else
-			unchainedWaitFrames += calculate_wait_frames(entry.count*block->size());
+			unchainedWaitFrames += calculate_wait_frames(entry.count*(int)block->size());
 
 		unsigned int maxWait = (unsigned int)((float)maxWaitFrames / (float)stepSize);
 		if (unchainedWaitFrames > maxWait)
@@ -847,7 +847,7 @@ int plotted_graph::process_replay_animation_updates(int optionalStepSize = 0)
 
 	NODEINDEX targetAnimIndex = animationIndex + stepSize;
 	if (targetAnimIndex >= internalProtoGraph->savedAnimationData.size())
-		targetAnimIndex = internalProtoGraph->savedAnimationData.size() - 1;
+		targetAnimIndex = (NODEINDEX)internalProtoGraph->savedAnimationData.size() - 1;
 
 	
 	for (; animationIndex < targetAnimIndex; ++animationIndex)
@@ -1089,7 +1089,7 @@ void plotted_graph::brighten_new_active_nodes()
 		//want to delay fading if in loop/unchained area, 
 		if (animTime)
 		{
-			activeAnimNodeTimes[arrIndexNodeAlpha] = animTime;
+			activeAnimNodeTimes[(NODEINDEX)arrIndexNodeAlpha] = animTime;
 			set <NODEINDEX>::iterator fadeIt = fadingAnimNodes.find(arrIndexNodeAlpha);
 			if (fadeIt != fadingAnimNodes.end())
 				fadingAnimNodes.erase(fadeIt);
@@ -1389,8 +1389,8 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 		glDrawArrays(GL_LINES, 0, heatmaplines->get_numLoadedVerts());
 	}
 
-	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);
-
+	
+	float zmul = zoomMultiplier();
 	PROJECTDATA pd;
 	gltarget->gather_projection_data(&pd);
 

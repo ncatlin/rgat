@@ -436,7 +436,7 @@ void rgatState::updateTextDisplayButtons()
 	if (config.externalSymbolVisibility.enabled)
 	{
 		textButtons.externalShowHide->setIcon(widgetStyle->standardIcon(QStyle::SP_DialogYesButton));
-		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols being displayed. Click to hide."));
+		textButtons.externalShowHide->setStatusTip(QCoreApplication::tr("External symbols being displayed when zoomed in. Click to hide."));
 	}
 	else
 	{
@@ -471,7 +471,7 @@ void rgatState::updateTextDisplayButtons()
 	if (config.internalSymbolVisibility.enabled)
 	{
 		textButtons.internalShowHide->setIcon(widgetStyle->standardIcon(QStyle::SP_DialogYesButton));
-		textButtons.internalShowHide->setStatusTip(QCoreApplication::tr("Internal symbols being displayed. Click to hide."));
+		textButtons.internalShowHide->setStatusTip(QCoreApplication::tr("Internal symbols being displayed when zoomed in. Click to hide."));
 	}
 	else
 	{

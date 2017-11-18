@@ -54,9 +54,10 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 
 	Ui_mouseoverWidget* tooltipwidget = (Ui_mouseoverWidget*)clientState->labelMouseoverUI;
 
-	if (activeGraph) return;
+	if (!activeGraph) return;
 	proto_graph *graph = activeGraph->get_protoGraph();
-	if (graph) return;
+	if (!graph) return;
+
 	node_data *node = graph->safe_get_node(mouseoverNodeRect.index);
 	traceRecord *trace = graph->get_traceRecord();
 	PROCESS_DATA *piddata = graph->get_piddata();
@@ -199,10 +200,13 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 
 void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 {
+	//valid target or not, we assume current graph is no longer fashionable
 	clientState->clearActiveGraph();
+
 	if (!graph || graph->needsReplotting() || graph->isBeingDeleted()) return;
 
 	traceRecord *trace = clientState->activeTrace;
+	if (!trace) return;
 
 	if (clientState->setActiveGraph(graph))
 	{
@@ -210,11 +214,16 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 		lastSelectedTheads[trace] = graph->get_tid();
 	}
 
+	setGraphUIControls(graph);
+}
+
+
+void graphPlotGLWidget::setGraphUIControls(plotted_graph *graph)
+{
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
 	ui->toolb_wireframeBtn->setCheckable(graph->isWireframeSupported());
 	ui->toolb_wireframeBtn->setChecked(graph->isWireframeActive());
-
 
 	QString val;
 	val.setNum(graph->main_scalefactors->stretchA);
@@ -231,6 +240,8 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 }
 
 
+//if tab became active, start frame + maintainance timers and choose a graph to display
+//if tab going inactive, stop the timers
 void graphPlotGLWidget::tabChanged(bool nowActive)
 {
 	activeGraph = NULL;
@@ -300,13 +311,11 @@ void graphPlotGLWidget::keyPressEvent(QKeyEvent *event)
 
 }
 
+//this serves no purpose
 void graphPlotGLWidget::keyReleaseEvent(QKeyEvent *event)
 {
-
 	lastkey = Qt::Key_0;
 }
-
-
 
 void graphPlotGLWidget::wheelEvent(QWheelEvent *event)
 {
@@ -325,11 +334,12 @@ void graphPlotGLWidget::wheelEvent(QWheelEvent *event)
 
 void graphPlotGLWidget::frameTimerFired()
 {
-	if (performIrregulars)
+	if (performIrregularTimerFired)
 	{
 		performIrregularActions();
 		if (activeGraph)
 			((Ui::rgatClass *)clientState->ui)->dynamicAnalysisContentsTab->updateVisualiserUI(false);
+		performIrregularTimerFired = false;
 	}
 	
 	update();
@@ -337,7 +347,7 @@ void graphPlotGLWidget::frameTimerFired()
 
 void graphPlotGLWidget::irregularTimerFired()
 {
-	performIrregulars = true;
+	performIrregularTimerFired = true;
 }
 
 void graphPlotGLWidget::drawBoundingBox()
@@ -446,15 +456,37 @@ bool graphPlotGLWidget::setMouseoverNode()
 	if (!activeGraph)
 		return false;
 
+	float zmul = activeGraph->zoomMultiplier();
+	if (!clientState->should_show_external_symbols(zmul) && !clientState->should_show_internal_symbols(zmul))
+		return false;
+
 	//mouse still over same node?
 	if (activeMouseoverNode && mouseoverNodeRect.rect.contains(mousePos.x(), mousePos.y()))
-		return true;
+	{
+		node_data *nodeptr = activeGraph->get_protoGraph()->safe_get_node(mouseoverNode());
+		if (nodeptr->external)
+			return clientState->should_show_external_symbols(zmul);
+		else
+			return clientState->should_show_internal_symbols(zmul);
+	}
 
 	//mouse over any node?
 	for each(TEXTRECT nodelabel in activeGraph->labelPositions)
 	{
 		if (nodelabel.rect.contains(mousePos.x(), mousePos.y()))
 		{
+			node_data *nodeptr = activeGraph->get_protoGraph()->safe_get_node(nodelabel.index);
+			if (nodeptr->external)
+			{
+				if (!clientState->should_show_external_symbols(zmul)) 
+					return false;
+			}
+			else
+			{
+				if (!clientState->should_show_internal_symbols(zmul))
+					return false;
+			}
+
 			mouseoverNodeRect = nodelabel;
 			activeMouseoverNode = true;
 			return false;
