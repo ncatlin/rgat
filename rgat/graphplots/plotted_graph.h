@@ -232,8 +232,8 @@ protected:
 	bool freeMe = false;
 	bool replotScheduled = false;
 
-	//keep track of which a,b coords are occupied
-	std::map<pair<long, long>, bool> usedCoords;
+	//keep track of which a,b coords are occupied - may need to be unique to each plot
+	std::map<pair<float, float>, bool> usedCoords;
 	vector<pair<MEM_ADDRESS, NODEINDEX>> mainCallStack;
 	vector<pair<MEM_ADDRESS, NODEINDEX>> previewCallStack;
 

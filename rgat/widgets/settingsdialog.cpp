@@ -15,6 +15,7 @@ settingsDialogWidget::settingsDialogWidget(QWidget *parent)
 
 settingsDialogWidget::~settingsDialogWidget()
 {
+	colourWidgets.clear();
 }
 
 void settingsDialogWidget::setColoursFromConfig()
@@ -329,21 +330,21 @@ void settingsDialogWidget::colourSet(eSettingsWidget clickID, QColor col)
 		case eSettingsWidget::condColBackground:
 		case eSettingsWidget::previewColBackground:
 		{
-			QString chosenColSS = "background: " + col.name();
+			QString chosenColStyleSheet = "background: " + col.name();
 			//set the background containing all the colour demo widgets
 			switch (clickID)
 			{
 			case traceColBackground:
-				settingsUI->traceColoursFrame->setStyleSheet(chosenColSS);
+				settingsUI->traceColoursFrame->setStyleSheet(chosenColStyleSheet);
 				break;
 			case heatColBackground:
-				settingsUI->heatmapColoursFrame->setStyleSheet(chosenColSS);
+				settingsUI->heatmapColoursFrame->setStyleSheet(chosenColStyleSheet);
 				break;
 			case condColBackground:
-				settingsUI->condColoursFrame->setStyleSheet(chosenColSS);
+				settingsUI->condColoursFrame->setStyleSheet(chosenColStyleSheet);
 				break;
 			case previewColBackground:
-				settingsUI->previewColoursFrame->setStyleSheet(chosenColSS);
+				settingsUI->previewColoursFrame->setStyleSheet(chosenColStyleSheet);
 				break;
 			}
 			//set the demo widget itself, with a border

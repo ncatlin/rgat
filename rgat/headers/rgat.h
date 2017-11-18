@@ -50,7 +50,7 @@ class rgat : public QMainWindow
 
 public:
 	rgat(QWidget *parent = Q_NULLPTR);
-	~rgat() { processSelectorDialog.deleteLater(); highlightSelectorDialog.deleteLater(); }
+	~rgat();
 
 public Q_SLOTS:
 	void activateDynamicStack();

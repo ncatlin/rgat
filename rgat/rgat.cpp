@@ -26,12 +26,156 @@ The main QT window class
 #include "qglobal.h"
 #include "serialise.h"
 
-
 //shouldn't really be needed, only here because i havent dealt with a naming scheme yet. make it pid based?
 bool checkAlreadyRunning()
 {
 	return boost::filesystem::exists("\\\\.\\pipe\\BootstrapPipe");
 }
+
+rgat::rgat(QWidget *parent)
+	: QMainWindow(parent)
+{
+
+	if (checkAlreadyRunning())
+	{
+		std::cerr << "[rgat]Error: rgat already running [Existing BootstrapPipe found]. Exiting..." << endl;
+		return;
+	}
+	setAcceptDrops(true);
+
+	rgatstate = new rgatState;
+
+	setupUI();
+	setStatePointers();
+
+	std::thread visualiserThreadLauncher(process_coordinator_thread, rgatstate);
+	visualiserThreadLauncher.detach();
+
+	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)rgatstate->highlightSelectUI;
+	highlightui->addressLabel->setText("Address:");
+
+	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(rgatstate);
+	rgatstate->maingraphRenderer = mainRenderThread;
+	std::thread renderThread(maingraph_render_thread::ThreadEntry, mainRenderThread);
+	renderThread.detach();
+
+	rgatstate->emptyComparePane1();
+	rgatstate->emptyComparePane2();
+
+	rgatstate->updateActivityStatus("Open a binary target or saved trace", PERSISTANT_ACTIVITY);
+}
+
+rgat::~rgat() 
+{
+	processSelectorDialog.deleteLater();
+	highlightSelectorDialog.deleteLater();
+	settingsWindowDialog.deleteLater();
+}
+
+void rgat::setupUI()
+{
+	ui.setupUi(this);
+	processSelectUI.setupUi(&processSelectorDialog);
+	highlightSelectUI.setupUi(&highlightSelectorDialog);
+	mouseoverWidgetUI.setupUi(&mouseoverWidget);
+	blacklistSelectUI.setupUi(&blacklistSelectDialog);
+	settingsDialogUI.setupUi(&settingsWindowDialog);
+
+	rgatstate->labelMouseoverWidget = &mouseoverWidget;
+	rgatstate->labelMouseoverWidget->clientState = rgatstate;
+	mouseoverWidget.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
+
+
+	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
+
+	vector <QString> supportedPlaybackSpeeds =
+	{ "0.5x","1x", "2x", "4x", "8x", "16x", "32x", "64x", "128x" };
+	for each (QString speed in supportedPlaybackSpeeds)
+	{
+		ui.speedComboBox->addItem(speed);
+	}
+	ui.speedComboBox->setCurrentIndex(1); //1x is standard
+
+	ui.fileToolBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
+	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+	ui.playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+	ui.stopBtn->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
+	ui.redrawButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+
+	activityStatusLabel = new QLabel(this);
+	ui.statusBar->addPermanentWidget(activityStatusLabel);
+	activityStatusLabel->setFrameStyle(QFrame::Sunken);
+	activityStatusLabel->setAlignment(Qt::AlignLeft);
+	activityStatusLabel->setMinimumWidth(200);
+	activityStatusLabel->setText("Saving");
+
+	tracingStatusLabel = new QLabel(this);
+	ui.statusBar->addPermanentWidget(tracingStatusLabel);
+	tracingStatusLabel->setMinimumWidth(200);
+	tracingStatusLabel->setText("Traces Active: 0");
+
+	rgatstate->widgetStyle = style();
+	addLabelBtnMenus();
+	rgatstate->updateTextDisplayButtons();
+	addFileMenuBtn();
+
+#ifdef RELEASE
+	//disable various stubs until implemented
+
+	//disable tree option https://stackoverflow.com/questions/11439773/disable-item-in-qt-combobox
+	QVariant v(0);
+	ui.visLayoutSelectCombo->setItemData(eTreeLayout, v, Qt::UserRole - 1);
+
+	//disable fuzzing tab
+	ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);
+
+	//pausing/breaking process not supported yet
+	ui.pauseBreakBtn->setEnabled(false);
+#endif
+
+}
+
+//probably a better way of doing this
+void rgat::setStatePointers()
+{
+	rgatstate->ui = &ui;
+	rgatstate->processSelectorDialog = &processSelectorDialog;
+	rgatstate->processSelectUI = &processSelectUI;
+	processSelectUI.treeWidget->clientState = rgatstate;
+
+	rgatstate->highlightSelectorDialog = &highlightSelectorDialog;
+	rgatstate->highlightSelectUI = &highlightSelectUI;
+	highlightSelectUI.highlightDialogWidget->clientState = rgatstate;
+
+	rgatstate->includesSelectorDialog = &blacklistSelectDialog;
+	rgatstate->includesSelectorUI = &blacklistSelectUI;
+	blacklistSelectUI.blackWhiteListStack->clientState = rgatstate;
+
+	rgatstate->settingsDialog = &settingsWindowDialog;
+	rgatstate->settingsDialogUI = &settingsDialogUI;
+	settingsDialogUI.mainSettingsFrame->settingsUIPtr = &settingsDialogUI;
+	settingsDialogUI.mainSettingsFrame->clientState = rgatstate;
+	settingsDialogUI.mainSettingsFrame->connectWidgets();
+
+	rgatstate->labelMouseoverUI = &mouseoverWidgetUI;
+
+	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);
+	ui.dynamicAnalysisContentsTab->setPtrs(&rgatstate->targets, rgatstate);
+	ui.traceAnalysisTree->setClientState(rgatstate);
+
+	rgatstate->InitialiseStatusbarLabels(activityStatusLabel, tracingStatusLabel);
+
+	base_thread::clientState = rgatstate;
+	plotted_graph::clientState = rgatstate;
+	graphGLWidget::clientState = rgatstate;
+	ui.targetListCombo->clientState = rgatstate;
+	ui.traceGatherTab->clientState = rgatstate;
+
+	ui.previewsGLBox->setScrollBar(ui.previewScrollbar);
+}
+
+
+
 
 void rgat::addExternTextBtn(QMenu *labelmenu)
 {
@@ -268,140 +412,6 @@ void rgat::addLabelBtnMenus()
 	addInstructionTextBtn(insLabelMenu);
 }
 
-void rgat::setupUI()
-{
-	ui.setupUi(this);
-	processSelectUI.setupUi(&processSelectorDialog);
-	highlightSelectUI.setupUi(&highlightSelectorDialog);
-	mouseoverWidgetUI.setupUi(&mouseoverWidget);
-	blacklistSelectUI.setupUi(&blacklistSelectDialog);
-	settingsDialogUI.setupUi(&settingsWindowDialog);
-
-	rgatstate->labelMouseoverWidget = &mouseoverWidget;
-	rgatstate->labelMouseoverWidget->clientState = rgatstate;
-	mouseoverWidget.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
-
-
-	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
-
-	vector <QString> supportedPlaybackSpeeds =
-		{ "0.5x","1x", "2x", "4x", "8x", "16x", "32x", "64x", "128x" };
-	for each (QString speed in supportedPlaybackSpeeds)
-	{
-		ui.speedComboBox->addItem(speed);
-	}
-	ui.speedComboBox->setCurrentIndex(1); //1x is standard
-
-	ui.fileToolBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
-	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
-	ui.playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-	ui.stopBtn->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
-	ui.redrawButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
-
-	activityStatusLabel = new QLabel(this);
-	ui.statusBar->addPermanentWidget(activityStatusLabel);
-	activityStatusLabel->setFrameStyle(QFrame::Sunken);
-	activityStatusLabel->setAlignment(Qt::AlignLeft);
-	activityStatusLabel->setMinimumWidth(200);
-	activityStatusLabel->setText("Saving");
-
-	tracingStatusLabel = new QLabel(this);
-	ui.statusBar->addPermanentWidget(tracingStatusLabel);
-	tracingStatusLabel->setMinimumWidth(200);
-	tracingStatusLabel->setText("Traces Active: 0");
-
-	rgatstate->widgetStyle = style();
-	addLabelBtnMenus();
-	rgatstate->updateTextDisplayButtons();
-	addFileMenuBtn();
-
-#ifdef RELEASE
-		//disable various stubs until implemented
-
-		//disable tree option https://stackoverflow.com/questions/11439773/disable-item-in-qt-combobox
-		QVariant v(0);
-		ui.visLayoutSelectCombo->setItemData(eTreeLayout, v, Qt::UserRole - 1);
-
-		//disable fuzzing tab
-		ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);
-
-		//pausing/breaking process not supported yet
-		ui.pauseBreakBtn->setEnabled(false);
-#endif
-
-}
-
-rgat::rgat(QWidget *parent)
-	: QMainWindow(parent)
-{
-
-	if (checkAlreadyRunning())
-	{
-		std::cerr << "[rgat]Error: rgat already running [Existing BootstrapPipe found]. Exiting..." << endl;
-		return;
-	}
-	setAcceptDrops(true);
-
-	rgatstate = new rgatState;
-
-	setupUI();
-	setStatePointers();
-
-	std::thread visualiserThreadLauncher(process_coordinator_thread, rgatstate);
-	visualiserThreadLauncher.detach();
-
-	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)rgatstate->highlightSelectUI;
-	highlightui->addressLabel->setText("Address:");
-
-	maingraph_render_thread *mainRenderThread = new maingraph_render_thread(rgatstate);
-	rgatstate->maingraphRenderer = mainRenderThread;	
-	std::thread renderThread(maingraph_render_thread::ThreadEntry, mainRenderThread);
-	renderThread.detach();
-
-	rgatstate->emptyComparePane1();
-	rgatstate->emptyComparePane2();
-
-	rgatstate->updateActivityStatus("Open a binary target or saved trace", PERSISTANT_ACTIVITY);
-}
-
-//probably a better way of doing this
-void rgat::setStatePointers()
-{
-	rgatstate->ui = &ui;
-	rgatstate->processSelectorDialog = &processSelectorDialog;
-	rgatstate->processSelectUI = &processSelectUI;
-	processSelectUI.treeWidget->clientState = rgatstate;
-
-	rgatstate->highlightSelectorDialog = &highlightSelectorDialog;
-	rgatstate->highlightSelectUI = &highlightSelectUI;
-	highlightSelectUI.highlightDialogWidget->clientState = rgatstate;
-	
-	rgatstate->includesSelectorDialog = &blacklistSelectDialog;
-	rgatstate->includesSelectorUI = &blacklistSelectUI;
-	blacklistSelectUI.blackWhiteListStack->clientState = rgatstate;
-
-	rgatstate->settingsDialog = &settingsWindowDialog;
-	rgatstate->settingsDialogUI = &settingsDialogUI;
-	settingsDialogUI.mainSettingsFrame->settingsUIPtr = &settingsDialogUI;
-	settingsDialogUI.mainSettingsFrame->clientState = rgatstate;
-	settingsDialogUI.mainSettingsFrame->connectWidgets();
-
-	rgatstate->labelMouseoverUI = &mouseoverWidgetUI;
-
-	ui.targetListCombo->setTargetsPtr(&rgatstate->targets, ui.dynamicAnalysisContentsTab);
-	ui.dynamicAnalysisContentsTab->setPtrs(&rgatstate->targets, rgatstate);
-	ui.traceAnalysisTree->setClientState(rgatstate);
-
-	rgatstate->InitialiseStatusbarLabels(activityStatusLabel, tracingStatusLabel);
-
-	base_thread::clientState = rgatstate;
-	plotted_graph::clientState = rgatstate;
-	graphGLWidget::clientState = rgatstate;
-	ui.targetListCombo->clientState = rgatstate;
-	ui.traceGatherTab->clientState = rgatstate;
-
-	ui.previewsGLBox->setScrollBar(ui.previewScrollbar);
-}
 
 void rgat::activateDynamicStack()
 {
