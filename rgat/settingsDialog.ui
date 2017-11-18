@@ -946,6 +946,22 @@
               </item>
              </layout>
             </item>
+            <item>
+             <widget class="QLabel" name="noEffectLabel">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>15</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Note: Changes to Node and Edge colours will not take effect until the graph is redrawn </string>
+              </property>
+              <property name="indent">
+               <number>9</number>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
           <widget class="QWidget" name="renderHeatmapPage">
@@ -2220,7 +2236,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="closeBtn">
        <property name="maximumSize">
         <size>
          <width>95</width>
@@ -2271,6 +2287,22 @@
     <hint type="destinationlabel">
      <x>397</x>
      <y>347</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>closeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>SettingsWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>397</x>
+     <y>743</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>382</y>
     </hint>
    </hints>
   </connection>

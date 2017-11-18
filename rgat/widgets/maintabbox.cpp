@@ -665,3 +665,10 @@ void mainTabBox::startPingatTest()
 	testingRun.beginTests();
 	clientState->testTargets.clear();
 }
+
+void mainTabBox::redrawClicked()
+{
+	plotted_graph *activegraph = (plotted_graph *)clientState->getActiveGraph(false);
+	if (activegraph)
+		activegraph->scheduleRedraw();
+}

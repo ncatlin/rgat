@@ -82,15 +82,14 @@ void maingraph_render_thread::main_loop()
 
 		if (activeGraph->increase_thread_references(1))
 		{
-			if (activeGraph->getLayout() != clientState->newGraphLayout || activeGraph->needsReplotting)
+			bool doReplot = activeGraph->needsReplotting();
+			if (activeGraph->getLayout() != clientState->newGraphLayout || doReplot)
 			{
-				GRAPH_SCALE newScaleFactors;
-				bool doReplot = activeGraph->needsReplotting;
-				if (doReplot)
-					newScaleFactors = *activeGraph->main_scalefactors;
 				float xrot = activeGraph->view_shift_x, yrot = activeGraph->view_shift_y;
 				double zoom = activeGraph->cameraZoomlevel;
-
+				GRAPH_SCALE newScaleFactors;
+				if (doReplot)
+					newScaleFactors = *activeGraph->main_scalefactors;
 
 				activeGraph->setBeingDeleted();
 				activeGraph->decrease_thread_references(1);

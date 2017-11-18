@@ -101,5 +101,6 @@ private:
 	plotted_graph *activeGraph = NULL;
 
 	map <traceRecord *, plotted_graph *> lastGraphs;
+	map <traceRecord *, PID_TID> lastSelectedTheads;
 };
 

@@ -83,6 +83,7 @@ public Q_SLOTS:
 	void startDrgatTest();
 	void startPinTest();
 	void startPingatTest();
+	void redrawClicked();
 
 #ifdef INCLUDE_FUZZ_CODE
 	void startFuzz();

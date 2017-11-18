@@ -168,23 +168,24 @@ void previewPlotGLWidget::mousePressEvent(QMouseEvent *event)
 {
 	if (!mouseoverGraph) return;
 
-	if (event->button() != Qt::RightButton)
+	if (event->button() == Qt::RightButton)
+	{
+		contextMenuGraph = mouseoverGraph;
+
+		QMenu menu;
+		menu.addSection("Graph Comparison");
+		menu.addAction(tr("Set Comparison Target A"), this, SLOT(menuSetGraph1()));
+		menu.addAction(tr("Set Comparison Target B"), this, SLOT(menuSetGraph2()));
+		menu.addSeparator();
+		menu.addSection("Other");
+		//menu.addAction(tr("Delete"), tree, SLOT(removeOne()));
+		menu.exec(QCursor::pos());
+	}
+	else
 	{
 		clientState->switchGraph = mouseoverGraph;
 		clientState->clearActiveGraph();
-		return;
 	}
-	
-	contextMenuGraph = mouseoverGraph;
-
-	QMenu menu;
-	menu.addSection("Graph Comparison");
-	menu.addAction(tr("Set Comparison Target A"), this, SLOT(menuSetGraph1()));
-	menu.addAction(tr("Set Comparison Target B"), this, SLOT(menuSetGraph2()));
-	menu.addSeparator();
-	menu.addSection("Other");
-	//menu.addAction(tr("Delete"), tree, SLOT(removeOne()));
-	menu.exec(QCursor::pos());
 }
 
 

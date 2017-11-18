@@ -54,8 +54,9 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 
 	Ui_mouseoverWidget* tooltipwidget = (Ui_mouseoverWidget*)clientState->labelMouseoverUI;
 
-
+	if (activeGraph) return;
 	proto_graph *graph = activeGraph->get_protoGraph();
+	if (graph) return;
 	node_data *node = graph->safe_get_node(mouseoverNodeRect.index);
 	traceRecord *trace = graph->get_traceRecord();
 	PROCESS_DATA *piddata = graph->get_piddata();
@@ -164,17 +165,30 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 	auto lastGraphIt = lastGraphs.find(selectedTrace);
 	if (lastGraphIt != lastGraphs.end())
 	{
-		//cout << "sgiat 1 calling swtich ag to lastgraph " << lastGraphIt->second << endl;
 		vector <plotted_graph *> traceGraphs;
 		selectedTrace->getPlottedGraphs(&traceGraphs);
-		plotted_graph *tmp;
+		plotted_graph *graph = lastGraphIt->second;
 		bool found = false;
-		if (std::find(traceGraphs.begin(), traceGraphs.end(), lastGraphIt->second) != traceGraphs.end())
+		
+		if (std::find(traceGraphs.begin(), traceGraphs.end(), graph) != traceGraphs.end())
 		{
-			switchToGraph(lastGraphIt->second);
+			switchToGraph(graph);
 			found = true;
 		}
-		foreach(tmp, traceGraphs){tmp->decrease_thread_references(144);	}
+		if (!found)
+		{
+			PID_TID lastTID = lastSelectedTheads.find(selectedTrace)->second;
+			for each(plotted_graph *graph in traceGraphs)
+			{
+				if (graph->get_tid() == lastTID)
+				{
+					switchToGraph(graph);
+					found = true;
+				}
+			}
+		}
+
+		foreach(graph, traceGraphs){ graph->decrease_thread_references(144);	}
 		if (found) return;
 	}
 
@@ -186,12 +200,15 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 {
 	clientState->clearActiveGraph();
-	if (!graph) return;
+	if (!graph || graph->needsReplotting() || graph->isBeingDeleted()) return;
 
 	traceRecord *trace = clientState->activeTrace;
 
-	if(clientState->setActiveGraph(graph))
-	 lastGraphs.emplace(make_pair(trace, graph));
+	if (clientState->setActiveGraph(graph))
+	{
+		lastGraphs[trace] = graph;
+		lastSelectedTheads[trace] = graph->get_tid();
+	}
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
@@ -373,7 +390,7 @@ void graphPlotGLWidget::drawHUD()
 }
 bool graphPlotGLWidget::chooseGraphToDisplay()
 {
-
+	//cout << "in choosegraphto display switch: " << clientState->switchTrace << " activeb4: " << activeGraph;
 	if (clientState->switchTrace)
 	{
 		clientState->selectActiveTrace(clientState->switchTrace);
@@ -382,17 +399,18 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 		ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
 	}
 
-	if (clientState->switchGraph)
+	plotted_graph* switchGraph = (plotted_graph*) clientState->switchGraph;
+	if (clientState->switchGraph && !switchGraph->isBeingDeleted() && !switchGraph->needsReplotting())
 	{
-		switchToGraph((plotted_graph*)clientState->switchGraph);
+		switchToGraph(switchGraph);
 		clientState->switchGraph = NULL;
 	}
 
-
+	//cout << " activeaft: " << activeGraph << endl;
 
 	if (activeGraph)
 	{
-		if (activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
+		if (activeGraph->isBeingDeleted() || activeGraph->needsReleasing() || (activeGraph != clientState->getActiveGraph(false)))
 		{
 			activeGraph->decrease_thread_references(141);
 			activeGraph = NULL;
@@ -403,7 +421,6 @@ bool graphPlotGLWidget::chooseGraphToDisplay()
 	}
 
 	activeGraph = (plotted_graph*)clientState->getActiveGraph(true);
-	//cout << "set actg to " << activeGraph << endl;
 	if (!activeGraph && !clientState->waitingForNewTrace)
 	{
 		if (!clientState->activeTrace)
@@ -547,7 +564,8 @@ void graphPlotGLWidget::draw_heatmap_key_blocks(int x, int y)
 
 void graphPlotGLWidget::performIrregularActions()
 {
-	if (!chooseGraphToDisplay())
+	bool haveDisplayGraph = chooseGraphToDisplay();
+	if (!haveDisplayGraph)
 		return;
 
 	activeGraph->irregularActions();
@@ -675,7 +693,7 @@ void graphPlotGLWidget::stretchHIncrease()
 
 	activeGraph->main_scalefactors->stretchA += 0.2f;
 	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -689,7 +707,7 @@ void graphPlotGLWidget::stretchHDecrease()
 
 	activeGraph->main_scalefactors->stretchA -= 0.2f;
 	activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * activeGraph->main_scalefactors->stretchA;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -709,7 +727,7 @@ void graphPlotGLWidget::stretchHSet()
 	{
 		activeGraph->main_scalefactors->stretchA = newValue;
 		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
-		activeGraph->needsReplotting = true;
+		activeGraph->scheduleRedraw();
 	}
 }
 
@@ -719,7 +737,7 @@ void graphPlotGLWidget::stretchVIncrease()
 
 	activeGraph->main_scalefactors->stretchB += 0.2f;
 	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -733,7 +751,7 @@ void graphPlotGLWidget::stretchVDecrease()
 
 	activeGraph->main_scalefactors->stretchB -= 0.2f;
 	activeGraph->main_scalefactors->pix_per_B = activeGraph->main_scalefactors->original_pix_per_B * activeGraph->main_scalefactors->stretchB;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -753,7 +771,7 @@ void graphPlotGLWidget::stretchVSet()
 	{
 		activeGraph->main_scalefactors->stretchA = newValue;
 		activeGraph->main_scalefactors->pix_per_A = activeGraph->main_scalefactors->original_pix_per_A * newValue;
-		activeGraph->needsReplotting = true;
+		activeGraph->scheduleRedraw();
 	}
 }
 
@@ -763,7 +781,7 @@ void graphPlotGLWidget::plotSizeIncrease()
 
 	activeGraph->main_scalefactors->userSizeModifier += 0.2f;
 	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -777,7 +795,7 @@ void graphPlotGLWidget::plotSizeDecrease()
 
 	activeGraph->main_scalefactors->userSizeModifier -= 0.2f;
 	activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * activeGraph->main_scalefactors->userSizeModifier;
-	activeGraph->needsReplotting = true;
+	activeGraph->scheduleRedraw();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	QString newval;
@@ -797,6 +815,6 @@ void graphPlotGLWidget::plotSizeSet()
 	{
 		activeGraph->main_scalefactors->userSizeModifier = newValue;
 		activeGraph->main_scalefactors->plotSize = activeGraph->main_scalefactors->basePlotSize * newValue;
-		activeGraph->needsReplotting = true;
+		activeGraph->scheduleRedraw();
 	}
 }

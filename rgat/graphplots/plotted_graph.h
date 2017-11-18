@@ -138,25 +138,32 @@ public:
 	void apply_drag(double dx, double dy);
 	void setAnimated(bool newState);
 	void copy_node_data(GRAPH_DISPLAY_DATA *nodes);
-
-	static rgatState *clientState;
-
-	proto_graph * get_protoGraph() { return internalProtoGraph; }
-	bool isWireframeSupported() { return wireframeSupported; }
-	bool isWireframeActive() { return wireframeActive; }
-	void setWireframeActive(bool newState) { wireframeActive = wireframeSupported ? newState : false; }
-	bool needsReplotting = false;
+	void scheduleRedraw() { replotScheduled = true; }
+	bool needsReplotting() {	return replotScheduled;	}
 
 	PID_TID get_pid() { return pid; }
 	PID_TID get_tid() { return tid; }
 
 	graphLayouts getLayout() { return layout; }
 
-	
-	GLuint graphVBOs[4] = { 0,0,0,0 };
+	proto_graph * get_protoGraph() { return internalProtoGraph; }
+	bool isWireframeSupported() { return wireframeSupported; }
+	bool isWireframeActive() { return wireframeActive; }
+	void setWireframeActive(bool newState) { wireframeActive = wireframeSupported ? newState : false; }
 
 	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
 	GRAPH_DISPLAY_DATA *get_mainnodes() { return mainnodesdata; }
+
+	bool increase_thread_references(int caller);
+	void decrease_thread_references(int caller);
+	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
+	void setHighlightData(vector<NODEINDEX> *nodeList, egraphHighlightModes highlightType);
+
+public:
+
+	static rgatState *clientState;
+
+	GLuint graphVBOs[4] = { 0,0,0,0 };
 
 	GRAPH_DISPLAY_DATA *animnodesdata = NULL;
 	GRAPH_DISPLAY_DATA *animlinedata = NULL;
@@ -187,33 +194,18 @@ public:
 	bool VBOsGenned = false;
 	long long userSelectedAnimPosition = -1;
 
-	bool increase_thread_references(int caller);
-	void decrease_thread_references(int caller);
-	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
-	void setHighlightData(vector<NODEINDEX> *nodeList, egraphHighlightModes highlightType);
-
 	double cameraZoomlevel = -1;
 	float view_shift_x = 0, view_shift_y = 0;
 	REPLAY_STATE replayState = eStopped;
 	size_t updateProcessingIndex = 0;
 	float maxA = 0, maxB = 0, maxC = 0;
 
-
 	int threadReferences = 0;
 	bool schedule_performSymbolResolve = false;
 
 	vector <TEXTRECT> labelPositions;
+	
 protected:
-
-	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
-	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
-
-	rgatlocks::UntestableLock callStackLock;
-
-	bool previewNeedsResize = false;
-	bool freeMe = false;
-
-
 	void display_active(graphGLWidget *gltarget);
 	void display_static(graphGLWidget *gltarget);
 	void display_big_conditional(graphGLWidget *gltarget);
@@ -226,8 +218,17 @@ protected:
 	void release_nodecoord_read();
 	void release_nodecoord_write();
 
-
 	PLOT_TRACK setLastNode(NODEINDEX nodeIdx);
+
+protected:
+	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
+	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
+
+	rgatlocks::UntestableLock callStackLock;
+
+	bool previewNeedsResize = false;
+	bool freeMe = false;
+	bool replotScheduled = false;
 
 	//keep track of which a,b coords are occupied
 	std::map<pair<long, long>, bool> usedCoords;
@@ -294,6 +295,7 @@ private:
 	unsigned long calculate_wait_frames(unsigned long executions);
 	void clear_active();
 
+private:
 	GRAPH_DISPLAY_DATA *mainlinedata = 0;
 
 	//position out of all the instructions instrumented

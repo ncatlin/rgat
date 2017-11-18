@@ -1792,6 +1792,25 @@
                      </property>
                     </widget>
                    </item>
+                   <item>
+                    <widget class="QPushButton" name="redrawButton">
+                     <property name="minimumSize">
+                      <size>
+                       <width>30</width>
+                       <height>30</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>30</width>
+                       <height>30</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
                   </layout>
                  </item>
                 </layout>
@@ -3207,6 +3226,7 @@
     <slot>startPinTest()</slot>
     <slot>startPingatTest()</slot>
     <slot>moduleIncludeSelectBtnClicked()</slot>
+    <slot>redrawClicked()</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -3975,6 +3995,22 @@
     <hint type="destinationlabel">
      <x>502</x>
      <y>377</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>redrawButton</sender>
+   <signal>clicked()</signal>
+   <receiver>dynamicAnalysisContentsTab</receiver>
+   <slot>redrawClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>582</x>
+     <y>513</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>

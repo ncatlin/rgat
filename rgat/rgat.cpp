@@ -296,6 +296,7 @@ void rgat::setupUI()
 	ui.settingsUiBtn->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
 	ui.playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
 	ui.stopBtn->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
+	ui.redrawButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
 
 	activityStatusLabel = new QLabel(this);
 	ui.statusBar->addPermanentWidget(activityStatusLabel);
