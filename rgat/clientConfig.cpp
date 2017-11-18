@@ -103,9 +103,6 @@ void clientConfig::loadHeatmap()
 
 	colourVariant = QSettingsObj->value("Heatmap/BG_COLOUR_RGBA", HEATMAP_background);
 	heatmap.background = colourVariant.value<QColor>();
-
-	colourVariant = QSettingsObj->value("Heatmap/HIGHLIGHT", HEATMAP_highlight);
-	heatmap.highlight = colourVariant.value<QColor>();
 }
 
 void clientConfig::loadConditionals()
@@ -126,9 +123,6 @@ void clientConfig::loadConditionals()
 
 	colourVariant = QSettingsObj->value("Conditionals/NODE_BOTH_RGBA", CONDITIONAL_cond_both);
 	conditional.cond_both = colourVariant.value<QColor>();
-
-	colourVariant = QSettingsObj->value("Conditionals/HIGHLIGHT", CONDITIONAL_highlight);
-	conditional.highlight = colourVariant.value<QColor>();
 }
 
 
@@ -169,7 +163,6 @@ void clientConfig::loadColours()
 		mainColours.highlightLine = QSettingsObj->value("MainGraph/HIGHLIGHT_RGBA").value<QColor>();
 	else
 		mainColours.highlightLine = HIGHLIGHT_LINE_COLOUR;
-
 
 	if (QSettingsObj->contains("MainGraph/ACTIVITY_MARKER_RGBA"))
 		mainColours.activityLine = QSettingsObj->value("MainGraph/ACTIVITY_MARKER_RGBA").value<QColor>();

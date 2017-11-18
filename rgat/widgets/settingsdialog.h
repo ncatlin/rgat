@@ -4,12 +4,12 @@
 #include "colordemowidget.h"
 #include "rgatState.h"
 
-enum eSettingsWidget { traceColBackground, traceColHighline, traceColActivLine,
+enum eSettingsWidget { traceColBackground, traceColActivLine,
 		traceColEdgeCall, traceColEdgeRet, traceColEdgeNew, traceColEdgeOld, traceColEdgeUnins, traceColEdgeEx,
 		traceColNodeSeq, traceColNodeJump, traceColNodeCall, traceColNodeRet, traceColNodeUnins,
 		traceColInsText, traceColExtSymbol, traceColExtRising, traceColIntSymbol, traceColIntRising, 
 		heatColBackground, heatColHeat1, heatColHeat2, heatColHeat3, heatColHeat4, heatColHeat5, heatColHeat6,
-		heatColHeat7, heatColHeat8, heatColHeat9, heatColHeat10, heatText, heatHighlight,
+		heatColHeat7, heatColHeat8, heatColHeat9, heatColHeat10, heatText,
 		condColBackground, condColEdge, condColTrue, condColFalse, condColBoth,
 		previewColBackground, previewColActive, previewColInactive
 };

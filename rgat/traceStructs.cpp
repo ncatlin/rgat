@@ -934,9 +934,9 @@ void PROCESS_DATA::saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& wr
 	writer.Key("ModuleBounds");
 	writer.StartArray();
 
-	int numMods = modpaths.size();
+	size_t numMods = modpaths.size();
 	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *>::iterator modBoundsIt = modBounds.begin();
-	for (int i = 0; i < numMods; i++)
+	for (size_t i = 0; i < numMods; i++)
 	{
 		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = *modBoundsIt;
 		assert(bounds != NULL);

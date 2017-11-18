@@ -352,7 +352,7 @@ background-color:rgb(0, 0, 0);</string>
              <string>Stop highlight on close</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>

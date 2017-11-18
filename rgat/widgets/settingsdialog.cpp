@@ -33,7 +33,6 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::traceColNodeSeq] = setsUI->seqnode_tracecol;
 	colourWidgets[eSettingsWidget::traceColNodeCall] = setsUI->callnode_tracecol;
 	colourWidgets[eSettingsWidget::traceColNodeUnins] = setsUI->uninsnode_tracecol;
-	colourWidgets[eSettingsWidget::traceColHighline] = setsUI->highlightline_tracecol;
 	colourWidgets[eSettingsWidget::traceColActivLine] = setsUI->activline_tracecol;
 
 	colourWidgets[eSettingsWidget::traceColInsText] = setsUI->instext_tracecol;
@@ -65,7 +64,6 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::heatColHeat9] = setsUI->heat9_heatcol;
 	colourWidgets[eSettingsWidget::heatColHeat10] = setsUI->heat10_heatcol;	
 	colourWidgets[eSettingsWidget::heatText] = setsUI->text_heatcol;
-	colourWidgets[eSettingsWidget::heatHighlight] = setsUI->highlight_heatcol;
 
 	colourWidgets[eSettingsWidget::condColBackground] = setsUI->cond_bg;
 	colourWidgets[eSettingsWidget::condColTrue] = setsUI->cond_alwaystrue;
@@ -141,7 +139,6 @@ void settingsDialogWidget::setCurrentColours()
 
 	colourSet(eSettingsWidget::traceColBackground, config->mainColours.background);
 	colourSet(eSettingsWidget::traceColActivLine, config->mainColours.activityLine);
-	colourSet(eSettingsWidget::traceColHighline, config->mainColours.highlightLine);
 
 	colourSet(eSettingsWidget::traceColEdgeCall, config->graphColours.at(eEdgeNodeType::eEdgeCall));
 	colourSet(eSettingsWidget::traceColEdgeRet, config->graphColours.at(eEdgeNodeType::eEdgeReturn));
@@ -174,15 +171,12 @@ void settingsDialogWidget::setCurrentColours()
 	colourSet(eSettingsWidget::heatColHeat9, config->heatmap.edgeFrequencyCol.at(8));
 	colourSet(eSettingsWidget::heatColHeat10, config->heatmap.edgeFrequencyCol.at(9));
 	colourSet(eSettingsWidget::heatText, config->heatmap.lineTextCol);
-	colourSet(eSettingsWidget::heatHighlight, config->heatmap.highlight);
 
 	colourSet(eSettingsWidget::condColBackground, config->conditional.background);
 	colourSet(eSettingsWidget::condColTrue, config->conditional.cond_succeed);
 	colourSet(eSettingsWidget::condColFalse, config->conditional.cond_fail);
 	colourSet(eSettingsWidget::condColBoth, config->conditional.cond_both);
 	colourSet(eSettingsWidget::condColEdge, config->conditional.edgeColor);
-
-	//colourSet(eSettingsWidget::condHighlight, config->conditional.highlight);
 
 	colourSet(eSettingsWidget::previewColBackground, config->preview.background); 
 	colourSet(eSettingsWidget::previewColActive, config->preview.activeHighlight);

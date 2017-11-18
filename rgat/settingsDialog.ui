@@ -587,28 +587,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_13">
-                   <property name="minimumSize">
-                    <size>
-                     <width>150</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(218, 218, 218)</string>
-                   </property>
-                   <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
-                   </property>
-                   <property name="text">
-                    <string>Highlight Line</string>
-                   </property>
-                   <property name="indent">
-                    <number>10</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QLabel" name="label_20">
                    <property name="minimumSize">
                     <size>
@@ -930,19 +908,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="colorDemoWidget" name="highlightline_tracecol" native="true">
-                   <property name="minimumSize">
-                    <size>
-                     <width>190</width>
-                     <height>15</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">border: red; background: green</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="colorDemoWidget" name="activline_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
@@ -973,7 +938,6 @@
                 <zorder>intsym_tracecol</zorder>
                 <zorder>intsymrising_tracecol</zorder>
                 <zorder>bg_tracecol</zorder>
-                <zorder>highlightline_tracecol</zorder>
                 <zorder>activline_tracecol</zorder>
                 <zorder>tracecol_bgapacer_R</zorder>
                 <zorder>tracecol_edgespace_R</zorder>
@@ -1405,31 +1369,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_32">
-                   <property name="minimumSize">
-                    <size>
-                     <width>150</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(218, 218, 218)</string>
-                   </property>
-                   <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
-                   </property>
-                   <property name="text">
-                    <string>Highlight Line</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <spacer name="horizontalSpacer_7">
                    <property name="orientation">
                     <enum>Qt::Vertical</enum>
@@ -1701,25 +1640,6 @@
                  </item>
                  <item>
                   <widget class="colorDemoWidget" name="text_heatcol" native="true">
-                   <property name="minimumSize">
-                    <size>
-                     <width>190</width>
-                     <height>15</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>9999</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">border: red; background: green</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="colorDemoWidget" name="highlight_heatcol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>

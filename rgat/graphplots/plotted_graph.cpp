@@ -1322,13 +1322,13 @@ int plotted_graph::render_new_preview_edges()
 	int remainingEdges = clientState->config.preview.edgesPerRender;
 	for (; edgeIt != edgeEnd; ++edgeIt)
 	{
-		if (edgeIt->first >= previewnodes->get_numVerts())
+		if (edgeIt->first >= (NODEINDEX)previewnodes->get_numVerts())
 		{
 			node_data *n = internalProtoGraph->safe_get_node(edgeIt->first);
 			add_node(n, &lastPreviewNode, previewnodes, 0, preview_scalefactors);
 		}
 
-		if (edgeIt->second >= previewnodes->get_numVerts())
+		if (edgeIt->second >= (NODEINDEX)previewnodes->get_numVerts())
 		{
 			edge_data *e = &internalProtoGraph->edgeDict.at(*edgeIt);
 			if (e->edgeClass == eEdgeException)

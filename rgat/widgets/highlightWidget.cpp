@@ -32,29 +32,21 @@ highlightWidget::~highlightWidget()
 {
 }
 
-//update the colour of the colour selection button to match the current graph colour
+//update the colour of the colour selection button to match the current colour
 void highlightWidget::updateColour()
 {
 	Ui::highlightDialog *highlightui = (Ui::highlightDialog *)clientState->highlightSelectUI;
 	QString stylesheet;
+
+	highlightColour = clientState->config.mainColours.highlightLine;
+	stylesheet = "color: " + highlightColour.name() + "; ";
+
 	if (clientState->heatmapMode)
-	{
-		highlightColour = clientState->config.heatmap.highlight;
-		stylesheet = "color: " + highlightColour.name() + "; ";
 		stylesheet = stylesheet + "background-color: " + clientState->config.heatmap.background.name() + ";";
-	}
 	else if (clientState->conditionalsMode)
-	{
-		highlightColour = clientState->config.conditional.highlight;
-		stylesheet = "color: " + highlightColour.name() + "; ";
 		stylesheet = stylesheet + "background-color: " + clientState->config.conditional.background.name() + ";";
-	}
 	else
-	{
-		highlightColour = clientState->config.mainColours.highlightLine;
-		stylesheet = "color: " + highlightColour.name() + "; ";
 		stylesheet = stylesheet + "background-color: " + clientState->config.mainColours.background.name() + ";";
-	}
 
 	//highlightui->addressLabel->setText("Address:"); 
 	highlightui->colourSelectorBtn->setStyleSheet(stylesheet);
@@ -225,20 +217,7 @@ void highlightWidget::startColourSelect()
 {
 	QColor newColor = QColorDialog::getColor(highlightColour);
 	highlightColour = newColor;
-	
-	if (clientState->heatmapMode)
-	{
-		clientState->config.heatmap.highlight = newColor;
-	}
-	else if (clientState->conditionalsMode)
-	{
-		clientState->config.conditional.highlight = newColor;
-	}
-	else
-	{
-		clientState->config.mainColours.highlightLine = newColor;
-	}
-
+	clientState->config.mainColours.highlightLine = newColor;
 	clientState->config.saveConfig();
 	updateColour();
 }
