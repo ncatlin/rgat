@@ -14,7 +14,7 @@ public:
 
 	void setLabelMode(QString text, bool isbold = false);
 	void setBold(bool bold);
-	void setColour(QColor colour);  //yes that is how it is spelt
+	void setColour(QColor colour, bool border = false);
 	void setEffectiveHeight(int height);
 	QColor getColour() { return myColour; }
 signals:

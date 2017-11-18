@@ -184,6 +184,139 @@ void settingsDialogWidget::setCurrentColours()
 	
 }
 
+void settingsDialogWidget::updateColourSetting(eSettingsWidget clickID, QColor col)
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+	switch (clickID)
+	{
+	//main trace
+	case eSettingsWidget::traceColBackground:
+		config->mainColours.background = col;
+		break;
+	case eSettingsWidget::traceColActivLine:
+		config->mainColours.activityLine = col;
+		break;
+	case eSettingsWidget::traceColEdgeCall:
+		config->graphColours.at(eEdgeNodeType::eEdgeCall) = col;
+		break;
+	case eSettingsWidget::traceColEdgeRet:
+		config->graphColours.at(eEdgeNodeType::eEdgeReturn) = col;
+		break;
+	case eSettingsWidget::traceColEdgeNew:
+		config->graphColours.at(eEdgeNodeType::eEdgeNew) = col;
+		break;
+	case eSettingsWidget::traceColEdgeOld:
+		config->graphColours.at(eEdgeNodeType::eEdgeOld) = col;
+		break;
+	case eSettingsWidget::traceColEdgeUnins:
+		config->graphColours.at(eEdgeNodeType::eEdgeLib) = col;
+		break;
+	case eSettingsWidget::traceColEdgeEx:
+		config->graphColours.at(eEdgeNodeType::eEdgeException) = col;
+		break;
+	case eSettingsWidget::traceColNodeSeq:
+		config->graphColours.at(eEdgeNodeType::eNodeNonFlow) = col;
+		break;
+	case eSettingsWidget::traceColNodeJump:
+		config->graphColours.at(eEdgeNodeType::eNodeJump) = col;
+		break;
+	case eSettingsWidget::traceColNodeCall:
+		config->graphColours.at(eEdgeNodeType::eNodeCall) = col;
+		break;
+	case eSettingsWidget::traceColNodeRet:
+		config->graphColours.at(eEdgeNodeType::eNodeReturn) = col;
+		break;
+	case eSettingsWidget::traceColNodeUnins:
+		config->graphColours.at(eEdgeNodeType::eNodeExternal) = col;
+		break;
+	case eSettingsWidget::traceColInsText:
+		config->mainColours.instructionText = col;
+		break;
+	case eSettingsWidget::traceColExtSymbol:
+		config->mainColours.symbolTextExternal = col;
+		break;
+	case eSettingsWidget::traceColExtRising:
+		config->mainColours.symbolTextExternalRising = col;
+		break;
+	case eSettingsWidget::traceColIntSymbol:
+		config->mainColours.symbolTextInternal = col;
+		break;
+	case eSettingsWidget::traceColIntRising:
+		config->mainColours.symbolTextInternalRising = col;
+		break;
+
+	//heatmap
+	case eSettingsWidget::heatColBackground:
+		config->heatmap.background = col;
+		break;
+	case eSettingsWidget::heatColHeat1:
+		config->heatmap.edgeFrequencyCol.at(0) = col;
+		break;
+	case eSettingsWidget::heatColHeat2:
+		config->heatmap.edgeFrequencyCol.at(1) = col;
+		break;
+	case eSettingsWidget::heatColHeat3:
+		config->heatmap.edgeFrequencyCol.at(2) = col;
+		break;
+	case eSettingsWidget::heatColHeat4:
+		config->heatmap.edgeFrequencyCol.at(3) = col;
+		break;
+	case eSettingsWidget::heatColHeat5:
+		config->heatmap.edgeFrequencyCol.at(4) = col;
+		break;
+	case eSettingsWidget::heatColHeat6:
+		config->heatmap.edgeFrequencyCol.at(5) = col;
+		break;
+	case eSettingsWidget::heatColHeat7:
+		config->heatmap.edgeFrequencyCol.at(6) = col;
+		break;
+	case eSettingsWidget::heatColHeat8:
+		config->heatmap.edgeFrequencyCol.at(7) = col;
+		break;
+	case eSettingsWidget::heatColHeat9:
+		config->heatmap.edgeFrequencyCol.at(8) = col;
+		break;
+	case eSettingsWidget::heatColHeat10:
+		config->heatmap.edgeFrequencyCol.at(9) = col;
+		break;
+	case eSettingsWidget::heatText:
+		break;
+
+	//conditionals
+	case eSettingsWidget::condColBackground:
+		config->conditional.background = col;
+		break;
+	case eSettingsWidget::condColEdge:
+		config->conditional.edgeColor = col;
+		break;
+	case eSettingsWidget::condColTrue:
+		config->conditional.cond_succeed = col;
+		break;
+	case eSettingsWidget::condColFalse:
+		config->conditional.cond_fail = col;
+		break;
+	case eSettingsWidget::condColBoth:
+		config->conditional.cond_both = col;
+		break;
+
+	//preview
+	case eSettingsWidget::previewColBackground:
+		config->preview.background = col;
+		break;
+	case eSettingsWidget::previewColActive:
+		config->preview.activeHighlight = col;
+		break;
+	case eSettingsWidget::previewColInactive:
+		config->preview.inactiveHighlight = col;
+		break;
+
+	default:
+		cerr << "Bad clickID in updateColour: " << clickID << endl;
+	}
+
+	config->saveConfig();
+}
+
 void settingsDialogWidget::colourSet(eSettingsWidget clickID, QColor col)
 {
 	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
@@ -214,19 +347,22 @@ void settingsDialogWidget::colourSet(eSettingsWidget clickID, QColor col)
 				break;
 			}
 			//set the demo widget itself, with a border
-			colourWidgets.at(clickID)->setStyleSheet(chosenColSS + "; border: 2px dotted grey");
+			colourWidgets.at(clickID)->setColour(col, true);
 			break;
 		}
 
 		default:
 			colourWidgets.at(clickID)->setColour(col);
 	}
+
+	updateColourSetting(clickID, col);
 }
 
 void settingsDialogWidget::colourClick(eSettingsWidget clickID)
 {
 	QColorDialog colorDlg(this);
-	QColor col = colorDlg.getColor(colourWidgets.at(clickID)->getColour());
+	QColor currentCol = colourWidgets.at(clickID)->getColour();
+	QColor col = colorDlg.getColor(currentCol, this, "Choose new colour");
 	if (col.isValid()) 
 		colourSet(clickID, col);
 }

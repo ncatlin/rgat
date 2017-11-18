@@ -37,6 +37,7 @@ private:
 	void colourSet(eSettingsWidget clickID, QColor col); 
 	void setColoursFromConfig(); 
 	void setStackIndexes();
+	void updateColourSetting(eSettingsWidget clickID, QColor col);
 
 private:
 	map <eSettingsWidget, colorDemoWidget *> colourWidgets;

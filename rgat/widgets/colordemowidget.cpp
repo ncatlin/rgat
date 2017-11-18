@@ -60,18 +60,22 @@ void colorDemoWidget::setBold(bool bold)
 }
 
 //set the stylesheet
-void colorDemoWidget::setColour(QColor colour)
+void colorDemoWidget::setColour(QColor colour, bool border)
 {
 	myColour = colour;
 	
 	if (childlabel == NULL)
 	{
 		QString stylesheet = "background:" + colour.name();
+		if (border)
+			stylesheet.append("; border: 2px dotted grey");
 		setStyleSheet(stylesheet);
 	}
 	else
 	{
 		QString stylesheet = "color:" + colour.name();
+		if (border)
+			stylesheet.append("; border: 2px dotted grey");
 		childlabel->setStyleSheet(stylesheet);
 	}
 	
