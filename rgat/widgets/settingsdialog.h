@@ -4,12 +4,15 @@
 #include "colordemowidget.h"
 #include "rgatState.h"
 
-namespace confNS {
-	enum widgID { traceColBackground, traceColHighline, traceColActivLine,
+enum eSettingsWidget { traceColBackground, traceColHighline, traceColActivLine,
 		traceColEdgeCall, traceColEdgeRet, traceColEdgeNew, traceColEdgeOld, traceColEdgeUnins, traceColEdgeEx,
 		traceColNodeSeq, traceColNodeJump, traceColNodeCall, traceColNodeRet, traceColNodeUnins,
-		traceColInsText, traceColExtSymbol, traceColExtRising, traceColIntSymbol, traceColIntRising	};
-}
+		traceColInsText, traceColExtSymbol, traceColExtRising, traceColIntSymbol, traceColIntRising, 
+		heatColBackground, heatColHeat1, heatColHeat2, heatColHeat3, heatColHeat4, heatColHeat5, heatColHeat6,
+		heatColHeat7, heatColHeat8, heatColHeat9, heatColHeat10, heatText, heatHighlight,
+		condColBackground, condColEdge, condColTrue, condColFalse, condColBoth,
+		previewColBackground, previewColActive, previewColInactive
+};
 
 class settingsDialogWidget :
 	public QWidget
@@ -25,14 +28,17 @@ public:
 	void *clientState;
 
 public Q_SLOTS: 
-	void colourClick(confNS::widgID clickID);
+	void colourClick(eSettingsWidget clickID);
+	void pageSelected(QTreeWidgetItem *item);
 
 private:
 	void initialiseWidgets();
 	void setCurrentColours();
-	void colourSet(confNS::widgID clickID, QColor col);
+	void colourSet(eSettingsWidget clickID, QColor col); 
+	void setColoursFromConfig(); 
+	void setStackIndexes();
 
 private:
-	map <confNS::widgID, colorDemoWidget *> colourWidgets;
+	map <eSettingsWidget, colorDemoWidget *> colourWidgets;
 };
 

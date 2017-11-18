@@ -3,50 +3,123 @@
 #include "rgatState.h"
 #include "qlayout.h"
 
+enum eStackPages { eRenderTracePage = 0, eRenderHeatmapPage = 1, eRenderConditionalsPage = 2, eRenderPreviewPage = 3
+};
+
+
 settingsDialogWidget::settingsDialogWidget(QWidget *parent)
 	: QWidget(parent)
 {
-
 }
-
 
 
 settingsDialogWidget::~settingsDialogWidget()
 {
 }
 
-void settingsDialogWidget::initialiseWidgets()
+void settingsDialogWidget::setColoursFromConfig()
 {
 	Ui::SettingsWindow *setsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
-	colourWidgets[confNS::widgID::traceColBackground] = setsUI->bg_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeCall] = setsUI->calledge_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeRet] = setsUI->retedge_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeOld] = setsUI->oldedge_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeNew] = setsUI->newedge_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeUnins] = setsUI->uninsedge_tracecol;
-	colourWidgets[confNS::widgID::traceColEdgeEx] = setsUI->exedge_tracecol;
-	colourWidgets[confNS::widgID::traceColNodeJump] = setsUI->jumpnode_tracecol;
-	colourWidgets[confNS::widgID::traceColNodeRet] = setsUI->retnode_tracecol;
-	colourWidgets[confNS::widgID::traceColNodeSeq] = setsUI->seqnode_tracecol;
-	colourWidgets[confNS::widgID::traceColNodeCall] = setsUI->callnode_tracecol;
-	colourWidgets[confNS::widgID::traceColNodeUnins] = setsUI->uninsnode_tracecol;
-	colourWidgets[confNS::widgID::traceColHighline] = setsUI->highlightline_tracecol;
-	colourWidgets[confNS::widgID::traceColActivLine] = setsUI->activline_tracecol;
 
-	colourWidgets[confNS::widgID::traceColInsText] = setsUI->instext_tracecol;
-	setsUI->instext_tracecol->setLabelMode("inc eax; dec ebx; div ecx; pop; pop; ret;");
-	
-	colourWidgets[confNS::widgID::traceColExtSymbol] = setsUI->extsym_tracecol;
-	setsUI->extsym_tracecol->setLabelMode("VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)");
+	colourWidgets[eSettingsWidget::traceColBackground] = setsUI->bg_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeCall] = setsUI->calledge_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeRet] = setsUI->retedge_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeOld] = setsUI->oldedge_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeNew] = setsUI->newedge_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeUnins] = setsUI->uninsedge_tracecol;
+	colourWidgets[eSettingsWidget::traceColEdgeEx] = setsUI->exedge_tracecol;
+	colourWidgets[eSettingsWidget::traceColNodeJump] = setsUI->jumpnode_tracecol;
+	colourWidgets[eSettingsWidget::traceColNodeRet] = setsUI->retnode_tracecol;
+	colourWidgets[eSettingsWidget::traceColNodeSeq] = setsUI->seqnode_tracecol;
+	colourWidgets[eSettingsWidget::traceColNodeCall] = setsUI->callnode_tracecol;
+	colourWidgets[eSettingsWidget::traceColNodeUnins] = setsUI->uninsnode_tracecol;
+	colourWidgets[eSettingsWidget::traceColHighline] = setsUI->highlightline_tracecol;
+	colourWidgets[eSettingsWidget::traceColActivLine] = setsUI->activline_tracecol;
 
-	colourWidgets[confNS::widgID::traceColExtRising] = setsUI->extsymrising_tracecol;
-	setsUI->extsymrising_tracecol->setLabelMode("VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)");
+	colourWidgets[eSettingsWidget::traceColInsText] = setsUI->instext_tracecol;
+	colourWidgets[eSettingsWidget::traceColInsText]->setLabelMode("inc eax; dec ebx; div ecx; pop; pop; ret;");
 
-	colourWidgets[confNS::widgID::traceColIntSymbol] = setsUI->intsym_tracecol;
-	setsUI->intsym_tracecol->setLabelMode("VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)");
 
-	colourWidgets[confNS::widgID::traceColIntRising] = setsUI->intsymrising_tracecol;
-	setsUI->intsymrising_tracecol->setLabelMode("VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)");
+	QString symbolLabelExample = "VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)";
+	colourWidgets[eSettingsWidget::traceColExtSymbol] = setsUI->extsym_tracecol;
+	colourWidgets[eSettingsWidget::traceColExtSymbol]->setLabelMode(symbolLabelExample);
+
+	colourWidgets[eSettingsWidget::traceColExtRising] = setsUI->extsymrising_tracecol;
+	colourWidgets[eSettingsWidget::traceColExtRising]->setLabelMode(symbolLabelExample);
+
+	colourWidgets[eSettingsWidget::traceColIntSymbol] = setsUI->intsym_tracecol;
+	colourWidgets[eSettingsWidget::traceColIntSymbol]->setLabelMode(symbolLabelExample);
+
+	colourWidgets[eSettingsWidget::traceColIntRising] = setsUI->intsymrising_tracecol;
+	colourWidgets[eSettingsWidget::traceColIntRising]->setLabelMode(symbolLabelExample);
+
+	colourWidgets[eSettingsWidget::heatColBackground] = setsUI->bg_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat1] = setsUI->heat1_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat2] = setsUI->heat2_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat3] = setsUI->heat3_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat4] = setsUI->heat4_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat5] = setsUI->heat5_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat6] = setsUI->heat6_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat7] = setsUI->heat7_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat8] = setsUI->heat8_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat9] = setsUI->heat9_heatcol;
+	colourWidgets[eSettingsWidget::heatColHeat10] = setsUI->heat10_heatcol;	
+	colourWidgets[eSettingsWidget::heatText] = setsUI->text_heatcol;
+	colourWidgets[eSettingsWidget::heatHighlight] = setsUI->highlight_heatcol;
+
+	colourWidgets[eSettingsWidget::condColBackground] = setsUI->cond_bg;
+	colourWidgets[eSettingsWidget::condColTrue] = setsUI->cond_alwaystrue;
+	colourWidgets[eSettingsWidget::condColFalse] = setsUI->cond_nevertrue;
+	colourWidgets[eSettingsWidget::condColBoth] = setsUI->cond_bothpaths;
+	colourWidgets[eSettingsWidget::condColEdge] = setsUI->cond_edge;
+
+	colourWidgets[eSettingsWidget::previewColBackground] = setsUI->prevcol_background;
+	colourWidgets[eSettingsWidget::previewColActive] = setsUI->prevcol_activeborder;
+	colourWidgets[eSettingsWidget::previewColInactive] = setsUI->prevcol_inactiveborder;
+}
+
+void settingsDialogWidget::setStackIndexes()
+{
+
+	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+
+
+	QTreeWidgetItem * item = settingsUI->settingpageSelectTree->findItems("Rendering", Qt::MatchFlag::MatchContains).front();
+
+	int subItemCount = item->childCount();
+	for (int i = 0; i < subItemCount; i++)
+	{
+		QTreeWidgetItem *subitem = item->child(i);
+		eStackPages targetPage;
+
+		if (subitem->text(0) == "Trace")
+			targetPage = eStackPages::eRenderTracePage;
+		else if (subitem->text(0) == "Heatmap")
+			targetPage = eStackPages::eRenderHeatmapPage;
+		else if (subitem->text(0) == "Conditionals")
+			targetPage = eStackPages::eRenderConditionalsPage;		
+		else if (subitem->text(0) == "Preview")
+			targetPage = eStackPages::eRenderPreviewPage;
+		else
+		{
+			cout << "unhandled render subitem: " << subitem->text(0).toStdString() << endl;
+			continue;
+		}
+
+		subitem->setData(1, Qt::ItemDataRole::UserRole, targetPage);
+	}
+
+	item->setExpanded(true);
+}
+
+void settingsDialogWidget::initialiseWidgets()
+{
+	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+	settingsUI->bg_tracecol->setEffectiveHeight(25);
+
+	setColoursFromConfig();
+	setStackIndexes();
+
 }
 
 void settingsDialogWidget::connectWidgets()
@@ -55,7 +128,7 @@ void settingsDialogWidget::connectWidgets()
 
 	for (auto widgetsIt = colourWidgets.begin(); widgetsIt != colourWidgets.end(); widgetsIt++)
 	{
-		confNS::widgID clickID = widgetsIt->first;
+		eSettingsWidget clickID = widgetsIt->first;
 		connect(widgetsIt->second, &colorDemoWidget::mousePressEvent, this, [this, clickID]{ colourClick(clickID); });
 	}
 	
@@ -64,51 +137,91 @@ void settingsDialogWidget::connectWidgets()
 
 void settingsDialogWidget::setCurrentColours()
 {
-	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
 	clientConfig *config = &((rgatState *)clientState)->config;
 
-	colourSet(confNS::widgID::traceColBackground, config->mainColours.background);
-	colourSet(confNS::widgID::traceColActivLine, config->mainColours.activityLine);
-	colourSet(confNS::widgID::traceColHighline, config->mainColours.highlightLine);
+	colourSet(eSettingsWidget::traceColBackground, config->mainColours.background);
+	colourSet(eSettingsWidget::traceColActivLine, config->mainColours.activityLine);
+	colourSet(eSettingsWidget::traceColHighline, config->mainColours.highlightLine);
 
-	colourSet(confNS::widgID::traceColEdgeCall, config->graphColours.at(eEdgeNodeType::eEdgeCall));
-	colourSet(confNS::widgID::traceColEdgeRet, config->graphColours.at(eEdgeNodeType::eEdgeReturn));
-	colourSet(confNS::widgID::traceColEdgeNew, config->graphColours.at(eEdgeNodeType::eEdgeNew));
-	colourSet(confNS::widgID::traceColEdgeOld, config->graphColours.at(eEdgeNodeType::eEdgeOld));
-	colourSet(confNS::widgID::traceColEdgeEx, config->graphColours.at(eEdgeNodeType::eEdgeException));
-	colourSet(confNS::widgID::traceColEdgeUnins, config->graphColours.at(eEdgeNodeType::eEdgeLib));
+	colourSet(eSettingsWidget::traceColEdgeCall, config->graphColours.at(eEdgeNodeType::eEdgeCall));
+	colourSet(eSettingsWidget::traceColEdgeRet, config->graphColours.at(eEdgeNodeType::eEdgeReturn));
+	colourSet(eSettingsWidget::traceColEdgeNew, config->graphColours.at(eEdgeNodeType::eEdgeNew));
+	colourSet(eSettingsWidget::traceColEdgeOld, config->graphColours.at(eEdgeNodeType::eEdgeOld));
+	colourSet(eSettingsWidget::traceColEdgeEx, config->graphColours.at(eEdgeNodeType::eEdgeException));
+	colourSet(eSettingsWidget::traceColEdgeUnins, config->graphColours.at(eEdgeNodeType::eEdgeLib));
 
-	colourSet(confNS::widgID::traceColNodeCall, config->graphColours.at(eEdgeNodeType::eNodeCall));
-	colourSet(confNS::widgID::traceColNodeJump, config->graphColours.at(eEdgeNodeType::eNodeJump));
-	colourSet(confNS::widgID::traceColNodeRet, config->graphColours.at(eEdgeNodeType::eNodeReturn));
-	colourSet(confNS::widgID::traceColNodeSeq, config->graphColours.at(eEdgeNodeType::eNodeNonFlow));
-	colourSet(confNS::widgID::traceColNodeUnins, config->graphColours.at(eEdgeNodeType::eNodeExternal));
+	colourSet(eSettingsWidget::traceColNodeCall, config->graphColours.at(eEdgeNodeType::eNodeCall));
+	colourSet(eSettingsWidget::traceColNodeJump, config->graphColours.at(eEdgeNodeType::eNodeJump));
+	colourSet(eSettingsWidget::traceColNodeRet, config->graphColours.at(eEdgeNodeType::eNodeReturn));
+	colourSet(eSettingsWidget::traceColNodeSeq, config->graphColours.at(eEdgeNodeType::eNodeNonFlow));
+	colourSet(eSettingsWidget::traceColNodeUnins, config->graphColours.at(eEdgeNodeType::eNodeExternal));
 
+	colourSet(eSettingsWidget::traceColInsText, config->mainColours.instructionText);
+	colourSet(eSettingsWidget::traceColExtSymbol, config->mainColours.symbolTextExternal);
+	colourSet(eSettingsWidget::traceColExtRising, config->mainColours.symbolTextExternalRising);
+	colourSet(eSettingsWidget::traceColIntSymbol, config->mainColours.symbolTextInternal);
+	colourSet(eSettingsWidget::traceColIntRising, config->mainColours.symbolTextInternalRising);
 
-	colourSet(confNS::widgID::traceColInsText, config->mainColours.instructionText);
-	colourSet(confNS::widgID::traceColExtSymbol, config->mainColours.symbolTextExternal);
-	colourSet(confNS::widgID::traceColExtRising, config->mainColours.symbolTextExternalRising);
-	colourSet(confNS::widgID::traceColIntSymbol, config->mainColours.symbolTextInternal);
-	colourSet(confNS::widgID::traceColIntRising, config->mainColours.symbolTextInternalRising);
+	colourSet(eSettingsWidget::heatColBackground, config->heatmap.background);
+	colourSet(eSettingsWidget::heatColHeat1, config->heatmap.edgeFrequencyCol.at(0));
+	colourSet(eSettingsWidget::heatColHeat2, config->heatmap.edgeFrequencyCol.at(1));
+	colourSet(eSettingsWidget::heatColHeat3, config->heatmap.edgeFrequencyCol.at(2));
+	colourSet(eSettingsWidget::heatColHeat4, config->heatmap.edgeFrequencyCol.at(3));
+	colourSet(eSettingsWidget::heatColHeat5, config->heatmap.edgeFrequencyCol.at(4));
+	colourSet(eSettingsWidget::heatColHeat6, config->heatmap.edgeFrequencyCol.at(5));
+	colourSet(eSettingsWidget::heatColHeat7, config->heatmap.edgeFrequencyCol.at(6));
+	colourSet(eSettingsWidget::heatColHeat8, config->heatmap.edgeFrequencyCol.at(7));
+	colourSet(eSettingsWidget::heatColHeat9, config->heatmap.edgeFrequencyCol.at(8));
+	colourSet(eSettingsWidget::heatColHeat10, config->heatmap.edgeFrequencyCol.at(9));
+	colourSet(eSettingsWidget::heatText, config->heatmap.lineTextCol);
+	colourSet(eSettingsWidget::heatHighlight, config->heatmap.highlight);
+
+	colourSet(eSettingsWidget::condColBackground, config->conditional.background);
+	colourSet(eSettingsWidget::condColTrue, config->conditional.cond_succeed);
+	colourSet(eSettingsWidget::condColFalse, config->conditional.cond_fail);
+	colourSet(eSettingsWidget::condColBoth, config->conditional.cond_both);
+	colourSet(eSettingsWidget::condColEdge, config->conditional.edgeColor);
+
+	//colourSet(eSettingsWidget::condHighlight, config->conditional.highlight);
+
+	colourSet(eSettingsWidget::previewColBackground, config->preview.background); 
+	colourSet(eSettingsWidget::previewColActive, config->preview.activeHighlight);
+	colourSet(eSettingsWidget::previewColInactive, config->preview.inactiveHighlight);
 	
 }
 
-void settingsDialogWidget::colourSet(confNS::widgID clickID, QColor col)
+void settingsDialogWidget::colourSet(eSettingsWidget clickID, QColor col)
 {
 	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
 
 
 	switch (clickID)
 	{
-		case confNS::widgID::traceColBackground:
+		case eSettingsWidget::traceColBackground:
+		case eSettingsWidget::heatColBackground:
+		case eSettingsWidget::condColBackground:
+		case eSettingsWidget::previewColBackground:
 		{
-		QString chosenColSS = "background: " + col.name();
-		//set the background containing all the colour demo widgets
-		settingsUI->traceColoursFrame->setStyleSheet(chosenColSS);
-		
-		//set the demo widget itself, with a border
-		colourWidgets.at(clickID)->setStyleSheet(chosenColSS + "; border: 2px dotted grey");
-		break;
+			QString chosenColSS = "background: " + col.name();
+			//set the background containing all the colour demo widgets
+			switch (clickID)
+			{
+			case traceColBackground:
+				settingsUI->traceColoursFrame->setStyleSheet(chosenColSS);
+				break;
+			case heatColBackground:
+				settingsUI->heatmapColoursFrame->setStyleSheet(chosenColSS);
+				break;
+			case condColBackground:
+				settingsUI->condColoursFrame->setStyleSheet(chosenColSS);
+				break;
+			case previewColBackground:
+				settingsUI->previewColoursFrame->setStyleSheet(chosenColSS);
+				break;
+			}
+			//set the demo widget itself, with a border
+			colourWidgets.at(clickID)->setStyleSheet(chosenColSS + "; border: 2px dotted grey");
+			break;
 		}
 
 		default:
@@ -116,12 +229,18 @@ void settingsDialogWidget::colourSet(confNS::widgID clickID, QColor col)
 	}
 }
 
-void settingsDialogWidget::colourClick(confNS::widgID clickID)
+void settingsDialogWidget::colourClick(eSettingsWidget clickID)
 {
 	QColorDialog colorDlg(this);
-	QColor col = colorDlg.getColor();
-	colourSet(clickID, col);
-	
+	QColor col = colorDlg.getColor(colourWidgets.at(clickID)->getColour());
+	if (col.isValid()) 
+		colourSet(clickID, col);
+}
 
-
+void settingsDialogWidget::pageSelected(QTreeWidgetItem *item)
+{
+	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+	QVariant itemTypeVariant = item->data(1, Qt::UserRole);
+	eStackPages selectedItem = (eStackPages)itemTypeVariant.value<int>();
+	settingsUI->stackedWidget->setCurrentIndex(selectedItem);
 }

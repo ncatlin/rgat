@@ -9,12 +9,18 @@ colorDemoWidget::colorDemoWidget(QWidget *parent)
 	solidBlock = new QWidget(this);
 	childlayout->addWidget(solidBlock);
 	childlayout->setContentsMargins(0, 0, 0, 0);
-
-	solidBlock->setMinimumSize(QSize(190, 15));
+	setEffectiveHeight(11);
 }
 
 colorDemoWidget::~colorDemoWidget()
 {
+}
+
+
+void colorDemoWidget::setEffectiveHeight(int height)
+{
+	solidBlock->setMinimumHeight(height);
+	solidBlock->setMaximumHeight(height);
 }
 
 void colorDemoWidget::setLabelMode(QString text, bool isbold)
@@ -25,7 +31,7 @@ void colorDemoWidget::setLabelMode(QString text, bool isbold)
 
 		childlabel = new QLabel(this);
 		childlabel->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-		childlabel->setMinimumSize(QSize(190, 15));
+		childlabel->setMinimumSize(QSize(190, 10));
 
 		childlayout->addWidget(childlabel);
 
@@ -56,7 +62,7 @@ void colorDemoWidget::setBold(bool bold)
 //set the stylesheet
 void colorDemoWidget::setColour(QColor colour)
 {
-
+	myColour = colour;
 	
 	if (childlabel == NULL)
 	{

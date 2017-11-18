@@ -119,7 +119,11 @@ public:
 	bool savingFlag = false;
 
 	QPixmap mainGraphBMP;
+
+	//todo config, making symbols use symbolfont
 	QFont instructionFont = QFont("Helvetica", 8);
+	QFont symbolFont = QFont("Helvetica", 8);
+
 	TEXT_DISPLAY_BUTTONS textButtons;
 	QStyle* widgetStyle;
 

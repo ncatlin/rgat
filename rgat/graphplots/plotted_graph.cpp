@@ -1468,7 +1468,6 @@ void plotted_graph::display_big_conditional(graphGLWidget *gltarget)
 //should be same as rendering for main graph but - the animation + more pauses instead of all at once
 int plotted_graph::render_preview_graph()
 {
-	bool doResize = false;
 	needVBOReload_preview = true;
 
 	if (previewNeedsResize)

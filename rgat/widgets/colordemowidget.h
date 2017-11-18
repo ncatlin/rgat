@@ -14,8 +14,9 @@ public:
 
 	void setLabelMode(QString text, bool isbold = false);
 	void setBold(bool bold);
-	void setColour(QColor colour);  //yes
-
+	void setColour(QColor colour);  //yes that is how it is spelt
+	void setEffectiveHeight(int height);
+	QColor getColour() { return myColour; }
 signals:
 	void mousePressEvent(QMouseEvent *event) override;
 
@@ -25,5 +26,6 @@ private:
 	QLayout *childlayout = NULL;
 	QLabel *childlabel = NULL;
 
+	QColor myColour;
 	bool boldfont = false;
 };
