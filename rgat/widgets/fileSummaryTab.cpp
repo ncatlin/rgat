@@ -114,8 +114,8 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 	peparse::parsed_pe *header = peparse::ParsePEFromFile(cpath.c_str());
 	if (!header)
 	{
-		cout << "parse error " << peparse::GetPEErrString() << endl;
 		stringstream peerror;
+		cout << "[rgat]peparse error: " << peparse::GetPEErrString() << endl;
 		peerror << "Potentially incompatible binary <peparse error " << peparse::GetPEErr() << " - '" << peparse::GetPEErrString() << "' " << " at " <<hex<< peparse::GetPEErrLoc() << ">";
 		ui->tgt_typeLineEdit->setText(QString::fromStdString(peerror.str()));
 		ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}");

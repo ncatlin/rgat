@@ -223,7 +223,7 @@ void gat_basicblock_handler::main_loop()
 					//might be a better to check all mutations instead of most recent
 
 					bool differentInstruction = ((instruction->numbytes != insByteCount) || 
-													memcmp(instruction->opcodes, &buf.at(bufPos), insByteCount));
+													memcmp(instruction->opcodes.get(), &buf.at(bufPos), insByteCount));
 					if (differentInstruction)
 						instruction = NULL;
 				}
@@ -237,9 +237,13 @@ void gat_basicblock_handler::main_loop()
 				if (!instruction)
 				{
 					instruction = new INS_DATA;
-					instruction->opcodes = (uint8_t *)malloc(insByteCount);
-					memcpy(instruction->opcodes, &buf.at(bufPos), insByteCount);
 					instruction->numbytes = insByteCount;
+
+					uint8_t *opcodePtr = &buf.at(bufPos);
+
+					instruction->opcodes = std::unique_ptr<uint8_t[]>(new uint8_t[insByteCount]);
+					memcpy(instruction->opcodes.get(), &buf.at(bufPos), insByteCount);
+
 					instruction->globalmodnum = globalModNum;
 					instruction->dataEx = dataExecution;
 					instruction->blockIDs.push_back(make_pair(targetaddr,blockID));

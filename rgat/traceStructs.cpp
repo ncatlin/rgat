@@ -283,29 +283,15 @@ struct ADDR_DATA
 	bool hasSym;
 };
 
-
+//for disassembling saved instructions
+//takes a capstone context, opcode string, target instruction data struct and the address of the instruction
 size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADDRESS insaddr)
 {
 	cs_insn *insn;
-	unsigned int pairs = 0;
-	unsigned char opcodes_u[MAX_OPCODES];
-	while (pairs * 2 < opcodes.length())
-	{
-		if (!caught_stoi(opcodes.substr(pairs * 2, 2), (int *)(opcodes_u + pairs), 16))
-		{
-			cerr << "[rgat]ERROR: BADOPCODE! " << opcodes << endl;
-			return NULL;
-		}
-		++pairs;
-		if (pairs >= MAX_OPCODES)
-		{
-			cerr << "[rgat]ERROR: Error, instruction too long! (" << pairs << " pairs)" << endl;
-			return NULL;
-		}
-	}
-
 	size_t count;
-	count = cs_disasm(hCapstone, opcodes_u, pairs, insaddr, 0, &insn);
+	uint8_t *opcodesPtr = (uint8_t*)opcodes.data();
+	
+	count = cs_disasm(hCapstone, opcodesPtr, opcodes.size(), insaddr, 0, &insn);
 	if (count != 1) {
 		cerr << "[rgat]ERROR: BB thread failed disassembly for opcodes: " << opcodes << " count: " << count << " error: " << cs_errno(hCapstone) << endl;
 		return NULL;
@@ -349,11 +335,12 @@ size_t disassemble_ins(csh hCapstone, string opcodes, INS_DATA *insdata, MEM_ADD
 	return count;
 }
 
-
+//for disassembling live instructions
+//takes a capstone context, paritally filled instruction data struct (ie:with opcodes) and the address of the instruction
 size_t disassemble_ins(csh hCapstone, INS_DATA *insdata, MEM_ADDRESS insaddr)
 {
 	cs_insn *insn;
-	size_t count = cs_disasm(hCapstone, insdata->opcodes, insdata->numbytes, insaddr, 0, &insn);
+	size_t count = cs_disasm(hCapstone, insdata->opcodes.get(), insdata->numbytes, insaddr, 0, &insn);
 	if (count != 1) {
 		cerr << "[rgat]ERROR: BB thread failed disassembly for opcodes:? "  << " count: " << count << " error: " << cs_errno(hCapstone) << endl;
 		return NULL;
@@ -405,20 +392,24 @@ bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *a
 		const Value& opcodesEntry = *opcodesEntryIt;
 		if (opcodesEntry.Capacity() != 2)
 		{
-			cerr << "[rgat] Bad mutation entry" << endl;
+			cerr << "[rgat] Load Error: Bad mutation entry" << endl;
 			return false;
 		}
 
-		string opcodesString = opcodesEntry[0].GetString();
-		if (opcodesString.empty())
+		string opcodesStringb64 = opcodesEntry[0].GetString();
+		if (opcodesStringb64.empty())
 			return false;
 
+		string opcodesString = base64_decode(opcodesStringb64);
 
 		INS_DATA *ins = new INS_DATA;
 		ins->globalmodnum = addressdata->moduleID;
 		ins->hasSymbol = addressdata->hasSym;
+		ins->numbytes = opcodesString.size();
+		ins->opcodes = std::unique_ptr<uint8_t[]>(new uint8_t[ins->numbytes]);
+		memcpy(ins->opcodes.get(), opcodesString.data(), ins->numbytes);
 
-		disassemble_ins(hCapstone, opcodesString, ins, addressdata->address);
+		disassemble_ins(hCapstone, ins, addressdata->address);
 
 		const Value& threadNodes = opcodesEntry[1];
 		Value::ConstValueIterator threadNodesIt = threadNodes.Begin();
@@ -427,7 +418,7 @@ bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *a
 			const Value& threadNodesEntry = *threadNodesIt;
 			if (threadNodesEntry.Capacity() != 2)
 			{
-				cerr << "[rgat] Bad thread nodes entry" << endl;
+				cerr << "[rgat] Load Error: Bad thread nodes entry" << endl;
 				delete ins;
 				return false;
 			}
@@ -448,7 +439,7 @@ bool unpackAddress(PROCESS_DATA *piddata, const Value& addressMutations, csh hCa
 
 	if (addressMutations.Capacity() != 3)
 	{
-		cerr << "[rgat] Bad address entry" << endl;
+		cerr << "[rgat] Load Error: Bad address entry" << endl;
 		return false;
 	}
 
@@ -465,7 +456,7 @@ bool unpackAddress(PROCESS_DATA *piddata, const Value& addressMutations, csh hCa
 
 	if (!unpackOpcodes(piddata, mutationData, &addressStruct, &mutationVector, hCapstone))
 	{
-		cerr << "Failed to unpack opcodes" << endl;
+		cerr << "[rgat] Load Error: Failed to unpack opcodes" << endl;
 		return false;
 	}
 
@@ -746,7 +737,8 @@ void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>
 			INS_DATA *ins = *mutationIt;
 			writer.StartArray();
 
-			//writer.String(ins->opcodes.c_str()); //todo
+			string opcodeString = base64_encode(ins->opcodes.get(), ins->numbytes);
+			writer.String(opcodeString.c_str());
 
 			//threads containing it
 			writer.StartArray();
@@ -755,8 +747,9 @@ void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>
 			{
 				writer.StartArray();
 
-				writer.Int64(threadVertIt->first); //could make file smaller by doing a lookup table.
-				writer.Uint64(threadVertIt->second);
+				//could make file smaller by doing a lookup table.
+				writer.Int64(threadVertIt->first); //thread id
+				writer.Uint64(threadVertIt->second); //node idx
 
 				writer.EndArray();
 			}

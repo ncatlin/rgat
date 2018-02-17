@@ -97,7 +97,7 @@ struct INS_DATA
 	unsigned int mutationIndex;
 
 	//this was added later, might be worth ditching other stuff in exchange
-	uint8_t *opcodes;
+	std::unique_ptr<uint8_t[]> opcodes;
 	unsigned int numbytes;
 };
 

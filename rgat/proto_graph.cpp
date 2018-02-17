@@ -301,8 +301,6 @@ void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 
 void proto_graph::push_anim_update(ANIMATIONENTRY entry)
 {
-	if (entry.blockAddr == 0x7ff751c91050 && entry.blockID == -1)
-		cout << "here";
 	AcquireSRWLockExclusive(&animationListsSRWLOCK);
 	savedAnimationData.push_back(entry);
 	ReleaseSRWLockExclusive(&animationListsSRWLOCK);

@@ -192,7 +192,7 @@ bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath)
 	{
 		//leave here until pin in release dir
 		//*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.2");
-		*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.4-97438-gf90d1f746-msvc-windows");
+		*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.6");
 		if (!boost::filesystem::exists(*pinpath))
 			return false;
 	}
