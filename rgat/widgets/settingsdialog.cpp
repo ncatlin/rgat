@@ -50,6 +50,9 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::traceColIntSymbol] = setsUI->intsym_tracecol;
 	colourWidgets[eSettingsWidget::traceColIntSymbol]->setLabelMode(symbolLabelExample);
 
+	colourWidgets[eSettingsWidget::traceColPlaceholder] = setsUI->placeholderLabel_tracecol;
+	colourWidgets[eSettingsWidget::traceColPlaceholder]->setLabelMode(symbolLabelExample);
+
 	colourWidgets[eSettingsWidget::traceColIntRising] = setsUI->intsymrising_tracecol;
 	colourWidgets[eSettingsWidget::traceColIntRising]->setLabelMode(symbolLabelExample);
 
@@ -159,6 +162,7 @@ void settingsDialogWidget::setCurrentColours()
 	colourSet(eSettingsWidget::traceColExtRising, config->mainColours.symbolTextExternalRising);
 	colourSet(eSettingsWidget::traceColIntSymbol, config->mainColours.symbolTextInternal);
 	colourSet(eSettingsWidget::traceColIntRising, config->mainColours.symbolTextInternalRising);
+	colourSet(eSettingsWidget::traceColPlaceholder, config->mainColours.symbolTextPlaceholder);
 
 	colourSet(eSettingsWidget::heatColBackground, config->heatmap.background);
 	colourSet(eSettingsWidget::heatColHeat1, config->heatmap.edgeFrequencyCol.at(0));
@@ -245,7 +249,9 @@ void settingsDialogWidget::updateColourSetting(eSettingsWidget clickID, QColor c
 	case eSettingsWidget::traceColIntRising:
 		config->mainColours.symbolTextInternalRising = col;
 		break;
-
+	case eSettingsWidget::traceColPlaceholder:
+		config->mainColours.symbolTextPlaceholder = col;
+		break;
 	//heatmap
 	case eSettingsWidget::heatColBackground:
 		config->heatmap.background = col;

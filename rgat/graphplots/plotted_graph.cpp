@@ -1738,6 +1738,8 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	placeholderListCopy.insert(internalProtoGraph->internalPlaceholderFuncNames.begin(), internalProtoGraph->internalPlaceholderFuncNames.end());
 	callStackLock.unlock();
 
+	painter.setPen(clientState->config.mainColours.symbolTextPlaceholder);
+
 	auto internPlaceholderSymIt = placeholderListCopy.begin();
 	for (; internPlaceholderSymIt != placeholderListCopy.end(); ++internPlaceholderSymIt)
 	{

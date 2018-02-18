@@ -194,8 +194,8 @@ void clientConfig::loadColours()
 	else
 		mainColours.symbolTextInternalRising = RISING_INTERNAL_SYM_TEXT_COLOUR;
 
-	if (QSettingsObj->contains("MainGraph/PLACEHOLDER_SYM_TEXT_RGBA"))
-		mainColours.symbolTextPlaceholder = QSettingsObj->value("MainGraph/PLACEHOLDER_SYM_TEXT_RGBA").value<QColor>();
+	if (QSettingsObj->contains("MainGraph/PLACEHOLDER_TEXT_RGBA"))
+		mainColours.symbolTextPlaceholder = QSettingsObj->value("MainGraph/PLACEHOLDER_TEXT_RGBA").value<QColor>();
 	else
 		mainColours.symbolTextPlaceholder = PLACEHOLDER_SYM_TEXT_COLOUR;
 

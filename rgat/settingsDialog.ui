@@ -587,6 +587,22 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="QLabel" name="label_13">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(218, 218, 218)</string>
+                   </property>
+                   <property name="frameShape">
+                    <enum>QFrame::StyledPanel</enum>
+                   </property>
+                   <property name="text">
+                    <string>Placeholder Function Label</string>
+                   </property>
+                   <property name="indent">
+                    <number>10</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QLabel" name="label_20">
                    <property name="minimumSize">
                     <size>
@@ -908,6 +924,13 @@
                   </widget>
                  </item>
                  <item>
+                  <widget class="colorDemoWidget" name="placeholderLabel_tracecol" native="true">
+                   <property name="styleSheet">
+                    <string notr="true">border: 1px dotted grey;</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="colorDemoWidget" name="activline_tracecol" native="true">
                    <property name="minimumSize">
                     <size>
@@ -942,6 +965,7 @@
                 <zorder>tracecol_bgapacer_R</zorder>
                 <zorder>tracecol_edgespace_R</zorder>
                 <zorder>tracecol_nodespace_R</zorder>
+                <zorder>placeholderLabel_tracecol</zorder>
                </widget>
               </item>
              </layout>
@@ -1502,7 +1526,6 @@
                    <property name="styleSheet">
                     <string notr="true">border: red; background: green</string>
                    </property>
-                   <zorder>heat2_heatcol</zorder>
                   </widget>
                  </item>
                  <item>
