@@ -15,10 +15,7 @@ using namespace rapidjson;
 #pragma comment(lib, "legacy_stdio_definitions.lib") //capstone uses _sprintf
 #pragma comment(lib, "capstone.lib")
 
-
-
-//void PROCESS_DATA::getDisassemblyWriteLockB() { getDisassemblyWriteLock(); };
-//void PROCESS_DATA::dropDisassemblyWriteLockB() { dropDisassemblyWriteLock(); };
+bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockEntry);
 
 void PROCESS_DATA::getExternDictReadLock()
 {
@@ -406,6 +403,7 @@ bool unpackOpcodes(PROCESS_DATA *piddata, const Value& opcodesData, ADDR_DATA *a
 		ins->globalmodnum = addressdata->moduleID;
 		ins->hasSymbol = addressdata->hasSym;
 		ins->numbytes = opcodesString.size();
+
 		ins->opcodes = std::unique_ptr<uint8_t[]>(new uint8_t[ins->numbytes]);
 		memcpy(ins->opcodes.get(), opcodesString.data(), ins->numbytes);
 
@@ -448,7 +446,6 @@ bool unpackAddress(PROCESS_DATA *piddata, const Value& addressMutations, csh hCa
 	addressStruct.moduleID = addressMutations[1].GetInt();
 	const Value& mutationData = addressMutations[2];
 
-
 	if (piddata->modsymsPlain.count(addressStruct.moduleID) && piddata->modsymsPlain.at(addressStruct.moduleID).count(addressStruct.address))
 		addressStruct.hasSym = true;
 	else
@@ -476,23 +473,22 @@ bool PROCESS_DATA::loadDisassembly(const Value& saveJSON)
 
 	cout << "[rgat]" << disasLoadMsg.str() << endl;
 	//display_only_status_message(disasLoadMsg.str(), clientState);
-
-
 	//display_only_status_message("Loading Disassembly", clientState);
 
 	csh hCapstone;
-	cs_mode disasArch;
+	cs_mode disasBitwidth;
+
 	if (bitwidth == 32)
-		disasArch = CS_MODE_32;
+		disasBitwidth = CS_MODE_32;
 	else if (bitwidth == 64)
-		disasArch = CS_MODE_64;
+		disasBitwidth = CS_MODE_64;
 	else
 	{
 		cerr << "[rgat]ERROR: Bad bitwidth " << bitwidth << endl;
 		return false;
 	}
 
-	cs_err capOpenResult = cs_open(CS_ARCH_X86, disasArch, &hCapstone);
+	cs_err capOpenResult = cs_open(CS_ARCH_X86, disasBitwidth, &hCapstone);
 	if (capOpenResult != CS_ERR_OK)
 	{
 		cerr << "[rgat]ERROR: Failed to open Capstone instance: " << capOpenResult << endl;
@@ -514,83 +510,7 @@ bool PROCESS_DATA::loadDisassembly(const Value& saveJSON)
 	return true;
 }
 
-bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockInstructions)
-{
-	if (blockInstructions.Capacity() != 2)
-	{
-		cerr << "[rgat]Error: Failed to unpack basic block instructions (bad entry)" << endl;
-		return false;
-	}
 
-	MEM_ADDRESS blockaddress = blockInstructions[0].GetUint64();
-	const Value& blockVariationsArray = blockInstructions[1];
-
-	Value::ConstValueIterator blockVariationIt = blockVariationsArray.Begin();
-	for (; blockVariationIt != blockVariationsArray.End(); blockVariationIt++)
-	{
-		const Value& blockVariation = *blockVariationIt;
-
-		BLOCK_IDENTIFIER blockID = blockVariation[0].GetUint64();
-		INSLIST *blockInsList = new INSLIST;
-
-		piddata->addressBlockMap[blockaddress][blockID] = blockInsList;
-		assert(false);
-		//piddata->blockList.push_back(make_pair(blockaddress, blockInsList));
-
-		const Value& blockVariationInstructions = blockVariation[1];
-		Value::ConstValueIterator instructionsIt = blockVariationInstructions.Begin();
-		for (; instructionsIt != blockVariationInstructions.End(); instructionsIt++)
-		{
-			const Value& instructionEntry = *instructionsIt;
-			MEM_ADDRESS instructionAddr = instructionEntry[0].GetUint64();
-			unsigned int mutationIdx = instructionEntry[1].GetUint();
-			
-			auto disasIt = piddata->disassembly.find(instructionAddr);
-			if (disasIt == piddata->disassembly.end())
-			{
-				cerr << "[rgat]Warning: Could not find address " << std::hex << " in disassembly, aborting load" << endl;
-				return false;//should maybe be true here to allow partial save to be used
-			}
-			
-			if (mutationIdx >= disasIt->second.size())
-			{
-				cerr << "[rgat]Warning: Could not find mutation " << std::dec << " in disassembly of address "<<std::hex << instructionAddr << ", aborting load" << endl;
-				return false;//should maybe be true here to allow partial save to be used
-			}
-
-
-			INS_DATA* disassembledIns = disasIt->second.at(mutationIdx);
-			piddata->addressBlockMap[blockaddress][blockID]->push_back(disassembledIns); //todo: obvious performance improvement here
-		}
-	}
-	return true;
-}
-
-//tie the disassembled instructions together into basic blocks
-bool PROCESS_DATA::loadBasicBlocks(const Value& saveJSON)
-{
-
-	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("BasicBlocks");
-	if (procDataIt == saveJSON.MemberEnd())
-		return false;
-	const Value& basicBlockArray = procDataIt->value;
-
-	stringstream BBLoadMsg;
-	BBLoadMsg << "Loading " << basicBlockArray.Capacity() << " basic blocks";
-
-	cout << "[rgat]" << BBLoadMsg.str() << endl;
-	//display_only_status_message(BBLoadMsg.str(), clientState);
-
-
-	Value::ConstValueIterator basicBlockIt = basicBlockArray.Begin();
-	for (; basicBlockIt != basicBlockArray.End(); basicBlockIt++)
-	{
-		if (!unpackBasicBlock(this, *basicBlockIt))
-			return false;
-	}
-
-	return true;
-}
 
 
 bool PROCESS_DATA::load(const rapidjson::Document& saveJSON)
@@ -622,8 +542,8 @@ bool PROCESS_DATA::load(const rapidjson::Document& saveJSON)
 		cerr << "[rgat]ERROR: Disassembly reconstruction failed" << endl;
 		return false;
 	}
-
-	if (!loadBasicBlocks(procDataJSON))
+	
+	if (!loadBlockData(procDataJSON))
 	{
 		cerr << "[rgat]ERROR: Basic block reconstruction failed" << endl;
 		return false;
@@ -680,21 +600,20 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 			getDisassemblyReadLock();
 			INSLIST *result;
 			BLOCK_DESCRIPTOR *blkd = blockList.at(blockID).second;
-			if (blkd->blockType == eBlockType::eBlockInternal)
-				result = blkd->inslist;
-			else
-			{
-				*externBlock = blkd->externBlock;
-				return 0;
-			}
+
+			result = blkd->inslist;
+
 			dropDisassemblyReadLock();
 			return result;
 		}
 
+
+		if (iterations> 3)
+			Sleep(1);
+
 		if (iterations++ > 20)
 			cerr << "[rgat]Warning: Long wait for disassembly of address 0x" << std::hex << blockaddr << endl;
 
-		Sleep(1);
 		if (*dieFlag) return 0;
 	}
 }
@@ -828,56 +747,97 @@ void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& 
 	writer.StartArray();
 
 	getDisassemblyReadLock();
-	assert(false);
-	/*
-	map <MEM_ADDRESS, map<BLOCK_IDENTIFIER, BLOCK_DESCRIPTOR *>>::iterator blockIt = blockList.begin();
-	for (; blockIt != blocklist.end(); ++blockIt)
+
+	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>>::iterator blockIt = blockList.begin();
+
+	for (; blockIt != blockList.end(); ++blockIt)
 	{
 		writer.StartArray();
 
 		//block address
 		writer.Uint64(blockIt->first);
-
-		//instructions 
+		
+		BLOCK_DESCRIPTOR *blkdesc = blockIt->second;
+		//instruction list
 		writer.StartArray();
-		map<BLOCK_IDENTIFIER, INSLIST *>::iterator blockIDIt = blockIt->second.begin();
-		for (; blockIDIt != blockIt->second.end(); ++blockIDIt)
+		INSLIST::iterator inslistIt = blkdesc->inslist->begin();
+		for (; inslistIt != blkdesc->inslist->end(); ++inslistIt)
 		{
-			writer.StartArray();
-
-			INSLIST *blockInstructions = blockIDIt->second;
-
-			writer.Uint64(blockIDIt->first); //block ID
-
-			writer.StartArray(); //mutations for each instruction
-
-			INSLIST::iterator blockInsIt = blockInstructions->begin();
-			for (; blockInsIt != blockInstructions->end(); ++blockInsIt)
-			{
-				//write instruction address+mutation loader can look them up in disassembly
-				INS_DATA* ins = *blockInsIt;
-
-				writer.StartArray();
-
-				writer.Uint64(ins->address);
-				writer.Uint64(ins->mutationIndex);
-
-				writer.EndArray();
-			}
-
-			writer.EndArray(); //end mutations array for this instruction
-
-			writer.EndArray(); //end this instruction
+			writer.Uint64((*inslistIt)->address);
+			writer.Uint((*inslistIt)->mutationIndex);
 		}
-
 		writer.EndArray();	//end instructions array for this address
+
 
 		writer.EndArray(); //end basic block object for this address
 	}
-	*/
 	dropDisassemblyReadLock();
 	writer.EndArray(); //end array of basic blocks
 }
+
+//tie the disassembled instructions together into basic blocks
+bool PROCESS_DATA::loadBlockData(const Value& saveJSON)
+{
+
+	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("BasicBlocks");
+	if (procDataIt == saveJSON.MemberEnd())
+		return false;
+	const Value& basicBlockArray = procDataIt->value;
+
+	stringstream BBLoadMsg;
+	BBLoadMsg << "Loading " << basicBlockArray.Capacity() << " basic blocks";
+
+	cout << "[rgat]" << BBLoadMsg.str() << endl;
+	//display_only_status_message(BBLoadMsg.str(), clientState);
+
+
+	Value::ConstValueIterator basicBlockIt = basicBlockArray.Begin();
+	for (; basicBlockIt != basicBlockArray.End(); basicBlockIt++)
+	{
+		if (!unpackBasicBlock(this, *basicBlockIt))
+			return false;
+	}
+
+	return true;
+}
+
+bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockEntry)
+{
+	/*
+	if (blockEntry.Capacity() != 2)
+	{
+		cerr << "[rgat]Error: Failed to unpack basic block ( "<< blockEntry.Capacity()<<" items)" << endl;
+		return false;
+	}
+	*/
+
+
+	BLOCK_DESCRIPTOR *blkdesc = new BLOCK_DESCRIPTOR;
+	MEM_ADDRESS blockaddress = blockEntry[0].GetUint64();
+
+	//piddata->addressBlockMap[blockaddress][blockID] = blkdesc;
+	piddata->blockList.push_back(make_pair(blockaddress, blkdesc));
+
+
+	const Value& insListArray = blockEntry[1];
+	if (!insListArray.IsArray() || insListArray.Capacity() % 2 != 0)
+		return false;
+
+	blkdesc->inslist = new INSLIST;
+	Value::ConstValueIterator inslistIt = insListArray.Begin();
+	for (; inslistIt != insListArray.End(); inslistIt++)
+	{
+		ADDRESS_OFFSET insAddress = inslistIt->GetUint64();
+		inslistIt++;
+		unsigned int mutationIndex = inslistIt->GetUint();
+		blkdesc->inslist->push_back(piddata->disassembly.at(insAddress).at(mutationIndex));
+	}
+
+
+	return true;
+}
+
+
 
 void PROCESS_DATA::saveMetaData(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
 {
@@ -905,43 +865,6 @@ void PROCESS_DATA::saveMetaData(rapidjson::Writer<rapidjson::FileWriteStream>& w
 	writer.Uint(RGAT_VERSION_FEATURE);
 }
 
-void PROCESS_DATA::saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
-{
-	writer.Key("ModulePaths");
-	writer.StartArray();
-
-	vector<boost::filesystem::path>::iterator pathIt = modpaths.begin();
-	for (; pathIt != modpaths.end(); pathIt++)
-	{
-		string pathstr = pathIt->string();
-		const unsigned char* cus_pathstring = reinterpret_cast<const unsigned char*>(pathstr.c_str());
-		writer.StartObject();
-		writer.Key("B64");
-		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->size()).c_str());
-		writer.EndObject();
-	}
-
-	writer.EndArray();
-
-
-	writer.Key("ModuleBounds");
-	writer.StartArray();
-
-	size_t numMods = modpaths.size();
-	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *>::iterator modBoundsIt = modBounds.begin();
-	for (size_t i = 0; i < numMods; i++)
-	{
-		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = *modBoundsIt;
-		assert(bounds != NULL);
-		writer.StartArray();
-		writer.Int64(bounds->first);
-		writer.Int64(bounds->second);
-		writer.EndArray();
-	}
-
-	writer.EndArray();
-
-}
 
 //big, but worth doing in case environments differ
 void PROCESS_DATA::saveSymbols(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
@@ -973,6 +896,44 @@ void PROCESS_DATA::saveSymbols(rapidjson::Writer<rapidjson::FileWriteStream>& wr
 	}
 
 	writer.EndArray();
+}
+
+void PROCESS_DATA::saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& writer)
+{
+	writer.Key("ModulePaths");
+	writer.StartArray();
+
+	vector<boost::filesystem::path>::iterator pathIt = modpaths.begin();
+	for (; pathIt != modpaths.end(); pathIt++)
+	{
+		string pathstr = pathIt->string();
+		const unsigned char* cus_pathstring = reinterpret_cast<const unsigned char*>(pathstr.c_str());
+		writer.StartObject();
+		writer.Key("B64");
+		writer.String(base64_encode(cus_pathstring, (unsigned int)pathIt->size()).c_str());
+		writer.EndObject();
+	}
+
+	writer.EndArray();
+
+
+	writer.Key("ModuleBounds");
+	writer.StartArray();
+
+	size_t numMods = modpaths.size();
+	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *>::iterator modBoundsIt = modBounds.begin();
+	for (size_t i = 0; i < numMods; i++)
+	{
+		pair<MEM_ADDRESS, MEM_ADDRESS> *bounds = modBoundsIt[i];
+		assert(bounds != NULL);
+		writer.StartArray();
+		writer.Int64(bounds->first);
+		writer.Int64(bounds->second);
+		writer.EndArray();
+	}
+
+	writer.EndArray();
+
 }
 
 bool PROCESS_DATA::loadModules(const rapidjson::Value& processDataJSON)

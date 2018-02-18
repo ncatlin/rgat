@@ -179,25 +179,10 @@ void gat_basicblock_handler::main_loop()
 
 			//logf << "blockaddr: " << start_s << " module : " <<modnum << " instrumented: "<<instrumented<<endl;
 
-			if (!instrumented) //should nolonger happen
+			if (!instrumented) //should no longer happen
 			{
+				cerr << "[rgat] Error: A bad thing happened." << endl;
 				assert(false);
-				ROUTINE_STRUCT *bbdata = new ROUTINE_STRUCT;
-				bbdata->globalmodnum = globalModNum;
-
-				piddata->getExternDictWriteLock();
-				piddata->externdict.insert(make_pair(targetaddr, bbdata));
-				piddata->dropExternDictWriteLock();
-
-				piddata->getDisassemblyReadLock();
-				if (piddata->modsymsPlain.count(globalModNum) && piddata->modsymsPlain.at(globalModNum).count(modoffset))
-					bbdata->hasSymbol = true;
-				piddata->dropDisassemblyReadLock();
-
-				//if (bbdata->hasSymbol)
-				//	fill_taint_data_for_symbol(bbdata);
-
-				continue;
 			}
 
 			INSLIST *blockInstructions = new INSLIST;
@@ -269,13 +254,11 @@ void gat_basicblock_handler::main_loop()
 			}
 
 			piddata->getDisassemblyWriteLock();
-			piddata->addressBlockMap[targetaddr][blockID] = blockInstructions;
+			//piddata->addressBlockMap[targetaddr][blockID] = blockInstructions;
 			
-
 			if (blockID == piddata->numBlocksSeen())
 			{
 				BLOCK_DESCRIPTOR *bd = new BLOCK_DESCRIPTOR;
-				bd->blockType = eBlockInternal;
 				bd->inslist = blockInstructions;
 				piddata->addBlock_HaveLock(targetaddr, bd);
 			}

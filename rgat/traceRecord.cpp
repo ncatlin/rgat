@@ -386,6 +386,7 @@ void traceRecord::save(void *configPtr)
 	{
 		child->save((clientConfig*)configPtr);
 	}
+	cout << "[rgat] Save complete" << endl;
 
 }
 

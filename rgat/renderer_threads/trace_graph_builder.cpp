@@ -646,7 +646,6 @@ void trace_graph_builder::satisfy_pending_edges()
 			continue;
 		}
 		
-		assert(piddata->blockDetails(pendIt->targID).second->blockType == eBlockInternal);
 		cout << "Satisfying an edge request! source ID: 0x" <<hex<< pendIt->sourceID << " addr: 0x"<<pendIt->sourceAddr<<
 			" targID: "<< pendIt->targID << " addr: 0x" << pendIt->targAddr << endl;
 		INSLIST *targ = piddata->blockDetails(pendIt->targID).second->inslist;
@@ -681,7 +680,6 @@ bool trace_graph_builder::assign_blockrepeats()
 			if (numBlocks <= blockID) {
 				++repeatIt; continue;
 			}
-			assert(piddata->blockDetails(blockID).second->blockType == eBlockInternal);
 			repeatIt->blockInslist = piddata->blockDetails(blockID).second->inslist;
 
 			//first/last vert not on drawn yet? skip until it is
@@ -734,7 +732,6 @@ bool trace_graph_builder::assign_blockrepeats()
 			}
 
 			BLOCK_IDENTIFIER blockid = *targCallIDIt;
-			assert(piddata->blockDetails(blockid).second->blockType == eBlockInternal);
 			INSLIST* targetBlock = piddata->blockDetails(blockid).second->inslist;
 			INS_DATA *firstIns = targetBlock->front();
 			if (!firstIns->threadvertIdx.count(TID)) {
@@ -958,7 +955,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 		assert(0);
 	}
-	assert(piddata->blockDetails(sourceID).second->blockType == eBlockInternal);
+
 	INSLIST* lastBB = piddata->blockDetails(sourceID).second->inslist;
 	INS_DATA* lastIns = lastBB->back();
 

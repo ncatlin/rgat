@@ -482,7 +482,7 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 		{
 			piddata->dropExternCallerReadLock();
 			Sleep(10);
-			cerr << "Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
+			cerr << "[rgat]Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
 			return false;
 		}
 
@@ -498,9 +498,7 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 				nodelist->push_back(callvsIt->second);
 			}
 		}
-
-		
-		return true; //TODO: had multiple crashes here, saved as crash1 dump. think its fixed now
+		return true; 
 	}
 
 	INSLIST::iterator blockIt = block->begin();

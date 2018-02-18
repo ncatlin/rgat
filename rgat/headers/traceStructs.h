@@ -125,13 +125,8 @@ struct FUNCARG {
 	char *argstr; //content
 };
 
-enum eBlockType{ eBlockInternal, eBlockExernal};
 struct BLOCK_DESCRIPTOR {
-	eBlockType blockType;
-	union {
-		INSLIST * inslist;
-		ROUTINE_STRUCT *externBlock;
-	};
+	INSLIST * inslist;
 };
 
 class PROCESS_DATA 
@@ -188,8 +183,8 @@ public:
 
 	//list of basic blocks
 	//   address		    blockID			instructionlist
-	map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
-
+	//map <ADDRESS_OFFSET, map<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
+	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>> blockList;
 
 
 	map <MEM_ADDRESS, ROUTINE_STRUCT *> externdict;
@@ -207,13 +202,13 @@ private:
 	bool loadSymbols(const rapidjson::Value& saveJSON);
 	bool loadModules(const rapidjson::Value& processDataJSON);
 	bool loadDisassembly(const rapidjson::Value& saveJSON);
-	bool loadBasicBlocks(const rapidjson::Value& saveJSON);
+	bool loadBlockData(const rapidjson::Value& saveJSON);
 	bool loadExterns(const rapidjson::Value& processDataJSON);
 
 	bool unpackModuleSymbolArray(const rapidjson::Value& modSymArray, int globalmodNum);
 
 private:
-	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>> blockList;
+	
 
 	SRWLOCK externDictRWLock = SRWLOCK_INIT;
 

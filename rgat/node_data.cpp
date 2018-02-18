@@ -37,6 +37,9 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 	writer.Uint64(address);//[3]
 	writer.Uint64(executionCount);//[4]
 
+	if (index == 0xf9)
+		cout << "here";
+
 	writer.StartArray();//[5]
 	set<NODEINDEX>::iterator adjacentIt = incomingNeighbours.begin();
 	for (; adjacentIt != incomingNeighbours.end(); ++adjacentIt)
