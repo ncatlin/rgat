@@ -111,7 +111,7 @@ public:
 
 	void draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget);
 	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
-	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
+	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget, bool placeHolders);
 	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric);
 	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText);
 	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric);

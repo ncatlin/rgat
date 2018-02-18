@@ -569,7 +569,8 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		diffgraph->show_internal_symbol_labels(&pd, this);
+		bool placeholders = clientState->should_show_placeholder_labels(zmul);
+		diffgraph->show_internal_symbol_labels(&pd, this, placeholders);
 	}
 
 	if (clientState->should_show_instructions(zmul) &&

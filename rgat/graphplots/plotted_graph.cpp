@@ -1396,7 +1396,10 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 		show_external_symbol_labels(&pd, gltarget);
 
 	if (clientState->should_show_internal_symbols(zmul))
-		show_internal_symbol_labels(&pd, gltarget);
+	{
+		bool placeholders = clientState->should_show_placeholder_labels(zmul);
+		show_internal_symbol_labels(&pd, gltarget, placeholders);
+	}
 
 	if (clientState->should_show_instructions(zmul) && internalProtoGraph->get_num_nodes() > 2)
 		draw_edge_heat_text(zmul, &pd, gltarget);
@@ -1684,7 +1687,7 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	performSymbolResolve = false;
 }
 
-void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget)
+void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget, bool placeHolders)
 {
 	if (this->animnodesdata->get_numVerts() == 0)
 		return;
@@ -1701,7 +1704,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	TEXTRECT mouseoverNode;
 	bool hasMouseover;
 	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
-
 
 	vector<NODEINDEX> internListCopy = internalProtoGraph->copyInternalNodeList();
 	vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
@@ -1724,6 +1726,12 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
 		}
 	}
+
+	if (!placeHolders)
+	{
+		painter.end();
+		return;
+	}	
 
 	callStackLock.lock();
 	map <ADDRESS_OFFSET, NODEINDEX> placeholderListCopy;
@@ -2096,7 +2104,8 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 	{
 		plotwindow->gather_projection_data(&pd);
 		pdgathered = true;
-		show_internal_symbol_labels(&pd, plotwindow);
+		bool showPlaceholders = clientState->should_show_internal_symbols(zmul);
+		show_internal_symbol_labels(&pd, plotwindow, showPlaceholders);
 	}
 
 	if (clientState->should_show_instructions(zmul) &&

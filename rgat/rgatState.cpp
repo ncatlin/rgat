@@ -699,6 +699,7 @@ void rgatState::mouseoverLabelChanged()
 	else
 	{
 		n->label = newNodeText;
+		n->placeholder = false;
 		n->ins->hasSymbol = true;
 	}
 }

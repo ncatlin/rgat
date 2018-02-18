@@ -134,6 +134,8 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 				{
 					ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
 					n->label = "[InternalFunc_" + QString::number(internalProtoGraph->internalPlaceholderFuncNames.size() + 1) + "]";
+					n->placeholder = true;
+
 					callStackLock.lock();
 					internalProtoGraph->internalPlaceholderFuncNames[nodeoffset] = n->index;
 					callStackLock.unlock();
@@ -867,8 +869,12 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 		if (clientState->should_show_external_symbols(zmul))
 			show_external_symbol_labels(pd, gltarget);
 
+		
 		if (clientState->should_show_internal_symbols(zmul))
-			show_internal_symbol_labels(pd, gltarget);
+		{
+			bool placeholders = clientState->should_show_placeholder_labels(zmul);
+			show_internal_symbol_labels(pd, gltarget, placeholders);
+		}
 	}
 	else 
 		if (clientState->config.showRisingAnimated && internalProtoGraph->active)
