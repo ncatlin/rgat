@@ -1750,7 +1750,7 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 			{
 				painter.setPen(al_col_orange);
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);
-				painter.setPen(clientState->config.mainColours.symbolTextInternal);
+				painter.setPen(clientState->config.mainColours.symbolTextPlaceholder);
 			}
 			else
 				draw_internal_symbol(screenCoord, n, gltarget, &painter, &fm);

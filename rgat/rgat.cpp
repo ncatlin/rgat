@@ -407,6 +407,7 @@ void rgat::textBtnTriggered(int buttonID)
 		assert(false);
 	}
 	rgatstate->updateTextDisplayButtons();
+	rgatstate->config.saveConfig();
 }
 
 void rgat::addLabelBtnMenus()

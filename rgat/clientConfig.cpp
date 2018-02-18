@@ -190,9 +190,14 @@ void clientConfig::loadColours()
 		mainColours.symbolTextInternal = INTERNAL_SYM_TEXT_COLOUR;
 
 	if (QSettingsObj->contains("MainGraph/RISING_INTERNAL_SYM_TEXT_RGBA"))
-		mainColours.symbolTextInternal = QSettingsObj->value("MainGraph/RISING_INTERNAL_SYM_TEXT_RGBA").value<QColor>();
+		mainColours.symbolTextInternalRising = QSettingsObj->value("MainGraph/RISING_INTERNAL_SYM_TEXT_RGBA").value<QColor>();
 	else
-		mainColours.symbolTextInternal = RISING_INTERNAL_SYM_TEXT_COLOUR;
+		mainColours.symbolTextInternalRising = RISING_INTERNAL_SYM_TEXT_COLOUR;
+
+	if (QSettingsObj->contains("MainGraph/PLACEHOLDER_SYM_TEXT_RGBA"))
+		mainColours.symbolTextPlaceholder = QSettingsObj->value("MainGraph/PLACEHOLDER_SYM_TEXT_RGBA").value<QColor>();
+	else
+		mainColours.symbolTextPlaceholder = PLACEHOLDER_SYM_TEXT_COLOUR;
 
 	loadMaingraphColours();
 }
@@ -328,6 +333,7 @@ void clientConfig::saveColours()
 	QSettingsObj->setValue("MainGraph/INSTRUCTION_TEXT_RGBA", mainColours.instructionText);
 	QSettingsObj->setValue("MainGraph/SYMBOL_TEXT_RGBA", mainColours.symbolTextExternal);
 	QSettingsObj->setValue("MainGraph/INTERNAL_SYM_TEXT_RGBA", mainColours.symbolTextInternal);
+	QSettingsObj->setValue("MainGraph/PLACEHOLDER_TEXT_RGBA", mainColours.symbolTextPlaceholder);
 	QSettingsObj->setValue("MainGraph/MAIN_BACKGROUND_RGBA", mainColours.background);
 	QSettingsObj->setValue("MainGraph/HIGHLIGHT_RGBA", mainColours.highlightLine);
 	QSettingsObj->setValue("MainGraph/ACTIVITY_MARKER_RGBA", mainColours.activityLine);
@@ -388,11 +394,7 @@ void clientConfig::saveConfig()
 	saveConditionals();
 	saveHeatmap();
 
-	//al_set_config_value(alConfig, "Dimensions", "FAR_A_LIMIT", to_string(farA).c_str());
-	//al_set_config_value(alConfig, "Dimensions", "LOW_B_LIMIT", to_string(lowB).c_str());
-
 	QSettingsObj->setValue("MainGraph/HIGHLIGHT_PROTRUSION", highlightProtrusion);
-
 
 	QSettingsObj->setValue("Misc/ANIMATION_FADE_RATE", animationFadeRate);
 	QSettingsObj->setValue("Misc/ANIMATION_UPDATES_PER_FRAME", animationUpdateRate);
@@ -401,13 +403,11 @@ void clientConfig::saveConfig()
 	QSettingsObj->setValue("Misc/DEFAULT_MAX_ARG_STORAGE", maxArgStorage);
 	QSettingsObj->setValue("Misc/DEFAULT_MAX_WAIT_FRAMES", maxWaitFrames);
 
-
 	QSettingsObj->setValue("Paths/SAVE_PATH", QString::fromStdString(saveDir.string()));
 	QSettingsObj->setValue("Paths/DYNAMORIO_PATH", QString::fromStdString(DRDir.string()));
 	QSettingsObj->setValue("Paths/CLIENT_PATH", QString::fromStdString(clientPath.string()));
 	QSettingsObj->setValue("Paths/LAST_PATH", QString::fromStdString(lastPath.string()));
 	QSettingsObj->setValue("Paths/PIN_PATH", QString::fromStdString(PinDir.string()));
-
 
 	saveColours();
 	saveTextSettings();

@@ -79,13 +79,12 @@ Defaults for using when a config file exist
 #define DEFAULT_NODE_EXT al_col_green
 #define DEFAULT_NODE_EXCEPT al_col_cyan
 
-
-
 #define INSTRUCTION_TEXT_COLOUR al_col_white
 #define EXTERNAL_SYM_TEXT_COLOUR al_col_light_green
 #define RISING_EXTERNAL_SYM_TEXT_COLOUR al_col_green
-#define INTERNAL_SYM_TEXT_COLOUR al_col_light_grey
+#define INTERNAL_SYM_TEXT_COLOUR al_col_white
 #define RISING_INTERNAL_SYM_TEXT_COLOUR al_col_light_grey
+#define PLACEHOLDER_SYM_TEXT_COLOUR al_col_light_grey
 
 #define ANIMATION_FADE_RATE 0.07
 #define ANIMATION_UPDATES_PER_FRAME 500

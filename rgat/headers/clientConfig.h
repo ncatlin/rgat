@@ -104,6 +104,7 @@ public:
 		QColor symbolTextExternalRising;
 		QColor symbolTextInternal;
 		QColor symbolTextInternalRising;
+		QColor symbolTextPlaceholder;
 		QColor conditionalInstructionText;
 		QColor activityLine;
 	} mainColours;
