@@ -184,6 +184,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			{
 				ADDRESS_OFFSET nodeoffset = n->address - internalProtoGraph->moduleBase;
 				n->label = "[InternalFunc_" + QString::number(internalProtoGraph->internalPlaceholderFuncNames.size() + 1) + "]";
+				n->placeholder = true;
 				callStackLock.lock();
 				internalProtoGraph->internalPlaceholderFuncNames[nodeoffset] = n->index;
 				callStackLock.unlock();

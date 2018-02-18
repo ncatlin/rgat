@@ -38,7 +38,7 @@ The main QT window class
 
 namespace textBtnEnum {
 	enum textBtnID { eExternToggle, eExternAuto, eExternAddress, eExternOffset, eExternAddressNone, eExternPath,
-		eInternalToggle, eInternalAuto, eInstructionToggle, eInstructionAddress, eInstructionOffset,
+		eInternalToggle, eInternalAuto, ePlaceholderToggle, eInstructionToggle, eInstructionAddress, eInstructionOffset,
 		eInstructionNoAddress, eInstructionTargLabel, eControlOnlyLabel, eResolveExterns
 	};
 }
@@ -92,7 +92,8 @@ private:
 
 	void addLabelBtnMenus();
 	void addExternTextBtn(QMenu *labelmenu);
-	void addInternalTextBtn(QMenu *labelmenu);
+	void addInternalTextBtn(QMenu *labelmenu); 
+	void addPlaceholderTextBtn(QMenu *labelmenu);
 	void addInstructionTextBtn(QMenu *labelmenu);
 	void addFileMenuBtn();
 

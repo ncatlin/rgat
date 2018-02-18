@@ -238,6 +238,15 @@ void rgat::addInternalTextBtn(QMenu *labelmenu)
 	connect(showAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eInternalToggle); });
 }
 
+void rgat::addPlaceholderTextBtn(QMenu *labelmenu)
+{
+	QAction *showAction = new QAction(tr("&Placeholder Labels"), this);
+	rgatstate->textButtons.placeholderShowHide = showAction;
+	labelmenu->addAction(showAction);
+	connect(showAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::ePlaceholderToggle); });
+}
+
+
 void rgat::addInstructionTextBtn(QMenu *labelmenu)
 {
 	QAction *showAction = new QAction(tr("&Enabled"), this);
@@ -333,6 +342,11 @@ void rgat::textBtnTriggered(int buttonID)
 			!rgatstate->config.internalSymbolVisibility.enabled;
 		break;
 
+	case textBtnEnum::ePlaceholderToggle:
+		rgatstate->config.placeholderLabelVisibility.enabled =
+			!rgatstate->config.placeholderLabelVisibility.enabled;
+		break;
+
 	case textBtnEnum::eInternalAuto:
 		rgatstate->config.internalSymbolVisibility.showWhenZoomed = 
 			!rgatstate->config.internalSymbolVisibility.showWhenZoomed;
@@ -404,6 +418,7 @@ void rgat::addLabelBtnMenus()
 
 	addExternTextBtn(symLabelMenu);
 	addInternalTextBtn(symLabelMenu);
+	addPlaceholderTextBtn(symLabelMenu);
 
 	QMenu *insLabelMenu = new QMenu(this);
 	ui.toolb_instructionSelectBtn->setMenu(insLabelMenu);

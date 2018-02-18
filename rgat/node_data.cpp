@@ -37,9 +37,6 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 	writer.Uint64(address);//[3]
 	writer.Uint64(executionCount);//[4]
 
-	if (index == 0xf9)
-		cout << "here";
-
 	writer.StartArray();//[5]
 	set<NODEINDEX>::iterator adjacentIt = incomingNeighbours.begin();
 	for (; adjacentIt != incomingNeighbours.end(); ++adjacentIt)
@@ -68,6 +65,12 @@ bool node_data::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer,
 	}
 
 	writer.Bool(unreliableCount);
+
+	if (label.size() > 0)
+	{
+		writer.String(label.toStdString().c_str());
+		writer.Bool(placeholder);
+	}
 
 	writer.EndArray(); //end node
 
@@ -149,6 +152,14 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 
 	if (!nodeData[9].IsBool()) return errorAtIndex(9);
 	unreliableCount = nodeData[9].GetBool();
+
+	if (nodeData.Capacity() > 10)
+	{
+		label = nodeData[10].GetString();
+		placeholder = nodeData[11].GetBool();
+		if (!placeholder)
+			ins->hasSymbol = true;
+	}
 
 	return true;
 }

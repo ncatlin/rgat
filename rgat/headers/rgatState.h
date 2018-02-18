@@ -14,7 +14,7 @@ enum graphLayouts { eCylinderLayout = 0, eTreeLayout = 1, eLayoutInvalid };
 struct TEXT_DISPLAY_BUTTONS
 {
 	QAction *externalShowHide, *externalPath, *externalAddress, *externalAddressOff, *externalOffset;
-	QAction *internalShowHide;
+	QAction *internalShowHide, *placeholderShowHide;
 	QAction *instructionShowHide, *instructionOffset, *instructionAddress, *instructionAddressOff, *instructionTargLabel,
 		*controlOnlyLabel;
 };
@@ -54,6 +54,7 @@ public:
 
 	bool should_show_instructions(float zoomMultiplier);
 	bool should_show_external_symbols(float zoomMultiplier);
+	bool should_show_placeholder_labels(float zoomMultiplier);
 	bool should_show_internal_symbols(float zoomMultiplier);
 
 	void saveTrace(traceRecord *trace);

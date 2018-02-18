@@ -202,6 +202,7 @@ void clientConfig::loadTextSettings()
 	vector<pair<SYMS_VISIBILITY *, QString>> displayAreas;
 	displayAreas.push_back(make_pair(&externalSymbolVisibility, "LabelDisplay/ExternalSymbol/"));
 	displayAreas.push_back(make_pair(&internalSymbolVisibility, "LabelDisplay/InternalSymbol/"));
+	displayAreas.push_back(make_pair(&placeholderLabelVisibility, "LabelDisplay/PlaceholderLabel/"));
 	displayAreas.push_back(make_pair(&instructionTextVisibility, "LabelDisplay/Instructions/"));
 
 	pair<SYMS_VISIBILITY *, QString> area;
@@ -337,6 +338,7 @@ void clientConfig::saveTextSettings()
 	vector<pair<SYMS_VISIBILITY *, QString>> displayAreas;
 	displayAreas.push_back(make_pair(&externalSymbolVisibility, "LabelDisplay/ExternalSymbol/"));
 	displayAreas.push_back(make_pair(&internalSymbolVisibility, "LabelDisplay/InternalSymbol/"));
+	displayAreas.push_back(make_pair(&placeholderLabelVisibility, "LabelDisplay/PlaceholderLabel/"));
 	displayAreas.push_back(make_pair(&instructionTextVisibility, "LabelDisplay/Instructions/"));
 
 	pair<SYMS_VISIBILITY *, QString> area;
@@ -491,7 +493,6 @@ void clientConfig::setDefaultTextSettings()
 	externalSymbolVisibility.duringAnimationHighlighted = true;
 	externalSymbolVisibility.notAnimated = true;
 
-	//auto display of internal symbols is similar
 	internalSymbolVisibility.enabled = true;
 	internalSymbolVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
 	internalSymbolVisibility.addresses = false;
@@ -500,6 +501,16 @@ void clientConfig::setDefaultTextSettings()
 	internalSymbolVisibility.duringAnimationFaded = false;
 	internalSymbolVisibility.duringAnimationHighlighted = true;
 	internalSymbolVisibility.notAnimated = true;
+
+	placeholderLabelVisibility.enabled = true;
+	placeholderLabelVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
+	placeholderLabelVisibility.addresses = false;
+	placeholderLabelVisibility.fullPaths = false;
+	placeholderLabelVisibility.extraDetail = true;
+	placeholderLabelVisibility.duringAnimationFaded = false;
+	placeholderLabelVisibility.duringAnimationHighlighted = true;
+	placeholderLabelVisibility.notAnimated = true;
+
 
 	instructionTextVisibility.enabled = true;
 	instructionTextVisibility.autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR;

@@ -68,5 +68,6 @@ public:
 	set<NODEINDEX> outgoingNeighbours;
 
 	QString label; //todo serialise
+	bool placeholder = false;
 };
 

@@ -110,7 +110,9 @@ public:
 
 	SYMS_VISIBILITY externalSymbolVisibility;
 	SYMS_VISIBILITY internalSymbolVisibility;
+	SYMS_VISIBILITY placeholderLabelVisibility;
 	SYMS_VISIBILITY instructionTextVisibility;
+
 	bool showRisingAnimated;
 
 	bool show_ins_text = true;

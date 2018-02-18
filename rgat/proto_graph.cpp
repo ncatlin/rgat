@@ -685,7 +685,7 @@ vector<NODEINDEX> proto_graph::copyExternalNodeList()
 vector<NODEINDEX> proto_graph::copyInternalNodeList()
 {
 	highlightsLock.lock();
-	vector<NODEINDEX> externListCopy(internalNodeList);
+	vector<NODEINDEX> internalNodeListCopy(internalNodeList);
 	highlightsLock.unlock();
-	return externListCopy;
+	return internalNodeListCopy;
 }
