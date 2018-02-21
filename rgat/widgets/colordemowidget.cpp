@@ -23,6 +23,7 @@ void colorDemoWidget::setEffectiveHeight(int height)
 	solidBlock->setMaximumHeight(height);
 }
 
+//contains example text such as cpu instructions
 void colorDemoWidget::setLabelMode(QString text, bool isbold)
 {
 	if (childlabel == NULL)

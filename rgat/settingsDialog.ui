@@ -131,7 +131,7 @@
            </size>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -160,7 +160,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -198,7 +198,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -220,7 +220,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -248,7 +248,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -270,7 +270,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -292,7 +292,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -314,7 +314,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -352,7 +352,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -374,7 +374,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -396,7 +396,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -418,7 +418,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -440,7 +440,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -478,7 +478,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -500,7 +500,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -522,7 +522,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -544,7 +544,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -566,7 +566,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -588,6 +588,12 @@
                  </item>
                  <item>
                   <widget class="QLabel" name="label_13">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
                    <property name="styleSheet">
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
@@ -607,7 +613,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -623,6 +629,19 @@
                     <number>10</number>
                    </property>
                   </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacer_11">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
                  </item>
                 </layout>
                </widget>
@@ -653,7 +672,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>30</height>
                     </size>
                    </property>
                    <property name="baseSize">
@@ -678,7 +697,7 @@
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>20</width>
-                     <height>12</height>
+                     <height>2</height>
                     </size>
                    </property>
                   </spacer>
@@ -688,7 +707,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -701,7 +720,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -714,7 +733,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -727,7 +746,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -740,7 +759,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -753,7 +772,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -782,7 +801,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -795,7 +814,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -808,7 +827,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -821,7 +840,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -834,7 +853,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -863,7 +882,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -876,7 +895,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -889,7 +908,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -902,7 +921,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -915,7 +934,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
@@ -925,6 +944,12 @@
                  </item>
                  <item>
                   <widget class="colorDemoWidget" name="placeholderLabel_tracecol" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
                    <property name="styleSheet">
                     <string notr="true">border: 1px dotted grey;</string>
                    </property>
@@ -935,13 +960,26 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="styleSheet">
                     <string notr="true">border: red; background: green</string>
                    </property>
                   </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacer_8">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
                  </item>
                 </layout>
                 <zorder>calledge_tracecol</zorder>
@@ -966,6 +1004,7 @@
                 <zorder>tracecol_edgespace_R</zorder>
                 <zorder>tracecol_nodespace_R</zorder>
                 <zorder>placeholderLabel_tracecol</zorder>
+                <zorder>verticalSpacer_8</zorder>
                </widget>
               </item>
              </layout>
@@ -1007,6 +1046,9 @@
                  <enum>QFrame::Raised</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <property name="spacing">
+                  <number>6</number>
+                 </property>
                  <property name="sizeConstraint">
                   <enum>QLayout::SetDefaultConstraint</enum>
                  </property>
@@ -1015,7 +1057,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1062,7 +1104,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1093,7 +1135,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1124,7 +1166,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1155,7 +1197,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1186,7 +1228,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1217,7 +1259,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1248,7 +1290,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1279,7 +1321,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1310,7 +1352,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1341,7 +1383,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1388,7 +1430,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>150</width>
-                     <height>0</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1414,12 +1456,12 @@
                     <enum>Qt::Vertical</enum>
                    </property>
                    <property name="sizeType">
-                    <enum>QSizePolicy::Minimum</enum>
+                    <enum>QSizePolicy::Expanding</enum>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>0</width>
-                     <height>0</height>
+                     <width>12</width>
+                     <height>100</height>
                     </size>
                    </property>
                   </spacer>
@@ -1436,12 +1478,15 @@
                  <enum>QFrame::Raised</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_7">
+                 <property name="spacing">
+                  <number>6</number>
+                 </property>
                  <item>
                   <widget class="colorDemoWidget" name="bg_heatcol" native="true">
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>30</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1466,7 +1511,7 @@
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>20</width>
-                     <height>12</height>
+                     <height>8</height>
                     </size>
                    </property>
                   </spacer>
@@ -1476,7 +1521,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1495,7 +1540,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1514,7 +1559,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1533,7 +1578,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1552,7 +1597,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1571,7 +1616,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1590,7 +1635,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1609,7 +1654,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1628,7 +1673,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1647,7 +1692,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1682,7 +1727,7 @@
                    <property name="minimumSize">
                     <size>
                      <width>190</width>
-                     <height>15</height>
+                     <height>25</height>
                     </size>
                    </property>
                    <property name="maximumSize">
@@ -1702,12 +1747,12 @@
                     <enum>Qt::Vertical</enum>
                    </property>
                    <property name="sizeType">
-                    <enum>QSizePolicy::Minimum</enum>
+                    <enum>QSizePolicy::Expanding</enum>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>12</width>
-                     <height>40</height>
+                     <height>100</height>
                     </size>
                    </property>
                   </spacer>

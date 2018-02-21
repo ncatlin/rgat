@@ -22,6 +22,7 @@ void settingsDialogWidget::setColoursFromConfig()
 {
 	Ui::SettingsWindow *setsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
 
+	//main trace display colour settings
 	colourWidgets[eSettingsWidget::traceColBackground] = setsUI->bg_tracecol;
 	colourWidgets[eSettingsWidget::traceColEdgeCall] = setsUI->calledge_tracecol;
 	colourWidgets[eSettingsWidget::traceColEdgeRet] = setsUI->retedge_tracecol;
@@ -39,7 +40,6 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::traceColInsText] = setsUI->instext_tracecol;
 	colourWidgets[eSettingsWidget::traceColInsText]->setLabelMode("inc eax; dec ebx; div ecx; pop; pop; ret;");
 
-
 	QString symbolLabelExample = "VirtualProtect(X, Y, PAGE_EXECUTE_READWRITE, Z)";
 	colourWidgets[eSettingsWidget::traceColExtSymbol] = setsUI->extsym_tracecol;
 	colourWidgets[eSettingsWidget::traceColExtSymbol]->setLabelMode(symbolLabelExample);
@@ -56,7 +56,9 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::traceColIntRising] = setsUI->intsymrising_tracecol;
 	colourWidgets[eSettingsWidget::traceColIntRising]->setLabelMode(symbolLabelExample);
 
+	//heatmap display colour settings
 	colourWidgets[eSettingsWidget::heatColBackground] = setsUI->bg_heatcol;
+	
 	colourWidgets[eSettingsWidget::heatColHeat1] = setsUI->heat1_heatcol;
 	colourWidgets[eSettingsWidget::heatColHeat2] = setsUI->heat2_heatcol;
 	colourWidgets[eSettingsWidget::heatColHeat3] = setsUI->heat3_heatcol;
@@ -68,7 +70,8 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::heatColHeat9] = setsUI->heat9_heatcol;
 	colourWidgets[eSettingsWidget::heatColHeat10] = setsUI->heat10_heatcol;	
 	colourWidgets[eSettingsWidget::heatText] = setsUI->text_heatcol;
-
+	colourWidgets[eSettingsWidget::heatText]->setLabelMode("27182818");
+	
 	colourWidgets[eSettingsWidget::condColBackground] = setsUI->cond_bg;
 	colourWidgets[eSettingsWidget::condColTrue] = setsUI->cond_alwaystrue;
 	colourWidgets[eSettingsWidget::condColFalse] = setsUI->cond_nevertrue;
@@ -117,7 +120,10 @@ void settingsDialogWidget::setStackIndexes()
 void settingsDialogWidget::initialiseWidgets()
 {
 	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+
 	settingsUI->bg_tracecol->setEffectiveHeight(25);
+	settingsUI->bg_heatcol->setEffectiveHeight(25);
+	settingsUI->cond_bg->setEffectiveHeight(25);
 
 	setColoursFromConfig();
 	setStackIndexes();
