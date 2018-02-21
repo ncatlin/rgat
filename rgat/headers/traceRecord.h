@@ -74,7 +74,7 @@ public:
 	traceRecord *parentTrace = NULL;
 	list<traceRecord *> children;
 	bool UIRunningFlag = false;
-	void *processThreads;
+	void *processThreads = NULL;
 	void *fuzzRunPtr = NULL;
 
 	PID_TID PID = -1;

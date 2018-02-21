@@ -11,11 +11,11 @@
 struct RGAT_THREADS_STRUCT {
 	//could probably just put them in a map instead
 	vector <base_thread *> threads;
-	gat_module_handler *modThread;
-	gat_basicblock_handler *BBthread;
-	preview_renderer *previewThread;
-	heatmap_renderer *heatmapThread;
-	conditional_renderer *conditionalThread;
+	gat_module_handler *modThread = NULL;
+	gat_basicblock_handler *BBthread = NULL;
+	preview_renderer *previewThread = NULL;
+	heatmap_renderer *heatmapThread = NULL;
+	conditional_renderer *conditionalThread = NULL;
 };
 
 struct PIN_PIPES {

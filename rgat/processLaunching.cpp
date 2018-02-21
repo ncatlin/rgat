@@ -351,18 +351,26 @@ void process_coordinator_thread(rgatState *clientState)
 //for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
 void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState)
 {
-	preview_renderer *previews_thread = new preview_renderer(runRecord);
-	std::thread previewsthread(&preview_renderer::ThreadEntry, previews_thread);
+
+	RGAT_THREADS_STRUCT *processThreads = new RGAT_THREADS_STRUCT;
+
+	processThreads->previewThread = new preview_renderer(runRecord);
+	std::thread previewsthread(&preview_renderer::ThreadEntry, processThreads->previewThread);
 	previewsthread.detach();
+	processThreads->threads.push_back(processThreads->previewThread);
 
-	heatmap_renderer *heatmap_thread = new heatmap_renderer(runRecord);
-	std::thread heatthread(&heatmap_renderer::ThreadEntry, heatmap_thread);
+	processThreads->heatmapThread = new heatmap_renderer(runRecord);
+	std::thread heatthread(&heatmap_renderer::ThreadEntry, processThreads->heatmapThread);
 	heatthread.detach();
+	processThreads->threads.push_back(processThreads->heatmapThread);
 
-	conditional_renderer *conditional_thread = new conditional_renderer(runRecord);
+	processThreads->conditionalThread = new conditional_renderer(runRecord);
 	Sleep(200);
-	std::thread condthread(&conditional_renderer::ThreadEntry, conditional_thread);
+	std::thread condthread(&conditional_renderer::ThreadEntry, processThreads->conditionalThread);
 	condthread.detach();
+	processThreads->threads.push_back(processThreads->conditionalThread);
+
+	runRecord->processThreads = processThreads;
 }
 
 string get_options(LAUNCHOPTIONS *launchopts)

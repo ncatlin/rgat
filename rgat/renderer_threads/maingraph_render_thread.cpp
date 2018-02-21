@@ -147,9 +147,7 @@ void maingraph_render_thread::main_loop()
 				continue;
 			}
 
-			//cout << "start pmgrpg " << hex << activeGraph << " in thread " << GetCurrentThreadId() << endl;
 			performMainGraphRendering(activeGraph);
-			//cout << "end pmgrpg " << hex << activeGraph << " in thread " << GetCurrentThreadId() << endl;
 			activeGraph->decrease_thread_references(1);
 		}
 		activeGraph = NULL;
