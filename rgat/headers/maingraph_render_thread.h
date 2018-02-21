@@ -35,12 +35,12 @@ public:
 	~maingraph_render_thread() { }
 
 private:
-	binaryTarget *binary;
-	traceRecord* runRecord;
-	rgatState *clientState;
+	binaryTarget *binary = NULL;
+	traceRecord* runRecord = NULL;
+	rgatState *clientState = NULL;
 
 	void main_loop();
-	void performMainGraphRendering(plotted_graph *graph);
+	void update_rendering(plotted_graph *graph);
 	void perform_full_render(plotted_graph *activeGraph, bool replot_existing);
 };
 

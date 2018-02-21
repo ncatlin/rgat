@@ -23,7 +23,7 @@ The thread that performs high (ie:interactive) performance rendering of the sele
 #include "processLaunching.h"
 #include "ui_rgat.h"
 
-void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
+void maingraph_render_thread::update_rendering(plotted_graph *graph)
 {
 	proto_graph *protoGraph = graph->get_protoGraph();
 	if (!protoGraph || protoGraph->edgeList.empty()) return;
@@ -66,12 +66,13 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 
 void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bool replot_existing)
 {
+
+	//save current rotation/scaling
 	float xrot = activeGraph->view_shift_x, yrot = activeGraph->view_shift_y;
 	double zoom = activeGraph->cameraZoomlevel;
-	GRAPH_SCALE newScaleFactors;
-	if (replot_existing)
-		newScaleFactors = *activeGraph->main_scalefactors;
+	GRAPH_SCALE newScaleFactors = *activeGraph->main_scalefactors;
 
+	//schedule purge of the current rendering
 	activeGraph->setBeingDeleted();
 	activeGraph->decrease_thread_references(1);
 
@@ -88,8 +89,11 @@ void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bo
 	activeGraph->setGraphBusy(true, 101);
 
 	activeTrace->plottedGraphs.at(protoGraph->get_TID()) = NULL;
+
+	//now everything has finished with the old rendering, do the actual deletion
 	delete activeGraph;
 
+	//create a new rendering
 	activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
 	if (replot_existing)
 	{
@@ -106,6 +110,7 @@ void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bo
 
 	activeTrace->graphListLock.unlock();
 
+	//if they dont exist, create threads to rebuild alternate renderings
 	RGAT_THREADS_STRUCT *processThreads = (RGAT_THREADS_STRUCT *)activeTrace->processThreads;
 	if (!processThreads->previewThread->is_alive())
 	{
@@ -137,7 +142,7 @@ void maingraph_render_thread::main_loop()
 		activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
 		while (!activeGraph || !activeGraph->get_mainlines()) 
 		{
-			Sleep(25);
+			Sleep(50);
 			activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
 			continue;
 		}
@@ -148,11 +153,12 @@ void maingraph_render_thread::main_loop()
 			bool doReplot = activeGraph->needsReplotting();
 			if (layoutChanged || doReplot)
 			{
+				//graph gets destroyed, this handles references, don't need to decrease
 				perform_full_render(activeGraph, doReplot);
 				continue;
 			}
 
-			performMainGraphRendering(activeGraph);
+			update_rendering(activeGraph);
 			activeGraph->decrease_thread_references(1);
 		}
 		activeGraph = NULL;
