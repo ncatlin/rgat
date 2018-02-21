@@ -41,5 +41,6 @@ private:
 
 	void main_loop();
 	void performMainGraphRendering(plotted_graph *graph);
+	void perform_full_render(plotted_graph *activeGraph, bool replot_existing);
 };
 

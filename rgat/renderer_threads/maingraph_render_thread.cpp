@@ -64,11 +64,72 @@ void maingraph_render_thread::performMainGraphRendering(plotted_graph *graph)
 	graph->setGraphBusy(false, 2);
 }
 
+void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bool replot_existing)
+{
+	float xrot = activeGraph->view_shift_x, yrot = activeGraph->view_shift_y;
+	double zoom = activeGraph->cameraZoomlevel;
+	GRAPH_SCALE newScaleFactors;
+	if (replot_existing)
+		newScaleFactors = *activeGraph->main_scalefactors;
+
+	activeGraph->setBeingDeleted();
+	activeGraph->decrease_thread_references(1);
+
+	clientState->clearActiveGraph();
+
+	traceRecord *activeTrace = (traceRecord *)activeGraph->get_protoGraph()->get_traceRecord();
+
+	while (clientState->getActiveGraph(false) == activeGraph)
+		Sleep(25);
+	activeTrace->graphListLock.lock();
+
+	proto_graph *protoGraph = activeGraph->get_protoGraph();
+
+	activeGraph->setGraphBusy(true, 101);
+
+	activeTrace->plottedGraphs.at(protoGraph->get_TID()) = NULL;
+	delete activeGraph;
+
+	activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
+	if (replot_existing)
+	{
+		activeGraph->initialiseCustomDimensions(newScaleFactors);
+		activeGraph->view_shift_x = xrot;
+		activeGraph->view_shift_y = yrot;
+		activeGraph->cameraZoomlevel = zoom;
+	}
+	else
+		activeGraph->initialiseDefaultDimensions();
+
+	assert(clientState->setActiveGraph(activeGraph));
+	activeTrace->plottedGraphs.at(protoGraph->get_TID()) = activeGraph;
+
+	activeTrace->graphListLock.unlock();
+
+	RGAT_THREADS_STRUCT *processThreads = (RGAT_THREADS_STRUCT *)activeTrace->processThreads;
+	if (!processThreads->previewThread->is_alive())
+	{
+		std::thread prevthread(&preview_renderer::ThreadEntry, processThreads->previewThread);
+		prevthread.detach();
+	}
+
+	if (!processThreads->conditionalThread->is_alive())
+	{
+		std::thread condthread(&conditional_renderer::ThreadEntry, processThreads->conditionalThread);
+		condthread.detach();
+	}
+
+	if (!processThreads->heatmapThread->is_alive())
+	{
+		std::thread heatthread(&heatmap_renderer::ThreadEntry, processThreads->heatmapThread);
+		heatthread.detach();
+	}
+}
+
 void maingraph_render_thread::main_loop()
 {
-	alive = true;
 	plotted_graph *activeGraph = NULL;
-	int renderFrequency = clientState->config.renderFrequency;
+	alive = true;
 
 	while (!clientState->rgatIsExiting())
 	{
@@ -76,74 +137,18 @@ void maingraph_render_thread::main_loop()
 		activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
 		while (!activeGraph || !activeGraph->get_mainlines()) 
 		{
+			Sleep(25);
 			activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
-			Sleep(50); continue;
+			continue;
 		}
 
 		if (activeGraph->increase_thread_references(1))
 		{
+			bool layoutChanged = activeGraph->getLayout() != clientState->newGraphLayout;
 			bool doReplot = activeGraph->needsReplotting();
-			if (activeGraph->getLayout() != clientState->newGraphLayout || doReplot)
+			if (layoutChanged || doReplot)
 			{
-				float xrot = activeGraph->view_shift_x, yrot = activeGraph->view_shift_y;
-				double zoom = activeGraph->cameraZoomlevel;
-				GRAPH_SCALE newScaleFactors;
-				if (doReplot)
-					newScaleFactors = *activeGraph->main_scalefactors;
-
-				activeGraph->setBeingDeleted();
-				activeGraph->decrease_thread_references(1);
-
-				clientState->clearActiveGraph();
-
-				traceRecord *activeTrace = (traceRecord *)activeGraph->get_protoGraph()->get_traceRecord();
-
-				while (clientState->getActiveGraph(false) == activeGraph)
-					Sleep(25);
-				activeTrace->graphListLock.lock();
-
-				proto_graph *protoGraph = activeGraph->get_protoGraph();
-				
-
-				activeGraph->setGraphBusy(true, 101);
-
-				activeTrace->plottedGraphs.at(protoGraph->get_TID()) = NULL;
-				delete activeGraph;
-
-				activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);
-				if (doReplot)
-				{
-					activeGraph->initialiseCustomDimensions(newScaleFactors);				
-					activeGraph->view_shift_x = xrot;
-					activeGraph->view_shift_y = yrot;
-					activeGraph->cameraZoomlevel = zoom;
-				}
-				else
-					activeGraph->initialiseDefaultDimensions();
-
-				assert(clientState->setActiveGraph(activeGraph));
-				activeTrace->plottedGraphs.at(protoGraph->get_TID()) = activeGraph;
-
-				activeTrace->graphListLock.unlock();
-
-				RGAT_THREADS_STRUCT *processThreads = (RGAT_THREADS_STRUCT *)activeTrace->processThreads;
-				if (!processThreads->previewThread->is_alive())
-				{
-					std::thread prevthread(&preview_renderer::ThreadEntry, processThreads->previewThread);
-					prevthread.detach();
-				}
-
-				if (!processThreads->conditionalThread->is_alive())
-				{
-					std::thread condthread(&conditional_renderer::ThreadEntry, processThreads->conditionalThread);
-					condthread.detach();
-				}
-
-				if (!processThreads->heatmapThread->is_alive())
-				{
-					std::thread heatthread(&heatmap_renderer::ThreadEntry, processThreads->heatmapThread);
-					heatthread.detach();
-				}
+				perform_full_render(activeGraph, doReplot);
 				continue;
 			}
 
@@ -152,7 +157,8 @@ void maingraph_render_thread::main_loop()
 		}
 		activeGraph = NULL;
 
-		Sleep(renderFrequency);
+		Sleep(clientState->config.renderFrequency);
 	}
+
 	alive = false;
 }
