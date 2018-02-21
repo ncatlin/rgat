@@ -448,72 +448,96 @@ COLSTRUCT *col_to_colstruct(QColor *c)
 	return cs;
 }
 
+void heatmap_renderer::gather_graphlist(vector<plotted_graph *> &graphlist)
+{
+	runRecord->graphListLock.lock();
+
+	map <PID_TID, void *>::iterator graphIt = runRecord->plottedGraphs.begin();
+	for (; graphIt != runRecord->plottedGraphs.end(); ++graphIt)
+	{
+		plotted_graph *g = (plotted_graph *)graphIt->second;
+		if (g->increase_thread_references(3))
+		{
+			graphlist.push_back(g);
+		}
+	}
+	runRecord->graphListLock.unlock();
+}
+
+void heatmap_renderer::render_graphlist(vector<plotted_graph *> &graphlist, map<plotted_graph *, bool> &finishedGraphs)
+{
+	vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
+	while (graphlistIt != graphlist.end() && !die)
+	{
+		plotted_graph *graph = *graphlistIt++;
+		proto_graph * protoGraphEnd = graph->get_protoGraph();
+		//always rerender an active graph (edge executions may have increased without adding new edges)
+		//render saved graphs if there are new edges
+		size_t rendered_heat_edges = graph->heatmaplines->get_renderedEdges();
+		if (protoGraphEnd->active || protoGraphEnd->get_num_edges() > graph->heatmaplines->get_renderedEdges())
+		{
+			if (rendered_heat_edges == 0)
+			{
+				//add our heatmap colours to a vector for quick lookup in render thread
+				//may have changed in settings so do it every time graph is created from scratch
+				colourRange.clear();
+				for (int i = 0; i < 10; i++)
+				{
+					COLSTRUCT customColour = *col_to_colstruct(&clientState->config.heatmap.edgeFrequencyCol[i]);
+					colourRange.insert(colourRange.begin(), customColour);
+				}
+			}
+			render_graph_heatmap(graph, false);
+		}
+		else //last mop-up rendering of a recently finished graph
+		{
+			if (!finishedGraphs[graph])
+			{
+				finishedGraphs[graph] = true;
+				render_graph_heatmap(graph, true);
+			}
+		}
+		Sleep(20); //pause between graphs so other things don't struggle for mutex time
+	}
+}
+
+void heatmap_renderer::release_graphlist_references(vector<plotted_graph *> &graphlist)
+{
+	for (auto graph : graphlist)
+	{
+		graph->decrease_thread_references(3);
+	}
+	graphlist.clear();
+}
 
 //thread handler to build graph for each thread
 //allows display in thumbnail style format
 void heatmap_renderer::main_loop()
 {
 	alive = true;
-	//add our heatmap colours to a vector for lookup in render thread
-	for (int i = 0; i < 10; i++)
-		colourRange.insert(colourRange.begin(), *col_to_colstruct(&clientState->config.heatmap.edgeFrequencyCol[i]));
 
 	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while ((!piddata || runRecord->plottedGraphs.empty()) && !die)
 		Sleep(100);
 	Sleep(500);
 
+	vector<plotted_graph *> graphlist;
 	map<plotted_graph *, bool> finishedGraphs;
 	while (!clientState->rgatIsExiting())
 	{
-		runRecord->graphListLock.lock();
-		vector<plotted_graph *> graphlist;
-		map <PID_TID, void *>::iterator graphIt = runRecord->plottedGraphs.begin();
-		for (; graphIt != runRecord->plottedGraphs.end(); ++graphIt)
-		{
-			plotted_graph *g = (plotted_graph *)graphIt->second;
-			if (g->increase_thread_references(3))
-			{
-				graphlist.push_back(g);
-			}
-		}
-		runRecord->graphListLock.unlock();
-
-		//process terminated, all graphs fully rendered, now can head off to valhalla
+		gather_graphlist(graphlist);
+		
 		if (!runRecord->is_running() && (finishedGraphs.size() == graphlist.size()))
 		{
+			//process terminated, all graphs fully rendered, now head off to valhalla
 			for (auto graph : graphlist)
 				graph->decrease_thread_references(3);
 			break;
 		}
 
-		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
-		while (graphlistIt != graphlist.end() && !die)
-		{
-			plotted_graph *graph = *graphlistIt++;
-			proto_graph * protoGraphEnd = graph->get_protoGraph();
-			//always rerender an active graph (edge executions may have increased without adding new edges)
-			//render saved graphs if there are new edges
-			if (protoGraphEnd->active || protoGraphEnd->get_num_edges() > graph->heatmaplines->get_renderedEdges())
-			{
-				render_graph_heatmap(graph, false);
-			}
-			else //last mop-up rendering of a recently finished graph
-			{
-				if (!finishedGraphs[graph])
-				{
-					finishedGraphs[graph] = true;
-					render_graph_heatmap(graph, true);
-				}
-			}
-			Sleep(20); //pause between graphs so other things don't struggle for mutex time
-		}
-		
-		for (auto graph : graphlist)
-		{
-			graph->decrease_thread_references(3);
-		}
-		graphlist.clear();
+		render_graphlist(graphlist, finishedGraphs);
+
+		release_graphlist_references(graphlist);
 
 		int waitForNextIt = 0;
 		while (waitForNextIt < updateDelayMS && !die)
