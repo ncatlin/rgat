@@ -92,6 +92,7 @@ public:
 		QColor background;
 		QColor inactiveHighlight;
 		QColor activeHighlight;
+		bool rotationEnabled;
 	} preview;
 
 	vector <QColor> graphColours;

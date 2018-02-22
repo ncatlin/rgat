@@ -122,6 +122,7 @@ void settingsDialogWidget::setSettingsChildren(QTreeWidgetItem* item)
 	}
 }
 
+
 void settingsDialogWidget::setStackIndexes()
 {
 
@@ -403,4 +404,40 @@ void settingsDialogWidget::pageSelected(QTreeWidgetItem *item)
 	QVariant itemTypeVariant = item->data(1, Qt::UserRole);
 	eStackPages selectedItem = (eStackPages)itemTypeVariant.value<int>();
 	settingsUI->stackedWidget->setCurrentIndex(selectedItem);
+}
+
+
+void settingsDialogWidget::previewSliderChanged(int newValue)
+{
+	Ui::SettingsWindow *setsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+	clientConfig *config = &((rgatState *)clientState)->config;
+
+	double sliderDivisions = setsUI->previewRotationSlider->maximum();
+	double fastestRotsPerSec = sliderDivisions/50;
+	double halfDivisions = sliderDivisions / 2;
+
+	if (newValue > halfDivisions)
+	{
+		int clockWiseMagnitude = (halfDivisions - (sliderDivisions - newValue));
+		double newRotations = clockWiseMagnitude * (fastestRotsPerSec / halfDivisions);
+		config->preview.spinPerFrame = newRotations;
+	}
+	else
+	{
+		int clockWiseMagnitude = (halfDivisions - newValue);
+		double newRotations = clockWiseMagnitude * (fastestRotsPerSec / halfDivisions);
+		config->preview.spinPerFrame = -1 * newRotations;
+	}
+
+	//don't want to save on every change, will probably get saved at some other point anyway
+}
+
+
+void settingsDialogWidget::setPreviewRotationEnabled(bool newState)
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+
+	config->preview.rotationEnabled = newState;
+
+	config->saveConfig();
 }

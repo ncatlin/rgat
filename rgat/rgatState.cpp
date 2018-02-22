@@ -5,10 +5,13 @@
 #include "serialise.h"
 #include "graphplots/plotted_graph_layouts.h"
 
-int rgatState::getPreviewAngle() 
+double rgatState::getPreviewAngle() 
 {
-	previewAngleDegrees += config.preview.spinPerFrame;
-	if (previewAngleDegrees > 360) previewAngleDegrees -= 360;
+	if (config.preview.rotationEnabled)
+	{
+		previewAngleDegrees += config.preview.spinPerFrame;
+		if (previewAngleDegrees > 360) previewAngleDegrees -= 360;
+	}
 	return previewAngleDegrees;
 }
 

@@ -29,7 +29,7 @@ public:
 	bool rgatIsExiting() { return rgatExiting; }
 	bool openGLWorking() { return haveOpenGL; }
 	void setOpenGLFailed() { haveOpenGL = false; }
-	int getPreviewAngle();
+	double getPreviewAngle();
 
 	void newProcessSeen();
 	void processEnded();
@@ -144,7 +144,7 @@ private:
 	bool processChange = false;
 	bool rgatExiting = false;
 	bool haveOpenGL = true;
-	int previewAngleDegrees = 0;
+	double previewAngleDegrees = 0;
 	int activeTraces = 0;
 
 	map<int, void *> pendingFuzzruns;

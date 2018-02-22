@@ -36,6 +36,8 @@ public:
 public Q_SLOTS: 
 	void colourClick(eSettingsWidget clickID);
 	void pageSelected(QTreeWidgetItem *item);
+	void previewSliderChanged(int newValue);
+	void setPreviewRotationEnabled(bool newState);
 
 private:
 	void initialiseWidgets();

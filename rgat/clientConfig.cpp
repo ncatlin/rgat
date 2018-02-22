@@ -45,6 +45,7 @@ void clientConfig::loadPreview()
 	preview.processDelay = QSettingsObj->value("Preview/MS_BETWEEN_UPDATES", PREVIEW_UPDATE_DELAY_MS).toInt();
 	preview.threadDelay = QSettingsObj->value("Preview/MS_BETWEEN_GRAPHS", PREVIEW_DELAY_PER_GRAPH).toInt();
 	preview.spinPerFrame = QSettingsObj->value("Preview/SPIN_PER_FRAME", PREVIEW_SPIN_PER_FRAME).toInt();
+	preview.rotationEnabled = QSettingsObj->value("Preview/ROTATION_ENABLED", true).toBool();
 	preview.FPS = QSettingsObj->value("Preview/FPS", PREVIEW_RENDER_FPS).toInt();
 
 	QVariant colourVariant = QSettingsObj->value("Preview/HIGHLIGHT_ACTIVE_RGBA", PREVIEW_ACTIVE_HIGHLIGHT);
@@ -273,6 +274,8 @@ void clientConfig::savePreview()
 	QSettingsObj->setValue("Preview/HIGHLIGHT_ACTIVE_RGBA", preview.activeHighlight);
 	QSettingsObj->setValue("Preview/HIGHLIGHT_INACTIVE_RGBA", preview.inactiveHighlight);
 	QSettingsObj->setValue("Preview/BACKGROUND_RGBA", preview.background);
+	QSettingsObj->setValue("Preview/ROTATION_ENABLED", preview.rotationEnabled);
+	
 }
 
 

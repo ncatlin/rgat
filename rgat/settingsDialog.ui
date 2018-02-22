@@ -144,7 +144,7 @@
            <number>-3</number>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>5</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -2320,15 +2320,38 @@
           </widget>
           <widget class="QWidget" name="previewSettingsPage">
            <layout class="QFormLayout" name="formLayout">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_32">
+              <property name="minimumSize">
+               <size>
+                <width>118</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Rotation Speed</string>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="0">
              <widget class="QLabel" name="label_38">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
               <property name="text">
-               <string>Enabled</string>
+               <string>Rotation Enabled</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QCheckBox" name="checkBox_2">
+             <widget class="QCheckBox" name="previewRotationEnabledCheck">
               <property name="text">
                <string/>
               </property>
@@ -2337,31 +2360,64 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_32">
-              <property name="minimumSize">
-               <size>
-                <width>118</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Rotation Speed</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QSlider" name="horizontalSlider">
-              <property name="maximumSize">
-               <size>
-                <width>250</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
+            <item row="4" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_9">
+              <item>
+               <widget class="QLabel" name="label_42">
+                <property name="maximumSize">
+                 <size>
+                  <width>26</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>21</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>↻</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="previewRotationSlider">
+                <property name="maximumSize">
+                 <size>
+                  <width>250</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="maximum">
+                 <number>200</number>
+                </property>
+                <property name="value">
+                 <number>100</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_43">
+                <property name="maximumSize">
+                 <size>
+                  <width>26</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>21</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>↺</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
            </layout>
           </widget>
@@ -2403,6 +2459,8 @@
    <container>1</container>
    <slots>
     <slot>pageSelected(QTreeWidgetItem*)</slot>
+    <slot>previewSliderChanged(int)</slot>
+    <slot>setPreviewRotationEnabled(bool)</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -2443,6 +2501,38 @@
     <hint type="destinationlabel">
      <x>397</x>
      <y>382</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>previewRotationSlider</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>previewSliderChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>575</x>
+     <y>85</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>previewRotationEnabledCheck</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>setPreviewRotationEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>577</x>
+     <y>34</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>366</y>
     </hint>
    </hints>
   </connection>
