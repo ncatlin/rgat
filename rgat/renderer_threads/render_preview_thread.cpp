@@ -32,8 +32,7 @@ void preview_renderer::main_loop()
 {
 	alive = true;
 
-	int outerDelay = clientState->config.preview.processDelay;
-	int innerDelay = clientState->config.preview.threadDelay;
+
 	vector<plotted_graph *> graphlist;
 
 
@@ -44,8 +43,12 @@ void preview_renderer::main_loop()
 	{
 		//only write we are protecting against happens while creating new threads
 		//so not important to release this quickly
-
 		runRecord->getPlottedGraphs(&graphlist);
+
+		size_t graphsToRender = graphlist.size();
+		float targetFPS = (float)clientState->config.preview.FPS;
+		int outerDelay = clientState->config.preview.processDelay; //about 100
+		int innerDelay = clientState->config.preview.threadDelay;  //about 20
 
 		vector<plotted_graph *>::iterator graphlistIt = graphlist.begin();
 

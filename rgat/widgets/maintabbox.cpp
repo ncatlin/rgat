@@ -280,6 +280,8 @@ void mainTabBox::sliderChanged(int value)
 //regular (multiple times per second)
 void mainTabBox::updateTimerFired()
 {
+	if (!clientState) return;
+
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	switch (ui->dynamicAnalysisContentsTab->currentIndex())
 	{

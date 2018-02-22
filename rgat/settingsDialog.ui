@@ -71,7 +71,7 @@
           </attribute>
           <column>
            <property name="text">
-            <string>Setting</string>
+            <string>Settings</string>
            </property>
            <property name="background">
             <color>
@@ -92,7 +92,7 @@
           </column>
           <item>
            <property name="text">
-            <string>Rendering</string>
+            <string>Colours</string>
            </property>
            <item>
             <property name="text">
@@ -117,6 +117,16 @@
           </item>
           <item>
            <property name="text">
+            <string>Graph Display</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Preview Pane</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
             <string>Instrumentation</string>
            </property>
           </item>
@@ -130,8 +140,11 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="midLineWidth">
+           <number>-3</number>
+          </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -2294,6 +2307,65 @@
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="graphSettingsPage">
+           <layout class="QVBoxLayout" name="verticalLayout_11">
+            <item>
+             <widget class="QCheckBox" name="checkBox">
+              <property name="text">
+               <string>Latest Instruction Marker</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="previewSettingsPage">
+           <layout class="QFormLayout" name="formLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_38">
+              <property name="text">
+               <string>Enabled</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="checkBox_2">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_32">
+              <property name="minimumSize">
+               <size>
+                <width>118</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Rotation Speed</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSlider" name="horizontalSlider">
+              <property name="maximumSize">
+               <size>
+                <width>250</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="instrumentationPage"/>
          </widget>
         </item>
        </layout>

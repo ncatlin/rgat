@@ -33,7 +33,7 @@ proto_graph * check_graph_ready(plotted_graph *graph, rgatState* clientState)
 	{
 		numLineVerts = linedata->get_numVerts();
 
-		//graph never been rendered so we cant get the edge vertex data to colourise it
+		//graph never been rendered so we cant get the edge vertex data to colourise
 		if (!numLineVerts)
 				return NULL;
 	}
@@ -130,10 +130,11 @@ unsigned int heatmap_renderer::initialise_solver(proto_graph *protoGraph, bool l
 				++solverErrors;
 				if (lastRun && errorNodes->count(tnode->index) == 0)
 				{		
+
+					/*
 					//we estimate that the unresolved out journeys are to this external
 					if (snode->external)
 					{
-						/*
 						tnode->chain_remaining_in -= snode->chain_remaining_out;
 						cout << "increasing node " << snode->index << " executions from " << snode->executionCount;
 						snode->executionCount += tnode->chain_remaining_in;
@@ -141,9 +142,8 @@ unsigned int heatmap_renderer::initialise_solver(proto_graph *protoGraph, bool l
 						edge->chainedWeight += tnode->chain_remaining_in;
 						snode->unreliableCount = true;
 						solverErrors--;
-						*/
 					}
-
+					*/
 #ifdef DEBUG
 					cerr << "solver error 2 at s " << snode->index << " t " << tnode->index << endl;
 					cerr << "[rgat]Heat solver warning 2: (TID" << dec << protoGraph->get_TID() << "): Targnode:" << tnode->index

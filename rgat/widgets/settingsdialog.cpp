@@ -3,8 +3,6 @@
 #include "rgatState.h"
 #include "qlayout.h"
 
-enum eStackPages { eRenderTracePage = 0, eRenderHeatmapPage = 1, eRenderConditionalsPage = 2, eRenderPreviewPage = 3
-};
 
 
 settingsDialogWidget::settingsDialogWidget(QWidget *parent)
@@ -83,38 +81,57 @@ void settingsDialogWidget::setColoursFromConfig()
 	colourWidgets[eSettingsWidget::previewColInactive] = setsUI->prevcol_inactiveborder;
 }
 
+eStackPages settingsDialogWidget::menuTitleToStackIndex(QString title)
+{
+	if (title == "Trace")
+		return eStackPages::eRenderTracePage;
+	else if (title == "Heatmap")
+		return eStackPages::eRenderHeatmapPage;
+	else if (title == "Conditionals")
+		return eStackPages::eRenderConditionalsPage;
+	else if (title == "Preview")
+		return eStackPages::eRenderPreviewPage;
+	else if (title == "Graph Display")
+		return eStackPages::eGraphSettingsPage;
+	else if (title == "Preview Pane")
+		return eStackPages::ePreviewSettingsPage;
+	else if (title == "Instrumentation")
+		return eStackPages::eInstrumentationSettingsPage;
+	else
+		return eStackPages::eInvalid;
+}
+
+
+void settingsDialogWidget::setSettingsChildren(QTreeWidgetItem* item)
+{
+
+	int childCount = item->childCount();
+	if (childCount > 0)
+	{
+		item->setExpanded(true);
+		for (int i = 0; i < childCount; i++)
+		{
+			setSettingsChildren(item->child(i));
+		}
+	}
+
+	eStackPages targetPage = menuTitleToStackIndex(item->text(0));
+	if (targetPage != eStackPages::eInvalid)
+	{
+		item->setData(1, Qt::ItemDataRole::UserRole, targetPage);
+	}
+}
+
 void settingsDialogWidget::setStackIndexes()
 {
 
 	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
 
-
-	QTreeWidgetItem * item = settingsUI->settingpageSelectTree->findItems("Rendering", Qt::MatchFlag::MatchContains).front();
-
-	int subItemCount = item->childCount();
-	for (int i = 0; i < subItemCount; i++)
+	int itemCount = settingsUI->settingpageSelectTree->topLevelItemCount();
+	for (int i = 0; i < itemCount; i++)
 	{
-		QTreeWidgetItem *subitem = item->child(i);
-		eStackPages targetPage;
-
-		if (subitem->text(0) == "Trace")
-			targetPage = eStackPages::eRenderTracePage;
-		else if (subitem->text(0) == "Heatmap")
-			targetPage = eStackPages::eRenderHeatmapPage;
-		else if (subitem->text(0) == "Conditionals")
-			targetPage = eStackPages::eRenderConditionalsPage;		
-		else if (subitem->text(0) == "Preview")
-			targetPage = eStackPages::eRenderPreviewPage;
-		else
-		{
-			cout << "unhandled render subitem: " << subitem->text(0).toStdString() << endl;
-			continue;
-		}
-
-		subitem->setData(1, Qt::ItemDataRole::UserRole, targetPage);
+		setSettingsChildren(settingsUI->settingpageSelectTree->topLevelItem(i));
 	}
-
-	item->setExpanded(true);
 }
 
 void settingsDialogWidget::initialiseWidgets()

@@ -14,6 +14,12 @@ enum eSettingsWidget { traceColBackground, traceColActivLine,
 		previewColBackground, previewColActive, previewColInactive
 };
 
+enum eStackPages {
+	eInvalid = -1, eRenderTracePage = 0, eRenderHeatmapPage = 1, eRenderConditionalsPage = 2, eRenderPreviewPage = 3,
+	eGraphSettingsPage = 4, ePreviewSettingsPage = 5, eInstrumentationSettingsPage = 6
+};
+
+
 class settingsDialogWidget :
 	public QWidget
 {
@@ -37,7 +43,9 @@ private:
 	void colourSet(eSettingsWidget clickID, QColor col); 
 	void setColoursFromConfig(); 
 	void setStackIndexes();
-	void updateColourSetting(eSettingsWidget clickID, QColor col);
+	void updateColourSetting(eSettingsWidget clickID, QColor col); 
+	eStackPages menuTitleToStackIndex(QString title);
+	void setSettingsChildren(QTreeWidgetItem* item);
 
 private:
 	map <eSettingsWidget, colorDemoWidget *> colourWidgets;
