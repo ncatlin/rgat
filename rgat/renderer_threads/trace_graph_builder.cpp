@@ -269,6 +269,8 @@ void trace_graph_builder::handle_arg(char * entry, size_t entrySize)
 	if (!pendingCalledFunc) {
 		pendingCalledFunc = funcpc;
 		pendingFuncCaller = piddata->instruction_before(returnpc);
+		if (!pendingFuncCaller)
+			return;
 	}
 
 	string moreargs_s = string(strtok_s(entry, ",", &entry));

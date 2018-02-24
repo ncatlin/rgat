@@ -1004,6 +1004,8 @@ MEM_ADDRESS PROCESS_DATA::instruction_before(MEM_ADDRESS addr)
 	if (prevInsIt != previousInstructionsCache.end())
 		return prevInsIt->second;
 
+	if (disassembly.empty()) return NULL;
+
 	//x86 has variable length instructions so we have to 
 	//search backwards, byte by byte
 	getDisassemblyReadLock();
@@ -1020,7 +1022,7 @@ MEM_ADDRESS PROCESS_DATA::instruction_before(MEM_ADDRESS addr)
 
 	if (addrMinus > LARGEST_X86_INSTRUCTION)
 	{
-		cerr << "Error: Unable to find instruction before 0x" << hex << addr << endl;
+		//cerr << "[rgat]Error: Unable to find instruction before 0x" << hex << addr << endl;
 		return NULL;
 	}
 

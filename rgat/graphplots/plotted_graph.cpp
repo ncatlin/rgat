@@ -1569,7 +1569,6 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	//todo: might be better to find the first symbol in the DLL that has a lower address
 	if (symString.empty())
 	{
-		argstring << modulePath.filename().string();
 		if (performSymbolResolve)
 			n->setLabelFromNearestSymbol(this->get_protoGraph()->get_traceRecord());
 	}
