@@ -16,7 +16,7 @@ enum eSettingsWidget { traceColBackground, traceColActivLine,
 
 enum eStackPages {
 	eInvalid = -1, eRenderTracePage = 0, eRenderHeatmapPage = 1, eRenderConditionalsPage = 2, eRenderPreviewPage = 3,
-	eGraphSettingsPage = 4, ePreviewSettingsPage = 5, eInstrumentationSettingsPage = 6
+	eGraphSettingsPage = 4, ePreviewSettingsPage = 5, eInstrumentationSettingsPage = 6, eFilePathsPage = 7
 };
 
 
@@ -38,6 +38,9 @@ public Q_SLOTS:
 	void pageSelected(QTreeWidgetItem *item);
 	void previewSliderChanged(int newValue);
 	void setPreviewRotationEnabled(bool newState);
+	void fileDialogPin();
+	void fileDialogDR();
+	void fileDialogSave();
 
 private:
 	void initialiseWidgets();
@@ -47,7 +50,8 @@ private:
 	void setStackIndexes();
 	void updateColourSetting(eSettingsWidget clickID, QColor col); 
 	eStackPages menuTitleToStackIndex(QString title);
-	void setSettingsChildren(QTreeWidgetItem* item);
+	void setSettingsChildren(QTreeWidgetItem* item); 
+	void setupPathsWidgets();
 
 private:
 	map <eSettingsWidget, colorDemoWidget *> colourWidgets;

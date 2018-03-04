@@ -1596,7 +1596,6 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	{
 		try
 		{
-
 			argstring << " (";
 
 			unsigned long callRecordIndex = n->callRecordsIndexs.front();
@@ -1759,7 +1758,6 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	}
 
 	painter.end();
-
 }
 
 //iterate through all the nodes, draw instruction text for the ones in view

@@ -130,6 +130,11 @@
             <string>Instrumentation</string>
            </property>
           </item>
+          <item>
+           <property name="text">
+            <string>File Paths</string>
+           </property>
+          </item>
          </widget>
         </item>
         <item>
@@ -144,7 +149,7 @@
            <number>-3</number>
           </property>
           <property name="currentIndex">
-           <number>5</number>
+           <number>7</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -636,7 +641,7 @@
                     <enum>QFrame::StyledPanel</enum>
                    </property>
                    <property name="text">
-                    <string>Activity Line</string>
+                    <string>Activity Marker Line</string>
                    </property>
                    <property name="indent">
                     <number>10</number>
@@ -2422,6 +2427,154 @@
            </layout>
           </widget>
           <widget class="QWidget" name="instrumentationPage"/>
+          <widget class="QWidget" name="filePathsPage">
+           <layout class="QVBoxLayout" name="verticalLayout_12">
+            <item>
+             <widget class="filePathWidget" name="pinPathsWidget" native="true">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>100</height>
+               </size>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_14">
+               <item>
+                <widget class="QLabel" name="label_44">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Intel PIN Executable</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_10">
+                 <property name="spacing">
+                  <number>4</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>4</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>4</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="pinPathLine"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pinPathBtn">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="filePathWidget" name="dynamoRIOPathsWidget" native="true">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>100</height>
+               </size>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_13">
+               <item>
+                <widget class="QLabel" name="label_45">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>DynamoRIO Executable</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_11">
+                 <property name="spacing">
+                  <number>4</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>4</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>4</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="drPathLine"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="drPathBtn">
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="filePathWidget" name="traceSavesPathWidget" native="true">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>100</height>
+               </size>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_15">
+               <item>
+                <widget class="QLabel" name="label_47">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Trace Savefile Directory</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_13">
+                 <property name="spacing">
+                  <number>4</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>4</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>4</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="savePathLine"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="savePathBtn">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -2461,12 +2614,21 @@
     <slot>pageSelected(QTreeWidgetItem*)</slot>
     <slot>previewSliderChanged(int)</slot>
     <slot>setPreviewRotationEnabled(bool)</slot>
+    <slot>fileDialogPin()</slot>
+    <slot>fileDialogDR()</slot>
+    <slot>fileDialogSave()</slot>
    </slots>
   </customwidget>
   <customwidget>
    <class>colorDemoWidget</class>
    <extends>QWidget</extends>
    <header>colordemowidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>filePathWidget</class>
+   <extends>QWidget</extends>
+   <header>filepathwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -2529,6 +2691,54 @@
     <hint type="sourcelabel">
      <x>577</x>
      <y>34</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pinPathBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>fileDialogPin()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>737</x>
+     <y>190</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>savePathBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>fileDialogSave()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>737</x>
+     <y>584</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>397</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>drPathBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>fileDialogDR()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>737</x>
+     <y>387</y>
     </hint>
     <hint type="destinationlabel">
      <x>397</x>

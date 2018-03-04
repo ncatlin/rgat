@@ -97,6 +97,8 @@ eStackPages settingsDialogWidget::menuTitleToStackIndex(QString title)
 		return eStackPages::ePreviewSettingsPage;
 	else if (title == "Instrumentation")
 		return eStackPages::eInstrumentationSettingsPage;
+	else if (title == "File Paths")
+		return eStackPages::eFilePathsPage;
 	else
 		return eStackPages::eInvalid;
 }
@@ -146,6 +148,25 @@ void settingsDialogWidget::initialiseWidgets()
 	setColoursFromConfig();
 	setStackIndexes();
 
+	setupPathsWidgets();
+}
+
+void settingsDialogWidget::setupPathsWidgets()
+{
+	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+	clientConfig *config = &((rgatState *)clientState)->config;
+
+	if (boost::filesystem::exists(config->PinDir))
+		settingsUI->pinPathLine->setText(QString::fromStdString(config->PinDir.string()));
+	if (boost::filesystem::exists(config->DRDir))
+		settingsUI->drPathLine->setText(QString::fromStdString(config->DRDir.string()));
+	if (boost::filesystem::exists(config->saveDir))
+		settingsUI->savePathLine->setText(QString::fromStdString(config->saveDir.string()));
+
+
+	settingsUI->drPathBtn->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+	settingsUI->pinPathBtn->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+	settingsUI->savePathBtn->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
 }
 
 void settingsDialogWidget::connectWidgets()
@@ -440,4 +461,50 @@ void settingsDialogWidget::setPreviewRotationEnabled(bool newState)
 	config->preview.rotationEnabled = newState;
 
 	config->saveConfig();
+}
+
+//this is repetition is crappy, should be able to roll this into filepathwidget
+void settingsDialogWidget::fileDialogPin()
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+	QString oldpath = QString::fromStdString(config->PinDir.string());
+	QString newpathString = QFileDialog::getExistingDirectory(this,
+		tr("Select PIN directory (containing pin.exe)"), oldpath);
+
+	boost::filesystem::path newpath = boost::filesystem::path(newpathString.toStdString());
+	if (!boost::filesystem::is_directory(newpath)) return;
+	config->PinDir = newpath;
+	config->saveConfig();
+
+	setupPathsWidgets();
+}
+
+void settingsDialogWidget::fileDialogDR()
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+	QString oldpath = QString::fromStdString(config->DRDir.string());
+	QString newpathString = QFileDialog::getExistingDirectory(this,
+		tr("Select DynamoRIO directory (containing bin32 and bin64)"), oldpath);
+
+	boost::filesystem::path newpath = boost::filesystem::path(newpathString.toStdString());
+	if (!boost::filesystem::is_directory(newpath)) return;
+	config->DRDir = newpath;
+	config->saveConfig();
+
+	setupPathsWidgets();
+}
+
+void settingsDialogWidget::fileDialogSave()
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+	QString oldpath = QString::fromStdString(config->saveDir.string());
+	QString newpathString = QFileDialog::getExistingDirectory(this,
+		tr("Select directory containing trace files"), oldpath);
+
+	boost::filesystem::path newpath = boost::filesystem::path(newpathString.toStdString());
+	if (!boost::filesystem::is_directory(newpath)) return;
+	config->saveDir = newpath;
+	config->saveConfig();
+
+	setupPathsWidgets();
 }
