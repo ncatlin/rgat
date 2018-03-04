@@ -41,6 +41,7 @@ public Q_SLOTS:
 	void fileDialogPin();
 	void fileDialogDR();
 	void fileDialogSave();
+	void setActiveLineEnabled(bool newState);
 
 private:
 	void initialiseWidgets();

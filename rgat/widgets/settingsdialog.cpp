@@ -140,6 +140,7 @@ void settingsDialogWidget::setStackIndexes()
 void settingsDialogWidget::initialiseWidgets()
 {
 	Ui::SettingsWindow *settingsUI = (Ui::SettingsWindow *)this->settingsUIPtr;
+	clientConfig *config = &((rgatState *)clientState)->config;
 
 	settingsUI->bg_tracecol->setEffectiveHeight(25);
 	settingsUI->bg_heatcol->setEffectiveHeight(25);
@@ -147,8 +148,9 @@ void settingsDialogWidget::initialiseWidgets()
 
 	setColoursFromConfig();
 	setStackIndexes();
-
 	setupPathsWidgets();
+
+	settingsUI->showMarkerCheck->setChecked(config->showActiveMarker);
 }
 
 void settingsDialogWidget::setupPathsWidgets()
@@ -162,7 +164,6 @@ void settingsDialogWidget::setupPathsWidgets()
 		settingsUI->drPathLine->setText(QString::fromStdString(config->DRDir.string()));
 	if (boost::filesystem::exists(config->saveDir))
 		settingsUI->savePathLine->setText(QString::fromStdString(config->saveDir.string()));
-
 
 	settingsUI->drPathBtn->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
 	settingsUI->pinPathBtn->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
@@ -507,4 +508,12 @@ void settingsDialogWidget::fileDialogSave()
 	config->saveConfig();
 
 	setupPathsWidgets();
+}
+
+
+void settingsDialogWidget::setActiveLineEnabled(bool newState)
+{
+	clientConfig *config = &((rgatState *)clientState)->config;
+	config->showActiveMarker = newState;
+	config->saveConfig();
 }

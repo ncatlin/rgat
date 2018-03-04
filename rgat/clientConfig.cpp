@@ -250,12 +250,14 @@ void clientConfig::loadSettings()
 	//argtoi(al_get_config_value(alConfig, "Dimensions", "LOW_B_LIMIT"), &lowB, &errorCount);
 
 	highlightProtrusion = QSettingsObj->value("MainGraph/HIGHLIGHT_PROTRUSION", HIGHLIGHT_LINE_PROTRUSION).toInt();
+	showActiveMarker = QSettingsObj->value("Misc/SHOW_ACTIVE_MARKER", true).toBool();
 	animationFadeRate = QSettingsObj->value("Misc/ANIMATION_FADE_RATE", ANIMATION_FADE_RATE).toFloat();
 	animationUpdateRate = QSettingsObj->value("Misc/ANIMATION_UPDATES_PER_FRAME", ANIMATION_UPDATES_PER_FRAME).toUInt();
 	renderFrequency = QSettingsObj->value("Misc/MAINGRAPH_UPDATE_FREQUENCY_MS", MAINGRAPH_DEFAULT_RENDER_FREQUENCY).toInt();
 	traceBufMax = QSettingsObj->value("Misc/TRACE_BUFFER_MAX", DEFAULT_MAX_TRACE_BUFSIZE).toUInt();
 	maxArgStorage = QSettingsObj->value("Misc/DEFAULT_MAX_ARG_STORAGE", DEFAULT_MAX_ARG_STORAGE).toUInt();
 	maxWaitFrames = QSettingsObj->value("Misc/DEFAULT_MAX_WAIT_FRAMES", DEFAULT_MAX_WAIT_FRAMES).toUInt();
+
 
 	loadColours(); 
 	loadPaths();
@@ -398,6 +400,7 @@ void clientConfig::saveConfig()
 	saveHeatmap();
 
 	QSettingsObj->setValue("MainGraph/HIGHLIGHT_PROTRUSION", highlightProtrusion);
+	QSettingsObj->setValue("MainGraph/SHOW_ACTIVE_MARKER", showActiveMarker);
 
 	QSettingsObj->setValue("Misc/ANIMATION_FADE_RATE", animationFadeRate);
 	QSettingsObj->setValue("Misc/ANIMATION_UPDATES_PER_FRAME", animationUpdateRate);

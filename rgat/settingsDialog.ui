@@ -149,7 +149,7 @@
            <number>-3</number>
           </property>
           <property name="currentIndex">
-           <number>7</number>
+           <number>4</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -2313,11 +2313,11 @@
            </layout>
           </widget>
           <widget class="QWidget" name="graphSettingsPage">
-           <layout class="QVBoxLayout" name="verticalLayout_11">
-            <item>
-             <widget class="QCheckBox" name="checkBox">
+           <layout class="QFormLayout" name="formLayout_2">
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="showMarkerCheck">
               <property name="text">
-               <string>Latest Instruction Marker</string>
+               <string>Show Current Instruction Marker Line</string>
               </property>
              </widget>
             </item>

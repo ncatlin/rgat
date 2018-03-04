@@ -123,6 +123,7 @@ public:
 	float insTextCompactThreshold;
 
 	int highlightProtrusion;
+	bool showActiveMarker = true; 
 
 	//int lowB;
 	//int farA;
