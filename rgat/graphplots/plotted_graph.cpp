@@ -1996,7 +1996,7 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 
 
 			QColor *textcol;
-			textcol = n->unreliableCount ? &al_col_cyan : &al_col_white;
+			textcol = n->unreliableCount ? &al_col_cyan : &clientState->config.heatmap.lineTextCol;
 
 			painter.setPen(*textcol);
 			painter.drawText(screenCoordN.x + INS_X_OFF, gltarget->height() - screenCoordN.y + INS_Y_OFF, to_string(n->executionCount).c_str());
