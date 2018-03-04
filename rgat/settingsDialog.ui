@@ -149,7 +149,7 @@
            <number>-3</number>
           </property>
           <property name="currentIndex">
-           <number>4</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -1755,7 +1755,7 @@
                     </size>
                    </property>
                    <property name="styleSheet">
-                    <string notr="true">border: red; background: green</string>
+                    <string notr="true">border: red; background: rgba(255, 255, 255, 0)</string>
                    </property>
                   </widget>
                  </item>
