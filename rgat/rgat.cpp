@@ -219,15 +219,18 @@ void rgat::addExternTextBtn(QMenu *labelmenu)
 	QAction *paths = new QAction(tr("&Paths"), this);
 	rgatstate->textButtons.externalPath = paths;
 	paths->setCheckable(true);
+	paths->setChecked(rgatstate->config.externalSymbolVisibility.fullPaths);
 	labelmenu->addAction(paths);
 	connect(paths, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternPath); });
 	paths->setStatusTip(QCoreApplication::tr("Display the full path of the module each external symbol belongs to."));
+
 
 	QAction *performResolve = new QAction(tr("&Resolve Symbols"), this);
 	performResolve->setCheckable(false);
 	labelmenu->addAction(performResolve);
 	connect(performResolve, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eResolveExterns); });
-	performResolve->setStatusTip(QCoreApplication::tr("Attempt to determine the symbol unresolved externals belong to."));
+	performResolve->setStatusTip(
+		QCoreApplication::tr("Attempt to determine the symbol that unresolved externals on the screen belong to."));
 }
 
 void rgat::addInternalTextBtn(QMenu *labelmenu)
