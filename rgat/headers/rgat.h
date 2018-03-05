@@ -81,6 +81,7 @@ private:
 	QDialog settingsWindowDialog;
 	Ui::SettingsWindow settingsDialogUI;
 	
+	QMenu *recentTargetsMenu = NULL;
 
 	QLabel *tracingStatusLabel, *activityStatusLabel;
 	Ui_mouseoverWidget mouseoverWidgetUI;
@@ -96,5 +97,5 @@ private:
 	void addPlaceholderTextBtn(QMenu *labelmenu);
 	void addInstructionTextBtn(QMenu *labelmenu);
 	void addFileMenuBtn();
-
+	void loadRecentTargetsMenu();
 };

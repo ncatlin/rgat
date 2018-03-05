@@ -550,6 +550,27 @@ void rgat::dropEvent(QDropEvent *event)
 	}
 }
 
+void rgat::loadRecentTargetsMenu()
+{
+	QAction *recentTarg = NULL;
+
+	if (rgatstate->config.recentTargets.empty())
+	{
+		recentTargetsMenu->setEnabled(false);
+		return;
+	}
+
+	recentTargetsMenu->setEnabled(true);
+
+	for (auto it = rgatstate->config.recentTargets.begin(); it != rgatstate->config.recentTargets.end(); it++)
+	{
+		string pathstring = it->string();
+		recentTarg = new QAction(tr(pathstring.c_str()), this);
+		recentTargetsMenu->addAction(recentTarg);
+	}
+
+}
+
 void rgat::addFileMenuBtn()
 {
 	QMenu *fileLabelMenu = new QMenu(this);
@@ -560,6 +581,12 @@ void rgat::addFileMenuBtn()
 	QAction *selectTargAction = new QAction(tr("&Select Target Executable"), this);
 	fileLabelMenu->addAction(selectTargAction);
 	connect(selectTargAction, SIGNAL(triggered()), ui.targetListCombo, SLOT(addNewTarget()));
+
+	recentTargetsMenu = new QMenu(this);
+	recentTargetsMenu->setTitle("Recent Targets");
+	fileLabelMenu->addMenu(recentTargetsMenu);
+
+	loadRecentTargetsMenu();
 
 	//for when attaching to a process is supported (which is not now)
 	//QAction *selectTargAction = new QAction(tr("Select Target From Process"), this);

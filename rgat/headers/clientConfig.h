@@ -136,6 +136,8 @@ public:
 	boost::filesystem::path clientPath; //the drgat client
 	boost::filesystem::path lastPath; //last folder navigated to
 
+	list<boost::filesystem::path> recentTargets;
+
 	float animationFadeRate;
 	int animationUpdateRate;
 	unsigned int maxArgStorage;

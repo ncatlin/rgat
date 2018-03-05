@@ -122,4 +122,6 @@ void targetCombo::addNewTarget()
 	addTargetToInterface(target, newBinary);
 
 	clientState->config.updateLastPath(filepath);
+
+
 }

@@ -78,6 +78,16 @@ void clientConfig::loadPaths()
 		setDefaultClientPath();
 
 	lastPath = QSettingsObj->value("Paths/LAST_PATH").toString().toStdString();
+
+	int count = QSettingsObj->beginReadArray("RecentTargets");
+	
+	for (int idx = 0; idx < count; idx++)
+	{
+		QSettingsObj->setArrayIndex(idx);
+		boost::filesystem::path recentPath(QSettingsObj->value("path").toString().toStdString());
+		recentTargets.push_front(recentPath);
+	}
+	QSettingsObj->endArray();
 }
 
 void clientConfig::loadHeatmap()
@@ -432,6 +442,27 @@ void clientConfig::updateLastPath(boost::filesystem::path binarypath)
 {
 	lastPath = binarypath.parent_path();
 	QSettingsObj->setValue("Paths/LAST_PATH", QString::fromStdString(lastPath.string()));
+
+	//if this is in the recent targets list, remove it
+	auto foundEntry = std::find(recentTargets.begin(), recentTargets.end(), binarypath);
+	if (foundEntry != recentTargets.end())
+		recentTargets.erase(foundEntry);
+
+	//now add it to the front, since it's the most recent
+	recentTargets.push_front(binarypath);
+
+	//refresh list in settings
+	QSettingsObj->remove("RecentTargets");
+
+	QSettingsObj->beginWriteArray("RecentTargets");
+	int count = 0;
+	for each(boost::filesystem::path targ in recentTargets)
+	{
+		QSettingsObj->setArrayIndex(count++);
+		QSettingsObj->setValue("path", QString::fromStdString(targ.string()));
+	}
+	QSettingsObj->endArray();
+
 	QSettingsObj->sync();
 }
 
