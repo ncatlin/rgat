@@ -80,9 +80,9 @@ public Q_SLOTS:
 	void highlightDialogBtnClicked();
 
 	void startDynamorioTest();
-	void startDrgatTest();
+	void startDrgatGeneralTests();
 	void startPinTest();
-	void startPingatTest();
+	void startPingatGeneralTests();
 	void redrawClicked();
 
 #ifdef INCLUDE_FUZZ_CODE

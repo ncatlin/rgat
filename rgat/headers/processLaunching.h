@@ -25,7 +25,8 @@ struct PIN_PIPES {
 };
 
 bool execute_tracer(void *binaryTargetPtr, clientConfig *config, boost::filesystem::path tmpDir, bool usePin);
-void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config);
+void execute_dynamorio_compatibility_test(void *binaryTargetPtr, clientConfig *config);
+void execute_pin_compatibility_test(void *binaryTargetPtr, clientConfig *config);
 
 void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState);
 void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord, rgatState *clientState, PIN_PIPES pipes);

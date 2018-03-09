@@ -416,7 +416,23 @@ bool execute_tracer(void *binaryTargetPtr, clientConfig *config, boost::filesyst
 	return true;
 }
 
-void execute_dynamorio_test(void *binaryTargetPtr, clientConfig *config)
+void execute_dynamorio_compatibility_test(void *binaryTargetPtr, clientConfig *config)
+{
+	if (!binaryTargetPtr) return;
+	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
+
+	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	string runpath;
+	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
+		return;
+
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+
+	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
+	boost::process::spawn(runpath);
+}
+
+void execute_pin_compatibility_test(void *binaryTargetPtr, clientConfig *config)
 {
 	if (!binaryTargetPtr) return;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;

@@ -173,6 +173,12 @@
            <height>25</height>
           </size>
          </property>
+         <property name="maximumSize">
+          <size>
+           <width>76</width>
+           <height>25</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>14</pointsize>
@@ -312,7 +318,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="iconSize">
            <size>
@@ -487,7 +493,7 @@
                      </size>
                     </property>
                     <property name="title">
-                     <string>Compatibility</string>
+                     <string>General</string>
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_14">
                      <item>
@@ -499,7 +505,7 @@
                         <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
                        </property>
                        <property name="statusTip">
-                        <string>Run tests on the rgat instrumentation client</string>
+                        <string>Run tests on the DynamoRIO instrumentation client</string>
                        </property>
                        <property name="text">
                         <string>DR - Platform</string>
@@ -508,6 +514,9 @@
                      </item>
                      <item>
                       <widget class="QPushButton" name="PinPlatformTestsBtn">
+                       <property name="statusTip">
+                        <string>Run tests on the PIN instrumentation client</string>
+                       </property>
                        <property name="text">
                         <string>Pin - Platform</string>
                        </property>
@@ -525,7 +534,7 @@
                      </size>
                     </property>
                     <property name="title">
-                     <string>Instrumentation</string>
+                     <string>Targeted</string>
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_13">
                      <property name="topMargin">
@@ -540,7 +549,7 @@
                         <string>If this fails the DynamoRIO backend cannot run the target binary</string>
                        </property>
                        <property name="statusTip">
-                        <string>Test if the DynamoRIO backend can run the target binary. A dialog with a basic block count means success.</string>
+                        <string>Test if the DynamoRIO backend can instrument the target binary correctly. A dialog with a basic block count means success.</string>
                        </property>
                        <property name="text">
                         <string>DR - Target</string>
@@ -549,6 +558,9 @@
                      </item>
                      <item>
                       <widget class="QPushButton" name="PinTargetTestsBtn">
+                       <property name="statusTip">
+                        <string>Test if the PIN backend can instrument the target binary correctly. A dialog with a basic block count means success.</string>
+                       </property>
                        <property name="text">
                         <string>Pin - Target</string>
                        </property>
@@ -965,8 +977,18 @@
                               <height>16777215</height>
                              </size>
                             </property>
+                            <property name="font">
+                             <font>
+                              <italic>false</italic>
+                              <strikeout>false</strikeout>
+                              <kerning>true</kerning>
+                             </font>
+                            </property>
                             <property name="statusTip">
                              <string>Use DynamoRIO  to generate the trace. Disabled</string>
+                            </property>
+                            <property name="styleSheet">
+                             <string notr="true">color: rgb(131, 131, 131);</string>
                             </property>
                             <property name="text">
                              <string>DynamoRIO</string>
@@ -3248,10 +3270,10 @@
     <slot>killActiveTraceAndChildren()</slot>
     <slot>graphLayoutSelected(int)</slot>
     <slot>startDynamorioTest()</slot>
-    <slot>startDrgatTest()</slot>
+    <slot>startDrgatGeneralTests()</slot>
     <slot>startFuzz()</slot>
     <slot>startPinTest()</slot>
-    <slot>startPingatTest()</slot>
+    <slot>startPingatGeneralTests()</slot>
     <slot>moduleIncludeSelectBtnClicked()</slot>
     <slot>redrawClicked()</slot>
    </slots>
@@ -3789,7 +3811,7 @@
    <sender>DRPlatformTestsBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
-   <slot>startDrgatTest()</slot>
+   <slot>startDrgatGeneralTests()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>935</x>
@@ -3949,7 +3971,7 @@
    <sender>PinPlatformTestsBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
-   <slot>startPinTest()</slot>
+   <slot>startPingatGeneralTests()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>931</x>
@@ -3965,7 +3987,7 @@
    <sender>PinTargetTestsBtn</sender>
    <signal>clicked()</signal>
    <receiver>dynamicAnalysisContentsTab</receiver>
-   <slot>startPingatTest()</slot>
+   <slot>startPinTest()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>931</x>

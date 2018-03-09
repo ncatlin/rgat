@@ -616,7 +616,7 @@ void mainTabBox::startDynamorioTest()
 	if (!activeTarget->getBitWidth())
 		return;
 
-	execute_dynamorio_test(activeTarget, &clientState->config);
+	execute_dynamorio_compatibility_test(activeTarget, &clientState->config);
 }
 
 void mainTabBox::startPinTest()
@@ -630,11 +630,11 @@ void mainTabBox::startPinTest()
 	if (!activeTarget->getBitWidth())
 		return;
 
-	//execute_dynamorio_test(activeTarget, &clientState->config);
+	execute_pin_compatibility_test(activeTarget, &clientState->config);
 }
 
 
-void mainTabBox::startDrgatTest()
+void mainTabBox::startDrgatGeneralTests()
 {
 	boost::filesystem::path testPath = clientState->config.clientPath;
 	testPath.append("tests");
@@ -651,7 +651,7 @@ void mainTabBox::startDrgatTest()
 	clientState->testTargets.clear();
 }
 
-void mainTabBox::startPingatTest()
+void mainTabBox::startPingatGeneralTests()
 {
 	boost::filesystem::path testPath = clientState->config.clientPath;
 	testPath.append("tests");
