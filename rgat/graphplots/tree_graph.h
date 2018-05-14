@@ -39,14 +39,14 @@ public:
 	};
 	~tree_graph();
 
-	void performMainGraphDrawing(graphGLWidget *gltarget);
+	void performMainGraphDrawing(graphGLWidget &gltarget);
 	void render_static_graph();
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate);
 
-	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier);
-	void drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier);
+	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
+	void drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
 
-	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget);
+	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget);
 	TREECOORD *get_node_coord(NODEINDEX idx);
 
 	void orient_to_user_view();
@@ -68,10 +68,10 @@ protected:
 private:
 	void initialise();
 
-	void display_graph(PROJECTDATA *pd, graphGLWidget *gltarget);
-	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-		QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
-	void write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget);
+	void display_graph(PROJECTDATA *pd, graphGLWidget &gltarget);
+	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &endC,
+		QColor &colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
+	void write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget);
 
 
 

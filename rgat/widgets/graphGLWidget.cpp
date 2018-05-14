@@ -176,9 +176,9 @@ void graphGLWidget::mouseMoveEvent(QMouseEvent *event)
 	
 }
 
-void graphGLWidget::drawHighlightLine(FCOORD lineEndPt, QColor *colour)
+void graphGLWidget::drawHighlightLine(FCOORD lineEndPt, QColor &colour)
 {
-	glColor4f(colour->redF(), colour->greenF(), colour->blueF(), colour->alphaF());
+	glColor4f(colour.redF(), colour.greenF(), colour.blueF(), colour.alphaF());
 	glBegin(GL_LINES);
 	glVertex3f(0, 0, 0);
 	glVertex3f(lineEndPt.x, lineEndPt.y, lineEndPt.z);

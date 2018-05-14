@@ -373,15 +373,15 @@ void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState
 	runRecord->processThreads = processThreads;
 }
 
-string get_options(LAUNCHOPTIONS *launchopts)
+string get_options(LAUNCHOPTIONS &launchopts)
 {
 	stringstream optstring;
 
 	//rgat client options
-	if (launchopts->removeSleeps)
+	if (launchopts.removeSleeps)
 		optstring << " -caffine";
 
-	if (launchopts->pause)
+	if (launchopts.pause)
 		optstring << " -sleep";
 
 	//if (launchopts->debugMode)
@@ -390,25 +390,25 @@ string get_options(LAUNCHOPTIONS *launchopts)
 }
 
 //take the target binary path, feed it into dynamorio with all the required options
-bool execute_tracer(void *binaryTargetPtr, clientConfig *config, boost::filesystem::path tmpDir, bool pin = true)
+bool execute_tracer(void *binaryTargetPtr, clientConfig &config, boost::filesystem::path tmpDir, bool pin = true)
 {
 	if (!binaryTargetPtr) return false;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
-	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	LAUNCHOPTIONS &launchopts = target->launchopts;
 	string runpath;
 
 	bool success;
 	if (pin)
-		success = get_pin_pingat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64), tmpDir);
+		success = get_pin_pingat_commandline(config, launchopts, runpath, (target->getBitWidth() == 64), tmpDir);
 	else
-		success = get_dr_drgat_commandline(config, launchopts, &runpath, (target->getBitWidth() == 64));
+		success = get_dr_drgat_commandline(config, launchopts, runpath, (target->getBitWidth() == 64));
 	if(!success)
 		return false;
 	
 
 	runpath.append(get_options(launchopts));
-	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts.args;
 
 	cout << "[rgat]Starting execution using command line [" << runpath << "]" << endl;
 
@@ -416,33 +416,32 @@ bool execute_tracer(void *binaryTargetPtr, clientConfig *config, boost::filesyst
 	return true;
 }
 
-void execute_dynamorio_compatibility_test(void *binaryTargetPtr, clientConfig *config)
+void execute_dynamorio_compatibility_test(void *binaryTargetPtr, clientConfig &config)
 {
 	if (!binaryTargetPtr) return;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
-	LAUNCHOPTIONS *launchopts = &target->launchopts;
+	LAUNCHOPTIONS &launchopts = target->launchopts;
 	string runpath;
-	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
+	if (!get_bbcount_path(config, launchopts, runpath, (target->getBitWidth() == 64), "bbcount"))
 		return;
 
-	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts.args;
 
 	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
 	boost::process::spawn(runpath);
 }
 
-void execute_pin_compatibility_test(void *binaryTargetPtr, clientConfig *config)
+void execute_pin_compatibility_test(void *binaryTargetPtr, clientConfig &config)
 {
 	if (!binaryTargetPtr) return;
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
-	LAUNCHOPTIONS *launchopts = &target->launchopts;
 	string runpath;
-	if (!get_bbcount_path(config, launchopts, &runpath, (target->getBitWidth() == 64), "bbcount"))
+	if (!get_bbcount_path(config, target->launchopts, runpath, (target->getBitWidth() == 64), "bbcount"))
 		return;
 
-	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts->args;
+	runpath = runpath + " -- \"" + target->path().string() + "\" " + target->launchopts.args;
 
 	cout << "[rgat]Starting test using command line [" << runpath << "]" << endl;
 	boost::process::spawn(runpath);

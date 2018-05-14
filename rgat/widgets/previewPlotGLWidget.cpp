@@ -221,47 +221,47 @@ void previewPlotGLWidget::sliderMoved()
 	sliderMoved(-1);
 }
 
-void previewPlotGLWidget::uploadPreviewGraph(plotted_graph *previewgraph)
+void previewPlotGLWidget::uploadPreviewGraph(plotted_graph &previewgraph)
 {
-	GLuint *VBOs = previewgraph->previewVBOs;
+	GLuint *VBOs = previewgraph.previewVBOs;
 
-	int nodesToLoad = previewgraph->previewnodes->get_numVerts();
-	load_VBO(VBO_NODE_POS, VBOs, POSITION_VERTS_SIZE(nodesToLoad), previewgraph->previewnodes->readonly_pos());
-	load_VBO(VBO_NODE_COL, VBOs, COLOUR_VERTS_SIZE(nodesToLoad), previewgraph->previewnodes->readonly_col());
-	previewgraph->previewnodes->set_numLoadedVerts(nodesToLoad);
+	int nodesToLoad = previewgraph.previewnodes->get_numVerts();
+	load_VBO(VBO_NODE_POS, VBOs, POSITION_VERTS_SIZE(nodesToLoad), previewgraph.previewnodes->readonly_pos());
+	load_VBO(VBO_NODE_COL, VBOs, COLOUR_VERTS_SIZE(nodesToLoad), previewgraph.previewnodes->readonly_col());
+	previewgraph.previewnodes->set_numLoadedVerts(nodesToLoad);
 
-	int linesVertsToLoad = previewgraph->previewlines->get_numVerts();
+	int linesVertsToLoad = previewgraph.previewlines->get_numVerts();
 	if (!linesVertsToLoad) return;
 
 	vector<float> *lineVector = 0;
 
-	lineVector = previewgraph->previewlines->acquire_pos_read(25);
-	if (previewgraph->previewlines->get_numVerts() == 0 || lineVector->empty())
+	lineVector = previewgraph.previewlines->acquire_pos_read(25);
+	if (previewgraph.previewlines->get_numVerts() == 0 || lineVector->empty())
 	{
-		previewgraph->previewlines->release_pos_read();
+		previewgraph.previewlines->release_pos_read();
 		return;
 	}
 
 	load_VBO(VBO_LINE_POS, VBOs, POSITION_VERTS_SIZE(linesVertsToLoad), &lineVector->at(0));
-	previewgraph->previewlines->release_pos_read();
+	previewgraph.previewlines->release_pos_read();
 
-	lineVector = previewgraph->previewlines->acquire_col_read();
+	lineVector = previewgraph.previewlines->acquire_col_read();
 	assert(!lineVector->empty());
 	load_VBO(VBO_LINE_COL, VBOs, COLOUR_VERTS_SIZE(linesVertsToLoad), &lineVector->at(0));
-	previewgraph->previewlines->release_col_read();
+	previewgraph.previewlines->release_col_read();
 
-	previewgraph->previewlines->set_numLoadedVerts(linesVertsToLoad);
-	previewgraph->needVBOReload_preview = false;
+	previewgraph.previewlines->set_numLoadedVerts(linesVertsToLoad);
+	previewgraph.needVBOReload_preview = false;
 }
 
-void previewPlotGLWidget::drawPreviewNodesVerts(plotted_graph *previewgraph, int imageWidth)
+void previewPlotGLWidget::drawPreviewNodesVerts(plotted_graph &previewgraph, int imageWidth)
 {
 	//initialise graphics buffers for the graph if needed
-	if (!previewgraph->VBOsGenned)
-		previewgraph->gen_graph_VBOs(this);
+	if (!previewgraph.VBOsGenned)
+		previewgraph.gen_graph_VBOs(*this);
 
 	//upload any new render data to graphics buffers
-	if (previewgraph->needVBOReload_preview)
+	if (previewgraph.needVBOReload_preview)
 		uploadPreviewGraph(previewgraph);
 	
 	glMatrixMode(GL_PROJECTION);
@@ -270,23 +270,23 @@ void previewPlotGLWidget::drawPreviewNodesVerts(plotted_graph *previewgraph, int
 
 	//glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glTranslatef(0, 0, previewgraph->previewZoom() + 2 * width());
-	glTranslatef(0, previewgraph->prevScrollYPosition(), 0);
+	glTranslatef(0, 0, previewgraph.previewZoom() + 2 * width());
+	glTranslatef(0, previewgraph.prevScrollYPosition(), 0);
 	glRotatef(90.0 + clientState->getPreviewAngle(), 0, 1, 0);
 	
 
-	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph->previewVBOs, previewgraph->previewnodes->get_numLoadedVerts());
-	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph->previewVBOs, previewgraph->previewlines->get_numLoadedVerts());
+	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph.previewVBOs, previewgraph.previewnodes->get_numLoadedVerts());
+	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph.previewVBOs, previewgraph.previewlines->get_numLoadedVerts());
 
 	glPopMatrix();
 
 }
 
-void previewPlotGLWidget::drawPreviewOutline(plotted_graph *graph, int imageWidth)
+void previewPlotGLWidget::drawPreviewOutline(plotted_graph &graph, int imageWidth)
 {
 	QColor outlineColour;
-	bool threadIsRunning = graph->get_protoGraph()->active;
-	bool graphNotSelected = (graph != clientState->getActiveGraph(false));
+	bool threadIsRunning = graph.get_protoGraph()->active;
+	bool graphNotSelected = (&graph != clientState->getActiveGraph(false));
 	int borderThickness;
 
 	glMatrixMode(GL_PROJECTION);
@@ -310,14 +310,14 @@ void previewPlotGLWidget::drawPreviewOutline(plotted_graph *graph, int imageWidt
 	glPopMatrix();
 }
 
-void previewPlotGLWidget::drawPreviewInfo(plotted_graph *graph, int imageWidth, QPainter *painter, int yPos)
+void previewPlotGLWidget::drawPreviewInfo(plotted_graph &graph, int imageWidth, QPainter *painter, int yPos)
 {
 	stringstream infoTxt;
-	infoTxt << "TID: " << graph->get_tid();
+	infoTxt << "TID: " << graph.get_tid();
 
 	
 
-	proto_graph *proto = graph->get_protoGraph();
+	proto_graph *proto = graph.get_protoGraph();
 
 	unsigned long backlog = proto->get_backlog_total();
 	if (backlog > 200)
@@ -329,14 +329,14 @@ void previewPlotGLWidget::drawPreviewInfo(plotted_graph *graph, int imageWidth, 
 
 	painter->drawText(10, yPos + 15, QString::fromStdString(infoTxt.str()));
 
-	if (clientState->getCompareGraph(1) == graph)
+	if (clientState->getCompareGraph(1) == &graph)
 		painter->drawText(15, yPos + PREVIEW_GRAPH_HEIGHT - 15, "Comparison A");
-	else if (clientState->getCompareGraph(2) == graph)
+	else if (clientState->getCompareGraph(2) == &graph)
 		painter->drawText(15, yPos + PREVIEW_GRAPH_HEIGHT - 15, "Comparison B");
 }
 
 
-void previewPlotGLWidget::drawPreviewGraphToBuffer(plotted_graph *thisPreviewGraph)
+void previewPlotGLWidget::drawPreviewGraphToBuffer(plotted_graph &thisPreviewGraph)
 {
 	
 	if (!glframebuf->isBound())
@@ -345,7 +345,7 @@ void previewPlotGLWidget::drawPreviewGraphToBuffer(plotted_graph *thisPreviewGra
 
 	//draw red/green background depending on if thread is still running
 	QColor previewBackgroundColour;
-	if (thisPreviewGraph->get_protoGraph()->active)
+	if (thisPreviewGraph.get_protoGraph()->active)
 		previewBackgroundColour = clientState->config.preview.activeHighlight;
 	else
 		previewBackgroundColour = clientState->config.preview.inactiveHighlight;
@@ -446,7 +446,7 @@ void previewPlotGLWidget::paintGL()
 
 
 	int graphPreviewStartY = PREVIEW_GRAPH_PADDING_Y - previewScrollY;
-	plotted_graph * currentGraph;
+	plotted_graph *currentGraph;
 
 
 
@@ -463,7 +463,7 @@ void previewPlotGLWidget::paintGL()
 		if ((graphPreviewStartY + PREVIEW_GRAPH_HEIGHT) > 0)
 		{
 
-			drawPreviewGraphToBuffer(currentGraph);
+			drawPreviewGraphToBuffer(*currentGraph);
 			drawGraphBuffer(PREVIEW_GRAPH_PADDING_X, graphPreviewStartY);
 
 			
@@ -473,7 +473,7 @@ void previewPlotGLWidget::paintGL()
 			painter.setFont(clientState->instructionFont);
 			painter.setPen(al_col_white);
 
-			drawPreviewInfo(currentGraph, PREVIEW_GRAPH_WIDTH, &painter, graphPreviewStartY);
+			drawPreviewInfo(*currentGraph, PREVIEW_GRAPH_WIDTH, &painter, graphPreviewStartY);
 
 		}
 		graphPreviewStartY += (PREVIEW_GRAPH_HEIGHT + PREVIEW_GRAPH_PADDING_Y);

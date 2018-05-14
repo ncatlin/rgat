@@ -39,17 +39,17 @@ public:
 	};
 	~cylinder_graph();
 
-	void maintain_draw_wireframe(graphGLWidget *gltarget);
-	void plot_wireframe(graphGLWidget *gltarget);
+	void maintain_draw_wireframe(graphGLWidget &gltarget);
+	void plot_wireframe(graphGLWidget &gltarget);
 
-	void performMainGraphDrawing(graphGLWidget *gltarget);
+	void performMainGraphDrawing(graphGLWidget &gltarget);
 	void render_static_graph();
-	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate);
+	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate);
 
-	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
-	void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
+	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
+	void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
 
-	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget);
+	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget);
 
 	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords,maxB); }
 	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <CYLINDERCOORD>*)diffData.first; maxB = diffData.second; }
@@ -62,7 +62,7 @@ public:
 	float previewZoom() { return -2550; }
 	int prevScrollYPosition() { return 580; }
 
-	int getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node);
+	int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data **node);
 
 protected:
 	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
@@ -72,14 +72,14 @@ protected:
 private:
 	void initialise();
 	int needed_wireframe_loops();
-	void draw_wireframe(graphGLWidget *gltarget);
+	void draw_wireframe(graphGLWidget &gltarget);
 	void regenerate_wireframe_if_needed();
-	void regen_wireframe_buffers(graphGLWidget *gltarget);
+	void regen_wireframe_buffers(graphGLWidget &gltarget);
 
-	void display_graph(PROJECTDATA *pd, graphGLWidget *gltarget);
-	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-		QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
-	void write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget);
+	void display_graph(PROJECTDATA *pd, graphGLWidget &gltarget);
+	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &endC,
+		QColor &colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
+	void write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget);
 	
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
 	CYLINDERCOORD *get_node_coord(NODEINDEX idx);
@@ -87,8 +87,8 @@ private:
 	bool a_coord_on_screen(int a, float hedgesep);
 	void cylinderCoord(CYLINDERCOORD *sc, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier = 0);
 	void cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dimensions, float diamModifier);
-	void cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
-	void cylinderAB(DCOORD *c, float *a, float *b, GRAPH_SCALE *dimensions);
+	void getCylinderCoordAB(FCOORD &c, GRAPH_SCALE *dimensions, float *a, float *b);
+	void getCylinderCoordAB(DCOORD &c, GRAPH_SCALE *dimensions, float *a, float *b);
 
 	void add_to_callstack(bool isPreview, MEM_ADDRESS address, NODEINDEX idx);
 

@@ -123,7 +123,7 @@ void GRAPH_DISPLAY_DATA::reset()
 }
 
 //draw basic opengl line between 2 points
-void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, long *arraypos)
+void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD &startC, FCOORD &endC, QColor &colour, long *arraypos)
 {
 	vector <float> *vpos = acquire_pos_write(52);
 	vector <float> *vcol = acquire_col_write();
@@ -131,21 +131,21 @@ void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColo
 	GLsizei numverts = get_numVerts();
 	*arraypos = (long)vcol->size();
 
-	vpos->push_back(startC->x);
-	vpos->push_back(startC->y);
-	vpos->push_back(startC->z);
-	vcol->push_back(colour->redF());
-	vcol->push_back(colour->greenF());
-	vcol->push_back(colour->blueF());
-	vcol->push_back(colour->alphaF());
+	vpos->push_back(startC.x);
+	vpos->push_back(startC.y);
+	vpos->push_back(startC.z);
+	vcol->push_back(colour.redF());
+	vcol->push_back(colour.greenF());
+	vcol->push_back(colour.blueF());
+	vcol->push_back(colour.alphaF());
 
-	vpos->push_back(endC->x);
-	vpos->push_back(endC->y);
-	vpos->push_back(endC->z);
-	vcol->push_back(colour->redF());
-	vcol->push_back(colour->greenF());
-	vcol->push_back(colour->blueF());
-	vcol->push_back(colour->alphaF());
+	vpos->push_back(endC.x);
+	vpos->push_back(endC.y);
+	vpos->push_back(endC.z);
+	vcol->push_back(colour.redF());
+	vcol->push_back(colour.greenF());
+	vcol->push_back(colour.blueF());
+	vcol->push_back(colour.alphaF());
 
 	set_numVerts(numverts + 2);
 	release_pos_write();
@@ -154,7 +154,7 @@ void GRAPH_DISPLAY_DATA::drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColo
 }
 
 //draws a long curve with multiple vertices
-int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, long *colarraypos)
+int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD &bezierC, FCOORD &startC, FCOORD &endC, QColor &colour, int edgeType, long *colarraypos)
 {
 	//bold start, faded end (convey direction)
 	//float fadeArray[] = { 1, 1, 1, (float)0.7, (float)0.9, (float)0.9, (float)0.9, (float)0.7, (float)0.8, (float)0.8,
@@ -175,11 +175,11 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 	}
 	*colarraypos = (long)vertcol->size();
 
-	vertpos->push_back(startC->x);
-	vertpos->push_back(startC->y);
-	vertpos->push_back(startC->z);
+	vertpos->push_back(startC.x);
+	vertpos->push_back(startC.y);
+	vertpos->push_back(startC.z);
 
-	float colours[4] = { (float)colour->redF() , (float)colour->greenF(), (float)colour->blueF(), (float)colour->alphaF() };
+	float colours[4] = { (float)colour.redF() , (float)colour.greenF(), (float)colour.blueF(), (float)colour.alphaF() };
 	vertcol->insert(vertcol->end(), colours, end(colours));
 	++vsadded;
 	// > for smoother lines, less performance
@@ -213,9 +213,9 @@ int GRAPH_DISPLAY_DATA::drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCO
 		++vsadded;
 	}
 
-	vertpos->push_back(endC->x);
-	vertpos->push_back(endC->y);
-	vertpos->push_back(endC->z);
+	vertpos->push_back(endC.x);
+	vertpos->push_back(endC.y);
+	vertpos->push_back(endC.z);
 	++vsadded;
 	colours[3] = 1.0f;
 	vertcol->insert(vertcol->end(), colours, end(colours));

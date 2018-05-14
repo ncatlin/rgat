@@ -188,7 +188,7 @@ void plotted_graph::release_nodecoord_write()
 }
 
 //display live or animated graph with active areas on faded areas
-void plotted_graph::display_active(graphGLWidget *gltarget)
+void plotted_graph::display_active(graphGLWidget &gltarget)
 {
 	//reload buffers if needed and not being written
 	if (needVBOReload_active) 
@@ -205,8 +205,8 @@ void plotted_graph::display_active(graphGLWidget *gltarget)
 		mainnodesdata->acquire_pos_read();
 		animnodesdata->acquire_col_read();
 
-		gltarget->load_VBO(VBO_NODE_POS, activeVBOs, POSITION_VERTS_SIZE(nodeLoadQty), mainnodesdata->readonly_pos());
-		gltarget->load_VBO(VBO_NODE_COL, activeVBOs, COLOUR_VERTS_SIZE(nodeLoadQty), animnodesdata->readonly_col());
+		gltarget.load_VBO(VBO_NODE_POS, activeVBOs, POSITION_VERTS_SIZE(nodeLoadQty), mainnodesdata->readonly_pos());
+		gltarget.load_VBO(VBO_NODE_COL, activeVBOs, COLOUR_VERTS_SIZE(nodeLoadQty), animnodesdata->readonly_col());
 
 		animnodesdata->set_numLoadedVerts(nodeLoadQty);
 
@@ -221,14 +221,14 @@ void plotted_graph::display_active(graphGLWidget *gltarget)
 			return;
 		}
 		GLfloat *buf = &vecPtr->at(0);
-		gltarget->load_VBO(VBO_LINE_POS, activeVBOs, POSITION_VERTS_SIZE(edgeVertLoadQty), buf);
+		gltarget.load_VBO(VBO_LINE_POS, activeVBOs, POSITION_VERTS_SIZE(edgeVertLoadQty), buf);
 		mainlinedata->release_pos_read();
 		
 		buf = &animlinedata->acquire_col_read()->at(0);
-		gltarget->load_VBO(VBO_LINE_COL, activeVBOs, COLOUR_VERTS_SIZE(edgeVertLoadQty), buf);
+		gltarget.load_VBO(VBO_LINE_COL, activeVBOs, COLOUR_VERTS_SIZE(edgeVertLoadQty), buf);
 		animlinedata->release_col_read();
 
-		GLenum result = gltarget->glGetError();
+		GLenum result = gltarget.glGetError();
 		if (result)
 			cout << "error :" << result << endl;
 		animlinedata->set_numLoadedVerts(edgeVertLoadQty);
@@ -239,34 +239,34 @@ void plotted_graph::display_active(graphGLWidget *gltarget)
 
 	if (clientState->showNodes && animnodesdata->get_numLoadedVerts())
 	{
-		gltarget->array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, animnodesdata->get_numLoadedVerts());
+		gltarget.array_render_points(VBO_NODE_POS, VBO_NODE_COL, activeVBOs, animnodesdata->get_numLoadedVerts());
 		int err = glGetError();
 		if (err) cerr << "GL error " << err << " in arr_r_pts (display active)" << endl;
 	}
 
 	if (clientState->showEdges &&  animlinedata->get_numLoadedVerts())
 	{
-		gltarget->array_render_lines(VBO_LINE_POS, VBO_LINE_COL, activeVBOs, animlinedata->get_numLoadedVerts());
+		gltarget.array_render_lines(VBO_LINE_POS, VBO_LINE_COL, activeVBOs, animlinedata->get_numLoadedVerts());
 		int err = glGetError();
 		if (err) cerr << "GL error " << err << " in arr_r_edges (display active)" << endl;
 	}
 }
 
 //display graph with everything bright and viewable
-void plotted_graph::display_static(graphGLWidget *gltarget)
+void plotted_graph::display_static(graphGLWidget &gltarget)
 {
 	if (needVBOReload_main)
 	{
 		//lock for reading if corrupt graphics happen occasionally
-		gltarget->loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
+		gltarget.loadVBOs(graphVBOs, mainnodesdata, mainlinedata);
 		needVBOReload_main = false;
 	}
 
 	if (clientState->showNodes)
-		gltarget->array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainnodesdata->get_numLoadedVerts());
+		gltarget.array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, mainnodesdata->get_numLoadedVerts());
 
 	if (clientState->showEdges)
-		gltarget->array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numLoadedVerts());
+		gltarget.array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, mainlinedata->get_numLoadedVerts());
 }
 
 //create faded edge version of graph for use in animations
@@ -1276,7 +1276,7 @@ void plotted_graph::reset_mainlines()
 }
 
 
-void plotted_graph::display_highlight_lines(vector<NODEINDEX> *nodePtrList, QColor *colour, int lengthModifier, graphGLWidget *gltarget)
+void plotted_graph::display_highlight_lines(vector<NODEINDEX> *nodePtrList, QColor *colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	vector<NODEINDEX>::iterator nodeIt = nodePtrList->begin();
 	for (; nodeIt != nodePtrList->end(); ++nodeIt)
@@ -1350,7 +1350,7 @@ int plotted_graph::render_new_preview_edges()
 }
 
 //displays heatmap of the active graph
-void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
+void plotted_graph::display_big_heatmap(graphGLWidget &gltarget)
 {
 	if (!heatmaplines) return;
 
@@ -1358,7 +1358,7 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 	{
 		GLsizei heatlineVertsQty = heatmaplines->get_numVerts();
 		if (!heatlineVertsQty) return;
-		gltarget->load_VBO(0, heatmapEdgeVBO, COLOUR_VERTS_SIZE(heatlineVertsQty), heatmaplines->readonly_col());
+		gltarget.load_VBO(0, heatmapEdgeVBO, COLOUR_VERTS_SIZE(heatlineVertsQty), heatmaplines->readonly_col());
 		needVBOReload_heatmap = false;
 		heatmaplines->set_numLoadedVerts(heatlineVertsQty);
 	}
@@ -1367,21 +1367,21 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 	GRAPH_DISPLAY_DATA *linedata = get_mainlines();
 	if (needVBOReload_main)
 	{
-		gltarget->loadVBOs(graphVBOs, vertsdata, linedata);
+		gltarget.loadVBOs(graphVBOs, vertsdata, linedata);
 		needVBOReload_main = false;
 	}
 
 	if (clientState->showNodes)
-		gltarget->array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, vertsdata->get_numLoadedVerts());
+		gltarget.array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, vertsdata->get_numLoadedVerts());
 
 	if (clientState->showEdges)
 	{
 		
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_LINE_POS]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_LINE_POS]);
 		
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, heatmapEdgeVBO[0]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, heatmapEdgeVBO[0]);
 		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
 		glDrawArrays(GL_LINES, 0, heatmaplines->get_numLoadedVerts());
@@ -1390,7 +1390,7 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 	
 	float zmul = zoomMultiplier();
 	PROJECTDATA pd;
-	gltarget->gather_projection_data(&pd);
+	gltarget.gather_projection_data(&pd);
 
 	if (clientState->should_show_external_symbols(zmul))
 		show_external_symbol_labels(&pd, gltarget);
@@ -1408,7 +1408,7 @@ void plotted_graph::display_big_heatmap(graphGLWidget *gltarget)
 #define VBO_COND_NODE_COLOUR 0
 #define VBO_COND_LINE_COLOUR 1
 //displays the conditionals of the active graph
-void plotted_graph::display_big_conditional(graphGLWidget *gltarget)
+void plotted_graph::display_big_conditional(graphGLWidget &gltarget)
 {
 	if (!conditionallines || !conditionalnodes) return;
 
@@ -1419,10 +1419,10 @@ void plotted_graph::display_big_conditional(graphGLWidget *gltarget)
 
 		if (!lineVertsQty || !nodeVertsQty) return;
 
-		gltarget->load_VBO(VBO_COND_NODE_COLOUR, conditionalVBOs, COLOUR_VERTS_SIZE(nodeVertsQty), conditionalnodes->readonly_col());
+		gltarget.load_VBO(VBO_COND_NODE_COLOUR, conditionalVBOs, COLOUR_VERTS_SIZE(nodeVertsQty), conditionalnodes->readonly_col());
 		conditionalnodes->set_numLoadedVerts(nodeVertsQty);
 
-		gltarget->load_VBO(VBO_COND_LINE_COLOUR, conditionalVBOs, COLOUR_VERTS_SIZE(lineVertsQty), conditionallines->readonly_col());
+		gltarget.load_VBO(VBO_COND_LINE_COLOUR, conditionalVBOs, COLOUR_VERTS_SIZE(lineVertsQty), conditionallines->readonly_col());
 		conditionallines->set_numLoadedVerts(lineVertsQty);
 
 		needVBOReload_conditional = false;
@@ -1430,33 +1430,33 @@ void plotted_graph::display_big_conditional(graphGLWidget *gltarget)
 
 	if (needVBOReload_main)
 	{
-		gltarget->loadVBOs(graphVBOs, get_mainnodes(), get_mainlines());
+		gltarget.loadVBOs(graphVBOs, get_mainnodes(), get_mainlines());
 		needVBOReload_main = false;
 	}
 
 	if (clientState->showNodes)
 	{
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_NODE_POS]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_NODE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, conditionalVBOs[VBO_COND_NODE_COLOUR]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, conditionalVBOs[VBO_COND_NODE_COLOUR]);
 		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
-		gltarget->glDrawArrays(GL_POINTS, 0, conditionalnodes->get_numLoadedVerts());
+		gltarget.glDrawArrays(GL_POINTS, 0, conditionalnodes->get_numLoadedVerts());
 	}
 
 	if (clientState->showEdges)
 	{
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_LINE_POS]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, graphVBOs[VBO_LINE_POS]);
 		glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-		gltarget->glBindBuffer(GL_ARRAY_BUFFER, conditionalVBOs[VBO_COND_LINE_COLOUR]);
+		gltarget.glBindBuffer(GL_ARRAY_BUFFER, conditionalVBOs[VBO_COND_LINE_COLOUR]);
 		glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
-		gltarget->glDrawArrays(GL_LINES, 0, conditionallines->get_numLoadedVerts());
+		gltarget.glDrawArrays(GL_LINES, 0, conditionallines->get_numLoadedVerts());
 
 	}
 
 	PROJECTDATA pd;
-	gltarget->gather_projection_data(&pd);
+	gltarget.gather_projection_data(&pd);
 	float zoomDiffMult = (cameraZoomlevel - main_scalefactors->plotSize) / 1000 - 1;
 
 	if (clientState->should_show_instructions(zoomDiffMult) && internalProtoGraph->get_num_nodes() > 2)
@@ -1491,17 +1491,17 @@ void plotted_graph::updateMainRender()
 	render_static_graph();
 }
 
-void plotted_graph::gen_graph_VBOs(graphGLWidget *gltarget)
+void plotted_graph::gen_graph_VBOs(graphGLWidget &gltarget)
 {
-	gltarget->glGenBuffers(4, graphVBOs);
-	gltarget->glGenBuffers(4, previewVBOs);
-	gltarget->glGenBuffers(1, heatmapEdgeVBO);
-	gltarget->glGenBuffers(2, conditionalVBOs);
-	gltarget->glGenBuffers(4, activeVBOs);
+	gltarget.glGenBuffers(4, graphVBOs);
+	gltarget.glGenBuffers(4, previewVBOs);
+	gltarget.glGenBuffers(1, heatmapEdgeVBO);
+	gltarget.glGenBuffers(2, conditionalVBOs);
+	gltarget.glGenBuffers(4, activeVBOs);
 	VBOsGenned = true;
 }
 
-void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric)
+void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, QPainter *painter, const QFontMetrics *fontMetric)
 {
 	if (n->label.isEmpty()) 
 	{
@@ -1518,7 +1518,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	TEXTRECT textrect;
 	textrect.rect.setX(screenCoord.x - textLength);
 	textrect.rect.setWidth(textLength);
-	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setY(gltarget.height() - screenCoord.y + INS_Y_OFF - textHeight);
 	textrect.rect.setHeight(textHeight);
 	textrect.index = n->index;
 
@@ -1526,7 +1526,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, n->label);
 }
 
-void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText)
+void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText)
 {
 	int textLength = fontMetric->width(symbolText.c_str());
 	int textHeight = fontMetric->height();
@@ -1534,7 +1534,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	TEXTRECT textrect;
 	textrect.rect.setX(screenCoord.x - textLength);
 	textrect.rect.setWidth(textLength);
-	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setY(gltarget.height() - screenCoord.y + INS_Y_OFF - textHeight);
 	textrect.rect.setHeight(textHeight);
 	textrect.index = n->index;
 
@@ -1542,7 +1542,7 @@ void plotted_graph::draw_internal_symbol(DCOORD screenCoord, node_data *n, graph
 	painter->drawText(textrect.rect.x(), textrect.rect.y() + textHeight, symbolText.c_str());
 }
 
-void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric)
+void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, const QFontMetrics *fontMetric)
 {
 	proto_graph * protoGraph = get_protoGraph();
 	if (protoGraph->externalNodeList.empty()) return;
@@ -1627,7 +1627,7 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 	TEXTRECT textrect;
 	textrect.rect.setX(screenCoord.x + INS_X_OFF + 10);
 	textrect.rect.setWidth(textLength);
-	textrect.rect.setY(gltarget->height() - screenCoord.y + INS_Y_OFF - textHeight);
+	textrect.rect.setY(gltarget.height() - screenCoord.y + INS_Y_OFF - textHeight);
 	textrect.rect.setHeight(textHeight);
 	textrect.index = n->index;
 
@@ -1637,20 +1637,20 @@ void plotted_graph::draw_func_args(QPainter *painter, DCOORD screenCoord, node_d
 }
 
 //show functions/args for externs in active graph if settings allow
-void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget)
+void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextExternal);
 	painter.setFont(clientState->instructionFont);
 	const QFontMetrics fm(clientState->instructionFont);
 
 	TEXTRECT mouseoverNode;
 	bool hasMouseover;
-	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+	hasMouseover = gltarget.getMouseoverNode(&mouseoverNode);
 
 	vector<NODEINDEX> externalNodeList = internalProtoGraph->copyExternalNodeList();
 
@@ -1685,7 +1685,7 @@ void plotted_graph::show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	performSymbolResolve = false;
 }
 
-void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget, bool placeHolders)
+void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget, bool placeHolders)
 {
 	if (this->animnodesdata->get_numVerts() == 0)
 		return;
@@ -1694,14 +1694,14 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextInternal);
 	painter.setFont(clientState->instructionFont);
 	const QFontMetrics fm(clientState->instructionFont);
 
 	TEXTRECT mouseoverNode;
 	bool hasMouseover;
-	hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+	hasMouseover = gltarget.getMouseoverNode(&mouseoverNode);
 
 	vector<NODEINDEX> internListCopy = internalProtoGraph->copyInternalNodeList();
 	vector<NODEINDEX>::iterator internSymIt = internListCopy.begin();
@@ -1762,9 +1762,9 @@ void plotted_graph::show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *
 
 //iterate through all the nodes, draw instruction text for the ones in view
 //TODO: in animation mode don't show text for inactive nodes
-void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
+void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget)
 {
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	stringstream ss;
 	DCOORD screenCoord;
@@ -1774,7 +1774,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 	screenInfo.mainverts = get_mainnodes();
 	screenInfo.pd = pd;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setPen(clientState->config.mainColours.instructionText);
 	painter.setFont(clientState->instructionFont);
 	NODEINDEX numVerts = (NODEINDEX)internalProtoGraph->get_num_nodes();
@@ -1844,13 +1844,13 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 		}
 		ss << ": " << displayText;
 
-		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
+		painter.drawText(screenCoord.x + INS_X_OFF, gltarget.height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
 	}
 	painter.end();
 }
 
 //only draws text for instructions with unsatisfied conditions
-void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata, graphGLWidget *gltarget)
+void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata, graphGLWidget &gltarget)
 {
 	SCREEN_QUERY_PTRS screenInfo;
 	screenInfo.mainverts = get_mainnodes();
@@ -1858,11 +1858,11 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 
 	DCOORD screenCoord;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setFont(clientState->instructionFont);
 
 	//iterate through nodes looking for ones that map to screen coords
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	NODEINDEX numVerts = vertsdata->get_numLoadedVerts();
 	GLfloat *vcol = vertsdata->readonly_col();
@@ -1905,14 +1905,14 @@ void plotted_graph::draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_
 			ss << "+0x" << std::hex << get_protoGraph()->moduleBase << ": " << itext;
 
 		painter.setPen(textColour);
-		painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoord.y + COND_INSTEXT_Y_OFF, ss.str().c_str());
+		painter.drawText(screenCoord.x + INS_X_OFF, gltarget.height() - screenCoord.y + COND_INSTEXT_Y_OFF, ss.str().c_str());
 	}
 	painter.end();
 }
 
 
 //draw number of times each edge has been executed in middle of edge
-void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
+void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	if (clientState->show_heat_location == eHeatNone) return;
 
@@ -1921,7 +1921,7 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 	screenInfo.pd = pd;
 
 
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);//need this to make text work
 
 	//iterate through nodes looking for ones that map to screen coords
 	int edgelistIdx = 0;
@@ -1930,7 +1930,7 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 	DCOORD screenCoord;
 	set <node_data *> displayNodes;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setFont(clientState->instructionFont);
 	painter.setPen(clientState->config.heatmap.lineTextCol);
 
@@ -1960,10 +1960,10 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 
 
 		DCOORD screenCoordMid;
-		midpoint(&screenCoordA, &screenCoordB, &screenCoordMid);
+		midpoint(screenCoordA, screenCoordB, &screenCoordMid);
 
-		if (screenCoordMid.x > gltarget->width() || screenCoordMid.x < -100) continue;
-		if (screenCoordMid.y > gltarget->height() || screenCoordMid.y < -100) continue;
+		if (screenCoordMid.x > gltarget.width() || screenCoordMid.x < -100) continue;
+		if (screenCoordMid.y > gltarget.height() || screenCoordMid.y < -100) continue;
 
 		if (clientState->show_heat_location == eHeatEdges)
 		{
@@ -1971,7 +1971,7 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 			if (edgeWeight < 2) continue;
 
 			string weightString = to_string(edgeWeight);
-			painter.drawText(screenCoord.x + INS_X_OFF, gltarget->height() - screenCoordMid.y + INS_Y_OFF, weightString.c_str());
+			painter.drawText(screenCoord.x + INS_X_OFF, gltarget.height() - screenCoordMid.y + INS_Y_OFF, weightString.c_str());
 		}
 		else
 		{
@@ -1999,7 +1999,7 @@ void plotted_graph::draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidge
 			textcol = n->unreliableCount ? &al_col_cyan : &clientState->config.heatmap.lineTextCol;
 
 			painter.setPen(*textcol);
-			painter.drawText(screenCoordN.x + INS_X_OFF, gltarget->height() - screenCoordN.y + INS_Y_OFF, to_string(n->executionCount).c_str());
+			painter.drawText(screenCoordN.x + INS_X_OFF, gltarget.height() - screenCoordN.y + INS_Y_OFF, to_string(n->executionCount).c_str());
 		}
 	}
 }
@@ -2024,7 +2024,7 @@ void plotted_graph::apply_drag(double dx, double dy)
 	view_shift_y -= dy;
 }
 
-void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
+void plotted_graph::gl_frame_setup(graphGLWidget &plotwindow)
 {
 	if (!VBOsGenned)
 	{
@@ -2039,7 +2039,7 @@ void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	double windowAspect = plotwindow->getAspect();
+	double windowAspect = plotwindow.getAspect();
 	if (zoomedIn || clientState->showNearSide)
 	{
 		gluPerspective(45, windowAspect, 1.8, abs(cameraZoomlevel) + 500);
@@ -2060,7 +2060,7 @@ void plotted_graph::gl_frame_setup(graphGLWidget *plotwindow)
 }
 
 
-void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *divergeNodePosition)
+void plotted_graph::performDiffGraphDrawing(graphGLWidget &plotwindow, void *divergeNodePosition)
 {
 	if (!setGraphBusy(true, 0))
 		return;
@@ -2070,7 +2070,7 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 
 	if (needVBOReload_main)
 	{
-		plotwindow->loadVBOs(graphVBOs, vertsdata, linedata);
+		plotwindow.loadVBOs(graphVBOs, vertsdata, linedata);
 		needVBOReload_main = false;
 	}
 
@@ -2078,10 +2078,10 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 		maintain_draw_wireframe(plotwindow);
 
 	if (clientState->showNodes)
-		plotwindow->array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, vertsdata->get_numVerts());
+		plotwindow.array_render_points(VBO_NODE_POS, VBO_NODE_COL, graphVBOs, vertsdata->get_numVerts());
 
 	if (clientState->showEdges)
-		plotwindow->array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, linedata->get_numVerts());
+		plotwindow.array_render_lines(VBO_LINE_POS, VBO_LINE_COL, graphVBOs, linedata->get_numVerts());
 
 	if (divergeNodePosition)
 	{
@@ -2094,14 +2094,14 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 	bool pdgathered = false;
 	if (clientState->should_show_external_symbols(zmul))
 	{
-		plotwindow->gather_projection_data(&pd);
+		plotwindow.gather_projection_data(&pd);
 		pdgathered = true;
 		show_external_symbol_labels(&pd, plotwindow);
 	}
 
 	if (clientState->should_show_internal_symbols(zmul))
 	{
-		plotwindow->gather_projection_data(&pd);
+		plotwindow.gather_projection_data(&pd);
 		pdgathered = true;
 		bool showPlaceholders = clientState->should_show_internal_symbols(zmul);
 		show_internal_symbol_labels(&pd, plotwindow, showPlaceholders);
@@ -2111,7 +2111,7 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget *plotwindow, void *div
 		get_protoGraph()->get_num_nodes() > 2)
 	{
 		if (!pdgathered)
-			plotwindow->gather_projection_data(&pd);
+			plotwindow.gather_projection_data(&pd);
 		draw_instructions_text(zmul, &pd, plotwindow);
 	}
 

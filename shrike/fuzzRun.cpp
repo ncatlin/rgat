@@ -157,7 +157,7 @@ void fuzzRun::main_loop()
 {
 	//gather options
 	boost::filesystem::path pinDirPath;
-	if (!get_pindir_path(&clientState->config, &pinDirPath)) {
+	if (!get_pindir_path(clientState->config, pinDirPath)) {
 		cerr << "[rgat] Failed to find pin directory." << endl;
 		return;
 	}

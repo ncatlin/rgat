@@ -66,16 +66,16 @@ public:
 
 	virtual void initialiseDefaultDimensions() {};
 	virtual void initialiseCustomDimensions(GRAPH_SCALE scale) {};
-	virtual void plot_wireframe(graphGLWidget *gltarget) {};
-	virtual void maintain_draw_wireframe(graphGLWidget *gltarget) {};
+	virtual void plot_wireframe(graphGLWidget &gltarget) {};
+	virtual void maintain_draw_wireframe(graphGLWidget &gltarget) {};
 
-	virtual bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget) {
+	virtual bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget) {
 		cerr << "Warning: Virtual gvnp called" << endl;		return false;
 	};
 	virtual void render_static_graph() { assert(false); };
 
-	virtual void performMainGraphDrawing(graphGLWidget *gltarget) { cout << "virtual pmgd called" << endl; };
-	virtual void performDiffGraphDrawing(graphGLWidget *gltarget, void *divergeNodePosition);
+	virtual void performMainGraphDrawing(graphGLWidget &gltarget) { cout << "virtual pmgd called" << endl; };
+	virtual void performDiffGraphDrawing(graphGLWidget &gltarget, void *divergeNodePosition);
 
 	virtual void orient_to_user_view() {};
 	virtual bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,	QColor *forceColour, bool preview, bool noUpdate) {
@@ -88,9 +88,9 @@ public:
 	virtual void reset_edgeSep() {};
 	virtual void adjust_size(float delta) {};
 
-	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget) 
+	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget &gltarget) 
 		{ cerr << "Warning: Virtual drawHighlight called\n" << endl; };
-	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget)
+	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget &gltarget)
 		{ cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void irregularActions() {}
 	virtual void previewYScroll() {}
@@ -98,24 +98,24 @@ public:
 	virtual float previewZoom() { return -550; }
 	virtual pair<void *, float> get_diffgraph_nodes() { return make_pair((void *)0, (float)0.0); }
 	virtual void set_diffgraph_nodes(pair<void *, float> diffData) {  }
-	virtual void gl_frame_setup(graphGLWidget *gltarget);
+	virtual void gl_frame_setup(graphGLWidget &gltarget);
 	virtual void regenerate_wireframe_if_needed() {};
 	//for keeping track of graph dimensions
 	virtual void updateStats(float a, float b, float c);
 
-	virtual int getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node) { return INT_MAX; };
+	virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data **node) { return INT_MAX; };
 
 	void updateMainRender();
 	int render_preview_graph();
 	void changeZoom(double delta);
 
-	void draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget);
-	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget);
-	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget, bool placeHolders);
-	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric);
-	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText);
-	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget *gltarget, const QFontMetrics *fontMetric);
-	void gen_graph_VBOs(graphGLWidget *gltarget);
+	void draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget);
+	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget);
+	void show_internal_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget, bool placeHolders);
+	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, QPainter *painter, const QFontMetrics *fontMetric);
+	void draw_internal_symbol(DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, QPainter *painter, const QFontMetrics *fontMetric, string symbolText);
+	void draw_func_args(QPainter *painter, DCOORD screenCoord, node_data *n, graphGLWidget &gltarget, const QFontMetrics *fontMetric);
+	void gen_graph_VBOs(graphGLWidget &gltarget);
 	void render_replay_animation(float fadeRate);
 
 
@@ -158,7 +158,7 @@ public:
 
 	bool increase_thread_references(int caller);
 	void decrease_thread_references(int caller);
-	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget *gltarget);
+	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget &gltarget);
 	void setHighlightData(vector<NODEINDEX> *nodeList, egraphHighlightModes highlightType);
 
 public:
@@ -208,10 +208,10 @@ public:
 	vector <TEXTRECT> labelPositions;
 	
 protected:
-	void display_active(graphGLWidget *gltarget);
-	void display_static(graphGLWidget *gltarget);
-	void display_big_conditional(graphGLWidget *gltarget);
-	void display_big_heatmap(graphGLWidget *gltarget);
+	void display_active(graphGLWidget &gltarget);
+	void display_static(graphGLWidget &gltarget);
+	void display_big_conditional(graphGLWidget &gltarget);
+	void display_big_heatmap(graphGLWidget &gltarget);
 	int render_new_edges();
 	void redraw_anim_edges();
 
@@ -273,8 +273,8 @@ private:
 	bool fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blockID, vector <NODEINDEX> *vertlist);
 	void brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTime);
 	void brighten_node_list(ANIMATIONENTRY *entry, int brightTime, vector <NODEINDEX> *nodeIDList);
-	void draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata, graphGLWidget *gltarget);
-	void draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget);
+	void draw_condition_ins_text(float zdist, PROJECTDATA *pd, GRAPH_DISPLAY_DATA *vertsdata, graphGLWidget &gltarget);
+	void draw_edge_heat_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget);
 	void set_edge_alpha(NODEPAIR eIdx, GRAPH_DISPLAY_DATA *edgesdata, float alpha);
 
 	void process_live_animation_updates();

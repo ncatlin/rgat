@@ -502,9 +502,9 @@ void graphPlotGLWidget::paintGL()
 	if (!activeGraph || activeGraph->needsReleasing())
 		return;
 
-	activeGraph->gl_frame_setup(this);
+	activeGraph->gl_frame_setup(*this);
 
-	activeGraph->performMainGraphDrawing(this);
+	activeGraph->performMainGraphDrawing(*this);
 
 	drawHUD();
 
@@ -526,6 +526,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	plotted_graph *diffgraph = ((diff_plotter *)diffRenderer)->get_diff_graph();
 	GRAPH_DISPLAY_DATA *vertsdata = graph1->get_mainnodes();
 	GRAPH_DISPLAY_DATA *linedata = graph1->get_mainlines();
+	graphGLWidget &thisWidget = *this;
 
 	if (graph1->needVBOReload_main)
 	{
@@ -540,7 +541,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	}
 
 	if (clientState->wireframe)
-		diffgraph->maintain_draw_wireframe(this);
+		diffgraph->maintain_draw_wireframe(*this);
 
 	if (clientState->showNodes)
 		array_render_points(VBO_NODE_POS, VBO_NODE_COL, graph1->graphVBOs, vertsdata->get_numVerts());
@@ -551,7 +552,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	if (divergeNode)
 	{
 		void *nodePos = graph1->get_node_coord_ptr(divergeNode->index);
-		diffgraph->drawHighlight(nodePos, diffgraph->main_scalefactors, &al_col_orange, 10, this);
+		diffgraph->drawHighlight(nodePos, diffgraph->main_scalefactors, &al_col_orange, 10, thisWidget);
 	}
 
 	float zmul = zoomFactor(graph1->cameraZoomlevel, graph1->main_scalefactors->plotSize);
@@ -562,7 +563,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	{
 		gather_projection_data(&pd);
 		pdgathered = true;
-		diffgraph->show_external_symbol_labels(&pd, this);
+		diffgraph->show_external_symbol_labels(&pd, thisWidget);
 	}
 
 	if (clientState->should_show_internal_symbols(zmul))
@@ -570,7 +571,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 		gather_projection_data(&pd);
 		pdgathered = true;
 		bool placeholders = clientState->should_show_placeholder_labels(zmul);
-		diffgraph->show_internal_symbol_labels(&pd, this, placeholders);
+		diffgraph->show_internal_symbol_labels(&pd, thisWidget, placeholders);
 	}
 
 	if (clientState->should_show_instructions(zmul) &&
@@ -578,7 +579,7 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 	{
 		if (!pdgathered)
 			gather_projection_data(&pd);
-		diffgraph->draw_instructions_text(zmul, &pd, this);
+		diffgraph->draw_instructions_text(zmul, &pd, thisWidget);
 	}
 }
 

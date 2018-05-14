@@ -185,7 +185,7 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
 	protoGraphs.emplace(make_pair(graphTID, protograph));
 
 	cylinder_graph *graph = new cylinder_graph(graphTID, protograph, colours);
-	if (!graph->get_protoGraph()->deserialise(graphData, &dynamicDisassemblyData->disassembly))
+	if (!graph->get_protoGraph()->deserialise(graphData, dynamicDisassemblyData->disassembly))
 		return false;
 
 	plottedGraphs.emplace(graphTID, graph);

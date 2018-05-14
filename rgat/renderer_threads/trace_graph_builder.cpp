@@ -128,7 +128,7 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
 		{
-			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, repeats);
+			targVertID = thisgraph->handle_new_instruction(*instruction, tag->blockID, repeats);
 		}
 		else
 		{
@@ -191,7 +191,7 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
-			targVertID = thisgraph->handle_new_instruction(instruction, tag->blockID, 1);
+			targVertID = thisgraph->handle_new_instruction(*instruction, tag->blockID, 1);
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 		BB_addNewEdge(alreadyExecuted, instructionIndex, 1);

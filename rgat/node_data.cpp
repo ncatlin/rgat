@@ -83,7 +83,7 @@ bool errorAtIndex(int index)
 	return false;
 }
 
-int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> *disassembly)
+int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, INSLIST> &disassembly)
 {
 	using namespace rapidjson;
 
@@ -130,8 +130,8 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 		if (!nodeData[8].IsInt())	return errorAtIndex(8);
 		blockID = nodeData[8].GetInt(); //todo: one is blockID other is mutation index. No problems noticed but check this.
 
-		map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly->find(address);
-		if ((addressIt == disassembly->end()) || (blockID >= addressIt->second.size()))
+		map<MEM_ADDRESS, INSLIST>::iterator addressIt = disassembly.find(address);
+		if ((addressIt == disassembly.end()) || (blockID >= addressIt->second.size()))
 		{
 			cerr << "[rgat] Error. Failed to find address " << address << " in disassembly for node " << index << endl;
 			return errorAtIndex(8);

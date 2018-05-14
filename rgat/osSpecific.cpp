@@ -76,11 +76,11 @@ string getModulePath()
 }
 
 //get command line string of dr executable + client dll + options
-bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits)
+bool get_dr_drgat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits)
 {
 	//get dynamorio exe from path in settings
 	//todo: check this works with spaces in the path
-	boost::filesystem::path DRPath = config->DRDir;
+	boost::filesystem::path DRPath = config.DRDir;
 	boost::filesystem::path DRPathEnd;
 	if (is64Bits)
 		DRPathEnd.append("bin64\\drrun.exe");
@@ -109,13 +109,13 @@ bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, s
 	}
 
 	//get the rgat instrumentation client
-	boost::filesystem::path drgatPath = config->clientPath;
+	boost::filesystem::path drgatPath = config.clientPath;
 	if (is64Bits)
 		drgatPath += "drgat64";
 	else
 		drgatPath += "drgat";
 
-	if (launchopts->debugLogging)
+	if (launchopts.debugLogging)
 		drgatPath += "-debug";
 	drgatPath += ".dll";
 
@@ -129,7 +129,7 @@ bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, s
 		else
 			drgatPath2 += "\\drgat";
 
-		if (launchopts->debugLogging)
+		if (launchopts.debugLogging)
 			drgatPath2 += "-debug";
 
 		drgatPath2 += ".dll";
@@ -150,7 +150,7 @@ bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, s
 	stringstream finalCommandline;
 	finalCommandline << DRPath.string();
 
-	if (launchopts->pause)
+	if (launchopts.pause)
 		finalCommandline << " -msgbox_mask 15 ";
 
 	string drrunArgs = " -thread_private "; //todo: allow user to tweak dr options
@@ -160,57 +160,55 @@ bool get_dr_drgat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, s
 
 	finalCommandline << "-c \"" << drgatPath.string() << "\"";
 
-	*path = finalCommandline.str();
+	path = finalCommandline.str();
 	return true;
 }
 
-bool get_drdir_path(clientConfig *config, boost::filesystem::path *drpath)
+bool get_drdir_path(clientConfig &config, boost::filesystem::path &drpath)
 {
-	*drpath = config->DRDir;
-
-	if (boost::filesystem::exists(*drpath))
+	drpath = config.DRDir;
+	
+	if (boost::filesystem::exists(drpath))
 		return true;
 
-	*drpath = boost::filesystem::path(getModulePath() + "\\DynamoRIO");
-	if (!boost::filesystem::exists(*drpath))
+	drpath = boost::filesystem::path(getModulePath() + "\\DynamoRIO");
+	if (!boost::filesystem::exists(drpath))
 		return false;
 
-	config->DRDir = *drpath;
-	config->saveConfig();
+	config.DRDir = drpath;
+	config.saveConfig();
 	return true;
 }
 
-bool get_pindir_path(clientConfig *config, boost::filesystem::path *pinpath)
+bool get_pindir_path(clientConfig &config, boost::filesystem::path &pinpath)
 {
-	*pinpath = config->PinDir;
+	pinpath = config.PinDir;
 
 	//if (boost::filesystem::exists(*pinpath))
 	//	return true;
 
-	*pinpath = boost::filesystem::path(getModulePath() + "\\Pin");
-	if (!boost::filesystem::exists(*pinpath))
+	pinpath = boost::filesystem::path(getModulePath() + "\\Pin");
+	if (!boost::filesystem::exists(pinpath))
 	{
 		//leave here until pin in release dir
 		//*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.2");
-		*pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.6");
-		if (!boost::filesystem::exists(*pinpath))
+		pinpath = boost::filesystem::path("C:\\devel\\libs\\pin-3.6");
+		if (!boost::filesystem::exists(pinpath))
 			return false;
 	}
 
-
-
-	config->PinDir = *pinpath;
-	config->saveConfig();
+	config.PinDir = pinpath;
+	config.saveConfig();
 	return true;
 }
 
 
 //get command line string of pin executable + client dll + options
-bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, boost::filesystem::path tmpDir)
+bool get_pin_pingat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits, boost::filesystem::path tmpDir)
 {
 	//get dynamorio exe from path in settings
 	//todo: check this works with spaces in the path
-	boost::filesystem::path PINPath = config->PinDir;
+	boost::filesystem::path PINPath = config.PinDir;
 	PINPath.append("pin.exe");
 
 	//not there - try finding it in rgats directory
@@ -232,13 +230,13 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 	}
 
 	//get the rgat instrumentation client
-	boost::filesystem::path pingatPath = config->clientPath;
+	boost::filesystem::path pingatPath = config.clientPath;
 	if (is64Bits)
 		pingatPath += "pingat64";
 	else
 		pingatPath += "pingat";
 
-	if (launchopts->debugLogging)
+	if (launchopts.debugLogging)
 		pingatPath += "-debug";
 	pingatPath += ".dll";
 
@@ -252,7 +250,7 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 		else
 			pingatPath2 += "\\pingat";
 
-		if (launchopts->debugLogging)
+		if (launchopts.debugLogging)
 			pingatPath2 += "-debug";
 
 		pingatPath2 += ".dll";
@@ -273,7 +271,7 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 	stringstream finalCommandline;
 	finalCommandline << PINPath.string();	
 
-	if (launchopts->pause)
+	if (launchopts.pause)
 		finalCommandline << " -pause_tool 25 ";
 
 	string pinArgs = "";// " -thread_private "; //todo: allow user to tweak dr options
@@ -283,15 +281,15 @@ bool get_pin_pingat_commandline(clientConfig *config, LAUNCHOPTIONS *launchopts,
 	finalCommandline << " -t \"" << pingatPath.string() << "\"";
 	finalCommandline << " -D " << tmpDir << " ";
 
-	*path = finalCommandline.str();
+	path = finalCommandline.str();
 	return true;
 }
 
 
-bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *path, bool is64Bits, string sampleName)
+bool get_bbcount_path(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits, string sampleName)
 {
 	boost::filesystem::path dynamoRioPath;
-	if (!get_drdir_path(config, &dynamoRioPath))
+	if (!get_drdir_path(config, dynamoRioPath))
 	{
 		cerr << "[rgat] Failed to find dynamorio directory." << endl;
 		return false;
@@ -322,7 +320,7 @@ bool get_bbcount_path(clientConfig *config, LAUNCHOPTIONS *launchopts, string *p
 
 	finalCommandline << " -debug -c \"" << samplePath.string() << "\"";
 
-	*path = finalCommandline.str();
+	path = finalCommandline.str();
 	return true;
 }
 
@@ -482,20 +480,20 @@ string basename(string path)
 }
 
 //returns path for saving files, tries to create if it doesn't exist
-bool getSavePath(boost::filesystem::path saveDir, string filename, string *result, PID_TID PID)
+bool getSavePath(boost::filesystem::path saveDir, string filename, string &result, PID_TID PID)
 {
 	cout << "implement me" << endl;
 	return false;
 }
 
 //get execution string of dr executable + client dll
-bool get_dr_path(VISSTATE *clientState, string *path, bool is64Bits)
+bool get_dr_path(VISSTATE &clientState, string &path, bool is64Bits)
 {
 	cout << "implement me" << endl;
 	return false;
 }
 
-string get_options(VISSTATE *clientState)
+string get_options(VISSTATE &clientState)
 {
 	cout << "implement me" << endl;
 	return false;

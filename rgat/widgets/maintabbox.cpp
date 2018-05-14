@@ -543,7 +543,7 @@ void mainTabBox::startNewTrace()
 
 	ui->traceGatherTab->refreshLaunchOptionsFromUI(activeTarget);
 
-	execute_tracer(activeTarget, &clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked());
+	execute_tracer(activeTarget, clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked());
 	clientState->waitingForNewTrace = true;
 }
 
@@ -616,7 +616,7 @@ void mainTabBox::startDynamorioTest()
 	if (!activeTarget->getBitWidth())
 		return;
 
-	execute_dynamorio_compatibility_test(activeTarget, &clientState->config);
+	execute_dynamorio_compatibility_test(activeTarget, clientState->config);
 }
 
 void mainTabBox::startPinTest()
@@ -630,7 +630,7 @@ void mainTabBox::startPinTest()
 	if (!activeTarget->getBitWidth())
 		return;
 
-	execute_pin_compatibility_test(activeTarget, &clientState->config);
+	execute_pin_compatibility_test(activeTarget, clientState->config);
 }
 
 

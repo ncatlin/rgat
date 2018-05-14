@@ -46,58 +46,58 @@ float zoomFactor(double cameraZoom, long plotSize)
 }
 
 //distance between two points
-float linedist(FCOORD *c1, FCOORD *c2)
+float linedist(FCOORD &c1, FCOORD &c2)
 {
-	float dist = pow((c2->x - c1->x), 2);
-	dist += pow((c2->y - c1->y), 2);
-	dist += pow((c2->z - c1->z), 2);
+	float dist = pow((c2.x - c1.x), 2);
+	dist += pow((c2.y - c1.y), 2);
+	dist += pow((c2.z - c1.z), 2);
 	return sqrt(dist);
 }
 
 //double version
-float linedist(DCOORD *lineStart, FCOORD *lineEnd)
+float linedist(DCOORD &lineStart, FCOORD &lineEnd)
 {
-	float dist = pow((lineEnd->x - lineStart->x), 2);
-	dist += pow((lineEnd->y - lineStart->y), 2);
-	dist += pow((lineEnd->z - lineStart->z), 2);
+	float dist = pow((lineEnd.x - lineStart.x), 2);
+	dist += pow((lineEnd.y - lineStart.y), 2);
+	dist += pow((lineEnd.z - lineStart.z), 2);
 	return sqrt(dist);
 }
 
 //middle of line c1->c2 placed in c3
-void midpoint(FCOORD *lineStart, FCOORD *lineEnd, FCOORD *midPointCoord) 
+void midpoint(FCOORD &lineStart, FCOORD &lineEnd, FCOORD *midPointCoord) 
 {
-	midPointCoord->x = (lineStart->x + lineEnd->x) / 2;
-	midPointCoord->y = (lineStart->y + lineEnd->y) / 2;
-	midPointCoord->z = (lineStart->z + lineEnd->z) / 2;
+	midPointCoord->x = (lineStart.x + lineEnd.x) / 2;
+	midPointCoord->y = (lineStart.y + lineEnd.y) / 2;
+	midPointCoord->z = (lineStart.z + lineEnd.z) / 2;
 }
 
 //double version
-void midpoint(DCOORD *lineStart, DCOORD *lineEnd, DCOORD *midPointCoord) 
+void midpoint(DCOORD &lineStart, DCOORD &lineEnd, DCOORD *midPointCoord) 
 {
-	midPointCoord->x = (lineStart->x + lineEnd->x) / 2;
-	midPointCoord->y = (lineStart->y + lineEnd->y) / 2;
-	midPointCoord->z = (lineStart->z + lineEnd->z) / 2;
+	midPointCoord->x = (lineStart.x + lineEnd.x) / 2;
+	midPointCoord->y = (lineStart.y + lineEnd.y) / 2;
+	midPointCoord->z = (lineStart.z + lineEnd.z) / 2;
 }
 
 //computes location of point 'pointnum' on a quadratic bezier curve divided into totalpoints segments
-void bezierPT(FCOORD *startC, FCOORD *bezierC, FCOORD *endC, int pointnum, int totalpoints, FCOORD *resultC)
+void bezierPT(FCOORD &startC, FCOORD &bezierC, FCOORD &endC, int pointnum, int totalpoints, FCOORD *resultC)
 {
 	float t = float(pointnum) / float(totalpoints);
 
 	//quadratic bezier
-	resultC->x = ((1 - t) * (1 - t) * startC->x + 2 * (1 - t) * t * bezierC->x + t * t * endC->x);
-	resultC->y = ((1 - t) * (1 - t) * startC->y + 2 * (1 - t) * t * bezierC->y + t * t * endC->y);
-	resultC->z = ((1 - t) * (1 - t) * startC->z + 2 * (1 - t) * t * bezierC->z + t * t * endC->z);
+	resultC->x = ((1 - t) * (1 - t) * startC.x + 2 * (1 - t) * t * bezierC.x + t * t * endC.x);
+	resultC->y = ((1 - t) * (1 - t) * startC.y + 2 * (1 - t) * t * bezierC.y + t * t * endC.y);
+	resultC->z = ((1 - t) * (1 - t) * startC.z + 2 * (1 - t) * t * bezierC.z + t * t * endC.z);
 }
 
 
 
 //returns if the coord is present on the screen
-bool is_on_screen(DCOORD * screenCoord, int screenWidth, int screenHeight)
+bool is_on_screen(DCOORD &screenCoord, int screenWidth, int screenHeight)
 {
-	if (screenCoord->x < screenWidth &&
-		screenCoord->y < screenHeight &&
-		screenCoord->x > 0 && screenCoord->y > 0 
+	if (screenCoord.x < screenWidth &&
+		screenCoord.y < screenHeight &&
+		screenCoord.x > 0 && screenCoord.y > 0 
 		)
 		return true;
 	else

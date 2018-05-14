@@ -67,7 +67,7 @@ void compareGraphGLWidget::plotComparison()
 
 	plotter = new diff_plotter(this, graph1, graph2, &clientState->instructionFont);
 
-	plotter->render(this);
+	plotter->render(*this);
 	diff_graph = plotter->get_diff_graph();
 
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
@@ -141,9 +141,8 @@ void compareGraphGLWidget::paintGL()
 		divergencePositionPtr = plotter->get_graph(1)->get_node_coord_ptr(divergeNodeIdx);
 	}
 
-	diff_graph->gl_frame_setup(this);
-	diff_graph->performDiffGraphDrawing(this, divergencePositionPtr);
-
+	diff_graph->gl_frame_setup(*this);
+	diff_graph->performDiffGraphDrawing(*this, divergencePositionPtr);
 }
 
 void compareGraphGLWidget::resizeGL(int w, int h)

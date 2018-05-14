@@ -53,8 +53,8 @@ public:
 	unsigned int get_renderedEdges() { return edgesRendered; }
 	void inc_edgesRendered() { ++edgesRendered; }
 
-	void drawShortLinePoints(FCOORD *startC, FCOORD *endC, QColor *colour, long *arraypos);
-	int drawLongCurvePoints(FCOORD *bezierC, FCOORD *startC, FCOORD *endC, QColor *colour, int edgeType, long *colarraypos);
+	void drawShortLinePoints(FCOORD &startC, FCOORD &endC, QColor &colour, long *arraypos);
+	int drawLongCurvePoints(FCOORD &bezierC, FCOORD &startC, FCOORD &endC, QColor &colour, int edgeType, long *colarraypos);
 
 	bool get_coord(NODEINDEX index, FCOORD* result);
 

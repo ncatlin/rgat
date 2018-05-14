@@ -134,7 +134,7 @@ NODEPAIR diff_plotter::firstLastNode(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER blo
 	}
 }
 
-void diff_plotter::render(graphGLWidget *gltarget)
+void diff_plotter::render(graphGLWidget &gltarget)
 {
 	EDGELIST::iterator edgeSeqItG1;
 	EDGELIST::iterator edgeSeqEndG1;

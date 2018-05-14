@@ -56,7 +56,7 @@ public:
 	void drawBoundingBox(int thickness, QColor colour);
 	void drawBox(float x, float y, float w, float h, int thickness, QColor colour);
 	void drawRect(float x, float y, float w, float h, QColor colour);
-	void drawHighlightLine(FCOORD lineEndPt, QColor *colour);
+	void drawHighlightLine(FCOORD lineEndPt, QColor &colour);
 	bool getMouseoverNode(TEXTRECT *node) { *node = mouseoverNodeRect; return activeMouseoverNode; }
 	static rgatState *clientState;
 	NODEINDEX mouseoverNode() { return mouseoverNodeRect.index; }

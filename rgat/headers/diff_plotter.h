@@ -31,7 +31,7 @@ public:
 
 	void display_diff_summary(int x, int y);
 	plotted_graph *get_diff_graph() { return diffgraph; }
-	void render(graphGLWidget *gltarget);
+	void render(graphGLWidget &gltarget);
 	plotted_graph *get_graph(int idx);
 	//return first node different between the two graphs
 	NODEINDEX get_diff_node() { return diffNode; }

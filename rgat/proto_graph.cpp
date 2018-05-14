@@ -42,27 +42,27 @@ proto_graph::~proto_graph()
 }
 
 //creates a node for a newly executed instruction
-unsigned int proto_graph::handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats)
+unsigned int proto_graph::handle_new_instruction(INS_DATA &instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats)
 {
 
 	node_data thisnode;
-	thisnode.ins = instruction;
+	thisnode.ins = &instruction;
 
 	NODEINDEX targVertID = (NODEINDEX)get_num_nodes();
 
 	thisnode.index = targVertID;
-	thisnode.ins = instruction;
+	thisnode.ins = &instruction;
 	thisnode.conditional = thisnode.ins->conditional;
-	thisnode.address = instruction->address;
+	thisnode.address = instruction.address;
 	thisnode.blockID = blockID;
 	thisnode.executionCount = repeats;
-	thisnode.globalModID = instruction->globalmodnum;
+	thisnode.globalModID = instruction.globalmodnum;
 
 	assert(!node_exists(targVertID));
 	insert_node(targVertID, thisnode);
 
 	piddata->getDisassemblyWriteLock();
-	instruction->threadvertIdx.insert(make_pair(tid,targVertID));
+	instruction.threadvertIdx.insert(make_pair(tid,targVertID));
 	piddata->dropDisassemblyWriteLock();
 
 	lastNode = targVertID; //obsolete
@@ -410,7 +410,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 	return true;
 }
 
-bool proto_graph::deserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly)
+bool proto_graph::deserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST> &disassembly)
 {
 	Value::ConstMemberIterator graphDataIt = graphData.FindMember("Nodes");
 	if (graphDataIt == graphData.MemberEnd())
@@ -459,7 +459,7 @@ bool proto_graph::deserialise(const Value& graphData, map <MEM_ADDRESS, INSLIST>
 	return true;
 }
 
-bool proto_graph::loadNodes(const Value& nodesArray, map <MEM_ADDRESS, INSLIST> *disassembly)
+bool proto_graph::loadNodes(const Value& nodesArray, map <MEM_ADDRESS, INSLIST> &disassembly)
 {
 	Value::ConstValueIterator nodesIt = nodesArray.Begin();
 	for (; nodesIt != nodesArray.End(); nodesIt++)

@@ -289,7 +289,7 @@ CYLINDERCOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 	return 0;
 }
 
-int cylinder_graph::getNearestNode(QPoint screenPos, graphGLWidget *gltarget, node_data **node)
+int cylinder_graph::getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data **node)
 { 
 	float a;
 	float b;
@@ -297,13 +297,13 @@ int cylinder_graph::getNearestNode(QPoint screenPos, graphGLWidget *gltarget, no
 	GLint viewport[4];
 	GLdouble modelview[16];
 	GLdouble projection[16];
-	gltarget->glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-	gltarget->glGetDoublev(GL_PROJECTION_MATRIX, projection);
-	gltarget->glGetIntegerv(GL_VIEWPORT, viewport);
+	gltarget.glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	gltarget.glGetDoublev(GL_PROJECTION_MATRIX, projection);
+	gltarget.glGetIntegerv(GL_VIEWPORT, viewport);
 	gluUnProject(screenPos.x(), screenPos.y(), 0, modelview, projection, viewport, &mousexy.x, &mousexy.y, &mousexy.z);
 
-	cout << " graphzy: " << mousexy.x << "," << (gltarget->height() - mousexy.y) << "," << mousexy.z << endl;
-	cylinderAB(&mousexy, &a, &b, main_scalefactors);
+	cout << " graphzy: " << mousexy.x << "," << (gltarget.height() - mousexy.y) << "," << mousexy.z << endl;
+	getCylinderCoordAB(mousexy, main_scalefactors, &a, &b);
 	cout << " mouseab: " << a << "," << b << endl;
 	*node = 0;
 	return INT_MAX; 
@@ -340,29 +340,29 @@ void cylinder_graph::cylinderCoord(float a, float b, FCOORD *c, GRAPH_SCALE *dim
 }
 
 //take coord in space, convert back to a/b by doing the reverse of cylinderCoord
-void cylinder_graph::cylinderAB(FCOORD *c, float *a, float *b, GRAPH_SCALE *mults)
+void cylinder_graph::getCylinderCoordAB(FCOORD &c, GRAPH_SCALE *mults, float *aOut, float *bOut)
 {
 	double r = mults->plotSize;
-	*a = (((asin(c->z / r) * r) / M_PI) / mults->pix_per_A);
+	*aOut = (((asin(c.z / r) * r) / M_PI) / mults->pix_per_A);
 
-	double tb = c->y;
+	double tb = c.y;
 	tb -= B_PX_OFFSET_FROM_TOP;
-	*b = (tb / (-1 * mults->pix_per_B));
+	*bOut = (tb / (-1 * mults->pix_per_B));
 }
 
 //double version
-void cylinder_graph::cylinderAB(DCOORD *doubleCoord, float *a, float *b, GRAPH_SCALE *mults)
+void cylinder_graph::getCylinderCoordAB(DCOORD &c, GRAPH_SCALE *mults, float *aOut, float *bOut)
 {
-	FCOORD floatCoord;
-	floatCoord.x = doubleCoord->x;
-	floatCoord.y = doubleCoord->y;
-	floatCoord.z = doubleCoord->z;
-	cylinderAB(&floatCoord, a, b, mults);
+	FCOORD floatCoordTemp;
+	floatCoordTemp.x = c.x;
+	floatCoordTemp.y = c.y;
+	floatCoordTemp.z = c.z;
+	getCylinderCoordAB(floatCoordTemp, mults, aOut, bOut);
 }
 
 //connect two nodes with an edge of automatic number of vertices
-int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
+int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &endC,
+	QColor &colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
 {
 	//describe the normal
 	FCOORD middleC;
@@ -395,14 +395,14 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 			bezierC = middleC;
 
 			//calculate the AB coords of the midpoint of the cylinder
-			cylinderAB(&middleC, &oldMidA, &oldMidB, dimensions);
+			getCylinderCoordAB(middleC, dimensions, &oldMidA, &oldMidB);
 			float curveMagnitude = min(eLen / 2, (float)(dimensions->plotSize / 2));
 			//recalculate the midpoint coord as if it was inside the cylinder
 			cylinderCoord(oldMidA, oldMidB, &bezierC, dimensions, -curveMagnitude);
 
 			//i dont know why this problem happens or why this fixes it
 			//todo: is this still an issue?
-			if ((bezierC.x > 0) && (startC->x < 0 && endC->x < 0))
+			if ((bezierC.x > 0) && (startC.x < 0 && endC.x < 0))
 				bezierC.x = -bezierC.x;
 		}
 		break;
@@ -426,7 +426,7 @@ int cylinder_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOO
 	{
 	case LONGCURVEPTS:
 	{
-		int vertsdrawn = linedata->drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, arraypos);
+		int vertsdrawn = linedata->drawLongCurvePoints(bezierC, startC, endC, colour, edgeType, arraypos);
 		return vertsdrawn;
 	}
 
@@ -450,7 +450,7 @@ void cylinder_graph::orient_to_user_view()
 }
 
 //function names as they are executed
-void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
+void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	DCOORD nodepos;
 
@@ -482,10 +482,10 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 
 	if (displayNodeList.empty()) return;
 
-	QPainter painter(gltarget);
+	QPainter painter(&gltarget);
 	painter.setPen(clientState->config.mainColours.symbolTextExternalRising);
 	painter.setFont(clientState->instructionFont);
-	int windowHeight = gltarget->height();
+	int windowHeight = gltarget.height();
 
 
 
@@ -511,24 +511,24 @@ void cylinder_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarg
 
 }
 
-void cylinder_graph::draw_wireframe(graphGLWidget *gltarget)
+void cylinder_graph::draw_wireframe(graphGLWidget &gltarget)
 {
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_POS]);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_POS]);
 	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_COL]);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_COL]);
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
-	gltarget->glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), wireframe_loop_count);
-	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
+	gltarget.glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), wireframe_loop_count);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
-void cylinder_graph::regen_wireframe_buffers(graphGLWidget *gltarget)
+void cylinder_graph::regen_wireframe_buffers(graphGLWidget &gltarget)
 {
 	if (wireframeBuffersCreated)
-		gltarget->glDeleteBuffers(2, wireframeVBOs);
-	gltarget->glGenBuffers(2, wireframeVBOs);
+		gltarget.glDeleteBuffers(2, wireframeVBOs);
+	gltarget.glGenBuffers(2, wireframeVBOs);
 	
 	
 	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
@@ -561,7 +561,7 @@ void cylinder_graph::render_static_graph()
 	regenerate_wireframe_if_needed();
 }
 
-void cylinder_graph::maintain_draw_wireframe(graphGLWidget *gltarget)
+void cylinder_graph::maintain_draw_wireframe(graphGLWidget &gltarget)
 {
 	
 
@@ -588,7 +588,7 @@ int cylinder_graph::needed_wireframe_loops()
 }
 
 //must be called by main opengl context thread
-void cylinder_graph::plot_wireframe(graphGLWidget *gltarget)
+void cylinder_graph::plot_wireframe(graphGLWidget &gltarget)
 {
 	
 
@@ -618,32 +618,32 @@ void cylinder_graph::plot_wireframe(graphGLWidget *gltarget)
 
 	int bufSizeBase = wireframe_loop_count * WF_POINTSPERLINE * sizeof(GLfloat);
 
-	gltarget->load_VBO(VBO_CYLINDER_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
-	gltarget->load_VBO(VBO_CYLINDER_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
 
 	wireframe_data->release_pos_write();
 	wireframe_data->release_col_write();
 }
 
 //draws a line from the center of the cylinder to nodepos. adds lengthModifier to the end
-void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget)
+void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	FCOORD nodeCoordxyz;
 	CYLINDERCOORD *nodeCoordCyl = get_node_coord(nodeIndex);
 	if (!nodeCoordCyl) return;
 
 	cylinderCoord(nodeCoordCyl, &nodeCoordxyz, scale, 0);// lengthModifier);
-	gltarget->drawHighlightLine(nodeCoordxyz, colour);
+	gltarget.drawHighlightLine(nodeCoordxyz, colour);
 }
 
 //draws a line from the center of the cylinder to nodepos. adds lengthModifier to the end
-void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget *gltarget)
+void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	FCOORD nodeCoordxyz;
 	if (!nodeCoord) return;
 
 	cylinderCoord((CYLINDERCOORD *)nodeCoord,  &nodeCoordxyz, scale, lengthModifier);
-	gltarget->drawHighlightLine(nodeCoordxyz, colour);
+	gltarget.drawHighlightLine(nodeCoordxyz, colour);
 }
 
 //take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
@@ -657,7 +657,7 @@ FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, 
 }
 
 //IMPORTANT: Must have edge reader lock to call this
-bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate)
+bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate)
 {
 
 	unsigned long nodeCoordQty = (unsigned long)node_coords->size();
@@ -676,12 +676,9 @@ bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, Q
 	FCOORD targc = nodeIndexToXYZ(ePair.second, scaling, 0);
 
 	long arraypos = 0;
-	QColor *edgeColour;
-	if (forceColour) edgeColour = forceColour;
-	else
-		edgeColour = &graphColours->at(e->edgeClass);
+	QColor *edgeColourPtr = colourOverride ? colourOverride : &graphColours->at(e->edgeClass);
 
-	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,	edgeColour, e->edgeClass, scaling, &arraypos);
+	int vertsDrawn = drawCurve(edgedata, srcc, targc, *edgeColourPtr, e->edgeClass, scaling, &arraypos);
 
 	//previews, diffs, etc where we don't want to affect the original edges
 	if (!noUpdate && !preview)
@@ -812,7 +809,7 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 }
 
 //todo: look into merging this into plotted_graph
-void cylinder_graph::performMainGraphDrawing(graphGLWidget *gltarget)
+void cylinder_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 {
 	if (wireframeActive) 
 		maintain_draw_wireframe(gltarget);
@@ -823,7 +820,7 @@ void cylinder_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 
 	//line marking last instruction
 	//<there may be a need to do something different depending on currentUnchainedBlocks.empty() or not>
-	drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config.mainColours.activityLine, 0, gltarget);
+	drawHighlight(lastAnimatedNode, main_scalefactors, clientState->config.mainColours.activityLine, 0, gltarget);
 	
 	//highlight lines
 	if (!highlightData.highlightNodes.empty())
@@ -843,14 +840,14 @@ void cylinder_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 	else
 	{
 		PROJECTDATA pd;
-		gltarget->gather_projection_data(&pd);
+		gltarget.gather_projection_data(&pd);
 		display_graph(&pd, gltarget);
 		write_rising_externs(&pd, gltarget);
 	}
 }
 
 //standard animated or static display of the active graph
-void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
+void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	if (!trySetGraphBusy()) return;
 
@@ -891,15 +888,15 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 					return;
 				}
 
-				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
+				if (is_on_screen(screenCoord, gltarget.width(), gltarget.height()))
 				{
-					QPainter painter(gltarget);
+					QPainter painter(&gltarget);
 					painter.setFont(clientState->instructionFont);
 					const QFontMetrics fm(clientState->instructionFont);
 
 					TEXTRECT mouseoverNode;
 					bool hasMouseover;
-					hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+					hasMouseover = gltarget.getMouseoverNode(&mouseoverNode);
 
 					if (hasMouseover && mouseoverNode.index == n->index)
 						painter.setPen(al_col_orange);
@@ -916,7 +913,7 @@ void cylinder_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 }
 
 //returns the screen coordinate of a node if it is on the screen
-bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget)
+bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget)
 {
 	CYLINDERCOORD *nodeCoord = get_node_coord(nidx);
 	if (!nodeCoord)
@@ -934,8 +931,8 @@ bool cylinder_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCR
 	if (!get_screen_pos(nidx, screenInfo->mainverts, screenInfo->pd, &screenCoord)) return false; //in graph but not rendered
 
 	//not visible if not within bounds of opengl widget rectangle
-	if (screenCoord.x > gltarget->width() || screenCoord.x < -100) return false;
-	if (screenCoord.y > gltarget->height() || screenCoord.y < -100) return false;
+	if (screenCoord.x > gltarget.width() || screenCoord.x < -100) return false;
+	if (screenCoord.y > gltarget.height() || screenCoord.y < -100) return false;
 
 	*screenPos = screenCoord;
 	return true;

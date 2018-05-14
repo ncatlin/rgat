@@ -298,7 +298,7 @@ TREECOORD * tree_graph::get_node_coord(NODEINDEX idx)
 }
 
 //function names as they are executed
-void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
+void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	DCOORD nodepos;
 
@@ -342,7 +342,7 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget *gltarget)
 		if (!get_screen_pos(displayNodeListIt->first, mainnodesdata, pd, &nodepos))
 			continue;
 
-		if (!is_on_screen(&nodepos, gltarget->width(), gltarget->height()))
+		if (!is_on_screen(nodepos, gltarget.width(), gltarget.height()))
 			continue;
 
 		//al_draw_text(font, al_col_green, nodepos.x, height - nodepos.y - extxt->yOffset,
@@ -382,7 +382,7 @@ void tree_graph::render_static_graph()
 }
 
 //draws a line from the center of the layout to nodepos. adds lengthModifier to the end
-void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier)
+void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier)
 {
 	FCOORD nodeCoordxyz;
 	TREECOORD *nodeCoordTree = get_node_coord(nodeIndex);
@@ -395,7 +395,7 @@ void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *
 }
 
 //draws a line from the center of the layout to nodepos. adds lengthModifier to the end
-void tree_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier)
+void tree_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier)
 {
 	FCOORD nodeCoordxyz;
 	if (!nodeCoord) return;
@@ -419,7 +419,7 @@ FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, floa
 
 
 //IMPORTANT: Must have edge reader lock to call this
-bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor *forceColour, bool preview, bool noUpdate)
+bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor *colourOverride, bool preview, bool noUpdate)
 {
 	size_t nodeCoordQty = node_coords->size();
 	if (ePair.second >= nodeCoordQty || ePair.first >= nodeCoordQty)
@@ -437,12 +437,10 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor
 	FCOORD targc = nodeIndexToXYZ(ePair.second, scaling, 0);
 
 	long arraypos = 0;
-	QColor *edgeColour;
-	if (forceColour) edgeColour = forceColour;
-	else
-		edgeColour = &graphColours->at(e->edgeClass);
+	QColor &edgeColour = colourOverride ? *colourOverride : graphColours->at(e->edgeClass);
 
-	int vertsDrawn = drawCurve(edgedata, &srcc, &targc,	edgeColour, e->edgeClass, scaling, &arraypos);
+
+	int vertsDrawn = drawCurve(edgedata, srcc, targc, edgeColour, e->edgeClass, scaling, &arraypos);
 
 	//previews, diffs, etc where we don't want to affect the original edges
 	if (!noUpdate && !preview)
@@ -454,8 +452,8 @@ bool tree_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata,QColor
 }
 
 //connect two nodes with an edge of automatic number of vertices
-int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *endC,
-	QColor *colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
+int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &endC,
+	QColor &colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos)
 {
 
 	float edgeLen = linedist(startC, endC);
@@ -500,7 +498,7 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD *startC, FCOORD *
 		bezierC.x -= lineMiddleShift;
 		bezierC.y += lineMiddleShift;
 		bezierC.z -= lineMiddleShift;
-		int vertsdrawn = linedata->drawLongCurvePoints(&bezierC, startC, endC, colour, edgeType, arraypos);
+		int vertsdrawn = linedata->drawLongCurvePoints(bezierC, startC, endC, colour, edgeType, arraypos);
 		return vertsdrawn;
 	}
 	else
@@ -598,7 +596,7 @@ void tree_graph::orient_to_user_view()
 	glTranslatef(-view_shift_x * 1000, 0, 0);
 }
 
-void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
+void tree_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 {
 	//if (get_pid() != clientState->activePid->PID) return;
 
@@ -608,7 +606,7 @@ void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 
 	//line marking last instruction
 	//<there may be a need to do something different depending on currentUnchainedBlocks.empty() or not>
-	drawHighlight(lastAnimatedNode, main_scalefactors, &clientState->config.mainColours.activityLine, 0);
+	drawHighlight(lastAnimatedNode, main_scalefactors, clientState->config.mainColours.activityLine, 0);
 
 	//highlight lines
 	if (highlightData.highlightState)
@@ -630,14 +628,14 @@ void tree_graph::performMainGraphDrawing(graphGLWidget *gltarget)
 	else
 	{
 		PROJECTDATA pd;
-		gltarget->gather_projection_data(&pd);
+		gltarget.gather_projection_data(&pd);
 		display_graph(&pd, gltarget);
 		write_rising_externs(&pd, gltarget);
 	}
 }
 
 //standard animated or static display of the active graph
-void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
+void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	if (!trySetGraphBusy()) return;
 
@@ -677,15 +675,15 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 					return;
 				}
 
-				if (is_on_screen(&screenCoord, gltarget->width(), gltarget->height()))
+				if (is_on_screen(screenCoord, gltarget.width(), gltarget.height()))
 				{
-					QPainter painter(gltarget);
+					QPainter painter(&gltarget);
 					painter.setFont(clientState->instructionFont);
 					const QFontMetrics fm(clientState->instructionFont);
 
 					TEXTRECT mouseoverNode;
 					bool hasMouseover;
-					hasMouseover = gltarget->getMouseoverNode(&mouseoverNode);
+					hasMouseover = gltarget.getMouseoverNode(&mouseoverNode);
 
 					if (hasMouseover && mouseoverNode.index == n->index)
 						painter.setPen(al_col_orange);
@@ -702,7 +700,7 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget *gltarget)
 
 /*
 //iterate through all the nodes, draw instruction text for the ones in view
-void tree_graph::draw_instruction_text(int zdist, PROJECTDATA *pd, graphGLWidget *gltarget)
+void tree_graph::draw_instruction_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	//iterate through nodes looking for ones that map to screen coords
 	gltarget->glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -748,7 +746,7 @@ void tree_graph::draw_instruction_text(int zdist, PROJECTDATA *pd, graphGLWidget
 
 //TODO, merge with proto graph
 //show functions/args for externs in active graph
-void tree_graph::show_symbol_labels(PROJECTDATA *pd, graphGLWidget *gltarget)
+void tree_graph::show_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget)
 {
 	cout << " symbtodo ";
 	return;
@@ -954,7 +952,7 @@ bool tree_graph::get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, 
 }
 
 //returns the screen coordinate of a node if it is on the screen
-bool tree_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget *gltarget)
+bool tree_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget)
 {
 	TREECOORD *nodeCoord = get_node_coord(nidx);
 	if (!nodeCoord)
@@ -966,8 +964,8 @@ bool tree_graph::get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_
 	if (!get_screen_pos(nidx, screenInfo->mainverts, screenInfo->pd, &screenCoord)) return false; //in graph but not rendered
 
 																								  //not visible if not within bounds of opengl widget rectangle
-	if (screenCoord.x > gltarget->width() || screenCoord.x < -100) return false;
-	if (screenCoord.y > gltarget->height() || screenCoord.y < -100) return false;
+	if (screenCoord.x > gltarget.width() || screenCoord.x < -100) return false;
+	if (screenCoord.y > gltarget.height() || screenCoord.y < -100) return false;
 
 	*screenPos = screenCoord;
 	return true;

@@ -69,7 +69,7 @@ private:
 	unsigned int latest_active_node_idx = 0;
 	time_t constructedTime;
 
-	bool loadNodes(const rapidjson::Value& nodesArray, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool loadNodes(const rapidjson::Value& nodesArray, map <MEM_ADDRESS, INSLIST> &disassembly);
 	bool loadExceptions(const rapidjson::Value& exceptionsArray);
 	bool loadStats(const rapidjson::Value& graphData);
 	bool loadAnimationData(const rapidjson::Value& replayArray);
@@ -104,7 +104,7 @@ public:
 	void acquireNodeReadLock() { getNodeReadLock(); }
 	void releaseNodeReadLock() { dropNodeReadLock(); }
 
-	unsigned int handle_new_instruction(INS_DATA *instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
+	unsigned int handle_new_instruction(INS_DATA &instruction, BLOCK_IDENTIFIER blockID, unsigned long repeats);
 	void handle_previous_instruction(NODEINDEX targVertID, unsigned long repeats);
 
 	traceRecord* get_traceRecord() { return runRecord; }
@@ -180,7 +180,7 @@ public:
 	void *getReader() { return trace_reader; }
 	void setReader(void *newReader) { trace_reader = newReader; }
 	bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-	bool deserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> *disassembly);
+	bool deserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> &disassembly);
 
 	double getConstructedTime() { return constructedTime; }
 
