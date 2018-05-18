@@ -364,10 +364,10 @@ void tree_graph::treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *
 }
 
 //take coord in space, convert back to a/b/c
-void tree_graph::treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults)
+void tree_graph::treeAB(FCOORD &coord, GRAPH_SCALE *mults, long *a, long *b, long *c)
 {
-	*a = coord->x;
-	*b = coord->y;
+	*a = coord.x;
+	*b = coord.y;
 	//*c = coord->z;
 }
 

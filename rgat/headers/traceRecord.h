@@ -53,9 +53,9 @@ public:
 	int countDescendants();
 	
 	void save(void *clientConfigPtr);
-	bool load(const rapidjson::Document& saveJSON, vector<QColor> *colours);
-	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
-	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> *writer) { runtimeline.serialise(writer); };
+	bool load(const rapidjson::Document& saveJSON, vector<QColor> &colours);
+	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
+	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> &writer) { runtimeline.serialise(writer); };
 
 	void kill() { if (running) { killed = true; } }
 	bool should_die() { return killed; }
@@ -88,8 +88,8 @@ public:
 	int loadedModuleCount = 0;
 
 private:
-	bool loadProcessGraphs(const rapidjson::Document& saveJSON, vector<QColor> *colours);
-	bool loadGraph(const rapidjson::Value& graphData, vector<QColor> *colours);
+	bool loadProcessGraphs(const rapidjson::Document& saveJSON, vector<QColor> &colours);
+	bool loadGraph(const rapidjson::Value& graphData, vector<QColor> &colours);
 	bool loadTimeline(const rapidjson::Value& saveJSON);
 
 	PROCESS_DATA *dynamicDisassemblyData = NULL; //the first disassembly of each address

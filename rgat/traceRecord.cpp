@@ -83,9 +83,9 @@ void * traceRecord::get_first_graph()
 	
 }
 
-void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> *writer)
+void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer)
 {
-	writer->StartArray();
+	writer.StartArray();
 	graphListLock.lock();
 	map <PID_TID, PLOTTEDGRAPH_CASTPTR>::iterator graphit = plottedGraphs.begin();
 	for (; graphit != plottedGraphs.end(); graphit++)
@@ -94,10 +94,10 @@ void traceRecord::serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream>
 		if (!graph->get_num_nodes()) continue; //empty graph, ignore
 
 		cout << "[rgat]Serialising graph: " << std::dec<< graphit->first << endl;
-		graph->serialise(*writer);
+		graph->serialise(writer);
 	}
 	graphListLock.unlock();
-	writer->EndArray();
+	writer.EndArray();
 }
 
 using namespace rapidjson;
@@ -141,7 +141,7 @@ bool printRGATVersion(const Value& procData)
 }
 
 //load each graph saved for the process
-bool traceRecord::loadProcessGraphs(const Document& saveJSON, vector<QColor> *colours)
+bool traceRecord::loadProcessGraphs(const Document& saveJSON, vector<QColor> &colours)
 {
 	Value::ConstMemberIterator procDataIt = saveJSON.FindMember("Threads");
 	if (procDataIt == saveJSON.MemberEnd())
@@ -168,7 +168,7 @@ bool traceRecord::loadProcessGraphs(const Document& saveJSON, vector<QColor> *co
 	return true;
 }
 
-bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
+bool traceRecord::loadGraph(const Value& graphData, vector<QColor> &colours)
 {
 	Value::ConstMemberIterator memberIt = graphData.FindMember("ThreadID");
 	if (memberIt == graphData.MemberEnd())
@@ -184,7 +184,7 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> *colours)
 	proto_graph *protograph = new proto_graph(this, graphTID);
 	protoGraphs.emplace(make_pair(graphTID, protograph));
 
-	cylinder_graph *graph = new cylinder_graph(graphTID, protograph, colours);
+	cylinder_graph *graph = new cylinder_graph(graphTID, protograph, &colours);
 	if (!graph->get_protoGraph()->deserialise(graphData, dynamicDisassemblyData->disassembly))
 		return false;
 
@@ -245,7 +245,7 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 }
 
 
-bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> *colours)
+bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> &colours)
 {
 
 	if (!dynamicDisassemblyData->load(saveJSON)) //todo - get the relevant dynamic bit for this trace
@@ -360,10 +360,10 @@ void traceRecord::save(void *configPtr)
 	writer.Uint64(getStartedTime());
 
 	writer.Key("Threads");
-	serialiseThreads(&writer);
+	serialiseThreads(writer);
 
 	writer.Key("Timeline");
-	serialiseTimeline(&writer);
+	serialiseTimeline(writer);
 
 	writer.Key("Children");
 	writer.StartArray();

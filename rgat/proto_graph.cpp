@@ -76,25 +76,25 @@ void proto_graph::handle_previous_instruction(NODEINDEX newTargVertID, unsigned 
 }
 
 
-void proto_graph::add_edge(edge_data e, node_data *source, node_data *target)
+void proto_graph::add_edge(edge_data e, node_data &source, node_data &target)
 {
 
 	NODEPAIR edgePair;
-	edgePair.first = source->index;
-	edgePair.second = target->index;
+	edgePair.first = source.index;
+	edgePair.second = target.index;
 
 	getNodeWriteLock();
 
-	source->outgoingNeighbours.insert(edgePair.second);
-	if (source->conditional && (source->conditional != CONDCOMPLETE))
+	source.outgoingNeighbours.insert(edgePair.second);
+	if (source.conditional && (source.conditional != CONDCOMPLETE))
 	{
-		if (source->ins->condDropAddress == target->address)
-			source->conditional |= CONDFELLTHROUGH;
-		else if (source->ins->branchAddress == target->address)
-			source->conditional |= CONDTAKEN;
+		if (source.ins->condDropAddress == target.address)
+			source.conditional |= CONDFELLTHROUGH;
+		else if (source.ins->branchAddress == target.address)
+			source.conditional |= CONDTAKEN;
 	}
 
-	target->incomingNeighbours.insert(edgePair.first);
+	target.incomingNeighbours.insert(edgePair.first);
 	dropNodeWriteLock();
 
 	getEdgeWriteLock();
@@ -103,10 +103,10 @@ void proto_graph::add_edge(edge_data e, node_data *source, node_data *target)
 	dropEdgeWriteLock();
 }
 
-void proto_graph::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
+void proto_graph::insert_edge_between_BBs(INSLIST &source, INSLIST &target)
 {
-	INS_DATA *sourceIns = source->back();
-	INS_DATA *targetIns = target->front();
+	INS_DATA *sourceIns = source.back();
+	INS_DATA *targetIns = target.front();
 
 	unsigned int sourceNodeIdx = sourceIns->threadvertIdx.at(tid);
 	unsigned int targNodeIdx = targetIns->threadvertIdx.at(tid);
@@ -129,7 +129,7 @@ void proto_graph::insert_edge_between_BBs(INSLIST *source, INSLIST *target)
 	else
 		newEdge.edgeClass = eEdgeNodeType::eEdgeOld;
 
-	add_edge(newEdge, sourceNode, targNode);
+	add_edge(newEdge, *sourceNode, *targNode);
 
 }
 
@@ -174,7 +174,7 @@ edge_data *proto_graph::get_edge_create(node_data *source, node_data *target)
 	edge_data edgeData;
 	edgeData.edgeClass = eEdgeNodeType::eEdgeNew;
 	edgeData.chainedWeight = 0;
-	add_edge(edgeData, source, target);
+	add_edge(edgeData, *source, *target);
 
 	return &edgeDict.at(edge);
 }
@@ -607,7 +607,7 @@ bool proto_graph::loadEdgeDict(const Value& edgeArray)
 		edge->edgeClass = (eEdgeNodeType)edgeClass;
 
 		NODEPAIR stpair = make_pair(source, target);
-		add_edge(*edge, safe_get_node(source), safe_get_node(target));
+		add_edge(*edge, *safe_get_node(source), *safe_get_node(target));
 	}
 	return true;
 }

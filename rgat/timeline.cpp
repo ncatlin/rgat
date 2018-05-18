@@ -125,35 +125,35 @@ bool timeline::getFirstEventTime(time_t *result)
 	return true;
 }
 
-void serialiseEvent(rapidjson::Writer<FileWriteStream> *writer, processEvent *pevent)
+void serialiseEvent(rapidjson::Writer<FileWriteStream> &writer, processEvent &pevent)
 {
-	writer->StartArray();
-	writer->Int(pevent->eventType);
-	writer->Uint64(pevent->eventTime);
-	writer->Uint64(pevent->PID);
-	writer->Int(pevent->PID_ID);
-	writer->Uint64(pevent->parentPID);
-	writer->Uint64(pevent->TID);
-	writer->EndArray();
+	writer.StartArray();
+	writer.Int(pevent.eventType);
+	writer.Uint64(pevent.eventTime);
+	writer.Uint64(pevent.PID);
+	writer.Int(pevent.PID_ID);
+	writer.Uint64(pevent.parentPID);
+	writer.Uint64(pevent.TID);
+	writer.EndArray();
 }
 
-void timeline::serialise(Writer<FileWriteStream> *writer)
+void timeline::serialise(Writer<FileWriteStream> &writer)
 {
 	processEvent pevent;
 
-	writer->StartObject();
-	writer->Key("EventLog");
+	writer.StartObject();
+	writer.Key("EventLog");
 
-	writer->StartArray();
+	writer.StartArray();
 
 	logLock.lock();
 	foreach(pevent, eventLog)
-		serialiseEvent(writer, &pevent);
+		serialiseEvent(writer, pevent);
 	logLock.unlock();
 
-	writer->EndArray();
+	writer.EndArray();
 
-	writer->EndObject();
+	writer.EndObject();
 }
 
 //assumes loglog is held

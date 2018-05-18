@@ -97,7 +97,7 @@ private:
 	bool run_external(MEM_ADDRESS targaddr, unsigned long repeats, NODEPAIR *resultPair);
 
 	void runBB(TAG *tag, int repeats);
-	void run_faulting_BB(TAG *tag);
+	void run_faulting_BB(TAG &tag);
 	void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, unsigned long repeats); 
 
 	void process_trace_tag(char *entry);
@@ -116,7 +116,7 @@ private:
 	//INSLIST *find_block_disassembly(MEM_ADDRESS blockaddr, BLOCK_IDENTIFIER blockID);
 
 	void handle_tag(TAG *thistag, unsigned long repeats);
-	void handle_exception_tag(TAG *thistag);
+	void handle_exception_tag(TAG &thistag);
 	void dump_loop();
 	bool assign_blockrepeats();
 

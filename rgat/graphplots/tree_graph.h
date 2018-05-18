@@ -41,7 +41,7 @@ public:
 
 	void performMainGraphDrawing(graphGLWidget &gltarget);
 	void render_static_graph();
-	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *forceColour, bool preview, bool noUpdate);
+	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate);
 
 	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
 	void drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
@@ -78,7 +78,7 @@ private:
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
 	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);
 	void treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions);
-	void treeAB(FCOORD *coord, long *a, long *b, long *c, GRAPH_SCALE *mults);
+	void treeAB(FCOORD &coord, GRAPH_SCALE *mults, long *a, long *b, long *c);
 
 private:
 	vector<TREECOORD> node_coords_storage;

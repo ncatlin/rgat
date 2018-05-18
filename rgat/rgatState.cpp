@@ -360,7 +360,7 @@ bool rgatState::loadTrace(boost::filesystem::path traceFilePath, traceRecord **t
 		return false;
 	}
 
-	if (!trace->load(saveJSON, &config.graphColours))
+	if (!trace->load(saveJSON, config.graphColours))
 		return false;
 
 	if (traceReturnPtr)

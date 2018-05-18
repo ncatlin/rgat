@@ -653,14 +653,19 @@ void mainTabBox::startDrgatGeneralTests()
 
 void mainTabBox::startPingatGeneralTests()
 {
-	boost::filesystem::path testPath = clientState->config.clientPath;
+	boost::filesystem::path testPath = getModulePath();
 	testPath.append("tests");
 	if (!boost::filesystem::exists(testPath))
 	{
-		string errMsg = "Directory " + testPath.string() + " not found - aborting tests";
-		clientState->updateActivityStatus(QString::fromStdString(errMsg), 10);
-		cerr << errMsg << endl;
-		return;
+		QString newpath = QFileDialog::getExistingDirectory(this, tr("Select directory containing test binaries"));
+		testPath = newpath.toStdString();
+		if (!boost::filesystem::exists(testPath))
+		{
+			string errMsg = "Directory " + testPath.string() + " not found - aborting tests";
+			clientState->updateActivityStatus(QString::fromStdString(errMsg), 10);
+			cerr << errMsg << endl;
+			return;
+		}
 	}
 
 	testRun testingRun(testPath, clientState);

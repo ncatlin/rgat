@@ -52,7 +52,7 @@ public:
 	unsigned int numLiveProcesses() { return liveProcesses; }
 	bool activeProcessCount() { return liveProcesses; }
 	bool getFirstEventTime(time_t *result);
-	void serialise(rapidjson::Writer<rapidjson::FileWriteStream> *writer);
+	void serialise(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
 	bool unserialise(const rapidjson::Value& timelineJSONData);
 	bool unserialiseEvent(const rapidjson::Value& eventData);
 	

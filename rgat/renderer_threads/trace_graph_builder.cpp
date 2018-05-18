@@ -60,9 +60,7 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 {
 	NODEPAIR edgeIDPair = make_pair(lastVertID, targVertID);
 
-	//only need to do this for bb index 0
-	edge_data *e;
-	if (thisgraph->edge_exists(edgeIDPair, &e))
+	if (thisgraph->edge_exists(edgeIDPair, NULL))
 	{
 		//cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
 		return;
@@ -98,7 +96,7 @@ inline void trace_graph_builder::BB_addNewEdge(bool alreadyExecuted, int instruc
 	}
 
 
-	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
+	thisgraph->add_edge(newEdge, *thisgraph->safe_get_node(lastVertID), *thisgraph->safe_get_node(targVertID));
 	//cout << "added internal edge from " << lastVertID << "->" << targVertID << endl;
 }
 
@@ -167,18 +165,18 @@ void trace_graph_builder::runBB(TAG *tag, int repeats = 1)
 }
 
 //run a basic block which generated an exception (and therefore didn't run to completion)
-void trace_graph_builder::run_faulting_BB(TAG *tag)
+void trace_graph_builder::run_faulting_BB(TAG &tag)
 {
 	ROUTINE_STRUCT *foundExtern = NULL;
-	INSLIST *block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, &die, &foundExtern);
+	INSLIST *block = piddata->getDisassemblyBlock(tag.blockaddr, tag.blockID, &die, &foundExtern);
 	if (!block)
 	{ 
 		if (foundExtern)
-			cerr << "[rgat]Warning - faulting block was in uninstrumented code at " << tag->blockaddr << endl;
+			cerr << "[rgat]Warning - faulting block was in uninstrumented code at " << tag.blockaddr << endl;
 		return; 
 	}
 
-	for (unsigned int instructionIndex = 0; instructionIndex <= tag->insCount; ++instructionIndex)
+	for (unsigned int instructionIndex = 0; instructionIndex <= tag.insCount; ++instructionIndex)
 	{
 		INS_DATA *instruction = block->at(instructionIndex);
 
@@ -191,7 +189,7 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 		//target vert already on this threads graph?
 		bool alreadyExecuted = set_target_instruction(instruction);
 		if (!alreadyExecuted)
-			targVertID = thisgraph->handle_new_instruction(*instruction, tag->blockID, 1);
+			targVertID = thisgraph->handle_new_instruction(*instruction, tag.blockID, 1);
 		else
 			++thisgraph->safe_get_node(targVertID)->executionCount;
 		BB_addNewEdge(alreadyExecuted, instructionIndex, 1);
@@ -199,7 +197,7 @@ void trace_graph_builder::run_faulting_BB(TAG *tag)
 		//BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
 
 		//setup conditions for next instruction
-		if (instructionIndex < tag->insCount)
+		if (instructionIndex < tag.insCount)
 			lastNodeType = eNodeNonFlow;
 		else
 		{
@@ -380,13 +378,10 @@ bool trace_graph_builder::run_external(MEM_ADDRESS targaddr, unsigned long repea
 	piddata->externdict.insert(make_pair(targaddr, thisbb));
 	piddata->dropExternDictWriteLock();
 
-
-
-
 	edge_data newEdge;
 	newEdge.chainedWeight = 0;
 	newEdge.edgeClass = eEdgeLib;
-	thisgraph->add_edge(newEdge, thisgraph->safe_get_node(lastVertID), thisgraph->safe_get_node(targVertID));
+	thisgraph->add_edge(newEdge, *thisgraph->safe_get_node(lastVertID), *thisgraph->safe_get_node(targVertID));
 	//cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
 	lastNodeType = eNodeExternal;
 	lastVertID = targVertID;
@@ -493,7 +488,7 @@ void trace_graph_builder::process_new_args()
 }
 
 //#define VERBOSE
-void trace_graph_builder::handle_exception_tag(TAG *thistag)
+void trace_graph_builder::handle_exception_tag(TAG &thistag)
 {
 #ifdef VERBOSE
 	cout << "handling tag 0x" << thistag->blockaddr << " jmpmod:" << thistag->jumpModifier;
@@ -501,16 +496,16 @@ void trace_graph_builder::handle_exception_tag(TAG *thistag)
 		cout << " - sym: " << piddata->modsyms[piddata->externdict[thistag->blockaddr]->modnum][thistag->blockaddr];
 	cout << endl;
 #endif
-	if (thistag->jumpModifier == INSTRUMENTED_CODE)
+	if (thistag.jumpModifier == INSTRUMENTED_CODE)
 	{
 		run_faulting_BB(thistag);
 
-		thisgraph->totalInstructions += thistag->insCount;
+		thisgraph->totalInstructions += thistag.insCount;
 
 		thisgraph->set_active_node(lastVertID);
 	}
 
-	else if (thistag->jumpModifier == UNINSTRUMENTED_CODE) //call to (uninstrumented) external library
+	else if (thistag.jumpModifier == UNINSTRUMENTED_CODE) //call to (uninstrumented) external library
 	{
 		if (!lastVertID) return;
 
@@ -518,7 +513,7 @@ void trace_graph_builder::handle_exception_tag(TAG *thistag)
 		NODEPAIR resultPair;
 		cout << "[rgat]WARNING: Exception handler in uninstrumented module reached." <<
 			"I have no idea if this code will handle it; Let me know when you reach the other side..." << endl;
-		run_external(thistag->blockaddr, 1, &resultPair);
+		run_external(thistag.blockaddr, 1, &resultPair);
 		thisgraph->set_active_node(resultPair.second);
 	}
 	else
@@ -652,7 +647,7 @@ void trace_graph_builder::satisfy_pending_edges()
 			" targID: "<< pendIt->targID << " addr: 0x" << pendIt->targAddr << endl;
 		INSLIST *targ = piddata->blockDetails(pendIt->targID).second->inslist;
 
-		thisgraph->insert_edge_between_BBs(source, targ);
+		thisgraph->insert_edge_between_BBs(*source, *targ);
 		pendIt = pendingEdges.erase(pendIt);
 	}
 }
@@ -883,7 +878,7 @@ void trace_graph_builder::add_exception_update(char *entry)
 	interruptedBlockTag.insCount = instructionsUntilFault;
 	interruptedBlockTag.blockID = faultingBB->second;
 	interruptedBlockTag.jumpModifier = INSTRUMENTED_CODE;
-	handle_exception_tag(&interruptedBlockTag);
+	handle_exception_tag(interruptedBlockTag);
 
 	ANIMATIONENTRY animUpdate;
 	animUpdate.entryType = eAnimExecException;
@@ -935,7 +930,6 @@ void trace_graph_builder::add_exec_count_update(char *entry)
 
 void trace_graph_builder::add_unlinking_update(char *entry)
 {
-	string bkbk = string(entry);
 	MEM_ADDRESS sourceAddr;
 	BLOCK_IDENTIFIER sourceID;
 	unsigned long long id_count;
@@ -948,8 +942,6 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	string block_id_count_string = string(strtok_s(entry, ",", &entry));
 	id_count = stoll(block_id_count_string, 0, 16);
 	sourceID = id_count >> 32;
-
-
 
 	if (piddata->numBlocksSeen() <= sourceID) {
 		Sleep(50);

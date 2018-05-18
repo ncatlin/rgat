@@ -246,9 +246,9 @@ bool get_pin_pingat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts,
 		string pingatPath2 = getModulePath();
 
 		if (is64Bits)
-			pingatPath2 += "\\pingat64";
+			pingatPath2 += "\\clients\\pingat64";
 		else
-			pingatPath2 += "\\pingat";
+			pingatPath2 += "\\clients\\pingat";
 
 		if (launchopts.debugLogging)
 			pingatPath2 += "-debug";

@@ -84,10 +84,10 @@ public:
 	proto_graph(traceRecord *runrecord, unsigned int threadID);
 	~proto_graph();
 
-	void insert_edge_between_BBs(INSLIST *source, INSLIST *target);
+	void insert_edge_between_BBs(INSLIST &source, INSLIST &target);
 	void insert_node(NODEINDEX targVertID, node_data node);
 	bool edge_exists(NODEPAIR edge, edge_data **edged);
-	void add_edge(edge_data e, node_data *source, node_data *target);
+	void add_edge(edge_data e, node_data &source, node_data &target);
 
 	EDGEMAP edgeDict; //node id pairs to edge data
 	EDGELIST edgeList; //order of edge execution
