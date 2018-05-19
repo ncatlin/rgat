@@ -89,10 +89,16 @@ void graphGLWidget::array_render(int prim, int POSVBO, int COLVBO, GLuint *buffe
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[COLVBO]);
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
-	//Check VBOs have been loaded correctly if crashing here
-	glDrawArrays(prim, 0, quantity);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	int err = glGetError();
+	if (err)
+		cerr << "GL1 error " << err << " in arr_r_pts (display active)" << endl;
 
+	//Check VBOs have been loaded correctly if crashing here
+	glDrawArrays(prim, 0, quantity);	
+	err = glGetError();
+	if (err)
+		cerr << "GL2 error " << err << " in arr_r_pts (display active)" << endl;
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void graphGLWidget::array_render_points(int POSVBO, int COLVBO, GLuint *buffers, GLsizei quantity)
@@ -118,20 +124,16 @@ void graphGLWidget::drawBoundingBox(int thickness, QColor colour)
 
 void graphGLWidget::drawBox(float x, float y, float w, float h, int thickness, QColor colour)
 {
-	glLineWidth(thickness);
+	glLineWidth((GLfloat)thickness);
 	glColor4f(colour.redF(), colour.greenF(), colour.blueF(), colour.alphaF());
 
-	int thicknessOffset = thickness - 1;
-
 	glBegin(GL_LINES);
-	//base left -> right
-	glVertex3f(x, y, 0); glVertex3f(x + w , y, 0);
-	//right base->top
-	glVertex3f(x + w, y - thicknessOffset, 0);	glVertex3f(x + w, y + h, 0);
-	//top right->left
-	glVertex3f(x + w, y + h - thicknessOffset, 0);	glVertex3f(x - thicknessOffset, y + h - thicknessOffset, 0);
-	//left top->base
-	glVertex3f(x, y + h - thicknessOffset, 0);	glVertex3f(x, y - thicknessOffset, 0);
+
+	glVertex3f(x, y, 0);	glVertex3f(x, y + h, 0); //left
+	glVertex3f(x, y, 0);	glVertex3f(x + w, y, 0); //top
+	glVertex3f(x + w -1, y, 0);	glVertex3f(x + w - 1, y + h, 0); //right
+	glVertex3f(x, y + h - 1, 0); glVertex3f(x + w, y + h -1, 0); //base
+
 	glEnd();
 }
 

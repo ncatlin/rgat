@@ -1,14 +1,14 @@
 @echo off
 
-set TESTSPATH="C:\Users\nia\Source\Repos\rgat\release\output\tests"
+set TESTSPATH="C:\Users\nia\Source\Repos\rgat\tests"
 set NASMPATH="C:\Users\nia\AppData\Local\bin\NASM\nasm.exe"
-set LINKERPATH="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64\link.exe"
+set LINKERPATH="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.12.25827\bin\HostX64\x64\link.exe"
 set LIBS32="C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\x86"
 set LIBS64="C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\x64"
 
 
 if not exist %LINKERPATH% (
-echo "linker path is bad"
+echo "linker path "+%LINKERPATH%+"is bad"
 goto end
 )
 
@@ -24,6 +24,11 @@ goto end
 
 IF NOT EXIST %LIBS64% (
 echo "libs 64 path is bad"
+goto end
+)
+
+IF NOT EXIST %TESTSPATH% (
+echo "testpath %TESTSPATH% is bad"
 goto end
 )
 

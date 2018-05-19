@@ -97,10 +97,15 @@ void moduleIncludeWidget::whitelistRadioToggle(bool newstate)
 {
 	if (newstate == false) return;
 
-	binaryTarget *binary = clientState->activeBinary;
-	if (!binary) return;
-
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+
+	binaryTarget *binary = clientState->activeBinary;
+	if (!binary) { 
+		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+		ui->mIncludeModeLabel->setText("Whitelist");
+		return;
+	}
+
 	includeui->blacklistRadio->blockSignals(true);
 	includeui->blacklistRadio->setChecked(false);
 	includeui->blacklistRadio->blockSignals(false);
@@ -115,7 +120,11 @@ void moduleIncludeWidget::blacklistRadioToggle(bool newstate)
 	if (newstate == false) return;
 
 	binaryTarget *binary = clientState->activeBinary;
-	if (!binary) return;
+	if (!binary) { 
+		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+		ui->mIncludeModeLabel->setText("Blacklist");
+		return; 
+	}
 
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 	includeui->whitelistRadio->blockSignals(true);

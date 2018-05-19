@@ -109,6 +109,11 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	binaryTarget *newTarget;
 	clientState->testTargets.getTargetByPath(testExe.generic_path(), &newTarget);
 
+	BWPATHLISTS newdata;
+	newdata.inWhitelistMode = false;
+	newdata.BLDirs.push_back(boost::filesystem::path("C:/windows"));
+	newTarget->setIncludelistData(newdata);
+
 	clock_t timeend, timestart = clock();
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	if (!execute_tracer(newTarget, clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked()))
@@ -118,10 +123,16 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	}
 
 	traceRecord *testtrace = NULL;
+	int timeLimit = 3000;
 	while (true)
 	{
+		if (timeLimit <= 0) {
+			cerr << "failed to connect to tracer, giving up" << endl;
+			return false;
+		}
 		Sleep(100);
 		testtrace = newTarget->getFirstTrace();
+		timeLimit -= 100;
 		if (!testtrace) continue;
 		if (testtrace->isRunning()) continue;
 		timeend = clock();

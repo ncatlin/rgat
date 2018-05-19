@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rgat", "rgat.vcxproj", "{80637C5B-59E6-35DE-BB7F-FBD959481C55}"
 EndProject
@@ -21,15 +21,16 @@ Global
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x64.ActiveCfg = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x64.Build.0 = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x86.ActiveCfg = Release|x64
-		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.ActiveCfg = releasedebug|x64
-		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.Build.0 = releasedebug|x64
-		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x86.ActiveCfg = releasedebug|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.ActiveCfg = Release|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.Build.0 = Release|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x86.ActiveCfg = Release|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		Qt5Version = msvc2017_64
 		SolutionGuid = {42F3720D-E392-431B-BE82-328EA9CC12EE}
+		Qt5Version = msvc2017_64
 	EndGlobalSection
 EndGlobal

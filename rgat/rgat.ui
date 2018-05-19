@@ -696,7 +696,7 @@
                             <string>Current module instrumentation mode for this target</string>
                            </property>
                            <property name="text">
-                            <string>Whitelist</string>
+                            <string>Blacklist</string>
                            </property>
                           </widget>
                          </item>

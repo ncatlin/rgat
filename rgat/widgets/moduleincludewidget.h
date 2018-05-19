@@ -17,6 +17,7 @@ public:
 	size_t blackFilesCount() { return BLFiles.size(); }
 	size_t whiteDirsCount() { return WLDirs.size(); }
 	size_t whiteFilesCount() { return WLFiles.size(); }
+	void syncBinaryToUI();
 
 public Q_SLOTS:
 	void whitelistRadioToggle(bool newstate);
@@ -37,7 +38,7 @@ private:
 	void addItem(QListWidget *target,
 		vector <boost::filesystem::path> *pathlist, QString filename);
 	void refreshLauncherUI();
-	void syncBinaryToUI();
+
 
 	vector <boost::filesystem::path> WLDirs;
 	vector <boost::filesystem::path> BLDirs;

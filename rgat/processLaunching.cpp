@@ -389,7 +389,7 @@ string get_options(LAUNCHOPTIONS &launchopts)
 	return optstring.str();
 }
 
-//take the target binary path, feed it into dynamorio with all the required options
+//take the target binary path, feed it into dynamorio/pin with all the required options
 bool execute_tracer(void *binaryTargetPtr, clientConfig &config, boost::filesystem::path tmpDir, bool pin = true)
 {
 	if (!binaryTargetPtr) return false;

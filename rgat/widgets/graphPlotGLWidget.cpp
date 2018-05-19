@@ -508,8 +508,6 @@ void graphPlotGLWidget::paintGL()
 
 	drawHUD();
 
-
-
 }
 
 void graphPlotGLWidget::resizeGL(int w, int h)

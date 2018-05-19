@@ -406,6 +406,9 @@ void gat_module_handler::sendIncludeLists()
 
 	if (includelists.inWhitelistMode)
 	{
+		if (includelists.WLDirs.empty() && includelists.WLFiles.empty())
+			std::cerr << "Warning: Exclude mode with nothing included. Nothing will be instrumented." << std::endl;
+
 		buf = "@W";
 		for each (boost::filesystem::path path in includelists.WLDirs)
 		{
@@ -420,6 +423,7 @@ void gat_module_handler::sendIncludeLists()
 	}
 	else
 	{
+
 		buf = "@B";
 		for each (boost::filesystem::path path in includelists.BLDirs)
 		{
@@ -435,6 +439,6 @@ void gat_module_handler::sendIncludeLists()
 
 	buf.append("@X");
 
-	cout << "sendinglist data" << endl;
+	cout << "Sending includelist data: " << buf << endl;
 	WriteFile(inputPipe, &buf.at(0), (DWORD)buf.size(), &bread, 0);
 }

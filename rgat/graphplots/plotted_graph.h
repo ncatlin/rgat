@@ -94,7 +94,7 @@ public:
 		{ cerr << "Warning: Virtual drawHighlight called\n" << endl; };
 	virtual void irregularActions() {}
 	virtual void previewYScroll() {}
-	virtual int prevScrollYPosition() { return -55; }
+	virtual int prevScrollYPosition() { return -255; }
 	virtual float previewZoom() { return -550; }
 	virtual pair<void *, float> get_diffgraph_nodes() { return make_pair((void *)0, (float)0.0); }
 	virtual void set_diffgraph_nodes(pair<void *, float> diffData) {  }

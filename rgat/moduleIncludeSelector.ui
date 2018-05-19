@@ -90,7 +90,7 @@
    <item>
     <widget class="moduleIncludeWidget" name="blackWhiteListStack">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="blacklistPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">

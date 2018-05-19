@@ -21,8 +21,8 @@ Header for graph layout coordinate processing functions
 #include <stdafx.h>
 #include "mathStructs.h"
 
-#define COLOUR_VERTS_SIZE(qty) (qty & COLELEMS & sizeof(float))
-#define POSITION_VERTS_SIZE(qty) (qty & POSELEMS & sizeof(float))
+#define COLOUR_VERTS_SIZE(qty) (qty * COLELEMS * sizeof(float))
+#define POSITION_VERTS_SIZE(qty) (qty * POSELEMS * sizeof(float))
 
 float getPulseAlpha();
 

@@ -61,8 +61,8 @@ private:
 	void initializeGL();
 	void drawPreviewGraphToBuffer(plotted_graph &previewgraph);
 	void uploadPreviewGraph(plotted_graph &previewgraph);
-	void drawPreviewNodesVerts(plotted_graph &previewgraph, int imageWidth);
-	void drawPreviewOutline(plotted_graph &previewgraph, int imageWidth);
+	void drawPreviewNodesVerts(plotted_graph &previewgraph);
+	void drawPreviewOutline(plotted_graph &previewgraph);
 	void drawPreviewInfo(plotted_graph &graph, int imageWidth, QPainter *painter, int yPos);
 	void drawGraphBuffer(int x, int y);
 	void refreshPreviewGraphs(bool forceFullCheck);

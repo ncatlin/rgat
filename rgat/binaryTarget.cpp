@@ -15,7 +15,7 @@ binaryTarget::binaryTarget(boost::filesystem::path path)
 	filepath = path; 
 	sha256hash = "";
 
-	//todo: read from defaults
+	//sort out default include/excludes and per-binary in settings
 	blackwhitelists.inWhitelistMode = false;
 	blackwhitelists.BLDirs.push_back(boost::filesystem::path("C:\\windows"));
 }
@@ -44,6 +44,7 @@ void binaryTarget::computeHash()
 		shahash_SS << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[i]);
 	}
 	sha256hash = shahash_SS.str();
+	ifs.close();
 }
 
 eExeCheckResult binaryTarget::getTraceableStatus()

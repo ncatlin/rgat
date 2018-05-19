@@ -60,7 +60,7 @@ public:
 	void initialiseCustomDimensions(GRAPH_SCALE scale);
 
 	float previewZoom() { return -2550; }
-	int prevScrollYPosition() { return 580; }
+	int prevScrollYPosition() { return -250; }
 
 	int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data **node);
 
