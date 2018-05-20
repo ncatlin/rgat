@@ -65,7 +65,6 @@ void testRun::beginTests()
 		}
 
 		int timeLimit;
-
 		auto timeoutIt = testJSON.FindMember("TIMEOUT");
 		if (timeoutIt != testJSON.MemberEnd())
 			timeLimit = timeoutIt->value.GetUint() * 1000;
@@ -101,12 +100,12 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	if (modifier == "a64")
 	{
 		testExe += ".64.exe";
-		cout << "Running 64 bit test - " << testExe << endl;
+		cout << "Running 64 bit test - " << testExe << " with "<< timeLimit << "s timeout" endl;
 	}
 	else if (modifier == "a86")
 	{
 		testExe += ".86.exe";
-		cout << "Running 32 bit test - " << testExe << endl;
+		cout << "Running 32 bit test - " << testExe << " with " << timeLimit << "s timeout" endl;
 	}
 	else
 	{
@@ -136,7 +135,7 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	{
 		if (timeLimit <= 0) {
 			cerr << "No results for test after " << timeLimit << " seconds - possibly still running?" << std::endl;
-			cerr << "Giving up and marking it as failed." << endl;
+			cerr << "\tGiving up and marking it as failed." << endl;
 			return false;
 		}
 		Sleep(100);
@@ -145,11 +144,12 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 		if (!testtrace) continue;
 		if (testtrace->isRunning()) continue;
 		timeend = clock();
-		Sleep(100);
+
 		break;
 	}
 
 	clock_t duration = (timeend - timestart)/1000;
+	Sleep(100);
 
 	bool success = validateTestResults(testtrace, expectedResults);
 	if (!success)
