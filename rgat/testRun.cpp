@@ -100,12 +100,12 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	if (modifier == "a64")
 	{
 		testExe += ".64.exe";
-		cout << "Running 64 bit test - " << testExe << " with "<< timeLimit << "s timeout" endl;
+		cout << "Running 64 bit test - " << testExe << " with " << timeLimit << "s timeout" << endl;
 	}
 	else if (modifier == "a86")
 	{
 		testExe += ".86.exe";
-		cout << "Running 32 bit test - " << testExe << " with " << timeLimit << "s timeout" endl;
+		cout << "Running 32 bit test - " << testExe << " with " << timeLimit << "s timeout" << endl;
 	}
 	else
 	{
@@ -139,12 +139,13 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 			return false;
 		}
 		Sleep(100);
-		testtrace = newTarget->getFirstTrace();
 		timeLimit -= 100;
+
+		testtrace = newTarget->getFirstTrace();		
 		if (!testtrace) continue;
 		if (testtrace->isRunning()) continue;
-		timeend = clock();
 
+		timeend = clock();
 		break;
 	}
 

@@ -321,3 +321,4 @@ rgat*.zip
 /debuglogs
 *.exe
 /releasedebug/output
+/pin.log.server.1608

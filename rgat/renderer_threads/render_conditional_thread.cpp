@@ -38,10 +38,11 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
 		{
-			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
 			node_data *node = graph->get_protoGraph()->safe_get_node(nodeIdx++);
 			if (!node) break;
+
+			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
 			int condStatus = node->conditional;
 			if (!condStatus)
@@ -67,9 +68,11 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 				nodeCol->insert(nodeCol->end(), failOnlyCol, end(failOnlyCol));
 				++graph->condCounts.second;
 			}
-
-			//ignore CONDPENDING for this iteration, not worth dealing with
-			continue;
+			else
+			{
+				//ignore CONDPENDING for this iteration, not worth dealing with
+				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
+			}
 			
 		}
 	}

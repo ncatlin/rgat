@@ -59,7 +59,6 @@ Creates a tree layout for a plotted graph
 
 void tree_graph::initialiseDefaultDimensions()
 {
-
 	wireframeSupported = false;
 	//preview_scalefactors->AEDGESEP = 0.15;
 	//preview_scalefactors->BEDGESEP = 0.15;
