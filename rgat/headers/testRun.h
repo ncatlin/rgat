@@ -12,7 +12,7 @@ public:
 
 private:
 	boost::filesystem::path _testsDirectory;
-	bool runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, string modifier);
+	bool runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, uint timeLimit, string modifier);
 	bool validateTestResults(traceRecord *testtrace, rapidjson::Value::ConstMemberIterator expectedResults);
 	bool testNodeDetails(proto_graph *graph, rapidjson::Value::ConstMemberIterator expectedResultIt);
 	void printResults();

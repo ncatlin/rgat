@@ -243,8 +243,6 @@ void plotted_graph::display_active(graphGLWidget &gltarget)
 		int err = glGetError();
 		if (err) 
 			cerr << "GL error " << err << " in arr_r_pts (display active) loading " << animnodesdata->get_numLoadedVerts() << endl;
-		else
-			cerr << "GL success loading " << animnodesdata->get_numLoadedVerts() << endl;
 	}
 
 	if (clientState->showEdges &&  animlinedata->get_numLoadedVerts())
@@ -1340,7 +1338,6 @@ int plotted_graph::render_new_preview_edges()
 
 		}
 
-		std::cout << " Render prevedge " << edgeIt->first << "," << edgeIt->second << std::endl;
 		if (!render_edge(*edgeIt, previewlines, 0, true, false))
 		{
 			internalProtoGraph->stop_edgeL_iteration();

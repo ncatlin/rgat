@@ -132,7 +132,7 @@ void gat_module_handler::main_loop()
 		BOOL GOResult = GetOverlappedResult(inputPipe, &ov2, &bread, false);
 		if (!GOResult)
 		{
-			cout << "Get overlapped failed" << endl;
+			//cout << "Get overlapped failed" << endl;
 		}
 		buf[bread] = 0;
 	

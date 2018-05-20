@@ -64,11 +64,19 @@ void testRun::beginTests()
 			continue;
 		}
 
+		int timeLimit;
+
+		auto timeoutIt = testJSON.FindMember("TIMEOUT");
+		if (timeoutIt != testJSON.MemberEnd())
+			timeLimit = timeoutIt->value.GetUint() * 1000;
+		else
+			timeLimit = 10000;
+
 		rapidjson::Value::ConstMemberIterator expectedResults86 = testJSON.FindMember("a86");
 		if (expectedResults86 != testJSON.MemberEnd())
 		{
 			boost::filesystem::path teststem = itr->path().stem();
-			bool result = runTest(teststem, expectedResults86, "a86");
+			bool result = runTest(teststem, expectedResults86, timeLimit, "a86");
 
 			testResults[result]["a86"].push_back(teststem);
 		}
@@ -77,7 +85,7 @@ void testRun::beginTests()
 		if (expectedResults64 != testJSON.MemberEnd())
 		{
 			boost::filesystem::path teststem = itr->path().stem();
-			bool result = runTest(teststem, expectedResults64, "a64");
+			bool result = runTest(teststem, expectedResults64, timeLimit, "a64");
 
 			testResults[result]["a64"].push_back(teststem);
 		}
@@ -86,7 +94,7 @@ void testRun::beginTests()
 	printResults();
 }
 
-bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, string modifier)
+bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstMemberIterator expectedResults, uint timeLimit, string modifier)
 {
 	boost::filesystem::path testExe = _testsDirectory;
 	testExe += testStem;
@@ -123,11 +131,12 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	}
 
 	traceRecord *testtrace = NULL;
-	int timeLimit = 3000;
+
 	while (true)
 	{
 		if (timeLimit <= 0) {
-			cerr << "failed to connect to tracer, giving up" << endl;
+			cerr << "No results for test after " << timeLimit << " seconds - possibly still running?" << std::endl;
+			cerr << "Giving up and marking it as failed." << endl;
 			return false;
 		}
 		Sleep(100);

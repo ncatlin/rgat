@@ -277,7 +277,6 @@ void previewPlotGLWidget::drawPreviewNodesVerts(plotted_graph &previewgraph)
 	glTranslatef(0, previewgraph.prevScrollYPosition(), 0); 
 	glRotatef(90.0 + clientState->getPreviewAngle(), 0, 1, 0);
 
-
 	array_render_points(VBO_NODE_POS, VBO_NODE_COL, previewgraph.previewVBOs, previewgraph.previewnodes->get_numLoadedVerts());
 	array_render_lines(VBO_LINE_POS, VBO_LINE_COL, previewgraph.previewVBOs, previewgraph.previewlines->get_numLoadedVerts());
 
