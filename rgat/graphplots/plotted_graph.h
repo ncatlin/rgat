@@ -58,6 +58,10 @@ struct SCREEN_QUERY_PTRS {
 	PROJECTDATA *pd;
 };
 
+struct GENERIC_COORD {
+	void *coordPtr;
+};
+
 class plotted_graph
 {
 public:
@@ -88,10 +92,15 @@ public:
 	virtual void reset_edgeSep() {};
 	virtual void adjust_size(float delta) {};
 
-	virtual void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget &gltarget) 
-		{ cerr << "Warning: Virtual drawHighlight called\n" << endl; };
-	virtual void drawHighlight(void* graphCoord, GRAPH_SCALE *scale, QColor *colour, int lengthModifier, graphGLWidget &gltarget)
-		{ cerr << "Warning: Virtual drawHighlight called\n" << endl; };
+	virtual void drawHighlight(GENERIC_COORD& graphCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
+	{
+		cerr << "Warning: Virtual drawHighlight (void *) called\n" << endl;
+	};
+	virtual void drawHighlight(NODEINDEX nodeIndex,       GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget) 
+		{ cerr << "Warning: Virtual drawHighlight (nodeindex) called\n" << endl; };
+
+
+
 	virtual void irregularActions() {}
 	virtual void previewYScroll() {}
 	virtual int prevScrollYPosition() { return -255; }
@@ -153,12 +162,12 @@ public:
 	bool isWireframeActive() { return wireframeActive; }
 	void setWireframeActive(bool newState) { wireframeActive = wireframeSupported ? newState : false; }
 
-	GRAPH_DISPLAY_DATA *get_mainlines() { return mainlinedata; }
-	GRAPH_DISPLAY_DATA *get_mainnodes() { return mainnodesdata; }
+	GRAPH_DISPLAY_DATA* get_mainlines() { return mainlinedata; }
+	GRAPH_DISPLAY_DATA* get_mainnodes() { return mainnodesdata; }
 
 	bool increase_thread_references(int caller);
 	void decrease_thread_references(int caller);
-	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor *colour, int lengthModifier, graphGLWidget &gltarget);
+	void display_highlight_lines(vector<NODEINDEX> *nodeList, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
 	void setHighlightData(vector<NODEINDEX> *nodeList, egraphHighlightModes highlightType);
 
 public:

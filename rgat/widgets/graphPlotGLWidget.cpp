@@ -549,8 +549,10 @@ void graphPlotGLWidget::display_graph_diff(void *diffRenderer, node_data* diverg
 
 	if (divergeNode)
 	{
-		void *nodePos = graph1->get_node_coord_ptr(divergeNode->index);
-		diffgraph->drawHighlight(nodePos, diffgraph->main_scalefactors, &al_col_orange, 10, thisWidget);
+		GENERIC_COORD coord = { graph1->get_node_coord_ptr(divergeNode->index) };
+		QColor colour = al_col_orange;
+		if (coord.coordPtr)
+			diffgraph->drawHighlight(coord, diffgraph->main_scalefactors, colour, 10, thisWidget);
 	}
 
 	float zmul = zoomFactor(graph1->cameraZoomlevel, graph1->main_scalefactors->plotSize);

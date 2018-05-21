@@ -1277,7 +1277,7 @@ void plotted_graph::reset_mainlines()
 }
 
 
-void plotted_graph::display_highlight_lines(vector<NODEINDEX> *nodePtrList, QColor *colour, int lengthModifier, graphGLWidget &gltarget)
+void plotted_graph::display_highlight_lines(vector<NODEINDEX> *nodePtrList, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	vector<NODEINDEX>::iterator nodeIt = nodePtrList->begin();
 	for (; nodeIt != nodePtrList->end(); ++nodeIt)
@@ -1791,7 +1791,7 @@ void plotted_graph::draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWi
 
 		if (!clientState->config.instructionTextVisibility.extraDetail || zdist > clientState->config.insTextCompactThreshold)
 		{
-			if (n->ins->itype != eNodeType::eInsUndefined || !n->label.isEmpty())
+			if (n->ins->itype != eNodeType::eInsUndefined || n->conditional != 0 || !n->label.isEmpty())
 				compactDisplay = false;
 			else
 				compactDisplay = true;
@@ -2087,7 +2087,9 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget &plotwindow, void *div
 
 	if (divergeNodePosition)
 	{
-		drawHighlight(divergeNodePosition, main_scalefactors, &al_col_orange, 10, plotwindow);
+		GENERIC_COORD genCoord = { divergeNodePosition };
+		QColor colour = al_col_orange;
+		drawHighlight(genCoord, main_scalefactors, colour, 10, plotwindow);
 	}
 
 	float zmul = zoomFactor(cameraZoomlevel, main_scalefactors->plotSize);

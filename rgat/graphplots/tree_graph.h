@@ -43,8 +43,8 @@ public:
 	void render_static_graph();
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate);
 
-	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
-	void drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier);
+	void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
+	void drawHighlight(GENERIC_COORD& nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
 
 	bool get_visible_node_pos(NODEINDEX nidx, DCOORD *screenPos, SCREEN_QUERY_PTRS *screenInfo, graphGLWidget &gltarget);
 	TREECOORD *get_node_coord(NODEINDEX idx);

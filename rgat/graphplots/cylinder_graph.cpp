@@ -637,12 +637,10 @@ void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QCol
 }
 
 //draws a line from the center of the cylinder to nodepos. adds lengthModifier to the end
-void cylinder_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
+void cylinder_graph::drawHighlight(GENERIC_COORD& graphCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	FCOORD nodeCoordxyz;
-	if (!nodeCoord) return;
-
-	cylinderCoord((CYLINDERCOORD *)nodeCoord,  &nodeCoordxyz, scale, lengthModifier);
+	cylinderCoord((CYLINDERCOORD *)graphCoord.coordPtr,  &nodeCoordxyz, scale, lengthModifier);
 	gltarget.drawHighlightLine(nodeCoordxyz, colour);
 }
 
@@ -826,7 +824,7 @@ void cylinder_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 	if (!highlightData.highlightNodes.empty())
 	{
 		display_highlight_lines(&highlightData.highlightNodes,
-			&clientState->config.mainColours.highlightLine, clientState->config.highlightProtrusion, gltarget);
+			clientState->config.mainColours.highlightLine, clientState->config.highlightProtrusion, gltarget);
 	}
 
 	if (clientState->heatmapMode)

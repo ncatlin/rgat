@@ -36,7 +36,7 @@ Creates a tree layout for a plotted graph
 #define AMULT 1
 #define BMULT 1
 
-#define CALLA 40
+#define CALLA 15
 #define CALLB 15
 
 #define JUMPA 4
@@ -47,7 +47,7 @@ Creates a tree layout for a plotted graph
 #define EXTERNB 8
 
 //controls placement of the node after a return
-#define RETURNA_OFFSET 5
+#define RETURNA_OFFSET 0
 #define RETURNB_OFFSET 5
 
 
@@ -381,7 +381,7 @@ void tree_graph::render_static_graph()
 }
 
 //draws a line from the center of the layout to nodepos. adds lengthModifier to the end
-void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier)
+void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	FCOORD nodeCoordxyz;
 	TREECOORD *nodeCoordTree = get_node_coord(nodeIndex);
@@ -394,11 +394,9 @@ void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &
 }
 
 //draws a line from the center of the layout to nodepos. adds lengthModifier to the end
-void tree_graph::drawHighlight(void * nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier)
+void tree_graph::drawHighlight(GENERIC_COORD& nodeCoord, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
 	FCOORD nodeCoordxyz;
-	if (!nodeCoord) return;
-
 //	TREECOORD *treeNodeCoord = (TREECOORD *)nodeCoord;
 	//float adjB = treeNodeCoord->b + float(sphereNodeCoord->bMod * BMODMAG);
 	//sphereCoord(sphereNodeCoord->a, adjB, &nodeCoordxyz, scale, lengthModifier);
@@ -605,13 +603,13 @@ void tree_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 
 	//line marking last instruction
 	//<there may be a need to do something different depending on currentUnchainedBlocks.empty() or not>
-	drawHighlight(lastAnimatedNode, main_scalefactors, clientState->config.mainColours.activityLine, 0);
+	drawHighlight(lastAnimatedNode, main_scalefactors, clientState->config.mainColours.activityLine, 0, gltarget);
 
 	//highlight lines
 	if (highlightData.highlightState)
 	{
 		display_highlight_lines(&highlightData.highlightNodes,
-			&clientState->config.mainColours.highlightLine, clientState->config.highlightProtrusion, gltarget);
+			clientState->config.mainColours.highlightLine, clientState->config.highlightProtrusion, gltarget);
 	}
 
 

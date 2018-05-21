@@ -38,29 +38,28 @@ bool conditional_renderer::render_graph_conditional(plotted_graph *graph)
 		graph->condCounts = make_pair(0,0);
 		while (nodeIdx < nodeEnd)
 		{
-
 			node_data *node = graph->get_protoGraph()->safe_get_node(nodeIdx++);
 			if (!node) break;
 
 			conditionalNodes->set_numVerts(conditionalNodes->get_numVerts() + 1);
 
 			int condStatus = node->conditional;
+			//not a conditional
 			if (!condStatus)
 			{
 				nodeCol->insert(nodeCol->end(), invisibleCol, end(invisibleCol));
 				continue;
 			}
-
+			//jump failed + succeeded
 			if (condStatus == CONDCOMPLETE)
 				nodeCol->insert(nodeCol->end(), bothPathsCol, end(bothPathsCol));
-
-			else if (((condStatus & CONDTAKEN) == CONDTAKEN)  && 			//jump only seen to succeed
+			//jump only seen to succeed
+			else if (((condStatus & CONDTAKEN) == CONDTAKEN)  && 			
 				((condStatus & CONDFELLTHROUGH) != CONDFELLTHROUGH))
 			{
 				nodeCol->insert(nodeCol->end(), succeedOnlyCol, end(succeedOnlyCol));
 				++graph->condCounts.first;
 			}
-
 			//jump only seen to fail
 			else if (((condStatus & CONDTAKEN) != CONDTAKEN) &&
 				((condStatus & CONDFELLTHROUGH) == CONDFELLTHROUGH))
