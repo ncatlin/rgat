@@ -103,7 +103,8 @@ void gat_basicblock_handler::main_loop()
 			if (!runRecord->isRunning() || runRecord->should_die()) break;
 		}
 
-		if (GetLastError() != ERROR_IO_PENDING) continue;
+		DWORD lastError = GetLastError();
+		if (lastError && lastError != ERROR_IO_PENDING) continue;
 		int res2 = GetOverlappedResult(inputPipe, &ov2, &bread, false);
 		buf[bread] = 0;
 
@@ -176,8 +177,6 @@ void gat_basicblock_handler::main_loop()
 			BLOCK_IDENTIFIER blockID;
 			memcpy(&blockID, &buf.at(bufPos), sizeof(BLOCK_IDENTIFIER));
 			bufPos += sizeof(BLOCK_IDENTIFIER);
-
-			//logf << "blockaddr: " << start_s << " module : " <<modnum << " instrumented: "<<instrumented<<endl;
 
 			if (!instrumented) //should no longer happen
 			{

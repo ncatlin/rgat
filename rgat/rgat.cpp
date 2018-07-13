@@ -123,8 +123,8 @@ void rgat::setupUI()
 	//disable various stubs until implemented
 
 	//disable tree option https://stackoverflow.com/questions/11439773/disable-item-in-qt-combobox
-	QVariant v(0);
-	ui.visLayoutSelectCombo->setItemData(eTreeLayout, v, Qt::UserRole - 1);
+	//QVariant v(0);
+	//ui.visLayoutSelectCombo->setItemData(eTreeLayout, v, Qt::UserRole - 1);
 
 	//disable fuzzing tab
 	ui.dynamicAnalysisContentsTab->removeTab(eFuzzTab);

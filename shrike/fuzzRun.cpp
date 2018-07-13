@@ -171,9 +171,9 @@ void fuzzRun::main_loop()
 		return;
 	}
 
-	boost::filesystem::path shrikepath("C:\\Users\\nia\\Documents\\Visual Studio 2017\\Projects\\rgatPinClients\\shrikePinTool\\x64\\Release\\shrikePin.dll");
+	boost::filesystem::path shrikepath("C:\\Users\\nia\\Documents\\Visual Studio 2017\\Projects\\rgatPinClients\\shrikePin\\x64\\Release\\shrikePin.dll");
 	if (!boost::filesystem::exists(shrikepath))	{
-		cerr << "shrike.dll library at " << shrikepath.string() << " does not exist. Quitting." << endl;
+		cerr << "shrike dll file '" << shrikepath.string() << "' does not exist. Quitting." << endl;
 		return;
 	}
 

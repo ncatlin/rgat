@@ -11,6 +11,8 @@ Global
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		releasedbg|x64 = releasedbg|x64
+		releasedbg|x86 = releasedbg|x86
 		releasedebug|x64 = releasedebug|x64
 		releasedebug|x86 = releasedebug|x86
 	EndGlobalSection
@@ -21,6 +23,9 @@ Global
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x64.ActiveCfg = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x64.Build.0 = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.Release|x86.ActiveCfg = Release|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedbg|x64.ActiveCfg = releasedbg|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedbg|x64.Build.0 = releasedbg|x64
+		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedbg|x86.ActiveCfg = releasedbg|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.ActiveCfg = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x64.Build.0 = Release|x64
 		{80637C5B-59E6-35DE-BB7F-FBD959481C55}.releasedebug|x86.ActiveCfg = Release|x64
@@ -30,7 +35,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {42F3720D-E392-431B-BE82-328EA9CC12EE}
 		Qt5Version = msvc2017_64
+		SolutionGuid = {42F3720D-E392-431B-BE82-328EA9CC12EE}
 	EndGlobalSection
 EndGlobal

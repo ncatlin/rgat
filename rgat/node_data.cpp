@@ -157,7 +157,7 @@ int node_data::deserialise(const rapidjson::Value& nodeData, map <MEM_ADDRESS, I
 	{
 		label = nodeData[10].GetString();
 		placeholder = nodeData[11].GetBool();
-		if (!placeholder)
+		if (ins && !placeholder)
 			ins->hasSymbol = true;
 	}
 

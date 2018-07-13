@@ -81,6 +81,7 @@ pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> PROCESS_DATA::blockDetails(BLOCK_IDENTI
 	pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> blockPair;
 
 	getDisassemblyReadLock();
+	assert(blockid < blockList.size());
 	blockPair = blockList.at(blockid);
 	dropDisassemblyReadLock();
 

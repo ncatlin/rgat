@@ -30,6 +30,13 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 //also gathers some statistics and logs for the graph (like external calls)
 void preview_renderer::main_loop()
 {
+	//return;
+
+
+
+
+
+
 	alive = true;
 
 

@@ -322,3 +322,4 @@ rgat*.zip
 *.exe
 /releasedebug/output
 /pin.log.server.1608
+/enc_temp_folder

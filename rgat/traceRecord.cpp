@@ -59,6 +59,7 @@ void traceRecord::getProtoGraphs(void *graphPtrVecPtr)
 	graphListLock.unlock();
 }
 
+//todo: sometimes this returns bad memory when first launching
 void * traceRecord::get_first_graph()
 {
 	if (plottedGraphs.empty()) return NULL;

@@ -1080,6 +1080,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 	MEM_ADDRESS nextBlockAddress;
 
 	thistag.blockID = stoull(strtok_s(entry + 1, ",", &entry), 0, 16);
+
 	thistag.blockaddr = piddata->blockDetails(thistag.blockID).first;
 	nextBlockAddress = stoull(strtok_s(entry, ",", &entry), 0, 16);
 
