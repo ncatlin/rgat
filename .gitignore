@@ -323,3 +323,5 @@ rgat*.zip
 /releasedebug/output
 /pin.log.server.1608
 /enc_temp_folder
+/rgat/tests/themidatest-add.86.asm
+/rgat/tests/themidatest-addsub.86.asm

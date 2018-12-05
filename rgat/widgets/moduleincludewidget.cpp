@@ -6,23 +6,44 @@
 moduleIncludeWidget::moduleIncludeWidget(QWidget *parent)
 	:QStackedWidget(parent)
 {
-	setCurrentIndex(0); //default blacklist
+	//default blacklist but save last choice
+	//client state isn't inited yet though so we have to do it later
+	setCurrentIndex(ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting);
+	BlacklistMode = ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting;
+	
+
+	this->installEventFilter(this);
+
+}
+
+bool moduleIncludeWidget::eventFilter(QObject *object, QEvent *event)
+{
+
+	if (object == this && event->type() == QEvent::KeyPress) {
+		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+		if (keyEvent->key() == Qt::Key_Delete || keyEvent->key() == Qt::Key_Backspace) {
+
+			removeSelectedFile();
+
+			return true;
+		}
+		else
+			return false;
+	}
+	return false;
 }
 
 void moduleIncludeWidget::clearAll()
 {
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 	WLDirs.clear();
-	includeui->whitelistDirsList->clear();
-
 	BLDirs.clear();
-	includeui->blacklistDirsList->clear();
 
 	WLFiles.clear();
-	includeui->whitelistFilesList->clear();
+	//includeui->whitelistFilesList->clear();
 
 	BLFiles.clear();
-	includeui->blacklistFilesList->clear();
+	//includeui->blacklistFilesList->clear();
 }
 
 void moduleIncludeWidget::refreshLauncherUI()
@@ -46,7 +67,8 @@ void moduleIncludeWidget::refreshLauncherUI()
 	}
 }
 
-void moduleIncludeWidget::refresh()
+
+void moduleIncludeWidget::SyncUIWithCurrentBinary()
 {
 	binaryTarget *binary = clientState->activeBinary;
 	if (!binary) return;
@@ -54,83 +76,126 @@ void moduleIncludeWidget::refresh()
 	BWPATHLISTS bwlistPaths = binary->getBWListPaths();
 
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	includeui->blacklistRadio->blockSignals(true);
-	includeui->whitelistRadio->blockSignals(true);
+	
+	includeui->libModeSelectBtn->blockSignals(true);
+
 	if (bwlistPaths.inWhitelistMode)
 	{
-		includeui->blackWhiteListStack->setCurrentIndex(1);
-		includeui->blacklistRadio->setChecked(false);
-		includeui->whitelistRadio->setChecked(true);
+		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eWhitelisting);
+		includeui->libModeSelectBtn->setChecked(false);
 	}
 	else
 	{
-		includeui->blackWhiteListStack->setCurrentIndex(0);
-		includeui->blacklistRadio->setChecked(true);
-		includeui->whitelistRadio->setChecked(false);
+		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eBlacklisting);
+		includeui->libModeSelectBtn->setChecked(true);
 	}
-	includeui->blacklistRadio->blockSignals(false);
-	includeui->whitelistRadio->blockSignals(false);
+	includeui->libModeSelectBtn->blockSignals(false);
 
 	clearAll();
 
+	
 	for each (boost::filesystem::path path in bwlistPaths.BLDirs)
 	{
-		addItem(includeui->blacklistDirsList, &BLDirs, QString::fromStdString(path.string()));
+		QString qstrpath = QString::fromStdString(path.string());
+		addItem(includeui->blacklistFilesList, &BLDirs, qstrpath);
 	}
-	for each (boost::filesystem::path path in bwlistPaths.WLDirs)
-	{
-		addItem(includeui->whitelistDirsList, &WLDirs, QString::fromStdString(path.string()));
-	}
+
 	for each (boost::filesystem::path path in bwlistPaths.BLFiles)
 	{
-		addItem(includeui->blacklistFilesList, &BLFiles, QString::fromStdString(path.string()));
+		QString qstrpath = QString::fromStdString(path.string());
+		addItem(includeui->blacklistFilesList, &BLFiles, qstrpath);
+	}
+
+	for each (boost::filesystem::path path in bwlistPaths.WLDirs)
+	{
+		QString qstrpath = QString::fromStdString(path.string());
+		addItem(includeui->whitelistFilesList, &WLDirs, qstrpath);
 	}
 	for each (boost::filesystem::path path in bwlistPaths.WLFiles)
 	{
-		addItem(includeui->whitelistFilesList, &WLFiles, QString::fromStdString(path.string()));
+		QString qstrpath = QString::fromStdString(path.string());
+		addItem(includeui->whitelistFilesList, &WLFiles, qstrpath);
 	}
-
 	refreshLauncherUI();
 }
 
-void moduleIncludeWidget::whitelistRadioToggle(bool newstate)
+void moduleIncludeWidget::triggerFileDialog()
 {
-	if (newstate == false) return;
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	QStringList fileNames = QFileDialog::getOpenFileNames(this , "Choose files to blacklist");
+
+	ModuleModeSelector::eCurrentBlacklistMode blacklistMode = this->BlacklistMode;
+
+	for each(QString fname in fileNames)
+	{
+		if (blacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+			addItem(includeui->blacklistFilesList, &BLFiles, fname);
+		else
+			addItem(includeui->whitelistFilesList, &WLFiles, fname);
+	}
+}
+
+void moduleIncludeWidget::triggerDirDialog()
+{
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	QString dirname = QFileDialog::getExistingDirectory(this, "Choose a directory to blacklist");
+
+	if (BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+		addItem(includeui->blacklistFilesList, &BLDirs, dirname);
+	else
+		addItem(includeui->whitelistFilesList, &WLDirs, dirname);
+
+}
+
+void moduleIncludeWidget::modeToggle(bool newstate)
+{
+	if (BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+		switchToWhitelistMode();
+	else
+		switchToBlacklistMode();
+
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	std::cout << "Button is now check: " << includeui->libModeSelectBtn->isChecked() << std::endl;
+}
+
+void moduleIncludeWidget::switchToBlacklistMode()
+{
+
+	BlacklistMode = ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting;
+
 
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 
+	includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting);
+	includeui->libModeSelectBtn->setText("Toggle Whitelisting");
+
 	binaryTarget *binary = clientState->activeBinary;
+
 	if (!binary) { 
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
-		ui->mIncludeModeLabel->setText("Whitelist");
+		ui->mIncludeModeLabel->setText("Blacklist");
 		return;
 	}
-
-	includeui->blacklistRadio->blockSignals(true);
-	includeui->blacklistRadio->setChecked(false);
-	includeui->blacklistRadio->blockSignals(false);
-	setCurrentIndex(1);
 
 	syncBinaryToUI();
 	refreshLauncherUI();
 }
 
-void moduleIncludeWidget::blacklistRadioToggle(bool newstate)
+void moduleIncludeWidget::switchToWhitelistMode()
 {
-	if (newstate == false) return;
+	BlacklistMode = ModuleModeSelector::eCurrentBlacklistMode::eWhitelisting;
+
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eCurrentBlacklistMode::eWhitelisting);
+	includeui->libModeSelectBtn->setText("Toggle Blacklisting");
 
 	binaryTarget *binary = clientState->activeBinary;
 	if (!binary) { 
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
-		ui->mIncludeModeLabel->setText("Blacklist");
+		ui->mIncludeModeLabel->setText("Whitelist");
 		return; 
 	}
-
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	includeui->whitelistRadio->blockSignals(true);
-	includeui->whitelistRadio->setChecked(false);
-	includeui->whitelistRadio->blockSignals(false);
-	setCurrentIndex(0);
+	
 
 	syncBinaryToUI();
 	refreshLauncherUI();
@@ -138,13 +203,15 @@ void moduleIncludeWidget::blacklistRadioToggle(bool newstate)
 
 void moduleIncludeWidget::syncBinaryToUI()
 {
+
 	binaryTarget *binary = clientState->activeBinary;
 	if (!binary) return;
 
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 
 	BWPATHLISTS newdata;
-	newdata.inWhitelistMode = includeui->whitelistRadio->isChecked();
+
+	newdata.inWhitelistMode = (BlacklistMode == ModuleModeSelector::eWhitelisting);
 	newdata.BLDirs = this->BLDirs;
 	newdata.BLFiles = this->BLFiles;
 	newdata.WLDirs = this->WLDirs;
@@ -154,64 +221,52 @@ void moduleIncludeWidget::syncBinaryToUI()
 }
 
 
-void moduleIncludeWidget::removeSelected(QListWidget *target)
+void moduleIncludeWidget::removeSelectedTableRows(QTableWidget *target)
 {
-	QList<QListWidgetItem *> selected = target->selectedItems();
-	for each (QListWidgetItem * item in selected)
-	{
-		delete item;
+	//https://www.qtcentre.org/threads/4885-Remove-selected-rows-from-a-QTableView
+	QItemSelection selection(target->selectionModel()->selection());
+	QList<int> rows;
+	foreach(const QModelIndex & index, selection.indexes()) {
+		rows.append(index.row());
 	}
+
+	qSort(rows);
+
+	int prev = -1;
+	for (int i = rows.count() - 1; i >= 0; i -= 1) {
+		int current = rows[i];
+		if (current != prev) {
+			target->model()->removeRows(current, 1);
+			prev = current;
+		}
+	}
+
 }
 
-void moduleIncludeWidget::buildPathList(QListWidget *target, vector <boost::filesystem::path> *pathlist)
+void moduleIncludeWidget::buildPathList(QTableWidget *target, vector <boost::filesystem::path> *pathlist)
 {
 	pathlist->clear();
-	int remainingRows = target->count();
+	int remainingRows = target->rowCount();
 	for (int i = 0; i < remainingRows; i++)
 	{
-		QString itemtext = target->item(i)->text();
+		QString itemtext = target->itemAt(1, i)->text();
 		pathlist->push_back(boost::filesystem::path(itemtext.toStdString()).generic_path());
 	}
 }
 
-
-void moduleIncludeWidget::removeSelectedWhiteDir() 
+void moduleIncludeWidget::removeSelectedFile()
 {
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	removeSelected(includeui->whitelistDirsList);
-	buildPathList(includeui->whitelistDirsList, &WLDirs);
+	if (this->BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+		removeSelectedTableRows(includeui->blacklistFilesList);
+	else
+		removeSelectedTableRows(includeui->whitelistFilesList);
+
 	syncBinaryToUI();
 	refreshLauncherUI();
 }
 
-void moduleIncludeWidget::removeSelectedBlackDir() 
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	removeSelected(includeui->blacklistDirsList);
-	buildPathList(includeui->blacklistDirsList, &BLDirs);
-	syncBinaryToUI();
-	refreshLauncherUI();
-}
-
-void moduleIncludeWidget::removeSelectedWhiteFile() 
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	removeSelected(includeui->whitelistFilesList);
-	buildPathList(includeui->whitelistFilesList, &WLFiles);
-	syncBinaryToUI();
-	refreshLauncherUI();
-}
-
-void moduleIncludeWidget::removeSelectedBlackFile() 
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	removeSelected(includeui->blacklistFilesList);
-	buildPathList(includeui->blacklistFilesList, &BLFiles);
-	syncBinaryToUI();
-	refreshLauncherUI();
-}
-
-void moduleIncludeWidget::addItem(QListWidget *target,
+void moduleIncludeWidget::addItem(QTableWidget *target,
 	vector <boost::filesystem::path> *pathlist, QString filename)
 {
 	boost::filesystem::path path = boost::filesystem::path(filename.toStdString()).generic_path();
@@ -220,47 +275,15 @@ void moduleIncludeWidget::addItem(QListWidget *target,
 	if (std::find(pathlist->begin(), pathlist->end(), path) != pathlist->end())
 		return;
 
-	QListWidgetItem *pathitem = new QListWidgetItem();
+
+
+	QTableWidgetItem *pathitem = new QTableWidgetItem();
 	pathitem->setText(filename);
-	target->addItem(pathitem);
+	target->setRowCount(target->rowCount()+1);
+	target->setItem(target->rowCount()-1,1, pathitem);
 	pathlist->push_back(path);
 
 	syncBinaryToUI();
 	refreshLauncherUI();
 }
 
-void moduleIncludeWidget::addWhiteDir()
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	QString fileName = QFileDialog::getExistingDirectory(this,	tr("Select directory to whitelist"), "");
-
-	if (!fileName.isEmpty())
-		addItem(includeui->whitelistDirsList, &WLDirs, fileName);
-}
-
-void moduleIncludeWidget::addBlackDir()
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	QString fileName = QFileDialog::getExistingDirectory(this, tr("Select directory to blacklist"), "");
-
-	if (!fileName.isEmpty())
-		addItem(includeui->blacklistDirsList, &BLDirs, fileName);
-}
-
-void moduleIncludeWidget::addWhiteFile()
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	QString fileName = QFileDialog::getOpenFileName(this, tr("Select binary to whitelist"), "");
-
-	if (!fileName.isEmpty())
-		addItem(includeui->whitelistFilesList, &WLFiles, fileName);
-}
-
-void moduleIncludeWidget::addBlackFile()
-{
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	QString fileName = QFileDialog::getOpenFileName(this, tr("Select binary to blacklist"), "");
-
-	if (!fileName.isEmpty())
-		addItem(includeui->blacklistFilesList, &BLFiles, fileName);
-}

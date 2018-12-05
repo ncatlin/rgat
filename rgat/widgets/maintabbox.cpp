@@ -133,7 +133,7 @@ void mainTabBox::tabChanged(int newIndex)
 
 	if (newIndex == dynamicTabs::eStartTraceTab)
 	{
-		((Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI)->blackWhiteListStack->refresh();
+		((Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI)->blackWhiteListStack->SyncUIWithCurrentBinary();
 		ui->traceGatherTab->fillAnalyseTab(clientState->activeBinary);
 	}
 
@@ -464,7 +464,7 @@ void mainTabBox::moduleIncludeSelectBtnClicked()
 	if (!clientState->includesSelectorDialog->isVisible())
 	{
 		Ui::moduleIncludeSelectDialog *includesDlg = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-		includesDlg->blackWhiteListStack->refresh();
+		includesDlg->blackWhiteListStack->SyncUIWithCurrentBinary();
 		clientState->includesSelectorDialog->show();
 	}
 	else

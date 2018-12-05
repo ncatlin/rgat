@@ -36,10 +36,10 @@ Creates a tree layout for a plotted graph
 #define AMULT 1
 #define BMULT 1
 
-#define CALLA 15
-#define CALLB 15
+#define CALLA 18
+#define CALLB 12
 
-#define JUMPA 4
+#define JUMPA 16
 #define JUMPB 3
 
 //placement of external nodes, relative to the first caller
@@ -102,14 +102,6 @@ spacing is done by spreading out in x/z axes
 void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
 	TREECOORD *position = (TREECOORD *)positionStruct;
-	if (n->index > 30)
-	{
-		position->a = 399;
-		position->b = 399;
-		position->c = 399;
-		return;
-	}
-
 
 	TREECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
@@ -154,7 +146,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//small vertical distance between instructions in a basic block	
 	case eNodeNonFlow:
 	{
-		std::cout << "noflow...";
+		//std::cout << "noflow...";
 		b = b + -1 * BMULT;
 		break;
 	}
@@ -165,7 +157,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
-			std::cout << "noflowcond...";
+			//std::cout << "noflowcond...";
 			b = b + -1 * BMULT;
 			break;
 		}
@@ -182,7 +174,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	//long purple line to show possible distinct functional blocks of the program
 	case eNodeCall:
 	{
-		std::cout << "call...";
+		//std::cout << "call...";
 		if (!n->external)
 		{
 			if (!n->ins->hasSymbol && n->label.isEmpty())
@@ -197,6 +189,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			}
 		}
 		//note: b sometimes huge after this?
+		//a += CALLA * AMULT;
 		a += CALLA * AMULT;
 		b += CALLB * BMULT * -1;
 		break;
@@ -204,10 +197,15 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	case eNodeReturn:
 		//previous externs handled same as previous returns
-		std::cout << "ret...";
+		//std::cout << "ret...";
+		//b += EXTERNB * BMULT * -10;
 	case eNodeExternal:
 	{
-		std::cout << "ext...";
+		//a += EXTERNA * AMULT * -1;
+		//b += EXTERNB * BMULT * -1;
+
+		
+		//std::cout << "ext...";
 		//returning to address in call stack?
 		NODEINDEX resultNodeIDX = -1;
 		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
@@ -248,6 +246,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			b += EXTERNB * BMULT;
 		}
 		callStackLock.unlock();
+		
 		break;
 	}
 
@@ -257,10 +256,17 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		break;
 	}
 
+	while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+	{
+		a += 4;
+		b -= 3;
+		++clash;
+	}
+
 	position->a = a;
 	position->b = b;// -1 * n->index + extraB;
 	position->c = c;
-	std::cout << "node " << n->index << " a: " << position->a << " b: " << position->b << " c: " <<position->c << " addr: 0x" << n->address << std::endl;
+	//std::cout << "node " << n->index << " a: " << position->a << " b: " << position->b << " c: " <<position->c << " addr: 0x" << n->address << std::endl;
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << "," << c << endl;
 }
 

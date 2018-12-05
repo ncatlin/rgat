@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>581</width>
-    <height>492</height>
+    <width>637</width>
+    <height>584</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Specify code to instrument or exclude</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -24,131 +24,60 @@
     <number>3</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="moduleModeLayout">
-     <property name="leftMargin">
-      <number>5</number>
-     </property>
-     <property name="topMargin">
-      <number>6</number>
-     </property>
-     <property name="rightMargin">
-      <number>5</number>
-     </property>
-     <property name="bottomMargin">
-      <number>6</number>
-     </property>
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="maximumSize">
-        <size>
-         <width>110</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Inclusion Mode:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="blacklistRadio">
-       <property name="toolTip">
-        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
-       </property>
-       <property name="statusTip">
-        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
-       </property>
-       <property name="whatsThis">
-        <string>All modules will be instrumented except blacklisted files or those in blacklisted directories</string>
-       </property>
-       <property name="text">
-        <string>Instrument all except blacklisted</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="whitelistRadio">
-       <property name="toolTip">
-        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
-       </property>
-       <property name="statusTip">
-        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
-       </property>
-       <property name="whatsThis">
-        <string>No modules will be instrumented except whitelisted binaries and those in whitelisted directories</string>
-       </property>
-       <property name="text">
-        <string>Instrument only whitelisted</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <widget class="moduleIncludeWidget" name="blackWhiteListStack">
+     <property name="font">
+      <font>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Plain</enum>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
      <widget class="QWidget" name="blacklistPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="bottomMargin">
+        <number>9</number>
+       </property>
        <item>
-        <widget class="QLabel" name="excludeDirLabel">
-         <property name="text">
-          <string>Blacklisted Directories - Recursively exclude binaries within from instrumentation</string>
-         </property>
-        </widget>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="maximumSize">
+            <size>
+             <width>32</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="pixmap">
+            <pixmap resource="rgat.qrc">:/Resources/no-entry64.png</pixmap>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="bl_ExplainLabel">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Blacklisting Mode: Instrument all code except in files/directories below</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
-        <widget class="QFrame" name="blacklistDirsFrame">
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <widget class="QListWidget" name="blacklistDirsList"/>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="excludeDirBtnsLayout">
-            <item>
-             <widget class="QPushButton" name="excludeDirAdd">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>+</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="excludeDirRemove">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>-</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="excludeFileLabel">
-         <property name="text">
-          <string>Blacklisted Binaries - Individual non-instrumented files</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="blacklistFilesFrame">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
          <property name="leftMargin">
           <number>9</number>
          </property>
@@ -159,38 +88,186 @@
           <number>9</number>
          </property>
          <property name="bottomMargin">
-          <number>9</number>
+          <number>0</number>
          </property>
          <item>
-          <widget class="QListWidget" name="blacklistFilesList"/>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="excludeFileBtnsLayout">
+          <layout class="QHBoxLayout" name="bldirinfolayout">
            <item>
-            <widget class="QPushButton" name="excludeFileAdd">
+            <widget class="QLabel" name="label_5">
              <property name="maximumSize">
               <size>
                <width>32</width>
-               <height>16777215</height>
+               <height>32</height>
               </size>
              </property>
              <property name="text">
-              <string>+</string>
+              <string/>
+             </property>
+             <property name="pixmap">
+              <pixmap resource="rgat.qrc">:/Resources/bin-r.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="excludeFileRemove">
+            <widget class="QLabel" name="excludeFileLabel">
+             <property name="text">
+              <string>Blacklisted Binaries - Code in these files will not be instrumented</string>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
+             <property name="indent">
+              <number>5</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="bldirinfolayout_">
+           <item>
+            <widget class="QLabel" name="label_4">
+             <property name="minimumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
              <property name="maximumSize">
               <size>
                <width>32</width>
-               <height>16777215</height>
+               <height>32</height>
               </size>
              </property>
              <property name="text">
-              <string>-</string>
+              <string/>
+             </property>
+             <property name="pixmap">
+              <pixmap resource="rgat.qrc">:/Resources/folder-r.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
              </property>
             </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Blacklisted Directories - Files in all subdirectories will not be instrumented</string>
+             </property>
+             <property name="indent">
+              <number>5</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="blfileslayout">
+           <item>
+            <widget class="QTableWidget" name="blacklistFilesList">
+             <property name="selectionMode">
+              <enum>QAbstractItemView::ExtendedSelection</enum>
+             </property>
+             <property name="showGrid">
+              <bool>false</bool>
+             </property>
+             <property name="sortingEnabled">
+              <bool>true</bool>
+             </property>
+             <property name="wordWrap">
+              <bool>false</bool>
+             </property>
+             <property name="cornerButtonEnabled">
+              <bool>false</bool>
+             </property>
+             <attribute name="horizontalHeaderDefaultSectionSize">
+              <number>35</number>
+             </attribute>
+             <attribute name="horizontalHeaderMinimumSectionSize">
+              <number>25</number>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <column>
+              <property name="text">
+               <string/>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string/>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <property name="spacing">
+              <number>1</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="bl_path"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="addFileBLBtn">
+               <property name="toolTip">
+                <string>Select files to blacklist</string>
+               </property>
+               <property name="statusTip">
+                <string>Select files to blacklist</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/bin.png</normaloff>:/Resources/bin.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="addDirBLbtn">
+               <property name="toolTip">
+                <string>Select a directory to blacklist</string>
+               </property>
+               <property name="statusTip">
+                <string>Select a directory to blacklist</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/folder.png</normaloff>:/Resources/folder.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="deleteEntryBtnbl">
+               <property name="toolTip">
+                <string>Remove the selected entry from blacklisting/whitelisting</string>
+               </property>
+               <property name="statusTip">
+                <string>Remove the selected entry</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/rubbish-bin.png</normaloff>:/Resources/rubbish-bin.png</iconset>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
@@ -201,108 +278,239 @@
      <widget class="QWidget" name="whitelistPage">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QLabel" name="includeDirsLabel">
-         <property name="text">
-          <string>Whitelisted Directories - Binaries within these directories and subdirectories will be instrumented.</string>
-         </property>
-        </widget>
+        <layout class="QHBoxLayout" name="modeExplainBar">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="maximumSize">
+            <size>
+             <width>32</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="pixmap">
+            <pixmap resource="rgat.qrc">:/Resources/checked.png</pixmap>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="wl_ExplainLabel">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Whitelisting Mode: Instrument only code in whitelisted files/directories below</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
-        <widget class="QFrame" name="whitelistDirsFrame">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="leftMargin">
+          <number>9</number>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+         <property name="topMargin">
+          <number>9</number>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
-           <widget class="QListWidget" name="whitelistDirsList"/>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="includeDirBtnsLayout">
-            <item>
-             <widget class="QPushButton" name="includeDirAdd">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QHBoxLayout" name="wlfilesinfolayout_">
+           <item>
+            <widget class="QLabel" name="label_8">
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="pixmap">
+              <pixmap resource="rgat.qrc">:/Resources/bin-g.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="excludeFileLabel_2">
+             <property name="text">
+              <string>Whitelisted Binaries - Code in these files will be instrumented</string>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
+             <property name="indent">
+              <number>5</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="wlfilesinfolayout">
+           <item>
+            <widget class="QLabel" name="label_6">
+             <property name="minimumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="pixmap">
+              <pixmap resource="rgat.qrc">:/Resources/folder-g.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Whitelisted Directories - Code in all subdirectories will be instrumented</string>
+             </property>
+             <property name="indent">
+              <number>5</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="QTableWidget" name="whitelistFilesList">
+             <property name="selectionMode">
+              <enum>QAbstractItemView::ExtendedSelection</enum>
+             </property>
+             <property name="showGrid">
+              <bool>false</bool>
+             </property>
+             <property name="sortingEnabled">
+              <bool>true</bool>
+             </property>
+             <property name="wordWrap">
+              <bool>false</bool>
+             </property>
+             <property name="cornerButtonEnabled">
+              <bool>false</bool>
+             </property>
+             <attribute name="horizontalHeaderDefaultSectionSize">
+              <number>35</number>
+             </attribute>
+             <attribute name="horizontalHeaderMinimumSectionSize">
+              <number>25</number>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <attribute name="verticalHeaderDefaultSectionSize">
+              <number>30</number>
+             </attribute>
+             <column>
               <property name="text">
-               <string>+</string>
+               <string/>
               </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="includeDirRemove">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
+             </column>
+             <column>
               <property name="text">
-               <string>-</string>
+               <string/>
               </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="includeFilesLabel">
-         <property name="text">
-          <string>Whitelisted Binaries - These will be instrumented</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QFrame" name="whitelistFilesFrame">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
-           <widget class="QListWidget" name="whitelistFilesList"/>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="includeFileBtnsLayout">
-            <item>
-             <widget class="QPushButton" name="includeFileAdd">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>+</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="includeFileRemove">
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>-</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <property name="spacing">
+              <number>1</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="wl_path"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="chooseFileWLBtn">
+               <property name="toolTip">
+                <string>Select a file to blacklist</string>
+               </property>
+               <property name="statusTip">
+                <string>Select a file to blacklist</string>
+               </property>
+               <property name="whatsThis">
+                <string>Select a file to blacklist</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/bin.png</normaloff>:/Resources/bin.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="chooseDirWLBtn">
+               <property name="toolTip">
+                <string>Select a directory to blacklist</string>
+               </property>
+               <property name="statusTip">
+                <string>Select a directory to blacklist</string>
+               </property>
+               <property name="whatsThis">
+                <string>Select a directory to blacklist</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/folder.png</normaloff>:/Resources/folder.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="deleteEntryBtnbl_2">
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="rgat.qrc">
+                 <normaloff>:/Resources/rubbish-bin.png</normaloff>:/Resources/rubbish-bin.png</iconset>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -313,22 +521,68 @@
      <property name="spacing">
       <number>0</number>
      </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
+     </property>
      <item>
-      <widget class="QPushButton" name="closeBtn">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+      <widget class="QToolButton" name="libModeSelectBtn">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>34</height>
+        </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>16777215</width>
-         <height>50</height>
+         <width>150</width>
+         <height>16777215</height>
         </size>
        </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
        <property name="text">
-        <string>Close</string>
+        <string>Toggle Whitelisting</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>Resources/no-entry64.png</normaloff>
+         <normalon>:/Resources/no-entry64.png</normalon>
+         <activeoff>:/Resources/checked.png</activeoff>
+         <activeon>:/Resources/heatIcon.png</activeon>
+         <selectedon>:/Resources/checked.png</selectedon>Resources/no-entry64.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextBesideIcon</enum>
+       </property>
+       <property name="autoRaise">
+        <bool>false</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::NoArrow</enum>
        </property>
       </widget>
      </item>
@@ -343,194 +597,126 @@
    <header>moduleincludewidget.h</header>
    <container>1</container>
    <slots>
-    <slot>whitelistRadioToggle(bool)</slot>
-    <slot>blacklistRadioToggle(bool)</slot>
-    <slot>addWhiteDir()</slot>
-    <slot>addBlackDir()</slot>
-    <slot>addWhiteFile()</slot>
-    <slot>addBlackFile()</slot>
-    <slot>removeSelectedWhiteDir()</slot>
-    <slot>removeSelectedBlackDir()</slot>
-    <slot>removeSelectedWhiteFile()</slot>
-    <slot>removeSelectedBlackFile()</slot>
+    <slot>modeToggle(bool)</slot>
+    <slot>triggerFileDialog()</slot>
+    <slot>removeSelectedFile()</slot>
+    <slot>triggerDirDialog()</slot>
    </slots>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="rgat.qrc"/>
+ </resources>
  <connections>
   <connection>
-   <sender>blacklistRadio</sender>
+   <sender>addDirBLbtn</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>triggerDirDialog()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>559</x>
+     <y>521</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>281</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>deleteEntryBtnbl</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>593</x>
+     <y>521</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>281</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>addFileBLBtn</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>triggerFileDialog()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>281</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>deleteEntryBtnbl_2</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>removeSelectedFile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>593</x>
+     <y>521</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>281</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>chooseDirWLBtn</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>triggerDirDialog()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>559</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>275</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>chooseFileWLBtn</sender>
+   <signal>pressed()</signal>
+   <receiver>blackWhiteListStack</receiver>
+   <slot>triggerFileDialog()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>525</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>318</x>
+     <y>275</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>libModeSelectBtn</sender>
    <signal>toggled(bool)</signal>
    <receiver>blackWhiteListStack</receiver>
-   <slot>blacklistRadioToggle(bool)</slot>
+   <slot>modeToggle(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>290</x>
-     <y>23</y>
+     <x>317</x>
+     <y>562</y>
     </hint>
     <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>whitelistRadio</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>whitelistRadioToggle(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>476</x>
-     <y>23</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>excludeFileAdd</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>addBlackFile()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>536</x>
-     <y>330</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>excludeFileRemove</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>removeSelectedBlackFile()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>536</x>
-     <y>395</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>includeDirRemove</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>removeSelectedWhiteDir()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>535</x>
-     <y>189</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>excludeDirRemove</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>removeSelectedBlackDir()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>536</x>
-     <y>188</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>includeFileAdd</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>addWhiteFile()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>535</x>
-     <y>331</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>includeFileRemove</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>removeSelectedWhiteFile()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>535</x>
-     <y>396</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>includeDirAdd</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>addWhiteDir()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>535</x>
-     <y>124</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>excludeDirAdd</sender>
-   <signal>clicked()</signal>
-   <receiver>blackWhiteListStack</receiver>
-   <slot>addBlackDir()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>536</x>
-     <y>123</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>250</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>closeBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>moduleIncludeSelectDialog</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>290</x>
-     <y>476</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>290</x>
-     <y>245</y>
+     <x>318</x>
+     <y>276</y>
     </hint>
    </hints>
   </connection>
