@@ -187,12 +187,8 @@ void gat_basicblock_handler::main_loop()
 			INSLIST *blockInstructions = new INSLIST;
 			MEM_ADDRESS insaddr = targetaddr;
 			
-			while (true)
+			while (buf.at(bufPos++) == '@')
 			{
-
-
-				if (buf.at(bufPos++) != '@')
-					break;
 				char insByteCount = buf.at(bufPos++);
 				assert(insByteCount < 16);
 
