@@ -53,12 +53,12 @@ bool read_shrike_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 
 	buf->clear();
 	buf->resize(PIDSTRING_BUFSIZE - 1, 0);
-	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bread, NULL);
+	DWORD bytesRead = 0;
+	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bytesRead, NULL);
 	DisconnectNamedPipe(hPipe);
-	buf->resize(bread, 0);
+	buf->resize(bytesRead, 0);
 
-	if (!success || !bread)
+	if (!success || !bytesRead)
 	{
 		cerr << "[rgat]ERROR: Failed to read process notification. Try again" << endl;
 		Sleep(1000);
@@ -92,12 +92,12 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 
 	buf->clear();
 	buf->resize(PIDSTRING_BUFSIZE - 1, 0);
-	DWORD bread = 0;
-	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bread, NULL);
+	DWORD bytesRead = 0;
+	bool success = ReadFile(hPipe, &buf->at(0), (DWORD)buf->size(), &bytesRead, NULL);
 	DisconnectNamedPipe(hPipe);
-	buf->resize(bread, 0);
+	buf->resize(bytesRead, 0);
 
-	if (!success || !bread)
+	if (!success || !bytesRead)
 	{
 		cerr << "[rgat]ERROR: Failed to read process notification. Try again" << endl;
 		Sleep(1000);

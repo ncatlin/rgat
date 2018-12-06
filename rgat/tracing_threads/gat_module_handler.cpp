@@ -110,8 +110,8 @@ void gat_module_handler::main_loop()
 
 	while (true)
 	{
-		DWORD bread = 0;
-		ReadFile(inputPipe, buf, 399, &bread, &ov2);
+		DWORD bytesRead = 0;
+		ReadFile(inputPipe, buf, 399, &bytesRead, &ov2);
 		while (true)
 		{
 			int res = WaitForSingleObject(ov2.hEvent, 300);
@@ -129,14 +129,14 @@ void gat_module_handler::main_loop()
 			}
 		}
 		
-		BOOL GOResult = GetOverlappedResult(inputPipe, &ov2, &bread, false);
+		BOOL GOResult = GetOverlappedResult(inputPipe, &ov2, &bytesRead, false);
 		if (!GOResult)
 		{
 			//cout << "Get overlapped failed" << endl;
 		}
-		buf[bread] = 0;
+		buf[bytesRead] = 0;
 	
-		if (!bread)
+		if (!bytesRead)
 		{
 			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
@@ -204,7 +204,7 @@ void gat_module_handler::main_loop()
 			}
 
 			//symbol
-			if (buf[0] == 's' && buf[1] == '!' && bread > 8)
+			if (buf[0] == 's' && buf[1] == '!' && bytesRead > 8)
 			{
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
@@ -226,7 +226,7 @@ void gat_module_handler::main_loop()
 			}
 
 			//module/dll
-			if (buf[0] == 'm' && buf[1] == 'n' && bread > 8)
+			if (buf[0] == 'm' && buf[1] == 'n' && bytesRead > 8)
 			{
 				char *next_token = NULL;
 				boost::filesystem::path path_plain;
@@ -293,7 +293,7 @@ void gat_module_handler::main_loop()
 				runRecord->activeMods[globalModID] = (*is_instrumented_s == INSTRUMENTED_CODE);
 				piddata->dropDisassemblyWriteLock();
 
-				if (!startaddr | !endaddr | (next_token - buf != bread)) {
+				if (!startaddr | !endaddr | (next_token - buf != bytesRead)) {
 					wcerr << "ERROR! Processing module line: "<< buf << endl;
 					assert(0);
 				}
@@ -401,7 +401,7 @@ void gat_module_handler::sendIncludeLists()
 {
 
 	string buf;	
-	DWORD bread;
+	DWORD bytesRead;
 	BWPATHLISTS includelists = binary->getBWListPaths();
 
 	if (includelists.inWhitelistMode)
@@ -440,5 +440,5 @@ void gat_module_handler::sendIncludeLists()
 	buf.append("@X");
 
 	cout << "Sending includelist data: " << buf << endl;
-	WriteFile(inputPipe, &buf.at(0), (DWORD)buf.size(), &bread, 0);
+	WriteFile(inputPipe, &buf.at(0), (DWORD)buf.size(), &bytesRead, 0);
 }

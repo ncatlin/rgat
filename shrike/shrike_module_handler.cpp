@@ -99,8 +99,8 @@ void shrike_module_handler::main_loop()
 
 	while (true)
 	{
-		DWORD bread = 0;
-		ReadFile(hPipe, buf, 399, &bread, &ov2);
+		DWORD bytesRead = 0;
+		ReadFile(hPipe, buf, 399, &bytesRead, &ov2);
 		while (true)
 		{
 			int res = WaitForSingleObject(ov2.hEvent, 300);
@@ -118,10 +118,10 @@ void shrike_module_handler::main_loop()
 			}
 		}
 
-		int res2 = GetOverlappedResult(hPipe, &ov2, &bread, false);
-		buf[bread] = 0;
+		int res2 = GetOverlappedResult(hPipe, &ov2, &bytesRead, false);
+		buf[bytesRead] = 0;
 
-		if (!bread)
+		if (!bytesRead)
 		{
 			//not sure this ever gets called, read probably fails?
 			int err = GetLastError();
@@ -159,7 +159,7 @@ void shrike_module_handler::main_loop()
 			}
 
 			//symbol
-			if (buf[0] == 's' && buf[1] == '!' && bread > 8)
+			if (buf[0] == 's' && buf[1] == '!' && bytesRead > 8)
 			{
 				char *next_token = NULL;
 				unsigned int modnum = atoi(strtok_s(buf + 2, "@", &next_token));
@@ -181,7 +181,7 @@ void shrike_module_handler::main_loop()
 			}
 
 			//module/dll
-			if (buf[0] == 'm' && buf[1] == 'n' && bread > 8)
+			if (buf[0] == 'm' && buf[1] == 'n' && bytesRead > 8)
 			{
 				char *next_token = NULL;
 				string b64path;
@@ -248,7 +248,7 @@ void shrike_module_handler::main_loop()
 				runRecord->activeMods[globalModID] = (*is_instrumented_s == INSTRUMENTED_CODE);
 				piddata->dropDisassemblyWriteLock();
 
-				if (!startaddr | !endaddr | (next_token - buf != bread)) {
+				if (!startaddr | !endaddr | (next_token - buf != bytesRead)) {
 					wcerr << "ERROR! Processing module line: " << buf << endl;
 					assert(0);
 				}

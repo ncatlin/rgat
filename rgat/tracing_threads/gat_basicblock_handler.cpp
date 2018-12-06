@@ -95,8 +95,8 @@ void gat_basicblock_handler::main_loop()
 	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while (!die && !runRecord->should_die())
 	{
-		DWORD bread = 0;
-		ReadFile(inputPipe, &buf.at(0), BBBUFSIZE, &bread, &ov2);
+		DWORD bytesRead = 0;
+		ReadFile(inputPipe, &buf.at(0), BBBUFSIZE, &bytesRead, &ov2);
 		while (!die)
 		{
 			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
@@ -105,10 +105,10 @@ void gat_basicblock_handler::main_loop()
 
 		DWORD lastError = GetLastError();
 		if (lastError && lastError != ERROR_IO_PENDING) continue;
-		int res2 = GetOverlappedResult(inputPipe, &ov2, &bread, false);
-		buf[bread] = 0;
+		int res2 = GetOverlappedResult(inputPipe, &ov2, &bytesRead, false);
+		buf[bytesRead] = 0;
 
-		if (!bread)
+		if (!bytesRead)
 		{
 			int err = GetLastError();
 			if (err == ERROR_BROKEN_PIPE)
@@ -126,13 +126,13 @@ void gat_basicblock_handler::main_loop()
 			break;
 		}
 
-		if (bread >= BBBUFSIZE || GetLastError() == ERROR_MORE_DATA)
+		if (bytesRead >= BBBUFSIZE || GetLastError() == ERROR_MORE_DATA)
 		{
 			cerr << "[rgat]ERROR: BB Buf Exceeded!" << endl;
 			break;
 		}
 		
-		if (!bread)
+		if (!bytesRead)
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
@@ -141,7 +141,7 @@ void gat_basicblock_handler::main_loop()
 		}
 
 		//savedbuf = buf;
-		buf[bread] = 0;
+		buf[bytesRead] = 0;
 		int bufPos = 0;
 		if (buf[bufPos++] == 'B')
 		{
