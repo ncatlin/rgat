@@ -235,6 +235,9 @@
     </item>
     <item>
      <widget class="QStackedWidget" name="staticDynamicStack">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="font">
        <font>
         <family>Arial</family>
@@ -499,7 +502,7 @@
                      <item>
                       <widget class="QPushButton" name="DRPlatformTestsBtn">
                        <property name="enabled">
-                        <bool>true</bool>
+                        <bool>false</bool>
                        </property>
                        <property name="toolTip">
                         <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
@@ -1040,7 +1043,7 @@
                         <item>
                          <widget class="QLabel" name="warningBoldLabel">
                           <property name="enabled">
-                           <bool>true</bool>
+                           <bool>false</bool>
                           </property>
                           <property name="font">
                            <font>
@@ -2097,7 +2100,7 @@
                      </property>
                      <widget class="QPushButton" name="pauseBreakBtn">
                       <property name="enabled">
-                       <bool>true</bool>
+                       <bool>false</bool>
                       </property>
                       <property name="geometry">
                        <rect>

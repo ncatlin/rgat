@@ -34,7 +34,7 @@
       <enum>QFrame::Plain</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="blacklistPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -112,7 +112,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="excludeFileLabel">
+            <widget class="QLabel" name="BLFileExplainText">
              <property name="text">
               <string>Blacklisted Binaries - Code in these files will not be instrumented</string>
              </property>
@@ -154,7 +154,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="label_3">
+            <widget class="QLabel" name="BLDirExplainText">
              <property name="text">
               <string>Blacklisted Directories - Files in all subdirectories will not be instrumented</string>
              </property>
@@ -185,10 +185,10 @@
               <bool>false</bool>
              </property>
              <attribute name="horizontalHeaderDefaultSectionSize">
-              <number>35</number>
+              <number>25</number>
              </attribute>
              <attribute name="horizontalHeaderMinimumSectionSize">
-              <number>25</number>
+              <number>20</number>
              </attribute>
              <attribute name="horizontalHeaderStretchLastSection">
               <bool>true</bool>
@@ -306,7 +306,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Whitelisting Mode: Instrument only code in whitelisted files/directories below</string>
+            <string>Whitelisting Mode: Code will be ignored except in files/directories below</string>
            </property>
           </widget>
          </item>
@@ -329,7 +329,7 @@
          <item>
           <layout class="QHBoxLayout" name="wlfilesinfolayout_">
            <item>
-            <widget class="QLabel" name="label_8">
+            <widget class="QLabel" name="WLFileExplainIcon">
              <property name="maximumSize">
               <size>
                <width>32</width>
@@ -348,7 +348,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="excludeFileLabel_2">
+            <widget class="QLabel" name="WLFileExplainText">
              <property name="text">
               <string>Whitelisted Binaries - Code in these files will be instrumented</string>
              </property>
@@ -365,7 +365,7 @@
          <item>
           <layout class="QHBoxLayout" name="wlfilesinfolayout">
            <item>
-            <widget class="QLabel" name="label_6">
+            <widget class="QLabel" name="WLDirExplainIcon">
              <property name="minimumSize">
               <size>
                <width>32</width>
@@ -390,7 +390,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="label_7">
+            <widget class="QLabel" name="WLDirExplainText">
              <property name="text">
               <string>Whitelisted Directories - Code in all subdirectories will be instrumented</string>
              </property>
@@ -421,10 +421,10 @@
               <bool>false</bool>
              </property>
              <attribute name="horizontalHeaderDefaultSectionSize">
-              <number>35</number>
+              <number>20</number>
              </attribute>
              <attribute name="horizontalHeaderMinimumSectionSize">
-              <number>25</number>
+              <number>20</number>
              </attribute>
              <attribute name="horizontalHeaderStretchLastSection">
               <bool>true</bool>

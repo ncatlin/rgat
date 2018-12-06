@@ -31,8 +31,9 @@ public Q_SLOTS:
 
 private:
 	void removeSelectedTableRows(QTableWidget *target);
-
-	bool moduleIncludeWidget::eventFilter(QObject *object, QEvent *event);
+	void repopulateFileTables(binaryTarget *binary, BWPATHLISTS &bwlistPaths);
+	void updateExplainLabels();
+	bool eventFilter(QObject *object, QEvent *event);
 
 	void switchToBlacklistMode();
 	void switchToWhitelistMode();
@@ -49,4 +50,10 @@ private:
 	vector <boost::filesystem::path> BLDirs;
 	vector <boost::filesystem::path> WLFiles;
 	vector <boost::filesystem::path> BLFiles;
+
+	QString baseWLDirExplainText = "Whitelisted Directories - Code in subdirectories will be instrumented";
+	QString baseWLFileExplainText = "Whitelisted Binaries - Code in specified files will be instrumented";
+	QString baseBLDirExplainText = "Blacklisted Directories - Code in subdirectories will be ignored";
+	QString baseBLFileExplainText = "Blacklisted Binaries - Code in in specified files will be ignored";
+
 };

@@ -40,10 +40,10 @@ void moduleIncludeWidget::clearAll()
 	BLDirs.clear();
 
 	WLFiles.clear();
-	//includeui->whitelistFilesList->clear();
+	includeui->whitelistFilesList->setRowCount(0);
 
 	BLFiles.clear();
-	//includeui->blacklistFilesList->clear();
+	includeui->blacklistFilesList->setRowCount(0);
 }
 
 void moduleIncludeWidget::refreshLauncherUI()
@@ -67,33 +67,12 @@ void moduleIncludeWidget::refreshLauncherUI()
 	}
 }
 
-
-void moduleIncludeWidget::SyncUIWithCurrentBinary()
+void moduleIncludeWidget::repopulateFileTables(binaryTarget *binary, BWPATHLISTS &bwlistPaths)
 {
-	binaryTarget *binary = clientState->activeBinary;
-	if (!binary) return;
-
-	BWPATHLISTS bwlistPaths = binary->getBWListPaths();
-
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	
-	includeui->libModeSelectBtn->blockSignals(true);
-
-	if (bwlistPaths.inWhitelistMode)
-	{
-		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eWhitelisting);
-		includeui->libModeSelectBtn->setChecked(false);
-	}
-	else
-	{
-		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eBlacklisting);
-		includeui->libModeSelectBtn->setChecked(true);
-	}
-	includeui->libModeSelectBtn->blockSignals(false);
-
 	clearAll();
 
-	
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+
 	for each (boost::filesystem::path path in bwlistPaths.BLDirs)
 	{
 		QString qstrpath = QString::fromStdString(path.string());
@@ -116,6 +95,43 @@ void moduleIncludeWidget::SyncUIWithCurrentBinary()
 		QString qstrpath = QString::fromStdString(path.string());
 		addItem(includeui->whitelistFilesList, &WLFiles, qstrpath);
 	}
+}
+
+void moduleIncludeWidget::updateExplainLabels()
+{
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	includeui->WLDirExplainText->setText(baseWLDirExplainText + " (" + QString::number(WLDirs.size()) + " Dirs)");
+	includeui->WLFileExplainText->setText(baseWLFileExplainText + " (" + QString::number(WLFiles.size()) + " Files)");
+	includeui->BLDirExplainText->setText(baseBLDirExplainText + " (" + QString::number(BLDirs.size()) + " Dirs)");
+	includeui->BLFileExplainText->setText(baseBLFileExplainText + " (" + QString::number(BLFiles.size()) + " Files)");
+}
+
+void moduleIncludeWidget::SyncUIWithCurrentBinary()
+{
+
+	binaryTarget *binary = clientState->activeBinary;
+	if (!binary) return;
+
+	BWPATHLISTS bwlistPaths = binary->getBWListPaths();
+
+	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+	
+	includeui->libModeSelectBtn->blockSignals(true);
+
+	if (bwlistPaths.inWhitelistMode)
+	{
+		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eWhitelisting);
+		includeui->libModeSelectBtn->setChecked(true);
+	}
+	else
+	{
+		includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eBlacklisting);
+		includeui->libModeSelectBtn->setChecked(false);
+	}
+	includeui->libModeSelectBtn->blockSignals(false);
+
+	repopulateFileTables(binary, bwlistPaths);
+	updateExplainLabels();
 	refreshLauncherUI();
 }
 
@@ -155,7 +171,6 @@ void moduleIncludeWidget::modeToggle(bool newstate)
 		switchToBlacklistMode();
 
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	std::cout << "Button is now check: " << includeui->libModeSelectBtn->isChecked() << std::endl;
 }
 
 void moduleIncludeWidget::switchToBlacklistMode()
@@ -196,7 +211,6 @@ void moduleIncludeWidget::switchToWhitelistMode()
 		return; 
 	}
 	
-
 	syncBinaryToUI();
 	refreshLauncherUI();
 }
@@ -266,23 +280,30 @@ void moduleIncludeWidget::removeSelectedFile()
 	refreshLauncherUI();
 }
 
+bool checkPathSensible(boost::filesystem::path path, vector <boost::filesystem::path> *existingPathlist)
+{
+	if (!boost::filesystem::exists(path))
+		return false;
+	if (std::find(existingPathlist->begin(), existingPathlist->end(), path) != existingPathlist->end())
+		return false;
+	return true;
+}
+
 void moduleIncludeWidget::addItem(QTableWidget *target,
 	vector <boost::filesystem::path> *pathlist, QString filename)
 {
 	boost::filesystem::path path = boost::filesystem::path(filename.toStdString()).generic_path();
-	if (!boost::filesystem::exists(path))
+	if (!checkPathSensible(path, pathlist))
 		return;
-	if (std::find(pathlist->begin(), pathlist->end(), path) != pathlist->end())
-		return;
-
-
 
 	QTableWidgetItem *pathitem = new QTableWidgetItem();
 	pathitem->setText(filename);
 	target->setRowCount(target->rowCount()+1);
 	target->setItem(target->rowCount()-1,1, pathitem);
+
 	pathlist->push_back(path);
 
+	updateExplainLabels();
 	syncBinaryToUI();
 	refreshLauncherUI();
 }
