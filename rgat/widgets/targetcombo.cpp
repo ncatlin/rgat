@@ -67,6 +67,10 @@ void targetCombo::setActiveTarget(int index)
 void targetCombo::addTargetToInterface(binaryTarget *target, bool newBinary)
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+
+	if (!ui->staticDynamicStack->isEnabled())
+		ui->staticDynamicStack->setEnabled(true);
+
 	boost::filesystem::path filepath = target->path();
 	if (newBinary)
 	{
