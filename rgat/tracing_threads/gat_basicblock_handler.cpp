@@ -28,47 +28,50 @@ disassembles it using Capstone and makes it available to the graph renderer
 
 #define LARGEST_INSTRUCTION_SIZE 15
 
+bool gat_basicblock_handler::connectPipe()
+{
+	pipename.append(runRecord->getModpathID());
+	const wchar_t* szName = pipename.c_str();
+	inputPipe = CreateNamedPipe(szName,
+		PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+		255, 64, 56 * 1024, 300, NULL);
+
+	if (inputPipe == INVALID_HANDLE_VALUE)
+	{
+		cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
+		alive = false;
+		return false;
+	}
+
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+	if (ConnectNamedPipe(inputPipe, &ov))
+	{
+		wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
+		alive = false;
+		return false;
+	}
+
+	while (!die)
+	{
+		int result = WaitForSingleObject(ov.hEvent, 3000);
+		if (result != WAIT_TIMEOUT) break;
+		cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
+	}
+
+	return true;
+}
+
 //listen to BB data for given PID
 void gat_basicblock_handler::main_loop()
 {
 	alive = true;
-
-
-
 	if (!inputPipe) //if using pin the connection was established earlier
 	{
-		pipename.append(runRecord->getModpathID());
-		const wchar_t* szName = pipename.c_str();
-		inputPipe = CreateNamedPipe(szName,
-			PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
-			255, 64, 56 * 1024, 300, NULL);
-
-		if (inputPipe == INVALID_HANDLE_VALUE)
-		{
-			cerr << "[rgat]ERROR: BB thread CreateNamedPipe error: " << GetLastError() << endl;
-			alive = false;
-			return;
-		}
-
-		OVERLAPPED ov = { 0 };
-		ov.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-
-		if (ConnectNamedPipe(inputPipe, &ov))
-		{
-			wcerr << "[rgat]Failed to ConnectNamedPipe to " << pipename << " for PID " << runRecord->getPID() << ". Error: " << GetLastError();
-			alive = false;
-			return;
-		}
-
-		while (!die)
-		{
-			int result = WaitForSingleObject(ov.hEvent, 3000);
-			if (result != WAIT_TIMEOUT) break;
-			cerr << "[rgat]WARNING:Long wait for basic block handler pipe" << endl;
-		}
+		bool pipeConnected = connectPipe();
+		if (!pipeConnected || die) return;
 	}
-
-
 
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, disassemblyBitwidth, &hCapstone) != CS_ERR_OK)

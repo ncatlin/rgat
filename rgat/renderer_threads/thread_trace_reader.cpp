@@ -20,6 +20,32 @@ Header for the thread that reads trace information from drgat and buffers it
 #include "stdafx.h"
 #include "thread_trace_reader.h"
 
+
+bool thread_trace_reader::connectPipe()
+{
+	wstring pipename(L"\\\\.\\pipe\\rioThread");
+	pipename.append(std::to_wstring(threadID));
+
+	const wchar_t* szName = pipename.c_str();
+	threadpipe = CreateNamedPipe(szName,
+		PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
+		1, //max instances
+		1, //outbuffer
+		1024 * 1024, //inbuffermax
+		1, //timeout?
+		NULL);
+
+	if (threadpipe == (HANDLE)-1)
+	{
+		cerr << "[rgat]Error: Could not create pipe in thread handler " << threadID << ". error:" << GetLastError() << endl;
+		alive = false;
+		return false;
+	}
+
+	ConnectNamedPipe(threadpipe, NULL);
+	return true;
+}
+
 vector<string *> * thread_trace_reader::get_read_queue()
 {
 	if (readingFirstQueue)
@@ -78,16 +104,9 @@ string *thread_trace_reader::get_message()
 		}
 		readIndex = 0;
 
-		if (readingFirstQueue)
-		{
-			readingQueue = &secondQueue;
-			readingFirstQueue = false;
-		}
-		else
-		{
-			readingQueue = &firstQueue;
-			readingFirstQueue = true;
-		}
+		//swap to the other queue
+		readingQueue = readingFirstQueue ? &secondQueue : &firstQueue;
+		readingFirstQueue = !readingFirstQueue;
 
 		if (processedData)
 		{
@@ -108,7 +127,7 @@ string *thread_trace_reader::get_message()
 	return nextMessage;
 }
 
-bool thread_trace_reader::getBufsState(pair <size_t, size_t> *bufSizes)
+bool thread_trace_reader::getBufsState(pair <size_t, size_t> &bufSizes)
 {
 	size_t q1Size = firstQueue.size();
 	size_t q2Size = secondQueue.size();
@@ -118,7 +137,7 @@ bool thread_trace_reader::getBufsState(pair <size_t, size_t> *bufSizes)
 	else
 		q2Size -= readIndex;
 
-	*bufSizes = make_pair(q1Size, q2Size);
+	bufSizes = make_pair(q1Size, q2Size);
 	return readingFirstQueue; 
 }
 
@@ -128,26 +147,8 @@ void thread_trace_reader::main_loop()
 	alive = true;
 	if (!threadpipe)
 	{
-		wstring pipename(L"\\\\.\\pipe\\rioThread");
-		pipename.append(std::to_wstring(threadID));
-
-		const wchar_t* szName = pipename.c_str();
-		threadpipe = CreateNamedPipe(szName,
-			PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE,
-			1, //max instances
-			1, //outbuffer
-			1024 * 1024, //inbuffermax
-			1, //timeout?
-			NULL);
-
-		if (threadpipe == (HANDLE)-1)
-		{
-			cerr << "[rgat]Error: Could not create pipe in thread handler " << threadID << ". error:" << GetLastError() << endl;
-			alive = false;
-			return;
-		}
-
-		ConnectNamedPipe(threadpipe, NULL);
+		bool pipeConnected = connectPipe();
+		if (!pipeConnected) return;
 	}
 
 	vector <char> tagReadBuf;

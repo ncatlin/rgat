@@ -313,7 +313,7 @@ unsigned long proto_graph::get_backlog_total()
 
 	thread_trace_reader *reader = (thread_trace_reader *)trace_reader;
 	pair <size_t, size_t> sizePair;
-	reader->getBufsState(&sizePair);
+	reader->getBufsState(sizePair);
 	return sizePair.first + sizePair.second;
 }
 

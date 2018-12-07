@@ -47,10 +47,11 @@ public:
 	wstring pipename;
 
 private:
+	void main_loop();
+	bool connectPipe();
+
 	binaryTarget *binary;
 	traceRecord* runRecord;
 	cs_mode disassemblyBitwidth;
-	void main_loop();
-
 	HANDLE inputPipe = NULL;
 };

@@ -151,7 +151,8 @@ bool gat_module_handler::establishPipe()
 		255, 64, 1024 * 1024, 0, NULL);
 	if (inputPipe == INVALID_HANDLE_VALUE)
 	{
-		wcerr << "[rgat]ERROR: module handler could not create named pipe " << inputpipename << " err: " << GetLastError() << endl;
+		wcerr << "[rgat]ERROR: module handler could not create named pipe " << 
+			inputpipename << " err: " << GetLastError() << endl;
 		return false;
 	}
 
@@ -264,17 +265,10 @@ void gat_module_handler::handleModule(char *buf, DWORD bytesRead)
 	else
 		path_plain = string(strtok_s(buf + 2, "@", &next_token));
 
-	//if (!b64path.empty())
-	//	path_plain = boost::filesystem::path((base64_decode(b64path)));
-	//else
-	//	path_plain = "";
-
-
 	//todo: problem. module numbers can differ between runs. need to translate them on a per trace basis.
 	char *localmodnum_s = strtok_s(next_token, "@", &next_token);
 	long localmodID = -1;
 	sscanf_s(localmodnum_s, "%d", &localmodID);
-
 
 	piddata->getDisassemblyWriteLock();
 
@@ -286,19 +280,11 @@ void gat_module_handler::handleModule(char *buf, DWORD bytesRead)
 	}
 
 	long globalModID;
-	//auto modIDIt = piddata->globalModuleIDs.find(path_plain); //first time we have seen this module in any run of target
-	//if (modIDIt == piddata->globalModuleIDs.end())
-	//{
+
 	globalModID = (long)piddata->modpaths.size();
 	piddata->modpaths.push_back(path_plain);
 	piddata->globalModuleIDs[path_plain] = globalModID;
 	runRecord->modIDTranslationVec[localmodID] = globalModID;
-	//}
-	//else
-	//{
-	//	globalModID = modIDIt->second;
-	//	runRecord->modIDTranslationVec[localmodID] = globalModID;
-	//}
 
 	piddata->dropDisassemblyWriteLock();
 

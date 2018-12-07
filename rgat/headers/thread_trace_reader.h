@@ -50,10 +50,11 @@ public:
 	string *get_message();
 
 	size_t pendingData = 0;
-	bool getBufsState(pair <size_t, size_t> *bufSizes);
+	bool getBufsState(pair <size_t, size_t> &bufSizes);
 
 private:
 	void main_loop();
+	bool connectPipe();
 
 	CRITICAL_SECTION flagCritsec;
 	

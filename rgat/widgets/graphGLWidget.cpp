@@ -116,7 +116,6 @@ void graphGLWidget::updateAspect()
 	aspect = (double)width() / (double)height();
 }
 
-
 void graphGLWidget::drawBoundingBox(int thickness, QColor colour)
 {
 	drawBox(0, 0, width(), height(), thickness, colour);
@@ -154,15 +153,12 @@ void graphGLWidget::drawRect(float x, float y, float w, float h, QColor colour)
 
 void graphGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-
-
 	event->setAccepted(true);
 
 	if (event->buttons() == 0)
 	{
 		//todo:  mouseover nodes
 		mousePos = event->pos(); 
-
 		return;
 	}
 
@@ -172,10 +168,6 @@ void graphGLWidget::mouseMoveEvent(QMouseEvent *event)
 	QPoint newPos = event->pos();
 	mouseDragged(newPos.x() - mousePos.x(), newPos.y() - mousePos.y());
 	mousePos = event->pos();
-
-
-
-	
 }
 
 void graphGLWidget::drawHighlightLine(FCOORD lineEndPt, QColor &colour)
