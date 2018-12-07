@@ -236,7 +236,7 @@
     <item>
      <widget class="QStackedWidget" name="staticDynamicStack">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="font">
        <font>
@@ -321,7 +321,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <property name="iconSize">
            <size>
@@ -502,7 +502,7 @@
                      <item>
                       <widget class="QPushButton" name="DRPlatformTestsBtn">
                        <property name="enabled">
-                        <bool>false</bool>
+                        <bool>true</bool>
                        </property>
                        <property name="toolTip">
                         <string>Runs a group of tests on drgat - If these fail then drgat has an error</string>
@@ -1043,7 +1043,7 @@
                         <item>
                          <widget class="QLabel" name="warningBoldLabel">
                           <property name="enabled">
-                           <bool>false</bool>
+                           <bool>true</bool>
                           </property>
                           <property name="font">
                            <font>
@@ -2100,7 +2100,7 @@
                      </property>
                      <widget class="QPushButton" name="pauseBreakBtn">
                       <property name="enabled">
-                       <bool>false</bool>
+                       <bool>true</bool>
                       </property>
                       <property name="geometry">
                        <rect>
@@ -2573,7 +2573,17 @@
                       </property>
                       <item row="1" column="0">
                        <layout class="QGridLayout" name="gridLayout_12">
-                        <item row="1" column="1">
+                        <item row="3" column="0">
+                         <widget class="QLabel" name="updatesLabel">
+                          <property name="statusTip">
+                           <string>Trace updates integrated into the graph</string>
+                          </property>
+                          <property name="text">
+                           <string>Updates:</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item row="2" column="0">
                          <widget class="QLabel" name="nodesLabel">
                           <property name="text">
                            <string>Nodes:</string>
@@ -2602,17 +2612,7 @@
                           </property>
                          </widget>
                         </item>
-                        <item row="2" column="0">
-                         <widget class="QLabel" name="updatesLabel">
-                          <property name="statusTip">
-                           <string>Trace updates integrated into the graph</string>
-                          </property>
-                          <property name="text">
-                           <string>Updates:</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item row="2" column="1">
+                        <item row="4" column="0">
                          <widget class="QLabel" name="backlogLabel">
                           <property name="statusTip">
                            <string>Trace updates queued for integration into the graph</string>

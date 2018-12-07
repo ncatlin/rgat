@@ -174,9 +174,9 @@ void shrike_module_handler::main_loop()
 				sscanf_s(offset_s, "%llx", &offset);
 
 				string symname = string(next_token);
-				piddata->getDisassemblyWriteLock();
+				WriteLock disassemblyWriteLock(piddata->disassemblyRWLock);
 				piddata->modsymsPlain[runRecord->modIDTranslationVec.at(modnum)][offset] = symname;
-				piddata->dropDisassemblyWriteLock();
+				disassemblyWriteLock.unlock();
 				continue;
 			}
 
@@ -206,7 +206,7 @@ void shrike_module_handler::main_loop()
 				sscanf_s(localmodnum_s, "%d", &localmodID);
 
 
-				piddata->getDisassemblyWriteLock();
+				WriteLock disassemblyWriteLock(piddata->disassemblyRWLock);
 
 				if (runRecord->modIDTranslationVec.at(localmodID) != -1)
 				{
@@ -230,7 +230,7 @@ void shrike_module_handler::main_loop()
 					runRecord->modIDTranslationVec[localmodID] = globalModID;
 				}
 
-				piddata->dropDisassemblyWriteLock();
+				disassemblyWriteLock.unlock();
 
 
 				//todo: safe stol? if this is safe whytf have i implented safe stol
@@ -244,9 +244,9 @@ void shrike_module_handler::main_loop()
 
 
 				char *is_instrumented_s = strtok_s(next_token, "@", &next_token);
-				piddata->getDisassemblyWriteLock();
+				disassemblyWriteLock.lock();
 				runRecord->activeMods[globalModID] = (*is_instrumented_s == INSTRUMENTED_CODE);
-				piddata->dropDisassemblyWriteLock();
+				disassemblyWriteLock.unlock();
 
 				if (!startaddr | !endaddr | (next_token - buf != bytesRead)) {
 					wcerr << "ERROR! Processing module line: " << buf << endl;

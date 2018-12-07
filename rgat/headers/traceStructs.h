@@ -151,15 +151,34 @@ public:
 	map <int, std::map<ADDRESS_OFFSET, string>>modsymsPlain;
 	vector <pair<MEM_ADDRESS, MEM_ADDRESS> *> modBounds;
 
-	SRWLOCK disassemblyRWLock = SRWLOCK_INIT;
+	//SRWLOCK disassemblyRWLock = SRWLOCK_INIT;
 	SRWLOCK externCallerRWLock = SRWLOCK_INIT;
+	boost::shared_mutex disassemblyRWLock;
+	//boost::shared_mutex externCallerRWLock;
 
 	//https://msdn.microsoft.com/en-us/library/78t98006.aspx
+	
+	/*
+	inline void getDisassemblyReadLock() {
+		boost::shared_lock<boost::shared_mutex>(disassemblyRWLock);
+	}
+	inline void dropDisassemblyReadLock() {
+		boost::<boost::shared_mutex>(disassemblyRWLock);
+	}
+	inline void getDisassemblyWriteLock() {
+		boost::unique_lock<boost::shared_mutex>(disassemblyRWLock);
+	}
+	inline void dropDisassemblyWriteLock() {
+		boost::unique_lock<boost::shared_mutex>(disassemblyRWLock);
+	}
+	*.
+
+	/*
 	inline void getDisassemblyReadLock(){	AcquireSRWLockShared(&disassemblyRWLock);	}
 	inline void dropDisassemblyReadLock()	{ReleaseSRWLockShared(&disassemblyRWLock);	}
 	inline void getDisassemblyWriteLock()	{AcquireSRWLockExclusive(&disassemblyRWLock); }
 	inline void dropDisassemblyWriteLock()	{ReleaseSRWLockExclusive(&disassemblyRWLock);	}
-
+	*/
 	void getExternDictReadLock();
 	void getExternDictWriteLock();
 	void dropExternDictReadLock();

@@ -197,7 +197,7 @@ void gat_basicblock_handler::main_loop()
 
 				INS_DATA *instruction = NULL;
 
-				piddata->getDisassemblyWriteLock();
+				WriteLock disasWriteLock(piddata->disassemblyRWLock);
 				map<MEM_ADDRESS, INSLIST>::iterator addressDissasembly = piddata->disassembly.find(insaddr);
 				if (addressDissasembly != piddata->disassembly.end())
 				{
@@ -245,13 +245,13 @@ void gat_basicblock_handler::main_loop()
 				}
 				blockInstructions->push_back(instruction);
 
-				piddata->dropDisassemblyWriteLock();
+				disasWriteLock.unlock();
 
 				insaddr += instruction->numbytes;
 				bufPos += instruction->numbytes;
 			}
 
-			piddata->getDisassemblyWriteLock();
+			WriteLock disasWriteLock(piddata->disassemblyRWLock);
 			//piddata->addressBlockMap[targetaddr][blockID] = blockInstructions;
 			
 			if (blockID == piddata->numBlocksSeen())
@@ -262,7 +262,7 @@ void gat_basicblock_handler::main_loop()
 			}
 			else
 				cout << "other size" << endl;
-			piddata->dropDisassemblyWriteLock();
+			disasWriteLock.unlock();
 
 			continue;
 		}

@@ -250,10 +250,10 @@ void shrike_basicblock_handler::main_loop()
 				piddata->externdict.insert(make_pair(targetaddr, bbdata));
 				piddata->dropExternDictWriteLock();
 
-				piddata->getDisassemblyReadLock();
+				ReadLock disasReadLock(piddata->disassemblyRWLock);
 				if (piddata->modsymsPlain.count(globalModNum) && piddata->modsymsPlain.at(globalModNum).count(modoffset))
 					bbdata->hasSymbol = true;
-				piddata->dropDisassemblyReadLock();
+				disasReadLock.unlock();
 
 				//if (bbdata->hasSymbol)
 				//	fill_taint_data_for_symbol(bbdata);

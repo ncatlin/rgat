@@ -183,6 +183,7 @@ public:
 	bool deserialise(const rapidjson::Value& graphData, map <MEM_ADDRESS, INSLIST> &disassembly);
 
 	double getConstructedTime() { return constructedTime; }
+	NODEPAIR instructions_to_nodepair(INS_DATA *sourceIns, INS_DATA *targIns);
 
 	vector<EXTERNCALLDATA> externCallRecords;
 	unsigned long totalInstructions = 0;

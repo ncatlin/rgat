@@ -43,9 +43,8 @@ bool trace_graph_builder::find_internal_at_address(ADDRESS_OFFSET offset, int at
 //returns whether current thread has executed this instruction, places its vert in vertIdxOut
 bool trace_graph_builder::set_target_instruction(INS_DATA *instruction)
 {
-	piddata->getDisassemblyReadLock();
+	ReadLock(piddata->disassemblyRWLock);
 	unordered_map<PID_TID, NODEINDEX>::iterator vertIdIt = instruction->threadvertIdx.find(thisgraph->get_TID());
-	piddata->dropDisassemblyReadLock();
 
 	if (vertIdIt != instruction->threadvertIdx.end())
 	{
@@ -843,17 +842,17 @@ void trace_graph_builder::add_exception_update(char *entry)
 	cout << "[rgat]Exception detected in PID: " << runRecord->getPID() << " TID: " << TID
 	<< "[code " << std::hex << e_code << " flags: " << e_flags << "] at address 0x" << hex << e_ip << endl;
 
-	piddata->getDisassemblyReadLock();
+	ReadLock disassemblyReadLock(piddata->disassemblyRWLock);
 	//problem here: no way of knowing which mutation of the faulting instruction was executed
 	//going to have to assume it's the most recent mutation
 	if (!piddata->disassembly.count(e_ip))
 	{
-		piddata->dropDisassemblyReadLock();
+		disassemblyReadLock.unlock();
 		Sleep(100);
-		piddata->getDisassemblyReadLock();
+		disassemblyReadLock.lock();
 		if (!piddata->disassembly.count(e_ip))
 		{
-			piddata->dropDisassemblyReadLock();
+			disassemblyReadLock.unlock();
 			cerr << "[rgat]Exception address 0x" << hex << e_ip << " not found in disassembly" << endl;
 			return;
 		}
@@ -862,7 +861,7 @@ void trace_graph_builder::add_exception_update(char *entry)
 	//problem here: no way of knowing which mutation of the faulting block was executed
 	//going to have to assume it's the most recent mutation
 	pair<MEM_ADDRESS, BLOCK_IDENTIFIER> *faultingBB = &exceptingins->blockIDs.back();
-	piddata->dropDisassemblyReadLock();
+	disassemblyReadLock.unlock();
 
 	INSLIST *interruptedBlock = piddata->getDisassemblyBlock(faultingBB->first, faultingBB->second, &die, 0);
 	INSLIST::iterator blockIt = interruptedBlock->begin();

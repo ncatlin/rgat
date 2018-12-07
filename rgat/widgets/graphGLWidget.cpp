@@ -194,7 +194,8 @@ void graphGLWidget::selectHighlightedAddressNodes(PLOTTEDGRAPH_CASTPTR graphPtr)
 	//find address in disassembly of whole process
 	proto_graph *basegraph = graph->get_protoGraph();
 	PROCESS_DATA *processdata = basegraph->get_piddata();
-	processdata->getDisassemblyReadLock();
+
+	ReadLock disassemblyReadLock(processdata->disassemblyRWLock);
 	auto addressIt = processdata->disassembly.find(address);
 	if (addressIt != processdata->disassembly.end())
 	{
@@ -210,11 +211,11 @@ void graphGLWidget::selectHighlightedAddressNodes(PLOTTEDGRAPH_CASTPTR graphPtr)
 			node_data *n = basegraph->safe_get_node(threadVIt->second);
 			nodeList.push_back(n->index);
 		}
-		processdata->dropDisassemblyReadLock();
+		disassemblyReadLock.unlock();
 		graph->setHighlightData(&nodeList, eAddress_HL);
 		return;
 	}
-	processdata->dropDisassemblyReadLock();
+	disassemblyReadLock.unlock();
 
 
 	processdata->getExternDictReadLock();

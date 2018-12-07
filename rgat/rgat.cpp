@@ -75,6 +75,8 @@ rgat::~rgat()
 void rgat::setupUI()
 {
 	ui.setupUi(this);
+	ui.staticDynamicStack->setEnabled(false); //until a binary loaded
+
 	processSelectUI.setupUi(&processSelectorDialog);
 	highlightSelectUI.setupUi(&highlightSelectorDialog);
 	mouseoverWidgetUI.setupUi(&mouseoverWidget);

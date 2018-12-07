@@ -236,11 +236,11 @@ void highlightWidget::addressChange(QString addressString)
 
 	bool addressFound = false;
 	PROCESS_DATA *processdata = activeGraph->get_piddata();
-	processdata->getDisassemblyReadLock();
+	ReadLock disasReadLock(processdata->disassemblyRWLock);
 	auto addressIt = processdata->disassembly.find(address);
 	if (addressIt != processdata->disassembly.end())
 		addressFound = true;
-	processdata->dropDisassemblyReadLock();
+	disasReadLock.unlock();
 
 	if (!addressFound)
 	{

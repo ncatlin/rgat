@@ -8,6 +8,12 @@
 
 #include <boost\process.hpp>
 #include <boost\filesystem.hpp>
+#include <boost\thread\shared_mutex.hpp>
+#include <boost\thread\locks.hpp>
+
+typedef boost::shared_mutex Lock;
+typedef boost::unique_lock< Lock > WriteLock;
+typedef boost::shared_lock< Lock > ReadLock;
 
 using namespace std;
 #include <cstdlib>

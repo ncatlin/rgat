@@ -60,7 +60,7 @@ void PROCESS_DATA::dropExternCallerWriteLock()
 bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, string &sym)
 {
 	bool found;
-	getDisassemblyWriteLock();
+	WriteLock(disassemblyRWLock);
 	if (modsymsPlain[globalmodNum][offset].empty())
 	{
 		sym = "";
@@ -71,7 +71,6 @@ bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, str
 		sym = modsymsPlain[globalmodNum][offset];
 		found = true;
 	}
-	dropDisassemblyWriteLock();
 
 	return found;
 }
@@ -80,10 +79,9 @@ pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> PROCESS_DATA::blockDetails(BLOCK_IDENTI
 {
 	pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *> blockPair;
 
-	getDisassemblyReadLock();
+	ReadLock(disassemblyRWLock);
 	assert(blockid < blockList.size());
 	blockPair = blockList.at(blockid);
-	dropDisassemblyReadLock();
 
 	return blockPair;
 }
@@ -93,9 +91,8 @@ bool PROCESS_DATA::get_modpath(unsigned int globalmodnum, boost::filesystem::pat
 
 	if (globalmodnum >= modpaths.size()) return false;
 
-	getDisassemblyReadLock();
+	ReadLock(disassemblyRWLock);
 	*path = modpaths.at(globalmodnum);
-	dropDisassemblyReadLock();
 
 	return true;
 }
@@ -598,13 +595,13 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 
 		if (blockID < blockList.size())
 		{
-			getDisassemblyReadLock();
+			ReadLock disasReadLock(disassemblyRWLock);
 			INSLIST *result;
 			BLOCK_DESCRIPTOR *blkd = blockList.at(blockID).second;
 
 			result = blkd->inslist;
 
-			dropDisassemblyReadLock();
+			disasReadLock.unlock();
 			return result;
 		}
 
@@ -639,8 +636,8 @@ void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>
 {
 	writer.Key("Disassembly");
 	writer.StartArray();
+	ReadLock(disassemblyRWLock);
 
-	getDisassemblyReadLock();
 	map <MEM_ADDRESS, INSLIST>::iterator disasIt = disassembly.begin();
 	for (; disasIt != disassembly.end(); ++disasIt)
 	{
@@ -682,7 +679,7 @@ void PROCESS_DATA::saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>
 		writer.EndArray(); //end address
 
 	}
-	dropDisassemblyReadLock();
+
 	writer.EndArray(); // end array of disassembly data for trace
 }
 
@@ -747,7 +744,7 @@ void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& 
 	writer.Key("BasicBlocks");
 	writer.StartArray();
 
-	getDisassemblyReadLock();
+	ReadLock(disassemblyRWLock);
 
 	vector <pair<ADDRESS_OFFSET, BLOCK_DESCRIPTOR *>>::iterator blockIt = blockList.begin();
 
@@ -772,7 +769,6 @@ void PROCESS_DATA::saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& 
 
 		writer.EndArray(); //end basic block object for this address
 	}
-	dropDisassemblyReadLock();
 	writer.EndArray(); //end array of basic blocks
 }
 
@@ -1009,7 +1005,7 @@ MEM_ADDRESS PROCESS_DATA::instruction_before(MEM_ADDRESS addr)
 
 	//x86 has variable length instructions so we have to 
 	//search backwards, byte by byte
-	getDisassemblyReadLock();
+	ReadLock(disassemblyRWLock);
 	MEM_ADDRESS testaddr, addrMinus;
 	for (addrMinus = 1; addrMinus < (LARGEST_X86_INSTRUCTION+1); addrMinus++)
 	{
@@ -1019,7 +1015,6 @@ MEM_ADDRESS PROCESS_DATA::instruction_before(MEM_ADDRESS addr)
 			break;
 		}
 	}
-	dropDisassemblyReadLock();
 
 	if (addrMinus > LARGEST_X86_INSTRUCTION)
 	{

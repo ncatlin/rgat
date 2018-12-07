@@ -159,8 +159,7 @@ int binaryTarget::getBitWidth()
 
 traceRecord *binaryTarget::getFirstTrace()
 {
-	if (traceRecords.empty()) return NULL;
-	return traceRecords.front();
+	return traceRecords.empty() ? NULL : traceRecords.front();
 }
 
 traceRecord *binaryTarget::getTraceWithID(int ID)
