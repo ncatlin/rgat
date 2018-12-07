@@ -58,4 +58,13 @@ private:
 	void main_loop();
 	void start_thread_rendering(PID_TID TID, HANDLE threadpipe); 
 	void sendIncludeLists();
+	void end_threads();
+	
+	void handleNewThread(char *buf, OVERLAPPED &ov2);
+	void handleNewVisualiserThread(PID_TID TID, OVERLAPPED &ov2);
+	void handleSymbol(char *buf);
+	void handleModule(char *buf, DWORD bytesRead);
+	void handlePipeError();
+	DWORD getData(char *buf, OVERLAPPED ov2, bool &pendingControlCommand);
+	bool gat_module_handler::establishPipe();
 };
