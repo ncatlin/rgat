@@ -552,6 +552,11 @@ void rgat::dropEvent(QDropEvent *event)
 	}
 }
 
+/*
+This loop checks the most recent items exist and puts them in the recent item menu
+Problem here is that if they are on different filesystems (like a NAS) then this could
+really ruin loading times. May want an option to disable and/or do it in a thread. 
+*/
 void rgat::loadRecentTargetsMenu()
 {
 	QAction *recentTarg = NULL;
@@ -564,13 +569,29 @@ void rgat::loadRecentTargetsMenu()
 
 	recentTargetsMenu->setEnabled(true);
 
-	for (auto it = rgatstate->config.recentTargets.begin(); it != rgatstate->config.recentTargets.end(); it++)
+	int remainingRecentEntries = MAX_REMAINING_ITEMS_DISPLAY;
+	for (auto it = rgatstate->config.recentTargets.begin(); 
+		it != rgatstate->config.recentTargets.end() && remainingRecentEntries > 0;
+		it++)
 	{
 		string pathstring = it->string();
+		boost::filesystem::path fpath(pathstring);
+		if (!boost::filesystem::exists(fpath))
+		{
+			rgatstate->config.recentTargets.erase(it);
+			continue;
+		}
+
+		QString newval = QString::fromStdString(pathstring);
 		recentTarg = new QAction(tr(pathstring.c_str()), this);
 		recentTargetsMenu->addAction(recentTarg);
-	}
+		targetCombo *targetListCombo = ui.targetListCombo;
 
+		connect(recentTarg, &QAction::triggered,
+			[targetListCombo, newval] () {targetListCombo->loadRecent(newval); }
+		);
+		remainingRecentEntries--;
+	}
 }
 
 void rgat::addFileMenuBtn()

@@ -44,6 +44,10 @@ public:
 public Q_SLOTS:
 	void addNewTarget();
 	void setActiveTarget(int index);
+	void loadRecent(QString rcnt);
+
+private:
+	void addTargetByPath(boost::filesystem::path filepath);
 
 private:
 	binaryTargets * targets = NULL;

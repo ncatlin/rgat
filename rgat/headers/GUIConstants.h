@@ -134,3 +134,6 @@ enum eUIEventCode { EV_NONE = 0, EV_MOUSE, EV_KEYBOARD, EV_EXIT, EV_BTN_STEPPING
 #define GOFF 1
 #define BOFF 2
 #define AOFF 3
+
+//how many items are listed in the remaining items meny
+#define MAX_REMAINING_ITEMS_DISPLAY 8

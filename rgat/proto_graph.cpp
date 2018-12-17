@@ -102,7 +102,7 @@ void proto_graph::add_edge(edge_data e, node_data &source, node_data &target)
 	dropEdgeWriteLock();
 }
 
-NODEPAIR proto_graph::instructions_to_nodepair(INS_DATA *sourceIns, INS_DATA *targIns)
+bool proto_graph::instructions_to_nodepair(INS_DATA *sourceIns, INS_DATA *targIns, NODEPAIR &result)
 {
 	auto sourceIt = sourceIns->threadvertIdx.find(tid);
 	if (sourceIt == sourceIns->threadvertIdx.end())
@@ -110,7 +110,7 @@ NODEPAIR proto_graph::instructions_to_nodepair(INS_DATA *sourceIns, INS_DATA *ta
 		std::cerr << "[rgat] Error: Attempt to find entry for thread " << std::dec <<
 			" in source instruction 0x" << std::hex << sourceIns->address <<
 			" (" << sourceIns->ins_text << ")" << std::endl;
-		return;
+		return false;
 	}
 	auto targIt = targIns->threadvertIdx.find(tid);
 	if (targIt == targIns->threadvertIdx.end())
@@ -118,17 +118,19 @@ NODEPAIR proto_graph::instructions_to_nodepair(INS_DATA *sourceIns, INS_DATA *ta
 		std::cerr << "[rgat] Error: Attempt to find entry for thread " << std::dec <<
 			" in source instruction 0x" << std::hex << targIns->address <<
 			" (" << targIns->ins_text << ")" << std::endl;
-		return;
+		return false;
 	}
 
-	return make_pair(sourceIt->second, targIt->second);
+	result = make_pair(sourceIt->second, targIt->second);
+	return true;
 }
 
 void proto_graph::insert_edge_between_BBs(INSLIST &source, INSLIST &target)
 {
 
-	NODEPAIR edgeNodes = instructions_to_nodepair(source.back(), target.front());
-	if (edgeDict.count(edgeNodes)) return;
+	NODEPAIR edgeNodes;
+	bool found = instructions_to_nodepair(source.back(), target.front(), edgeNodes);
+	if (!found || edgeDict.count(edgeNodes) > 0) return;
 
 	node_data *sourceNode = safe_get_node(edgeNodes.first);
 	node_data *targNode = safe_get_node(edgeNodes.second);
