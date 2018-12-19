@@ -81,7 +81,7 @@ void clientConfig::loadPaths()
 
 	int count = QSettingsObj->beginReadArray("RecentTargets");
 	
-	for (int idx = 0; idx < count; idx++)
+	for (int idx = count-1; idx >= 0; idx--)
 	{
 		QSettingsObj->setArrayIndex(idx);
 		boost::filesystem::path recentPath(QSettingsObj->value("path").toString().toStdString());
@@ -460,6 +460,8 @@ void clientConfig::updateLastPath(boost::filesystem::path binarypath)
 	{
 		QSettingsObj->setArrayIndex(count++);
 		QSettingsObj->setValue("path", QString::fromStdString(targ.string()));
+		if (count > 10)
+			break;
 	}
 	QSettingsObj->endArray();
 
