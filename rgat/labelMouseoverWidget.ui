@@ -12,8 +12,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>263</width>
-    <height>162</height>
+    <width>391</width>
+    <height>238</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -59,81 +59,102 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="moduleLabel">
-        <property name="text">
-         <string>module path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="symbolText">
-        <property name="text">
-         <string>Symbol:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QLabel" name="nodeLabel">
-          <property name="text">
-           <string>Label:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="labelEdit">
-          <property name="minimumSize">
-           <size>
-            <width>190</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>190</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="callCount">
-        <property name="text">
-         <string>Calls:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QListWidget" name="callsText">
         <property name="minimumSize">
          <size>
-          <width>0</width>
-          <height>25</height>
+          <width>200</width>
+          <height>30</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>100</height>
+          <height>999999</height>
          </size>
         </property>
         <property name="sizeAdjustPolicy">
          <enum>QAbstractScrollArea::AdjustToContents</enum>
         </property>
         <property name="resizeMode">
-         <enum>QListView::Adjust</enum>
+         <enum>QListView::Fixed</enum>
+        </property>
+        <property name="uniformItemSizes">
+         <bool>true</bool>
+        </property>
+        <property name="batchSize">
+         <number>100</number>
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="6" column="0">
        <widget class="QCheckBox" name="checkBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string>Taint</string>
         </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QFrame" name="verticalFrame">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>100</height>
+         </size>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="moduleLabel">
+           <property name="text">
+            <string>Module</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="symbolText">
+           <property name="text">
+            <string>Symbol:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QLabel" name="nodeLabel">
+             <property name="text">
+              <string>Label:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="labelEdit">
+             <property name="minimumSize">
+              <size>
+               <width>190</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>190</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QLabel" name="callCount">
+           <property name="text">
+            <string>Calls:</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>
@@ -153,22 +174,5 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>labelEdit</sender>
-   <signal>returnPressed()</signal>
-   <receiver>mouseoverWidget</receiver>
-   <slot>changedLabel()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>148</x>
-     <y>57</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>131</x>
-     <y>80</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

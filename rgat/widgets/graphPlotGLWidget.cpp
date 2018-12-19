@@ -126,12 +126,12 @@ void graphPlotGLWidget::showMouseoverNodeTooltip()
 
 			QListWidgetItem *item = new QListWidgetItem;
 			item->setText(itemString);
-			item->setSizeHint(QSize(item->sizeHint().width(), 20));
+			//item->setSizeHint(QSize(item->sizeHint().width(), 20));
 			tooltipwidget->callsText->addItem(item);
 
 			++callcount;
 		}
-		tooltipwidget->callsText->adjustSize();
+		//tooltipwidget->callsText->adjustSize();
 	}
 
 	clientState->labelMouseoverWidget->adjustSize();
