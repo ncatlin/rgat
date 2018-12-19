@@ -87,6 +87,7 @@ public:
 	bool wireframe = true;
 	bool showNearSide = false;
 
+
 public:
 
 	bool waitingForNewTrace = false;
@@ -104,6 +105,7 @@ public:
 
 	void *labelMouseoverUI = NULL;
 	mouseoverFrame *labelMouseoverWidget = NULL;
+	bool needMenuRefresh = false;
 
 	PLOTTEDGRAPH_CASTPTR getActiveGraph(bool increaseReferences);
 	void clearActiveGraph();

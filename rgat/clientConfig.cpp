@@ -466,6 +466,8 @@ void clientConfig::updateLastPath(boost::filesystem::path binarypath)
 	QSettingsObj->endArray();
 
 	QSettingsObj->sync();
+	
+	
 }
 
 //returns path string if exists on disk, empty string if not

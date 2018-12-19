@@ -63,10 +63,15 @@ rgat::rgat(QWidget *parent)
 	rgatstate->emptyComparePane2();
 
 	rgatstate->updateActivityStatus("Open a binary target or saved trace", PERSISTANT_ACTIVITY);
+
+	UIHousekeepingTimer = new QTimer(this);
+	connect(UIHousekeepingTimer, &QTimer::timeout, this, &rgat::doUIHousekeeping);
+	UIHousekeepingTimer->start(750);
 }
 
 rgat::~rgat() 
 {
+	UIHousekeepingTimer->stop();
 	processSelectorDialog.deleteLater();
 	highlightSelectorDialog.deleteLater();
 	settingsWindowDialog.deleteLater();
@@ -548,7 +553,7 @@ void rgat::dropEvent(QDropEvent *event)
 			ui.targetListCombo->addTargetToInterface(target, newBinary);
 			rgatstate->config.updateLastPath(filepath);
 		}
-
+		rgatstate->needMenuRefresh = true;
 	}
 }
 
@@ -568,6 +573,7 @@ void rgat::loadRecentTargetsMenu()
 	}
 
 	recentTargetsMenu->setEnabled(true);
+	recentTargetsMenu->clear();
 
 	int remainingRecentEntries = MAX_REMAINING_ITEMS_DISPLAY;
 	for (auto it = rgatstate->config.recentTargets.begin(); 
@@ -653,4 +659,14 @@ void rgat::settingsMenuBtnPressed()
 		rgatstate->settingsDialog->hide();
 	else
 		rgatstate->settingsDialog->show();
+}
+
+void rgat::doUIHousekeeping()
+{
+	if (rgatstate->needMenuRefresh)
+	{
+		loadRecentTargetsMenu();
+		rgatstate->needMenuRefresh = false;
+	}
+
 }

@@ -119,6 +119,7 @@ void targetCombo::addTargetByPath(boost::filesystem::path filepath)
 	addTargetToInterface(target, newBinary);
 
 	clientState->config.updateLastPath(filepath);
+	clientState->needMenuRefresh = true;
 }
 
 void targetCombo::addNewTarget()

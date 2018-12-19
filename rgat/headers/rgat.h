@@ -61,6 +61,7 @@ public Q_SLOTS:
 	void loadSavedTrace();
 	void textBtnTriggered(int btnID);
 	void closeEvent(QCloseEvent *event);
+	void doUIHousekeeping();
 
 	void dropEvent(QDropEvent *event);
 	void dragEnterEvent(QDragEnterEvent *event)
@@ -86,6 +87,8 @@ private:
 	QLabel *tracingStatusLabel, *activityStatusLabel;
 	Ui_mouseoverWidget mouseoverWidgetUI;
 	mouseoverFrame mouseoverWidget;
+
+	QTimer *UIHousekeepingTimer;
 
 private:
 	void setStatePointers();
