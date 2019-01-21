@@ -31,7 +31,7 @@ float getPulseAlpha()
 
 	float pulseAlpha;
 	if (countUp)
-		pulseAlpha = (float)millisecond / 10.0;
+		pulseAlpha = (float) millisecond / 10.0;
 	else
 		pulseAlpha = 1.0 - (millisecond / 10.0);
 

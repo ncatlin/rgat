@@ -192,7 +192,7 @@ void mainTabBox::killActiveTrace()
 {
 	traceRecord *trace = clientState->activeTrace;
 	if (trace) 
-		trace->kill();
+		trace->killTraceProcess();
 }
 
 
@@ -354,8 +354,6 @@ void mainTabBox::refreshProcessesCombo(traceRecord *initialTrace)
 	Ui::processSelector *psui = (Ui::processSelector *)clientState->processSelectUI;
 	psui->treeWidget->clear();
 
-
-	stringstream labelStringStream;
 	int processesQty = initialTrace->countDescendants();
 
 	int activeProcesses = addProcessToGUILists(initialTrace, NULL); //recursively add each to process combo
@@ -364,6 +362,7 @@ void mainTabBox::refreshProcessesCombo(traceRecord *initialTrace)
 	else if(!initialTrace->UIRunningFlag && activeProcesses != 0)
 		initialTrace->UIRunningFlag = true;
 
+	stringstream labelStringStream;
 	labelStringStream << "Processes (" << activeProcesses << "/" << processesQty << "): ";
 	ui->processesLabel->setText(QString::fromStdString(labelStringStream.str()));
 }
@@ -421,7 +420,6 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 		return;
 	}
 
-	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 
 	if (clientState->processChangeSeen() || fullRefresh)
 	{
@@ -437,6 +435,7 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 		refreshTracesCombo(traceParent);
 	}
 
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	stringstream labelStringStream;
 	labelStringStream.str("");
 	labelStringStream << "Active Thread ID: " << protoGraph->get_TID();
@@ -461,28 +460,36 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 
 void mainTabBox::moduleIncludeSelectBtnClicked()
 {
-	if (!clientState->includesSelectorDialog->isVisible())
+	if (clientState->includesSelectorDialog->isVisible())
+	{
+		clientState->includesSelectorDialog->hide();
+	}
+	else
 	{
 		Ui::moduleIncludeSelectDialog *includesDlg = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 		includesDlg->blackWhiteListStack->SyncUIWithCurrentBinary();
 		clientState->includesSelectorDialog->show();
 	}
-	else
-		clientState->includesSelectorDialog->hide();
 }
 
 void mainTabBox::processSelectBtnClicked()
 {
-	if (!clientState->processSelectorDialog->isVisible())
-		clientState->processSelectorDialog->show();
-	else
+	if (clientState->processSelectorDialog->isVisible())
+	{
 		clientState->processSelectorDialog->hide();
+	}
+	else
+	{
+		clientState->processSelectorDialog->show();
+	}
 }
 
 void mainTabBox::highlightDialogBtnClicked()
 {
 	if (clientState->highlightSelectorDialog->isVisible())
+	{
 		clientState->highlightSelectorDialog->hide();
+	}
 	else
 	{
 		clientState->highlightSelectorDialog->show();
@@ -602,10 +609,8 @@ void mainTabBox::renderModeSelected(int index)
 
 void mainTabBox::graphLayoutSelected(int index)
 {
-	if (index == clientState->newGraphLayout) return;
-
-	clientState->newGraphLayout = (graphLayouts)index;
-
+	if (index != clientState->newGraphLayout) 
+		clientState->newGraphLayout = (graphLayouts)index;
 }
 
 void mainTabBox::startDynamorioTest()
@@ -616,10 +621,8 @@ void mainTabBox::startDynamorioTest()
 		cerr << " No target to test... ignoring" << endl;
 		return;
 	}
-	if (!activeTarget->getBitWidth())
-		return;
-
-	execute_dynamorio_compatibility_test(activeTarget, clientState->config);
+	if (activeTarget->getBitWidth() != 0)
+		execute_dynamorio_compatibility_test(activeTarget, clientState->config);
 }
 
 void mainTabBox::startPinTest()
@@ -630,10 +633,8 @@ void mainTabBox::startPinTest()
 		cerr << " No target to test... ignoring" << endl;
 		return;
 	}
-	if (!activeTarget->getBitWidth())
-		return;
-
-	execute_pin_compatibility_test(activeTarget, clientState->config);
+	if (activeTarget->getBitWidth() != 0)
+		execute_pin_compatibility_test(activeTarget, clientState->config);
 }
 
 

@@ -57,7 +57,7 @@ public:
 	void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
 	void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> &writer) { runtimeline.serialise(writer); };
 
-	void kill() { if (running) { killed = true; } }
+	void killTraceProcess() { if (running) { killed = true; } }
 	bool should_die() { return killed; }
 	bool is_running() { return running; }
 	void set_running(bool r) { running = r; }

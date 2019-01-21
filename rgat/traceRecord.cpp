@@ -305,7 +305,7 @@ bool traceRecord::insert_new_thread(PID_TID TID, PLOTTEDGRAPH_CASTPTR graph_plot
 
 void traceRecord::killTree()
 {
-	kill();
+	killTraceProcess();
 
 	traceRecord *child;
 	foreach(child, children)
