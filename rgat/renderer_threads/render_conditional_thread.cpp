@@ -132,7 +132,7 @@ void conditional_renderer::main_loop()
 
 	while ((runRecord->plottedGraphs.empty()) && !die)
 	{
-		Sleep(100);
+		std::this_thread::sleep_for(100ms);
 		continue;
 	}
 
@@ -145,7 +145,8 @@ void conditional_renderer::main_loop()
 
 		if (!runRecord->graphListLock.trylock())
 		{
-			Sleep(20); continue;
+			std::this_thread::sleep_for(20ms); 
+			continue;
 		}
 				
 		for (graphIt = runRecord->plottedGraphs.begin(); graphIt != runRecord->plottedGraphs.end(); ++graphIt)
@@ -182,7 +183,7 @@ void conditional_renderer::main_loop()
 				else
 					finishedGraphs.erase(graph);
 			}
-			Sleep(20);
+			std::this_thread::sleep_for(20ms);
 		}
 
 		for (auto graph : graphlist)
@@ -194,7 +195,7 @@ void conditional_renderer::main_loop()
 		int waitForNextIt = 0;
 		while (waitForNextIt < updateDelayMS && !die)
 		{
-			Sleep(50);
+			std::this_thread::sleep_for(50ms);
 			waitForNextIt += 50;
 		}
 	}

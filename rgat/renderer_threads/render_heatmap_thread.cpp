@@ -497,7 +497,7 @@ void heatmap_renderer::render_graphlist(vector<plotted_graph *> &graphlist, map<
 				render_graph_heatmap(graph, true);
 			}
 		}
-		Sleep(20); //pause between graphs so other things don't struggle for mutex time
+		std::this_thread::sleep_for(20ms); //pause between graphs so other things don't struggle for mutex time
 	}
 }
 
@@ -518,8 +518,8 @@ void heatmap_renderer::main_loop()
 
 	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while ((!piddata || runRecord->plottedGraphs.empty()) && !die)
-		Sleep(100);
-	Sleep(500);
+		std::this_thread::sleep_for(100ms);
+	std::this_thread::sleep_for(500ms);
 
 	vector<plotted_graph *> graphlist;
 	map<plotted_graph *, bool> finishedGraphs;
@@ -542,7 +542,7 @@ void heatmap_renderer::main_loop()
 		int waitForNextIt = 0;
 		while (waitForNextIt < updateDelayMS && !die)
 		{
-			Sleep(50);
+			std::this_thread::sleep_for(50ms);
 			waitForNextIt += 50;
 		}
 	}

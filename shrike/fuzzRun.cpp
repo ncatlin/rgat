@@ -186,7 +186,7 @@ void fuzzRun::main_loop()
 		
 		while (!targetProcess)
 		{
-			Sleep(10);
+			std::this_thread::sleep_for(10ms);
 		}
 		cout << "got process! " << targetProcess->getPID() << endl;
 
@@ -194,7 +194,7 @@ void fuzzRun::main_loop()
 		while (targetActive)
 		{//I/O
 
-			Sleep(100);
+			std::this_thread::sleep_for(100ms);
 		}
 	}
 }

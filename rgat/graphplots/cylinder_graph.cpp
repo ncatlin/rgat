@@ -68,7 +68,7 @@ void cylinder_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK
 		int iterations = 1;
 		do
 		{
-			Sleep(waitPeriod);
+			std::this_thread::sleep_for(std::chrono::milliseconds(waitPeriod));
 			waitPeriod += (150 * iterations++);
 			oldPosition = get_node_coord(lastNode->lastVertID);
 		} while (!oldPosition);

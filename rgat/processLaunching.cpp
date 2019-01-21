@@ -56,7 +56,7 @@ void launch_new_visualiser_threads(binaryTarget *target, traceRecord *runRecord,
 	processThreads->threads.push_back(tHeatThread);
 
 	conditional_renderer *tCondThread = new conditional_renderer(runRecord);
-	Sleep(200);
+	std::this_thread::sleep_for(200ms);
 	std::thread condthread(&conditional_renderer::ThreadEntry, tCondThread);
 	condthread.detach();
 	processThreads->conditionalThread = tCondThread;
@@ -128,7 +128,7 @@ bool readpipe_drgat_newPID(string &resultstring, HANDLE hPipe, OVERLAPPED *ov)
 	if (conFail)
 	{
 		cerr << "[rgat]Warning! Bootstrap connection error" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -151,7 +151,7 @@ bool readpipe_drgat_newPID(string &resultstring, HANDLE hPipe, OVERLAPPED *ov)
 	if (!success || !bytesRead)
 	{
 		cerr << "[rgat]ERROR: Failed to read process notification. Try again" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -286,7 +286,7 @@ void process_coordinator_listener(rgatState *clientState, vector<RGAT_THREADS_ST
 		{
 			process_new_pin_connection(clientState, threadsList, pBuf);
 		}
-		Sleep(500);
+		std::this_thread::sleep_for(500ms);
 	}
 
 	CloseHandle(hFileMap);
@@ -331,7 +331,7 @@ void process_coordinator_thread(rgatState *clientState)
 			{
 				if (!waitLimit--) ExitProcess(-1); //why troubleshoot bad thread coding when you can smash with hammer?
 				if (((base_thread *)*threadIt)->is_alive()) {
-					Sleep(2);
+					std::this_thread::sleep_for(2ms);
 					continue;
 				}
 				break;
@@ -345,7 +345,7 @@ void process_coordinator_thread(rgatState *clientState)
 
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
 		while (((RGAT_THREADS_STRUCT *)*processIt)->BBthread->is_alive())
-			Sleep(1);
+			std::this_thread::sleep_for(1ms);
 }
 
 //for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
@@ -365,7 +365,7 @@ void launch_saved_process_threads(traceRecord *runRecord, rgatState *clientState
 	processThreads->threads.push_back(processThreads->heatmapThread);
 
 	processThreads->conditionalThread = new conditional_renderer(runRecord);
-	Sleep(200);
+	std::this_thread::sleep_for(200ms);
 	std::thread condthread(&conditional_renderer::ThreadEntry, processThreads->conditionalThread);
 	condthread.detach();
 	processThreads->threads.push_back(processThreads->conditionalThread);

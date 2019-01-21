@@ -92,7 +92,7 @@ DWORD WINAPI stressThread(LPVOID uiarg)
 		if (layout == 0)
 			layout = 1;
 		else layout = 0;
-		Sleep(20);
+		std::this_thread::sleep_for(20ms);
 	}
 }
 #endif 

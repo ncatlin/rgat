@@ -33,7 +33,7 @@ bool trace_graph_builder::find_internal_at_address(ADDRESS_OFFSET offset, int at
 {
 	while (!piddata->disassembly.count(offset))
 	{
-		Sleep(1);
+		std::this_thread::sleep_for(1ms);
 		if (!attempts--) return false;
 	}
 	return true;
@@ -848,7 +848,7 @@ void trace_graph_builder::add_exception_update(char *entry)
 	if (!piddata->disassembly.count(e_ip))
 	{
 		disassemblyReadLock.unlock();
-		Sleep(100);
+		std::this_thread::sleep_for(100ms);
 		disassemblyReadLock.lock();
 		if (!piddata->disassembly.count(e_ip))
 		{
@@ -943,7 +943,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 	sourceID = id_count >> 32;
 
 	if (piddata->numBlocksSeen() <= sourceID) {
-		Sleep(50);
+		std::this_thread::sleep_for(50ms);
 		if (die || thisgraph->terminated) return;
 		cerr << "[rgat]ERROR: Failed to find UL source block: " << hex << sourceAddr << endl;
 		assert(0);
@@ -954,7 +954,7 @@ void trace_graph_builder::add_unlinking_update(char *entry)
 
 	unordered_map<PID_TID, NODEINDEX>::iterator vertIt = lastIns->threadvertIdx.find(TID);
 	if (vertIt == lastIns->threadvertIdx.end()) {
-		Sleep(50);
+		std::this_thread::sleep_for(50ms);
 		if (die || thisgraph->terminated) return;
 		cerr << "[rgat]ERROR: Failed to find UL last node: " << hex << sourceAddr << endl;
 		assert(0);
@@ -1147,7 +1147,7 @@ void trace_graph_builder::process_trace_tag(char *entry)
 			std::hex << nextBlockAddress << " in instrumented or external code. Block tag(addr: " <<
 			thistag.blockaddr << " insQty: " << thistag.insCount << "id: " <<
 			thistag.blockID << " modtype: " << modType << endl;
-		Sleep(60);
+		std::this_thread::sleep_for(60ms);
 	}
 
 	if (modType == INSTRUMENTED_CODE) return;
@@ -1217,7 +1217,7 @@ void trace_graph_builder::main_loop()
 		if (!message)
 		{
 			assign_blockrepeats();
-			Sleep(5);
+			std::this_thread::sleep_for(5ms);
 			continue;
 		}
 
@@ -1238,7 +1238,7 @@ void trace_graph_builder::main_loop()
 		}
 
 		while (*saveFlag && !die)
-			Sleep(20); //writing while saving -> corrupt save
+			std::this_thread::sleep_for(20ms); //writing while saving -> corrupt save
 
 		++itemsDone;
 
@@ -1305,7 +1305,7 @@ void trace_graph_builder::main_loop()
 
 	int max = 10;
 	while (max-- && !assign_blockrepeats())
-		Sleep(5);
+		std::this_thread::sleep_for(5ms);
 
 	if (!assign_blockrepeats())
 	{

@@ -37,7 +37,7 @@ bool read_shrike_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	if (conFail)
 	{
 		cerr << "[rgat-shrike]Warning! Bootstrap connection error" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -46,7 +46,7 @@ bool read_shrike_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	{
 		if (WaitForSingleObject(ov->hEvent, 3000) == WAIT_TIMEOUT)
 		{
-			Sleep(100);
+			std::this_thread::sleep_for(100ms);
 			return false;
 		}
 	}
@@ -61,7 +61,7 @@ bool read_shrike_newPID_sleepy(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	if (!success || !bytesRead)
 	{
 		cerr << "[rgat]ERROR: Failed to read process notification. Try again" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -76,7 +76,7 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	if (conFail)
 	{
 		cerr << "[rgat-shrike]Warning! Bootstrap connection error" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -85,7 +85,7 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	{
 		if (WaitForSingleObject(ov->hEvent, 3000) == WAIT_TIMEOUT)
 		{
-			Sleep(100);
+			std::this_thread::sleep_for(100ms);
 			return false;
 		}
 	}
@@ -100,7 +100,7 @@ bool read_shrike_newPID_socket(vector <char> *buf, HANDLE hPipe, OVERLAPPED *ov)
 	if (!success || !bytesRead)
 	{
 		cerr << "[rgat]ERROR: Failed to read process notification. Try again" << endl;
-		Sleep(1000);
+		std::this_thread::sleep_for(1000ms);
 		return false;
 	}
 
@@ -253,7 +253,7 @@ void shrike_process_coordinator(rgatState *clientState)
 			{
 				if (!waitLimit--) ExitProcess(-1); //why troubleshoot bad thread coding when you can smash with hammer?
 				if (((base_thread *)*threadIt)->is_alive()) {
-					Sleep(2);
+					std::this_thread::sleep_for(2ms);
 					continue;
 				}
 				break;
@@ -267,5 +267,5 @@ void shrike_process_coordinator(rgatState *clientState)
 
 	for (processIt = threadsList.begin(); processIt != threadsList.end(); ++processIt)
 		while (((SHRIKE_THREADS_STRUCT *)*processIt)->BBthread->is_alive())
-			Sleep(1);
+			std::this_thread::sleep_for(1ms);
 }

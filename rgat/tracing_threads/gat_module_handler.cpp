@@ -389,7 +389,7 @@ void gat_module_handler::end_threads()
 	for (athreadIt = threadList.begin(); athreadIt != threadList.end(); ++athreadIt)
 	{
 		while ((base_thread *)(*athreadIt)->is_alive())
-			Sleep(5);
+			std::this_thread::sleep_for(5ms);
 	}
 }
 

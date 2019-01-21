@@ -31,7 +31,6 @@ public:
 		assert(bitwidth);
 		disassemblyBitwidth = (bitwidth == 32) ? CS_MODE_32 : CS_MODE_64;
 
-
 		if (bbpipe)
 		{
 			inputPipe = bbpipe;

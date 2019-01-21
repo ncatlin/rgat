@@ -138,7 +138,7 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 			cerr << "\tGiving up and marking it as failed." << endl;
 			return false;
 		}
-		Sleep(100);
+		std::this_thread::sleep_for(100ms);
 		timeLimit -= 100;
 
 		testtrace = newTarget->getFirstTrace();		
@@ -150,7 +150,7 @@ bool testRun::runTest(boost::filesystem::path testStem, rapidjson::Value::ConstM
 	}
 
 	clock_t duration = (timeend - timestart)/1000;
-	Sleep(100);
+	std::this_thread::sleep_for(100ms);
 
 	bool success = validateTestResults(testtrace, expectedResults);
 	if (!success)

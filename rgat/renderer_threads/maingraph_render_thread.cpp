@@ -81,7 +81,7 @@ void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bo
 	traceRecord *activeTrace = (traceRecord *)activeGraph->get_protoGraph()->get_traceRecord();
 
 	while (clientState->getActiveGraph(false) == activeGraph)
-		Sleep(25);
+		std::this_thread::sleep_for(25ms);
 	activeTrace->graphListLock.lock();
 
 	proto_graph *protoGraph = activeGraph->get_protoGraph();
@@ -142,7 +142,7 @@ void maingraph_render_thread::main_loop()
 		activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
 		while (!activeGraph || !activeGraph->get_mainlines()) 
 		{
-			Sleep(50);
+			std::this_thread::sleep_for(50ms);
 			activeGraph = (plotted_graph *)clientState->getActiveGraph(false);
 			continue;
 		}
@@ -163,7 +163,7 @@ void maingraph_render_thread::main_loop()
 		}
 		activeGraph = NULL;
 
-		Sleep(clientState->config.renderFrequency);
+		std::this_thread::sleep_for(std::chrono::milliseconds(clientState->config.renderFrequency));
 	}
 
 	alive = false;

@@ -228,7 +228,7 @@ int traceRecord::find_containing_module(MEM_ADDRESS address, int &localmodID)
 		int attempts = 1;
 		while (attempts--)
 		{
-			Sleep(30);
+			std::this_thread::sleep_for(30ms);
 			localmodID = dynamicDisassemblyData->find_containing_module(address);
 			if (localmodID != -1)
 			{

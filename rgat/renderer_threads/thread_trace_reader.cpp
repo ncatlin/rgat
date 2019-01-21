@@ -67,7 +67,7 @@ void thread_trace_reader::add_message(string *newMsg)
 			thisgraph->setBacklogIn(0);
 		do {
 			
-			Sleep(500);
+			std::this_thread::sleep_for(500ms);
 			queueSwitchFlagLock.lock();
 
 			targetQueue = get_read_queue();
@@ -174,7 +174,7 @@ void thread_trace_reader::main_loop()
 		{
 			int GLE = GetLastError();
 			if (GLE == ERROR_BROKEN_PIPE) break;
-			Sleep(5);
+			std::this_thread::sleep_for(5ms);
 			continue;
 		}
 
@@ -216,7 +216,8 @@ void thread_trace_reader::main_loop()
 	pipeClosed = true;
 	//wait until buffers emptied
 	while (!firstQueue.empty() && !secondQueue.empty() && !die)
-		Sleep(10);
+		std::this_thread::sleep_for(10ms);
+	
 
 	alive = false;
 }

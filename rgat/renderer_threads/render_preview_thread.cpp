@@ -30,19 +30,8 @@ The thread that performs low (ie:periodic) performance rendering of all graphs f
 //also gathers some statistics and logs for the graph (like external calls)
 void preview_renderer::main_loop()
 {
-	//return;
-
-
-
-
-
-
 	alive = true;
-
-
 	vector<plotted_graph *> graphlist;
-
-
 	int dietimer = -1;
 	bool moreRenderingNeeded = false;
 
@@ -73,7 +62,7 @@ void preview_renderer::main_loop()
 			}
 			
 			if (die) break;
-			Sleep(innerDelay);
+			std::this_thread::sleep_for(std::chrono::milliseconds(innerDelay));
 			++graphlistIt;
 		}
 		
@@ -86,7 +75,7 @@ void preview_renderer::main_loop()
 		int waitForNextIt = 0;
 		while (waitForNextIt < outerDelay && !die)
 		{
-			Sleep(50);
+			std::this_thread::sleep_for(50ms);
 			waitForNextIt += 50;
 		}
 

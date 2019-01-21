@@ -62,7 +62,7 @@ void fuzz_feedback_processor::main_loop()
 		message = reader->get_message();
 		if (!message)
 		{
-			Sleep(5);
+			std::this_thread::sleep_for(5ms);
 			continue;
 		}
 

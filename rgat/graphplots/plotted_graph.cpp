@@ -80,7 +80,7 @@ plotted_graph::~plotted_graph()
 	{
 		if ((failedWaits > 6) && isreferenced())
 			cout << "[rgat] Waiting for all threads to dereference graph: #" << threadReferences << endl;
-		Sleep(40);
+		std::this_thread::sleep_for(40ms);
 		if (failedWaits++ == 12 && isreferenced())
 		{
 			cerr << "[rgat] Warning: Not all threads dereferenced the graph. Proceeding with graph deletion, but it may crash..." << endl;
@@ -487,7 +487,7 @@ bool plotted_graph::fill_block_nodelist(MEM_ADDRESS blockAddr, BLOCK_IDENTIFIER 
 		if (callvsEdgeIt == externBlock->thread_callers.end())
 		{
 			piddata->dropExternCallerReadLock();
-			Sleep(10);
+			std::this_thread::sleep_for(10ms);
 			cerr << "[rgat]Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
 			return false;
 		}
@@ -811,10 +811,10 @@ void plotted_graph::process_replay_update()
 
 	if (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList) && entry.entryType != eAnimExecException)
 	{
-		Sleep(5);
+		std::this_thread::sleep_for(5ms);
 		while (!fill_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
 		{
-			Sleep(5);
+			std::this_thread::sleep_for(5ms);
 			cout << "[rgat] ANst block 0x" << hex << entry.blockAddr << endl;
 		}
 	}
@@ -1006,7 +1006,7 @@ void plotted_graph::darken_edges(float fadeRate)
 		if (!internalProtoGraph->edge_exists(nodePair, &linkingEdge))
 		{
 			cerr << "[rgat]ERROR: Attempted darkening of non-rendered edge " << nodePair.first << "," << nodePair.second << endl;
-			Sleep(50);
+			std::this_thread::sleep_for(50ms);
 			return;
 		}
 

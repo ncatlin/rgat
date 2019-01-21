@@ -607,7 +607,7 @@ INSLIST* PROCESS_DATA::getDisassemblyBlock(MEM_ADDRESS blockaddr, BLOCK_IDENTIFI
 
 
 		if (iterations> 3)
-			Sleep(1);
+			std::this_thread::sleep_for(1ms);
 
 		if (iterations++ > 20)
 			cerr << "[rgat]Warning: Long wait for disassembly of address 0x" << std::hex << blockaddr << endl;
