@@ -96,10 +96,10 @@ void rgat::setupUI()
 	ui.previewsGLBox->setFixedWidth(PREVIEW_PANE_WIDTH);
 
 	vector <QString> supportedPlaybackSpeeds =
-	{ "0.5x","1x", "2x", "4x", "8x", "16x", "32x", "64x", "128x" };
+	{ "0.5", "1", "2", "4", "8", "16", "32", "64", "128" };
 	for each (QString speed in supportedPlaybackSpeeds)
 	{
-		ui.speedComboBox->addItem(speed);
+		ui.speedComboBox->addItem(speed + "x");
 	}
 	ui.speedComboBox->setCurrentIndex(1); //1x is standard
 
