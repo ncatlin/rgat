@@ -56,27 +56,26 @@ vector<string *> * thread_trace_reader::get_read_queue()
 
 void thread_trace_reader::add_message(string *newMsg)
 {
-	EnterCriticalSection(&flagCritsec);
+	queueSwitchFlagLock.lock();
 	vector<string *> *targetQueue = get_read_queue();
 
 	if (targetQueue->size() >= traceBufMax)
 	{
 		cout << "[rgat]Warning: Trace queue full with " << traceBufMax << " items! Waiting for processor to catch up..." << endl;
-		LeaveCriticalSection(&flagCritsec);
+		queueSwitchFlagLock.unlock();
 		if (thisgraph)
 			thisgraph->setBacklogIn(0);
 		do {
 			
 			Sleep(500);
-
-			EnterCriticalSection(&flagCritsec);
+			queueSwitchFlagLock.lock();
 
 			targetQueue = get_read_queue();
 			if (targetQueue->size() < traceBufMax/2) 
 				break;
 			if (targetQueue->size() <  traceBufMax/10)
 				cout << "[rgat]Trace queue now "<< targetQueue->size() << "items" << endl;
-			LeaveCriticalSection(&flagCritsec);
+			queueSwitchFlagLock.unlock();
 
 		} while (!die);
 		cout << "[rgat]Trace queue now "<< targetQueue->size() << " items, resuming." << endl;
@@ -86,7 +85,7 @@ void thread_trace_reader::add_message(string *newMsg)
 	pendingData += newMsg->size();
 
 	if(!die)
-		LeaveCriticalSection(&flagCritsec);
+		queueSwitchFlagLock.unlock();
 }
 
 string *thread_trace_reader::get_message()
@@ -94,7 +93,7 @@ string *thread_trace_reader::get_message()
 	
 	if (readingQueue->empty() || readIndex >= readingQueue->size())
 	{
-		EnterCriticalSection(&flagCritsec);
+		queueSwitchFlagLock.lock();
 		if (!readingQueue->empty())
 		{
 			vector<string *>::iterator queueIt = readingQueue->begin();
@@ -113,7 +112,7 @@ string *thread_trace_reader::get_message()
 			pendingData -= processedData;
 			processedData = 0;
 		}
-		LeaveCriticalSection(&flagCritsec);
+		queueSwitchFlagLock.unlock();
 	}
 
 	if (readingQueue->empty())

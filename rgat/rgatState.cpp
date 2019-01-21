@@ -587,11 +587,11 @@ PLOTTEDGRAPH_CASTPTR rgatState::getActiveGraph(bool increaseReferences)
 	if (activeGraph && ((plotted_graph *)activeGraph)->needsReleasing())
 		return NULL;
 
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 
 	if (!activeGraph)
 	{
-		LeaveCriticalSection(&activeGraphCritsec);
+		activeGraphLock.unlock();
 		return NULL;
 	}
 
@@ -600,29 +600,29 @@ PLOTTEDGRAPH_CASTPTR rgatState::getActiveGraph(bool increaseReferences)
 		bool success = ((plotted_graph *)activeGraph)->increase_thread_references(52);
 		if (!success)
 		{
-			LeaveCriticalSection(&activeGraphCritsec);
+			activeGraphLock.unlock();
 			return NULL;
 		}
 		//cout << "[+1: "<< ((plotted_graph *)activeGraph)->threadReferences << "]increased refs to graph " << activeGraph << endl;
 	}
 	PLOTTEDGRAPH_CASTPTR tmp = activeGraph;
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 
 	return tmp;
 }
 
 void rgatState::clearActiveGraph()
 {
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 	if (!activeGraph) 
 	{
-		LeaveCriticalSection(&activeGraphCritsec); 
+		activeGraphLock.unlock();
 		return;
 	}
 
 	((plotted_graph *)activeGraph)->decrease_thread_references(50);
 	activeGraph = NULL;
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 }
 
 bool rgatState::setActiveGraph(PLOTTEDGRAPH_CASTPTR graph)
@@ -635,26 +635,26 @@ bool rgatState::setActiveGraph(PLOTTEDGRAPH_CASTPTR graph)
 
 	assert(activeGraph == NULL);
 
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 	if (((plotted_graph *)graph)->increase_thread_references(50))
 	{
 		activeGraph = graph;
 	}
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 	return true;
 }
 
 PROTOGRAPH_CASTPTR rgatState::getActiveProtoGraph()
 {
 	PROTOGRAPH_CASTPTR tmp = NULL;
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 	plotted_graph *activePlot = (plotted_graph *)activeGraph;
 	if (activePlot && activePlot->increase_thread_references(51))
 	{
 		tmp = activePlot->get_protoGraph();
 		activePlot->decrease_thread_references(51);
 	}
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 
 	return tmp;
 }
@@ -662,15 +662,15 @@ PROTOGRAPH_CASTPTR rgatState::getActiveProtoGraph()
 
 void rgatState::addFuzzRun(int runid, void *run)
 {
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 	pendingFuzzruns.emplace(make_pair(runid, run));
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 }
 
 
 void rgatState::fuzztarget_connected(int runid, traceRecord *trace)
 {
-	EnterCriticalSection(&activeGraphCritsec);
+	activeGraphLock.lock();
 	auto fuzzrunIt = pendingFuzzruns.find(runid);
 	if (fuzzrunIt != pendingFuzzruns.end())
 	{
@@ -682,7 +682,7 @@ void rgatState::fuzztarget_connected(int runid, traceRecord *trace)
 	{
 		cerr << "[rgat-fuzz] ERROR: unknown fuzz session connected: " << runid << " (pending runs: "<< pendingFuzzruns.size()<<")"<< endl;
 	}
-	LeaveCriticalSection(&activeGraphCritsec);
+	activeGraphLock.unlock();
 }
 
 void rgatState::mouseoverLabelChanged()

@@ -22,8 +22,8 @@ struct TEXT_DISPLAY_BUTTONS
 class rgatState
 {
 public:
-	rgatState() { InitializeCriticalSection(&activeGraphCritsec); };
-	~rgatState() { DeleteCriticalSection(&activeGraphCritsec); };
+	rgatState() { };
+	~rgatState() {  };
 
 
 	bool rgatIsExiting() { return rgatExiting; }
@@ -151,7 +151,7 @@ private:
 
 	map<int, void *> pendingFuzzruns;
 
-	CRITICAL_SECTION activeGraphCritsec;
+	rgatlocks::UntestableLock activeGraphLock;
 
 	boost::filesystem::path tempDir;
 };

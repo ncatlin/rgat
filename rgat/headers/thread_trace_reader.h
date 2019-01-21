@@ -32,7 +32,6 @@ public:
 	{
 		thisgraph = graph;
 		threadID = graph->get_TID();
-		InitializeCriticalSection(&flagCritsec);
 		threadpipe = pipe;
 	}
 
@@ -41,9 +40,8 @@ public:
 	{
 		thisgraph = NULL;
 		threadID = tid;
-		InitializeCriticalSection(&flagCritsec);
 	}
-	thread_trace_reader(){ DeleteCriticalSection(&flagCritsec); }
+	thread_trace_reader(){ }
 
 
 	size_t traceBufMax = 0;
@@ -56,9 +54,9 @@ private:
 	void main_loop();
 	bool connectPipe();
 
-	CRITICAL_SECTION flagCritsec;
-	
 	//stackoverflow.com/questions/4029448/thread-safety-for-stl-queue/4029534#4029534
+	rgatlocks::UntestableLock queueSwitchFlagLock;
+
 	unsigned long readIndex = 0;
 	vector<string *> firstQueue;
 	vector<string *> secondQueue;
