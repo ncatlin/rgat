@@ -49,6 +49,8 @@ public:
 private:
 	void main_loop();
 	bool connectPipe();
+	bool readDataFromWindowsPipe(vector<uint8_t> &buf, DWORD &bytesRead, bool &pending, OVERLAPPED &ov2);
+	void closePipe(){ CloseHandle(inputPipe); }
 
 	binaryTarget *binary;
 	traceRecord* runRecord;

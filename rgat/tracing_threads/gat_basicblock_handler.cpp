@@ -26,8 +26,6 @@ disassembles it using Capstone and makes it available to the graph renderer
 #include "traceStructs.h"
 #include "OSspecific.h"
 
-#define LARGEST_INSTRUCTION_SIZE 15
-
 bool gat_basicblock_handler::connectPipe()
 {
 	pipename.append(runRecord->getModpathID());
@@ -63,6 +61,50 @@ bool gat_basicblock_handler::connectPipe()
 	return true;
 }
 
+bool gat_basicblock_handler::readDataFromWindowsPipe(vector<uint8_t> &buf, DWORD &bytesRead, bool &pending, OVERLAPPED &ov2)
+{
+	ReadFile(inputPipe, &buf.at(0), BBBUFSIZE, &bytesRead, &ov2);
+	while (!die)
+	{
+		if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
+		if (!runRecord->isRunning() || runRecord->should_die()) break;
+	}
+
+	DWORD lastError = GetLastError();
+	if (lastError && lastError != ERROR_IO_PENDING) { 
+		pending = true;
+		return true; 
+	}
+
+	int res2 = GetOverlappedResult(inputPipe, &ov2, &bytesRead, false);
+	buf[bytesRead] = 0;
+	pending = false;
+
+	if (bytesRead > 0)
+	{
+		return true;
+	}
+	else
+	{
+		int err = GetLastError();
+		if (err == ERROR_BROKEN_PIPE)
+			return false;
+		else
+			std::cerr << "[rgat]Basic block pipe read for PID " << runRecord->getPID() << " failed, error: " << dec << err << " ";
+
+		switch (err)
+		{
+		case ERROR_IO_INCOMPLETE:
+			cout << " (IO INCOMPLETE)";
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+}
+
 //listen to BB data for given PID
 void gat_basicblock_handler::main_loop()
 {
@@ -76,7 +118,7 @@ void gat_basicblock_handler::main_loop()
 	csh hCapstone;
 	if (cs_open(CS_ARCH_X86, disassemblyBitwidth, &hCapstone) != CS_ERR_OK)
 	{
-		cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << runRecord->getPID() << endl;
+		std::cerr << "[rgat]ERROR: BB thread Couldn't open capstone instance for PID " << runRecord->getPID() << endl;
 		alive = false;
 		return;
 	}
@@ -88,50 +130,26 @@ void gat_basicblock_handler::main_loop()
 	ov2.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 	if (!ov2.hEvent)
 	{
-		cerr << "RGAT: ERROR - Failed to create overlapped event in basic block handler" << endl;
+		std::cerr << "RGAT: ERROR - Failed to create overlapped event in basic block handler" << endl;
 		assert(false);
 	}
 
 	const int pointerSize = (binary->getBitWidth() == 64) ? 8 : 4;
+	bool pending = false;
 
 	//string savedbuf;
 	PROCESS_DATA *piddata = runRecord->get_piddata();
 	while (!die && !runRecord->should_die())
 	{
 		DWORD bytesRead = 0;
-		ReadFile(inputPipe, &buf.at(0), BBBUFSIZE, &bytesRead, &ov2);
-		while (!die)
-		{
-			if (WaitForSingleObject(ov2.hEvent, 300) != WAIT_TIMEOUT) break;
-			if (!runRecord->isRunning() || runRecord->should_die()) break;
-		}
-
-		DWORD lastError = GetLastError();
-		if (lastError && lastError != ERROR_IO_PENDING) continue;
-		int res2 = GetOverlappedResult(inputPipe, &ov2, &bytesRead, false);
-		buf[bytesRead] = 0;
-
-		if (!bytesRead)
-		{
-			int err = GetLastError();
-			if (err == ERROR_BROKEN_PIPE)
-				break;
-			else
-				cerr << "[rgat]Basic block pipe read for PID "<< runRecord->getPID() <<" failed, error: " << dec << err << " ";
-
-			switch (err)
-			{
-			case ERROR_IO_INCOMPLETE:
-				cout << "IO INCOMPLETE";
-				break;
-			}
-
+		if (!readDataFromWindowsPipe(buf, bytesRead, pending, ov2))
 			break;
-		}
+		if (pending)
+			continue;
 
 		if (bytesRead >= BBBUFSIZE || GetLastError() == ERROR_MORE_DATA)
 		{
-			cerr << "[rgat]ERROR: BB Buf Exceeded!" << endl;
+			std::cerr << "[rgat]ERROR: BB Buf exceeded after read from pipe!" << endl;
 			break;
 		}
 		
@@ -139,11 +157,10 @@ void gat_basicblock_handler::main_loop()
 		{
 			int err = GetLastError();
 			if (err != ERROR_BROKEN_PIPE)
-				cerr << "[rgat]BBPIPE ERROR: "<< err << endl;
+				std::cerr << "[rgat]ERROR: Non-pending BBPIPE error: "<< err << endl;
 			break;
 		}
 
-		//savedbuf = buf;
 		buf[bytesRead] = 0;
 		int bufPos = 0;
 		if (buf[bufPos++] == 'B')
@@ -183,7 +200,7 @@ void gat_basicblock_handler::main_loop()
 
 			if (!instrumented) //should no longer happen
 			{
-				cerr << "[rgat] Error: A bad thing happened." << endl;
+				cerr << "[rgat] Error: Uninstrumented code has been... instrumented?" << endl;
 				assert(false);
 			}
 
@@ -219,7 +236,7 @@ void gat_basicblock_handler::main_loop()
  
 				if (!instruction)
 				{
-					instruction = new INS_DATA;
+					instruction = new INS_DATA; 
 					instruction->numbytes = insByteCount;
 
 					uint8_t *opcodePtr = &buf.at(bufPos);
@@ -275,6 +292,6 @@ void gat_basicblock_handler::main_loop()
 	}
 
 	cs_close(&hCapstone);
-	CloseHandle(inputPipe);
+	closePipe();
 	alive = false;
 }
