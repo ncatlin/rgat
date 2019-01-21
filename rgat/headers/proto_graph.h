@@ -61,9 +61,8 @@ private:
 	traceRecord* runRecord = NULL;
 	HANDLE disassemblyMutex;
 
-	SRWLOCK nodeLock = SRWLOCK_INIT;
-	SRWLOCK edgeLock = SRWLOCK_INIT;
-
+	mutable std::shared_mutex nodeLock_;
+	mutable std::shared_mutex edgeLock_;
 
 	//used to keep a blocking extern highlighted - may not be useful with new method TODO
 	unsigned int latest_active_node_idx = 0;
@@ -140,7 +139,7 @@ public:
 	bool loadEdgeDict(const rapidjson::Value& edgeArray);
 	
 	rgatlocks::UntestableLock highlightsLock; //todo comment this or rename
-	SRWLOCK animationListsSRWLOCK = SRWLOCK_INIT;
+	mutable std::shared_mutex animationListsRWLOCK_;
 
 	rgatlocks::UntestableLock externCallsLock;
 
@@ -207,14 +206,14 @@ public:
 	}
 
 
-	inline void getEdgeReadLock()	{ AcquireSRWLockShared(&edgeLock);	}
-	inline void dropEdgeReadLock()	{ ReleaseSRWLockShared(&edgeLock);  }
+	inline void getEdgeReadLock() { edgeLock_.lock_shared(); }
+	inline void dropEdgeReadLock()	{ edgeLock_.unlock_shared(); }
 
 	inline void dropEdgeWriteLock();
 	inline void getEdgeWriteLock();
 
 	void getNodeReadLock();
-	inline void dropNodeReadLock(){ ReleaseSRWLockShared(&nodeLock); }
+	inline void dropNodeReadLock() { nodeLock_.unlock_shared(); }
 
 	inline void getNodeWriteLock();
 	inline void dropNodeWriteLock();

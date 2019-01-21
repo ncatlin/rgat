@@ -234,35 +234,29 @@ inline edge_data *proto_graph::unsafe_get_edge(NODEPAIR edgePair)
 		return 0;
 }
 
-
-
-
 inline void proto_graph::getEdgeWriteLock()
 {
-	AcquireSRWLockExclusive(&edgeLock);
+	edgeLock_.lock();
 }
-
-
 
 inline void proto_graph::dropEdgeWriteLock()
 {
-	ReleaseSRWLockExclusive(&edgeLock);
+	edgeLock_.unlock();
 }
 
 void proto_graph::getNodeReadLock()
 {
-	AcquireSRWLockShared(&nodeLock);
+	nodeLock_.lock_shared();
 }
-
 
 inline void proto_graph::getNodeWriteLock()
 {
-	AcquireSRWLockExclusive(&nodeLock);
+	nodeLock_.lock();
 }
 
 inline void proto_graph::dropNodeWriteLock()
 {
-	ReleaseSRWLockExclusive(&nodeLock);
+	nodeLock_.unlock();
 }
 
 
@@ -317,9 +311,9 @@ void proto_graph::insert_node(NODEINDEX targVertID, node_data node)
 
 void proto_graph::push_anim_update(ANIMATIONENTRY entry)
 {
-	AcquireSRWLockExclusive(&animationListsSRWLOCK);
+	animationListsRWLOCK_.lock();
 	savedAnimationData.push_back(entry);
-	ReleaseSRWLockExclusive(&animationListsSRWLOCK);
+	animationListsRWLOCK_.unlock();
 }
 
 //returns combined count of read+processing trace buffers
@@ -403,7 +397,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 
 	writer.Key("ReplayData");
 	writer.StartArray();
-	AcquireSRWLockShared(&animationListsSRWLOCK);
+	animationListsRWLOCK_.lock_shared();
 	for (unsigned long i = 0; i < savedAnimationData.size(); ++i)
 	{
 		writer.StartArray();
@@ -419,7 +413,7 @@ bool proto_graph::serialise(rapidjson::Writer<rapidjson::FileWriteStream>& write
 
 		writer.EndArray();
 	}
-	ReleaseSRWLockShared(&animationListsSRWLOCK);
+	animationListsRWLOCK_.unlock_shared();
 	writer.EndArray();
 
 	writer.EndObject(); //end thread object

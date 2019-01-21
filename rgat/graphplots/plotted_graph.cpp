@@ -25,6 +25,8 @@ must be derived (sphere, cylinder, tree, mona lisa, etc)
 #include "diff_plotter.h"
 #include "gl/GLU.h"
 
+
+
 rgatState *plotted_graph::clientState = NULL;
 
 plotted_graph::plotted_graph(proto_graph *protoGraph, vector<QColor> *graphColoursPtr)
@@ -85,7 +87,9 @@ plotted_graph::~plotted_graph()
 			break;
 		}
 	}
-	AcquireSRWLockExclusive(&threadReferenceLock);
+
+	//AcquireSRWLockExclusive(&threadReferenceLock);
+	threadReferenceLock_.lock();
 
 	delete mainnodesdata;
 	delete mainlinedata;
@@ -110,12 +114,12 @@ bool plotted_graph::increase_thread_references(int caller)
 {
 	if (dying || freeMe || beingDeleted) return false;
 
-	if (TryAcquireSRWLockShared(&threadReferenceLock))
+	if (threadReferenceLock_.try_lock_shared())
 	{
 		++threadReferences;
-		//cout << "thread refs increased by caller " << caller << " to " << threadReferences << endl;
 		return true;
 	}
+
 	return false;
 }
 
@@ -127,7 +131,8 @@ void plotted_graph::decrease_thread_references(int caller)
 		assert(threadReferences > 0);
 	}
 
-	ReleaseSRWLockShared(&threadReferenceLock);
+
+	threadReferenceLock_.unlock_shared();
 	--threadReferences;
 
 	//cout << "thread refs decreased by caller " << caller << " to " << threadReferences << endl;
@@ -169,22 +174,22 @@ bool plotted_graph::setGraphBusy(bool set, int caller)
 
 void plotted_graph::acquire_nodecoord_read()
 {
-	AcquireSRWLockShared(&nodeCoordLock);
+	nodeCoordLock_.lock_shared();
 }
 
 void plotted_graph::acquire_nodecoord_write()
 {
-	AcquireSRWLockExclusive(&nodeCoordLock);
+	nodeCoordLock_.lock();
 }
 
 void plotted_graph::release_nodecoord_read()
 {
-	ReleaseSRWLockShared(&nodeCoordLock);
+	nodeCoordLock_.unlock_shared();
 }
 
 void plotted_graph::release_nodecoord_write()
 {
-	ReleaseSRWLockExclusive(&nodeCoordLock);
+	nodeCoordLock_.unlock();
 }
 
 //display live or animated graph with active areas on faded areas
@@ -655,9 +660,9 @@ void plotted_graph::brighten_next_block_edge(ANIMATIONENTRY *entry, int brightTi
 void plotted_graph::process_live_update()
 {
 	//todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
-	AcquireSRWLockShared(&internalProtoGraph->animationListsSRWLOCK);
+	internalProtoGraph->animationListsRWLOCK_.lock_shared();
 	ANIMATIONENTRY entry = internalProtoGraph->savedAnimationData.at(updateProcessingIndex);
-	ReleaseSRWLockShared(&internalProtoGraph->animationListsSRWLOCK);
+	internalProtoGraph->animationListsRWLOCK_.unlock_shared();
 
 	if (entry.entryType == eAnimLoopLast)
 	{
@@ -2135,9 +2140,24 @@ void plotted_graph::changeZoom(double delta)
 
 }
 
-void plotted_graph::copy_node_data(GRAPH_DISPLAY_DATA *nodes)
+void plotted_graph::copy_node_data(GRAPH_DISPLAY_DATA *inputnodes)
 {
-	*mainnodesdata = *nodes;
+	
+	mainnodesdata = new GRAPH_DISPLAY_DATA(inputnodes->isPreview());
+	mainnodesdata->set_numVerts(inputnodes->get_numVerts());
+	mainnodesdata->set_numLoadedVerts(inputnodes->get_numLoadedVerts());
+	
+	vector <float>* inputPosData = inputnodes->acquire_pos_read();
+	vector <float>* inputColData = inputnodes->acquire_col_read();
+	vector <float>* targetPosData = mainnodesdata->acquire_pos_write();
+	vector <float>* targetColData = mainnodesdata->acquire_col_write();
+
+	std::copy(inputPosData->begin(), inputPosData->end(), targetPosData->begin());
+	std::copy(inputColData->begin(), inputColData->end(), targetColData->begin());
+
+	mainnodesdata->release_pos_write();
+	mainnodesdata->release_col_write();
+
 }
 
 void plotted_graph::setHighlightData(vector<NODEINDEX> *nodes, egraphHighlightModes highlightType)

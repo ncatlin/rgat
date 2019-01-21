@@ -62,9 +62,8 @@ public:
 
 private:
 
-
-	SRWLOCK poslock = SRWLOCK_INIT;
-	SRWLOCK collock = SRWLOCK_INIT;
+	mutable std::shared_mutex poslock_;
+	mutable std::shared_mutex collock_;
 
 	unsigned long numVerts = 0;
 	unsigned long loadedVerts = 0;

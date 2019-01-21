@@ -232,8 +232,9 @@ protected:
 	PLOT_TRACK setLastNode(NODEINDEX nodeIdx);
 
 protected:
-	SRWLOCK nodeCoordLock = SRWLOCK_INIT;
-	SRWLOCK threadReferenceLock = SRWLOCK_INIT;
+
+	mutable std::shared_mutex nodeCoordLock_;
+	mutable std::shared_mutex threadReferenceLock_;
 
 	rgatlocks::UntestableLock callStackLock;
 

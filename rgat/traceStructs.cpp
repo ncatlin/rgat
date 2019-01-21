@@ -19,42 +19,42 @@ bool unpackBasicBlock(PROCESS_DATA * piddata, const Value& blockEntry);
 
 void PROCESS_DATA::getExternDictReadLock()
 {
-	AcquireSRWLockShared(&externDictRWLock);
+	externDictRWLock_.lock_shared();
 }
 
 void PROCESS_DATA::getExternDictWriteLock()
 {
-	AcquireSRWLockExclusive(&externDictRWLock);
+	externDictRWLock_.lock();
 }
 
 void PROCESS_DATA::dropExternDictReadLock()
 {
-	ReleaseSRWLockShared(&externDictRWLock);
+	externDictRWLock_.unlock_shared();
 }
 
 void PROCESS_DATA::dropExternDictWriteLock()
 {
-	ReleaseSRWLockExclusive(&externDictRWLock);
+	externDictRWLock_.unlock();
 }
 
 void PROCESS_DATA::getExternCallerReadLock()
 {
-	AcquireSRWLockShared(&externCallerRWLock);
+	externCallerRWLock_.lock_shared();
 }
 
 void PROCESS_DATA::getExternCallerWriteLock()
 {
-	AcquireSRWLockExclusive(&externCallerRWLock);
+	externCallerRWLock_.lock();
 }
 
 void PROCESS_DATA::dropExternCallerReadLock()
 {
-	ReleaseSRWLockShared(&externCallerRWLock);
+	externCallerRWLock_.unlock_shared();
 }
 
 void PROCESS_DATA::dropExternCallerWriteLock()
 {
-	ReleaseSRWLockExclusive(&externCallerRWLock);
+	externCallerRWLock_.unlock();
 }
 
 bool PROCESS_DATA::get_sym(unsigned int globalmodNum, ADDRESS_OFFSET offset, string &sym)

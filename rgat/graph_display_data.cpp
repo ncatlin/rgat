@@ -56,47 +56,46 @@ bool GRAPH_DISPLAY_DATA::get_coord(NODEINDEX index, FCOORD* result)
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_read(int holder)
 {
-	AcquireSRWLockShared(&poslock);
+	poslock_.lock_shared();
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_pos_write(int holder)
 {
-
-	AcquireSRWLockExclusive(&poslock);
+	poslock_.lock();
 	return &vposarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col_read()
 {
-	AcquireSRWLockShared(&collock);
+	collock_.lock_shared();
 	return &vcolarray;
 }
 
 vector<float> *GRAPH_DISPLAY_DATA::acquire_col_write()
 {
-	AcquireSRWLockExclusive(&collock);
+	collock_.lock();
 	return &vcolarray;
 }
 
 void GRAPH_DISPLAY_DATA::release_pos_write()
 {
-	ReleaseSRWLockExclusive(&poslock);
+	poslock_.unlock();
 }
 
 void GRAPH_DISPLAY_DATA::release_pos_read()
 {
-	ReleaseSRWLockShared(&poslock);
+	poslock_.unlock_shared();
 }
 
 void GRAPH_DISPLAY_DATA::release_col_write()
 {
-	ReleaseSRWLockExclusive(&collock);
+	collock_.unlock();
 }
 
 void GRAPH_DISPLAY_DATA::release_col_read()
 {
-	ReleaseSRWLockShared(&collock);
+	collock_.unlock_shared();
 }
 
 //TODO: this is awful. need to add to vector vert by vert

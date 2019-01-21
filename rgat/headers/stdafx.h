@@ -29,6 +29,9 @@ using namespace std;
 #include <math.h>
 #include <queue>
 #include <chrono>
+#include <mutex>
+#include <thread>
+#include <shared_mutex>
 
 
 #include <capstone.h>

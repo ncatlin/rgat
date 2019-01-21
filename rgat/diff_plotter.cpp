@@ -142,8 +142,8 @@ void diff_plotter::render(graphGLWidget &gltarget)
 	proto_graph *g1Proto = graph1->get_protoGraph();
 	proto_graph *g2Proto = graph2->get_protoGraph();
 
-	AcquireSRWLockShared(&g1Proto->animationListsSRWLOCK);
-	AcquireSRWLockShared(&g2Proto->animationListsSRWLOCK);
+	g1Proto->animationListsRWLOCK_.lock_shared();
+	g2Proto->animationListsRWLOCK_.lock_shared();
 
 	g1ProcessData = g1Proto->get_piddata();
 	g2ProcessData = g2Proto->get_piddata();
@@ -336,8 +336,8 @@ void diff_plotter::render(graphGLWidget &gltarget)
 		lastNode = first_lastNodeG1.second;
 	}
 
-	ReleaseSRWLockShared(&g1Proto->animationListsSRWLOCK);
-	ReleaseSRWLockShared(&g2Proto->animationListsSRWLOCK);
+	g1Proto->animationListsRWLOCK_.unlock_shared();
+	g2Proto->animationListsRWLOCK_.unlock_shared();
 
 	unsigned long maxA = max(graph1->maxA, graph2->maxA);
 	unsigned long maxB = max(graph1->maxB, graph2->maxB);
