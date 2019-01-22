@@ -140,18 +140,41 @@ bool thread_trace_reader::getBufsState(pair <size_t, size_t> &bufSizes)
 	return readingFirstQueue; 
 }
 
+bool thread_trace_reader::data_available(bool &error)
+{
+	DWORD available;
+	if (!PeekNamedPipe(threadpipe, NULL, NULL, NULL, &available, NULL) || !available)
+	{
+		int GLE = GetLastError();
+		if (GLE == ERROR_BROKEN_PIPE) error = true;
+		return false;
+	}
+	else
+		return true;
+}
+
+bool thread_trace_reader::read_data(vector <char> &tagReadBuf, DWORD &bytesRead)
+{
+	if (!ReadFile(threadpipe, &tagReadBuf.at(0), (DWORD)tagReadBuf.size(), &bytesRead, NULL))
+	{
+		int err = GetLastError();
+		if (err != ERROR_BROKEN_PIPE)
+			cerr << "[rgat]Error: thread " << threadID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
+		return false;
+	}
+	return true;
+}
+
 //thread handler to build graph for a thread
 void thread_trace_reader::main_loop()
 {
 	alive = true;
-	if (!threadpipe)
+	if (!threadpipe && !connectPipe())
 	{
-		bool pipeConnected = connectPipe();
-		if (!pipeConnected) return;
+		return;
 	}
 
-	vector <char> tagReadBuf;
-	tagReadBuf.resize(TAGCACHESIZE);
+	vector <char> tagReadBuf(TAGCACHESIZE, 0);
 
 	clock_t endwait = clock() + 1;
 	unsigned long itemsRead = 0;
@@ -169,30 +192,25 @@ void thread_trace_reader::main_loop()
 			itemsRead = 0;
 		}
 
-		DWORD available;
-		if(!PeekNamedPipe(threadpipe, NULL, NULL, NULL, &available, NULL) || !available)
+		bool error = false;
+		if (!data_available(error))
 		{
-			int GLE = GetLastError();
-			if (GLE == ERROR_BROKEN_PIPE) break;
-			std::this_thread::sleep_for(5ms);
-			continue;
+			if (!error) 
+				continue; 
+			else 
+				break;
 		}
 
-		if (!ReadFile(threadpipe, &tagReadBuf.at(0), (DWORD)tagReadBuf.size(), &bytesRead, NULL))
-		{
-			int err = GetLastError();
-			if (err != ERROR_BROKEN_PIPE)
-				cerr << "[rgat]Error: thread " << threadID << " pipe read ERROR: " << err << ". [Closing handler]" << endl;
+
+		if (!read_data(tagReadBuf, bytesRead))
 			break;
-		}
-
 		if (bytesRead >= TAGCACHESIZE) {
 			cerr << "\t\t[rgat](Easily fixable) Error: Excessive data sent to cache!" << endl;
 			break;
 		}
 
 		tagReadBuf[bytesRead] = 0;
-		if (tagReadBuf[bytesRead - 1] != '@')
+		if ((bytesRead == 0) || tagReadBuf[bytesRead - 1] != '@')
 		{
 			die = true;
 			if (!bytesRead) break;
@@ -206,7 +224,7 @@ void thread_trace_reader::main_loop()
 			break;
 		}
 		
-
+		//we can improve this if it's a bottleneck
 		string *msgbuf = new string(tagReadBuf.begin(), tagReadBuf.begin() + bytesRead);
 
 		add_message(msgbuf);
@@ -217,7 +235,6 @@ void thread_trace_reader::main_loop()
 	//wait until buffers emptied
 	while (!firstQueue.empty() && !secondQueue.empty() && !die)
 		std::this_thread::sleep_for(10ms);
-	
 
 	alive = false;
 }

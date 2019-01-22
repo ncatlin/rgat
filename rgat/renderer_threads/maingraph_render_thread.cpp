@@ -56,7 +56,7 @@ void maingraph_render_thread::update_rendering(plotted_graph *graph)
 		protoGraph->terminated = false;
 	}
 
-	else if (!protoGraph->active && (graph->replayState == ePlaying || graph->userSelectedAnimPosition != -1))
+	else if (graph->replayState == ePlaying || graph->userSelectedAnimPosition != -1)
 	{
 		graph->render_replay_animation(clientState->config.animationFadeRate);
 	}
@@ -103,7 +103,9 @@ void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bo
 		activeGraph->cameraZoomlevel = zoom;
 	}
 	else
+	{
 		activeGraph->initialiseDefaultDimensions();
+	}
 
 	assert(clientState->setActiveGraph(activeGraph));
 	activeTrace->plottedGraphs.at(protoGraph->get_TID()) = activeGraph;
@@ -153,7 +155,7 @@ void maingraph_render_thread::main_loop()
 			bool doReplot = activeGraph->needsReplotting();
 			if (layoutChanged || doReplot)
 			{
-				//graph gets destroyed, this handles references, don't need to decrease
+				//graph gets destroyed, this resets references, don't need to decrease
 				perform_full_render(activeGraph, doReplot);
 				continue;
 			}

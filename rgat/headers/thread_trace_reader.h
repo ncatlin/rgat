@@ -53,7 +53,9 @@ public:
 private:
 	void main_loop();
 	bool connectPipe();
-
+	bool data_available(bool &error);
+	bool read_data(vector <char> &tagReadBuf, DWORD &bytesRead);
+	
 	//stackoverflow.com/questions/4029448/thread-safety-for-stl-queue/4029534#4029534
 	rgatlocks::UntestableLock queueSwitchFlagLock;
 
