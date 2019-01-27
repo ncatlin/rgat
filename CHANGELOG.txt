@@ -131,4 +131,7 @@ Feature: Added mouseover menus for node labels
 Feature: Binary targets can be added by drag and dropping onto the interface
 Fix: Instructions executed more than 4 billion times are now counted correctly
 Fix: Conditionals that have been both taken and fallen through no longer display as only taken in the conditionals render
-Movment of offset based binary information out of each trace, into the parent target data object. This supports upcoming functionality and reduces trace sizes.
+Movement of offset based binary information out of each trace, into the parent target data object. This supports upcoming functionality and reduces trace sizes.
+Updated Capstone to 4.0.1
+Update PIN to (whatever version at time of release)
+Code changes: Preparation for Linux port

@@ -13,7 +13,7 @@
 binaryTarget::binaryTarget(boost::filesystem::path path)
 { 
 	filepath = path; 
-	sha256hash = "";
+	sha1hash = "";
 
 	//sort out default include/excludes and per-binary in settings
 	blackwhitelists.inWhitelistMode = false;
@@ -26,24 +26,24 @@ binaryTarget::~binaryTarget()
 
 void binaryTarget::computeHash()
 {
-	SHA256_CTX context;
-	if (!SHA256_Init(&context)) return;
+	SHA_CTX context;
+	if (!SHA1_Init(&context)) return;
 
 	ifstream ifs(filepath.c_str(), std::ios::binary);
 	if (ifs.bad()) return;
 
 	char buf[4096];
 	while (ifs.read(buf, sizeof(buf)) || ifs.gcount()) {
-		SHA256_Update(&context, buf, ifs.gcount());
+		SHA1_Update(&context, buf, ifs.gcount());
 	}
-	unsigned char digest[SHA256_DIGEST_LENGTH] = {};
-	SHA256_Final(digest, &context);
+	unsigned char digest[SHA_DIGEST_LENGTH] = {};
+	SHA1_Final(digest, &context);
 
 	stringstream shahash_SS;
-	for (unsigned i = 0; i <SHA256_DIGEST_LENGTH; i++) {
+	for (unsigned i = 0; i <SHA_DIGEST_LENGTH; i++) {
 		shahash_SS << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[i]);
 	}
-	sha256hash = shahash_SS.str();
+	sha1hash = shahash_SS.str();
 	ifs.close();
 }
 

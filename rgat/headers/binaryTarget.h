@@ -52,7 +52,7 @@ public:
 	void applyBitWidthHint(cs_mode bitWidth);
 	int getBitWidth();
 	size_t traceCount() { return traceRecords.size(); }
-	string get_sha256hash() {	if (sha256hash.empty()) computeHash(); return sha256hash;	}
+	string get_sha1hash() {	if (sha1hash.empty()) computeHash(); return sha1hash;	}
 
 	bool loadProcessData(const rapidjson::Document& saveJSON);
 
@@ -75,6 +75,6 @@ private:
 
 	BWPATHLISTS blackwhitelists;
 
-	string sha256hash;
+	string sha1hash;
 };
 

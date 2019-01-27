@@ -321,7 +321,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="iconSize">
            <size>
@@ -396,7 +396,25 @@
                       </widget>
                      </item>
                      <item row="0" column="1">
-                      <widget class="QLineEdit" name="tgt_nameLineEdit"/>
+                      <widget class="QLineEdit" name="tgt_nameLineEdit">
+                       <property name="font">
+                        <font>
+                         <pointsize>12</pointsize>
+                        </font>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">padding-left: 5</string>
+                       </property>
+                       <property name="text">
+                        <string/>
+                       </property>
+                       <property name="frame">
+                        <bool>true</bool>
+                       </property>
+                       <property name="cursorPosition">
+                        <number>0</number>
+                       </property>
+                      </widget>
                      </item>
                      <item row="1" column="0">
                       <widget class="QLabel" name="typeLabel">
@@ -407,8 +425,13 @@
                      </item>
                      <item row="1" column="1">
                       <widget class="QLineEdit" name="tgt_typeLineEdit">
+                       <property name="font">
+                        <font>
+                         <pointsize>12</pointsize>
+                        </font>
+                       </property>
                        <property name="styleSheet">
-                        <string notr="true"/>
+                        <string notr="true">padding-left: 5</string>
                        </property>
                        <property name="text">
                         <string/>
@@ -424,28 +447,47 @@
                      </item>
                      <item row="2" column="1">
                       <widget class="QLineEdit" name="tgt_sizeLineEdit">
+                       <property name="font">
+                        <font>
+                         <pointsize>12</pointsize>
+                        </font>
+                       </property>
                        <property name="toolTip">
                         <string>The size of the target</string>
                        </property>
                        <property name="statusTip">
                         <string>The size of the target</string>
                        </property>
+                       <property name="styleSheet">
+                        <string notr="true">padding-left: 5</string>
+                       </property>
                       </widget>
                      </item>
                      <item row="3" column="0">
-                      <widget class="QLabel" name="sha256label">
+                      <widget class="QLabel" name="sha1label">
                        <property name="text">
-                        <string>SHA256</string>
+                        <string>SHA1</string>
                        </property>
                       </widget>
                      </item>
                      <item row="3" column="1">
                       <widget class="QLineEdit" name="tgt_hashLineEdit">
+                       <property name="font">
+                        <font>
+                         <pointsize>12</pointsize>
+                        </font>
+                       </property>
+                       <property name="acceptDrops">
+                        <bool>true</bool>
+                       </property>
                        <property name="toolTip">
-                        <string>The SHA 256 hash of the target</string>
+                        <string>The SHA1 hash of the binary file</string>
                        </property>
                        <property name="statusTip">
-                        <string>The SHA 256 hash of the target</string>
+                        <string>The SHA1 hash of the binary file</string>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">padding-left: 5</string>
                        </property>
                       </widget>
                      </item>
@@ -472,7 +514,7 @@
                    <number>11</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="label_2">
+                   <widget class="QLabel" name="diagnosticsSectionLabel">
                     <property name="maximumSize">
                      <size>
                       <width>100</width>
@@ -872,6 +914,9 @@
                       <widget class="QLineEdit" name="cmdLineEdit">
                        <property name="statusTip">
                         <string>Arguments to pass to the target binary command line</string>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">padding-left: 5</string>
                        </property>
                        <property name="text">
                         <string/>

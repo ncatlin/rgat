@@ -100,10 +100,10 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 	QString filesize = FormatWithCommas(exesize);
 	ui->tgt_sizeLineEdit->setText(filesize + " bytes");
 
-	string hashDigest;
-	if (!target->get_sha256hash().empty())
+	string hashDigest = target->get_sha1hash();
+	if (!hashDigest.empty())
 	{
-		ui->tgt_hashLineEdit->setText(QString::fromStdString(target->get_sha256hash()));
+		ui->tgt_hashLineEdit->setText(QString::fromStdString(hashDigest));
 	}
 	else
 	{
@@ -118,15 +118,15 @@ void fileSummaryTab::fillAnalyseTab(binaryTarget *target)
 		cout << "[rgat]peparse error: " << peparse::GetPEErrString() << endl;
 		peerror << "Potentially incompatible binary <peparse error " << peparse::GetPEErr() << " - '" << peparse::GetPEErrString() << "' " << " at " <<hex<< peparse::GetPEErrLoc() << ">";
 		ui->tgt_typeLineEdit->setText(QString::fromStdString(peerror.str()));
-		ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}");
+		ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}; padding-left: 5;");
 	}
 	else
 	{
 		bool traceableFile = setFileTypeField(target, header, ui);
 		if (traceableFile)
-			ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: green}");
+			ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: green}; padding-left: 5;");
 		else
-			ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}");
+			ui->tgt_typeLineEdit->setStyleSheet("QLineEdit {color: red}; padding-left: 5;");
 
 		peparse::DestructParsedPE(header);
 	}
