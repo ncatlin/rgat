@@ -66,7 +66,7 @@ private:
 	bool readingFirstQueue = true;
 	
 	void add_message(string *);
-	vector<string *> *get_read_queue();
+	vector<string *> *get_active_queue();
 	bool pipeClosed = false;
 	size_t processedData = 0;
 	proto_graph *thisgraph;

@@ -30,6 +30,7 @@ public Q_SLOTS:
 	void removeSelectedFile();
 
 private:
+	void deletePathFromModuleIncludeLists(boost::filesystem::path path, bool isDirectory);
 	void removeSelectedTableRows(QTableWidget *target);
 	void repopulateFileTables(binaryTarget *binary, BWPATHLISTS &bwlistPaths);
 	void updateExplainLabels();

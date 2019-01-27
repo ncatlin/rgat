@@ -100,9 +100,9 @@ void moduleIncludeWidget::repopulateFileTables(binaryTarget *binary, BWPATHLISTS
 void moduleIncludeWidget::updateExplainLabels()
 {
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	includeui->WLDirExplainText->setText(baseWLDirExplainText + " (" + QString::number(WLDirs.size()) + " Dirs)");
+	includeui->WLDirExplainText->setText(baseWLDirExplainText + " (" + QString::number(WLDirs.size()) + " Directories)");
 	includeui->WLFileExplainText->setText(baseWLFileExplainText + " (" + QString::number(WLFiles.size()) + " Files)");
-	includeui->BLDirExplainText->setText(baseBLDirExplainText + " (" + QString::number(BLDirs.size()) + " Dirs)");
+	includeui->BLDirExplainText->setText(baseBLDirExplainText + " (" + QString::number(BLDirs.size()) + " Directories)");
 	includeui->BLFileExplainText->setText(baseBLFileExplainText + " (" + QString::number(BLFiles.size()) + " Files)");
 }
 
@@ -234,6 +234,33 @@ void moduleIncludeWidget::syncBinaryToUI()
 	binary->setIncludelistData(newdata);
 }
 
+void moduleIncludeWidget::deletePathFromModuleIncludeLists(boost::filesystem::path path, bool isDirectory)
+{
+	if (BlacklistMode == ModuleModeSelector::eBlacklisting)
+	{
+		if (isDirectory)
+		{
+			auto itr = std::find(BLDirs.begin(), BLDirs.end(), path);
+			if (itr != BLDirs.end()) BLDirs.erase(itr);
+		}
+		else {
+			auto itr = std::find(BLFiles.begin(), BLFiles.end(), path);
+			if (itr != BLFiles.end()) BLFiles.erase(itr);
+		}
+	}
+	else
+	{
+		if (isDirectory)
+		{
+			auto itr = std::find(WLDirs.begin(), WLDirs.end(), path);
+			if (itr != WLDirs.end()) WLDirs.erase(itr);
+		}
+		else {
+			auto itr = std::find(WLFiles.begin(), WLFiles.end(), path);
+			if (itr != WLFiles.end()) WLFiles.erase(itr);
+		}
+	}
+}
 
 void moduleIncludeWidget::removeSelectedTableRows(QTableWidget *target)
 {
@@ -243,13 +270,19 @@ void moduleIncludeWidget::removeSelectedTableRows(QTableWidget *target)
 	foreach(const QModelIndex & index, selection.indexes()) {
 		rows.append(index.row());
 	}
-
 	qSort(rows);
 
 	int prev = -1;
 	for (int i = rows.count() - 1; i >= 0; i -= 1) {
 		int current = rows[i];
-		if (current != prev) {
+		if (current != prev) 
+		{
+			//delete from data
+			QString fpath = target->item(current, 1)->text();
+			bool isdir = target->item(current, 1)->data(Qt::UserRole).toBool();
+			deletePathFromModuleIncludeLists(boost::filesystem::path(fpath.toStdString()), isdir);
+
+			//delete from ui
 			target->model()->removeRows(current, 1);
 			prev = current;
 		}
@@ -277,6 +310,7 @@ void moduleIncludeWidget::removeSelectedFile()
 		removeSelectedTableRows(includeui->whitelistFilesList);
 
 	syncBinaryToUI();
+	updateExplainLabels();
 	refreshLauncherUI();
 }
 
@@ -289,17 +323,41 @@ bool checkPathSensible(boost::filesystem::path path, vector <boost::filesystem::
 	return true;
 }
 
+QString getFileIconpath(boost::filesystem::path fpath, bool blackListing) {
+	QString iconpath = ":/Resources/";
+	if (boost::filesystem::is_directory(fpath))
+	{
+		iconpath += blackListing ? "folder-r.png" : "folder-g.png";
+	}
+	else
+	{
+		iconpath += blackListing ? "bin-r.png" : "bin-g.png";
+	}
+	return iconpath;
+}
+
+
 void moduleIncludeWidget::addItem(QTableWidget *target,
 	vector <boost::filesystem::path> *pathlist, QString filename)
 {
 	boost::filesystem::path path = boost::filesystem::path(filename.toStdString()).generic_path();
 	if (!checkPathSensible(path, pathlist))
 		return;
+	
+	QTableWidgetItem *fileTableIconItem = new QTableWidgetItem();
+	QIcon icon;
+	QString iconPath = getFileIconpath(path, BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting);
+	icon.addFile(iconPath, QSize(), QIcon::Normal, QIcon::Off);
+	fileTableIconItem->setIcon(icon);
 
-	QTableWidgetItem *pathitem = new QTableWidgetItem();
-	pathitem->setText(filename);
-	target->setRowCount(target->rowCount()+1);
-	target->setItem(target->rowCount()-1,1, pathitem);
+	QTableWidgetItem *fileTablePathItem = new QTableWidgetItem();
+	fileTablePathItem->setText(filename);
+	fileTablePathItem->setData(Qt::UserRole, boost::filesystem::is_directory(path));
+
+	target->setRowCount(target->rowCount() + 1);
+	int rowIdx = target->rowCount() - 1;
+	target->setItem(rowIdx, 0, fileTableIconItem);
+	target->setItem(rowIdx, 1, fileTablePathItem);
 
 	pathlist->push_back(path);
 

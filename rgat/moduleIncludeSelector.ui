@@ -34,7 +34,7 @@
       <enum>QFrame::Plain</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="blacklistPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -185,7 +185,7 @@
               <bool>false</bool>
              </property>
              <attribute name="horizontalHeaderDefaultSectionSize">
-              <number>25</number>
+              <number>39</number>
              </attribute>
              <attribute name="horizontalHeaderMinimumSectionSize">
               <number>20</number>
@@ -421,7 +421,7 @@
               <bool>false</bool>
              </property>
              <attribute name="horizontalHeaderDefaultSectionSize">
-              <number>20</number>
+              <number>39</number>
              </attribute>
              <attribute name="horizontalHeaderMinimumSectionSize">
               <number>20</number>

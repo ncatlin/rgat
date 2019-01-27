@@ -46,7 +46,7 @@ bool thread_trace_reader::connectPipe()
 	return true;
 }
 
-vector<string *> * thread_trace_reader::get_read_queue()
+vector<string *> * thread_trace_reader::get_active_queue()
 {
 	if (readingFirstQueue)
 		return &secondQueue;
@@ -57,7 +57,7 @@ vector<string *> * thread_trace_reader::get_read_queue()
 void thread_trace_reader::add_message(string *newMsg)
 {
 	queueSwitchFlagLock.lock();
-	vector<string *> *targetQueue = get_read_queue();
+	vector<string *> *targetQueue = get_active_queue();
 
 	if (targetQueue->size() >= traceBufMax)
 	{
@@ -70,7 +70,7 @@ void thread_trace_reader::add_message(string *newMsg)
 			std::this_thread::sleep_for(500ms);
 			queueSwitchFlagLock.lock();
 
-			targetQueue = get_read_queue();
+			targetQueue = get_active_queue();
 			if (targetQueue->size() < traceBufMax/2) 
 				break;
 			if (targetQueue->size() <  traceBufMax/10)
@@ -146,11 +146,11 @@ bool thread_trace_reader::data_available(bool &error)
 	if (!PeekNamedPipe(threadpipe, NULL, NULL, NULL, &available, NULL) || !available)
 	{
 		int GLE = GetLastError();
-		if (GLE == ERROR_BROKEN_PIPE) error = true;
+		if (GLE == ERROR_BROKEN_PIPE) 
+			error = true;
 		return false;
 	}
-	else
-		return true;
+	return true;
 }
 
 bool thread_trace_reader::read_data(vector <char> &tagReadBuf, DWORD &bytesRead)
@@ -168,12 +168,10 @@ bool thread_trace_reader::read_data(vector <char> &tagReadBuf, DWORD &bytesRead)
 //thread handler to build graph for a thread
 void thread_trace_reader::main_loop()
 {
-	alive = true;
-	if (!threadpipe && !connectPipe())
-	{
+	if (!threadpipe && !connectPipe()){
 		return;
 	}
-
+	alive = true;
 	vector <char> tagReadBuf(TAGCACHESIZE, 0);
 
 	clock_t endwait = clock() + 1;
@@ -192,13 +190,13 @@ void thread_trace_reader::main_loop()
 			itemsRead = 0;
 		}
 
-		bool error = false;
-		if (!data_available(error))
+		bool errorFlag = false;
+		if (!data_available(errorFlag))
 		{
-			if (!error) 
-				continue; 
-			else 
+			if (errorFlag)
 				break;
+			else 
+				continue;
 		}
 
 
@@ -213,7 +211,7 @@ void thread_trace_reader::main_loop()
 		if ((bytesRead == 0) || tagReadBuf[bytesRead - 1] != '@')
 		{
 			die = true;
-			if (!bytesRead) break;
+			if (bytesRead == 0) break;
 			if (tagReadBuf.at(0) != 'X')
 			{
 				std::string bufstring(tagReadBuf.begin(), tagReadBuf.begin() + bytesRead);
