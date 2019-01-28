@@ -18,7 +18,7 @@ limitations under the License.
 Displays some basic static analysis and provides tracing/instrumentation options + launch control
 */
 
-
+//this needs to be before any references to windows headers
 #include "parser-library/parse.h"
 
 #include "stdafx.h"

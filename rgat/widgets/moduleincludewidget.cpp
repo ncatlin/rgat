@@ -19,12 +19,12 @@ moduleIncludeWidget::moduleIncludeWidget(QWidget *parent)
 bool moduleIncludeWidget::eventFilter(QObject *object, QEvent *event)
 {
 
-	if (object == this && event->type() == QEvent::KeyPress) {
+	if (object == this && event->type() == QEvent::KeyPress) 
+	{
 		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-		if (keyEvent->key() == Qt::Key_Delete || keyEvent->key() == Qt::Key_Backspace) {
-
+		if (keyEvent->key() == Qt::Key_Delete || keyEvent->key() == Qt::Key_Backspace) 
+		{
 			removeSelectedFile();
-
 			return true;
 		}
 		else
@@ -140,14 +140,10 @@ void moduleIncludeWidget::triggerFileDialog()
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 	QStringList fileNames = QFileDialog::getOpenFileNames(this , "Choose files to blacklist");
 
-	ModuleModeSelector::eCurrentBlacklistMode blacklistMode = this->BlacklistMode;
-
+	vector <boost::filesystem::path> *fileslist = inBlacklistMode() ? &BLFiles : &WLFiles;
 	for each(QString fname in fileNames)
 	{
-		if (blacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
-			addItem(includeui->blacklistFilesList, &BLFiles, fname);
-		else
-			addItem(includeui->whitelistFilesList, &WLFiles, fname);
+		addItem(includeui->blacklistFilesList, fileslist, fname);
 	}
 }
 
@@ -156,7 +152,7 @@ void moduleIncludeWidget::triggerDirDialog()
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 	QString dirname = QFileDialog::getExistingDirectory(this, "Choose a directory to blacklist");
 
-	if (BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+	if (inBlacklistMode())
 		addItem(includeui->blacklistFilesList, &BLDirs, dirname);
 	else
 		addItem(includeui->whitelistFilesList, &WLDirs, dirname);
@@ -165,7 +161,7 @@ void moduleIncludeWidget::triggerDirDialog()
 
 void moduleIncludeWidget::modeToggle(bool newstate)
 {
-	if (BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+	if (inBlacklistMode())
 		switchToWhitelistMode();
 	else
 		switchToBlacklistMode();
@@ -178,15 +174,12 @@ void moduleIncludeWidget::switchToBlacklistMode()
 
 	BlacklistMode = ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting;
 
-
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 
 	includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting);
 	includeui->libModeSelectBtn->setText("Toggle Whitelisting");
 
-	binaryTarget *binary = clientState->activeBinary;
-
-	if (!binary) { 
+	if (!clientState->activeBinary) {
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 		ui->mIncludeModeLabel->setText("Blacklist");
 		return;
@@ -204,8 +197,7 @@ void moduleIncludeWidget::switchToWhitelistMode()
 	includeui->blackWhiteListStack->setCurrentIndex(ModuleModeSelector::eCurrentBlacklistMode::eWhitelisting);
 	includeui->libModeSelectBtn->setText("Toggle Blacklisting");
 
-	binaryTarget *binary = clientState->activeBinary;
-	if (!binary) { 
+	if (!clientState->activeBinary) {
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 		ui->mIncludeModeLabel->setText("Whitelist");
 		return; 
@@ -236,7 +228,7 @@ void moduleIncludeWidget::syncBinaryToUI()
 
 void moduleIncludeWidget::deletePathFromModuleIncludeLists(boost::filesystem::path path, bool isDirectory)
 {
-	if (BlacklistMode == ModuleModeSelector::eBlacklisting)
+	if (inBlacklistMode())
 	{
 		if (isDirectory)
 		{
@@ -304,7 +296,7 @@ void moduleIncludeWidget::buildPathList(QTableWidget *target, vector <boost::fil
 void moduleIncludeWidget::removeSelectedFile()
 {
 	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	if (this->BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting)
+	if (inBlacklistMode())
 		removeSelectedTableRows(includeui->blacklistFilesList);
 	else
 		removeSelectedTableRows(includeui->whitelistFilesList);
@@ -345,8 +337,8 @@ void moduleIncludeWidget::addItem(QTableWidget *target,
 		return;
 	
 	QTableWidgetItem *fileTableIconItem = new QTableWidgetItem();
+	QString iconPath = getFileIconpath(path, inBlacklistMode());
 	QIcon icon;
-	QString iconPath = getFileIconpath(path, BlacklistMode == ModuleModeSelector::eCurrentBlacklistMode::eBlacklisting);
 	icon.addFile(iconPath, QSize(), QIcon::Normal, QIcon::Off);
 	fileTableIconItem->setIcon(icon);
 

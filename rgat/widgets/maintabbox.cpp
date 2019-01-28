@@ -550,7 +550,6 @@ void mainTabBox::startNewTrace()
 
 	ui->traceGatherTab->refreshLaunchOptionsFromUI(activeTarget);
 	Ui::moduleIncludeSelectDialog *moduleWidget = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
-	std::cout << moduleWidget->blackWhiteListStack->blackDirsCount();
 	moduleWidget->blackWhiteListStack->syncBinaryToUI();
 	
 	execute_tracer(activeTarget, clientState->config, clientState->getTempDir(), ui->tracePinRadio->isChecked());

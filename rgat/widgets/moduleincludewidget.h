@@ -44,6 +44,7 @@ private:
 	void addItem(QTableWidget *target,
 		vector <boost::filesystem::path> *pathlist, QString filename);
 	void refreshLauncherUI();
+	bool inBlacklistMode() { return (BlacklistMode == ModuleModeSelector::eBlacklisting); }
 
 	ModuleModeSelector::eCurrentBlacklistMode BlacklistMode;
 
