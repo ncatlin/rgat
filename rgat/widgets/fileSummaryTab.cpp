@@ -18,12 +18,14 @@ limitations under the License.
 Displays some basic static analysis and provides tracing/instrumentation options + launch control
 */
 
+
+#include "parser-library/parse.h"
+
 #include "stdafx.h"
 #include "widgets\fileSummaryTab.h"
 #include "ui_rgat.h"
 #include "rgat.h"
 #include "Dbghelp.h"
-#include "parser-library/parse.h"
 
 fileSummaryTab::fileSummaryTab(QWidget *parent)
 	: QWidget(parent)

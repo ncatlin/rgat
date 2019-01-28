@@ -22,52 +22,61 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "stdafx.h"
-#include "parse.h"
+#include <cstring>
 #include <fstream>
-#include <string.h>
 
-#ifdef WIN32
+// keep this header above "windows.h" because it contains many types
+#include "parser-library/parse.h"
+
+#ifdef _WIN32
+
+#define WIN32_LEAN_AND_MEAN
+#define VC_EXTRALEAN
+
+#include <intrin.h>
 #include <windows.h>
 #else
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 #endif
 
 namespace {
 
-inline uint16_t byteSwapUint16(uint16_t val) {
-  uint16_t a = (val >> 8) & 0x00FFU;
-  uint16_t b = (val << 8) & 0xFF00U;
-  return a | b;
+inline std::uint16_t byteSwapUint16(std::uint16_t val) {
+#if defined(_MSC_VER) || defined(_MSC_FULL_VER)
+  return _byteswap_ushort(val);
+#else
+  return __builtin_bswap16(val);
+#endif
 }
 
-inline uint32_t byteSwapUint32(uint32_t val) {
-  uint32_t a = byteSwapUint16(val >> 16) & 0x0000FFFFU;
-  uint32_t b = ((static_cast<uint32_t>(byteSwapUint16(val))) << 16) & 0xFFFF0000U;
-  return a | b;
+inline std::uint32_t byteSwapUint32(std::uint32_t val) {
+#if defined(_MSC_VER) || defined(_MSC_FULL_VER)
+  return _byteswap_ulong(val);
+#else
+  return __builtin_bswap32(val);
+#endif
 }
 
-inline uint64_t byteSwapUint64(uint64_t val) {
-  uint64_t a = byteSwapUint32(val >> 32) & 0x00000000FFFFFFFFUL;
-  uint64_t b = ((static_cast<uint64_t>(byteSwapUint32(val))) << 32) & 0xFFFFFFFF00000000UL;
-  return a | b;
+inline uint64_t byteSwapUint64(std::uint64_t val) {
+#if defined(_MSC_VER) || defined(_MSC_FULL_VER)
+  return _byteswap_uint64(val);
+#else
+  return __builtin_bswap64(val);
+#endif
 }
 
 } // anonymous namespace
 
-using namespace std;
-
 namespace peparse {
 
-extern ::uint32_t err;
-extern ::string err_loc;
+extern std::uint32_t err;
+extern std::string err_loc;
 
 struct buffer_detail {
-#ifdef WIN32
+#ifdef _WIN32
   HANDLE file;
   HANDLE sec;
 #else
@@ -75,31 +84,35 @@ struct buffer_detail {
 #endif
 };
 
-bool readByte(bounded_buffer *b, ::uint32_t offset, ::uint8_t &out) {
+bool readByte(bounded_buffer *b, std::uint32_t offset, std::uint8_t &out) {
   if (b == nullptr) {
+    PE_ERR(PEERR_BUFFER);
     return false;
   }
 
   if (offset >= b->bufLen) {
+    PE_ERR(PEERR_ADDRESS);
     return false;
   }
 
-  ::uint8_t *tmp = (b->buf + offset);
+  std::uint8_t *tmp = (b->buf + offset);
   out = *tmp;
 
   return true;
 }
 
-bool readWord(bounded_buffer *b, ::uint32_t offset, ::uint16_t &out) {
+bool readWord(bounded_buffer *b, std::uint32_t offset, std::uint16_t &out) {
   if (b == nullptr) {
+    PE_ERR(PEERR_BUFFER);
     return false;
   }
 
-  if (offset >= b->bufLen) {
+  if (offset + 1 >= b->bufLen) {
+    PE_ERR(PEERR_ADDRESS);
     return false;
   }
 
-  ::uint16_t *tmp = reinterpret_cast<uint16_t *>(b->buf + offset);
+  std::uint16_t *tmp = reinterpret_cast<std::uint16_t *>(b->buf + offset);
   if (b->swapBytes) {
     out = byteSwapUint16(*tmp);
   } else {
@@ -109,16 +122,18 @@ bool readWord(bounded_buffer *b, ::uint32_t offset, ::uint16_t &out) {
   return true;
 }
 
-bool readDword(bounded_buffer *b, ::uint32_t offset, ::uint32_t &out) {
+bool readDword(bounded_buffer *b, std::uint32_t offset, std::uint32_t &out) {
   if (b == nullptr) {
+    PE_ERR(PEERR_BUFFER);
     return false;
   }
 
-  if (offset >= b->bufLen) {
+  if (offset + 3 >= b->bufLen) {
+    PE_ERR(PEERR_ADDRESS);
     return false;
   }
 
-  ::uint32_t *tmp = reinterpret_cast<uint32_t *>(b->buf + offset);
+  std::uint32_t *tmp = reinterpret_cast<std::uint32_t *>(b->buf + offset);
   if (b->swapBytes) {
     out = byteSwapUint32(*tmp);
   } else {
@@ -128,16 +143,18 @@ bool readDword(bounded_buffer *b, ::uint32_t offset, ::uint32_t &out) {
   return true;
 }
 
-bool readQword(bounded_buffer *b, ::uint32_t offset, ::uint64_t &out) {
+bool readQword(bounded_buffer *b, std::uint32_t offset, std::uint64_t &out) {
   if (b == nullptr) {
+    PE_ERR(PEERR_BUFFER);
     return false;
   }
 
-  if (offset >= b->bufLen) {
+  if (offset + 7 >= b->bufLen) {
+    PE_ERR(PEERR_ADDRESS);
     return false;
   }
 
-  ::uint64_t *tmp = reinterpret_cast<uint64_t *>(b->buf + offset);
+  std::uint64_t *tmp = reinterpret_cast<std::uint64_t *>(b->buf + offset);
   if (b->swapBytes) {
     out = byteSwapUint64(*tmp);
   } else {
@@ -148,7 +165,7 @@ bool readQword(bounded_buffer *b, ::uint32_t offset, ::uint64_t &out) {
 }
 
 bounded_buffer *readFileToFileBuffer(const char *filePath) {
-#ifdef WIN32
+#ifdef _WIN32
   HANDLE h = CreateFileA(filePath,
                          GENERIC_READ,
                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -179,7 +196,6 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
 
   // make a buffer object
   bounded_buffer *p = new (std::nothrow) bounded_buffer();
-
   if (p == nullptr) {
     PE_ERR(PEERR_MEM);
     return nullptr;
@@ -197,7 +213,7 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
   p->detail = d;
 
 // only where we have mmap / open / etc
-#ifdef WIN32
+#ifdef _WIN32
   p->detail->file = h;
 
   HANDLE hMap = CreateFileMapping(h, nullptr, PAGE_READONLY, 0, 0, nullptr);
@@ -217,12 +233,13 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
     return nullptr;
   }
 
-  p->buf = (::uint8_t *) ptr;
+  p->buf = reinterpret_cast<std::uint8_t *>(ptr);
   p->bufLen = fileSize;
 #else
   p->detail->fd = fd;
 
-  struct stat s = {0};
+  struct stat s;
+  memset(&s, 0, sizeof(struct stat));
 
   if (fstat(fd, &s) != 0) {
     close(fd);
@@ -232,7 +249,12 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
     return nullptr;
   }
 
-  void *maddr = mmap(nullptr, s.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  void *maddr = mmap(nullptr,
+                     static_cast<std::size_t>(s.st_size),
+                     PROT_READ,
+                     MAP_SHARED,
+                     fd,
+                     0);
 
   if (maddr == MAP_FAILED) {
     close(fd);
@@ -242,8 +264,8 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
     return nullptr;
   }
 
-  p->buf = reinterpret_cast<uint8_t *>(maddr);
-  p->bufLen = s.st_size;
+  p->buf = reinterpret_cast<std::uint8_t *>(maddr);
+  p->bufLen = static_cast<std::uint32_t>(s.st_size);
 #endif
   p->copy = false;
   p->swapBytes = false;
@@ -252,7 +274,8 @@ bounded_buffer *readFileToFileBuffer(const char *filePath) {
 }
 
 // split buffer inclusively from from to to by offset
-bounded_buffer *splitBuffer(bounded_buffer *b, ::uint32_t from, ::uint32_t to) {
+bounded_buffer *
+splitBuffer(bounded_buffer *b, std::uint32_t from, std::uint32_t to) {
   if (b == nullptr) {
     return nullptr;
   }
@@ -263,8 +286,7 @@ bounded_buffer *splitBuffer(bounded_buffer *b, ::uint32_t from, ::uint32_t to) {
   }
 
   // make a new buffer
-  bounded_buffer *newBuff = new (std::nothrow) bounded_buffer();
-
+  auto newBuff = new (std::nothrow) bounded_buffer();
   if (newBuff == nullptr) {
     return nullptr;
   }
@@ -282,7 +304,7 @@ void deleteBuffer(bounded_buffer *b) {
   }
 
   if (!b->copy) {
-#ifdef WIN32
+#ifdef _WIN32
     UnmapViewOfFile(b->buf);
     CloseHandle(b->detail->sec);
     CloseHandle(b->detail->file);
@@ -292,16 +314,11 @@ void deleteBuffer(bounded_buffer *b) {
 #endif
   }
 
-  if (b->detail != nullptr) {
-    delete b->detail;
-  }
-
+  delete b->detail;
   delete b;
-
-  return;
 }
 
-uint64_t bufLen(bounded_buffer *b) {
+std::uint64_t bufLen(bounded_buffer *b) {
   return b->bufLen;
 }
 } // namespace peparse

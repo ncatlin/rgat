@@ -22,15 +22,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef _NT_HEADERS
-#define _NT_HEADERS
-#include <cstdint>
+#pragma once
 
-#define _offset(t, f) ((std::uint32_t)(ptrdiff_t) & (((t *) 0)->f))
+#include <cstdint>
+#include <string>
+
+#define _offset(t, f)         \
+  static_cast<std::uint32_t>( \
+      reinterpret_cast<std::ptrdiff_t>(&static_cast<t *>(nullptr)->f))
 
 // need to pack these structure definitions
 
 // some constant definitions
+// clang-format off
 namespace peparse {
 constexpr std::uint16_t MZ_MAGIC = 0x5A4D;
 constexpr std::uint32_t NT_MAGIC = 0x00004550;
@@ -55,19 +59,18 @@ constexpr std::uint16_t DIR_IAT = 12;
 constexpr std::uint16_t DIR_DELAY_IMPORT = 13;
 constexpr std::uint16_t DIR_COM_DESCRIPTOR = 14;
 
-
-
-//rgat modification: commented out for compiling on windows with nt headers already included
 // Machine Types
-#ifndef _WINDOWS
-
-constexpr std::uint16_t IMAGE_FILE_MACHINE_ARM64 = 0xaa64;    // ARM64 little endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_UNKNOWN = 0x0;
+constexpr std::uint16_t IMAGE_FILE_MACHINE_ALPHA = 0x1d3;     // Alpha_AXP
+constexpr std::uint16_t IMAGE_FILE_MACHINE_ALPHA64 = 0x284;   // ALPHA64
 constexpr std::uint16_t IMAGE_FILE_MACHINE_AM33 = 0x1d3;      // Matsushita AM33
 constexpr std::uint16_t IMAGE_FILE_MACHINE_AMD64 = 0x8664;    // x64
 constexpr std::uint16_t IMAGE_FILE_MACHINE_ARM = 0x1c0;       // ARM little endian
-
+constexpr std::uint16_t IMAGE_FILE_MACHINE_ARM64 = 0xaa64;    // ARM64 little endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_ARMNT = 0x1c4;     // ARM Thumb-2 little endian
+constexpr std::uint16_t IMAGE_FILE_MACHINE_AXP64 = 0x284;     // ALPHA64
+constexpr std::uint16_t IMAGE_FILE_MACHINE_CEE = 0xc0ee;
+constexpr std::uint16_t IMAGE_FILE_MACHINE_CEF = 0xcef;
 constexpr std::uint16_t IMAGE_FILE_MACHINE_EBC = 0xebc;       // EFI byte code
 constexpr std::uint16_t IMAGE_FILE_MACHINE_I386 = 0x14c;      // Intel 386 or later processors and compatible processors
 constexpr std::uint16_t IMAGE_FILE_MACHINE_IA64 = 0x200;      // Intel Itanium processor family
@@ -77,7 +80,9 @@ constexpr std::uint16_t IMAGE_FILE_MACHINE_MIPSFPU = 0x366;   // MIPS with FPU
 constexpr std::uint16_t IMAGE_FILE_MACHINE_MIPSFPU16 = 0x466; // MIPS16 with FPU
 constexpr std::uint16_t IMAGE_FILE_MACHINE_POWERPC = 0x1f0;   // Power PC little endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_POWERPCFP = 0x1f1; // Power PC with floating point support
+constexpr std::uint16_t IMAGE_FILE_MACHINE_R3000 = 0x166;     // MIPS little endian, 0x160 big-endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_R4000 = 0x166;     // MIPS little endian
+constexpr std::uint16_t IMAGE_FILE_MACHINE_R10000 = 0x166;    // MIPS little endian
 constexpr std::uint16_t IMAGE_FILE_MACHINE_RISCV32 = 0x5032;  // RISC-V 32-bit address space
 constexpr std::uint16_t IMAGE_FILE_MACHINE_RISCV64 = 0x5064;  // RISC-V 64-bit address space
 constexpr std::uint16_t IMAGE_FILE_MACHINE_RISCV128 = 0x5128; // RISC-V 128-bit address space
@@ -86,6 +91,7 @@ constexpr std::uint16_t IMAGE_FILE_MACHINE_SH3DSP = 0x1a3;    // Hitachi SH3 DSP
 constexpr std::uint16_t IMAGE_FILE_MACHINE_SH4 = 0x1a6;       // Hitachi SH4
 constexpr std::uint16_t IMAGE_FILE_MACHINE_SH5 = 0x1a8;       // Hitachi SH5
 constexpr std::uint16_t IMAGE_FILE_MACHINE_THUMB = 0x1c2;     // Thumb
+constexpr std::uint16_t IMAGE_FILE_MACHINE_TRICORE = 0x520;   // Infineon
 constexpr std::uint16_t IMAGE_FILE_MACHINE_WCEMIPSV2 = 0x169; // MIPS little-endian WCE v2
 
 constexpr std::uint16_t IMAGE_FILE_RELOCS_STRIPPED = 0x0001;
@@ -143,6 +149,22 @@ constexpr std::uint32_t IMAGE_SCN_MEM_EXECUTE = 0x20000000;
 constexpr std::uint32_t IMAGE_SCN_MEM_READ = 0x40000000;
 constexpr std::uint32_t IMAGE_SCN_MEM_WRITE = 0x80000000;
 
+constexpr std::uint16_t IMAGE_SUBSYSTEM_UNKNOWN = 0;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_NATIVE = 1;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_WINDOWS_GUI = 2;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_WINDOWS_CUI = 3;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_OS2_CUI = 5;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_POSIX_CUI = 7;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_NATIVE_WINDOWS = 8;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_WINDOWS_CE_GUI = 9;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_EFI_APPLICATION = 10;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER = 11;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER = 12;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_EFI_ROM = 13;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_XBOX = 14;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16;
+constexpr std::uint16_t IMAGE_SUBSYSTEM_XBOX_CODE_CATALOG = 17;
+
 // Symbol section number values
 constexpr std::int16_t IMAGE_SYM_UNDEFINED = 0;
 constexpr std::int16_t IMAGE_SYM_ABSOLUTE = -1;
@@ -171,7 +193,7 @@ constexpr std::uint16_t IMAGE_SYM_DTYPE_FUNCTION = 2;
 constexpr std::uint16_t IMAGE_SYM_DTYPE_ARRAY = 3;
 
 // Symbol table storage classes
-constexpr std::uint8_t IMAGE_SYM_CLASS_END_OF_FUNCTION = -1;
+constexpr std::uint8_t IMAGE_SYM_CLASS_END_OF_FUNCTION = static_cast<const std::uint8_t>(-1);
 constexpr std::uint8_t IMAGE_SYM_CLASS_NULL = 0;
 constexpr std::uint8_t IMAGE_SYM_CLASS_AUTOMATIC = 1;
 constexpr std::uint8_t IMAGE_SYM_CLASS_EXTERNAL = 2;
@@ -198,7 +220,9 @@ constexpr std::uint8_t IMAGE_SYM_CLASS_FILE = 103;
 constexpr std::uint8_t IMAGE_SYM_CLASS_SECTION = 104;
 constexpr std::uint8_t IMAGE_SYM_CLASS_WEAK_EXTERNAL = 105;
 constexpr std::uint8_t IMAGE_SYM_CLASS_CLR_TOKEN = 107;
-#endif
+
+
+// clang-format on
 
 struct dos_header {
   std::uint16_t e_magic;
@@ -396,7 +420,7 @@ struct export_dir_table {
 };
 
 enum reloc_type {
-  eABSOLUTE = 0,
+  ABSOLUTE = 0,
   HIGH = 1,
   LOW = 2,
   HIGHLOW = 3,
@@ -412,5 +436,3 @@ struct reloc_block {
   std::uint32_t BlockSize;
 };
 } // namespace peparse
-
-#endif

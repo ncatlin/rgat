@@ -130,8 +130,10 @@ Feature: Added plot size/stretch adjustment buttons in the visualiser tab
 Feature: Added mouseover menus for node labels
 Feature: Binary targets can be added by drag and dropping onto the interface
 Fix: Instructions executed more than 4 billion times are now counted correctly
-Fix: Conditionals that have been both taken and fallen through no longer display as only taken in the conditionals render
+Fix: Conditionals that have been both taken and not-taken no longer display as only taken in the conditionals render
 Movement of offset based binary information out of each trace, into the parent target data object. This supports upcoming functionality and reduces trace sizes.
 Updated Capstone to 4.0.1
+Updated peparse 
 Update PIN to (whatever version at time of release)
-Code changes: Preparation for Linux port
+Numerous UI improvements
+Code changes: Platform independent locks

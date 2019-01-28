@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef _PARSE_H
-#define _PARSE_H
+#pragma once
+
 #include <cstdint>
 #include <string>
 
@@ -34,10 +34,10 @@ THE SOFTWARE.
 #define __typeof__(x) std::remove_reference < decltype(x) > ::type
 #endif
 
-#define PE_ERR(x)           \
-  err = (pe_err) x;         \
-  err_loc.assign(__func__); \
-  err_loc += ":" + to_string<std::uint32_t>(__LINE__, dec);
+#define PE_ERR(x)               \
+  err = static_cast<pe_err>(x); \
+  err_loc.assign(__func__);     \
+  err_loc += ":" + to_string<std::uint32_t>(__LINE__, std::dec);
 
 #define READ_WORD(b, o, inst, member)                                     \
   if (!readWord(b, o + _offset(__typeof__(inst), member), inst.member)) { \
@@ -57,23 +57,10 @@ THE SOFTWARE.
     return false;                                                          \
   }
 
-#define READ_DWORD_PTR(b, o, inst, member)                                   \
-  if (!readDword(b, o + _offset(__typeof__(*inst), member), inst->member)) { \
-    PE_ERR(PEERR_READ);                                                      \
-    return false;                                                            \
-  }
-
 #define READ_BYTE(b, o, inst, member)                                     \
   if (!readByte(b, o + _offset(__typeof__(inst), member), inst.member)) { \
     PE_ERR(PEERR_READ);                                                   \
     return false;                                                         \
-  }
-
-/* This variant returns NULL instead of false. */
-#define READ_DWORD_NULL(b, o, inst, member)                                \
-  if (!readDword(b, o + _offset(__typeof__(inst), member), inst.member)) { \
-    PE_ERR(PEERR_READ);                                                    \
-    return NULL;                                                           \
   }
 
 #define TEST_MACHINE_CHARACTERISTICS(h, m, ch) \
@@ -95,6 +82,10 @@ typedef struct _bounded_buffer {
 } bounded_buffer;
 
 struct resource {
+  resource()
+      : type(0), name(0), lang(0), codepage(0), RVA(0), size(0), buf(nullptr) {
+  }
+
   std::string type_str;
   std::string name_str;
   std::string lang_str;
@@ -107,7 +98,6 @@ struct resource {
   bounded_buffer *buf;
 };
 
-#ifndef _WINDOWS //rgat modification
 // http://msdn.microsoft.com/en-us/library/ms648009(v=vs.85).aspx
 enum resource_type {
   RT_CURSOR = 1,
@@ -132,7 +122,6 @@ enum resource_type {
   RT_HTML = 23,
   RT_MANIFEST = 24
 };
-#endif
 
 enum pe_err {
   PEERR_NONE = 0,
@@ -144,7 +133,9 @@ enum pe_err {
   PEERR_READ = 6,
   PEERR_OPEN = 7,
   PEERR_STAT = 8,
-  PEERR_MAGIC = 9
+  PEERR_MAGIC = 9,
+  PEERR_BUFFER = 10,
+  PEERR_ADDRESS = 11,
 };
 
 bool readByte(bounded_buffer *b, std::uint32_t offset, std::uint8_t &out);
@@ -160,7 +151,9 @@ uint64_t bufLen(bounded_buffer *b);
 
 struct parsed_pe_internal;
 
-typedef struct _pe_header { nt_header_32 nt; } pe_header;
+typedef struct _pe_header {
+  nt_header_32 nt;
+} pe_header;
 
 typedef struct _parsed_pe {
   bounded_buffer *fileBuffer;
@@ -169,7 +162,7 @@ typedef struct _parsed_pe {
 } parsed_pe;
 
 // get parser error status as integer
-int GetPEErr();
+std::uint32_t GetPEErr();
 
 // get parser error status as string
 std::string GetPEErrString();
@@ -188,7 +181,7 @@ typedef int (*iterRsrc)(void *, resource);
 void IterRsrc(parsed_pe *pe, iterRsrc cb, void *cbd);
 
 // iterate over the imports by RVA and string
-typedef int (*iterVAStr)(void *, VA, std::string &, std::string &);
+typedef int (*iterVAStr)(void *, VA, const std::string &, const std::string &);
 void IterImpVAString(parsed_pe *pe, iterVAStr cb, void *cbd);
 
 // iterate over relocations in the PE file
@@ -198,11 +191,11 @@ void IterRelocs(parsed_pe *pe, iterReloc cb, void *cbd);
 // Iterate over symbols (symbol table) in the PE file
 typedef int (*iterSymbol)(void *,
                           std::string &,
-                          uint32_t &,
-                          int16_t &,
-                          uint16_t &,
-                          uint8_t &,
-                          uint8_t &);
+                          std::uint32_t &,
+                          std::int16_t &,
+                          std::uint16_t &,
+                          std::uint8_t &,
+                          std::uint8_t &);
 void IterSymbols(parsed_pe *pe, iterSymbol cb, void *cbd);
 
 // iterate over the exports
@@ -219,6 +212,10 @@ bool ReadByteAtVA(parsed_pe *pe, VA v, std::uint8_t &b);
 
 // get entry point into PE
 bool GetEntryPoint(parsed_pe *pe, VA &v);
-} // namespace peparse
 
-#endif
+// get machine as human readable string
+const char *GetMachineAsString(parsed_pe *pe);
+
+// get subsystem as human readable string
+const char *GetSubsystemAsString(parsed_pe *pe);
+} // namespace peparse

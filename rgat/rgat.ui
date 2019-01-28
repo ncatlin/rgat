@@ -321,7 +321,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <property name="iconSize">
            <size>
@@ -1814,7 +1814,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>Heatmap</string>
+                       <string>Heatmap (k)</string>
                       </property>
                       <property name="icon">
                        <iconset resource="rgat.qrc">
@@ -1823,7 +1823,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>Conditionals</string>
+                       <string>Conditionals (j)</string>
                       </property>
                       <property name="icon">
                        <iconset resource="rgat.qrc">
