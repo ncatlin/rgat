@@ -81,6 +81,14 @@ rgat::~rgat()
 	settingsWindowDialog.deleteLater();
 }
 
+string generateVersionString() 
+{
+	stringstream result;
+	result << "rgat " << RGAT_VERSION_MAJ << "." << RGAT_VERSION_MIN << "." << RGAT_VERSION_FEATURE;
+	result << " - " << "https://github.com/ncatlin/rgat/";
+	return result.str();
+}
+
 void rgat::setupUI()
 {
 	ui.setupUi(this);
@@ -91,6 +99,9 @@ void rgat::setupUI()
 	mouseoverWidgetUI.setupUi(&mouseoverWidget);
 	blacklistSelectUI.setupUi(&blacklistSelectDialog);
 	settingsDialogUI.setupUi(&settingsWindowDialog);
+
+	string settingsTitle = "Settings - " + generateVersionString();
+	settingsWindowDialog.setWindowTitle(QApplication::translate("SettingsWindow", settingsTitle.c_str(), nullptr));
 
 	rgatstate->labelMouseoverWidget = &mouseoverWidget;
 	rgatstate->labelMouseoverWidget->clientState = rgatstate;
