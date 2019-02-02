@@ -123,9 +123,9 @@ Instruction indexes are now 64bits in save files. Support for >4gb trace sizes i
 Bugfix: Fixed a deadlock caused by new locks being non-recursive
 Code change: platform independent threading
 
-03/02/19 0.5.3 [PREVIOUS SAVES OBSOLETE]
+02/02/19 0.5.3 [PREVIOUS SAVES OBSOLETE]
 -----------------
-
+Moved from DynamoRIO to PIN because there was a period where DR didn't work on the latest Windows build. Support for DR is upcoming.
 Added drgat tests
 Added plot size/stretch adjustment buttons in the visualiser tab
 Added mouseover menus for node labels

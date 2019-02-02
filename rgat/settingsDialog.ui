@@ -2605,6 +2605,9 @@
                </item>
                <item>
                 <widget class="QSlider" name="previewZoomSlider">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="minimumSize">
                   <size>
                    <width>250</width>
@@ -3072,6 +3075,22 @@
     <hint type="destinationlabel">
      <x>397</x>
      <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>previewRotationSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>mainSettingsFrame</receiver>
+   <slot>previewSliderChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>537</x>
+     <y>108</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>344</x>
+     <y>314</y>
     </hint>
    </hints>
   </connection>
