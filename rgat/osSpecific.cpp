@@ -206,8 +206,7 @@ bool get_pindir_path(clientConfig &config, boost::filesystem::path &pinpath)
 //get command line string of pin executable + client dll + options
 bool get_pin_pingat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits, boost::filesystem::path tmpDir)
 {
-	//get dynamorio exe from path in settings
-	//todo: check this works with spaces in the path
+	//get pin exe from path in settings
 	boost::filesystem::path PINPath = config.PinDir;
 	PINPath.append("pin.exe");
 
@@ -286,13 +285,51 @@ bool get_pin_pingat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts,
 	return true;
 }
 
+bool get_bbcount_path_pin(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits)
+{
+	//get pin exe from path in settings
+	boost::filesystem::path PINPath = config.PinDir;
+	PINPath.append("pin.exe");
 
-bool get_bbcount_path(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits, string sampleName)
+	//not there - try finding it in rgats directory
+	if (!boost::filesystem::exists(PINPath))
+	{
+		cerr << "[rgat] ERROR: Failed to find pin executable at " << PINPath << " listed in config file" << endl;
+
+		boost::filesystem::path modPathPin = getModulePath() + "\\pin\\pin.exe";
+		if ((modPathPin != PINPath) && boost::filesystem::exists(modPathPin))
+		{
+			PINPath = modPathPin;
+			cout << "[rgat] Found pin executable at " << PINPath << ", continuing..." << endl;
+		}
+		else
+		{
+			cerr << "[rgat]ERROR: Also failed to find DynamoRIO executable at default " << modPathPin << endl;
+			return false;
+		}
+	}
+
+	//get the rgat instrumentation client
+	boost::filesystem::path pingatPath = config.clientPath;
+	if (is64Bits)
+		pingatPath += "pintest-64.dll";
+	else
+		pingatPath += "pintest-32.dll";
+
+	stringstream finalCommandline;
+	finalCommandline << PINPath.string();
+	finalCommandline << " -t \"" << pingatPath.string() << "\"";
+
+	path = finalCommandline.str();
+	return true;
+}
+
+bool get_bbcount_path_dynamorio(clientConfig &config, LAUNCHOPTIONS &launchopts, string &path, bool is64Bits, string libName)
 {
 	boost::filesystem::path dynamoRioPath;
 	if (!get_drdir_path(config, dynamoRioPath))
 	{
-		cerr << "[rgat] Failed to find dynamorio directory." << endl;
+		cerr << "[rgat] Failed to find bbcount test module." << endl;
 		return false;
 	}
 
@@ -312,9 +349,9 @@ bool get_bbcount_path(clientConfig &config, LAUNCHOPTIONS &launchopts, string &p
 	//get the rgat instrumentation client
 	boost::filesystem::path samplePath = dynamoRioPath;
 	if (is64Bits)
-		samplePath += "samples\\bin64\\" + sampleName + ".dll";
+		samplePath += "samples\\bin64\\" + libName + ".dll";
 	else
-		samplePath += "samples\\bin32\\" + sampleName + ".dll";
+		samplePath += "samples\\bin32\\" + libName + ".dll";
 
 	stringstream finalCommandline;
 	finalCommandline << drrunPath.string();

@@ -24,10 +24,8 @@ A tree listing processes and their children to make selecting the right trace ea
 
 class processTree :
 	public QTreeWidget
-{
-
+{	
 	Q_OBJECT
-
 public:
 	processTree(QWidget *parent = 0);
 	~processTree();

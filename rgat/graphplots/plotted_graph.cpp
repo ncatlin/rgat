@@ -2152,11 +2152,15 @@ void plotted_graph::copy_node_data(GRAPH_DISPLAY_DATA *inputnodes)
 	vector <float>* targetPosData = mainnodesdata->acquire_pos_write();
 	vector <float>* targetColData = mainnodesdata->acquire_col_write();
 
+	targetPosData->resize(inputPosData->size());
 	std::copy(inputPosData->begin(), inputPosData->end(), targetPosData->begin());
+	targetColData->resize(inputColData->size());
 	std::copy(inputColData->begin(), inputColData->end(), targetColData->begin());
 
 	mainnodesdata->release_pos_write();
 	mainnodesdata->release_col_write();
+	inputnodes->release_pos_read();
+	inputnodes->release_col_read();
 
 }
 

@@ -30,7 +30,6 @@ class analysisSelectablesTree :
 	public QTreeWidget
 {
 	Q_OBJECT
-
 public:
 	analysisSelectablesTree(QWidget *parent = 0);
 	~analysisSelectablesTree();

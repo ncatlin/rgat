@@ -28,10 +28,7 @@ Also handles creating new targets.
 class targetCombo :
 	public QComboBox
 {
-
 	Q_OBJECT
-
-
 public:
 	targetCombo(QWidget *parent = 0);
 	~targetCombo();

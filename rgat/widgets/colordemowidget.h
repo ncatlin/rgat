@@ -7,7 +7,6 @@
 class colorDemoWidget : public QWidget
 {
 	Q_OBJECT
-
 public:
 	colorDemoWidget(QWidget *parent);
 	~colorDemoWidget();

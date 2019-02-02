@@ -31,9 +31,7 @@ enum diffWidgetIndex { eDiffWidgetStackNone = 0, eDiffWidgetStackSelected = 1 };
 class compareGraphGLWidget :
 	public graphGLWidget
 {
-
 	Q_OBJECT
-
 public:
 	compareGraphGLWidget(QWidget *parent = 0);
 	~compareGraphGLWidget();

@@ -37,9 +37,7 @@ struct moduleEntry {
 class highlightWidget :
 	public QWidget
 {
-
 	Q_OBJECT
-
 public:
 	highlightWidget(QWidget *parent = 0);
 	~highlightWidget();

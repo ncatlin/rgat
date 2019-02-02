@@ -25,9 +25,7 @@ Displays some basic static analysis and provides tracing/instrumentation options
 class filePathWidget :
 	public QWidget
 {
-
 	Q_OBJECT
-
 public:
 	filePathWidget(QWidget *parent = 0);
 	~filePathWidget();

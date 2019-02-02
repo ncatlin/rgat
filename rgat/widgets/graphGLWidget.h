@@ -38,9 +38,7 @@ struct TEXTRECT {
 class graphGLWidget :
 	public QOpenGLWidget, public QOpenGLFunctions_3_0
 {
-
-	Q_OBJECT
-
+	Q_OBJECT 
 public:
 	graphGLWidget(QWidget *parent);
 	~graphGLWidget();

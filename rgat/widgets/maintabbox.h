@@ -44,9 +44,7 @@ struct GRAPHINFO
 class mainTabBox :
 	public QTabWidget
 {
-
 	Q_OBJECT
-
 public:
 	mainTabBox(QWidget *parent = 0);
 	~mainTabBox();

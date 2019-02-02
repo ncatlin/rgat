@@ -136,6 +136,7 @@ Movement of offset based binary information out of each trace, into the parent t
 Updated Capstone to 4.0.1
 Updated peparse 
 Updated PIN to 3.7
+Update Qt to 5.12
 Code changes: replaced lots of Win32 API code with STL in preperation for Linux release
 Fix: Instructions executed more than 4 billion times are now counted correctly
 Fix: Conditionals that have been both taken and not-taken no longer display as only taken in the conditionals render

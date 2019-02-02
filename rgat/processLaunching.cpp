@@ -421,7 +421,7 @@ void execute_dynamorio_compatibility_test(void *binaryTargetPtr, clientConfig &c
 
 	LAUNCHOPTIONS &launchopts = target->launchopts;
 	string runpath;
-	if (!get_bbcount_path(config, launchopts, runpath, (target->getBitWidth() == 64), "bbcount"))
+	if (!get_bbcount_path_dynamorio(config, launchopts, runpath, (target->getBitWidth() == 64), "bbcount"))
 		return;
 
 	runpath = runpath + " -- \"" + target->path().string() + "\" " + launchopts.args;
@@ -436,7 +436,7 @@ void execute_pin_compatibility_test(void *binaryTargetPtr, clientConfig &config)
 	binaryTarget *target = (binaryTarget *)binaryTargetPtr;
 
 	string runpath;
-	if (!get_bbcount_path(config, target->launchopts, runpath, (target->getBitWidth() == 64), "bbcount"))
+	if (!get_bbcount_path_pin(config, target->launchopts, runpath, (target->getBitWidth() == 64)))
 		return;
 
 	runpath = runpath + " -- \"" + target->path().string() + "\" " + target->launchopts.args;

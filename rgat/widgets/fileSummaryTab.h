@@ -25,19 +25,14 @@ Displays some basic static analysis and provides tracing/instrumentation options
 class fileSummaryTab :
 	public QWidget
 {
-
 	Q_OBJECT
-
 public:
 	fileSummaryTab(QWidget *parent = 0);
 	~fileSummaryTab();
 
 	void fillAnalyseTab(binaryTarget *target);
 	void refreshLaunchOptionsFromUI(binaryTarget *target);
-	
-
 	rgatState *clientState = NULL;
-
 private:
 	binaryTarget* lastExaminedBinary = NULL;
 };

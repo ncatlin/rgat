@@ -10,7 +10,6 @@ class moduleIncludeWidget :
 	public QStackedWidget
 {
 	Q_OBJECT
-
 public:
 	moduleIncludeWidget(QWidget *parent = 0);
 	~moduleIncludeWidget() {} ;

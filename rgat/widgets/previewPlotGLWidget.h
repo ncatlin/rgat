@@ -31,9 +31,7 @@ An opengl widget with a vertical scrollbar to display animated graph previews fo
 class previewPlotGLWidget :
 	public graphGLWidget
 {
-
 	Q_OBJECT
-
 public:
 	previewPlotGLWidget(QWidget *parent = 0);
 	~previewPlotGLWidget();

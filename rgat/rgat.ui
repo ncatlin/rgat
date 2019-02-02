@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>500</width>
+    <width>800</width>
     <height>500</height>
    </size>
   </property>
@@ -321,7 +321,7 @@
            <enum>QTabWidget::Triangular</enum>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <property name="iconSize">
            <size>
@@ -1599,7 +1599,13 @@
                        <property name="icon">
                         <iconset resource="rgat.qrc">
                          <normaloff>:/Resources/edgesOff.png</normaloff>
-                         <normalon>:/Resources/edgesOn.png</normalon>:/Resources/edgesOff.png</iconset>
+                         <normalon>:/Resources/edgesOn.png</normalon>
+                         <disabledoff>:/Resources/edgesOff.png</disabledoff>
+                         <disabledon>:/Resources/edgesOn.png</disabledon>
+                         <activeoff>:/Resources/edgesOff.png</activeoff>
+                         <activeon>:/Resources/edgesOn.png</activeon>
+                         <selectedoff>:/Resources/edgesOff.png</selectedoff>
+                         <selectedon>:/Resources/edgesOn.png</selectedon>:/Resources/edgesOff.png</iconset>
                        </property>
                        <property name="iconSize">
                         <size>
@@ -1926,9 +1932,9 @@
                       <string>...</string>
                      </property>
                      <property name="icon">
-                      <iconset>
-                       <normalon>:/Resources/crosshairOn.png</normalon>
-                      </iconset>
+                      <iconset resource="rgat.qrc">
+                       <normaloff>:/Resources/crosshairOff.png</normaloff>
+                       <normalon>:/Resources/crosshairOn.png</normalon>:/Resources/crosshairOff.png</iconset>
                      </property>
                     </widget>
                    </item>
@@ -1961,6 +1967,12 @@
               </item>
               <item>
                <widget class="QFrame" name="animTraceSelectFrame">
+                <property name="minimumSize">
+                 <size>
+                  <width>700</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
                 </property>
@@ -2674,6 +2686,12 @@
                       <size>
                        <width>0</width>
                        <height>90</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>250</width>
+                       <height>16777215</height>
                       </size>
                      </property>
                      <property name="title">

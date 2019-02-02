@@ -28,22 +28,15 @@ The primary graph display opengl widget
 class graphPlotGLWidget :
 	public graphGLWidget
 {
-
 	Q_OBJECT
-
-
 public:
 	graphPlotGLWidget(QWidget *parent = 0);
 	~graphPlotGLWidget();
 
 	void tabChanged(bool nowActive);
-
-	
-
 	void initializeGL();
 	void resizeGL(int w, int h);
 	void paintGL();
-
 	void display_graph_diff(void *diffRenderer, node_data* divergeNode);
 	void draw_heatmap_key();
 	void draw_conditional_key();
