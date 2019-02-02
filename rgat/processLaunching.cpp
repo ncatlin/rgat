@@ -379,11 +379,9 @@ string get_options(LAUNCHOPTIONS &launchopts)
 
 	//rgat client options
 	if (launchopts.removeSleeps)
-		optstring << " -caffine";
+		optstring << " -caffine 1";
 
-	if (launchopts.pause)
-		optstring << " -sleep";
-
+	//todo
 	//if (launchopts->debugMode)
 	//	optstring << " -blkdebug";
 	return optstring.str();

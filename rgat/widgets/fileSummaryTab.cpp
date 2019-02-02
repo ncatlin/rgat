@@ -144,6 +144,9 @@ void fileSummaryTab::refreshLaunchOptionsFromUI(binaryTarget *target)
 
 	target->launchopts.args = ui->cmdLineEdit->text().toStdString();
 	target->launchopts.debugLogging = ui->debugCheck->isChecked();
-	target->launchopts.pause = ui->pauseCheck->isChecked();
+
+	QString delaytext = ui->startDelaySecs->text();
+	target->launchopts.pauseDuration = delaytext.toUInt(); //if bad value returns 0 anyway
+
 	target->launchopts.removeSleeps = ui->sleepCheck->isChecked();
 }

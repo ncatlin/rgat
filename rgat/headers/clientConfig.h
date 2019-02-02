@@ -42,7 +42,7 @@ struct SYMS_VISIBILITY
 
 struct LAUNCHOPTIONS {
 	bool removeSleeps = false;
-	bool pause = false;
+	unsigned int pauseDuration = 0;
 	bool debugLogging = false;
 	string args;
 

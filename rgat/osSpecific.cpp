@@ -150,8 +150,8 @@ bool get_dr_drgat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts, s
 	stringstream finalCommandline;
 	finalCommandline << DRPath.string();
 
-	if (launchopts.pause)
-		finalCommandline << " -msgbox_mask 15 ";
+	if (launchopts.pauseDuration)
+		finalCommandline << " -msgbox_mask "<<launchopts.pauseDuration;
 
 	string drrunArgs = " -thread_private "; //todo: allow user to tweak dr options
 	//string drrunArgs = " -debug -thread_private "; //todo: allow user to tweak dr options
@@ -271,8 +271,9 @@ bool get_pin_pingat_commandline(clientConfig &config, LAUNCHOPTIONS &launchopts,
 	stringstream finalCommandline;
 	finalCommandline << PINPath.string();	
 
-	if (launchopts.pause)
-		finalCommandline << " -pause_tool 25 ";
+	//pin only
+	if (launchopts.pauseDuration > 0)
+		finalCommandline << " -pause_tool " << launchopts.pauseDuration;
 
 	string pinArgs = "";// " -thread_private "; //todo: allow user to tweak dr options
 						//string drrunArgs = " -debug -thread_private "; //todo: allow user to tweak dr options
