@@ -1,24 +1,15 @@
-rgat 0.5.2 https://github.com/ncatlin/drgat 
+rgat 0.5.3 https://github.com/ncatlin/drgat 
 
 Installation
 ---------------
-It's built to depend on the Windows 10 Universal CRT so if you have a version lower 
-than that you might need to install it: https://support.microsoft.com/en-gb/kb/2999226
+If you have DLL not found errors, install the VS 2017 redistributable 
+	https://go.microsoft.com/fwlink/?LinkId=746572
+Windows 7 will need Service Pack 1 installed
 
-It will run on Windows 7 (SP1) but getting the UCRT dependencies working for that OS can be tricky.
+Unzip it, run rgat.exe.
 
-Unzip it, run.
-
-Try to execute something. If you get an error then you likely need to install the 
-Visual C++ Redistributable for Visual Studio 2012, because reasons.
-See here: https://www.microsoft.com/en-gb/download/details.aspx?id=30679
-
-The move to Qt placed the settings in the Windows registry. There isn't a settings dialog yet, 
-so if the default for a setting doesn't work and there isn't a way to customise it somewhere 
-in the program (such as for the paths), you may need to hunt it down in regedit. 
-Try HKEY_CURRENT_USER/Software/rgat.
+Settings should be customisable in the settings dialog, but look at HKEY_CURRENT_USER/Software/rgat for finer grained control
 
 Running
 ----------
-Virtual Machines and OpenGL often do not get on well together. 
-VMWare Workstation works but VirtualBox tends to crash.
+If it doesn't work in VirtualBox try VMWare, it tends to have better 3D support
