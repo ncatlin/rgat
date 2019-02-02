@@ -1,4 +1,4 @@
-rgat 0.5.3 https://github.com/ncatlin/drgat 
+rgat 0.5.3 https://github.com/ncatlin/rgat 
 
 Installation
 ---------------
