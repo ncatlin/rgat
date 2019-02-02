@@ -53,7 +53,6 @@ public Q_SLOTS:
 	void menuSetGraph1();
 	void menuSetGraph2();
 
-
 private:
 	void gather_projection_data(PROJECTDATA *pd);
 	void initializeGL();

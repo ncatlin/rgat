@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1006</width>
+    <width>928</width>
     <height>756</height>
    </rect>
   </property>
@@ -2603,6 +2603,12 @@
                      </item>
                      <item>
                       <widget class="QComboBox" name="tracesListCombo">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2657,6 +2663,12 @@
                      </item>
                      <item>
                       <widget class="QComboBox" name="processesCombo">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="statusTip">
                         <string>Select a process from the above trace to visualise</string>
                        </property>
