@@ -78,17 +78,16 @@ plotted_graph::~plotted_graph()
 	int failedWaits = 0;
 	while (isreferenced())
 	{
-		if ((failedWaits > 6) && isreferenced())
-			cout << "[rgat] Waiting for all threads to dereference graph: #" << threadReferences << endl;
+		//if ((failedWaits > 9) && isreferenced())
+		//	cout << "[rgat]   threads to dereference graph: #" << threadReferences << endl;
 		std::this_thread::sleep_for(40ms);
-		if (failedWaits++ == 12 && isreferenced())
+		if (failedWaits++ == 15 && isreferenced())
 		{
-			cerr << "[rgat] Warning: Not all threads dereferenced the graph. Proceeding with graph deletion, but it may crash..." << endl;
+			cerr << "[rgat] Warning: Not all threads dereferenced the graph. Proceeding with graph deletion anyway." << endl;
 			break;
 		}
 	}
 
-	//AcquireSRWLockExclusive(&threadReferenceLock);
 	threadReferenceLock_.lock();
 
 	delete mainnodesdata;
