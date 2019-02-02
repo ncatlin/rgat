@@ -7,7 +7,7 @@ rgat uses dynamic binary instrumentation (courtesy of DynamoRIO) to produce grap
 It creates static and animated visualisations in real-time to support types of analysis that might be a lot more cumbersome with 
 disassemblers and debuggers alone.
 
-[This page](https://github.com/ncatlin/rgat/wiki) explains what kind of things you can and can't do with it but basically, it looks like this:
+[This page](https://github.com/ncatlin/rgat/wiki) explains what kind of things you can and can't do with it but basically, it (used to) look like this and I haven't updated the images yet:
 
 Live animation:
 
@@ -23,37 +23,31 @@ Static view zoomed into individual instructions:
 
 You may also want a brief introduction to the [graph layout](https://github.com/ncatlin/rgat/wiki/Graph-Layout).
 
-## Latest Version
+## Latest Version 
 
-Version 0.5.2 is here: [zip (38MB)](https://github.com/ncatlin/rgat/releases/download/0.5.2/rgat-0.5.2.zip)/[7z (22MB)](https://github.com/ncatlin/rgat/releases/download/0.5.2/rgat-0.5.2.7z) for Windows x86 and x64 binary targets.
+Version 0.5.3 (Feb 2019) is here: [7z (16MB)](https://github.com/ncatlin/rgat/releases/download/0.5.3/rgat-0.5.3.7z) for Windows x86 and x64 binary targets.
 rgat itself is compiled for running on x64 hosts.
 
-This version sees the entire frontend UI reimplemented in Qt. Allegro served its purpose but implementing new features with Qt is actually a pleasure rather than a struggle, which will encourage further development.
+At some point in the last year of no releases i've moved instrumentation to PIN because it worked more reliably at the time, especially on my AMD processor (which is a bit odd). I plan to have both DynamoRIO and PIN clients working to give a bit of redundancy.
+
+Lot's of other usability changes, mainly around the UI and a settings dialog.
+
+Preperation has been made for a Linux port. My TODO list is gigantic but getting a proper tree rendering is the main priority to make the visualisations actually useful on a wide variety of binaries.
 
 See the [CHANGELOG](https://github.com/ncatlin/rgat/raw/master/CHANGELOG.txt) for a list of changes.
 
-For the next few releases in 0.5.* i'm planning to write a collection of tests for drgat to give me some assurance that the instruction tracing is accurate, switch out OS dependent code from rgat with platform independent 
-replacements and flesh out some of the missing or barebones features in the UI.
-
 ## Download/Installation
 
-It's built to depend on the Windows 10 Universal CRT so if you have a version lower than that you might need to [install it](https://support.microsoft.com/en-gb/kb/2999226)
-
-Unzip it, run it.
-
-Try to execute something. If you get an error then you likely need to install the [Visual C++ Redistributable for Visual Studio 2012](https://www.microsoft.com/en-gb/download/details.aspx?id=30679), because of reasons.
+Try to execute something. If you have 'DLL not found errors', install the VS 2017 redistributable 
+	https://go.microsoft.com/fwlink/?LinkId=746572
 
 ## Problems
 
 See [Issues](https://github.com/ncatlin/rgat/issues) and [Limitations](https://github.com/ncatlin/rgat/wiki#limitations)
 
-Unfortunately the Windows release cycle is a lot faster than the DynamoRIO release cycle so it breaks often. At the time of writing the [last release](https://github.com/DynamoRIO/dynamorio/releases/tag/release_7_0_0_rc1) was in Feb 2017, which makes it (and rgat) practically unusuable for complex applications - at least on the AMD CPU i'm using. If in doubt, load a target and press the dynamorio button in the trace launching tab - if the binary doesn't launch then it's not going to work and there isn't a lot I can do about it - short of migrating to Intels Pin.
-
 ## Excuses
 
 This is an unstable preview release. I promise not to use that excuse when the basic functionality has been done. 
-
-Its reliance on DynamoRIO means that rgat suffers from all of the same limitations. In particular - it won't currently instrument x86 binaries on the new Ryzen processors. 
 
 99% of problems you find will be my fault, though. Instrumenting arbitrary code - especially malicious obfuscated code - tends to present a *lot* of edge cases.
 
@@ -65,7 +59,7 @@ Its reliance on DynamoRIO means that rgat suffers from all of the same limitatio
 
 rgat relies upon: 
 
-* [DynamoRIO](https://github.com/DynamoRIO/) for generating instruction [opcode] traces
+* [Intel PIN](https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool) for generating instruction [opcode] traces
 * [Capstone](http://www.capstone-engine.org/) for disassembling them
 * [Qt](https://www.qt.io/) for managing OpenGL and handling input
 * [rapidjson](http://rapidjson.org) used for serialising traces
