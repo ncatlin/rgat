@@ -151,6 +151,7 @@ void settingsDialogWidget::initialiseWidgets()
 	setupPathsWidgets();
 
 	settingsUI->showMarkerCheck->setChecked(config->showActiveMarker);
+	settingsUI->previewZoomSliderFrame->setVisible(false);
 }
 
 void settingsDialogWidget::setupPathsWidgets()

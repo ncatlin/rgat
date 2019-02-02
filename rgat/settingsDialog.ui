@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>690</width>
+    <width>736</width>
     <height>660</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>16777215</width>
+    <width>800</width>
     <height>1000</height>
    </size>
   </property>
@@ -153,7 +153,7 @@
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="maximumSize">
            <size>
-            <width>9999</width>
+            <width>500</width>
             <height>16777215</height>
            </size>
           </property>
@@ -167,7 +167,7 @@
            <number>0</number>
           </property>
           <property name="currentIndex">
-           <number>5</number>
+           <number>7</number>
           </property>
           <widget class="QWidget" name="renderTracePage">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -188,7 +188,7 @@
                  <enum>QFrame::StyledPanel</enum>
                 </property>
                 <property name="frameShadow">
-                 <enum>QFrame::Raised</enum>
+                 <enum>QFrame::Plain</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_5">
                  <item>
@@ -203,7 +203,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Background</string>
@@ -241,7 +241,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Call Edge</string>
@@ -263,7 +263,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="lineWidth">
                     <number>1</number>
@@ -291,7 +291,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Old Edge</string>
@@ -313,7 +313,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Uninstrumented Edge</string>
@@ -335,7 +335,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Return Edge</string>
@@ -357,7 +357,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Exception Edge</string>
@@ -395,7 +395,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Sequential Node</string>
@@ -417,7 +417,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Jump Node</string>
@@ -439,7 +439,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Call Node</string>
@@ -461,7 +461,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Return Node</string>
@@ -483,7 +483,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Uninstrumented Node</string>
@@ -521,7 +521,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Instruction Text</string>
@@ -543,7 +543,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>External Symbol</string>
@@ -565,7 +565,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>External Symbol (rising)</string>
@@ -587,7 +587,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Internal Symbol</string>
@@ -609,7 +609,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Internal Symbol (rising)</string>
@@ -634,7 +634,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Placeholder Function Label</string>
@@ -656,7 +656,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Activity Marker Line</string>
@@ -1079,7 +1079,7 @@
                  <enum>QFrame::StyledPanel</enum>
                 </property>
                 <property name="frameShadow">
-                 <enum>QFrame::Raised</enum>
+                 <enum>QFrame::Plain</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_4">
                  <property name="spacing">
@@ -1106,7 +1106,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1153,7 +1153,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1184,7 +1184,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1215,7 +1215,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1246,7 +1246,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1277,7 +1277,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1308,7 +1308,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1339,7 +1339,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1370,7 +1370,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1401,7 +1401,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1432,7 +1432,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="frameShadow">
                     <enum>QFrame::Plain</enum>
@@ -1479,7 +1479,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Text</string>
@@ -1511,7 +1511,7 @@
                  <enum>QFrame::StyledPanel</enum>
                 </property>
                 <property name="frameShadow">
-                 <enum>QFrame::Raised</enum>
+                 <enum>QFrame::Plain</enum>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_7">
                  <property name="spacing">
@@ -1840,7 +1840,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Background</string>
@@ -1884,7 +1884,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Edge Colour</string>
@@ -1912,7 +1912,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Conditional Node (Always True)</string>
@@ -1940,7 +1940,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Conditional Node  (Never True)</string>
@@ -1968,7 +1968,7 @@
                     <string notr="true">background-color: rgb(218, 218, 218)</string>
                    </property>
                    <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
+                    <enum>QFrame::NoFrame</enum>
                    </property>
                    <property name="text">
                     <string>Conditional Node  (Both Paths Taken)</string>
@@ -2171,7 +2171,7 @@
                  <string notr="true">background-color: rgb(218, 218, 218)</string>
                 </property>
                 <property name="frameShape">
-                 <enum>QFrame::StyledPanel</enum>
+                 <enum>QFrame::NoFrame</enum>
                 </property>
                 <property name="text">
                  <string>Background</string>
@@ -2193,7 +2193,7 @@
                  <string notr="true">background-color: rgb(218, 218, 218)</string>
                 </property>
                 <property name="frameShape">
-                 <enum>QFrame::StyledPanel</enum>
+                 <enum>QFrame::NoFrame</enum>
                 </property>
                 <property name="text">
                  <string>Active Border</string>
@@ -2215,7 +2215,7 @@
                  <string notr="true">background-color: rgb(218, 218, 218)</string>
                 </property>
                 <property name="frameShape">
-                 <enum>QFrame::StyledPanel</enum>
+                 <enum>QFrame::NoFrame</enum>
                 </property>
                 <property name="text">
                  <string>Inactive Border</string>
@@ -2365,7 +2365,7 @@
              <widget class="QFrame" name="frame">
               <property name="minimumSize">
                <size>
-                <width>250</width>
+                <width>350</width>
                 <height>30</height>
                </size>
               </property>
@@ -2415,10 +2415,10 @@
                   <string notr="true">padding: 0; margin:0</string>
                  </property>
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
+                  <enum>QFrame::Plain</enum>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_14">
                   <property name="spacing">
@@ -2461,15 +2461,30 @@
                 <widget class="QSlider" name="previewRotationSlider">
                  <property name="minimumSize">
                   <size>
-                   <width>250</width>
+                   <width>230</width>
                    <height>28</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>55</width>
+                   <width>230</width>
                    <height>28</height>
                   </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QSlider::handle:horizontal {
+background-color: #90C2FF;  
+    height: 8px;
+    margin: -8px -8px;
+	border-radius: 7px;
+ }
+
+QSlider::groove:horizontal { 
+	background-color:grey;
+	border: 0px solid #424242; 
+	height: 4px; 
+	border-radius: 4px;
+}</string>
                  </property>
                  <property name="maximum">
                   <number>200</number>
@@ -2497,10 +2512,10 @@
                   </size>
                  </property>
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
+                  <enum>QFrame::Plain</enum>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_15">
                   <property name="spacing">
@@ -2552,7 +2567,10 @@
              </widget>
             </item>
             <item row="7" column="1">
-             <widget class="QFrame" name="frame">
+             <widget class="QFrame" name="previewZoomSliderFrame">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>250</width>
@@ -2564,6 +2582,15 @@
                 <width>16777215</width>
                 <height>30</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Plain</enum>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_12">
                <property name="spacing">
@@ -2596,10 +2623,10 @@
                   </size>
                  </property>
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
+                  <enum>QFrame::Plain</enum>
                  </property>
                 </widget>
                </item>
@@ -2610,13 +2637,13 @@
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>250</width>
+                   <width>230</width>
                    <height>28</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>55</width>
+                   <width>230</width>
                    <height>25</height>
                   </size>
                  </property>
@@ -2624,6 +2651,21 @@
                   <font>
                    <pointsize>8</pointsize>
                   </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QSlider::handle:horizontal {
+background-color: grey;  
+  height: 8px;
+ margin: -8px -8px;
+	border-radius: 7px;
+ }
+
+QSlider::groove:horizontal {
+background-color: grey;
+border: 0px solid #424242; 
+height: 4px;
+border-radius: 4px;
+}</string>
                  </property>
                  <property name="maximum">
                   <number>1000</number>
@@ -2651,10 +2693,10 @@
                   </size>
                  </property>
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
+                  <enum>QFrame::Plain</enum>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_16">
                   <item>
@@ -2697,13 +2739,13 @@
              <widget class="QFrame" name="frame_6">
               <property name="minimumSize">
                <size>
-                <width>0</width>
+                <width>60</width>
                 <height>30</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>16777215</width>
+                <width>60</width>
                 <height>30</height>
                </size>
               </property>
@@ -2712,7 +2754,7 @@
                 <number>0</number>
                </property>
                <property name="leftMargin">
-                <number>63</number>
+                <number>0</number>
                </property>
                <property name="topMargin">
                 <number>0</number>
@@ -2733,7 +2775,7 @@
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>555</width>
+                   <width>50</width>
                    <height>32</height>
                   </size>
                  </property>
@@ -2750,6 +2792,9 @@
             </item>
             <item row="7" column="0">
              <widget class="QLabel" name="zoomLabel">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2810,7 +2855,19 @@
                   <number>4</number>
                  </property>
                  <item>
-                  <widget class="QLineEdit" name="pinPathLine"/>
+                  <widget class="QLineEdit" name="pinPathLine">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                  </widget>
                  </item>
                  <item>
                   <widget class="QPushButton" name="pinPathBtn">
@@ -2857,7 +2914,19 @@
                   <number>4</number>
                  </property>
                  <item>
-                  <widget class="QLineEdit" name="drPathLine"/>
+                  <widget class="QLineEdit" name="drPathLine">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                  </widget>
                  </item>
                  <item>
                   <widget class="QPushButton" name="drPathBtn">
@@ -2907,7 +2976,19 @@
                   <number>4</number>
                  </property>
                  <item>
-                  <widget class="QLineEdit" name="savePathLine"/>
+                  <widget class="QLineEdit" name="savePathLine">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                  </widget>
                  </item>
                  <item>
                   <widget class="QPushButton" name="savePathBtn">
