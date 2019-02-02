@@ -88,7 +88,7 @@ private:
 	Ui_mouseoverWidget mouseoverWidgetUI;
 	mouseoverFrame mouseoverWidget;
 
-	QTimer *UIHousekeepingTimer;
+	QTimer *UIHousekeepingTimer = NULL;
 
 private:
 	void setStatePointers();

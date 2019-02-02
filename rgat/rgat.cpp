@@ -71,6 +71,10 @@ rgat::rgat(QWidget *parent)
 
 rgat::~rgat() 
 {
+	//ui not inited
+	if (!UIHousekeepingTimer) 
+		return;
+
 	UIHousekeepingTimer->stop();
 	processSelectorDialog.deleteLater();
 	highlightSelectorDialog.deleteLater();

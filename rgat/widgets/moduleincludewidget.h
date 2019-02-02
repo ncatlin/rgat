@@ -48,10 +48,7 @@ private:
 
 	ModuleModeSelector::eCurrentBlacklistMode BlacklistMode;
 
-	vector <boost::filesystem::path> WLDirs;
-	vector <boost::filesystem::path> BLDirs;
-	vector <boost::filesystem::path> WLFiles;
-	vector <boost::filesystem::path> BLFiles;
+	vector <boost::filesystem::path> WLDirs, BLDirs, WLFiles, BLFiles;
 
 	QString baseWLDirExplainText = "Whitelisted Directories - Code in subdirectories will be instrumented";
 	QString baseWLFileExplainText = "Whitelisted Binaries - Code in specified files will be instrumented";
