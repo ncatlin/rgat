@@ -166,7 +166,7 @@ void moduleIncludeWidget::modeToggle(bool newstate)
 	else
 		switchToBlacklistMode();
 
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+//	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 }
 
 void moduleIncludeWidget::switchToBlacklistMode()
@@ -213,7 +213,7 @@ void moduleIncludeWidget::syncBinaryToUI()
 	binaryTarget *binary = clientState->activeBinary;
 	if (!binary) return;
 
-	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
+//	Ui::moduleIncludeSelectDialog *includeui = (Ui::moduleIncludeSelectDialog *)clientState->includesSelectorUI;
 
 	BWPATHLISTS newdata;
 

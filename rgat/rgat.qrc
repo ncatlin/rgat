@@ -26,6 +26,5 @@
         <file>Resources/edgesOn.png</file>
         <file>Resources/nodesOff.png</file>
         <file>Resources/nodesOn.png</file>
-        <file>Resources/tortu.png</file>
     </qresource>
 </RCC>

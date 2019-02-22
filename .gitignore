@@ -325,3 +325,4 @@ rgat*.zip
 /enc_temp_folder
 /rgat/tests/themidatest-add.86.asm
 /rgat/tests/themidatest-addsub.86.asm
+/releasedbg/output

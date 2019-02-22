@@ -26,6 +26,7 @@ The main QT window class
 #include "qglobal.h"
 #include "serialise.h"
 
+
 //shouldn't really be needed, only here because i havent dealt with a naming scheme yet. make it pid based?
 bool checkAlreadyRunning()
 {

@@ -180,7 +180,7 @@ void gat_basicblock_handler::main_loop()
 
 			globalModNum = runRecord->modIDTranslationVec.at(localmodnum);
 			MEM_ADDRESS modulestart = runRecord->get_piddata()->modBounds.at(globalModNum)->first;
-			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
+//			ADDRESS_OFFSET modoffset = targetaddr - modulestart;
 
 			char instrumentedStatusByte = buf[bufPos++];
 
@@ -239,7 +239,7 @@ void gat_basicblock_handler::main_loop()
 					instruction = new INS_DATA; 
 					instruction->numbytes = insByteCount;
 
-					uint8_t *opcodePtr = &buf.at(bufPos);
+					//uint8_t *opcodePtr = &buf.at(bufPos);
 
 					instruction->opcodes = std::unique_ptr<uint8_t[]>(new uint8_t[insByteCount]);
 					memcpy(instruction->opcodes.get(), &buf.at(bufPos), insByteCount);

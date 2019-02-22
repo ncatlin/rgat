@@ -148,6 +148,7 @@ bool thread_trace_reader::data_available(bool &error)
 		int GLE = GetLastError();
 		if (GLE == ERROR_BROKEN_PIPE) 
 			error = true;
+		
 		return false;
 	}
 	return true;
@@ -178,6 +179,7 @@ void thread_trace_reader::main_loop()
 	unsigned long itemsRead = 0;
 
 	DWORD bytesRead = 0;
+	long spins = 0;
 	while (!die)
 	{
 		//should maybe have this as a timer but the QT one is more of a pain to set up
@@ -195,10 +197,15 @@ void thread_trace_reader::main_loop()
 		{
 			if (errorFlag)
 				break;
-			else 
+			else
+			{
+				spins++;
+				if (spins > 20)
+					Sleep(1);
 				continue;
+			}
 		}
-
+		spins = 0;
 
 		if (!read_data(tagReadBuf, bytesRead))
 			break;

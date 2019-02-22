@@ -465,7 +465,7 @@ void settingsDialogWidget::setPreviewRotationEnabled(bool newState)
 	config->saveConfig();
 }
 
-//this is repetition is crappy, should be able to roll this into filepathwidget
+//this repetition is crappy, should be able to roll this into filepathwidget
 void settingsDialogWidget::fileDialogPin()
 {
 	clientConfig *config = &((rgatState *)clientState)->config;
