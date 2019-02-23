@@ -31,15 +31,15 @@ struct DCOORD {
 };
 
 struct CYLINDERCOORD {
-	float a; //accross/latitude
+	float a; //across/latitude
 	float b; //down/longitude
 	int bMod; //small modifications to longitude
 };
 
 struct TREECOORD {
-	long a; //accross
-	long b; //up/down
-	long c; //depth (towards away from screen)
+	long x; //across
+	long y; //up/down
+	long z; //depth (towards away from screen)
 };
 
 struct GRAPH_SCALE {

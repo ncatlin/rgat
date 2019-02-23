@@ -267,10 +267,9 @@ private:
 	virtual void display_graph(PROJECTDATA *pd) {};
 	virtual FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier) { cerr << "Warning: Virtual nodeIndexToXYZ called\n" << endl; FCOORD x; return x; };
 
-	virtual int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
+	virtual void add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions) {
 		cerr << "Warning: Virtual add_node called\n" << endl;
-		return 0;
 	};
 
 	void set_max_wait_frames(unsigned int frames) { maxWaitFrames = frames; }

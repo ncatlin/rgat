@@ -199,8 +199,10 @@ void thread_trace_reader::main_loop()
 				break;
 			else
 			{
+			//sleeping at every fail makes it very slow - tends to be either a few or thousands
+			//sleeping on a long wait reduces cpu usage a lot while not impacting performance much
 				spins++;
-				if (spins > 20)
+				if (spins > 30)
 					Sleep(1);
 				continue;
 			}

@@ -54,13 +54,12 @@ public:
 
 	unsigned int get_graph_size() { return 10; };
 
-
-
 	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords, maxB); }
 	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <TREECOORD>*)diffData.first; maxB = diffData.second; }
 
 protected:
-	int add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
+	void add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, 
+		GRAPH_DISPLAY_DATA *animvertdata,
 		GRAPH_SCALE *dimensions);
 
 	FCOORD nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier);
@@ -72,8 +71,6 @@ private:
 	int drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &endC,
 		QColor &colour, int edgeType, GRAPH_SCALE *dimensions, long *arraypos);
 	void write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget);
-
-
 
 	void positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode);
 	bool get_screen_pos(NODEINDEX nodeIndex, GRAPH_DISPLAY_DATA *vdata, PROJECTDATA *pd, DCOORD *screenPos);

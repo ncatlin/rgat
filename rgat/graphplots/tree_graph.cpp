@@ -101,7 +101,7 @@ spacing is done by spreading out in x/z axes
 */
 void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *lastNode)
 {
-	TREECOORD *position = (TREECOORD *)positionStruct;
+	TREECOORD *newPosition = (TREECOORD *)positionStruct;
 
 	TREECOORD *oldPosition = get_node_coord(lastNode->lastVertID);
 	if (!oldPosition)
@@ -117,12 +117,12 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		} while (!oldPosition);
 	}
 
-	long a = oldPosition->a;
-	long b = oldPosition->b;
-	long c = oldPosition->c;
+	long x = oldPosition->x;
+	long y = oldPosition->y;
+	long z = oldPosition->z;
 	int clash = 0;
 
-	long oldb = oldPosition->b;
+	//long oldy = oldPosition->y;
 	//long extraB = oldb - (-1*lastNode->lastVertID);
 
 	//TREECOORD *position = (TREECOORD *)positionStruct;
@@ -130,13 +130,13 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	{
 		node_data *lastNodeData = internalProtoGraph->safe_get_node(lastNode->lastVertID);
 
-		b = b + lastNodeData->childexterns + EXTERNB * -1;
+		y = y + lastNodeData->childexterns + EXTERNB * -1;
 
-		position->a = a + 2 * lastNodeData->childexterns + EXTERNA;
-		position->b = b;
-		position->c = c;
+		newPosition->x = x + 2 * lastNodeData->childexterns + EXTERNA;
+		newPosition->y = y;
+		newPosition->z = z;
 
-		std::cout << "Extern node " << n->index << " a: " << position->a << " b: " << position->b << " c: " << position->c << std::endl;
+		std::cout << "Extern node " << n->index << " x: " << newPosition->x << " y: " << newPosition->y << " z: " << newPosition->z << std::endl;
 		return;
 	}
 
@@ -147,7 +147,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeNonFlow:
 	{
 		//std::cout << "noflow...";
-		b = b + -1 * BMULT;
+		y = y + -1 * BMULT;
 		break;
 	}
 
@@ -158,7 +158,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
 			//std::cout << "noflowcond...";
-			b = b + -1 * BMULT;
+			y= y + -1 * BMULT;
 			break;
 		}
 		//notice lack of break
@@ -166,8 +166,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	case eNodeException:
 	{
-		a += JUMPA * AMULT;
-		b = b + (JUMPB * BMULT * -1);
+		x += JUMPA * AMULT;
+		y = y + (JUMPB * BMULT * -1);
 		break;
 	}
 
@@ -190,8 +190,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		}
 		//note: b sometimes huge after this?
 		//a += CALLA * AMULT;
-		a += CALLA * AMULT;
-		b += CALLB * BMULT * -1;
+		x += CALLA * AMULT;
+		y += CALLB * BMULT * -1;
 		break;
 	}
 
@@ -231,9 +231,9 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		{
 			TREECOORD *caller = get_node_coord(resultNodeIDX);
 			assert(caller);
-			a = caller->a + RETURNA_OFFSET;
-			b = caller->b;// -(-1 * resultNodeIDX);
-			b = caller->b + RETURNB_OFFSET * -1;
+			x = caller->x + RETURNA_OFFSET;
+			y = caller->y;// -(-1 * resultNodeIDX);
+			y = caller->y + RETURNB_OFFSET * -1;
 			//extraB += RETURNB_OFFSET * -1;
 
 			//may not have returned to the last item in the callstack
@@ -242,8 +242,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		}
 		else
 		{
-			a += EXTERNA * AMULT;
-			b += EXTERNB * BMULT;
+			x += EXTERNA * AMULT;
+			y += EXTERNB * BMULT;
 		}
 		callStackLock.unlock();
 		
@@ -256,16 +256,16 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		break;
 	}
 
-	while (usedCoords.find(make_pair(a, b)) != usedCoords.end())
+	while (usedCoords.find(make_pair(x, y)) != usedCoords.end())
 	{
-		a += 4;
-		b -= 3;
+		x += 4;
+		y -= 3;
 		++clash;
 	}
 
-	position->a = a;
-	position->b = b;// -1 * n->index + extraB;
-	position->c = c;
+	newPosition->x = x;
+	newPosition->y = y;// -1 * n->index + extraB;
+	newPosition->z = z;
 	//std::cout << "node " << n->index << " a: " << position->a << " b: " << position->b << " c: " <<position->c << " addr: 0x" << n->address << std::endl;
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << "," << c << endl;
 }
@@ -331,21 +331,23 @@ void tree_graph::write_rising_externs(PROJECTDATA *pd, graphGLWidget &gltarget)
 		if (!is_on_screen(nodepos, gltarget.width(), gltarget.height()))
 			continue;
 
+		//todo - write rising extern!
+
 		//al_draw_text(font, al_col_green, nodepos.x, height - nodepos.y - extxt->yOffset,
 		//	0, extxt->displayString.c_str());
-		cout << " todoetse ";
+		//painter.drawText(nodepos.x, windowHeight - nodepos.y - extxt->yOffset, extxt->displayString.c_str());
 	}
 
 }
 
 //take longitude a, latitude b, output coord in space
-void tree_graph::treeCoord(long ia, long b, long c, FCOORD *coord, GRAPH_SCALE *dimensions)
+void tree_graph::treeCoord(long ix, long y, long z, FCOORD *coord, GRAPH_SCALE *dimensions)
 {
-	float a = ia*dimensions->pix_per_A;
-	b *= dimensions->pix_per_B;
+	float x = ix*dimensions->pix_per_A;
+	y *= dimensions->pix_per_B;
 
-	coord->x = a;
-	coord->y = b;
+	coord->x = x;
+	coord->y = y;
 	//coord->z = c;
 }
 
@@ -374,8 +376,8 @@ void tree_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &
 	TREECOORD *nodeCoordTree = get_node_coord(nodeIndex);
 	if (!nodeCoordTree) return;
 
-	float adjB = nodeCoordTree->b;
-	treeCoord(nodeCoordTree->a, adjB, 1, &nodeCoordxyz, scale);
+	float adjY = nodeCoordTree->y;
+	treeCoord(nodeCoordTree->x, adjY, 1, &nodeCoordxyz, scale);
 	//todo implement
 	//drawHighlightLine(plotwindow, nodeCoordxyz, colour);
 }
@@ -397,7 +399,7 @@ FCOORD tree_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, floa
 	TREECOORD *nodeCoord = get_node_coord(index);
 
 	FCOORD result;
-	treeCoord(nodeCoord->a, nodeCoord->b, nodeCoord->c, &result, dimensions);
+	treeCoord(nodeCoord->x, nodeCoord->y, nodeCoord->z, &result, dimensions);
 	return result;
 }
 
@@ -494,7 +496,7 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &
 
 
 //converts a single node into node vertex data
-int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
+void tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	GRAPH_SCALE *dimensions)
 {
 	TREECOORD * nodeCoord;
@@ -521,34 +523,30 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 			release_nodecoord_write();
 		}
 
-		updateStats(tempPos.a, tempPos.b, tempPos.c);
-		usedCoords.emplace(make_pair(make_pair(tempPos.a, tempPos.b), true));
+		updateStats(tempPos.x, tempPos.y, tempPos.z);
+		usedCoords.emplace(make_pair(make_pair(tempPos.x, tempPos.y), true));
 	}
 	else
 		nodeCoord = &node_coords->at(n->index);
 
 	FCOORD screenc;
 
-	treeCoord(nodeCoord->a, nodeCoord->b, nodeCoord->c, &screenc, dimensions);
+	treeCoord(nodeCoord->x, nodeCoord->y, nodeCoord->z, &screenc, dimensions);
 
-	vector<GLfloat> *mainNpos = vertdata->acquire_pos_write(677);
-	vector<GLfloat> *mainNcol = vertdata->acquire_col_write();
+	vector<GLfloat> *staticNodePosition = vertdata->acquire_pos_write(677);
+	vector<GLfloat> *staticNodeColour = vertdata->acquire_col_write();
 
-	mainNpos->push_back(screenc.x);
-	mainNpos->push_back(screenc.y);
-	mainNpos->push_back(screenc.z);
-
-	QColor *active_col = 0;
+	staticNodePosition->push_back(screenc.x);
+	staticNodePosition->push_back(screenc.y);
+	staticNodePosition->push_back(screenc.z);
 
 	*lastNode = setLastNode(n->index);
-	active_col = &graphColours->at(lastNode->lastVertType);
 
-
-
-	mainNcol->push_back(active_col->redF());
-	mainNcol->push_back(active_col->greenF());
-	mainNcol->push_back(active_col->blueF());
-	mainNcol->push_back(1);
+	QColor &active_col = graphColours->at(lastNode->lastVertType);
+	staticNodeColour->push_back(active_col.redF());
+	staticNodeColour->push_back(active_col.greenF());
+	staticNodeColour->push_back(active_col.blueF());
+	staticNodeColour->push_back(1);
 
 	vertdata->set_numVerts(vertdata->get_numVerts() + 1);
 
@@ -558,19 +556,16 @@ int tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA 
 	//place node on the animated version of the graph
 	if (!vertdata->isPreview())
 	{
+		vector<GLfloat> *animNodeColour = animvertdata->acquire_col_write();
 
-		vector<GLfloat> *animNcol = animvertdata->acquire_col_write();
-
-		animNcol->push_back(active_col->redF());
-		animNcol->push_back(active_col->greenF());
-		animNcol->push_back(active_col->blueF());
-		animNcol->push_back(0);
+		animNodeColour->push_back(active_col.redF());
+		animNodeColour->push_back(active_col.greenF());
+		animNodeColour->push_back(active_col.blueF());
+		animNodeColour->push_back(0);
 
 		animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
 		animvertdata->release_col_write();
 	}
-
-	return 1;
 }
 
 void tree_graph::orient_to_user_view()

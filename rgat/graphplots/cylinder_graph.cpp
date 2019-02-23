@@ -698,7 +698,7 @@ inline void cylinder_graph::add_to_callstack(bool isPreview, MEM_ADDRESS address
 }
 
 //converts a single node into node vertex data
-int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
+void cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	GRAPH_SCALE *dimensions)
 {
 	//printf("in add node! node %d\n", n->index);
@@ -802,8 +802,6 @@ int cylinder_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_D
 		animvertdata->set_numVerts(vertdata->get_numVerts() + 1);
 		animvertdata->release_col_write();
 	}
-
-	return 1;
 }
 
 //todo: look into merging this into plotted_graph
