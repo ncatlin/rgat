@@ -39,6 +39,9 @@ public:
 	};
 	~tree_graph();
 
+	void maintain_draw_wireframe(graphGLWidget &gltarget);
+	void plot_wireframe(graphGLWidget &gltarget);
+
 	void performMainGraphDrawing(graphGLWidget &gltarget);
 	void render_static_graph();
 	bool render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate);
@@ -78,6 +81,11 @@ private:
 	void treeAB(FCOORD &coord, GRAPH_SCALE *mults, long *a, long *b, long *c);
 
 private:
+
+	void draw_wireframe(graphGLWidget &gltarget);
+	void regen_wireframe_buffers(graphGLWidget &gltarget);
+
+
 	vector<TREECOORD> node_coords_storage;
 	vector<TREECOORD> *node_coords = &node_coords_storage;
 
@@ -86,5 +94,14 @@ private:
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
 	
+
+	vector<GLint> wireframeStarts, wireframeSizes;
+
+	bool staleWireframe = true;
+	GRAPH_DISPLAY_DATA *wireframe_data = NULL;
+	bool wireframeBuffersCreated = false;
+	GLuint wireframeVBOs[2];
+	unsigned long lowestAddr = -1;
+	unsigned long highestAddr = 0;
 };
 

@@ -118,7 +118,9 @@ public:
 	traceRecord *activeTrace = NULL;
 	traceRecord *switchTrace = NULL;
 
-	graphLayouts newGraphLayout = (graphLayouts)0;
+	//graphLayouts newGraphLayout = (graphLayouts)0;
+	graphLayouts newGraphLayout = graphLayouts::eTreeLayout;
+
 	bool savingFlag = false;
 
 	QPixmap mainGraphBMP;

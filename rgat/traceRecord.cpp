@@ -59,7 +59,6 @@ void traceRecord::getProtoGraphs(void *graphPtrVecPtr)
 	graphListLock.unlock();
 }
 
-//todo: sometimes this returns bad memory when first launching
 void * traceRecord::get_first_graph()
 {
 	if (plottedGraphs.empty()) return NULL;
@@ -189,6 +188,7 @@ bool traceRecord::loadGraph(const Value& graphData, vector<QColor> &colours)
 	if (!graph->get_protoGraph()->deserialise(graphData, dynamicDisassemblyData->disassembly))
 		return false;
 
+
 	plottedGraphs.emplace(graphTID, graph);
 	graph->initialiseDefaultDimensions();
 	graph->setAnimated(false);
@@ -257,11 +257,14 @@ bool traceRecord::load(const rapidjson::Document& saveJSON, vector<QColor> &colo
 
 	cout << "[rgat]Loaded process data. Loading graphs..." << endl;
 
+	graphListLock.lock();
 	if (!loadProcessGraphs(saveJSON, colours))//.. &config.graphColours))
 	{
+		graphListLock.unlock();
 		cout << "[rgat]Process Graph load failed" << endl;
 		return false;
 	}
+	graphListLock.unlock();
 
 	if (!loadTimeline(saveJSON))
 	{

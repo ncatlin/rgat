@@ -562,12 +562,6 @@ PLOTTEDGRAPH_CASTPTR rgatState::createNewPlottedGraph(PROTOGRAPH_CASTPTR protoGr
 			newGraph = new cylinder_graph(protoGraph->get_TID(), protoGraph, &config.graphColours);
 			break;
 		}
-	//deprecated
-	/*case eSphereLayout:
-		{
-			newGraph = new sphere_graph(protoGraph->get_piddata(), protoGraph->get_TID(), protoGraph, &config.graphColours);
-			break;
-		}*/
 	case eTreeLayout:
 		{
 			newGraph = new tree_graph(protoGraph->get_TID(), protoGraph, &config.graphColours);

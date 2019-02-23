@@ -208,16 +208,12 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		//std::cout << "ext...";
 		//returning to address in call stack?
 		NODEINDEX resultNodeIDX = -1;
-		vector<pair<MEM_ADDRESS, NODEINDEX>> *callStack;
-		if (mainnodesdata->isPreview())
-			callStack = &previewCallStack;
-		else
-			callStack = &mainCallStack;
+		vector<pair<MEM_ADDRESS, NODEINDEX>> &callStack = mainnodesdata->isPreview() ? previewCallStack : mainCallStack;
 		vector<pair<MEM_ADDRESS, NODEINDEX>>::iterator stackIt;
 
 		callStackLock.lock();
 		bool foundCallerOnStack = false;
-		for (stackIt = callStack->begin(); stackIt != callStack->end(); ++stackIt)
+		for (stackIt = callStack.begin(); stackIt != callStack.end(); ++stackIt)
 			if (stackIt->first == n->address)
 			{
 				resultNodeIDX = stackIt->second;
@@ -238,7 +234,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 			//may not have returned to the last item in the callstack
 			//delete everything inbetween
-			callStack->resize(stackIt - callStack->begin());
+			callStack.resize(stackIt - callStack.begin());
 		}
 		else
 		{
@@ -471,10 +467,12 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &
 	}
 
 	default:
-		cerr << "[rgat]Error: Drawcurve unknown edgeType " << edgeType << endl;
+		cerr << "[rgat]Error: Drawcurve unknown edgeType " << edgeType << std::endl;
 		return 0;
 	}
 
+	std::cout << "Line x: " << startC.x << " y: " << startC.y << " z: " << startC.z << std::endl;
+	
 	if (curvePoints == LONGCURVEPTS)
 	{
 
@@ -495,10 +493,156 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &
 }
 
 
+
+
+
+
+
+
+
+
+void tree_graph::draw_wireframe(graphGLWidget &gltarget)
+{
+
+	gltarget.glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
+
+	gltarget.glBegin(GL_LINES);
+
+	GLfloat lowestX = 0;
+	GLfloat highestX = 3000;
+
+	GLfloat lowestY = -3000;
+	GLfloat highestY = 0;
+	GLfloat lowestZ = 0;
+	GLfloat highestZ = 3000;
+
+	gltarget.glColor3f(0, 1, 0); //green
+	gltarget.glVertex3f(lowestX , 0, 0);
+	gltarget.glVertex3f(highestX, 0, 0);
+	gltarget.glColor3f(1, 1, 0); //yellow
+	gltarget.glVertex3f(lowestX - 500, 1, 0);
+	gltarget.glVertex3f(highestX + 500, 1, 0);
+
+	gltarget.glColor3f(1, 0, 0);//red
+	gltarget.glVertex3f(0, 0, 0);
+	gltarget.glVertex3f(0, -3000, 0);
+
+	gltarget.glColor3f(0, 1, 1); //blue
+	gltarget.glVertex3f(0, 0, 0);
+	gltarget.glVertex3f(0, 0, -3000);
+
+	// on up thru all 12 lines/edges
+
+	gltarget.glEnd();
+
+	//efficient way to do it later once shape is designed
+	/*
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_POS]);
+	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
+
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_COL]);
+	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
+
+	gltarget.glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), 8);
+	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
+	*/
+}
+
+
+void tree_graph::regen_wireframe_buffers(graphGLWidget &gltarget)
+{
+	if (wireframeBuffersCreated)
+		gltarget.glDeleteBuffers(2, wireframeVBOs);
+	gltarget.glGenBuffers(2, wireframeVBOs);
+
+
+	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
+	wireframeStarts.resize(8);
+	wireframeSizes.resize(8);
+	for (int i = 0; i < 8; ++i)
+	{
+		wireframeStarts.at(i) = i * WF_POINTSPERLINE;
+		wireframeSizes.at(i) = WF_POINTSPERLINE;
+	}
+
+	wireframeBuffersCreated = true;
+}
+
+void tree_graph::maintain_draw_wireframe(graphGLWidget &gltarget)
+{
+	if (staleWireframe)
+	{
+		delete wireframe_data;
+		wireframe_data = NULL;
+		staleWireframe = false;
+	}
+
+	if (!wireframe_data)
+	{
+		regen_wireframe_buffers(gltarget);
+		plot_wireframe(gltarget);
+	}
+
+	draw_wireframe(gltarget);
+}
+
+//must be called by main opengl context thread
+void tree_graph::plot_wireframe(graphGLWidget &gltarget)
+{
+	wireframe_data = new GRAPH_DISPLAY_DATA(false);
+	QColor *wireframe_col = &clientState->config.wireframe.edgeColor;
+	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), (float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
+
+
+	long diam = main_scalefactors->plotSize;
+	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
+	vector <float> *vcol = wireframe_data->acquire_col_write();
+	//horizontal circles
+	for (int rowY = 0; rowY < 8; rowY++)
+	{
+		int rowYcoord = -rowY * 88;
+		for (int circlePoint = 0; circlePoint < WF_POINTSPERLINE; ++circlePoint)
+		{
+
+			float angle = (2 * M_PI * circlePoint) / WF_POINTSPERLINE;
+			vpos->push_back(diam * cos(angle)); //x
+			vpos->push_back(rowYcoord); //y
+			vpos->push_back(diam * sin(angle)); //z
+
+			vcol->insert(vcol->end(), cols, end(cols));
+		}
+	}
+
+	int bufSizeBase = 8 * WF_POINTSPERLINE * sizeof(GLfloat);
+
+	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
+
+	wireframe_data->release_pos_write();
+	wireframe_data->release_col_write();
+}
+
+
+
+
+
+
+
+
+
+
+
 //converts a single node into node vertex data
 void tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, GRAPH_DISPLAY_DATA *animvertdata,
 	GRAPH_SCALE *dimensions)
 {
+	if (n->address < lowestAddr) {
+		lowestAddr = n->address; staleWireframe = true;
+	}
+	else if (n->address > highestAddr) {
+		highestAddr = n->address; staleWireframe = true;
+	}
+	
 	TREECOORD * nodeCoord;
 	if (n->index >= node_coords->size())
 	{
@@ -572,11 +716,16 @@ void tree_graph::orient_to_user_view()
 {
 	glTranslatef(0, 0, -cameraZoomlevel);
 	glTranslatef(0, view_shift_y * 160, 0); //todo: make this depend on zoom level
-	glTranslatef(-view_shift_x * 1000, 0, 0);
+	glRotatef(-view_shift_x * 7, 0, 1, 0);
+
 }
 
 void tree_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 {
+	wireframeActive = true;
+	if (wireframeActive)
+		maintain_draw_wireframe(gltarget);
+
 	//if (get_pid() != clientState->activePid->PID) return;
 
 	//add any new logged calls to the call log window
