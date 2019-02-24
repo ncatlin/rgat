@@ -173,6 +173,7 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 		
 		if (std::find(traceGraphs.begin(), traceGraphs.end(), graph) != traceGraphs.end())
 		{
+			std::cout << graph->main_scalefactors->stretchA << std::endl;
 			switchToGraph(graph);
 			found = true;
 		}
@@ -183,6 +184,7 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 			{
 				if (graph->get_tid() == lastTID)
 				{
+					std::cout << graph->main_scalefactors->stretchA << std::endl;
 					switchToGraph(graph);
 					found = true;
 				}
@@ -194,8 +196,12 @@ void graphPlotGLWidget::selectGraphInActiveTrace()
 	}
 
 	plotted_graph *firstgraph = (plotted_graph*)selectedTrace->get_first_graph();
-	if(firstgraph)
+	if (firstgraph)
+	{
+		std::cout << "Got first graph " << firstgraph << std::endl;
 		switchToGraph(firstgraph);
+		firstgraph->decrease_thread_references(33);
+	}
 }
 
 void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
@@ -204,6 +210,7 @@ void graphPlotGLWidget::switchToGraph(plotted_graph *graph)
 	clientState->clearActiveGraph();
 
 	if (!graph || graph->needsReplotting() || graph->isBeingDeleted()) return;
+
 
 	traceRecord *trace = clientState->activeTrace;
 	if (!trace) return;
@@ -222,6 +229,7 @@ void graphPlotGLWidget::setGraphUIControls(plotted_graph *graph)
 {
 	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
 	ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
+
 	ui->toolb_wireframeBtn->setCheckable(graph->isWireframeSupported());
 	ui->toolb_wireframeBtn->setChecked(graph->isWireframeActive());
 
@@ -703,7 +711,7 @@ void graphPlotGLWidget::mouseDragged(int dx, int dy)
 void graphPlotGLWidget::wireframeButtonToggled(bool state)
 {
 	if (activeGraph)
-		activeGraph->setWireframeActive(state);
+		activeGraph->setWireframeActive((int)state);
 }
 
 void graphPlotGLWidget::addressHighlightSelected()

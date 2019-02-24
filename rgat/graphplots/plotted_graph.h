@@ -109,6 +109,7 @@ public:
 	virtual void set_diffgraph_nodes(pair<void *, float> diffData) {  }
 	virtual void gl_frame_setup(graphGLWidget &gltarget);
 	virtual void regenerate_wireframe_if_needed() {};
+	virtual void setWireframeActive(int mode) {};
 	//for keeping track of graph dimensions
 	virtual void updateStats(float a, float b, float c);
 
@@ -160,7 +161,6 @@ public:
 	proto_graph * get_protoGraph() { return internalProtoGraph; }
 	bool isWireframeSupported() { return wireframeSupported; }
 	bool isWireframeActive() { return wireframeActive; }
-	void setWireframeActive(bool newState) { wireframeActive = wireframeSupported ? newState : false; }
 
 	GRAPH_DISPLAY_DATA* get_mainlines() { return mainlinedata; }
 	GRAPH_DISPLAY_DATA* get_mainnodes() { return mainnodesdata; }
@@ -215,6 +215,7 @@ public:
 	bool schedule_performSymbolResolve = false;
 
 	vector <TEXTRECT> labelPositions;
+	int wireframeMode; //used to query the current mode
 	
 protected:
 	void display_active(graphGLWidget &gltarget);

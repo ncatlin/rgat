@@ -438,6 +438,9 @@ void rgat::textBtnTriggered(int buttonID)
 
 void rgat::addLabelBtnMenus()
 {
+
+	ui.toolb_wireframeBtn->setPopupMode(QToolButton::InstantPopup);
+
 	QMenu *symLabelMenu = new QMenu(this);
 	ui.toolb_symbolSelectBtn->setMenu(symLabelMenu);
 	ui.toolb_symbolSelectBtn->setPopupMode(QToolButton::InstantPopup);

@@ -59,6 +59,8 @@ public:
 	void initialiseDefaultDimensions(); 
 	void initialiseCustomDimensions(GRAPH_SCALE scale);
 
+	void setWireframeActive(int mode);
+
 	float previewZoom() { return -2550; }
 	int prevScrollYPosition() { return -250; }
 
@@ -96,7 +98,7 @@ private:
 	int wireframe_loop_count = 0;
 	GRAPH_DISPLAY_DATA *wireframe_data = NULL;
 	GLuint wireframeVBOs[2];
-	bool remakeWireframe = false;
+	bool staleWireframe = false;
 	bool wireframeBuffersCreated = false;
 	vector<GLint> wireframeStarts, wireframeSizes;
 

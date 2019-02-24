@@ -34,12 +34,7 @@ enum rgatTabStacks { eStaticTabs = 0, eDynamicTabs = 1};
 enum staticTabs { eStaySameStaticTab = -1, eFileSummaryTab = 0, eStringsTab = 1};
 enum dynamicTabs{ eStaySameDynamicTab = -1, eStartTraceTab = 0, eVisualiseTab = 1, eTraceAnalyseTab = 2, eGraphCompareTab = 3, eFuzzTab = 4};
 enum controlStacks { eStackReplay = 0, eStackNoTrace = 1, eStackLive = 2 };
-
-struct GRAPHINFO
-{
-	unsigned long nodes, edges;
-	unsigned int processCount;
-};
+enum treeWireframeMode { eWfNone, eWFEdges, eWFFaces, eWFFull };
 
 class mainTabBox :
 	public QTabWidget
@@ -87,16 +82,20 @@ public Q_SLOTS:
 	void startFuzz();
 #endif
 
+private Q_SLOTS:
+	void treeWireframeBtnCheck(treeWireframeMode newmode);
+
 private:
 	void updateVisualiseStats(bool fullRefresh = false);
 	void refreshProcessesCombo(traceRecord *initialTrace);
 	void updateTimerFired();
 	int addProcessToGUILists(traceRecord *trace, QTreeWidgetItem *parentitem);
 	void refreshTracesCombo(traceRecord *initialTrace);
+	void setWireframeBtnMenu(graphLayouts layout, int wireframeMode);
+
 #ifdef INCLUDE_FUZZ_CODE
 	void fuzzUpdateCheck();
 	bool fuzzThreadLauncherRunning = false;
-
 #endif
 
 private:
@@ -110,7 +109,14 @@ private:
 	QTimer *updateTimer = NULL;
 	time_t lastUpdate;
 
-	GRAPHINFO activeGraphStats;
+	graphLayouts currentWireframeLayout = (graphLayouts )-1;
+	QAction *wfOff_action = new QAction(tr("&No Wireframe"), this);
+	QAction *wfEdges_action = new QAction(tr("&Edges"), this);
+	QAction *wfFaces_action = new QAction(tr("&Faces"), this);
+	QAction *wfFull_action = new QAction(tr("&Full"), this);
+
+
+
 	vector<traceRecord *> processComboVec;
 	vector<fuzzRun *> fuzzruns;
 	QTimer *fuzzUpdateTimer = NULL;

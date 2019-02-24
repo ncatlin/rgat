@@ -276,6 +276,12 @@ void *cylinder_graph::get_node_coord_ptr(NODEINDEX idx)
 	return (void *)get_node_coord(idx);
 }*/
 
+void cylinder_graph::setWireframeActive(int mode)
+{
+	wireframeActive = (mode != 0);
+}
+
+
 CYLINDERCOORD * cylinder_graph::get_node_coord(NODEINDEX idx)
 {
 	if (idx < node_coords->size())
@@ -546,7 +552,7 @@ void cylinder_graph::regen_wireframe_buffers(graphGLWidget &gltarget)
 void cylinder_graph::regenerate_wireframe_if_needed()
 {
 	if (needed_wireframe_loops() > wireframe_loop_count)
-		remakeWireframe = true;
+		staleWireframe = true;
 }
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
@@ -563,13 +569,11 @@ void cylinder_graph::render_static_graph()
 
 void cylinder_graph::maintain_draw_wireframe(graphGLWidget &gltarget)
 {
-	
-
-	if (remakeWireframe)
+	if (staleWireframe)
 	{
 		delete wireframe_data;
 		wireframe_data = NULL;
-		remakeWireframe = false;
+		staleWireframe = false;
 	}
 
 	if (!wireframe_data)
@@ -625,6 +629,16 @@ void cylinder_graph::plot_wireframe(graphGLWidget &gltarget)
 	wireframe_data->release_col_write();
 }
 
+//take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
+FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
+{
+	CYLINDERCOORD *nodeCoordCyl = get_node_coord(index);
+
+	FCOORD result;
+	cylinderCoord(nodeCoordCyl->a, nodeCoordCyl->b, &result, dimensions, diamModifier);
+	return result;
+}
+
 //draws a line from the center of the cylinder to nodepos. adds lengthModifier to the end
 void cylinder_graph::drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE *scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
 {
@@ -644,15 +658,9 @@ void cylinder_graph::drawHighlight(GENERIC_COORD& graphCoord, GRAPH_SCALE *scale
 	gltarget.drawHighlightLine(nodeCoordxyz, colour);
 }
 
-//take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
-FCOORD cylinder_graph::nodeIndexToXYZ(NODEINDEX index, GRAPH_SCALE *dimensions, float diamModifier)
-{
-	CYLINDERCOORD *nodeCoordCyl = get_node_coord(index);
 
-	FCOORD result;
-	cylinderCoord(nodeCoordCyl->a, nodeCoordCyl->b, &result, dimensions, diamModifier);
-	return result;
-}
+
+
 
 //IMPORTANT: Must have edge reader lock to call this
 bool cylinder_graph::render_edge(NODEPAIR ePair, GRAPH_DISPLAY_DATA *edgedata, QColor *colourOverride, bool preview, bool noUpdate)

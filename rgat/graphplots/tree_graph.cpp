@@ -59,7 +59,9 @@ Creates a tree layout for a plotted graph
 
 void tree_graph::initialiseDefaultDimensions()
 {
-	wireframeSupported = false;
+	wireframeSupported = true;
+	wireframeActive = true;
+
 	//preview_scalefactors->AEDGESEP = 0.15;
 	//preview_scalefactors->BEDGESEP = 0.15;
 	//preview_scalefactors->size = 20;
@@ -86,6 +88,7 @@ void tree_graph::initialiseDefaultDimensions()
 void tree_graph::initialise()
 {
 	layout = eTreeLayout;
+	wireframeMode = wfMode;
 }
 
 
@@ -261,7 +264,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 
 	newPosition->x = x;
 	newPosition->y = y;// -1 * n->index + extraB;
-	newPosition->z = z;
+	newPosition->z = z - 5;
 	//std::cout << "node " << n->index << " a: " << position->a << " b: " << position->b << " c: " <<position->c << " addr: 0x" << n->address << std::endl;
 	//cout << "Position of node " << n->index << " = " << a << " , " << b << "," << c << endl;
 }
@@ -344,7 +347,7 @@ void tree_graph::treeCoord(long ix, long y, long z, FCOORD *coord, GRAPH_SCALE *
 
 	coord->x = x;
 	coord->y = y;
-	//coord->z = c;
+	coord->z = z;
 }
 
 //take coord in space, convert back to a/b/c
@@ -352,7 +355,7 @@ void tree_graph::treeAB(FCOORD &coord, GRAPH_SCALE *mults, long *a, long *b, lon
 {
 	*a = coord.x;
 	*b = coord.y;
-	//*c = coord->z;
+	*c = coord.z;
 }
 
 //reads the list of nodes/edges, creates opengl vertex/colour data
@@ -495,57 +498,249 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &
 
 
 
+void tree_graph::draw_cube_wireframe_edges(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin)
+{
+	margin *= lineSep;
+
+	GLfloat wfXStart = lowestX - margin;
+	GLfloat graphWidth = highestX - lowestX;
+	GLfloat adjGraphWidth = graphWidth + (lineSep - fmod(graphWidth, lineSep)) + (2 * margin);
+	GLfloat wfXEnd = wfXStart + adjGraphWidth;
+
+	GLfloat wfYStart = highestY + margin;
+	GLfloat graphHeight = highestY - lowestY;
+	GLfloat adjGraphHeight = graphHeight + (lineSep - fmod(graphHeight, lineSep)) + (2 * margin);
+	GLfloat wfYEnd = wfYStart - adjGraphHeight;
+
+	GLfloat wfZStart = nearestZ + margin;
+	GLfloat graphDepth = nearestZ - furthestZ;
+	GLfloat adjGraphDepth = graphDepth + (lineSep - fmod(graphDepth, lineSep)) + (2 * margin);
+	GLfloat wfZEnd = wfZStart - adjGraphDepth;
+
+	wireframe_data = new GRAPH_DISPLAY_DATA(false);	
+	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
+	vector <float> *vcol = wireframe_data->acquire_col_write();
+
+	//vary x
+	float x_1[] = { wfXStart, wfYStart, wfZStart, wfXEnd, wfYStart, wfZStart };
+	vpos->insert(vpos->end(),begin(x_1), end(x_1));
+	float x_2[] = { wfXStart, wfYStart, wfZEnd, wfXEnd, wfYStart, wfZEnd };
+	vpos->insert(vpos->end(), begin(x_2), end(x_2));
+	float x_3[] = { wfXStart, wfYEnd, wfZStart, wfXEnd, wfYEnd, wfZStart };
+	vpos->insert(vpos->end(), begin(x_3), end(x_3));
+	float x_4[] = { wfXStart, wfYEnd, wfZEnd, wfXEnd, wfYEnd, wfZEnd };
+	vpos->insert(vpos->end(), begin(x_4), end(x_4));
+
+	//vary y
+	float y_1[] = { wfXStart, wfYStart, wfZStart, wfXStart, wfYEnd, wfZStart };
+	vpos->insert(vpos->end(), begin(y_1), end(y_1));
+	float y_2[] = { wfXStart, wfYStart, wfZEnd,wfXStart, wfYEnd, wfZEnd };
+	vpos->insert(vpos->end(), begin(y_2), end(y_2));
+	float y_3[] = { wfXEnd, wfYStart, wfZStart,wfXEnd, wfYEnd, wfZStart };
+	vpos->insert(vpos->end(), begin(y_3), end(y_3));
+	float y_4[] = { wfXEnd, wfYStart, wfZEnd,wfXEnd, wfYEnd, wfZEnd };
+	vpos->insert(vpos->end(), begin(y_4), end(y_4));
+
+	//vary z
+	float z_1[] = { wfXStart, wfYStart, wfZStart, wfXStart, wfYStart, wfZEnd };
+	vpos->insert(vpos->end(), begin(z_1), end(z_1));
+	float z_2[] = { wfXStart, wfYEnd, wfZStart, wfXStart, wfYEnd, wfZEnd };
+	vpos->insert(vpos->end(), begin(z_2), end(z_2));
+	float z_3[] = { wfXEnd, wfYStart, wfZStart, wfXEnd, wfYStart, wfZEnd };
+	vpos->insert(vpos->end(), begin(z_3), end(z_3));
+	float z_4[] = { wfXEnd, wfYEnd, wfZStart, wfXEnd, wfYEnd, wfZEnd };
+	vpos->insert(vpos->end(), begin(z_4), end(z_4));
+
+	int vertCount = (int)floor(vpos->size() / POSELEMS);
 
 
+	QColor *wireframe_col = &clientState->config.wireframe.edgeColor;
+	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), 
+		(float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
+	for (int i = 0; i < vertCount; i++) {
+		vcol->insert(vcol->end(), begin(cols), end(cols));
+	}
 
+	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, vertCount * POSELEMS * sizeof(GLfloat), &vpos->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, vertCount * COLELEMS * sizeof(GLfloat), &vcol->at(0));
+
+	wireframe_data->set_numVerts(vertCount);
+	wireframe_data->release_pos_write();
+	wireframe_data->release_col_write();
+
+	wireframeMode = wireframeModeEnums::eEdges;
+}
+
+void tree_graph::draw_cube_wireframe_faces(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin)
+{
+	margin *= lineSep;
+
+	GLfloat wfXStart = lowestX - margin;
+	GLfloat graphWidth = highestX - lowestX;
+	GLfloat adjGraphWidth = graphWidth + (lineSep - fmod(graphWidth, lineSep)) + (2 * margin);
+	GLfloat wfXEnd = wfXStart + adjGraphWidth;
+
+	GLfloat wfYStart = highestY + margin;
+	GLfloat graphHeight = highestY - lowestY;
+	GLfloat adjGraphHeight = graphHeight + (lineSep - fmod(graphHeight, lineSep)) + (2 * margin);
+	GLfloat wfYEnd = wfYStart - adjGraphHeight;
+
+	GLfloat wfZStart = nearestZ + margin;
+	GLfloat graphDepth = nearestZ - furthestZ;
+	GLfloat adjGraphDepth = graphDepth + (lineSep - fmod(graphDepth, lineSep)) + (2 * margin);
+	GLfloat wfZEnd = wfZStart - adjGraphDepth;
+
+	wireframe_data = new GRAPH_DISPLAY_DATA(false);
+	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
+	vector <float> *vcol = wireframe_data->acquire_col_write();
+
+	int ySeps = adjGraphHeight / lineSep;
+	for (int yi = 0; yi < ySeps + 1; yi++)
+	{
+		GLfloat yPos = wfYStart + yi * lineSep * -1;
+		float lines[] = {
+			wfXStart, yPos, wfZStart,
+			wfXStart, yPos, wfZEnd,
+			wfXEnd, yPos, wfZStart,
+			wfXEnd, yPos, wfZEnd,
+			wfXStart, yPos, wfZStart,
+			wfXStart + adjGraphWidth, yPos, wfZStart,
+			wfXStart, yPos, wfZEnd,
+			wfXStart + adjGraphWidth, yPos, wfZEnd };
+		vpos->insert(vpos->end(), begin(lines), end(lines));
+	}
+
+	int xSeps = adjGraphWidth / lineSep;
+	for (int xi = 0; xi < xSeps + 1; xi++)
+	{
+		GLfloat xPos = wfXStart + xi * lineSep;		
+		float lines[] = {
+			xPos, wfYStart, wfZStart,
+			xPos, wfYStart, wfZEnd,
+			xPos, wfYStart, wfZStart,
+			xPos, wfYEnd, wfZStart,
+			xPos, wfYStart, wfZEnd,
+			xPos, wfYEnd, wfZEnd,
+			xPos, wfYEnd, wfZStart,
+			xPos, wfYEnd, wfZEnd };
+		vpos->insert(vpos->end(), begin(lines), end(lines));
+	}
+
+	int zSeps = adjGraphDepth / lineSep;
+	for (int zi = 0; zi < zSeps + 1; zi++)
+	{
+		GLfloat zPos = wfZStart + zi * lineSep * -1; 
+		float lines[] = {
+			wfXStart, wfYStart, zPos,
+			wfXStart, wfYEnd, zPos,
+			wfXEnd, wfYStart, zPos,
+			wfXEnd, wfYEnd, zPos,
+			wfXStart, wfYStart, zPos,
+			wfXEnd, wfYStart, zPos,
+			wfXStart, wfYEnd, zPos,
+			wfXEnd, wfYEnd, zPos };
+		vpos->insert(vpos->end(), begin(lines), end(lines));
+	}
+
+	int vertCount = (int)floor(vpos->size() / POSELEMS);
+	QColor *wireframe_col = &clientState->config.wireframe.edgeColor;
+	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), (float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
+	for (int i = 0; i < vertCount; i++) {
+		vcol->insert(vcol->end(), begin(cols), end(cols));
+	}
+
+	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, vertCount * POSELEMS * sizeof(GLfloat), &vpos->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, vertCount * COLELEMS * sizeof(GLfloat), &vcol->at(0));
+
+	wireframe_data->set_numVerts(vertCount);
+	wireframe_data->release_pos_write();
+	wireframe_data->release_col_write();
+
+	wireframeMode = wireframeModeEnums::eFaces;
+}
+
+void tree_graph::draw_cube_wireframe_full(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin)
+{
+	margin *= lineSep;
+	
+	GLfloat wfXStart = lowestX - margin;
+	GLfloat graphWidth = highestX - lowestX;
+	GLfloat adjGraphWidth = graphWidth + (lineSep - fmod(graphWidth, lineSep)) + (2 * margin);
+	int xSeps = adjGraphWidth / lineSep;
+
+	GLfloat wfYStart = highestY + margin;
+	GLfloat graphHeight = highestY - lowestY;
+	GLfloat adjGraphHeight = graphHeight + (lineSep - fmod(graphHeight, lineSep)) + (2 * margin);
+	int ySeps = adjGraphHeight / lineSep;
+
+	GLfloat wfZStart = nearestZ + margin;
+	GLfloat graphDepth = nearestZ - furthestZ;
+	GLfloat adjGraphDepth = graphDepth + (lineSep - fmod(graphDepth, lineSep)) + (2 * margin);
+	int zSeps = adjGraphDepth / lineSep;
+
+	wireframe_data = new GRAPH_DISPLAY_DATA(false);
+	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
+	vector <float> *vcol = wireframe_data->acquire_col_write();
+
+	for (int zi = 0; zi < zSeps + 1; zi++)
+	{
+		GLfloat zPos = wfZStart + zi * lineSep * -1;
+
+		for (int yi = 0; yi < ySeps + 1; yi++)
+		{
+			GLfloat yPos = wfYStart + yi * lineSep * -1;
+			float line[] = { wfXStart, yPos, zPos, wfXStart + adjGraphWidth, yPos, zPos };
+			vpos->insert(vpos->end(), begin(line), end(line));
+		}
+
+		for (int xi = 0; xi < xSeps + 1; xi++)
+		{
+			GLfloat xPos = wfXStart + xi * lineSep;			
+			float line[] = { xPos, wfYStart, zPos, xPos, wfYStart - adjGraphHeight, zPos };
+			vpos->insert(vpos->end(), begin(line), end(line));
+		}
+	}
+
+	for (int yi = 0; yi < ySeps + 1; yi++)
+	{
+		GLfloat yPos = wfYStart + yi * lineSep * -1;
+		for (int xi = 0; xi < xSeps + 1; xi++)
+		{
+			GLfloat xPos = wfXStart + xi * lineSep;			
+			float line[] = { xPos, yPos, wfZStart, xPos, yPos, wfZStart - adjGraphDepth };
+			vpos->insert(vpos->end(), begin(line), end(line));
+		}
+	}
+
+	int vertCount = (int)floor(vpos->size() / POSELEMS);
+	QColor *wireframe_col = &clientState->config.wireframe.edgeColor;
+	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), (float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
+	for (int i = 0; i < vertCount; i++) {
+		vcol->insert(vcol->end(), begin(cols), end(cols));
+	}
+
+	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, vertCount * POSELEMS * sizeof(GLfloat), &vpos->at(0));
+	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, vertCount * COLELEMS * sizeof(GLfloat), &vcol->at(0));
+
+	wireframe_data->set_numVerts(vertCount);
+	wireframe_data->release_pos_write();
+	wireframe_data->release_col_write();
+
+	wireframeMode = wireframeModeEnums::eFull;
+}
 
 
 
 void tree_graph::draw_wireframe(graphGLWidget &gltarget)
 {
-
-	gltarget.glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // this tells it to only render lines
-
-	gltarget.glBegin(GL_LINES);
-
-	GLfloat lowestX = 0;
-	GLfloat highestX = 3000;
-
-	GLfloat lowestY = -3000;
-	GLfloat highestY = 0;
-	GLfloat lowestZ = 0;
-	GLfloat highestZ = 3000;
-
-	gltarget.glColor3f(0, 1, 0); //green
-	gltarget.glVertex3f(lowestX , 0, 0);
-	gltarget.glVertex3f(highestX, 0, 0);
-	gltarget.glColor3f(1, 1, 0); //yellow
-	gltarget.glVertex3f(lowestX - 500, 1, 0);
-	gltarget.glVertex3f(highestX + 500, 1, 0);
-
-	gltarget.glColor3f(1, 0, 0);//red
-	gltarget.glVertex3f(0, 0, 0);
-	gltarget.glVertex3f(0, -3000, 0);
-
-	gltarget.glColor3f(0, 1, 1); //blue
-	gltarget.glVertex3f(0, 0, 0);
-	gltarget.glVertex3f(0, 0, -3000);
-
-	// on up thru all 12 lines/edges
-
-	gltarget.glEnd();
-
-	//efficient way to do it later once shape is designed
-	/*
 	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_POS]);
 	glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
 
 	gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_COL]);
 	glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
 
-	gltarget.glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), 8);
+	gltarget.glDrawArrays(GL_LINES, 0, wireframe_data->get_numVerts());
 	gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
-	*/
 }
 
 
@@ -554,17 +749,6 @@ void tree_graph::regen_wireframe_buffers(graphGLWidget &gltarget)
 	if (wireframeBuffersCreated)
 		gltarget.glDeleteBuffers(2, wireframeVBOs);
 	gltarget.glGenBuffers(2, wireframeVBOs);
-
-
-	//wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
-	wireframeStarts.resize(8);
-	wireframeSizes.resize(8);
-	for (int i = 0; i < 8; ++i)
-	{
-		wireframeStarts.at(i) = i * WF_POINTSPERLINE;
-		wireframeSizes.at(i) = WF_POINTSPERLINE;
-	}
-
 	wireframeBuffersCreated = true;
 }
 
@@ -583,43 +767,26 @@ void tree_graph::maintain_draw_wireframe(graphGLWidget &gltarget)
 		plot_wireframe(gltarget);
 	}
 
-	draw_wireframe(gltarget);
+	if (wireframe_data)
+		draw_wireframe(gltarget);
 }
 
 //must be called by main opengl context thread
 void tree_graph::plot_wireframe(graphGLWidget &gltarget)
 {
-	wireframe_data = new GRAPH_DISPLAY_DATA(false);
-	QColor *wireframe_col = &clientState->config.wireframe.edgeColor;
-	float cols[4] = { (float)wireframe_col->redF() , (float)wireframe_col->greenF(), (float)wireframe_col->blueF(),(float)wireframe_col->alphaF() };
-
-
-	long diam = main_scalefactors->plotSize;
-	vector <float> *vpos = wireframe_data->acquire_pos_write(234);
-	vector <float> *vcol = wireframe_data->acquire_col_write();
-	//horizontal circles
-	for (int rowY = 0; rowY < 8; rowY++)
-	{
-		int rowYcoord = -rowY * 88;
-		for (int circlePoint = 0; circlePoint < WF_POINTSPERLINE; ++circlePoint)
-		{
-
-			float angle = (2 * M_PI * circlePoint) / WF_POINTSPERLINE;
-			vpos->push_back(diam * cos(angle)); //x
-			vpos->push_back(rowYcoord); //y
-			vpos->push_back(diam * sin(angle)); //z
-
-			vcol->insert(vcol->end(), cols, end(cols));
-		}
+	switch (wfMode) {
+	case wireframeModeEnums::eEdges:
+		draw_cube_wireframe_edges(gltarget, 1000.0, 1.0);
+		break;
+	case wireframeModeEnums::eFaces:
+		draw_cube_wireframe_faces(gltarget, 1000.0, 1.0);
+		break;
+	case wireframeModeEnums::eFull:
+		draw_cube_wireframe_full(gltarget, 1000.0, 1.0);
+		break;
+	default:
+		break;
 	}
-
-	int bufSizeBase = 8 * WF_POINTSPERLINE * sizeof(GLfloat);
-
-	gltarget.load_VBO(VBO_CYLINDER_POS, wireframeVBOs, bufSizeBase * POSELEMS, &vpos->at(0));
-	gltarget.load_VBO(VBO_CYLINDER_COL, wireframeVBOs, bufSizeBase * COLELEMS, &vcol->at(0));
-
-	wireframe_data->release_pos_write();
-	wireframe_data->release_col_write();
 }
 
 
@@ -684,6 +851,16 @@ void tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA
 	staticNodePosition->push_back(screenc.y);
 	staticNodePosition->push_back(screenc.z);
 
+	if (screenc.x < lowestX) 
+		lowestX = screenc.x;
+	else if (screenc.x > highestX) 
+		highestX = screenc.x;
+
+	if (screenc.y < lowestY) lowestY = screenc.y;
+	else if (screenc.y > highestY) highestY = screenc.y;
+	if (screenc.z > nearestZ) nearestZ = screenc.z;
+	else if (screenc.z < furthestZ) furthestZ = screenc.z;
+
 	*lastNode = setLastNode(n->index);
 
 	QColor &active_col = graphColours->at(lastNode->lastVertType);
@@ -722,7 +899,6 @@ void tree_graph::orient_to_user_view()
 
 void tree_graph::performMainGraphDrawing(graphGLWidget &gltarget)
 {
-	wireframeActive = true;
 	if (wireframeActive)
 		maintain_draw_wireframe(gltarget);
 
@@ -825,6 +1001,21 @@ void tree_graph::display_graph(PROJECTDATA *pd, graphGLWidget &gltarget)
 		}
 	setGraphBusy(false, 82);
 }
+
+void tree_graph::setWireframeActive(int mode)
+{
+	if (mode == wireframeMode) return;
+
+	wireframeMode = wfMode = (wireframeModeEnums)mode;
+	if (mode == 0) {
+		wireframeActive = false;
+		return;
+	}
+
+	staleWireframe = true;
+	wireframeActive = true;
+}
+
 
 /*
 //iterate through all the nodes, draw instruction text for the ones in view

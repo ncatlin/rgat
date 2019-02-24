@@ -92,6 +92,7 @@ void maingraph_render_thread::perform_full_render(plotted_graph *activeGraph, bo
 
 	//now everything has finished with the old rendering, do the actual deletion
 	delete activeGraph;
+	std::cout << "Deleted graph " << activeGraph << std::endl;
 
 	//create a new rendering
 	activeGraph = (plotted_graph *)clientState->createNewPlottedGraph(protoGraph);

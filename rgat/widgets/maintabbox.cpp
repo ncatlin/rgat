@@ -42,6 +42,16 @@ mainTabBox::mainTabBox(QWidget *parent)
 	updateTimer = new QTimer(this);
 	connect(updateTimer, &QTimer::timeout, this, &mainTabBox::updateTimerFired);
 	updateTimer->start(500);
+
+	
+	wfOff_action->setCheckable(true);
+	connect(wfOff_action, &QAction::triggered, this, [this] {treeWireframeBtnCheck(treeWireframeMode::eWfNone); });
+	wfEdges_action->setCheckable(true);
+	connect(wfEdges_action, &QAction::triggered, this, [this] {treeWireframeBtnCheck(treeWireframeMode::eWFEdges); });
+	wfFaces_action->setCheckable(true);
+	connect(wfFaces_action, &QAction::triggered, this, [this] {treeWireframeBtnCheck(treeWireframeMode::eWFFaces); });
+	wfFull_action->setCheckable(true);
+	connect(wfFull_action, &QAction::triggered, this, [this] {treeWireframeBtnCheck(treeWireframeMode::eWFFull); });
 }
 
 
@@ -96,6 +106,76 @@ DWORD WINAPI stressThread(LPVOID uiarg)
 	}
 }
 #endif 
+
+void mainTabBox::treeWireframeBtnCheck(treeWireframeMode newmode)
+{
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	plotted_graph *graph = (plotted_graph *)clientState->getActiveGraph(true);
+	if (graph)
+	{
+		graph->setWireframeActive(newmode);
+		graph->decrease_thread_references(44);
+	}
+
+	wfOff_action->setChecked(false);
+	wfEdges_action->setChecked(false);
+	wfFaces_action->setChecked(false);
+	wfFull_action->setChecked(false);
+
+	switch (newmode)
+	{
+		case treeWireframeMode::eWfNone:
+			wfOff_action->setChecked(true);
+			ui->toolb_wireframeBtn->setChecked(false);
+			break;
+		case treeWireframeMode::eWFEdges:
+			wfEdges_action->setChecked(true);
+			ui->toolb_wireframeBtn->setChecked(true);
+			break;
+		case treeWireframeMode::eWFFaces:
+			wfFaces_action->setChecked(true);
+			ui->toolb_wireframeBtn->setChecked(true);
+			break;
+		case treeWireframeMode::eWFFull:
+			wfFull_action->setChecked(true);
+			ui->toolb_wireframeBtn->setChecked(true);
+			break;
+		default:
+			std::cerr << "Error: bad treeWireframeMode " << newmode << std::endl;
+	}
+
+}
+
+void mainTabBox::setWireframeBtnMenu(graphLayouts layout, int wireframeMode)
+{
+	Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;
+	if (currentWireframeLayout != layout)
+	{
+		if (layout == graphLayouts::eCylinderLayout) 
+		{
+			ui->toolb_wireframeBtn->setMenu(0);
+		}
+		else if (layout == graphLayouts::eTreeLayout)
+		{
+			QMenu *wfmenu = new QMenu(this);
+			wfmenu->setToolTipsVisible(true);
+			wfmenu->addAction(wfOff_action);
+			wfmenu->addAction(wfEdges_action);
+			wfmenu->addAction(wfFaces_action);
+			wfmenu->addAction(wfFull_action);
+
+			ui->toolb_wireframeBtn->setMenu(wfmenu);
+			//note to future porting efforts: if this doesn't compile, use qtsignalmapper
+			//connect(showHideAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternToggle); });
+			treeWireframeBtnCheck((treeWireframeMode)wireframeMode);
+		}
+		else {
+			std::cerr << "Bad wireframe layout" << std::endl;
+		}
+
+		currentWireframeLayout = layout;
+	}
+}
 
 void mainTabBox::tabChanged(int newIndex)
 {
@@ -456,6 +536,13 @@ void mainTabBox::updateVisualiseStats(bool fullRefresh)
 	labelStringStream.str("");
 	labelStringStream << "Backlog: " << protoGraph->get_backlog_total();
 	ui->backlogLabel->setText(QString::fromStdString(labelStringStream.str()));
+
+	plotted_graph *graph = (plotted_graph *)clientState->getActiveGraph(true);
+	if (graph) {
+		graphLayouts layout = graph->getLayout();
+		graph->decrease_thread_references(56);
+		setWireframeBtnMenu(layout, graph->wireframeMode);
+	}
 }
 
 void mainTabBox::moduleIncludeSelectBtnClicked()

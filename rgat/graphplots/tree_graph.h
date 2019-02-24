@@ -29,6 +29,8 @@ performs functions that are specific to the tree shape
 #include "graphicsMaths.h"
 
 
+enum wireframeModeEnums { eNone = 0, eEdges = 1, eFaces = 2, eFull = 3 };
+
 class tree_graph : public plotted_graph
 {
 
@@ -59,6 +61,8 @@ public:
 
 	pair<void *, float> get_diffgraph_nodes() { return make_pair(&node_coords, maxB); }
 	void set_diffgraph_nodes(pair<void *, float> diffData) { node_coords = (vector <TREECOORD>*)diffData.first; maxB = diffData.second; }
+	void setWireframeActive(int mode);
+
 
 protected:
 	void add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA *vertdata, 
@@ -84,7 +88,9 @@ private:
 
 	void draw_wireframe(graphGLWidget &gltarget);
 	void regen_wireframe_buffers(graphGLWidget &gltarget);
-
+	void draw_cube_wireframe_edges(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin);
+	void draw_cube_wireframe_faces(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin);
+	void draw_cube_wireframe_full(graphGLWidget &gltarget, GLfloat lineSep, GLfloat margin);
 
 	vector<TREECOORD> node_coords_storage;
 	vector<TREECOORD> *node_coords = &node_coords_storage;
@@ -93,9 +99,9 @@ private:
 	map <NODEPAIR, edge_data *> activeEdgeMap;
 	//<index, final (still active) node>
 	map <NODEINDEX, bool> activeNodeMap;
-	
 
-	vector<GLint> wireframeStarts, wireframeSizes;
+	wireframeModeEnums wfMode = wireframeModeEnums::eFaces;
+
 
 	bool staleWireframe = true;
 	GRAPH_DISPLAY_DATA *wireframe_data = NULL;
@@ -103,5 +109,12 @@ private:
 	GLuint wireframeVBOs[2];
 	unsigned long lowestAddr = -1;
 	unsigned long highestAddr = 0;
+
+	GLfloat lowestX = 0;
+	GLfloat highestX = 0;
+	GLfloat lowestY = 0;
+	GLfloat highestY = 0;
+	GLfloat nearestZ = 0;
+	GLfloat furthestZ = 0;
 };
 

@@ -41,6 +41,7 @@ namespace textBtnEnum {
 		eInternalToggle, eInternalAuto, ePlaceholderToggle, eInstructionToggle, eInstructionAddress, eInstructionOffset,
 		eInstructionNoAddress, eInstructionTargLabel, eControlOnlyLabel, eResolveExterns
 	};
+
 }
 
 class rgat : public QMainWindow
