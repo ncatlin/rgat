@@ -165,8 +165,6 @@ void mainTabBox::setWireframeBtnMenu(graphLayouts layout, int wireframeMode)
 			wfmenu->addAction(wfFull_action);
 
 			ui->toolb_wireframeBtn->setMenu(wfmenu);
-			//note to future porting efforts: if this doesn't compile, use qtsignalmapper
-			//connect(showHideAction, &QAction::triggered, this, [this] {textBtnTriggered(textBtnEnum::eExternToggle); });
 			treeWireframeBtnCheck((treeWireframeMode)wireframeMode);
 		}
 		else {

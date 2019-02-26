@@ -29,7 +29,6 @@ Creates a tree layout for a plotted graph
 #define PREVIEW_PIX_PER_A_COORD 3
 #define PREVIEW_PIX_PER_B_COORD 4
 
-
 #define DEFAULT_PIX_PER_A_COORD 80
 #define DEFAULT_PIX_PER_B_COORD 50
 
@@ -56,6 +55,8 @@ Creates a tree layout for a plotted graph
 #define JUMPB_CLASH -1
 #define CALLA_CLASH 3
 #define CALLB_CLASH 3
+
+#define Y_PIX_PER_MEMBYTE 1
 
 void tree_graph::initialiseDefaultDimensions()
 {
@@ -143,6 +144,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		return;
 	}
 
+	y = (n->address - this->firstAddr) * Y_PIX_PER_MEMBYTE;
+
 	switch (lastNode->lastVertType)
 	{
 
@@ -150,7 +153,6 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeNonFlow:
 	{
 		//std::cout << "noflow...";
-		y = y + -1 * BMULT;
 		break;
 	}
 
@@ -161,7 +163,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		if (lastNodeData->conditional && n->address == lastNodeData->ins->condDropAddress)
 		{
 			//std::cout << "noflowcond...";
-			y= y + -1 * BMULT;
+			//y= y + -1 * BMULT;
 			break;
 		}
 		//notice lack of break
@@ -170,7 +172,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	case eNodeException:
 	{
 		x += JUMPA * AMULT;
-		y = y + (JUMPB * BMULT * -1);
+		//y = y + (JUMPB * BMULT * -1);
 		break;
 	}
 
@@ -194,7 +196,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		//note: b sometimes huge after this?
 		//a += CALLA * AMULT;
 		x += CALLA * AMULT;
-		y += CALLB * BMULT * -1;
+		//y += CALLB * BMULT * -1;
 		break;
 	}
 
@@ -231,8 +233,8 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 			TREECOORD *caller = get_node_coord(resultNodeIDX);
 			assert(caller);
 			x = caller->x + RETURNA_OFFSET;
-			y = caller->y;// -(-1 * resultNodeIDX);
-			y = caller->y + RETURNB_OFFSET * -1;
+			//y = caller->y;// -(-1 * resultNodeIDX);
+			//y = caller->y + RETURNB_OFFSET * -1;
 			//extraB += RETURNB_OFFSET * -1;
 
 			//may not have returned to the last item in the callstack
@@ -242,7 +244,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 		else
 		{
 			x += EXTERNA * AMULT;
-			y += EXTERNB * BMULT;
+			//y += EXTERNB * BMULT;
 		}
 		callStackLock.unlock();
 		
@@ -258,7 +260,7 @@ void tree_graph::positionVert(void *positionStruct, node_data *n, PLOT_TRACK *la
 	while (usedCoords.find(make_pair(x, y)) != usedCoords.end())
 	{
 		x += 4;
-		y -= 3;
+		//y -= 3;
 		++clash;
 	}
 
@@ -474,7 +476,7 @@ int tree_graph::drawCurve(GRAPH_DISPLAY_DATA *linedata, FCOORD &startC, FCOORD &
 		return 0;
 	}
 
-	std::cout << "Line x: " << startC.x << " y: " << startC.y << " z: " << startC.z << std::endl;
+	//std::cout << "Line x: " << startC.x << " y: " << startC.y << " z: " << startC.z << std::endl;
 	
 	if (curvePoints == LONGCURVEPTS)
 	{
@@ -819,6 +821,7 @@ void tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA
 			assert(n->index == 0);
 			tempPos = { 0,0,1 };
 			nodeCoord = &tempPos;
+			firstAddr = n->address;
 
 			acquire_nodecoord_write();
 			node_coords->push_back(tempPos);
@@ -851,11 +854,8 @@ void tree_graph::add_node(node_data *n, PLOT_TRACK *lastNode, GRAPH_DISPLAY_DATA
 	staticNodePosition->push_back(screenc.y);
 	staticNodePosition->push_back(screenc.z);
 
-	if (screenc.x < lowestX) 
-		lowestX = screenc.x;
-	else if (screenc.x > highestX) 
-		highestX = screenc.x;
-
+	if (screenc.x < lowestX) lowestX = screenc.x;
+	else if (screenc.x > highestX) highestX = screenc.x;
 	if (screenc.y < lowestY) lowestY = screenc.y;
 	else if (screenc.y > highestY) highestY = screenc.y;
 	if (screenc.z > nearestZ) nearestZ = screenc.z;

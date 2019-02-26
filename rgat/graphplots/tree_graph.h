@@ -109,6 +109,7 @@ private:
 	GLuint wireframeVBOs[2];
 	unsigned long lowestAddr = -1;
 	unsigned long highestAddr = 0;
+	unsigned long firstAddr = 0;
 
 	GLfloat lowestX = 0;
 	GLfloat highestX = 0;

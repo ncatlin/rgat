@@ -2126,12 +2126,12 @@ void plotted_graph::performDiffGraphDrawing(graphGLWidget &plotwindow, void *div
 	setGraphBusy(false, 0);
 }
 
-void plotted_graph::changeZoom(double delta)
+void plotted_graph::changeZoom(double delta, double deltaModifier)
 {
 	if (delta > 0)
-		delta = -500;
+		delta = -500 * deltaModifier;
 	else
-		delta = 500;
+		delta = 500 * deltaModifier;
 
 	cameraZoomlevel += delta;
 	if (cameraZoomlevel < 0)

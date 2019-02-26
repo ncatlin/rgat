@@ -117,7 +117,7 @@ public:
 
 	void updateMainRender();
 	int render_preview_graph();
-	void changeZoom(double delta);
+	void changeZoom(double delta, double deltaModifier);
 
 	void draw_instructions_text(int zdist, PROJECTDATA *pd, graphGLWidget &gltarget);
 	void show_external_symbol_labels(PROJECTDATA *pd, graphGLWidget &gltarget);

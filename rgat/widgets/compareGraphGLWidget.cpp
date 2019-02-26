@@ -162,6 +162,6 @@ void compareGraphGLWidget::wheelEvent(QWheelEvent *event)
 {
 	if (diff_graph)
 	{
-		diff_graph->changeZoom((double)event->delta());
+		diff_graph->changeZoom((double)event->delta(), getKeyboardZoomModifier());
 	}
 }

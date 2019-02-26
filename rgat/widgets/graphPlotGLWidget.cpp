@@ -329,7 +329,7 @@ void graphPlotGLWidget::wheelEvent(QWheelEvent *event)
 {
 	if (activeGraph)
 	{
-		activeGraph->changeZoom((double)event->delta());
+		activeGraph->changeZoom((double)event->delta(), getKeyboardZoomModifier());
 
 		float zmul = zoomFactor(activeGraph->cameraZoomlevel, activeGraph->main_scalefactors->plotSize);
 		Ui::rgatClass *ui = (Ui::rgatClass *)clientState->ui;

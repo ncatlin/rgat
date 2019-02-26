@@ -306,3 +306,15 @@ void graphGLWidget::selectHighlightedExceptionNodes(PLOTTEDGRAPH_CASTPTR graphPt
 
 	graph->setHighlightData(&nodeList, eExceptions_HL);
 }
+
+double graphGLWidget::getKeyboardZoomModifier()
+{
+	double deltaModifier = 1.0;
+	bool shiftheld = QApplication::keyboardModifiers() & Qt::ShiftModifier;
+	bool ctrlheld = QApplication::keyboardModifiers() & Qt::ControlModifier;
+
+	if (shiftheld) deltaModifier *= 5;
+	if (shiftheld) ctrlheld *= 50;
+	
+	return deltaModifier;
+}

@@ -73,6 +73,8 @@ protected:
 	void selectHighlightedExceptionNodes(PLOTTEDGRAPH_CASTPTR graph);
 	void clearHighlightNodes(PLOTTEDGRAPH_CASTPTR graphPtr);
 
+	double getKeyboardZoomModifier();
+
 	bool acceptsMouseDrag = false;
 	QPoint mousePos;
 	bool activeMouseoverNode = false;
