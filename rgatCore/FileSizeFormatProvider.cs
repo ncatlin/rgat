@@ -42,21 +42,21 @@ public class FileSizeFormatProvider : IFormatProvider, ICustomFormatter
         if (size > OneGigaByte)
         {
             size /= OneGigaByte;
-            suffix = "GB";
+            suffix = " GB";
         }
         else if (size > OneMegaByte)
         {
             size /= OneMegaByte;
-            suffix = "MB";
+            suffix = " MB";
         }
         else if (size > OneKiloByte)
         {
             size /= OneKiloByte;
-            suffix = "kB";
+            suffix = " kB";
         }
         else
         {
-            suffix = " B";
+            suffix = " Bytes";
         }
 
         string precision = format.Substring(2);

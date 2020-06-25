@@ -50,20 +50,14 @@ namespace ImGuiNET
         private readonly List<IDisposable> _ownedResources = new List<IDisposable>();
         private int _lastAssignedID = 100;
 
-        private ImFontPtr _customFont = null;
-        private bool _customFontLoaded = false;
+        //private ImFontPtr _customFont = null;
+        private ImFontPtr _unicodeFont = null;
+        private ImFontPtr _originalFont = null;
+        private bool _unicodeFontLoaded = false;
 
-        public unsafe void LoadUnicodeFonts()
+        public unsafe void LoadUnicodeFont()
         {
-            if (_customFontLoaded)
-            {
-                _customFont = null;
-                ImGui.PopFont(); 
-            }
-
-            ImFontConfig* rawPtr = ImGuiNative.ImFontConfig_ImFontConfig();
-            ImFontConfigPtr config = new ImFontConfigPtr(rawPtr);
-            config.MergeMode = true;
+            if (_unicodeFontLoaded)  return;
 
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
 
@@ -83,19 +77,15 @@ namespace ImGuiNET
             builder.BuildRanges(out ranges);
 
             //embed in resource for distribution, once a font is settled on
+
             string googleNotoFontFile = "C:\\Users\\nia\\Source\\Repos\\rgatCore\\rgatCore\\bin\\Debug\\netcoreapp3.1\\NotoSansSC-Regular.otf";
             if (!File.Exists(googleNotoFontFile))
             {
                 Console.WriteLine("Error: Didn't find font file " + googleNotoFontFile);
                 return;
             }
-            _customFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 18, null, ranges.Data);
-            //RecreateFontDeviceTexture(_gd);
-            //_fontTextureResourceSet = _gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
-
-
-            _customFontLoaded = true;
-
+            _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
+            _unicodeFontLoaded = true;
         }
 
         /// <summary>
@@ -109,10 +99,9 @@ namespace ImGuiNET
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
-            //ImGui.GetIO().Fonts.AddFontDefault();
-
-
-            LoadUnicodeFonts();
+            LoadUnicodeFont();
+            ImGui.GetIO().Fonts.AddFontDefault();
+            _originalFont = ImGui.GetIO().Fonts.Fonts[1];
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
@@ -123,7 +112,7 @@ namespace ImGuiNET
             _frameBegun = true;
 
 
-            ImGui.PushFont(_customFont);
+            ImGui.PushFont(_unicodeFont);
         }
 
         public void WindowResized(int width, int height)
@@ -136,6 +125,16 @@ namespace ImGuiNET
         {
             Dispose();
         }
+
+        public void PushOriginalFont()
+        {
+            ImGui.PushFont(_originalFont);
+        }
+        public void PushUnicodeFont()
+        {
+            ImGui.PushFont(_unicodeFont);
+        }
+
 
         public void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription)
         {

@@ -18,7 +18,7 @@ namespace ImGuiNET
         private static ImGuiController _controller;
         private static MemoryEditor _memoryEditor;
 
-        private static rgatUI _rgatui = new rgatUI();
+        private static rgatUI _rgatui = null;
 
         // UI state
         private static float _f = 0.0f;
@@ -53,10 +53,7 @@ namespace ImGuiNET
             Random random = new Random();
             _memoryEditorData = Enumerable.Range(0, 1024).Select(i => (byte)random.Next(255)).ToArray();
 
-            //var font = ImGui.GetIO().Fonts.AddFontFromFileTTF("C:\\Users\\nia\\Source\\Repos\\rgatCore\\rgatCore\\bin\\Debug\\netcoreapp3.1\\FreeSans.ttf", 13);
-            //_controller.RecreateFontDeviceTexture(_gd);
-            //ImGui.PushFont(font);
-
+            _rgatui = new rgatUI(_controller);
 
             // Main application loop
             while (_window.Exists)

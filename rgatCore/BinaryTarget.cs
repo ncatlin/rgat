@@ -9,13 +9,14 @@ using System.Text;
 
 namespace rgatCore
 {
+    enum eModuleTracingMode { eWhiteList = 0, eBlackList = 1};
     class ExclusionList
     {
-        public bool inWhitelistMode = false;
-        public List<string> whitelistedDirs;
-        public List<string> whitelistedFiles;
-        public List<string> blacklistedDirs;
-        public List<string> blacklistedFiles;
+        public int tracingMode = (int)eModuleTracingMode.eWhiteList;
+        public List<string> whitelistedDirs = new List<string>();
+        public List<string> whitelistedFiles = new List<string>();
+        public List<string> blacklistedDirs = new List<string>();
+        public List<string> blacklistedFiles = new List<string>();
     }
 
     class BinaryTarget
@@ -23,14 +24,14 @@ namespace rgatCore
         private string _sha1hash = "";
         private string _sha256hash = "";
         private long fileSize = 0;
-        ExclusionList excludedLibs = new ExclusionList();
+        public ExclusionList excludedLibs = new ExclusionList();
         private Byte[] startbytes = null;
 
         public string FilePath { get; private set; } = "";
         public string FileName { get; private set; } = "";
         public string HexPreview { get; private set; } = "";
         public string ASCIIPreview { get; private set; } = "";
-
+        public string FormatNotes { get; private set; } = "Not Analysed";
         public BinaryTarget(string filepath)
         {
             FilePath = filepath;
@@ -45,7 +46,11 @@ namespace rgatCore
                 }
                 catch { }
             }
+            AddDefaultExclusions();
         }
+
+
+
         public string GetSHA1Hash()
         {
             if (_sha1hash.Length > 0) return _sha1hash;
@@ -104,7 +109,8 @@ namespace rgatCore
 
         public void AddDefaultExclusions()
         {
-            excludedLibs.blacklistedDirs.Append(@"C:\\Windows");
+            excludedLibs.blacklistedDirs.Add(@"C:\\Windows"); 
+            excludedLibs.blacklistedFiles.Add("@C:\\Windows\\System32\\ntdll.dll");
         }
     }
 }
