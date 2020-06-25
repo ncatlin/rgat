@@ -290,10 +290,159 @@ namespace rgatCore
 
             return;
         }
+
+        private void DrawVisualiserGraphs(float height)
+        {
+            float tracesGLFrameWidth = 200;
+            ImGui.BeginGroup();
+            {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF258880);
+                if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), new Vector2(ImGui.GetContentRegionAvail().X - tracesGLFrameWidth, height)))
+                {
+                    ImGui.Text("GLVisMain");
+                    ImGui.EndChild();
+                }
+                ImGui.PopStyleColor();
+                ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF253880);
+                if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), new Vector2(tracesGLFrameWidth, height)))
+                {
+
+                    ImGui.Text("GLVisThreads");
+                    ImGui.EndChild();
+                }
+                ImGui.PopStyleColor();
+            }
+            ImGui.EndGroup();
+        }
+
+        private unsafe void DrawVisualiserControls()
+        {
+            float topControlsBarHeight = 40;
+            float otherControlsHeight = 150;
+            ImGui.BeginGroup();
+            {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF257810);
+                {
+                    if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, topControlsBarHeight)))
+                    {
+                        ImGui.PushItemWidth(100);
+                        if (ImGui.BeginCombo("##GraphTypeSelectCombo", "Cylinder"))
+                        {
+                            if (ImGui.Selectable("Cylinder", true))
+                            {
+                                Console.WriteLine("Cylinder selected");
+                            }
+                            if (ImGui.Selectable("Tree", false))
+                            {
+                                Console.WriteLine("Tree selected");
+                            }
+                            ImGui.EndCombo();
+                        }
+                        ImGui.PopItemWidth();
+                        ImGui.SameLine();
+                        ImGui.Button("Lines");
+                        ImGui.SameLine();
+                        ImGui.Button("Nodes");
+                        ImGui.SameLine();
+                        ImGui.Button("Wireframe");
+                        ImGui.SameLine();
+                        ImGui.Button("Symbols");
+                        ImGui.SameLine();
+                        ImGui.Button("Instructions");
+                        ImGui.SameLine();
+                        ImGui.PushItemWidth(100);
+                        if (ImGui.BeginCombo("##TraceTypeSelectCombo", "Trace"))
+                        {
+                            if (ImGui.Selectable("Trace", true))
+                            {
+                                Console.WriteLine("Trace selected");
+                            }
+                            if (ImGui.Selectable("Heatmap", false))
+                            {
+                                Console.WriteLine("Heatmap selected");
+                            }
+                            if (ImGui.Selectable("Conditionals", false))
+                            {
+                                Console.WriteLine("Conditionals selected");
+                            }
+                            ImGui.EndCombo();
+                        }
+                        ImGui.PopItemWidth();
+                        ImGui.SameLine();
+                        ImGui.Button("Highlight");
+                        ImGui.SameLine();
+                        ImGui.Button("Rerender");
+
+                        ImGui.EndChild();
+                    }
+                }
+                ImGui.PopStyleColor();
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
+                {
+                    bool value_changed = false;
+                    if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, otherControlsHeight + 15)))
+                    {
+                        ImGui.BeginGroup();
+
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+                        if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(ImGui.GetContentRegionAvail().X - 300, otherControlsHeight)))
+                        {
+
+                            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF787878);
+                            float bar1_pos_x = 22.0f;
+                            Vector2 picker_pos = new Vector2(100f, 200f);
+                            //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
+                            ImGui.Button("Replay Progress", new Vector2(160.0f, 30.0f));
+                            if (ImGui.IsItemActive())
+                            {
+                                //col[3] = 1.0f - ImguiUtils.ImSaturate((ImGui.GetIO().MousePos.Y - picker_pos.Y) / (sv_picker_size - 1));
+                                value_changed = true;
+                            }
+
+                            ImGui.PopStyleColor();
+
+                            ImGui.Text("ReplayControls");
+                            ImGui.EndChild();
+
+                        }
+
+                        ImGui.SameLine();
+
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF259183);
+                        if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(50, otherControlsHeight)))
+                        {
+                            ImGui.Text("SizeControls");
+                            ImGui.EndChild();
+                        }
+                        ImGui.SameLine();
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
+                        if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(150, otherControlsHeight)))
+                        {
+                            ImGui.Text("TraceSelect");
+                            ImGui.EndChild();
+
+                        }
+                        ImGui.EndChild();
+
+                        ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetWindowDrawList(), new Vector2(340, 300), new Vector2(10, 10), 40.0f, 255f);
+                    }
+                }
+                ImGui.PopStyleColor();
+                ImGui.EndGroup();
+            }
+
+
+        }
+
         private void DrawVisTab()
         {
-            ImGui.InputText("f", Encoding.ASCII.GetBytes("CHUNK THE FUNK"), 120);
-            ImGui.Text("Trace start stuff here");
+            float controlsHeight = 200;
+
+            DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);
+
+            DrawVisualiserControls();
+
         }
         private void DrawAnalysisTab()
         {
@@ -366,27 +515,31 @@ namespace rgatCore
         private unsafe void DrawTabs()
         {
 
-          
+
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
                 if (ImGui.BeginTabItem("Start Trace"))
                 {
-                    DrawTraceTab(); ImGui.EndTabItem();
+                    DrawTraceTab(); 
+                    ImGui.EndTabItem();
                 }
                 
                 if (ImGui.BeginTabItem("Visualiser"))
                 {
-                    DrawVisTab(); ImGui.EndTabItem();
+                    DrawVisTab(); 
+                    ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Trace Analysis"))
                 {
-                    DrawAnalysisTab(); ImGui.EndTabItem();
+                    DrawAnalysisTab(); 
+                    ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Graph Comparison"))
                 {
-                    DrawCompareTab(); ImGui.EndTabItem();
+                    DrawCompareTab(); 
+                    ImGui.EndTabItem();
                 }
                 
                 ImGui.EndTabBar();
