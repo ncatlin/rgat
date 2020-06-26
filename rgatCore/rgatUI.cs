@@ -316,11 +316,76 @@ namespace rgatCore
             ImGui.EndGroup();
         }
 
-        float sliderPosX = 0;
+        float sliderPosX = -1;
+        float hstretch = 1;
+
+        private unsafe void DrawReplaySlider(float replayControlsSize)
+        {
+            int progressBarPadding = 6;
+            Vector2 progressBarSize = new Vector2(replayControlsSize - (progressBarPadding * 2), 30);
+
+            //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
+            ImGui.InvisibleButton("Replay Progress", progressBarSize);
+            Vector2 progressSliderPos = ImGui.GetItemRectMin();
+            progressSliderPos.X += progressBarPadding;
+            if (sliderPosX < progressSliderPos.X) sliderPosX = progressSliderPos.X;
+
+
+            if (ImGui.IsItemActive())
+            {
+                //col[3] = 1.0f - ImguiUtils.ImSaturate((- picker_pos.Y) / (sv_picker_size - 1));
+                sliderPosX = ImGui.GetIO().MousePos.X;
+                if (sliderPosX < progressSliderPos.X) sliderPosX = progressSliderPos.X;
+                if (sliderPosX > progressSliderPos.X + progressBarSize.X) sliderPosX = progressSliderPos.X + progressBarSize.X;
+                //value_changed = true;
+            }
+            ImGui.GetForegroundDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
+
+            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
+
+        }
+
+        private unsafe void DrawPlaybackControls(float otherControlsHeight)
+        {
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+            float replayControlsSize = ImGui.GetContentRegionAvail().X - 300f;
+            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(replayControlsSize, otherControlsHeight)))
+            {
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+                ImGui.Text("Trace Replay: Paused");
+                DrawReplaySlider(replayControlsSize);
+
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
+                if (ImGui.BeginChild("ctrls2354"))
+                {
+                    ImGui.BeginGroup();
+                    if (ImGui.Button("Play", new Vector2(36, 36))) Console.WriteLine("Play clicked");
+                    if (ImGui.Button("Reset", new Vector2(36, 36))) Console.WriteLine("Reset clicked");
+                    ImGui.EndGroup();
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(60f);
+                    if (ImGui.BeginCombo("Replay Speed", " x1", ImGuiComboFlags.HeightLargest))
+                    {
+                        if (ImGui.Selectable("x1/4")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x1/2")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x1")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x2")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x4")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x8")) Console.WriteLine("Speed changed");
+                        if (ImGui.Selectable("x16")) Console.WriteLine("Speed changed");
+                        ImGui.EndCombo();
+                    }
+                    ImGui.EndChild();
+                }
+
+
+                ImGui.EndChild();
+            }
+        }
 
         private unsafe void DrawVisualiserControls()
         {
-            Vector2 progressSliderPos = new Vector2(0, 0);
             float topControlsBarHeight = 40;
             float otherControlsHeight = 150;
 
@@ -390,42 +455,33 @@ namespace rgatCore
                     if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, otherControlsHeight + 15)))
                     {
                         ImGui.BeginGroup();
-                        { 
-                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
-                            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(ImGui.GetContentRegionAvail().X - 300, otherControlsHeight)))
-                            {
-                                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF787878);
-                                Vector2 progressBarSize = new Vector2(250, 25);
-                                Vector2 picker_pos = new Vector2(100f, 200f);
-                                //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
-                                progressSliderPos = ImGui.GetItemRectMin();
-
-                                ImGui.GetForegroundDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
-
-                                ImGui.Button("Replay Progress", progressBarSize);
-                                if (ImGui.IsItemActive())
-                                {
-                                //col[3] = 1.0f - ImguiUtils.ImSaturate((- picker_pos.Y) / (sv_picker_size - 1));
-                                sliderPosX = ImGui.GetIO().MousePos.X;
-                                value_changed = true;
-                                }
-
-                                ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
+                        {
 
 
-                                ImGui.PopStyleColor();
-                                ImGui.Text("ReplayControls");
-                                ImGui.EndChild();
-                            }
-
-
+                            DrawPlaybackControls(otherControlsHeight);
                             ImGui.SameLine();
 
                             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF259183);
-                            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(50, otherControlsHeight)))
+                            float sizeControlsFrameWidth = 150f;
+                            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(sizeControlsFrameWidth, otherControlsHeight)))
                             {
                                 ImGui.Text("SizeControls");
-                                ImGui.EndChild();
+
+                            ImGui.Text("Zoom: 38.5");
+
+                            ImGui.Text("Horizontal Stretch");
+                            ImGui.BeginGroup();
+                            ImGui.Button("-", new Vector2(20, 24));
+                            ImGui.SameLine();
+                            ImGui.SetNextItemWidth(32.0f);
+                            ImGui.InputFloat("##inphstr", ref hstretch);
+                            ImGui.SameLine();
+                            ImGui.Button("+", new Vector2(20, 24));
+                            ImGui.EndGroup();
+
+                            ImGui.Text("Vertical Stretch");
+                            ImGui.Text("Plot Size");
+                            ImGui.EndChild();
                             }
 
                             ImGui.SameLine();
