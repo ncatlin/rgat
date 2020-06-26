@@ -62,7 +62,7 @@ namespace rgatCore
         }
 
         //made the colours gross for dev, fix as needed
-        public static unsafe void RenderArrowsForVerticalBar(ImDrawList* draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
+        public static unsafe void RenderArrowsForVerticalBar(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
         {
             int alpha8 = IM_F32_TO_INT8_SAT(alpha);
             RenderArrowPointingAt(draw_list, new Vector2(pos.X + half_sz.X + 1, pos.Y), new Vector2(half_sz.X , half_sz.Y), ImGuiDir.Right, new Vector4(255, 255, 255, alpha8));
@@ -72,7 +72,7 @@ namespace rgatCore
             RenderArrowPointingAt(draw_list, new Vector2(pos.X + bar_w - half_sz.X, pos.Y),     half_sz,                                   ImGuiDir.Left, new Vector4(145f, 0, 145f, alpha8));
         }
 
-        public static unsafe void RenderArrowsForHorizontalBar(ImDrawList* draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
+        public static unsafe void RenderArrowsForHorizontalBar(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
         {
             int alpha8 = IM_F32_TO_INT8_SAT(alpha);
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.X + 1), new Vector2(half_sz.X, half_sz.Y), ImGuiDir.Down, new Vector4(255, 255, 255, alpha8));

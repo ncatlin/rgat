@@ -316,13 +316,17 @@ namespace rgatCore
             ImGui.EndGroup();
         }
 
+        float sliderPosX = 0;
+
         private unsafe void DrawVisualiserControls()
         {
+            Vector2 progressSliderPos = new Vector2(0, 0);
             float topControlsBarHeight = 40;
             float otherControlsHeight = 150;
-            ImGui.BeginGroup();
-            {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF257810);
+
+
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF257810);
                 {
                     if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, topControlsBarHeight)))
                     {
@@ -377,63 +381,76 @@ namespace rgatCore
                         ImGui.EndChild();
                     }
                 }
+
                 ImGui.PopStyleColor();
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
                 {
+
                     bool value_changed = false;
                     if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, otherControlsHeight + 15)))
                     {
                         ImGui.BeginGroup();
-
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
-                        if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(ImGui.GetContentRegionAvail().X - 300, otherControlsHeight)))
-                        {
-
-                            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF787878);
-                            float bar1_pos_x = 22.0f;
-                            Vector2 picker_pos = new Vector2(100f, 200f);
-                            //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
-                            ImGui.Button("Replay Progress", new Vector2(160.0f, 30.0f));
-                            if (ImGui.IsItemActive())
+                        { 
+                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+                            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(ImGui.GetContentRegionAvail().X - 300, otherControlsHeight)))
                             {
-                                //col[3] = 1.0f - ImguiUtils.ImSaturate((ImGui.GetIO().MousePos.Y - picker_pos.Y) / (sv_picker_size - 1));
+                                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF787878);
+                                Vector2 progressBarSize = new Vector2(250, 25);
+                                Vector2 picker_pos = new Vector2(100f, 200f);
+                                //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
+                                progressSliderPos = ImGui.GetItemRectMin();
+
+                                ImGui.GetForegroundDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
+
+                                ImGui.Button("Replay Progress", progressBarSize);
+                                if (ImGui.IsItemActive())
+                                {
+                                //col[3] = 1.0f - ImguiUtils.ImSaturate((- picker_pos.Y) / (sv_picker_size - 1));
+                                sliderPosX = ImGui.GetIO().MousePos.X;
                                 value_changed = true;
+                                }
+
+                                ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
+
+
+                                ImGui.PopStyleColor();
+                                ImGui.Text("ReplayControls");
+                                ImGui.EndChild();
                             }
 
-                            ImGui.PopStyleColor();
 
-                            ImGui.Text("ReplayControls");
-                            ImGui.EndChild();
+                            ImGui.SameLine();
 
+                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF259183);
+                            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(50, otherControlsHeight)))
+                            {
+                                ImGui.Text("SizeControls");
+                                ImGui.EndChild();
+                            }
+
+                            ImGui.SameLine();
+
+                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
+                            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(150, otherControlsHeight)))
+                            {
+                                ImGui.Text("TraceSelect");
+                                ImGui.EndChild();
+                            }
                         }
+                        ImGui.EndGroup();
 
-                        ImGui.SameLine();
-
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF259183);
-                        if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(50, otherControlsHeight)))
-                        {
-                            ImGui.Text("SizeControls");
-                            ImGui.EndChild();
-                        }
-                        ImGui.SameLine();
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
-                        if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(150, otherControlsHeight)))
-                        {
-                            ImGui.Text("TraceSelect");
-                            ImGui.EndChild();
-
-                        }
-                        ImGui.EndChild();
-
-                        ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetWindowDrawList(), new Vector2(340, 300), new Vector2(10, 10), 40.0f, 255f);
+                    ImGui.EndChild();
                     }
                 }
-                ImGui.PopStyleColor();
-                ImGui.EndGroup();
-            }
 
+                ImGui.PopStyleColor();
 
         }
+
+
+
+
+
 
         private void DrawVisTab()
         {
