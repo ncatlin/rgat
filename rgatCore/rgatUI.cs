@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
@@ -52,14 +53,14 @@ namespace rgatCore
             DrawTargetBar();
             DrawTabs();
 
-            if (_settings_window_shown)   DrawSettingsWindow();
-           
-            if (_show_select_exe_window)  DrawFileSelectBox();
+            if (_settings_window_shown) DrawSettingsWindow();
+
+            if (_show_select_exe_window) DrawFileSelectBox();
 
 
             ImGui.End();
         }
-        
+
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginChildFrame(22, new Vector2(width, 300), ImGuiWindowFlags.AlwaysAutoResize);
@@ -123,10 +124,10 @@ namespace rgatCore
                 {
                     ImGui.Button("DynamoRIO Test");
                     ImGui.Button("PIN Test");
-                    
-                    if(ImGui.BeginCombo("##loglevel", "Essential"))
+
+                    if (ImGui.BeginCombo("##loglevel", "Essential"))
                     {
-                        
+
                         if (ImGui.Selectable("Essential", true))
                         {
                             Console.Write("Esel");
@@ -154,7 +155,7 @@ namespace rgatCore
             ImGui.BeginChildFrame(18, new Vector2(width, 200));
             ImGui.Text("Instrumentation Settings");
 
-            
+
             ImGui.AlignTextToFramePadding();
             ImGui.Text("Instrumentation Engine");
             ImGui.SameLine();
@@ -183,13 +184,13 @@ namespace rgatCore
 
             ImGui.BeginChildFrame(18, new Vector2(width, 200));
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
-                
+
             if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
                 if ((eModuleTracingMode)activeTarget.excludedLibs.tracingMode == eModuleTracingMode.eBlackList)
                 {
-                    if (ImGui.TreeNode("Blacklisted Directories ("+ activeTarget.excludedLibs.blacklistedDirs.Count+")"))
+                    if (ImGui.TreeNode("Blacklisted Directories (" + activeTarget.excludedLibs.blacklistedDirs.Count + ")"))
                     {
                         foreach (string dirstr in activeTarget.excludedLibs.blacklistedDirs)
                             ImGui.Text(dirstr);
@@ -293,7 +294,7 @@ namespace rgatCore
 
         private void DrawVisualiserGraphs(float height)
         {
-            float tracesGLFrameWidth = 200;
+            float tracesGLFrameWidth = 300;
             ImGui.BeginGroup();
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF258880);
@@ -344,26 +345,149 @@ namespace rgatCore
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
 
         }
+        private void DrawScalePopup() 
+        {
+            if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
+            {
+
+                ImGui.Text("Zoom: 38.5");
+
+                ImGui.Text("Horizontal Stretch");
+                ImGui.BeginGroup();
+                ImGui.AlignTextToFramePadding();
+
+                ImGui.Button("-", new Vector2(20, 24));
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(32.0f);
+                ImGui.InputFloat("##inphstr", ref hstretch);
+                ImGui.SameLine();
+                ImGui.Button("+", new Vector2(20, 24));
+                ImGui.EndGroup();
+
+                ImGui.Text("Vertical Stretch");
+                ImGui.BeginGroup();
+                ImGui.Button("-", new Vector2(20, 24));
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(32.0f);
+                ImGui.InputFloat("##inphstr", ref hstretch);
+                ImGui.SameLine();
+                ImGui.Button("+", new Vector2(20, 24));
+                ImGui.EndGroup();
+
+                ImGui.Text("Plot Size");
+                ImGui.BeginGroup();
+                ImGui.Button("-", new Vector2(20, 24));
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(32.0f);
+                ImGui.InputFloat("##inphstr", ref hstretch);
+                ImGui.SameLine();
+                ImGui.Button("+", new Vector2(20, 24));
+                ImGui.EndGroup();
+
+
+                ImGui.EndChild();
+            }
+        }
+
+        private void drawVisToolBar(float height)
+        {
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF353535);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 3);
+            if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
+            {
+                ImGui.PushItemWidth(100);
+                if (ImGui.BeginCombo("##GraphTypeSelectCombo", "Cylinder"))
+                {
+                    if (ImGui.Selectable("Cylinder", true))
+                    {
+                        Console.WriteLine("Cylinder selected");
+                    }
+                    if (ImGui.Selectable("Tree", false))
+                    {
+                        Console.WriteLine("Tree selected");
+                    }
+                    if (ImGui.Selectable("Bars", false))
+                    { //sections, events, heat, conditionals?
+                        Console.WriteLine("Bars selected");
+                    }
+                    ImGui.EndCombo();
+                }
+                ImGui.PopItemWidth();
+                ImGui.SameLine();
+                ImGui.Button("Lines");
+                ImGui.SameLine();
+                ImGui.Button("Nodes");
+                ImGui.SameLine();
+                ImGui.Button("Wireframe");
+                ImGui.SameLine();
+                ImGui.Button("Symbols");
+                ImGui.SameLine();
+                ImGui.Button("Instructions");
+                ImGui.SameLine();
+                ImGui.PushItemWidth(100);
+                if (ImGui.BeginCombo("##TraceTypeSelectCombo", "Trace"))
+                {
+                    if (ImGui.Selectable("Trace", true))
+                    {
+                        Console.WriteLine("Trace selected");
+                    }
+                    if (ImGui.Selectable("Heatmap", false))
+                    {
+                        Console.WriteLine("Heatmap selected");
+                    }
+                    if (ImGui.Selectable("Conditionals", false))
+                    {
+                        Console.WriteLine("Conditionals selected");
+                    }
+                    ImGui.EndCombo();
+                }
+                ImGui.PopItemWidth();
+                ImGui.SameLine();
+                ImGui.Button("Highlight");
+                ImGui.SameLine();
+
+                if (ImGui.Button("Scale"))
+                {
+                    ImGui.OpenPopup("##ScaleGraph");
+                }
+
+                if (ImGui.BeginPopup("##ScaleGraph", ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    DrawScalePopup();
+                    ImGui.EndPopup();
+                }
+
+                ImGui.SameLine();
+                ImGui.Button("Rerender");
+
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+        }
 
         private unsafe void DrawPlaybackControls(float otherControlsHeight)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+
             float replayControlsSize = ImGui.GetContentRegionAvail().X - 300f;
             if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-                ImGui.Text("Trace Replay: Paused");
-                DrawReplaySlider(replayControlsSize);
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
+                ImGui.Text("Trace Replay: Paused");
+
+                DrawReplaySlider(replayControlsSize);
+
+                ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
+
                 if (ImGui.BeginChild("ctrls2354"))
                 {
                     ImGui.BeginGroup();
                     if (ImGui.Button("Play", new Vector2(36, 36))) Console.WriteLine("Play clicked");
                     if (ImGui.Button("Reset", new Vector2(36, 36))) Console.WriteLine("Reset clicked");
                     ImGui.EndGroup();
-                    ImGui.SameLine();
+
+                    ImGui.SameLine(); //pointless?
                     ImGui.SetNextItemWidth(60f);
                     if (ImGui.BeginCombo("Replay Speed", " x1", ImGuiComboFlags.HeightLargest))
                     {
@@ -376,130 +500,148 @@ namespace rgatCore
                         if (ImGui.Selectable("x16")) Console.WriteLine("Speed changed");
                         ImGui.EndCombo();
                     }
+
                     ImGui.EndChild();
                 }
+
 
 
                 ImGui.EndChild();
             }
+
+            ImGui.PopStyleColor();
         }
-
-        private unsafe void DrawVisualiserControls()
+        private unsafe void DrawLiveTraceControls(float otherControlsHeight)
         {
-            float topControlsBarHeight = 40;
-            float otherControlsHeight = 150;
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
 
+            float replayControlsSize = ImGui.GetContentRegionAvail().X - 300f;
+            if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
+            {
 
+                ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF257810);
+                if (ImGui.BeginChild("RenderingBox"))
                 {
-                    if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, topControlsBarHeight)))
-                    {
-                        ImGui.PushItemWidth(100);
-                        if (ImGui.BeginCombo("##GraphTypeSelectCombo", "Cylinder"))
-                        {
-                            if (ImGui.Selectable("Cylinder", true))
-                            {
-                                Console.WriteLine("Cylinder selected");
-                            }
-                            if (ImGui.Selectable("Tree", false))
-                            {
-                                Console.WriteLine("Tree selected");
-                            }
-                            ImGui.EndCombo();
-                        }
-                        ImGui.PopItemWidth();
-                        ImGui.SameLine();
-                        ImGui.Button("Lines");
-                        ImGui.SameLine();
-                        ImGui.Button("Nodes");
-                        ImGui.SameLine();
-                        ImGui.Button("Wireframe");
-                        ImGui.SameLine();
-                        ImGui.Button("Symbols");
-                        ImGui.SameLine();
-                        ImGui.Button("Instructions");
-                        ImGui.SameLine();
-                        ImGui.PushItemWidth(100);
-                        if (ImGui.BeginCombo("##TraceTypeSelectCombo", "Trace"))
-                        {
-                            if (ImGui.Selectable("Trace", true))
-                            {
-                                Console.WriteLine("Trace selected");
-                            }
-                            if (ImGui.Selectable("Heatmap", false))
-                            {
-                                Console.WriteLine("Heatmap selected");
-                            }
-                            if (ImGui.Selectable("Conditionals", false))
-                            {
-                                Console.WriteLine("Conditionals selected");
-                            }
-                            ImGui.EndCombo();
-                        }
-                        ImGui.PopItemWidth();
-                        ImGui.SameLine();
-                        ImGui.Button("Highlight");
-                        ImGui.SameLine();
-                        ImGui.Button("Rerender");
+                    ImGui.Columns(2);
+                    ImGui.SetColumnWidth(0, 200);
+                    ImGui.SetColumnWidth(1, 200);
 
-                        ImGui.EndChild();
-                    }
-                }
+                    ImGui.BeginGroup();
+                    if (ImGui.RadioButton("Static", false)) Console.WriteLine("Static clicked");
+                    if (ImGui.RadioButton("Animated", true)) Console.WriteLine("Animated clicked");
+                    ImGui.EndGroup();
 
-                ImGui.PopStyleColor();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
-                {
+                    ImGui.BeginGroup();
+                    if (ImGui.Button("Kill")) Console.WriteLine("Kill clicked");
+                    ImGui.SameLine();
+                    if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
+                    ImGui.EndGroup();
 
-                    bool value_changed = false;
-                    if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, otherControlsHeight + 15)))
-                    {
-                        ImGui.BeginGroup();
-                        {
+                    ImGui.NextColumn(); 
 
+                    ImGui.BeginGroup();
+                    if (ImGui.Button("Pause/Break")) Console.WriteLine("Kill clicked");
+                    ImGui.EndGroup();
 
-                            DrawPlaybackControls(otherControlsHeight);
-                            ImGui.SameLine();
-
-                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF259183);
-                            float sizeControlsFrameWidth = 150f;
-                            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(sizeControlsFrameWidth, otherControlsHeight)))
-                            {
-                                ImGui.Text("SizeControls");
-
-                            ImGui.Text("Zoom: 38.5");
-
-                            ImGui.Text("Horizontal Stretch");
-                            ImGui.BeginGroup();
-                            ImGui.Button("-", new Vector2(20, 24));
-                            ImGui.SameLine();
-                            ImGui.SetNextItemWidth(32.0f);
-                            ImGui.InputFloat("##inphstr", ref hstretch);
-                            ImGui.SameLine();
-                            ImGui.Button("+", new Vector2(20, 24));
-                            ImGui.EndGroup();
-
-                            ImGui.Text("Vertical Stretch");
-                            ImGui.Text("Plot Size");
-                            ImGui.EndChild();
-                            }
-
-                            ImGui.SameLine();
-
-                            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
-                            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(150, otherControlsHeight)))
-                            {
-                                ImGui.Text("TraceSelect");
-                                ImGui.EndChild();
-                            }
-                        }
-                        ImGui.EndGroup();
+                    ImGui.Columns(1);
 
                     ImGui.EndChild();
-                    }
                 }
 
+
+
+                ImGui.EndChild();
+            }
+
+            ImGui.PopStyleColor();
+        }
+
+        private void DrawTraceSelector(float frameHeight)
+        {
+            float vpadding = 4;
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
+
+            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(300, frameHeight)))
+            {
+                float combosHeight = 60 - vpadding;
+                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
+                {
+                    if (ImGui.BeginCombo("Process (0/1)", ""))
+                    {
+                        ImGui.Selectable("PID 12345 (xyz.exe)");
+                        ImGui.Selectable("PID 12345");
+                        ImGui.EndCombo();
+                    }
+                    if (ImGui.BeginCombo("Thread Trace (0/1)", ""))
+                    {
+                        ImGui.Selectable("TID 12345");
+                        ImGui.Selectable("TID 12345");
+                        ImGui.EndCombo();
+                    }
+                    ImGui.EndChild();
+                }
+
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+                ImGui.Text("Active Thread ID: 12345");
+                float metricsHeight = 80;
+                ImGui.Columns(3);
+                ImGui.SetColumnWidth(0, 20);
+                ImGui.SetColumnWidth(1, 130);
+                ImGui.SetColumnWidth(2, 90);
+                ImGui.NextColumn();
+
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+                if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
+                {
+                    ImGui.Text("Edges: 123");
+                    ImGui.Text("Nodes: 456");
+                    ImGui.Text("Updates: 498496");
+                    ImGui.Text("Backlog: 441");
+                    ImGui.EndChild();
+                }
+
+                ImGui.NextColumn();
+                if (ImGui.BeginChild("OtherMetrics", new Vector2(90, metricsHeight)))
+                {
+                    ImGui.Text("X: 123");
+                    ImGui.Text("Y: 456");
+                    ImGui.Text("Z: 496");
+                    ImGui.Text("Q: 41");
+                    ImGui.EndChild();
+                }
                 ImGui.PopStyleColor();
+
+                ImGui.Columns(1);
+                ImGui.EndChild();
+            }
+
+            ImGui.PopStyleColor();
+        }
+
+        private unsafe void DrawVisualiserControls(float controlsHeight)
+        {
+            float topControlsBarHeight = 30;
+            float otherControlsHeight = controlsHeight - topControlsBarHeight;
+            float vpadding = 10;
+
+
+            drawVisToolBar(topControlsBarHeight);
+
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
+            float frameHeight = otherControlsHeight - vpadding;
+            if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
+            {
+                ImGui.BeginGroup();
+                DrawLiveTraceControls(frameHeight);
+                //DrawPlaybackControls(frameHeight);
+                ImGui.SameLine();
+                DrawTraceSelector(frameHeight);
+                ImGui.EndGroup();
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
 
         }
 
@@ -510,11 +652,11 @@ namespace rgatCore
 
         private void DrawVisTab()
         {
-            float controlsHeight = 200;
+            float controlsHeight = 230;
 
             DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);
 
-            DrawVisualiserControls();
+            DrawVisualiserControls(controlsHeight);
 
         }
         private void DrawAnalysisTab()
@@ -558,7 +700,7 @@ namespace rgatCore
         private unsafe void DrawTargetBar()
         {
             if (_rgatstate.targets.count() == 0)
-            { 
+            {
                 ImGui.Text("No target selected or trace loaded");
                 return;
             }
@@ -595,26 +737,26 @@ namespace rgatCore
             {
                 if (ImGui.BeginTabItem("Start Trace"))
                 {
-                    DrawTraceTab(); 
+                    DrawTraceTab();
                     ImGui.EndTabItem();
                 }
-                
+
                 if (ImGui.BeginTabItem("Visualiser"))
                 {
-                    DrawVisTab(); 
+                    DrawVisTab();
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Trace Analysis"))
                 {
-                    DrawAnalysisTab(); 
+                    DrawAnalysisTab();
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Graph Comparison"))
                 {
-                    DrawCompareTab(); 
+                    DrawCompareTab();
                     ImGui.EndTabItem();
                 }
-                
+
                 ImGui.EndTabBar();
             }
 
@@ -645,7 +787,7 @@ namespace rgatCore
                 {
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                     {
-                       _rgatstate.AddTargetByPath(picker.SelectedFile);
+                        _rgatstate.AddTargetByPath(picker.SelectedFile);
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     _show_select_exe_window = false;
