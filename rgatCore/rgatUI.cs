@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
+using Vulkan;
 
 namespace rgatCore
 {
@@ -16,6 +17,7 @@ namespace rgatCore
         //rgat ui state
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
+        private bool _show_load_trace_window = false;
         private ImGuiController _ImGuiController = null;
 
         //rgat program state
@@ -56,6 +58,7 @@ namespace rgatCore
             if (_settings_window_shown) DrawSettingsWindow();
 
             if (_show_select_exe_window) DrawFileSelectBox();
+            if (_show_load_trace_window) DrawTraceLoadBox();
 
 
             ImGui.End();
@@ -680,7 +683,7 @@ namespace rgatCore
                 {
                     if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = !_show_select_exe_window; }
                     if (ImGui.MenuItem("Recent Targets")) { }
-                    if (ImGui.MenuItem("Open Saved Trace")) { }
+                    if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = !_show_load_trace_window; }
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { }
                     if (ImGui.MenuItem("Save Process Traces")) { }
@@ -791,6 +794,41 @@ namespace rgatCore
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     _show_select_exe_window = false;
+                }
+                ImGui.EndPopup();
+            }
+        }
+
+        private void LoadTraceByPath(string filepath)
+        {
+            if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
+            /*
+            launch_all_trace_threads(trace, rgatstate);
+
+            rgatstate->activeBinary = (binaryTarget*)trace->get_binaryPtr();
+            rgatstate->switchTrace = trace;
+
+            ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
+            */
+        }
+
+
+        private void DrawTraceLoadBox()
+        {
+            ImGui.OpenPopup("Select Trace File");
+
+            if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.None))
+            {
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
+                {
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                    {
+                        LoadTraceByPath(picker.SelectedFile);
+                    }
+                    rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                    _show_load_trace_window = false;
                 }
                 ImGui.EndPopup();
             }

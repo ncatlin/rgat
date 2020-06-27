@@ -27,6 +27,7 @@ namespace rgatCore
         public ExclusionList excludedLibs = new ExclusionList();
         private Byte[] startbytes = null;
 
+        public int BitWidth { get; private set; } = 0;
         public string FilePath { get; private set; } = "";
         public string FileName { get; private set; } = "";
         public string HexPreview { get; private set; } = "";

@@ -16,7 +16,7 @@ namespace ImGuiNET
     //
     // Usage:
     //   static MemoryEditor memory_editor;                                                     // save your state somewhere
-    //   memory_editor.Draw("Memory Editor", mem_block, mem_block_size, (size_t)mem_block);     // run
+    //   memory_editor.Draw("Memory Editor", mem_block, mem_block_size, (ulong)mem_block);     // run
 
     public class MemoryEditor
     {

@@ -16,10 +16,14 @@ namespace rgatCore
             return new List<string>(targets.Keys);
         }
 
-        public BinaryTarget GetTargetByPath(string path)
+        public bool GetTargetByPath(string path, out BinaryTarget result)
         {
-            if (targets.TryGetValue(path, out BinaryTarget result)) return result;
-            return null;
+            if (targets.TryGetValue(path, out BinaryTarget existingEntry)) {
+                result = existingEntry;
+                return true; 
+            }
+            result = null;
+            return false;
         }
 
         public void AddTargetByPath(string path)
