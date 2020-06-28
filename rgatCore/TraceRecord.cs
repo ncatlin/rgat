@@ -1,42 +1,42 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace rgatCore
 {
 	struct InstructionData
     {
-		/*
-		void* bb_ptr;
-		string mnemonic;
-		string op_str;
+		
+		//void* bb_ptr;
+		public string mnemonic;
+		public string op_str;
 		//store all the basic blocks this instruction is a member of
-		List<Tuple<ulong, BLOCK_IDENTIFIER>> blockIDs;
+		//List<Tuple<ulong, BLOCK_IDENTIFIER>> blockIDs;
 		/* memory/speed tradeoff 
 		1.construct every frame and save memory 
 		2.construct at disassemble time and improve render speed
 		*/
 
-		/*
-		string ins_text;
-		eNodeType itype;
-		bool conditional = false;
-		bool dataEx = false;
-		bool hasSymbol = false;
 
-		ulong address;
-		ulong branchAddress = NULL;
-		ulong condDropAddress;
-		unordered_Dictionary<PID_TID, uint> threadvertIdx;
-		uint globalmodnum;
+		public string ins_text;
+		public eNodeType itype;
+		public bool conditional;
+		bool dataEx;
+		public bool hasSymbol;
+
+		public ulong address;
+		public ulong branchAddress;
+		public ulong condDropAddress;
+		public Dictionary<uint, uint> threadvertIdx; //was an unordered dictionary in the C++ version
+		public int globalmodnum;
 		uint mutationIndex;
 
 		//this was added later, might be worth ditching other stuff in exchange
-		std::unique_ptr<uint8_t[]> opcodes;
-		uint numbytes;
-		*/
+		public byte[] opcodes;
+		public int numbytes;
+		
 	}
-
 
 	class TraceRecord
     {
