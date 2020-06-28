@@ -50,16 +50,16 @@ namespace rgatCore
                 Console.WriteLine("[rgat]ERROR: Disassembly reconstruction failed");
                 return false;
             }
-            /*
-			if (!loadBlockData(processDataJSON))
+            
+			if (!LoadBlockData((JObject)processDataJSON))
 			{
-				cerr << "[rgat]ERROR: Basic block reconstruction failed" << endl;
+                Console.WriteLine("[rgat]ERROR: Basic block reconstruction failed");
 				return false;
 			}
-
-			if (!loadExterns(processDataJSON))
+            /*
+			if (!loadExterns((JObject)processDataJSON))
 			{
-				cerr << "[rgat]ERROR: Extern call loading failed" << endl;
+				Console.WriteLine("[rgat]ERROR: Extern call loading failed");
 				return false;
 			}
 			*/
@@ -90,10 +90,10 @@ namespace rgatCore
         //list of basic blocks
         //   address		    blockID			instructionlist
         //map <ulong, Dictionary<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
-        public List<Tuple<ulong, List<InstructionData>>> blockList;
+        public List<Tuple<ulong, List<InstructionData>>> blockList = new List<Tuple<ulong, List<InstructionData>>>();
 
 
-        public Dictionary<ulong, ROUTINE_STRUCT> externdict;
+        public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
         public int bitwidth;
 
         /*
@@ -300,7 +300,6 @@ namespace rgatCore
                 }
                 
                 opcodeVariants.Add(ins);
-
             }
             return true;
         }
@@ -372,11 +371,53 @@ namespace rgatCore
         }
 
 
-        /*
-        private bool loadBlockData(JObject processJSON);
-        private bool loadExterns(JObject processJSON);
+        
+        private bool LoadBlockData(JObject processJSON)
+        {
+            if (!processJSON.TryGetValue("BasicBlocks", out JToken tBBLocks) || tBBLocks.Type != JTokenType.Array)
+            {
+                Console.WriteLine("[rgat] Failed to find valid BasicBlocks in trace");
+                return false;
+            }
+            JArray BBlocksArray = (JArray)tBBLocks;
 
-        */
+            Console.WriteLine("Loading "+ BBlocksArray.Count + " basic blocks");
+            //display_only_status_message(BBLoadMsg.str(), clientState);
+
+            foreach (JArray blockEntry in BBlocksArray)
+            {
+                if (blockEntry.Count != 2 || blockEntry[0].Type != JTokenType.Integer || blockEntry[1].Type != JTokenType.Array)
+                {
+                    Console.WriteLine("Error: Bad basic block descriptor");
+                    return false;
+                }
+                JArray insAddresses = (JArray)blockEntry[1];
+                if (insAddresses.Count % 2 != 0)
+                {
+                    Console.WriteLine("Error: Bad basic block descriptor");
+                    return false;
+                }
+
+
+                List<InstructionData> blkInstructions = new List<InstructionData>();
+                ulong blockaddress = blockEntry[0].ToObject<ulong>();
+                blockList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
+
+                for (var i = 0; i < insAddresses.Count; i+=2)
+                {
+                    ulong insAddress = insAddresses[i].ToObject<ulong>();
+                    int mutationIndex = insAddresses[i+1].ToObject<int>();
+                    blkInstructions.Add(disassembly[insAddress][mutationIndex]);
+                }
+            }
+
+            return true;
+        }
+        
+        
+        //private bool loadExterns(JObject processJSON);
+
+        
 
 
         private bool running = true;
