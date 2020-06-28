@@ -78,8 +78,16 @@ namespace rgatCore
 		}
 
 
+		private bool LoadExceptions(JArray exceptionsArray)
+		{
+			foreach (JToken entry in exceptionsArray)
+			{
+				if (entry.Type != JTokenType.Integer) return false;
+				ExceptionNodeIndexes.Add(entry.ToObject<uint>()); 
+			}
+			return true;
+		}
 		/*
-		private bool loadExceptions(const rapidjson::Value& exceptionsArray);
 	private bool loadStats(const rapidjson::Value& graphData);
 	private bool loadAnimationData(const rapidjson::Value& replayArray);
 	private bool loadCallData(const rapidjson::Value& graphData);
@@ -236,17 +244,17 @@ namespace rgatCore
 			}
 			return true;
 		}
-	
-			
+
+
 		/*
 		void push_anim_update(ANIMATIONENTRY);
 		//animation data received from target
 		List<ANIMATIONENTRY> savedAnimationData;
-
-		//todo rename
-		List<uint> exceptionSet;
 		
 		*/
+		//todo rename
+		List<uint> ExceptionNodeIndexes;
+		
 		public void AssignModulePath()
 		{
 			exeModuleID = safe_get_node(0).GlobalModuleID;
@@ -286,7 +294,6 @@ namespace rgatCore
 				return false;
 			}
 
-
 			if (!graphData.TryGetValue("Edges", out JToken jEdges) || jEdges.Type != JTokenType.Array)
 			{
 				Console.WriteLine("[rgat] Failed to find valid Edges in trace");
@@ -298,17 +305,22 @@ namespace rgatCore
 				Console.WriteLine("[rgat]ERROR: Failed to load edges");
 				return false;
 			}
-			/*
-			
-			graphDataIt = graphData.FindMember("Exceptions");
-			if (graphDataIt == graphData.MemberEnd())
+
+			if (!graphData.TryGetValue("Exceptions", out JToken jExcepts) || jEdges.Type != JTokenType.Array)
 			{
-				cerr << "[rgat] Error: Failed to find exceptions data" << endl;
+				Console.WriteLine("[rgat] Failed to find valid Exceptions in trace");
 				return false;
 			}
-			if (!loadExceptions(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load exceptions set" << endl; return false; }
+			JArray ExceptionArray = (JArray)jExcepts;
+			if (!LoadExceptions(EdgeArray))
+			{
+				Console.WriteLine("[rgat]ERROR: Failed to load Exceptions");
+				return false;
+			}
 
-			
+
+
+			/*
 			graphDataIt = graphData.FindMember("ExternCalls");
 			if (graphDataIt == graphData.MemberEnd())
 			{
