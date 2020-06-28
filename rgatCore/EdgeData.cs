@@ -13,14 +13,14 @@ namespace rgatCore
 		//bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, int source, int target);
 
 		//type of edge (call,extern,etc)
-		eEdgeNodeType edgeClass;
+		public eEdgeNodeType edgeClass;
 
 		//number of times executed, temporary variable used by heatmap solver
-		ulong chainedWeight = 0;
+		public ulong chainedWeight = 0;
 
 		//number of verticies taken up in OpenGL data
-		ulong vertSize = 0;
+		public ulong vertSize = 0;
 		//position in rendering data structure
-		ulong arraypos = 0;
+		public ulong arraypos = 0;
 	}
 }

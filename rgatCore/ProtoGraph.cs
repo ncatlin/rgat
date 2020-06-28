@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -36,8 +37,8 @@ namespace rgatCore
 	};
 
 	class ProtoGraph
-    {
-		enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress};
+	{
+		enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
 
 		public ProtoGraph(TraceRecord runrecord, uint threadID)
 		{
@@ -47,7 +48,7 @@ namespace rgatCore
 		}
 
 
-		private uint ThreadID = 0;
+		public uint ThreadID = 0;
 
 		private int nlockholder = 0;
 
@@ -59,8 +60,23 @@ namespace rgatCore
 		private uint latest_active_node_idx = 0;
 		public DateTime ConstructedTime { private set; get; } = DateTime.Now;
 
-		//private bool loadNodes(const rapidjson::Value& nodesArray, Dictionary<ulong, List<InstructionData>> disassembly);
-		
+		private bool LoadNodes(JArray NodesArray, Dictionary<ulong, List<InstructionData>> disassembly)
+		{
+			foreach(JArray nodeItem in NodesArray)
+			{
+				NodeData n = new NodeData();//can't this be done at start?
+				if (!n.Deserialise(nodeItem, disassembly))
+				{
+					Console.WriteLine("Failed to deserialise node");
+					return false;
+				}
+
+				InsertNode(n.index, n);
+			}
+
+			return true;
+		}
+
 
 		/*
 		private bool loadExceptions(const rapidjson::Value& exceptionsArray);
@@ -91,10 +107,37 @@ namespace rgatCore
 
 		
 		public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
-		public void insert_node(uint targVertID, node_data node);
-		public bool edge_exists(NODEPAIR edge, edge_data** edged);
-		public void add_edge(edge_data e, node_data &source, node_data &target);
+		*/
+		void InsertNode(uint targVertID, NodeData node)
+		{
+			if (NodeList.Count > 0)
+				Debug.Assert(targVertID == NodeList[NodeList.Count-1].index + 1);
 
+			if (node.IsExternal)
+			{
+				//highlightsLock.lock () ;
+				externalNodeList.Add(node.index);
+				//highlightsLock.unlock();
+			}
+			else if (node.ins.hasSymbol)
+			{
+				//highlightsLock.lock () ;
+				internalNodeList.Add(node.index);
+				//highlightsLock.unlock();
+			}
+
+			//getNodeWriteLock();
+			NodeList.Add(node);
+			//dropNodeWriteLock();
+		}
+
+		//public bool edge_exists(NODEPAIR edge, edge_data** edged);
+		public void AddEdge(EdgeData e, NodeData source, NodeData target)
+        {
+
+        }
+
+		/*
 		public void add_pending_arguments(int argpos, string contents, bool callDone);
 
 		public void handle_exception_tag(TAG &thistag);
@@ -107,10 +150,10 @@ namespace rgatCore
 
 		//i feel like this misses the point, idea is to iterate safely
 		public EDGELIST* edgeLptr() { return &edgeList; }
-
-		public List<node_data> nodeList; //node id to node data
-		public List<block_data> blockList; //node id to node data
-
+		*/
+		public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
+		public List<BlockData> BlockList = new List<BlockData>(); //node id to node data
+		/*
 		public bool node_exists(uint idx) { return (nodeList.Count > idx); }
 		public int get_num_nodes() { return nodeList.Count; }
 		public int get_num_edges() { return edgeDict.Count; }
@@ -132,15 +175,15 @@ namespace rgatCore
 
 		int getAnimDataSize() { return savedAnimationData.Count; }
 		List<ANIMATIONENTRY>* getSavedAnimData() { return &savedAnimationData; }
-
+		
+		*/
 		//list of all external nodes
-		List<uint> externalNodeList;
-		List<uint> copyExternalNodeList();
+		List<uint> externalNodeList = new List<uint>();
+		//List<uint> copyExternalNodeList();
 
 		//list of all internal nodes with symbols
-		List<uint> internalNodeList;
-		List<uint> copyInternalNodeList();
-		*/
+		List<uint> internalNodeList = new List<uint>();
+		//List<uint> copyInternalNodeList();
 		/*
 		//these are called a lot. make sure as efficient as possible
 		EdgeData get_edge(Tuple<uint,uint> edge)
@@ -163,20 +206,60 @@ namespace rgatCore
 		//edge_data *get_or_create_edge(node_data *source, node_data *target);
 
 		node_data* unsafe_get_node(uint index);
-		node_data* safe_get_node(uint index);
+		*/
 
-		bool loadEdgeDict(const rapidjson::Value& edgeArray);
+		NodeData safe_get_node(uint index)
+		{
+			if (index >= NodeList.Count)
+				return null;
+
+			//getNodeReadLock();
+			NodeData n = NodeList[(int)index];
+			//dropNodeReadLock();
+			return n;
+
+		}
+
+		bool LoadEdges(JArray EdgeArray)
+		{
+			foreach (JArray entry in EdgeArray.Children())
+			{
+				uint source = entry[0].ToObject<uint>();
+				uint target = entry[1].ToObject<uint>();
+				uint edgeClass = entry[2].ToObject<uint>();
+
+				EdgeData edge = new EdgeData();
+				edge.edgeClass = (eEdgeNodeType)edgeClass;
+
+				Tuple<uint,uint> stpair = new Tuple<uint, uint>(source, target);
+				AddEdge(edge, safe_get_node(source), safe_get_node(target));
+			}
+			return true;
+		}
 	
-
+			
+		/*
 		void push_anim_update(ANIMATIONENTRY);
 		//animation data received from target
 		List<ANIMATIONENTRY> savedAnimationData;
 
 		//todo rename
 		List<uint> exceptionSet;
+		
+		*/
+		public void AssignModulePath()
+		{
+			exeModuleID = safe_get_node(0).GlobalModuleID;
+			if (exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
 
-		void assign_modpath();
+			string ModulePath = ProcessData.LoadedModulePaths[exeModuleID];
+			moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
+
+			if (ModulePath.Length > UI_Constants.MAX_DIFF_PATH_LENGTH)
+				ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI_Constants.MAX_DIFF_PATH_LENGTH, ModulePath.Length);
+		}
+		/*
 		public ulong BacklogOutgoing = 0;
 		public ulong BacklogIncoming = 0;
 
@@ -189,7 +272,66 @@ namespace rgatCore
 
 		bool terminationFlag = false;
 		//bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		//bool deserialise(const rapidjson::Value& graphData, Dictionary<ulong, List<InstructionData>> disassembly);
+
+		public bool Deserialise(JObject graphData, Dictionary<ulong, List<InstructionData>> disassembly)
+		{
+			if (!graphData.TryGetValue("Nodes", out JToken jNodes) || jNodes.Type != JTokenType.Array)
+			{
+				Console.WriteLine("[rgat] Failed to find valid Nodes in trace");
+				return false;
+			}
+			JArray NodesArray = (JArray)jNodes;
+			if (!LoadNodes(NodesArray, disassembly)) {
+				Console.WriteLine("[rgat]ERROR: Failed to load nodes"); 
+				return false;
+			}
+
+
+			if (!graphData.TryGetValue("Edges", out JToken jEdges) || jEdges.Type != JTokenType.Array)
+			{
+				Console.WriteLine("[rgat] Failed to find valid Edges in trace");
+				return false;
+			}
+			JArray EdgeArray = (JArray)jEdges;
+			if (!LoadEdges(EdgeArray))
+			{
+				Console.WriteLine("[rgat]ERROR: Failed to load edges");
+				return false;
+			}
+			/*
+			
+			graphDataIt = graphData.FindMember("Exceptions");
+			if (graphDataIt == graphData.MemberEnd())
+			{
+				cerr << "[rgat] Error: Failed to find exceptions data" << endl;
+				return false;
+			}
+			if (!loadExceptions(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load exceptions set" << endl; return false; }
+
+			
+			graphDataIt = graphData.FindMember("ExternCalls");
+			if (graphDataIt == graphData.MemberEnd())
+			{
+				cerr << "[rgat] Error: Failed to find extern calls data" << endl;
+				return false;
+			}
+			if (!loadCallData(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load extern call data" << endl; return false; }
+
+
+			graphDataIt = graphData.FindMember("ReplayData");
+			if (graphDataIt == graphData.MemberEnd())
+			{
+				cerr << "[rgat] Error: Failed to find replay data" << endl;
+				return false;
+			}
+			if (!loadAnimationData(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load trace replay data" << endl; return false; }
+
+			if (!loadStats(graphData)) { cerr << "[rgat]ERROR: Failed to load graph stats" << endl; return false; }
+			*/
+
+			return true;
+
+		}
 		/*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
@@ -230,13 +372,13 @@ namespace rgatCore
 			terminated = true;
 			updated = true; //aka needvboreloadpreview
 			terminationFlag = true;
-			active = false;
+			IsActive = false;
 			finalNodeID = lastVertID;
 		}
 
 		//void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
 		//void stop_edgeL_iteration();
 
-		bool active = true;
+		public bool IsActive = true;
 	}
 }

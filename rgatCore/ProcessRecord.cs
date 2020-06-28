@@ -11,7 +11,7 @@ namespace rgatCore
     class ProcessRecord
     {
 
-        public ProcessRecord(int binaryBitWidth) { bitwidth = binaryBitWidth; }
+        public ProcessRecord(int binaryBitWidth) { BitWidth = binaryBitWidth; }
 
         /*
 		public bool get_sym(uint modNum, ulong mem_addr, string &sym);
@@ -94,7 +94,7 @@ namespace rgatCore
 
 
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
-        public int bitwidth;
+        public int BitWidth;
 
         /*
 	private void saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
@@ -341,10 +341,10 @@ namespace rgatCore
                 Console.WriteLine("[rgat] Failed to find valid BitWidth in trace");
                 return false;
             }
-            bitwidth = tBitWidth.ToObject<int>();
-            if (bitwidth != 32 && bitwidth != 64)
+            BitWidth = tBitWidth.ToObject<int>();
+            if (BitWidth != 32 && BitWidth != 64)
             {
-                Console.WriteLine("[rgat] Invalid BitWidth " + bitwidth);
+                Console.WriteLine("[rgat] Invalid BitWidth " + BitWidth);
                 return false;
             }
 
@@ -358,7 +358,7 @@ namespace rgatCore
             Console.WriteLine("[rgat]Loading Disassembly for " + DisassemblyArray.Count + " addresses");
             //display_only_status_message("", clientState);
 
-            X86DisassembleMode disasMode = (bitwidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
+            X86DisassembleMode disasMode = (BitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
             using (CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode))
             {
                 foreach (JArray entry in DisassemblyArray)
