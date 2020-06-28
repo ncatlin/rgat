@@ -35,6 +35,19 @@ namespace rgatCore
         int jumpModifier;
         ROUTINE_STRUCT foundExtern;
     };
+    enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimUnchainedDone, eAnimExecException };
+
+    struct ANIMATIONENTRY
+    {
+        public eTraceUpdateType entryType;
+        public ulong blockAddr;
+        public ulong blockID;
+        public ulong count;
+        public ulong targetAddr;
+        public ulong targetID;
+        public ulong callCount;
+    };
+
 
     class ProtoGraph
     {
@@ -87,8 +100,46 @@ namespace rgatCore
             }
             return true;
         }
-        //private bool loadStats(const rapidjson::Value& graphData);
-        //private bool loadAnimationData(const rapidjson::Value& replayArray);
+        
+        private bool LoadStats(JObject graphData)
+        {
+           if (!graphData.TryGetValue("Module", out JToken jModID) || jModID.Type != JTokenType.Integer )
+            {
+                return false;
+            }
+            exeModuleID = jModID.ToObject<int>();
+
+            if (exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count) return false;
+	        moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
+
+            if (!graphData.TryGetValue("TotalInstructions", out JToken jTotal) || jTotal.Type != JTokenType.Integer)
+            {
+                return false;
+            }
+            totalInstructions = jTotal.ToObject<ulong>();
+            return true;
+        }
+
+        private bool loadAnimationData(JArray animationArray)
+        {
+            foreach (JArray animFields in animationArray)
+            {
+                if (animFields.Count != 7) return false;
+                ANIMATIONENTRY entry = new ANIMATIONENTRY();
+                entry.entryType = (eTraceUpdateType)animFields[0].ToObject<uint>();
+                entry.blockAddr = animFields[1].ToObject<ulong>();
+                entry.blockID = animFields[2].ToObject<ulong>();
+                entry.count = animFields[3].ToObject<ulong>();
+                entry.targetAddr = animFields[4].ToObject<ulong>();
+                entry.targetID = animFields[5].ToObject<ulong>();
+                entry.callCount = animFields[6].ToObject<ulong>();
+
+                SavedAnimationData.Add(entry);
+            }
+
+            return true;
+        }
+
         private bool LoadCallData(JArray callarray)
         {
             foreach (JArray entry in callarray)
@@ -275,12 +326,12 @@ namespace rgatCore
         }
 
 
-        /*
-		void push_anim_update(ANIMATIONENTRY);
-		//animation data received from target
-		List<ANIMATIONENTRY> savedAnimationData;
-		
-		*/
+
+        //void push_anim_update(ANIMATIONENTRY);
+        //animation data received from target
+        List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
+
+
         //todo rename
         List<uint> ExceptionNodeIndexes;
 
@@ -342,7 +393,7 @@ namespace rgatCore
                 return false;
             }
             JArray ExceptionArray = (JArray)jExcepts;
-            if (!LoadExceptions(EdgeArray))
+            if (!LoadExceptions(ExceptionArray))
             {
                 Console.WriteLine("[rgat]ERROR: Failed to load Exceptions");
                 return false;
@@ -360,18 +411,24 @@ namespace rgatCore
                 return false;
             }
 
-            /*
+            if (!graphData.TryGetValue("ReplayData", out JToken jReplayData) || jExternCalls.Type != JTokenType.Array)
+            {
+                Console.WriteLine("[rgat] Failed to find valid ReplayData in trace");
+                return false;
+            }
+            JArray ReplayDataArray = (JArray)jReplayData;
+            if (!loadAnimationData(ReplayDataArray))
+            {
+                Console.WriteLine("[rgat]ERROR: Failed to load ReplayData");
+                return false;
+            }
 
-			graphDataIt = graphData.FindMember("ReplayData");
-			if (graphDataIt == graphData.MemberEnd())
-			{
-				cerr << "[rgat] Error: Failed to find replay data" << endl;
-				return false;
-			}
-			if (!loadAnimationData(graphDataIt->value)) { cerr << "[rgat]ERROR: Failed to load trace replay data" << endl; return false; }
+            if (!LoadStats(graphData)) 
+            { 
+                Console.WriteLine("[rgat]ERROR: Failed to load graph stats"); 
+                return false; 
+            }
 
-			if (!loadStats(graphData)) { cerr << "[rgat]ERROR: Failed to load graph stats" << endl; return false; }
-			*/
 
             return true;
 
