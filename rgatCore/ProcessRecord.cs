@@ -56,13 +56,13 @@ namespace rgatCore
                 Console.WriteLine("[rgat]ERROR: Basic block reconstruction failed");
 				return false;
 			}
-            /*
+            
 			if (!loadExterns((JObject)processDataJSON))
 			{
 				Console.WriteLine("[rgat]ERROR: Extern call loading failed");
 				return false;
 			}
-			*/
+			
             return true;
 
         }
@@ -415,7 +415,77 @@ namespace rgatCore
         }
         
         
-        //private bool loadExterns(JObject processJSON);
+        bool UnpackExtern(JObject externEntry)
+        {
+            if (!externEntry.TryGetValue("A", out JToken Addr) || Addr.Type != JTokenType.Integer)
+            {
+                Console.WriteLine("[rgat]Error, address not found in extern entry");
+                return false;
+            }
+            ulong externAddr = Addr.ToObject<ulong>();
+
+            ROUTINE_STRUCT BBEntry = new ROUTINE_STRUCT();
+
+            if (!externEntry.TryGetValue("M", out JToken ModID) || ModID.Type != JTokenType.Integer)
+            {
+                Console.WriteLine("[rgat]Error: module ID not found in extern entry");
+                return false;
+            }
+            BBEntry.globalmodnum = ModID.ToObject<uint>();
+
+            if (!externEntry.TryGetValue("S", out JToken hasSym) || hasSym.Type != JTokenType.Boolean)
+            {
+                Console.WriteLine("[rgat]Error: Symbol presence not found in extern entry");
+                return false;
+            }
+            BBEntry.hasSymbol = ModID.ToObject<bool>();
+
+
+            if (externEntry.TryGetValue("C", out JToken callers) && callers.Type != JTokenType.Array)
+            {
+            JArray CallersArray = (JArray)callers;
+            foreach (JArray caller in CallersArray)
+            {
+
+                List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
+                uint threadID = caller[0].ToObject<uint>();
+                JArray edges = (JArray) caller[1];
+
+                foreach (JArray edge in edges)
+                {
+                        uint source = edge[0].ToObject<uint>();
+                        uint target = edge[0].ToObject<uint>();
+                        ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
+                }
+                BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
+                  
+            }
+            }
+            externdict.Add(externAddr,BBEntry);
+            return true;
+        }
+
+
+        bool loadExterns(JObject processJSON)
+        {
+            if (!processJSON.TryGetValue("Externs", out JToken jExterns) || jExterns.Type != JTokenType.Array)
+            {
+                Console.WriteLine("[rgat] Failed to find valid Externs in trace");
+                return false;
+            }
+            JArray ExternsArray = (JArray)jExterns;
+
+
+            Console.WriteLine("Loading " + ExternsArray.Count + " externs");
+            //display_only_status_message(externLoadMsg.str(), clientState);
+
+            foreach (JObject externObj in ExternsArray.Children())
+            {
+                if (!UnpackExtern(externObj))
+                    return false;
+            }
+            return true;
+        }
 
         
 

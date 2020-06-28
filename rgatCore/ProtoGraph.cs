@@ -14,14 +14,14 @@ namespace rgatCore
 
 	struct ROUTINE_STRUCT
 	{
-		List<InstructionData> inslist;
-		uint globalmodnum;
+		public List<InstructionData> inslist;
+		public uint globalmodnum;
 		//list of threads that call this BB
 		//inside is list of the threads verts that call it
 		//it can exist multiple times on map so caller->this is listed
 		//  tid     
-		Dictionary<uint, List<Tuple<uint,uint>>> thread_callers;
-		bool hasSymbol;
+		public Dictionary<uint, List<Tuple<uint,uint>>> thread_callers;
+		public bool hasSymbol;
 	};
 
 	struct TAG
