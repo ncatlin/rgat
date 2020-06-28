@@ -58,24 +58,19 @@ namespace rgatCore
 
 		//return true if a new trace was created, false if failed or duplicate
 		//todo should have 3 returns
-		bool initialiseTrace(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord trace)
+		bool initialiseTrace(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
 		{
-			uint tracePID;
-			int tracePID_ID;
-			DateTime timeStarted;
-			trace = null;
 
 			bool valid = true;
 			valid = valid & saveJSON.TryGetValue("PID", out JToken jPID);
-			valid = valid & saveJSON.TryGetValue("PID_ID", out JToken jPID_ID);
+			valid = valid & saveJSON.TryGetValue("PID_ID", out JToken jID);
 			valid = valid & saveJSON.TryGetValue("StartTime", out JToken jTime);
-
-			
 			
 			if (valid == false || jPID.Type != JTokenType.Integer ||
-				jPID_ID.Type != JTokenType.Integer)
+				jID.Type != JTokenType.Integer)
 			{
 				Console.WriteLine("[rgat]Warning: Bad trace metadata. Load failed.");
+				traceResult = null;
 				return false;
 			}
 
@@ -92,26 +87,25 @@ namespace rgatCore
 			else
 			{
 				Console.WriteLine("BAD DATETIME");
+				traceResult = null;
 				return false;
 			}
 
 			
-			bool newTrace = target.CreateTraceAtTime(StartTime, (uint)jPID, (ulong)jPID_ID, out trace);
+			bool newTrace = target.CreateNewTrace(StartTime, (uint)jPID, (uint)jID, out traceResult);
 			if (!newTrace)
 			{
 				//updateActivityStatus("Trace already loaded", 15000);
 				Console.WriteLine("[rgat] Trace already loaded");
 				return false;
 			}
-			trace.SetTraceType(eTracePurpose.eVisualiser);
-			
+
 			//updateActivityStatus("Loaded saved process: " + QString::number(tracePID), 15000);
 			return true;
 		}
 
 		public bool LoadTraceByPath(string path, out TraceRecord trace)
         {
-			TraceRecord loadedTrace = null;
 			//display_only_status_message("Loading save file...", clientState);
 			//updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
 
@@ -143,10 +137,10 @@ namespace rgatCore
 				return false;
 			}
 			
-			/*
-			if (!trace->load(saveJSON, config.graphColours))
+			
+			if (!trace.load(saveJSON))//, config.graphColours))
 				return false;
-
+			/*
 			if (traceReturnPtr)
 				*traceReturnPtr = trace;
 
@@ -158,8 +152,6 @@ namespace rgatCore
 				loadChildTraces(childrenFiles, trace);
 			*/
 
-			
-			trace = loadedTrace;
             return true;
         }
     }

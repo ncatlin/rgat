@@ -40,12 +40,13 @@ namespace rgatCore
 
 	class TraceRecord
     {
-		enum eTracePurpose { eVisualiser, eFuzzer };
-		public TraceRecord(uint newPID, int randomNo, BinaryTarget binary, DateTime timeStarted)
+		public enum eTracePurpose { eVisualiser, eFuzzer };
+		public TraceRecord(uint newPID, uint randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser)
         {
 			PID = newPID;
 			randID = randomNo;
 			launchedTime = timeStarted;
+			TraceType = purpose;
 
 			//modIDTranslationVec.resize(255, -1);
 
@@ -104,7 +105,34 @@ namespace rgatCore
 	
 		void save(void* clientConfigPtr);
 		*/
-		//bool load(const rapidjson::Document& saveJSON, List<QColor> &colours);
+		public bool load(Newtonsoft.Json.Linq.JObject saveJSON)//, List<QColor> &colours);
+        {
+			if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
+			{
+				Console.WriteLine("[rgat]ERROR: Process data load failed");
+				return false;
+			}
+
+			Console.WriteLine("[rgat]Loaded process data. Loading graphs...");
+
+			/*
+			if (!loadProcessGraphs(saveJSON, colours))//.. &config.graphColours))
+			{
+				Console.WriteLine("[rgat]Process Graph load failed");
+				return false;
+			}
+
+			if (!loadTimeline(saveJSON))
+			{
+				Console.WriteLine("[rgat]Timeline load failed");
+				return false;
+			}
+			*/
+			return true;
+		}
+
+
+
 		/*
 		void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
 		void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> &writer) { runtimeline.serialise(writer); };
@@ -115,12 +143,12 @@ namespace rgatCore
 		void set_running(bool r) { running = r; }
 		/*
 		void killTree();
-		void setTraceType(eTracePurpose purpose);
-		eTracePurpose getTraceType() { return tracetype; }
 		int find_containing_module(ulong address, int &localmodID);
 		*/
 		Dictionary<uint, ProtoGraph> ProtoGraphs;
 		Dictionary<uint, PlottedGraph> PlottedGraphs;
+
+		public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
 
 		TraceRecord ParentTrace = null;
 		List<TraceRecord> children;
@@ -129,7 +157,7 @@ namespace rgatCore
 		//void* fuzzRunPtr = null;
 
 		uint PID;
-		int randID; //to distinguish between processes with identical PIDs
+		uint randID; //to distinguish between processes with identical PIDs
 
 		//index of this vec == client reference to each module. returned value is our static reference to the module
 		//needed because each trace drgat can come up with a new ID for each module
@@ -151,6 +179,5 @@ namespace rgatCore
 		private BinaryTarget binaryPtr = null;
 		private bool running = false;
 		private bool killed = false;
-		private eTracePurpose tracetype;
 	}
 }

@@ -16,14 +16,16 @@ namespace rgatCore
             return new List<string>(targets.Keys);
         }
 
+        //Get a BinaryTarget object for a path. Returns true if a new record had to be created
         public bool GetTargetByPath(string path, out BinaryTarget result)
         {
             if (targets.TryGetValue(path, out BinaryTarget existingEntry)) {
                 result = existingEntry;
-                return true; 
+                return false; 
             }
-            result = null;
-            return false;
+            result = new BinaryTarget(path);
+            targets.Add(path, result);
+            return true;
         }
 
         public void AddTargetByPath(string path)

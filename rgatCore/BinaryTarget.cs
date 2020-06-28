@@ -33,6 +33,11 @@ namespace rgatCore
         public string HexPreview { get; private set; } = "";
         public string ASCIIPreview { get; private set; } = "";
         public string FormatNotes { get; private set; } = "Not Analysed";
+
+        private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
+        //private List<TraceRecord> TraceRecordsList;
+
+
         public BinaryTarget(string filepath)
         {
             FilePath = filepath;
@@ -112,6 +117,17 @@ namespace rgatCore
         {
             excludedLibs.blacklistedDirs.Add(@"C:\\Windows"); 
             excludedLibs.blacklistedFiles.Add("@C:\\Windows\\System32\\ntdll.dll");
+        }
+
+
+        public bool CreateNewTrace(DateTime timeStarted, uint PID, uint ID, out TraceRecord newRecord)
+        {
+            if (RecordedTraces.TryGetValue(timeStarted, out newRecord))
+            {
+                return false;
+            }
+            newRecord = new TraceRecord(PID, ID, this, timeStarted);
+            return true;
         }
     }
 }
