@@ -6,6 +6,10 @@ namespace rgatCore
 {
     class CylinderGraph : PlottedGraph
     {
+		const int DEFAULT_PIX_PER_A_COORD = 80;
+		const int DEFAULT_PIX_PER_B_COORD = 120;
+		const int PREVIEW_PIX_PER_A_COORD = 3;
+		const int PREVIEW_PIX_PER_B_COORD = 4;
 
 		public CylinderGraph(ProtoGraph baseProtoGraph) : base(baseProtoGraph)//, vector<QColor>* coloursPtr)
 		{
@@ -27,10 +31,33 @@ namespace rgatCore
 
 		pair<void*, float> get_diffgraph_nodes() { return make_pair(&node_coords, maxB); }
 		void set_diffgraph_nodes(pair<void*, float> diffData) { node_coords = (vector<CYLINDERCOORD>*)diffData.first; maxB = diffData.second; }
-		uint get_graph_size() { return main_scalefactors->plotSize; };
+		uint get_graph_size() { return main_scalefactors.plotSize; };
 
 		void orient_to_user_view();
-		void initialiseDefaultDimensions();
+		*/
+		public void InitialiseDefaultDimensions()
+        {
+			wireframeSupported = true;
+			wireframeActive = true;
+
+			preview_scalefactors.plotSize = 600;
+			preview_scalefactors.basePlotSize = 600;
+			preview_scalefactors.pix_per_A = PREVIEW_PIX_PER_A_COORD;
+			preview_scalefactors.pix_per_B = PREVIEW_PIX_PER_B_COORD;
+
+			main_scalefactors.plotSize = 20000;
+			main_scalefactors.basePlotSize = 20000;
+			main_scalefactors.userSizeModifier = 1;
+			main_scalefactors.pix_per_A = DEFAULT_PIX_PER_A_COORD;
+			main_scalefactors.original_pix_per_A = DEFAULT_PIX_PER_A_COORD;
+			main_scalefactors.pix_per_B = DEFAULT_PIX_PER_B_COORD;
+			main_scalefactors.original_pix_per_B = DEFAULT_PIX_PER_B_COORD;
+
+			view_shift_x = 96;
+			view_shift_y = 65;
+			cameraZoomlevel = 60000;
+		}
+		/*
 		void initialiseCustomDimensions(GRAPH_SCALE scale);
 
 		void setWireframeActive(int mode);

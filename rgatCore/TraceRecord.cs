@@ -150,8 +150,8 @@ namespace rgatCore
 
         public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
 
-        TraceRecord ParentTrace = null;
-        List<TraceRecord> children;
+        public TraceRecord ParentTrace = null;
+        public List<TraceRecord> children;
         bool UIRunningFlag = false;
         //void* processThreads = null;
         //void* fuzzRunPtr = null;
@@ -212,8 +212,8 @@ namespace rgatCore
             CylinderGraph renderedgraph = new CylinderGraph(protograph);//, &colours);
 
             PlottedGraphs.Add(GraphThreadID, renderedgraph);
-            //renderedgraph.initialiseDefaultDimensions();
-            //renderedgraph.setAnimated(false);
+            renderedgraph.InitialiseDefaultDimensions();
+            renderedgraph.SetAnimated(false);
 
 
             protograph.IsActive = false;

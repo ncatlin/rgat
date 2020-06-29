@@ -126,33 +126,63 @@ namespace rgatCore
 				return false;
 			}
 			
-			
 			if (!initialiseTrace(saveJSON, target, out trace))
 			{
 				if (trace != null) //already existed
 				{
 					switchTrace = trace;
 				}
-
 				return false;
 			}
 			
-			
 			if (!trace.load(saveJSON))//, config.graphColours))
 				return false;
-			/*
-			if (traceReturnPtr)
-				*traceReturnPtr = trace;
 
-			vector<boost::filesystem::path> childrenFiles;
-			extractChildTraceFilenames(saveJSON, &childrenFiles);
-			updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
 
-			if (!childrenFiles.empty())
-				loadChildTraces(childrenFiles, trace);
-			*/
-
+			//updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
+			ExtractChildTraceFilenames(saveJSON, out List<string> childrenFiles);
+			if (childrenFiles.Count > 0)
+				LoadChildTraces(childrenFiles, trace);
+			
             return true;
         }
-    }
+
+		void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
+		{
+			childrenFiles = new List<string>();
+			if (saveJSON.TryGetValue("Children", out JToken jChildren) && jChildren.Type == JTokenType.Array)
+            {
+				JArray ChildrenArray = (JArray)jChildren;
+				foreach (JToken fname in ChildrenArray)
+				{
+					childrenFiles.Add(fname.ToString());
+				}
+			}
+		}
+
+		void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
+		{
+			
+			string saveDir = "C:\\";//config.saveDir;
+			foreach (string file in childrenFiles)
+			{
+				
+				string childFilePath = Path.Combine(saveDir, file);
+
+				if (Path.GetDirectoryName(childFilePath) != saveDir)
+					return; //avoid directory traversal
+
+				if (!File.Exists(childFilePath))
+				{
+					Console.WriteLine("[rgat] Warning: Unable to find child save file "+childFilePath);
+					return;
+				}
+
+				LoadTraceByPath(childFilePath, out TraceRecord childTrace);
+				trace.children.Add(childTrace);
+				childTrace.ParentTrace = trace;
+			}
+			
+		}
+	}
 }

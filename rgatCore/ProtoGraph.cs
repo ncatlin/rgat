@@ -120,7 +120,7 @@ namespace rgatCore
             return true;
         }
 
-        private bool loadAnimationData(JArray animationArray)
+        private bool LoadAnimationData(JArray animationArray)
         {
             foreach (JArray animFields in animationArray)
             {
@@ -166,7 +166,7 @@ namespace rgatCore
                 EXTERNCALLDATA callDat = new EXTERNCALLDATA();
                 callDat.argList = CallArgList;
                 callDat.edgeIdx = edge;
-                externCallRecords.Add(callDat);
+                ExternCallRecords.Add(callDat);
             }
             return true;
         }
@@ -331,9 +331,7 @@ namespace rgatCore
         //animation data received from target
         List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
 
-
-        //todo rename
-        List<uint> ExceptionNodeIndexes;
+        List<uint> ExceptionNodeIndexes = new List<uint>();
 
         public void AssignModulePath()
         {
@@ -417,7 +415,7 @@ namespace rgatCore
                 return false;
             }
             JArray ReplayDataArray = (JArray)jReplayData;
-            if (!loadAnimationData(ReplayDataArray))
+            if (!LoadAnimationData(ReplayDataArray))
             {
                 Console.WriteLine("[rgat]ERROR: Failed to load ReplayData");
                 return false;
@@ -428,15 +426,12 @@ namespace rgatCore
                 Console.WriteLine("[rgat]ERROR: Failed to load graph stats"); 
                 return false; 
             }
-
-
             return true;
-
         }
         /*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
-        List<EXTERNCALLDATA> externCallRecords;
+        List<EXTERNCALLDATA> ExternCallRecords = new List<EXTERNCALLDATA>();
         ulong totalInstructions = 0;
         int exeModuleID = -1;
         ulong moduleBase = 0;

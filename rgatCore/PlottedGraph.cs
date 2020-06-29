@@ -4,7 +4,20 @@ using System.Text;
 
 namespace rgatCore
 {
-    abstract class PlottedGraph
+	class GRAPH_SCALE
+	{
+		public long plotSize = 10000;
+		public long basePlotSize = 10000;
+		public float userSizeModifier = 1;
+		public int maxA = 360;
+		public int maxB = 180;
+		public int maxC = 1;
+		public int pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B;
+		public float stretchA = 1, stretchB = 1;
+	};
+
+
+	abstract class PlottedGraph
     {
 
 		public PlottedGraph(ProtoGraph protoGraph)//, List<QColor> *graphColoursPtr);
@@ -132,7 +145,17 @@ namespace rgatCore
 		bool needsReleasing() { return freeMe; }
 		void setNeedReleasing(bool state) { freeMe = state; }
 		void apply_drag(double dx, double dy);
-		void setAnimated(bool newState);
+		*/
+		public void SetAnimated(bool newState)
+        {
+			if (IsAnimated)
+			{
+				animation_needs_reset = true;
+			}
+
+			IsAnimated = newState;
+		}
+		/*
 		void copy_node_data(GraphDisplayData* nodes);
 		void scheduleRedraw() { replotScheduled = true; }
 		bool needsReplotting() { return replotScheduled; }
@@ -172,8 +195,8 @@ namespace rgatCore
 		bool needVBOReload_heatmap = true;
 		bool needVBOReload_conditional = true;
 
-		//GRAPH_SCALE* main_scalefactors = NULL;
-		//GRAPH_SCALE* preview_scalefactors = NULL;
+		protected GRAPH_SCALE main_scalefactors = new GRAPH_SCALE();
+		protected GRAPH_SCALE preview_scalefactors = new GRAPH_SCALE();
 		//GLuint previewVBOs[4] = { 0, 0, 0, 0 };
 
 		//HIGHLIGHT_DATA highlightData;
@@ -188,9 +211,9 @@ namespace rgatCore
 		bool VBOsGenned = false;
 		ulong userSelectedAnimPosition = 0;
 
-		double cameraZoomlevel = -1;
-		float view_shift_x = 0, view_shift_y = 0;
-		float graph_pan_x = 0, graph_pan_y = 0;
+		protected double cameraZoomlevel = -1;
+		protected float view_shift_x = 0, view_shift_y = 0;
+		protected float graph_pan_x = 0, graph_pan_y = 0;
 
 		//REPLAY_STATE replayState = eStopped;
 		int updateProcessingIndex = 0;
@@ -244,8 +267,8 @@ namespace rgatCore
 		//List<ANIMATIONENTRY> currentUnchainedBlocks;
 		//List<QColor>* graphColours = null;
 
-		bool wireframeSupported = false;
-		bool wireframeActive = false;
+		protected bool wireframeSupported = false;
+		protected bool wireframeActive = false;
 		Tuple<long, long> defaultViewShift;
 		long defaultZoom;
 		protected graphLayouts layout;
@@ -344,7 +367,7 @@ namespace rgatCore
 		bool dying = false;
 		bool beingDeleted = false;
 		//int threadReferences = 0;
-		bool animated = false;
+		public bool IsAnimated { get; private set; } = false;
 		bool animation_needs_reset = false;
 		bool performSymbolResolve = false;
 	}
