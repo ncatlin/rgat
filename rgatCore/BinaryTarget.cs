@@ -71,9 +71,6 @@ namespace rgatCore
             return _sha1hash;
         }
 
-
-
-
         private void ParseFile()
         {
             try
@@ -106,19 +103,16 @@ namespace rgatCore
                 HexPreview = "Error";
             }
         }
-
         public string GetFileSizeString()
         {
             return String.Format(new FileSizeFormatProvider(), "{0:fs}", fileSize);
         }
-
 
         public void AddDefaultExclusions()
         {
             excludedLibs.blacklistedDirs.Add(@"C:\\Windows"); 
             excludedLibs.blacklistedFiles.Add("@C:\\Windows\\System32\\ntdll.dll");
         }
-
 
         public bool CreateNewTrace(DateTime timeStarted, uint PID, uint ID, out TraceRecord newRecord)
         {

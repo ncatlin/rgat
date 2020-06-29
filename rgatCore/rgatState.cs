@@ -109,7 +109,6 @@ namespace rgatCore
 			//display_only_status_message("Loading save file...", clientState);
 			//updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
 
-
 			Newtonsoft.Json.Linq.JObject saveJSON = null;
 			using (StreamReader file = File.OpenText(path))
             {
@@ -138,7 +137,6 @@ namespace rgatCore
 			if (!trace.load(saveJSON))//, config.graphColours))
 				return false;
 
-
 			//updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
 			ExtractChildTraceFilenames(saveJSON, out List<string> childrenFiles);
 			if (childrenFiles.Count > 0)
@@ -163,13 +161,13 @@ namespace rgatCore
 		void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
 		{
 			
-			string saveDir = "C:\\";//config.saveDir;
+			string saveDir = "C:\\";//config.saveDir; //should be same dir as loaded trace?
 			foreach (string file in childrenFiles)
 			{
 				
 				string childFilePath = Path.Combine(saveDir, file);
 
-				if (Path.GetDirectoryName(childFilePath) != saveDir)
+				if (Path.GetDirectoryName(childFilePath) != saveDir) //or a children subdir?
 					return; //avoid directory traversal
 
 				if (!File.Exists(childFilePath))

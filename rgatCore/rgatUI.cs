@@ -802,16 +802,25 @@ namespace rgatCore
         private void LoadTraceByPath(string filepath)
         {
             if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
+            
+            launch_all_trace_threads(trace, _rgatstate);
             /*
-            launch_all_trace_threads(trace, rgatstate);
-
             rgatstate->activeBinary = (binaryTarget*)trace->get_binaryPtr();
             rgatstate->switchTrace = trace;
 
             ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
             */
         }
+        void launch_all_trace_threads(TraceRecord trace, rgatState clientState)
+        {
+            launch_saved_process_threads(trace, clientState);
 
+            traceRecord* childTrace;
+            foreach (childTrace, trace->children)
+	{
+                launch_all_trace_threads(childTrace, clientState);
+            }
+        }
 
         private void DrawTraceLoadBox()
         {
