@@ -11,11 +11,12 @@ namespace rgatCore
     class rgatState
     {
         public BinaryTargets targets = new BinaryTargets();
-        public BinaryTarget ActiveTarget { get; private set; } = null;
+		public BinaryTarget ActiveTarget = null;// { get; private set; } = null;
 
         public rgatState() { }
 
 		public TraceRecord switchTrace = null;
+		public bool rgatIsExiting { private set; get; } = false;
 
         public void AddTargetByPath(string path, bool selectIt = true)
         {

@@ -222,7 +222,27 @@ namespace rgatCore
         //public bool edge_exists(NODEPAIR edge, edge_data** edged);
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
+            Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
 
+            //getNodeWriteLock();
+
+            source.OutgoingNeighboursSet.Add(edgePair.Item2);
+            if (source.conditional != eConditionalType.NOTCONDITIONAL && 
+                source.conditional != eConditionalType.CONDCOMPLETE)
+            {
+                if (source.ins.condDropAddress == target.address)
+                    source.conditional |= eConditionalType.CONDFELLTHROUGH;
+                else if (source.ins.branchAddress == target.address)
+                    source.conditional |= eConditionalType.CONDTAKEN;
+            }
+
+            target.IncomingNeighboursSet.Add(edgePair.Item1);
+            //dropNodeWriteLock();
+
+            //getEdgeWriteLock();
+            edgeDict.Add(edgePair, e);
+            edgeList.Add(edgePair);
+            //dropEdgeWriteLock();
         }
 
         /*
@@ -233,19 +253,19 @@ namespace rgatCore
 		public void handle_tag(TAG* thistag, ulong repeats = 1);
 		public bool notify_pending_func(ulong funcpc, ulong returnpc);
 		public bool hasPendingCalledFunc() { return pendingCalledFunc != null; }
-		public EDGEDictionary edgeDict; //node id pairs to edge data
-		public EDGELIST edgeList; //order of edge execution
+        */
+        //node id pairs to edge data
+        public Dictionary<Tuple<uint,uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
+        //order of edge execution
+        public List<Tuple<uint,uint>> edgeList = new List<Tuple<uint, uint>>(); 
 
-		//i feel like this misses the point, idea is to iterate safely
-		public EDGELIST* edgeLptr() { return &edgeList; }
-		*/
         public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
         public List<BlockData> BlockList = new List<BlockData>(); //node id to node data
+        
+		public bool node_exists(uint idx) { return (NodeList.Count > idx); }
+		public int get_num_nodes() { return NodeList.Count; }
+        public int get_num_edges() { return edgeList.Count; }
         /*
-		public bool node_exists(uint idx) { return (nodeList.Count > idx); }
-		public int get_num_nodes() { return nodeList.Count; }
-		public int get_num_edges() { return edgeDict.Count; }
-
 		public void acquireNodeReadLock() { getNodeReadLock(); }
 		public void releaseNodeReadLock() { dropNodeReadLock(); }
 
@@ -254,9 +274,16 @@ namespace rgatCore
 		public void addBlockLineToGraph(TAG* tag, int repeats);
 		public void addBlockNodesToGraph(TAG* tag, int repeats);
 
-
-		void set_active_node(uint idx);
-		void handle_loop_contents();
+        */
+		public void set_active_node(uint idx)
+        {
+            if (idx > NodeList.Count) return;
+            //getNodeWriteLock();
+            latest_active_node_idx = idx;
+            //dropNodeWriteLock();
+        }
+		/*
+        void handle_loop_contents();
 
 		void set_max_arg_storage(uint maxargs) { arg_storage_capacity = maxargs; }
 		string get_node_sym(uint idx);
@@ -296,7 +323,7 @@ namespace rgatCore
 		node_data* unsafe_get_node(uint index);
 		*/
 
-        NodeData safe_get_node(uint index)
+        public NodeData safe_get_node(uint index)
         {
             if (index >= NodeList.Count)
                 return null;
@@ -356,7 +383,6 @@ namespace rgatCore
 
 		*/
 
-        bool terminationFlag = false;
         //bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 
         public bool Deserialise(JObject graphData, Dictionary<ulong, List<InstructionData>> disassembly)
@@ -460,14 +486,12 @@ namespace rgatCore
         //number of times an external function has been called. used to Dictionary arguments to calls
         Dictionary<Tuple<ulong, ulong>, ulong> externFuncCallCounter;
 
-        bool terminated = false;
         bool updated = true;
 
         void set_terminated()
         {
             terminated = true;
             updated = true; //aka needvboreloadpreview
-            terminationFlag = true;
             IsActive = false;
             finalNodeID = lastVertID;
         }
@@ -476,5 +500,6 @@ namespace rgatCore
         //void stop_edgeL_iteration();
 
         public bool IsActive = true;
+        public bool terminated = false;
     }
 }

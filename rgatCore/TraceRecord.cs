@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -51,14 +52,12 @@ namespace rgatCore
 
             //modIDTranslationVec.resize(255, -1);
 
-            binaryPtr = binary;
+            binaryTarg = binary;
             DisassemblyData = new ProcessRecord(binary.BitWidth);
             //DisassemblyData->modBounds.resize(255, null);
         }
 
         string getModpathID() { return PID.ToString() + randID.ToString(); }
-        BinaryTarget get_binaryPtr() { return binaryPtr; }
-
         /*
 		void notify_new_pid(uint pid, int PID_ID, uint parentPid) { runtimeline.notify_new_pid(pid, PID_ID, parentPid); running = true; }
 		void notify_pid_end(uint pid, int PID_ID) { running = runtimeline.notify_pid_end(pid, PID_ID); }
@@ -137,23 +136,26 @@ namespace rgatCore
 		void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
 		void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> &writer) { runtimeline.serialise(writer); };
 		*/
-        void killTraceProcess() { if (running) { killed = true; } }
+        void killTraceProcess() { if (IsRunning) { killed = true; } }
         bool should_die() { return killed; }
-        bool is_running() { return running; }
-        void set_running(bool r) { running = r; }
         /*
 		void killTree();
 		int find_containing_module(ulong address, int &localmodID);
 		*/
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
         Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
+        public List<PlottedGraph> GetPlottedGraphs()
+        {
+            return PlottedGraphs.Values.ToList();
+        }
+
 
         public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
 
         public TraceRecord ParentTrace = null;
-        public List<TraceRecord> children;
+        public List<TraceRecord> children = new List<TraceRecord>();
         bool UIRunningFlag = false;
-        //void* processThreads = null;
+        public RGAT_THREADS_STRUCT ProcessThreads;
         //void* fuzzRunPtr = null;
 
         public uint PID { get; private set; }
@@ -161,8 +163,8 @@ namespace rgatCore
 
         //index of this vec == client reference to each module. returned value is our static reference to the module
         //needed because each trace drgat can come up with a new ID for each module
-        List<long> modIDTranslationVec;
-        Dictionary<long, bool> activeMods;
+        List<long> modIDTranslationVec = new List<long>();
+        Dictionary<long, bool> activeMods = new Dictionary<long, bool>();
 
         int loadedModuleCount = 0;
 
@@ -232,8 +234,8 @@ namespace rgatCore
         //private timeline runtimeline;
         private DateTime launchedTime; //the time the user pressed start, not when the first process was seen
 
-        private BinaryTarget binaryPtr = null;
-        private bool running = false;
+        public BinaryTarget binaryTarg { private set; get; } = null;
+        public bool IsRunning { private set; get; } = false;
         private bool killed = false;
     }
 }

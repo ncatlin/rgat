@@ -17,7 +17,7 @@ namespace rgatCore
             //acquire_col_write();
         }
 
-        /*
+		/*
 			List<float>* acquire_pos_read(int holder = 0);
 			List<float>* acquire_col_read();
 			List<float>* acquire_pos_write(int holder = 0);
@@ -40,9 +40,11 @@ namespace rgatCore
 			GLsizei get_numLoadedVerts() { return loadedVerts; }
 			void set_numLoadedVerts(GLsizei qty) { loadedVerts = qty; }
 			void set_numVerts(GLsizei num);
-			uint get_renderedEdges() { return edgesRendered; }
-			void inc_edgesRendered() { ++edgesRendered; }
+				*/
+		//uint get_renderedEdges() { return edgesRendered; }
+			public void inc_edgesRendered() { ++CountRenderedEdges; }
 
+		/*
 			void drawShortLinePoints(FCOORD &startC, FCOORD &endC, QColor &colour, long* arraypos);
 			int drawLongCurvePoints(FCOORD &bezierC, FCOORD &startC, FCOORD &endC, QColor &colour, int edgeType, long* colarraypos);
 
@@ -51,10 +53,10 @@ namespace rgatCore
 		*/
 
 
-        //mutable std::shared_mutex poslock_;
-        //mutable std::shared_mutex collock_;
+		//mutable std::shared_mutex poslock_;
+		//mutable std::shared_mutex collock_;
 
-        ulong numVerts = 0;
+		public int CountVerts { private set; get; } = 0;
         ulong loadedVerts = 0;
 
         //List<float> vposarray;
@@ -62,7 +64,7 @@ namespace rgatCore
         ulong vcolarraySize = 0;
 
         //not used for nodes
-        uint edgesRendered = 0;
+        public uint CountRenderedEdges { get; private set; } = 0;
         public bool IsPreview { get; private set; } = false;
     }
 }

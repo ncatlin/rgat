@@ -804,20 +804,19 @@ namespace rgatCore
             if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
             
             launch_all_trace_threads(trace, _rgatstate);
-            /*
-            rgatstate->activeBinary = (binaryTarget*)trace->get_binaryPtr();
-            rgatstate->switchTrace = trace;
 
-            ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
-            */
+            _rgatstate.ActiveTarget = trace.binaryTarg;
+            _rgatstate.switchTrace = trace;
+
+            //ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
+            
         }
         void launch_all_trace_threads(TraceRecord trace, rgatState clientState)
         {
-            launch_saved_process_threads(trace, clientState);
+            ProcessLaunching.launch_saved_process_threads(trace, clientState);
 
-            traceRecord* childTrace;
-            foreach (childTrace, trace->children)
-	{
+            foreach (TraceRecord childTrace in trace.children)
+	        {
                 launch_all_trace_threads(childTrace, clientState);
             }
         }

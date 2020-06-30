@@ -20,7 +20,7 @@ namespace rgatCore
             index = nodeData[0].ToObject<uint>();
 
             if (nodeData[1].Type != JTokenType.Integer) return ErrorAtIndex(1);
-            conditional = nodeData[1].ToObject<int>();
+            conditional = (eConditionalType) nodeData[1].ToObject<int>();
 
             if (nodeData[2].Type != JTokenType.Integer) return ErrorAtIndex(2);
             GlobalModuleID = nodeData[2].ToObject<int>();
@@ -129,7 +129,7 @@ namespace rgatCore
 
         public uint index = 0;
 
-        int conditional = 0;
+        public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
         public InstructionData ins;
         public bool IsExternal { get; private set; } = false;
         bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
@@ -143,7 +143,7 @@ namespace rgatCore
 
         //number of external functions called
         uint childexterns = 0;
-        ulong address = 0; //this is only used in externs. bit big?
+        public ulong address = 0;
         uint parentIdx = 0;
 
         ulong executionCount = 0;
@@ -152,8 +152,8 @@ namespace rgatCore
 
         ulong heat_run_marker;
 
-        List<uint> IncomingNeighboursSet = new List<uint>();
-        List<uint> OutgoingNeighboursSet = new List<uint>();
+        public List<uint> IncomingNeighboursSet = new List<uint>();
+        public List<uint> OutgoingNeighboursSet = new List<uint>();
 
         string label;
         bool placeholder = false;

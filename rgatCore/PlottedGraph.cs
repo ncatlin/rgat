@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace rgatCore
@@ -18,10 +19,15 @@ namespace rgatCore
 
 
 	abstract class PlottedGraph
-    {
+	{
+		public struct PLOT_TRACK
+		{
+			public uint lastVertID;
+			public eEdgeNodeType lastVertType;
+		};
 
 		public PlottedGraph(ProtoGraph protoGraph)//, List<QColor> *graphColoursPtr);
-        {
+		{
 			pid = protoGraph.TraceData.PID;
 			tid = protoGraph.ThreadID;
 
@@ -46,13 +52,13 @@ namespace rgatCore
 			needVBOReload_main = true;
 			needVBOReload_preview = true;
 
-			
+
 			//main_scalefactors = new GRAPH_SCALE;
 			//preview_scalefactors = new GRAPH_SCALE;
 
 			internalProtoGraph = protoGraph;
 			/*
-			if (internalProtoGraph->active)
+			if (internalProtoGraph.active)
 				animated = true;
 			else
 				animated = false;
@@ -71,8 +77,9 @@ namespace rgatCore
 		{
 			cerr << "Warning: Virtual gvnp called" << endl; return false;
 		};
-		virtual void render_static_graph() { assert(false); };
-
+		*/
+		public abstract void render_static_graph();
+		/*
 		virtual void performMainGraphDrawing(graphGLWidget &gltarget) { cout << "virtual pmgd called" << endl; };
 		virtual void performDiffGraphDrawing(graphGLWidget &gltarget, void* divergeNodePosition);
 
@@ -112,8 +119,12 @@ namespace rgatCore
 		virtual void updateStats(float a, float b, float c);
 
 		virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data** node) { return INT_MAX; };
-
-		void updateMainRender();
+		*/
+		void updateMainRender()
+        {
+			render_static_graph();
+		}
+		/*
 		int render_preview_graph();
 		void changeZoom(double delta, double deltaModifier);
 
@@ -126,11 +137,45 @@ namespace rgatCore
 		void gen_graph_VBOs(graphGLWidget &gltarget);
 		void render_replay_animation(float fadeRate);
 
+		*/
+		public void schedule_animation_reset() { animation_needs_reset = true; }
+		public void reset_animation_if_scheduled()
+		{
+			if (!animation_needs_reset) return;
 
-		void schedule_animation_reset() { animation_needs_reset = true; }
-		void reset_animation_if_scheduled();
+			//deactivate any active nodes/edges
+			clear_active();
 
-		float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph->savedAnimationData.size()); }
+			//darken any active drawn nodes
+			if (internalProtoGraph.NodeList.Count > 0)
+			{
+				internalProtoGraph.set_active_node(0);
+				darken_fading(1.0f);
+				darken_fading(1.0f);
+			}
+
+			Debug.Assert(fadingAnimEdgesSet.Count == 0 && fadingAnimNodesSet.Count == 0);
+
+			animInstructionIndex = 0;
+			lastAnimatedNode = 0;
+			animationIndex = 0;
+
+			//animnodesdata.acquire_col_write();
+
+			newAnimEdgeTimes.Clear();
+			newAnimNodeTimes.Clear();
+			activeAnimEdgeTimes.Clear();
+			activeAnimNodeTimes.Clear();
+			unchainedWaitFrames = 0;
+			currentUnchainedBlocks.Clear();
+			animBuildingLoop = false;
+			IsAnimated = false;
+
+			//animnodesdata.release_col_write();
+			animation_needs_reset = false;
+		}
+		/*
+		float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph.savedAnimationData.size()); }
 		void render_live_animation(float fadeRate);
 		void highlight_last_active_node();
 		void set_animation_update_rate(int updatesPerFrame) { animEntriesPerFrame = updatesPerFrame; }
@@ -147,7 +192,7 @@ namespace rgatCore
 		void apply_drag(double dx, double dy);
 		*/
 		public void SetAnimated(bool newState)
-        {
+		{
 			if (IsAnimated)
 			{
 				animation_needs_reset = true;
@@ -159,7 +204,7 @@ namespace rgatCore
 		void copy_node_data(GraphDisplayData* nodes);
 		void scheduleRedraw() { replotScheduled = true; }
 		bool needsReplotting() { return replotScheduled; }
-		float zoomMultiplier() { return zoomFactor(cameraZoomlevel, main_scalefactors->plotSize); }
+		float zoomMultiplier() { return zoomFactor(cameraZoomlevel, main_scalefactors.plotSize); }
 
 		graphLayouts getLayout() { return layout; }
 
@@ -180,20 +225,22 @@ namespace rgatCore
 
 		//GLuint graphVBOs[6] = { 0, 0, 0, 0, 0, 0 };
 
-		GraphDisplayData mainlinedata = null;
-		GraphDisplayData animnodesdata = null;
-		GraphDisplayData animlinedata = null;
-		GraphDisplayData conditionallines = null;
-		GraphDisplayData conditionalnodes = null;
-		GraphDisplayData previewnodes = null;
-		GraphDisplayData previewlines = null;
-		GraphDisplayData blocklines = null;
 
-		bool needVBOReload_main = true;
-		bool needVBOReload_active = true;
-		bool needVBOReload_preview = true;
-		bool needVBOReload_heatmap = true;
-		bool needVBOReload_conditional = true;
+		public GraphDisplayData mainnodesdata = null;
+		public GraphDisplayData mainlinedata = null;
+		public GraphDisplayData animnodesdata = null;
+		public GraphDisplayData animlinedata = null;
+		public GraphDisplayData conditionallines = null;
+		public GraphDisplayData conditionalnodes = null;
+		public GraphDisplayData previewnodes = null;
+		public GraphDisplayData previewlines = null;
+		public GraphDisplayData blocklines = null;
+
+		protected bool needVBOReload_main = true;
+		protected bool needVBOReload_active = true;
+		protected bool needVBOReload_preview = true;
+		protected bool needVBOReload_heatmap = true;
+		protected bool needVBOReload_conditional = true;
 
 		protected GRAPH_SCALE main_scalefactors = new GRAPH_SCALE();
 		protected GRAPH_SCALE preview_scalefactors = new GRAPH_SCALE();
@@ -207,7 +254,7 @@ namespace rgatCore
 		Tuple<ulong, ulong> heatExtremes;
 		Tuple<ulong, ulong> condCounts;
 
-		ulong vertResizeIndex = 0;
+		public ulong vertResizeIndex = 0;
 		bool VBOsGenned = false;
 		ulong userSelectedAnimPosition = 0;
 
@@ -227,18 +274,89 @@ namespace rgatCore
 
 		//protected:
 		/*
-	void display_active(graphGLWidget &gltarget);
-		void display_static(graphGLWidget &gltarget);
-		void display_big_conditional(graphGLWidget &gltarget);
-		void display_big_heatmap(graphGLWidget &gltarget);
-		int render_new_edges();
-		int render_new_blocks();
-		void redraw_anim_edges();
+		protected void display_active(graphGLWidget &gltarget);
+		protected void display_static(graphGLWidget &gltarget);
+		protected void display_big_conditional(graphGLWidget &gltarget);
+		protected void display_big_heatmap(graphGLWidget &gltarget);
 
-		void acquire_nodecoord_read();
-		void acquire_nodecoord_write();
-		void release_nodecoord_read();
-		void release_nodecoord_write();
+	*/
+		protected int render_new_edges()
+        {
+			GraphDisplayData lines = mainlinedata;
+
+			int edgesDrawn = 0;
+
+			//internalProtoGraph.getEdgeReadLock();
+			if (lines.CountRenderedEdges >= internalProtoGraph.edgeList.Count) return 0;
+
+			needVBOReload_main = true;
+			for (uint edgeIdx = lines.CountRenderedEdges; edgeIdx != internalProtoGraph.edgeList.Count && !Stopping; edgeIdx++)
+			{
+				Tuple<uint,uint> edgeIt = internalProtoGraph.edgeList[(int)edgeIdx];
+				//render source node if not already done
+				if (edgeIt.Item1 >= (uint)mainnodesdata.CountVerts)
+				{
+					NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item1);
+					render_node(n, &lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
+				}
+				else
+					lastMainNode = setLastNode(edgeIt.Item1);
+
+
+				//render target node if not already done
+				if (edgeIt.Item2 >= (uint)mainnodesdata.CountVerts)
+				{
+					EdgeData e = internalProtoGraph.edgeDict[edgeIt];
+					if (e.edgeClass == eEdgeNodeType.eEdgeException)
+						lastPreviewNode.lastVertType = eEdgeNodeType.eNodeException;
+
+					NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item2);
+					render_node(n, lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
+				}
+				else
+					lastMainNode = setLastNode(edgeIt.Item1);
+
+				if (render_edge(edgeIt, lines, 0, false, false))
+				{
+					++edgesDrawn;
+					lines.inc_edgesRendered();
+				}
+				else
+					break;
+			}
+
+			extend_faded_edges();
+			internalProtoGraph.dropEdgeReadLock();
+			return edgesDrawn;
+		}
+		
+
+		//protected int render_new_blocks();
+		protected void redraw_anim_edges();
+		{
+				map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
+				for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
+				{
+					NODEPAIR nodePair = edgeIDIt->first;
+
+					GLfloat* ecol = &animlinedata->acquire_col_write()->at(0);
+
+					EDGEMAP::iterator edgeIt = internalProtoGraph->edgeDict.find(nodePair);
+					if (edgeIt != internalProtoGraph->edgeDict.end())
+					{
+						int numEdgeVerts = edgeIt->second.vertSize;
+					unsigned int colArrIndex = edgeIt->second.arraypos + AOFF;
+						for (int i = 0; i<numEdgeVerts; ++i)
+							ecol[colArrIndex] = 1;
+					}
+				animlinedata->release_col_write();
+			}
+		}
+		/*
+		protected void acquire_nodecoord_read();
+		protected void acquire_nodecoord_write();
+		protected void release_nodecoord_read();
+		protected void release_nodecoord_write();
 		*/
 		//PLOT_TRACK setLastNode(uint nodeIdx);
 
@@ -258,18 +376,16 @@ namespace rgatCore
 		List<Tuple<ulong, uint>> mainCallStack;
 		List<Tuple<ulong, uint>> previewCallStack;
 
-		protected ProtoGraph internalProtoGraph = null;
-		//PLOT_TRACK lastMainNode;
+		public ProtoGraph internalProtoGraph { get; protected set; } = null;
+		PLOT_TRACK lastMainNode;
 		uint lastAnimatedNode = 0;
-
-		GraphDisplayData mainnodesdata = null;
 		//Dictionary<uint, EXTTEXT> activeExternTimes;
-		//List<ANIMATIONENTRY> currentUnchainedBlocks;
+		List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
 		//List<QColor>* graphColours = null;
 
 		protected bool wireframeSupported = false;
 		protected bool wireframeActive = false;
-		Tuple<long, long> defaultViewShift;
+		//Tuple<long, long> defaultViewShift;
 		long defaultZoom;
 		protected graphLayouts layout;
 
@@ -278,12 +394,10 @@ namespace rgatCore
 		virtual void positionVert(void* positionStruct, MEM_ADDRESS address) { };
 		virtual void display_graph(PROJECTDATA* pd) { };
 		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
-
-		virtual void render_node(node_data* n, PLOT_TRACK* lastNode, GraphDisplayData* vertdata, GraphDisplayData* animvertdata,
-			GRAPH_SCALE* dimensions)
-		{
-			cerr << "Warning: Virtual render_node called\n" << endl;
-		};
+		*/
+		abstract public void render_node(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
+			GRAPH_SCALE dimensions);
+/*
 		virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
 		{
 			cerr << "Warning: Virtual render_block called\n" << endl;
@@ -315,21 +429,66 @@ namespace rgatCore
 		void brighten_new_active();
 
 		void maintain_active();
-		void darken_fading(float fadeRate);
-		void darken_nodes(float fadeRate);
-		void darken_edges(float fadeRate);
+		*/
+		void darken_fading(float fadeRate)
+		{
+			/* when switching graph layouts of a big graph it can take
+		   a long time for rerendering of all the edges in the protograph.
+		   we can end up with a protograph with far more edges than the rendered edges
+		   so have to check that we are operating within bounds */
 
+			if (animnodesdata.CountVerts > 0)
+				darken_nodes(fadeRate);
+
+			if (animlinedata.CountVerts > 0)
+				darken_edges(fadeRate);
+		}
+
+		void darken_nodes(float fadeRate)
+		{
+			//todo
+		}
+		void darken_edges(float fadeRate)
+		{
+		//todo
+		}
+		/*
 		void remove_unchained_from_animation();
 		ulong calculate_wait_frames(ulong executions);
-		void clear_active();
 		*/
+		void clear_active()
+        {
+			if (animnodesdata.CountVerts == 0) return;
+
+			if (activeAnimNodeTimes.Count > 0)
+			{
+				map<NODEINDEX, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
+				GLfloat* ncol = &animnodesdata.acquire_col_write().at(0);
+
+				for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
+					ncol[nodeAPosTimeIt.first] = ANIM_INACTIVE_NODE_ALPHA;
+				animnodesdata.release_col_write();
+			}
+
+			if (activeAnimEdgeTimes.Count > 0)
+			{
+				map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
+				for (; edgeIDIt != activeAnimEdgeTimes.end(); ++edgeIDIt)
+				{
+					edge_data* pulsingEdge;
+					if (internalProtoGraph.edge_exists(edgeIDIt.first, &pulsingEdge))
+						set_edge_alpha(edgeIDIt.first, animlinedata, ANIM_INACTIVE_EDGE_ALPHA);
+				}
+			}
+		}
+
 		//private:
-		/*
+		
 		ulong renderedBlocksCount = 0;
 
 		//position out of all the instructions instrumented
 		ulong animInstructionIndex = 0;
-
+		/*
 		//two sets of VBOs for graph so we can display one
 		//while the other is being written
 		int lastVBO = 2;
@@ -338,10 +497,10 @@ namespace rgatCore
 		*/
 		public uint pid { get; private set; }
 		public uint tid { get; private set; }
-		/*
 		PLOT_TRACK lastPreviewNode;
-		Dictionary<Tuple<uint, ulong>, int> newExternTimes;
-		*/
+
+		//Dictionary<Tuple<uint, ulong>, int> newExternTimes;
+		
 		//prevent graph from being deleted while being used
 		//rgatlocks::TestableLock graphBusyLock;
 
@@ -358,13 +517,13 @@ namespace rgatCore
 		Dictionary<uint, int> activeAnimNodeTimes;
 		List<uint> fadingAnimNodesSet;
 
-		Dictionary<Tuple<uint,uint>, int> newAnimEdgeTimes;
-		Dictionary<Tuple<uint, uint>, int> activeAnimEdgeTimes;
-		List<Tuple<uint, uint>> fadingAnimEdgesSet;
+		Dictionary<Tuple<uint,uint>, int> newAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
+		Dictionary<Tuple<uint, uint>, int> activeAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
+		List<Tuple<uint, uint>> fadingAnimEdgesSet = new List<Tuple<uint, uint>>();
 
 
 		bool animBuildingLoop = false;
-		bool dying = false;
+		bool Stopping = false;
 		bool beingDeleted = false;
 		//int threadReferences = 0;
 		public bool IsAnimated { get; private set; } = false;
