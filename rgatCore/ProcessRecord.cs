@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace rgatCore
 {
@@ -13,15 +14,37 @@ namespace rgatCore
 
         public ProcessRecord(int binaryBitWidth) { BitWidth = binaryBitWidth; }
 
-        /*
-		public bool get_sym(uint modNum, ulong mem_addr, string &sym);
-		public bool get_modpath(uint modNum, boost::filesystem::path* path);
+        
+		//public bool get_sym(uint modNum, ulong mem_addr, string &sym);
+		//public bool get_modpath(uint modNum, boost::filesystem::path* path);
 		//bool get_modbase(uint modNum, ulong &moduleBase);
+        
 
+		public bool get_extern_at_address(ulong address, int moduleNum, ref ROUTINE_STRUCT? BB)
+        {
+            //getExternDictReadLock();
+            if (!externdict.TryGetValue(address, out ROUTINE_STRUCT foundBB))
+            {
+                //dropExternDictReadLock();
+                if (BB == null)
+                    return false;
 
-		public bool get_extern_at_address(ulong address, int moduleNum, ROUTINE_STRUCT** BB);
-		public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		*/
+                //getExternDictWriteLock();
+                ROUTINE_STRUCT newExtern = new ROUTINE_STRUCT();
+                newExtern.globalmodnum = moduleNum;
+                //dropExternDictWriteLock();
+
+                BB = newExtern;
+                return true;
+            }
+
+            if (BB != null)
+                BB = foundBB;
+            //dropExternDictReadLock();
+            return true;
+        }
+		//public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+		
         public bool load(JObject tracejson)
         {
 
@@ -67,8 +90,56 @@ namespace rgatCore
 
         }
 
-        //public INSLIST* getDisassemblyBlock(ulong blockaddr, BLOCK_IDENTIFIER blockID, ROUTINE_STRUCT** externBlock);
-        //public int find_containing_module(ulong address);
+        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, long blockID, ref ROUTINE_STRUCT? externBlock)
+        {
+            int iterations = 0;
+
+            while (true)
+            {
+
+                if (blockID == -1)
+                {
+                    int moduleNo = find_containing_module(blockaddr);
+                    get_extern_at_address(blockaddr, moduleNo, ref externBlock);
+                    return null;
+                }
+
+                if (blockID < blockList.Count)
+                {
+                    //ReadLock disasReadLock(disassemblyRWLock);
+                    
+                    List<InstructionData> result = blockList[(int)blockID].Item2;
+
+                    //disasReadLock.unlock();
+                    return result;
+                }
+
+
+                if (iterations > 3)
+                    Thread.Sleep(1);
+
+                if (iterations++ > 20)
+                    Console.WriteLine("[rgat]Warning: Long wait for disassembly of address 0x"+blockaddr);
+
+                if (dieFlag) return null;
+            }
+        }
+        
+        public int find_containing_module(ulong address)
+        {
+            int numModules = LoadedModuleBounds.Count;
+            for (int modNo = 0; modNo < numModules; ++modNo)
+            {
+                Tuple<ulong, ulong> moduleBounds = LoadedModuleBounds[modNo];
+                if (moduleBounds == null) continue;
+                if (address >= moduleBounds.Item1 && address <= moduleBounds.Item2)
+                {
+                    return modNo;
+                }
+            }
+
+            return -1;
+        }
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
@@ -220,7 +291,7 @@ namespace rgatCore
                 try
                 {
                     insdata.branchAddress = ulong.Parse(insdata.op_str);
-                    //insdata->branchAddress = std::stoull(insdata->op_str, 0, 16);
+                    //insdata.branchAddress = std::stoull(insdata.op_str, 0, 16);
                 }
                 catch
                 {
@@ -431,7 +502,7 @@ namespace rgatCore
                 Console.WriteLine("[rgat]Error: module ID not found in extern entry");
                 return false;
             }
-            BBEntry.globalmodnum = ModID.ToObject<uint>();
+            BBEntry.globalmodnum = ModID.ToObject<int>();
 
             if (!externEntry.TryGetValue("S", out JToken hasSym) || hasSym.Type != JTokenType.Boolean)
             {

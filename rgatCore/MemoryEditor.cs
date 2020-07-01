@@ -133,6 +133,7 @@ namespace ImGuiNET
                                 *p_cursor_pos = data->CursorPos;
                             return 0;
                         };
+
                         int cursor_pos = -1;
                         bool data_write = false;
                         if (DataEditingTakeFocus)

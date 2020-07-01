@@ -27,7 +27,7 @@ namespace rgatCore.Threads
 			{
 				//only write we are protecting against happens while creating new threads
 				//so not important to release this quickly
-				graphlist = RenderedTrace.GetPlottedGraphs();
+				graphlist = RenderedTrace.GetPlottedGraphsList();
 
 				moreRenderingNeeded = false;
 				foreach (PlottedGraph graph in graphlist)

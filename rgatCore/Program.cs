@@ -1,11 +1,14 @@
 ﻿using rgatCore;
+using rgatCore.Threads;
 using System;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Veldrid;
 using Veldrid.Sdl2;
+using Veldrid.SPIRV;
 using Veldrid.StartupUtilities;
 
 namespace ImGuiNET
@@ -34,6 +37,85 @@ namespace ImGuiNET
 
         static void SetThing(out float i, float val) { i = val; }
 
+        private const string VertexCode = @"
+#version 450
+
+layout(location = 0) in vec2 Position;
+layout(location = 1) in vec4 Color;
+
+layout(location = 0) out vec4 fsin_Color;
+
+void main()
+{
+    gl_Position = vec4(Position, 0, 1);
+    fsin_Color = Color;
+}";
+
+        private const string FragmentCode = @"#version 450
+layout(location = 0) in vec4 fsin_Color;
+layout(location = 0) out vec4 fsout_Color;
+void main()
+{
+    fsout_Color = fsin_Color;
+}";
+        private static Shader[] _shaders;
+
+
+        static void VKINIT(GraphicsDevice _gd)
+        {
+            VertexPositionColor[] quadVertices = {
+                        new VertexPositionColor(new Vector2(-.75f, .75f), RgbaFloat.Red),
+                        new VertexPositionColor(new Vector2(.75f, .75f), RgbaFloat.Green),
+                        new VertexPositionColor(new Vector2(-.75f, -.75f), RgbaFloat.Blue),
+                        new VertexPositionColor(new Vector2(.75f, -.75f), RgbaFloat.Yellow)
+                    };
+            ushort[] quadIndices = { 0, 1, 2, 3 };
+
+            DeviceBuffer _vertexBuffer;
+            DeviceBuffer _indexBuffer;
+            _vertexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription(4 * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer));
+            _indexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription(4 * sizeof(ushort), BufferUsage.IndexBuffer));
+            _gd.UpdateBuffer(_vertexBuffer, 0, quadVertices);
+            _gd.UpdateBuffer(_indexBuffer, 0, quadIndices);
+
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(
+                new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
+                new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
+
+            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
+
+            pipelineDescription.BlendState = BlendStateDescription.SingleOverrideBlend;
+
+            pipelineDescription.DepthStencilState = new DepthStencilStateDescription(depthTestEnabled: true, depthWriteEnabled: true,
+                comparisonKind: ComparisonKind.LessEqual);
+            pipelineDescription.RasterizerState = new RasterizerStateDescription(cullMode: FaceCullMode.Back,
+    fillMode: PolygonFillMode.Solid, frontFace: FrontFace.Clockwise, depthClipEnabled: true, scissorTestEnabled: false);
+
+            pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+
+            ShaderDescription vertexShaderDesc = new ShaderDescription(
+    ShaderStages.Vertex,
+    Encoding.UTF8.GetBytes(VertexCode),
+    "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(
+                ShaderStages.Fragment,
+                Encoding.UTF8.GetBytes(FragmentCode),
+                "main");
+
+            _shaders = _gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+
+            pipelineDescription.ResourceLayouts = System.Array.Empty<ResourceLayout>();
+            pipelineDescription.ShaderSet = new ShaderSetDescription(
+    vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+    shaders: _shaders);
+
+
+
+        }
+
+
+
+
         static void Main(string[] args)
         {
             // Create window, GraphicsDevice, and all resources necessary for the demo.
@@ -53,7 +135,14 @@ namespace ImGuiNET
             Random random = new Random();
             _memoryEditorData = Enumerable.Range(0, 1024).Select(i => (byte)random.Next(255)).ToArray();
 
-            _rgatui = new rgatUI(_controller);
+            _rgatui = new rgatUI(_controller, _gd, _cl);
+
+
+            VKINIT(_gd);
+
+
+
+
 
             // Main application loop
             while (_window.Exists)
@@ -91,7 +180,7 @@ namespace ImGuiNET
             {
                 ImGui.Text("Hello, world!");                                        // Display some text (you can use a format string too)
                 ImGui.SliderFloat("float", ref _f, 0, 1, _f.ToString("0.000"), 1);  // Edit 1 float using a slider from 0.0f to 1.0f    
-                //ImGui.ColorEdit3("clear color", ref _clearColor);                   // Edit 3 floats representing a color
+                                                                                    //ImGui.ColorEdit3("clear color", ref _clearColor);                   // Edit 3 floats representing a color
 
                 ImGui.Text($"Mouse position: {ImGui.GetMousePos()}");
 
@@ -209,8 +298,21 @@ namespace ImGuiNET
 
 
 
+        struct VertexPositionColor
+        {
+            public Vector2 Position; // This is the position, in normalized device coordinates.
+            public RgbaFloat Color; // This is the color of the vertex.
+            public VertexPositionColor(Vector2 position, RgbaFloat color)
+            {
+                Position = position;
+                Color = color;
+            }
+            public const uint SizeInBytes = 24;
+        }
 
-        
+
+
+
 
         private static unsafe void SubmitUI()
         {

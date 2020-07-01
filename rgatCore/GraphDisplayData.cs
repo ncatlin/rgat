@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Numerics;
 using System.Text;
 /*
 This class holds (and provides dubiously mutex guarded access to) OpenGl vertex and colour data
@@ -17,51 +20,104 @@ namespace rgatCore
             //acquire_col_write();
         }
 
-		/*
-			List<float>* acquire_pos_read(int holder = 0);
-			List<float>* acquire_col_read();
-			List<float>* acquire_pos_write(int holder = 0);
-			List<float>* acquire_col_write();
 
-			float* readonly_col() { if (!vcolarray.empty()) return &vcolarray.at(0); return 0; }
-			float* readonly_pos() { if (!vposarray.empty()) return &vposarray.at(0); return 0; }
+        public List<float> acquire_pos_read(int holder = 0)
+        {
+            //poslock_.lock_shared();
+            return vposarray;
+        }
 
-			void release_pos_write();
-			void release_pos_read();
-			void release_col_write();
-			void release_col_read();
+        public List<float> acquire_col_read()
+        {
+            //collock_.lock_shared();
+            return vcolarray;
+        }
+        public List<float> acquire_pos_write(int holder = 0)
+        {
+            //poslock_.lock () ;
+            return vposarray;
+        }
+        public List<float> acquire_col_write()
+        {
+            //collock_.lock();
+            return vcolarray;
+        }
 
-			void clear();
-			void reset();
-			size_t col_sizec() { return vcolarray.size(); }
-			//this is actually quite slow? or at least is a significant % of reported cpu time
-			uint col_buf_capacity_floats() { return vcolarraySize; }
-			GLsizei get_numVerts() { return numVerts; }
-			GLsizei get_numLoadedVerts() { return loadedVerts; }
-			void set_numLoadedVerts(GLsizei qty) { loadedVerts = qty; }
-			void set_numVerts(GLsizei num);
-				*/
-		//uint get_renderedEdges() { return edgesRendered; }
-			public void inc_edgesRendered() { ++CountRenderedEdges; }
+        List<float> readonly_col() { if (vcolarray.Count > 0) return vcolarray; return null; }
+        List<float> readonly_pos() { if (vposarray.Count > 0) return vposarray; return null; }
 
-		/*
-			void drawShortLinePoints(FCOORD &startC, FCOORD &endC, QColor &colour, long* arraypos);
-			int drawLongCurvePoints(FCOORD &bezierC, FCOORD &startC, FCOORD &endC, QColor &colour, int edgeType, long* colarraypos);
+        public void release_pos_write()
+        {
+            //poslock_.unlock();
+        }
+        public void release_pos_read()
+        {
+            //poslock_.unlock_shared();
+        }
 
-			bool get_coord(NODEINDEX index, FCOORD* result);
-				
-		*/
+        public void release_col_write()
+        {
+            //collock_.unlock();
+        }
+        public void release_col_read()
+        {
+            //collock_.unlock_shared();
+        }
+
+        void reset()
+        {
+            /*
+			acquire_pos_write(342);
+			acquire_col_write();
+			//needed? try without
+			vposarray.clear();
+			vcolarray.clear();
+			numVerts = 0;
+			edgesRendered = 0;
+			release_col_write();
+			release_pos_write();
+			*/
+        }
+
+        int col_sizec() { return vcolarray.Count; }
+
+        public void set_numVerts(int num)
+        {
+            Debug.Assert(num >= CountVerts);
+            CountVerts = num;
+            vcolarraySize = (ulong)vcolarray.Count;
+        }
+        //uint get_renderedEdges() { return edgesRendered; }
+        public void inc_edgesRendered() { ++CountRenderedEdges; }
 
 
-		//mutable std::shared_mutex poslock_;
-		//mutable std::shared_mutex collock_;
+        public void drawShortLinePoints(Vector3 startC, Vector3 endC, Color colour, out int arraypos)
+        {
+            arraypos = 0;
+            Console.WriteLine("todo drawShortLinePoints");
+        }
 
-		public int CountVerts { private set; get; } = 0;
-        ulong loadedVerts = 0;
+        public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, Color colour, eEdgeNodeType edgeType, out int colarraypos)
+        {
+            Console.WriteLine("todo drawLongCurvePoints");
+            colarraypos = 0;
+            return 0;
+        }
 
-        //List<float> vposarray;
-        //List<float> vcolarray;
-        ulong vcolarraySize = 0;
+        //bool get_coord(NODEINDEX index, FCOORD* result);
+
+
+
+
+        //mutable std::shared_mutex poslock_;
+        //mutable std::shared_mutex collock_;
+
+        public int CountVerts { private set; get; } = 0;
+        public int CountLoadedVerts = 0;
+
+        List<float> vposarray = new List<float>();
+        List<float> vcolarray = new List<float>();
+        public ulong vcolarraySize { get; private set; } = 0;
 
         //not used for nodes
         public uint CountRenderedEdges { get; private set; } = 0;

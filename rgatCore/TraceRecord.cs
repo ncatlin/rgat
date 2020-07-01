@@ -54,7 +54,7 @@ namespace rgatCore
 
             binaryTarg = binary;
             DisassemblyData = new ProcessRecord(binary.BitWidth);
-            //DisassemblyData->modBounds.resize(255, null);
+            //DisassemblyData.modBounds.resize(255, null);
         }
 
         string getModpathID() { return PID.ToString() + randID.ToString(); }
@@ -76,12 +76,12 @@ namespace rgatCore
 				void* result = NULL;
 				for (auto it = plottedGraphs.begin(); it != plottedGraphs.end(); it++)
 				{
-					PlottedGraph graph = (PlottedGraph)it->second;
-					if (!graph->get_protoGraph()->nodeList.empty())
+					PlottedGraph graph = (PlottedGraph)it.second;
+					if (!graph.get_protoGraph().nodeList.empty())
 					{
 						result = graph;
-						graph->increase_thread_references(33);
-						std::cout << graph->main_scalefactors->stretchA << std::endl;
+						graph.increase_thread_references(33);
+						std::cout << graph.main_scalefactors.stretchA << std::endl;
 						break;
 					}
 				}
@@ -143,8 +143,8 @@ namespace rgatCore
 		int find_containing_module(ulong address, int &localmodID);
 		*/
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
-        Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
-        public List<PlottedGraph> GetPlottedGraphs()
+        public Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
+        public List<PlottedGraph> GetPlottedGraphsList()
         {
             return PlottedGraphs.Values.ToList();
         }

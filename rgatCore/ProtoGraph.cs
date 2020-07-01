@@ -16,10 +16,10 @@ namespace rgatCore
     struct ROUTINE_STRUCT
     {
         public List<InstructionData> inslist;
-        public uint globalmodnum;
+        public int globalmodnum;
         //list of threads that call this BB
         //inside is list of the threads verts that call it
-        //it can exist multiple times on map so caller->this is listed
+        //it can exist multiple times on map so caller.this is listed
         //  tid     
         public Dictionary<uint, List<Tuple<uint, uint>>> thread_callers;
         public bool hasSymbol;
@@ -59,7 +59,6 @@ namespace rgatCore
             ProcessData = runrecord.DisassemblyData;
             ThreadID = threadID;
         }
-
 
         public uint ThreadID = 0;
 
@@ -116,7 +115,7 @@ namespace rgatCore
             {
                 return false;
             }
-            totalInstructions = jTotal.ToObject<ulong>();
+            TotalInstructions = jTotal.ToObject<ulong>();
             return true;
         }
 
@@ -310,7 +309,7 @@ namespace rgatCore
 			dropEdgeReadLock();
 
 			if (edgeIt != edgeDict.end())
-				return &edgeIt->second;
+				return &edgeIt.second;
 			else
 				return null;
 		}
@@ -356,7 +355,7 @@ namespace rgatCore
 
         //void push_anim_update(ANIMATIONENTRY);
         //animation data received from target
-        List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
+        public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
 
         List<uint> ExceptionNodeIndexes = new List<uint>();
 
@@ -458,13 +457,13 @@ namespace rgatCore
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
         List<EXTERNCALLDATA> ExternCallRecords = new List<EXTERNCALLDATA>();
-        ulong totalInstructions = 0;
+        public ulong TotalInstructions { get; private set; } = 0;
         int exeModuleID = -1;
-        ulong moduleBase = 0;
-        string modulePath;
-        Dictionary<ulong, uint> internalPlaceholderFuncNames;
+        public ulong moduleBase = 0;
+        public string modulePath;
+        public Dictionary<ulong, uint> InternalPlaceholderFuncNames = new Dictionary<ulong, uint>();
 
-        uint lastNode = 0;
+        public uint lastNode = 0;
         //used by heatDictionary solver
         uint finalNodeID = 0;
 

@@ -19,8 +19,8 @@ namespace rgatCore
 		public ulong chainedWeight = 0;
 
 		//number of verticies taken up in OpenGL data
-		public ulong vertSize = 0;
+		public int vertSize = 0;
 		//position in rendering data structure
-		public ulong arraypos = 0;
+		public int arraypos = 0;
 	}
 }

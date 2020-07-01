@@ -102,16 +102,16 @@ namespace rgatCore
 		void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
         {
 			traceRecord* runRecord = (traceRecord*)traceRecPtr;
-			PROCESS_DATA* piddata = runRecord->get_piddata();
+			PROCESS_DATA* piddata = runRecord.get_piddata();
 
-			ADDRESS_OFFSET offset = address - runRecord->get_piddata()->modBounds.at(globalModID)->first;
+			ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
 			string sym;
 			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
 			bool foundsym = false;
 			int symOffset;
 			for (symOffset = 0; symOffset < 4096; symOffset++)
 			{
-				if (piddata->get_sym(globalModID, offset - symOffset, sym))
+				if (piddata.get_sym(globalModID, offset - symOffset, sym))
 				{
 					foundsym = true;
 					break;
@@ -129,6 +129,7 @@ namespace rgatCore
 
         public uint index = 0;
 
+        public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
         public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
         public InstructionData ins;
         public bool IsExternal { get; private set; } = false;
@@ -142,7 +143,7 @@ namespace rgatCore
         ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
 
         //number of external functions called
-        uint childexterns = 0;
+        public uint childexterns = 0;
         public ulong address = 0;
         uint parentIdx = 0;
 
@@ -155,7 +156,7 @@ namespace rgatCore
         public List<uint> IncomingNeighboursSet = new List<uint>();
         public List<uint> OutgoingNeighboursSet = new List<uint>();
 
-        string label;
-        bool placeholder = false;
+        public string label;
+        public bool placeholder = false;
     }
 }

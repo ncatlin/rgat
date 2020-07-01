@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,13 +13,23 @@ namespace rgatCore
     {
         public BinaryTargets targets = new BinaryTargets();
 		public BinaryTarget ActiveTarget = null;// { get; private set; } = null;
-
-        public rgatState() { }
+		public PlottedGraph ActiveGraph { get; private set; } = null;
+        Veldrid.GraphicsDevice _GraphicsDevice;
+		Veldrid.CommandList _CommandList;
+		public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl) {
+			_GraphicsDevice = _gd;
+			_CommandList = _cl;
+		}
 
 		public TraceRecord switchTrace = null;
 		public bool rgatIsExiting { private set; get; } = false;
+		public int AnimationStepRate = 1;
+		public graphLayouts newGraphLayout = graphLayouts.eCylinderLayout;
 
-        public void AddTargetByPath(string path, bool selectIt = true)
+		public bool showNodes = true;
+		public bool showEdges = true;
+
+		public void AddTargetByPath(string path, bool selectIt = true)
         {
             targets.AddTargetByPath(path);
             if (selectIt) SetActiveTarget(path);
@@ -42,12 +53,106 @@ namespace rgatCore
 			if (binaryPath == null) return false;
 	
 			bool newBinary = targets.GetTargetByPath(binaryPath, out target);
-			//myui->targetListCombo->addTargetToInterface(target, newBinary);
+			//myui.targetListCombo.addTargetToInterface(target, newBinary);
 
 			targetResult = target; 
 			return true;
 
 		}
+
+		public bool SetActiveGraph(PlottedGraph graph)
+		{
+
+			if (ActiveGraph != null && !ActiveGraph.beingDeleted)
+				return false;
+
+			ClearActiveGraph();
+
+			Debug.Assert(ActiveGraph == null);
+
+			//activeGraphLock.lock () ;
+			//if (((plotted_graph*)graph)->increase_thread_references(50))
+			//{
+				ActiveGraph = graph;
+			//}
+			//activeGraphLock.unlock();
+			return true;
+		}
+		public PlottedGraph getActiveGraph(bool increaseReferences)
+		{
+			if (ActiveGraph != null && ActiveGraph.beingDeleted) return null;
+
+			//activeGraphLock.lock () ;
+
+			if (ActiveGraph == null)
+			{
+				//activeGraphLock.unlock();
+				return null;
+			}
+
+			/*
+			 * todooooooooooooo
+			 * 
+			if (increaseReferences)
+			{
+				bool success = activeGraph.increase_thread_references(52);
+				if (!success)
+				{
+					activeGraphLock.unlock();
+					return NULL;
+				}
+				//cout << "[+1: "<< ((plotted_graph *)activeGraph).threadReferences << "]increased refs to graph " << activeGraph << endl;
+			}
+			*/
+			PlottedGraph tmp = ActiveGraph;
+			//activeGraphLock.unlock();
+
+			return tmp;
+		}
+
+		public PlottedGraph CreateNewPlottedGraph(ProtoGraph protoGraph)
+		{
+			PlottedGraph newGraph = null;
+
+			switch (newGraphLayout)
+			{
+				case graphLayouts.eCylinderLayout:
+					{
+						newGraph = new CylinderGraph(protoGraph);//, &config.graphColours);
+						break;
+					}
+					/*
+				case eTreeLayout:
+					{
+						//newGraph = new tree_graph(protoGraph.get_TID(), protoGraph, &config.graphColours);
+						newGraph = new blocktree_graph(protoGraph.get_TID(), protoGraph, &config.graphColours);
+						break;
+					}
+					*/
+				default:
+					{
+						Console.WriteLine("Bad graph layout: " + newGraphLayout);
+						Debug.Assert(false);
+						break;
+					}
+			}
+			return newGraph;
+		}
+
+		public void ClearActiveGraph()
+		{
+			//activeGraphLock.lock () ;
+			if (ActiveGraph == null)
+			{
+				//activeGraphLock.unlock();
+				return;
+			}
+
+			//((plotted_graph*)activeGraph).decrease_thread_references(50);
+			ActiveGraph = null;
+			//activeGraphLock.unlock();
+		}
+
 
 		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
 		{

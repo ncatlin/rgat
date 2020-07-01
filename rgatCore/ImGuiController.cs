@@ -309,8 +309,7 @@ namespace ImGuiNET
             ImGuiIOPtr io = ImGui.GetIO();
             // Build
             IntPtr pixels;
-            int width, height, bytesPerPixel;
-            io.Fonts.GetTexDataAsRGBA32(out pixels, out width, out height, out bytesPerPixel);
+            io.Fonts.GetTexDataAsRGBA32(out pixels, out int width, out int height, out int bytesPerPixel);
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
 

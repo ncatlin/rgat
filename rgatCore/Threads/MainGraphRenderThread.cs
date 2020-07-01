@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
+using System.Threading;
 
 namespace rgatCore.Threads
 {
     class MainGraphRenderThread
     {
-		MainGraphRenderThread(rgatState _clientState) => rgatState = _clientState;
+		public MainGraphRenderThread(rgatState _clientState) => rgatState = _clientState;
 
-		public rgatState rgatState = null;
+		private rgatState rgatState = null;
 		public bool running = true;
 
 		void update_rendering(PlottedGraph graph)
@@ -32,7 +34,7 @@ namespace rgatCore.Threads
 
 			if (protoGraph.IsActive)
 			{
-				if (graph.isAnimated())
+				if (graph.IsAnimated)
 					graph.render_live_animation(GlobalConfig.animationFadeRate);
 				else
 					graph.highlight_last_active_node();
@@ -44,64 +46,66 @@ namespace rgatCore.Threads
 				protoGraph.terminated = false;
 			}
 
-			else if (graph.replayState == ePlaying || graph.userSelectedAnimPosition != -1)
+			else if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || 
+				graph.userSelectedAnimPosition != -1)
 			{
 				graph.render_replay_animation(GlobalConfig.animationFadeRate);
 			}
 
-			graph.setGraphBusy(false, 2);
+			//graph.setGraphBusy(false, 2);
 		}
 
-		void perform_full_render(PlottedGraph activeGraph, bool replot_existing)
+		void perform_full_render(PlottedGraph renderGraph, bool replot_existing)
 		{
 
 			//save current rotation/scaling
-			float xrot = activeGraph.view_shift_x, yrot = activeGraph.view_shift_y;
-			double zoom = activeGraph.cameraZoomlevel;
-			GRAPH_SCALE newScaleFactors = *activeGraph.main_scalefactors;
+			float xrot = renderGraph.view_shift_x, yrot = renderGraph.view_shift_y;
+			double zoom = renderGraph.cameraZoomlevel;
+			GRAPH_SCALE newScaleFactors = renderGraph.main_scalefactors;
 
 			//schedule purge of the current rendering
-			activeGraph.setBeingDeleted();
-			activeGraph.decrease_thread_references(1);
+			//renderGraph.setBeingDeleted();
+			//renderGraph.decrease_thread_references(1);
 
-			rgatState.clearActiveGraph();
+			rgatState.ClearActiveGraph();
 
-			TraceRecord activeTrace = activeGraph.internalProtoGraph.get_traceRecord();
+			TraceRecord activeTrace = renderGraph.internalProtoGraph.TraceData;
 
-			while (rgatState.getActiveGraph(false) == activeGraph)
-				std::this_thread::sleep_for(25ms);
-			activeTrace.graphListLock.lock () ;
+			while (rgatState.getActiveGraph(false) == renderGraph)
+				Thread.Sleep(25);
+			//activeTrace.graphListLock.lock () ;
 
-			ProtoGraph protoGraph = activeGraph.internalProtograph;
+			ProtoGraph protoGraph = renderGraph.internalProtoGraph;
 
-			activeGraph.setGraphBusy(true, 101);
+			//renderGraph.setGraphBusy(true, 101);
 
-			activeTrace.plottedGraphs.at(protoGraph.get_TID()) = NULL;
+			activeTrace.PlottedGraphs[protoGraph.ThreadID] = null;
 
 			//now everything has finished with the old rendering, do the actual deletion
-			delete activeGraph;
-			Console.WriteLine("Deleted graph " + activeGraph);
+			//delete activeGraph;
+			Console.WriteLine("Deleted graph " + renderGraph);
 
 			//create a new rendering
-			activeGraph = rgatState.createNewPlottedGraph(protoGraph);
+			renderGraph = rgatState.CreateNewPlottedGraph(protoGraph);
 			if (replot_existing)
 			{
-				activeGraph.initialiseCustomDimensions(newScaleFactors);
-				activeGraph.view_shift_x = xrot;
-				activeGraph.view_shift_y = yrot;
-				activeGraph.cameraZoomlevel = zoom;
+				renderGraph.initialiseCustomDimensions(newScaleFactors);
+				renderGraph.view_shift_x = xrot;
+				renderGraph.view_shift_y = yrot;
+				renderGraph.cameraZoomlevel = zoom;
 			}
 			else
 			{
-				activeGraph.initialiseDefaultDimensions();
+				renderGraph.InitialiseDefaultDimensions();
 			}
 
-			Debug.Assert(rgatState.setActiveGraph(activeGraph));
-			activeTrace.plottedGraphs.at(protoGraph.get_TID()) = activeGraph;
+			bool setactive = rgatState.SetActiveGraph(renderGraph);
+			Debug.Assert(setactive);
+			activeTrace.PlottedGraphs[protoGraph.ThreadID] = renderGraph;
 
-			activeTrace.graphListLock.unlock();
-
+			//activeTrace.graphListLock.unlock();
 			//if they dont exist, create threads to rebuild alternate renderings
+			/*
 			if (!activeTrace.ProcessThreads.previewThread.is_alive())
 			{
 				std::thread prevthread(&preview_renderer::ThreadEntry, activeTrace.ProcessThreads.previewThread);
@@ -119,41 +123,43 @@ namespace rgatCore.Threads
 				std::thread heatthread(&heatmap_renderer::ThreadEntry, activeTrace.ProcessThreads.heatmapThread);
 				heatthread.detach();
 			}
+			*/
 		}
 
-		void ThreadProc()
+		public void ThreadProc()
 		{
 			PlottedGraph activeGraph = null;
 			running = true;
 
-			while (!rgatState.rgatIsExiting())
+			while (!rgatState.rgatIsExiting)
 			{
 
 				activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
-				while (!activeGraph || !activeGraph.get_mainlines())
+				while (activeGraph == null || activeGraph.mainlinedata == null)
 				{
-					std::this_thread::sleep_for(50ms);
+					Thread.Sleep(50);
 					activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
 					continue;
 				}
 
-				if (activeGraph.increase_thread_references(1))
+				//TODO
+				//if (activeGraph.increase_thread_references(1))
+				if (true)
 				{
-					bool layoutChanged = activeGraph.getLayout() != rgatState.newGraphLayout;
-					bool doReplot = activeGraph.needsReplotting();
-					if (layoutChanged || doReplot)
+					bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
+					if (layoutChanged || activeGraph.replotScheduled)
 					{
 						//graph gets destroyed, this resets references, don't need to decrease
-						perform_full_render(activeGraph, doReplot);
+						perform_full_render(activeGraph, activeGraph.replotScheduled);
 						continue;
 					}
 
 					update_rendering(activeGraph);
-					activeGraph.decrease_thread_references(1);
+					//activeGraph.decrease_thread_references(1);
 				}
-				activeGraph = NULL;
+				activeGraph = null;
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(rgatState.config.renderFrequency));
+				Thread.Sleep(GlobalConfig.renderFrequency);
 			}
 
 			running = false;

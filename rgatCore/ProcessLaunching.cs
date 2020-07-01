@@ -71,41 +71,41 @@ namespace rgatCore
 			ModuleHandlerThread tPIDThread = new ModuleHandlerThread(target, runRecord, L"rgatThreadMod", localhandles.modpipe, localhandles.controlpipe);
 
 			RGAT_THREADS_STRUCT processThreads = new RGAT_THREADS_STRUCT();
-			runRecord->processThreads = processThreads;
+			runRecord.processThreads = processThreads;
 			std::thread modthread(&gat_module_handler::ThreadEntry, tPIDThread);
 			modthread.detach();
-			processThreads->modThread = tPIDThread;
-			processThreads->threads.push_back(tPIDThread);
+			processThreads.modThread = tPIDThread;
+			processThreads.threads.push_back(tPIDThread);
 
 			//handles new disassembly data
 			gat_basicblock_handler* tBBHandler = new gat_basicblock_handler(target, runRecord, L"rgatThreadBB", localhandles.bbpipe);
 
 			std::thread bbthread(&gat_basicblock_handler::ThreadEntry, tBBHandler);
 			bbthread.detach();
-			processThreads->BBthread = tBBHandler;
-			processThreads->threads.push_back(tBBHandler);
+			processThreads.BBthread = tBBHandler;
+			processThreads.threads.push_back(tBBHandler);
 
 			//non-graphical
-			if (!clientState->openGLWorking()) return;
+			if (!clientState.openGLWorking()) return;
 
 			//graphics rendering threads for each process here	
 			preview_renderer* tPrevThread = new preview_renderer(runRecord);
-			processThreads->previewThread = tPrevThread;
+			processThreads.previewThread = tPrevThread;
 			std::thread previewthread(&preview_renderer::ThreadEntry, tPrevThread);
 			previewthread.detach();
 
 			heatmap_renderer* tHeatThread = new heatmap_renderer(runRecord);
 			std::thread heatthread(&heatmap_renderer::ThreadEntry, tHeatThread);
 			heatthread.detach();
-			processThreads->heatmapThread = tHeatThread;
-			processThreads->threads.push_back(tHeatThread);
+			processThreads.heatmapThread = tHeatThread;
+			processThreads.threads.push_back(tHeatThread);
 
 			conditional_renderer* tCondThread = new conditional_renderer(runRecord);
 			std::this_thread::sleep_for(200ms);
 			std::thread condthread(&conditional_renderer::ThreadEntry, tCondThread);
 			condthread.detach();
-			processThreads->conditionalThread = tCondThread;
-			processThreads->threads.push_back(tCondThread);
+			processThreads.conditionalThread = tCondThread;
+			processThreads.threads.push_back(tCondThread);
 			*/
 		}
 	}

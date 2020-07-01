@@ -7,8 +7,14 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
 using Vulkan;
+
+
+using Veldrid;
+using Veldrid.Sdl2;
+using Veldrid.StartupUtilities;
 
 namespace rgatCore
 {
@@ -24,10 +30,17 @@ namespace rgatCore
         private rgatState _rgatstate = null;
         private int _selectedInstrumentationEngine = 0;
 
-        public rgatUI(ImGuiController imguicontroller)
+        Threads.MainGraphRenderThread mainRenderThreadObj = null;
+        Thread mainGraphThread = null;
+
+        public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
-            _rgatstate = new rgatState();
+            _rgatstate = new rgatState(_gd, _cl);
             _ImGuiController = imguicontroller;
+
+            mainRenderThreadObj = new Threads.MainGraphRenderThread(_rgatstate);
+            mainGraphThread = new Thread(mainRenderThreadObj.ThreadProc);
+            mainGraphThread.Start();
         }
 
         private bool finit = false;
@@ -305,6 +318,10 @@ namespace rgatCore
                 {
                     ImGui.Text("GLVisMain");
                     ImGui.EndChild();
+                    
+                    //Veldrid.
+                    
+
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
@@ -732,9 +749,7 @@ namespace rgatCore
 
         private unsafe void DrawTabs()
         {
-
-
-
+            bool dummy = true;
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
@@ -744,7 +759,7 @@ namespace rgatCore
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Visualiser"))
+                if (ImGui.BeginTabItem("Visualiser", ref dummy, ImGuiTabItemFlags.SetSelected))
                 {
                     DrawVisTab();
                     ImGui.EndTabItem();
@@ -808,7 +823,7 @@ namespace rgatCore
             _rgatstate.ActiveTarget = trace.binaryTarg;
             _rgatstate.switchTrace = trace;
 
-            //ui.dynamicAnalysisContentsTab->setCurrentIndex(eVisualiseTab);
+            //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
             
         }
         void launch_all_trace_threads(TraceRecord trace, rgatState clientState)
