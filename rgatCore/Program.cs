@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Veldrid;
 using Veldrid.Sdl2;
-using Veldrid.SPIRV;
+//using Veldrid.SPIRV;
 using Veldrid.StartupUtilities;
 
 namespace ImGuiNET
@@ -27,7 +27,8 @@ namespace ImGuiNET
         private static float _f = 0.0f;
         private static int _counter = 0;
         private static int _dragInt = 0;
-        private static Vector3 _clearColor = new Vector3(0.45f, 0.55f, 0.6f);
+        //private static Vector3 _clearColor = new Vector3(0.45f, 0.55f, 0.6f);
+        private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
         private static bool _showDemoWindow = true;
         private static bool _showAnotherWindow = false;
         private static bool _showMemoryEditor = false;
@@ -102,46 +103,51 @@ void main()
                 Encoding.UTF8.GetBytes(FragmentCode),
                 "main");
 
+            /*
             _shaders = _gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
 
             pipelineDescription.ResourceLayouts = System.Array.Empty<ResourceLayout>();
             pipelineDescription.ShaderSet = new ShaderSetDescription(
     vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
     shaders: _shaders);
-
+            */
 
 
         }
 
 
-
-
         static void Main(string[] args)
         {
-            // Create window, GraphicsDevice, and all resources necessary for the demo.
+
+            GraphicsDeviceOptions options = new GraphicsDeviceOptions(
+            debug: true,
+            swapchainDepthFormat: PixelFormat.R16_UNorm,
+            syncToVerticalBlank: true,
+            resourceBindingModel: ResourceBindingModel.Improved,
+            preferDepthRangeZeroToOne: true,
+            preferStandardClipSpaceYDirection: false);
+
             VeldridStartup.CreateWindowAndGraphicsDevice(
-                new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat Program Trace Visualiser"),
-                new GraphicsDeviceOptions(true, null, true),
+                new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "ImGui.NET Sample Program"),
+                options,
+                preferredBackend: GraphicsBackend.Vulkan,
                 out _window,
                 out _gd);
+
             _window.Resized += () =>
             {
                 _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
                 _controller.WindowResized(_window.Width, _window.Height);
+                _rgatui?.AlertResized(new Vector2(_window.Width, _window.Height));
             };
+
             _cl = _gd.ResourceFactory.CreateCommandList();
             _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
             _memoryEditor = new MemoryEditor();
             Random random = new Random();
             _memoryEditorData = Enumerable.Range(0, 1024).Select(i => (byte)random.Next(255)).ToArray();
 
-            _rgatui = new rgatUI(_controller, _gd, _cl);
-
-
-            VKINIT(_gd);
-
-
-
+             _rgatui = new rgatUI(_controller, _gd, _cl);
 
 
             // Main application loop
@@ -157,7 +163,13 @@ void main()
                 _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
                 _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
                 _controller.Render(_gd, _cl);
+
+                _rgatui.AddGraphicsCommands(_cl, _gd);
+
+
                 _cl.End();
+
+
                 _gd.SubmitCommands(_cl);
                 _gd.SwapBuffers(_gd.MainSwapchain);
             }
@@ -316,6 +328,7 @@ void main()
 
         private static unsafe void SubmitUI()
         {
+            
             SubmitDemoUI();
 
             _rgatui.DrawUI();

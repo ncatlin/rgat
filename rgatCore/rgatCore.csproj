@@ -14,12 +14,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="cimgui.dll" />
     <None Remove="Shaders\GLSL\imgui-frag.glsl" />
     <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
     <None Remove="Shaders\HLSL\imgui-frag.hlsl" />
     <None Remove="Shaders\HLSL\imgui-frag.hlsl.bytes" />
     <None Remove="Shaders\HLSL\imgui-vertex.hlsl" />
     <None Remove="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <None Remove="Shaders\SPIR-V\imgui-frag.glsl" />
+    <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
+    <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="cimgui.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +39,9 @@
     <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl.bytes" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,9 +49,9 @@
     <PackageReference Include="ImGui.NET" Version="1.75.0" />
     <PackageReference Include="ImGui.NET.Docking" Version="1.75.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Veldrid" Version="4.7.0" />
-    <PackageReference Include="Veldrid.SPIRV" Version="1.0.13" />
-    <PackageReference Include="Veldrid.StartupUtilities" Version="4.7.0" />
+    <PackageReference Include="Veldrid" Version="4.5.0" />
+    <PackageReference Include="Veldrid.SPIRV" Version="1.0.9" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

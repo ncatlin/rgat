@@ -5,6 +5,7 @@ using System.Reflection;
 using System.IO;
 using Veldrid;
 using System.Runtime.CompilerServices;
+using Vulkan;
 
 namespace ImGuiNET
 {
@@ -57,7 +58,7 @@ namespace ImGuiNET
 
         public unsafe void LoadUnicodeFont()
         {
-            if (_unicodeFontLoaded)  return;
+            if (_unicodeFontLoaded) return;
 
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
 
@@ -66,8 +67,9 @@ namespace ImGuiNET
             var fonts = ImGui.GetIO().Fonts;
             builder.AddRanges(fonts.GetGlyphRangesDefault());
             builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
-            builder.AddRanges(fonts.GetGlyphRangesChineseFull());
+            //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid
             builder.AddRanges(fonts.GetGlyphRangesCyrillic());
+
             //builder.AddRanges(fonts.GetGlyphRangesJapanese());
             //builder.AddRanges(fonts.GetGlyphRangesKorean());
             //builder.AddRanges(fonts.GetGlyphRangesThai());
@@ -84,6 +86,7 @@ namespace ImGuiNET
                 Console.WriteLine("Error: Didn't find font file " + googleNotoFontFile);
                 return;
             }
+
             _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
             _unicodeFontLoaded = true;
         }
@@ -99,9 +102,12 @@ namespace ImGuiNET
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
+            var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
-            ImGui.GetIO().Fonts.AddFontDefault();
-            _originalFont = ImGui.GetIO().Fonts.Fonts[1];
+            _unicodeFont = fonts.Fonts[0];
+            fonts.AddFontDefault();
+            _originalFont = fonts.Fonts[1];
+
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
@@ -110,9 +116,6 @@ namespace ImGuiNET
 
             ImGui.NewFrame();
             _frameBegun = true;
-
-
-            ImGui.PushFont(_unicodeFont);
         }
 
         public void WindowResized(int width, int height)
@@ -258,25 +261,25 @@ namespace ImGuiNET
             switch (factory.BackendType)
             {
                 case GraphicsBackend.Direct3D11:
-                {
-                    string resourceName = "rgatCore.Shaders.HLSL." + name + ".hlsl.bytes";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
+                    {
+                        string resourceName = "rgatCore.Shaders.HLSL." + name + ".hlsl.bytes";
+                        return GetEmbeddedResourceBytes(resourceName);
+                    }
                 case GraphicsBackend.OpenGL:
-                {
-                    string resourceName = "rgatCore.Shaders.GLSL." + name + ".glsl";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
+                    {
+                        string resourceName = "rgatCore.Shaders.GLSL." + name + ".glsl";
+                        return GetEmbeddedResourceBytes(resourceName);
+                    }
                 case GraphicsBackend.Vulkan:
-                {
-                    string resourceName = "rgatCore.Shaders.SPIR-V" + name + ".spv";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
+                    {
+                        string resourceName = "rgatCore.Shaders.SPIR_V." + name + ".spv";
+                        return GetEmbeddedResourceBytes(resourceName);
+                    }
                 case GraphicsBackend.Metal:
-                {
-                    string resourceName = "rgatCore.Shaders.Metal" + name + ".metallib";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
+                    {
+                        string resourceName = "rgatCore.Shaders.Metal." + name + ".metallib";
+                        return GetEmbeddedResourceBytes(resourceName);
+                    }
                 default:
                     throw new NotImplementedException();
             }
@@ -313,26 +316,23 @@ namespace ImGuiNET
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
 
-            _fontTexture = gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+            TextureDescription td = TextureDescription.Texture2D(
                 (uint)width,
                 (uint)height,
                 1,
                 1,
                 PixelFormat.R8_G8_B8_A8_UNorm,
-                TextureUsage.Sampled));
+                TextureUsage.Sampled);
+            _fontTexture = gd.ResourceFactory.CreateTexture(td);
             _fontTexture.Name = "ImGui.NET Font Texture";
+            //Crashes on veldrid versions before 2019 with 4096**2 textures
             gd.UpdateTexture(
                 _fontTexture,
                 pixels,
                 (uint)(bytesPerPixel * width * height),
-                0,
-                0,
-                0,
-                (uint)width,
-                (uint)height,
-                1,
-                0,
-                0);
+                0, 0, 0,
+                (uint)width, (uint)height, 1,
+                0, 0);
             _fontTextureView = gd.ResourceFactory.CreateTextureView(_fontTexture);
 
             io.Fonts.ClearTexData();
@@ -481,19 +481,12 @@ namespace ImGuiNET
             io.KeyMap[(int)ImGuiKey.Z] = (int)Key.Z;
         }
 
-        private void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
+        private void ExpandGraphicsBuffers(ImDrawDataPtr draw_data, GraphicsDevice gd)
         {
-            uint vertexOffsetInVertices = 0;
-            uint indexOffsetInElements = 0;
-
-            if (draw_data.CmdListsCount == 0)
-            {
-                return;
-            }
-
             uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
             if (totalVBSize > _vertexBuffer.SizeInBytes)
             {
+                Console.WriteLine("Resizing Vertex buffer from " + _vertexBuffer.SizeInBytes + " to " + totalVBSize * 1.5f);
                 gd.DisposeWhenIdle(_vertexBuffer);
                 _vertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             }
@@ -501,10 +494,29 @@ namespace ImGuiNET
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
             if (totalIBSize > _indexBuffer.SizeInBytes)
             {
+                Console.WriteLine("Resizing Index buffer from " + _indexBuffer.SizeInBytes + " to " + totalIBSize * 1.5f);
                 gd.DisposeWhenIdle(_indexBuffer);
                 _indexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic));
             }
+        }
 
+        private void SetupUIProjection(ImDrawDataPtr draw_data)
+        {
+            // Setup orthographic projection matrix into our constant buffer
+            ImGuiIOPtr io = ImGui.GetIO();
+            const float near = -1.0f;
+            const float far = 1.0f;
+            Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(0f, io.DisplaySize.X, io.DisplaySize.Y, 0.0f, near, far);
+
+            _gd.UpdateBuffer(_projMatrixBuffer, 0, ref mvp);
+
+            draw_data.ScaleClipRects(io.DisplayFramebufferScale);
+        }
+
+        private void LoadCommandBuffers(ImDrawDataPtr draw_data, CommandList cl)
+        {
+            uint vertexOffsetInVertices = 0;
+            uint indexOffsetInElements = 0;
             for (int i = 0; i < draw_data.CmdListsCount; i++)
             {
                 ImDrawListPtr cmd_list = draw_data.CmdListsRange[i];
@@ -524,27 +536,12 @@ namespace ImGuiNET
                 vertexOffsetInVertices += (uint)cmd_list.VtxBuffer.Size;
                 indexOffsetInElements += (uint)cmd_list.IdxBuffer.Size;
             }
+        }
 
-            // Setup orthographic projection matrix into our constant buffer
-            ImGuiIOPtr io = ImGui.GetIO();
-            Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(
-                0f,
-                io.DisplaySize.X,
-                io.DisplaySize.Y,
-                0.0f,
-                -1.0f,
-                1.0f);
+        // Render command lists
+        private void DrawCommands(ImDrawDataPtr draw_data, CommandList cl)
+        {
 
-            _gd.UpdateBuffer(_projMatrixBuffer, 0, ref mvp);
-
-            cl.SetVertexBuffer(0, _vertexBuffer);
-            cl.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-            cl.SetPipeline(_pipeline);
-            cl.SetGraphicsResourceSet(0, _mainResourceSet);
-
-            draw_data.ScaleClipRects(io.DisplayFramebufferScale);
-
-            // Render command lists
             int vtx_offset = 0;
             int idx_offset = 0;
             for (int n = 0; n < draw_data.CmdListsCount; n++)
@@ -552,40 +549,62 @@ namespace ImGuiNET
                 ImDrawListPtr cmd_list = draw_data.CmdListsRange[n];
                 for (int cmd_i = 0; cmd_i < cmd_list.CmdBuffer.Size; cmd_i++)
                 {
-                    ImDrawCmdPtr pcmd = cmd_list.CmdBuffer[cmd_i];
-                    if (pcmd.UserCallback != IntPtr.Zero)
+                    ImDrawCmdPtr ptrCmnd = cmd_list.CmdBuffer[cmd_i];
+                    if (ptrCmnd.UserCallback != IntPtr.Zero)
                     {
                         throw new NotImplementedException();
                     }
                     else
                     {
-                        if (pcmd.TextureId != IntPtr.Zero)
+                        if (ptrCmnd.TextureId != IntPtr.Zero)
                         {
-                            if (pcmd.TextureId == _fontAtlasID)
+                            if (ptrCmnd.TextureId == _fontAtlasID)
                             {
                                 cl.SetGraphicsResourceSet(1, _fontTextureResourceSet);
                             }
                             else
                             {
-                                cl.SetGraphicsResourceSet(1, GetImageResourceSet(pcmd.TextureId));
+                                cl.SetGraphicsResourceSet(1, GetImageResourceSet(ptrCmnd.TextureId));
                             }
                         }
 
                         cl.SetScissorRect(
                             0,
-                            (uint)pcmd.ClipRect.X,
-                            (uint)pcmd.ClipRect.Y,
-                            (uint)(pcmd.ClipRect.Z - pcmd.ClipRect.X),
-                            (uint)(pcmd.ClipRect.W - pcmd.ClipRect.Y));
+                            (uint)ptrCmnd.ClipRect.X,
+                            (uint)ptrCmnd.ClipRect.Y,
+                            (uint)(ptrCmnd.ClipRect.Z - ptrCmnd.ClipRect.X),
+                            (uint)(ptrCmnd.ClipRect.W - ptrCmnd.ClipRect.Y));
 
-                        cl.DrawIndexed(pcmd.ElemCount, 1, (uint)idx_offset, vtx_offset, 0);
+                        cl.DrawIndexed(ptrCmnd.ElemCount, 1, (uint)idx_offset, vtx_offset, 0);
                     }
 
-                    idx_offset += (int)pcmd.ElemCount;
+                    idx_offset += (int)ptrCmnd.ElemCount;
                 }
                 vtx_offset += cmd_list.VtxBuffer.Size;
             }
         }
+
+        private void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
+        {
+            if (draw_data.CmdListsCount == 0)
+            {
+                return;
+            }
+
+            ExpandGraphicsBuffers(draw_data, gd);
+
+            LoadCommandBuffers(draw_data, cl);
+
+            SetupUIProjection(draw_data);
+
+            cl.SetVertexBuffer(0, _vertexBuffer);
+            cl.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
+            cl.SetPipeline(_pipeline);
+            cl.SetGraphicsResourceSet(0, _mainResourceSet);
+
+            DrawCommands(draw_data, cl);
+        }
+
 
         /// <summary>
         /// Frees all graphics resources used by the renderer.

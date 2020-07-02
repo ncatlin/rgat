@@ -14,8 +14,9 @@ namespace rgatCore
         public BinaryTargets targets = new BinaryTargets();
 		public BinaryTarget ActiveTarget = null;// { get; private set; } = null;
 		public PlottedGraph ActiveGraph { get; private set; } = null;
-        Veldrid.GraphicsDevice _GraphicsDevice;
-		Veldrid.CommandList _CommandList;
+        public Veldrid.GraphicsDevice _GraphicsDevice;
+		public Veldrid.CommandList _CommandList;
+		
 		public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl) {
 			_GraphicsDevice = _gd;
 			_CommandList = _cl;
@@ -38,7 +39,8 @@ namespace rgatCore
         public void SetActiveTarget(string path)
         {
 			BinaryTarget newTarget = null;
-            if (targets.GetTargetByPath(path, out newTarget) && newTarget != ActiveTarget)
+			targets.GetTargetByPath(path, out newTarget);
+			if(newTarget != null && newTarget != ActiveTarget)
             {
                 ActiveTarget = newTarget;
             };
@@ -217,10 +219,25 @@ namespace rgatCore
 
 			Newtonsoft.Json.Linq.JObject saveJSON = null;
 			using (StreamReader file = File.OpenText(path))
-            {
+			{
 				string jsnfile = file.ReadToEnd();
-				saveJSON = Newtonsoft.Json.Linq.JObject.Parse(jsnfile);
-				//if error - ret false
+				try
+				{
+					saveJSON = Newtonsoft.Json.Linq.JObject.Parse(jsnfile);
+				}
+				catch (Newtonsoft.Json.JsonReaderException e)
+				{
+					Console.WriteLine("Failed to parse trace file - invalid JSON.");
+					Console.WriteLine("\t->\t"+e.Message);
+					trace = null;
+					return false;
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("Failed to parse trace file: "+e.Message);
+					trace = null;
+					return false;
+				}
 			}
 
 			BinaryTarget target;
