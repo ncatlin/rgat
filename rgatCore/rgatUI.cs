@@ -83,10 +83,11 @@ namespace rgatCore
             ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.Appearing);
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
-            window_flags |= ImGuiWindowFlags.NoTitleBar;
+            //window_flags |= ImGuiWindowFlags.NoTitleBar;
             window_flags |= ImGuiWindowFlags.MenuBar;
+            window_flags |= ImGuiWindowFlags.DockNodeHost;
             //window_flags |= !ImGuiWindowFlags.NoMove;
-            
+
 
 
             ImGui.Begin("rgat Primary Window", window_flags);
@@ -673,7 +674,7 @@ void main()
         private void DrawVisualiserGraphs(float height)
         {
             float tracesGLFrameWidth = 300;
-            ImGui.BeginGroup();
+
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
                 Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - tracesGLFrameWidth, height);
@@ -695,7 +696,7 @@ void main()
                 }
                 ImGui.PopStyleColor();
             }
-            ImGui.EndGroup();
+
         }
 
         float sliderPosX = -1;
@@ -721,7 +722,7 @@ void main()
                 if (sliderPosX > progressSliderPos.X + progressBarSize.X) sliderPosX = progressSliderPos.X + progressBarSize.X;
                 //value_changed = true;
             }
-            ImGui.GetForegroundDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
+            ImGui.GetWindowDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
 
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
 
@@ -940,13 +941,14 @@ void main()
 
         private void DrawTraceSelector(float frameHeight)
         {
+
             float vpadding = 4;
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
 
             if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(300, frameHeight)))
             {
                 float combosHeight = 60 - vpadding;
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
+                if (false && ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
                 {
                     if (ImGui.BeginCombo("Process (0/1)", ""))
                     {
@@ -966,37 +968,33 @@ void main()
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
                 ImGui.Text("Active Thread ID: 12345");
                 float metricsHeight = 80;
-                ImGui.Columns(3);
+                ImGui.Columns(3, "smushes");
                 ImGui.SetColumnWidth(0, 20);
                 ImGui.SetColumnWidth(1, 130);
                 ImGui.SetColumnWidth(2, 90);
                 ImGui.NextColumn();
 
+                
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+                
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
-                    ImGui.Text("Edges: 123");
-                    ImGui.Text("Nodes: 456");
-                    ImGui.Text("Updates: 498496");
-                    ImGui.Text("Backlog: 441");
+                    ImGui.Text("Edges: 123");ImGui.Text("Nodes: 456");ImGui.Text("Updates: 498496");ImGui.Text("Backlog: 441");
                     ImGui.EndChild();
                 }
 
                 ImGui.NextColumn();
+                
                 if (ImGui.BeginChild("OtherMetrics", new Vector2(90, metricsHeight)))
                 {
-                    ImGui.Text("X: 123");
-                    ImGui.Text("Y: 456");
-                    ImGui.Text("Z: 496");
-                    ImGui.Text("Q: 41");
+                    ImGui.Text("X: 123");ImGui.Text("Y: 456");ImGui.Text("Z: 496");ImGui.Text("Q: 41");
                     ImGui.EndChild();
-                }
+                }  
                 ImGui.PopStyleColor();
-
-                ImGui.Columns(1);
+              
+                ImGui.Columns(1, "smushes");
                 ImGui.EndChild();
             }
-
             ImGui.PopStyleColor();
         }
 
@@ -1014,12 +1012,10 @@ void main()
             float frameHeight = otherControlsHeight - vpadding;
             if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
             {
-                ImGui.BeginGroup();
-                DrawLiveTraceControls(frameHeight);
-                //DrawPlaybackControls(frameHeight);
+                //DrawLiveTraceControls(frameHeight);
+                DrawPlaybackControls(frameHeight);
                 ImGui.SameLine();
                 DrawTraceSelector(frameHeight);
-                ImGui.EndGroup();
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
