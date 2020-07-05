@@ -34,7 +34,7 @@ namespace rgatCore.Threads
 				{
 					//check for trace data that hasn't been rendered yet
 					ProtoGraph protoGraph = graph.internalProtoGraph;
-					if ((graph.previewnodes.CountVerts < protoGraph.get_num_nodes()) ||
+					if ((graph.previewnodes.CountVerts() < protoGraph.get_num_nodes()) ||
 						(graph.previewlines.CountRenderedEdges < protoGraph.get_num_edges()))
 					{
 						moreRenderingNeeded = true;

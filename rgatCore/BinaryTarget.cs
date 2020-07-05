@@ -75,27 +75,25 @@ namespace rgatCore
         {
             try
             {
-                using (FileStream fs = File.OpenRead(FilePath))
+                using FileStream fs = File.OpenRead(FilePath);
+                startbytes = new byte[Math.Min(1024, fileSize)];
+                int bytesread = fs.Read(startbytes, 0, startbytes.Length);
+                int previewSize = Math.Min(16, bytesread);
+                if (fileSize == 0)
                 {
-                    startbytes = new byte[Math.Min(1024, fileSize)];
-                    int bytesread = fs.Read(startbytes, 0, startbytes.Length);
-                    int previewSize = Math.Min(16, bytesread);
-                    if (fileSize == 0)
-                    {
-                        HexPreview = "[Empty File] ";
-                        ASCIIPreview = "[Empty File] ";
-                    }
-                    else
-                    {
-                        HexPreview = BitConverter.ToString(startbytes, 0, previewSize).Replace("-", " ");
-                        ASCIIPreview = TextUtils.IllustrateASCIIBytes(startbytes, previewSize);
-                    }
-
-                    SHA1 sha1 = new SHA1Managed();
-                    _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-","");
-                    SHA256 sha256 = new SHA256Managed();
-                    _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
+                    HexPreview = "[Empty File] ";
+                    ASCIIPreview = "[Empty File] ";
                 }
+                else
+                {
+                    HexPreview = BitConverter.ToString(startbytes, 0, previewSize).Replace("-", " ");
+                    ASCIIPreview = TextUtils.IllustrateASCIIBytes(startbytes, previewSize);
+                }
+
+                SHA1 sha1 = new SHA1Managed();
+                _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
+                SHA256 sha256 = new SHA256Managed();
+                _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
             } catch {
                 Console.WriteLine("Error: Exception reading binary data");
                 _sha1hash = "Error";

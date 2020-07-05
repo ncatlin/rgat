@@ -36,6 +36,8 @@ namespace rgatCore
         Thread mainGraphThread = null;
 
         GraphPlotWidget MainGraphWidget = null;
+        Vector2 WindowStartPos = new Vector2(100f, 100f);
+        Vector2 WindowOffset = new Vector2(0, 0);
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
@@ -71,17 +73,23 @@ namespace rgatCore
                 finit = true;
             }
 
-            ImGui.SetNextWindowPos(new Vector2(100, 100), ImGuiCond.Appearing);
+
+            //Console.WriteLine(ImGui.GetWindowViewport());
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             //window_flags |= ImGuiWindowFlags.NoTitleBar;
             window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
-            //window_flags |= !ImGuiWindowFlags.NoMove;
 
+            ImGui.SetNextWindowPos(new Vector2(50,50), ImGuiCond.Appearing);
 
+            //ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(1200,800), ImGuiCond.Appearing);
 
             ImGui.Begin("rgat Primary Window", window_flags);
+
+            WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
+
             DrawMainMenu();
             DrawTargetBar();
             DrawTabs();
@@ -390,31 +398,39 @@ namespace rgatCore
         }
 
         float sliderPosX = -1;
-        float hstretch = 1;
 
         private unsafe void DrawReplaySlider(float replayControlsSize)
         {
             int progressBarPadding = 6;
             Vector2 progressBarSize = new Vector2(replayControlsSize - (progressBarPadding * 2), 30);
 
-            //ImGui.SetCursorScreenPos(new Vector2(bar1_pos_x, picker_pos.Y));
             ImGui.InvisibleButton("Replay Progress", progressBarSize);
-            Vector2 progressSliderPos = ImGui.GetItemRectMin();
-            progressSliderPos.X += progressBarPadding;
-            if (sliderPosX < progressSliderPos.X) sliderPosX = progressSliderPos.X;
-
-
+            Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
+            AnimationProgressBarPos.X += progressBarPadding;
+           
             if (ImGui.IsItemActive())
             {
-                //col[3] = 1.0f - ImguiUtils.ImSaturate((- picker_pos.Y) / (sv_picker_size - 1));
-                sliderPosX = ImGui.GetIO().MousePos.X;
-                if (sliderPosX < progressSliderPos.X) sliderPosX = progressSliderPos.X;
-                if (sliderPosX > progressSliderPos.X + progressBarSize.X) sliderPosX = progressSliderPos.X + progressBarSize.X;
-                //value_changed = true;
+                sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
             }
-            ImGui.GetWindowDrawList().AddRectFilledMultiColor(new Vector2(progressSliderPos.X, progressSliderPos.Y), new Vector2(progressSliderPos.X + progressBarSize.X, progressSliderPos.Y + progressBarSize.Y), 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
 
-            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(), new Vector2(sliderPosX, progressSliderPos.Y), new Vector2(4, 7), progressBarSize.Y, 255f);
+
+            Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
+            Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
+
+            Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + sliderPosX, AnimationProgressBarPos.Y);
+            if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
+            if (SliderArrowDrawPos.X > SliderRectEnd.X) SliderArrowDrawPos.X = SliderRectEnd.X;
+
+            float sliderBarPosition = (SliderArrowDrawPos.X - SliderRectStart.X) / progressBarSize.X;
+            if (ImGui.IsItemActive())
+                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
+
+            ImGui.GetWindowDrawList().AddRectFilledMultiColor(SliderRectStart, SliderRectEnd, 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
+            if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
+            if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
+            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
+                SliderArrowDrawPos, 
+                new Vector2(3, 7), progressBarSize.Y, 240f);
 
         }
         private void DrawScalePopup() 
@@ -422,51 +438,47 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
             {
 
-                ImGui.Text("Zoom: 38.5");
-
-                ImGui.Text("Horizontal Stretch");
-                ImGui.BeginGroup();
-                ImGui.AlignTextToFramePadding();
-
-                ImGui.Button("-", new Vector2(20, 24));
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(32.0f);
-                ImGui.InputFloat("##inphstr", ref hstretch);
-                ImGui.SameLine();
-                ImGui.Button("+", new Vector2(20, 24));
-                ImGui.EndGroup();
-
-                ImGui.Text("Vertical Stretch");
-                ImGui.BeginGroup();
-                ImGui.Button("-", new Vector2(20, 24));
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(32.0f);
-                ImGui.InputFloat("##invtstr", ref hstretch);
-                ImGui.SameLine();
-                ImGui.Button("+", new Vector2(20, 24));
-                ImGui.EndGroup();
-
-                ImGui.Text("Plot Size");
-                ImGui.BeginGroup();
-                ImGui.Button("-", new Vector2(20, 24));
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(32.0f);
-                ImGui.InputFloat("##inptszstr", ref hstretch);
-                ImGui.SameLine();
-                ImGui.Button("+", new Vector2(20, 24));
-                ImGui.EndGroup();
-
+                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.005f, 0.05f, 4f, "%f%%")){
+                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                    Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.main_scalefactors.pix_per_A}");
+                };
+                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 1.0f, 0.1f, 200f, "%f%%")){
+                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                };
+                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 500f, "%f%%")){
+                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                };
 
                 ImGui.EndChild();
             }
         }
 
+        private void DrawCameraPopup()
+        {
+            if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
+            {
+
+                ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, 4f, "%f%%");
+                ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
+                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 500f, "%f%%");
+                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 0.2f, -100, 100, "%f%%");
+                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -100, 100, "%f%%");
+                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%");
+                ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.05f, -5, 5, "%f%%");
+
+                ImGui.EndChild();
+            }
+        }
+
+
+
         private void drawVisToolBar(float height)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF353535);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF0000ff);
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 3);
             if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3);
                 ImGui.PushItemWidth(100);
                 if (ImGui.BeginCombo("##GraphTypeSelectCombo", "Cylinder"))
                 {
@@ -523,9 +535,21 @@ namespace rgatCore
                     ImGui.OpenPopup("##ScaleGraph");
                 }
 
-                if (ImGui.BeginPopup("##ScaleGraph", ImGuiWindowFlags.AlwaysAutoResize))
+                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##ScaleGraph", ImGuiWindowFlags.AlwaysAutoResize))
                 {
                     DrawScalePopup();
+                    ImGui.EndPopup();
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Camera"))
+                {
+                    ImGui.OpenPopup("##CameraBtn");
+                }
+
+                if (ImGui.BeginPopup("##CameraBtn", ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    DrawCameraPopup();
                     ImGui.EndPopup();
                 }
 

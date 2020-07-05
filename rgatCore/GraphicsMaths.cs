@@ -48,7 +48,7 @@ namespace rgatCore
         }
 
         //returns a small number indicating rough zoom
-        static public float zoomFactor(double cameraZoom, long plotSize)
+        static public float zoomFactor(double cameraZoom, float plotSize)
         {
             return (float)((Math.Abs(cameraZoom) - plotSize) / 1000) - 1;
         }

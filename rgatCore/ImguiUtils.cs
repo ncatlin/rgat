@@ -74,12 +74,14 @@ namespace rgatCore
 
         public static unsafe void RenderArrowsForHorizontalBar(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
         {
-            int alpha8 = IM_F32_TO_INT8_SAT(alpha);
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.X + 1), new Vector2(half_sz.X, half_sz.Y), ImGuiDir.Down, new Vector4(255, 255, 255, alpha8));
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.X), half_sz, ImGuiDir.Down, new Vector4(145, 0, 145, alpha8));
+            Vector4 OuterColor = new Vector4(255f, 255f, 255f, alpha);
+            Vector4 InnerColor = new Vector4(145f, 0f, 145f, alpha);
 
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.X - 1), new Vector2(half_sz.X + 2, half_sz.Y + 1), ImGuiDir.Up, new Vector4(255f, 255f, 255f, alpha8));
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.X), half_sz, ImGuiDir.Up, new Vector4(145f, 0, 145f, alpha8));
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y + 1),         half_sz, ImGuiDir.Down, OuterColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y),             half_sz, ImGuiDir.Down, InnerColor);
+
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y - 1), half_sz, ImGuiDir.Up, OuterColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y),     half_sz, ImGuiDir.Up, InnerColor);
         }
 
     }

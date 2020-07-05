@@ -342,8 +342,10 @@ namespace rgatCore
                 uint target = entry[1].ToObject<uint>();
                 uint edgeClass = entry[2].ToObject<uint>();
 
-                EdgeData edge = new EdgeData();
-                edge.edgeClass = (eEdgeNodeType)edgeClass;
+                EdgeData edge = new EdgeData
+                {
+                    edgeClass = (eEdgeNodeType)edgeClass
+                };
 
                 Tuple<uint, uint> stpair = new Tuple<uint, uint>(source, target);
                 AddEdge(edge, safe_get_node(source), safe_get_node(target));

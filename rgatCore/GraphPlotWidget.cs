@@ -24,11 +24,21 @@ namespace rgatCore
 		bool IrregularActionTimerFired = false;
 
 
-		private Vector2 graphWidgetSize = new Vector2(400, 400);
+		private Vector2 graphWidgetSize;
 
-		public GraphPlotWidget(rgatState clientState)
+		public float dbg_FOV = 1.0f;
+		public float dbg_near = 0.5f;
+		public float dbg_far = 1000f;
+		public float dbg_camX = 0f;
+		public float dbg_camY = 0f;
+		public float dbg_camZ = -200f;
+		public float dbg_rot = 0;
+
+
+
+		public GraphPlotWidget(rgatState clientState, Vector2? initialSize = null)
         {
-
+			graphWidgetSize = initialSize ?? new Vector2(400, 400);
 			_rgatState = clientState;
 			IrregularActionTimer = new System.Timers.Timer(600);
 			IrregularActionTimer.Elapsed += FireIrregularTimer;
@@ -54,25 +64,25 @@ namespace rgatCore
 		private Vector2 lastResizeSize = new Vector2(0, 0);
 
 
-		public void Draw(Vector2 size, ImGuiController _ImGuiController)
+		public void Draw(Vector2 graphSize, ImGuiController _ImGuiController)
         {
 			if (IrregularActionTimerFired) PerformIrregularActions();
 			if (ActiveGraph == null || ActiveGraph.beingDeleted)
 				return;
 
-			_rgatState.ActiveGraph.UpdateGraphicBuffers(size, _rgatState._GraphicsDevice);
+			_rgatState.ActiveGraph.UpdateGraphicBuffers(graphSize, _rgatState._GraphicsDevice);
 			if (scheduledGraphResize)
 			{
 				double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
 				if (TimeSinceLastResize > 150)
 				{
-					graphWidgetSize = new Vector2(400, 400);
+					graphWidgetSize = graphSize;
 					_rgatState.ActiveGraph.InitMainGraphTexture(graphWidgetSize, _rgatState._GraphicsDevice);
 					scheduledGraphResize = false;
 				}
 			}
 			//Can't find an event for in-imgui resize of childwindows so have to check on every render
-			if (size != graphWidgetSize && size != lastResizeSize) AlertResized(size);
+			if (graphSize != graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
 
 			ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
 			Vector2 pos = ImGui.GetCursorScreenPos();
@@ -99,25 +109,15 @@ namespace rgatCore
 		private static DeviceBuffer _PointVertexBuffer;
 		private static DeviceBuffer _PointIndexBuffer;
 		private static ResourceSet _projViewSet;
-		private static Framebuffer _outputFramebuffer = null;
 
 
 
 
 
-		public void InitLineVertexData(GraphicsDevice _gd)
+		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
-			VertexPositionColor[] _lineVertices = {
-				new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Red),
-				new VertexPositionColor(new Vector3(.75f, .75f, -.25f), RgbaFloat.Green),
-				new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Blue),
-				new VertexPositionColor(new Vector3(.75f, -.75f, 0f), RgbaFloat.Yellow),
-				new VertexPositionColor(new Vector3(-.75f, .75f, -0.75f), RgbaFloat.White),
-				new VertexPositionColor(new Vector3(-1.75f, 0f, -0.75f), RgbaFloat.Pink),
-				new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Grey)
-			};
-			_LineVertices = _lineVertices;
-
+			_LineVertices = graph.mainlinedata.acquire_vert_read().ToArray();
+			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 			ResourceFactory factory = _gd.ResourceFactory;
 			BufferDescription vbDescription = new BufferDescription(
 				(uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
@@ -134,19 +134,10 @@ namespace rgatCore
 			_gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
 		}
 
-		public void InitNodeVertexData(GraphicsDevice _gd)
+		public static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
-
-			VertexPositionColor[] _pointVertices = {
-				new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(.75f, .75f, -.25f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(.75f, -.75f, 0f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(-.75f, .75f, -0.75f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(-1.75f, 0f, -0.75f), RgbaFloat.Cyan),
-				new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Cyan)
-			};
-			_PointVertices = _pointVertices;
+			_PointVertices = graph.mainnodesdata.acquire_vert_read().ToArray();
+			Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
 
 
 			ResourceFactory factory = _gd.ResourceFactory;
@@ -165,7 +156,7 @@ namespace rgatCore
 		}
 
 
-		private ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
+		private static ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
 		{
 			ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
 			ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
@@ -178,7 +169,7 @@ namespace rgatCore
 			return projViewLayout;
 		}
 
-		private ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
+		private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
 		{
 
 			//create shaders
@@ -209,8 +200,8 @@ namespace rgatCore
 				ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
 
 				//create data
-				InitLineVertexData(_gd);
-				InitNodeVertexData(_gd);
+				InitLineVertexData(_gd, ActiveGraph);
+				InitNodeVertexData(_gd, ActiveGraph);
 
 				ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
 
@@ -255,12 +246,19 @@ namespace rgatCore
 
 		private void SetupView(CommandList _cl)
 		{
+
+
+			_cl.UpdateBuffer(_projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far));
+
+			Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+			//_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
+			_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+
+			//if autorotation...
 			float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
 			float angle = _ticks / 10000;
-
-			_cl.UpdateBuffer(_projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)graphWidgetSize.X / graphWidgetSize.Y, 0.5f, 100f));
-
-			_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ * (7), Vector3.Zero, Vector3.UnitY));
+			//else
+			angle = dbg_rot;
 
 			Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
 			_cl.UpdateBuffer(_worldBuffer, 0, ref rotation);
@@ -333,12 +331,6 @@ void main()
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
 
-
-    //gl_Position = vec4(Position,1);
-    //gl_Position *= Rotation;
-    //gl_Position *= View;
-    //gl_Position *=  Projection ;
-
     gl_PointSize = 5.0f;
     gl_Position =clipPosition;
     fsin_Color = Color;
@@ -355,17 +347,7 @@ void main()
     fsout_Color = fsin_Color;
 }";
 
-		struct VertexPositionColor
-		{
-			public const uint SizeInBytes = 28;
-			public Vector3 Position;
-			public RgbaFloat Color;
-			public VertexPositionColor(Vector3 position, RgbaFloat color)
-			{
-				Position = position;
-				Color = color;
-			}
-		}
+
 
 
 

@@ -387,9 +387,11 @@ namespace rgatCore
                 return false;
             }
 
-            ADDRESS_DATA addrData = new ADDRESS_DATA();
-            addrData.address = entry[0].ToObject<ulong>();
-            addrData.moduleID = entry[1].ToObject<int>();
+            ADDRESS_DATA addrData = new ADDRESS_DATA
+            {
+                address = entry[0].ToObject<ulong>(),
+                moduleID = entry[1].ToObject<int>()
+            };
 
             addrData.hasSym = (modsymsPlain.ContainsKey(addrData.moduleID) &&
                                 modsymsPlain[addrData.moduleID].ContainsKey(addrData.address));

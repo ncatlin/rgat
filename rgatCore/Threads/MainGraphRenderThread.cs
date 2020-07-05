@@ -25,7 +25,7 @@ namespace rgatCore.Threads
 
 			//update the render if there are more verts/edges or graph is being resized
 			if (
-				(graph.mainnodesdata.CountVerts < protoGraph.get_num_nodes()) ||
+				(graph.mainnodesdata.CountVerts() < protoGraph.get_num_nodes()) ||
 				(graph.mainlinedata.CountRenderedEdges < protoGraph.get_num_edges()) ||
 				graph.vertResizeIndex != 0)
 			{

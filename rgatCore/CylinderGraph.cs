@@ -20,19 +20,19 @@ namespace rgatCore
 
     class CylinderGraph : PlottedGraph
     {
-        const int DEFAULT_PIX_PER_A_COORD = 80;
-        const int DEFAULT_PIX_PER_B_COORD = 120;
+        const float DEFAULT_A_SEP = 0.8f; //was 80
+        const float DEFAULT_B_SEP = 1.2f; //was 120
         const int PREVIEW_PIX_PER_A_COORD = 3;
         const int PREVIEW_PIX_PER_B_COORD = 4;
-        const int B_PX_OFFSET_FROM_TOP = 35;
+        const float B_PX_OFFSET_FROM_TOP = 0.01f;
 
         const int CYLINDER_PIXELS_PER_ROW = 3000;
-        const int JUMPA = -3;
-        const int JUMPB = 3;
+        const float JUMPA = -3;
+        const float JUMPB = 3;
         const float JUMPA_CLASH = 1.5f;
 
-        const int CALLA = 5;
-        const int CALLB = 3;
+        const float CALLA = 5;
+        const float CALLB = 3;
 
         const float B_BETWEEN_BLOCKNODES = 0.25f;
 
@@ -120,18 +120,18 @@ namespace rgatCore
             wireframeSupported = true;
             wireframeActive = true;
 
-            preview_scalefactors.plotSize = 600;
-            preview_scalefactors.basePlotSize = 600;
+            preview_scalefactors.plotSize = 3000;
+            preview_scalefactors.basePlotSize = 3000;
             preview_scalefactors.pix_per_A = PREVIEW_PIX_PER_A_COORD;
             preview_scalefactors.pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
-            main_scalefactors.plotSize = 20000;
-            main_scalefactors.basePlotSize = 20000;
+            main_scalefactors.plotSize = 200;// 20000;
+            main_scalefactors.basePlotSize = 200;// 20000;
             main_scalefactors.userSizeModifier = 1;
-            main_scalefactors.pix_per_A = DEFAULT_PIX_PER_A_COORD;
-            main_scalefactors.original_pix_per_A = DEFAULT_PIX_PER_A_COORD;
-            main_scalefactors.pix_per_B = DEFAULT_PIX_PER_B_COORD;
-            main_scalefactors.original_pix_per_B = DEFAULT_PIX_PER_B_COORD;
+            main_scalefactors.pix_per_A = DEFAULT_A_SEP;
+            main_scalefactors.original_pix_per_A = DEFAULT_A_SEP;
+            main_scalefactors.pix_per_B = DEFAULT_B_SEP;
+            main_scalefactors.original_pix_per_B = DEFAULT_B_SEP;
 
             view_shift_x = 96;
             view_shift_y = 65;
@@ -191,15 +191,8 @@ namespace rgatCore
 
             cylinderCoord(coord, out Vector3 screenc, dimensions, 0);
 
-            /*
-			List<float> mainNpos = vertdata.acquire_pos_write(677);
-			List<float> mainNcol = vertdata.acquire_col_write();
-			mainNpos.Add(screenc.X);
-			mainNpos.Add(screenc.Y);
-			mainNpos.Add(screenc.Z);
-			*/
-            List<float> mainNpos = vertdata.acquire_pos_write();
-            List<float> mainNcol = vertdata.acquire_col_write();
+
+            List<VertexPositionColor> vertsList = vertdata.acquire_vert_write();
 
             Color active_col;
             if (n.IsExternal)
@@ -227,7 +220,7 @@ namespace rgatCore
                             lastNode.lastVertType = eEdgeNodeType.eNodeCall;
                             //if code arrives to next instruction after a return then arrange as a function
                             ulong nextAddress = n.ins.address + (ulong)n.ins.numbytes;
-                            add_to_callstack(vertdata.IsPreview, nextAddress, lastNode.lastVertID);
+                            Add_to_callstack(vertdata.IsPreview, nextAddress, lastNode.lastVertID);
                             break;
                         }
                     default:
@@ -240,27 +233,20 @@ namespace rgatCore
             active_col = graphColours[(int)lastNode.lastVertType];
             lastNode.lastVertID = n.index;
 
-            mainNcol.Add(active_col.R);
-            mainNcol.Add(active_col.G);
-            mainNcol.Add(active_col.B);
-            mainNcol.Add(1.0f);
+            WritableRgbaFloat nodeColor = new WritableRgbaFloat()
+                {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
 
-            vertdata.set_numVerts(vertdata.CountVerts + 1);
-
+            VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor);
+            mainnodesdata.VertList.Add(colorEntry);
+            
             //vertdata.release_col_write();
             //vertdata.release_pos_write();
 
             //place node on the animated version of the graph
             if (animvertdata != null)
             {
-                List<float> animNcol = animvertdata.acquire_col_write();
-
-                animNcol.Add(active_col.R);
-                animNcol.Add(active_col.G);
-                animNcol.Add(active_col.B);
-                animNcol.Add(0);
-
-                animvertdata.set_numVerts(vertdata.CountVerts + 1);
+                List<VertexPositionColor> animNcol = animvertdata.acquire_vert_write();
+                animNcol.Add(colorEntry);
                 //animvertdata.release_col_write();
             }
         }
@@ -762,7 +748,7 @@ namespace rgatCore
             bOut = (float)(tb / (-1 * dimensions.pix_per_B));
         }
 
-        void add_to_callstack(bool isPreview, ulong address, uint idx)
+        void Add_to_callstack(bool isPreview, ulong address, uint idx)
         {
             //callStackLock.lock ();
             if (isPreview)

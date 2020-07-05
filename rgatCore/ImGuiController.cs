@@ -38,8 +38,8 @@ namespace ImGuiNET
         private bool _altDown;
         private bool _winKeyDown;
 
-        private int _windowWidth;
-        private int _windowHeight;
+        public int _windowWidth;
+        public int _windowHeight;
         private Vector2 _scaleFactor = Vector2.One;
 
         // Image trackers
@@ -311,8 +311,7 @@ namespace ImGuiNET
         {
             ImGuiIOPtr io = ImGui.GetIO();
             // Build
-            IntPtr pixels;
-            io.Fonts.GetTexDataAsRGBA32(out pixels, out int width, out int height, out int bytesPerPixel);
+            io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
 

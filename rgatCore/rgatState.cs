@@ -43,9 +43,8 @@ namespace rgatCore
 
         public void SetActiveTarget(string path)
         {
-			BinaryTarget newTarget = null;
-			targets.GetTargetByPath(path, out newTarget);
-			if(newTarget != null && newTarget != ActiveTarget)
+            targets.GetTargetByPath(path, out BinaryTarget newTarget);
+            if (newTarget != null && newTarget != ActiveTarget)
             {
                 ActiveTarget = newTarget;
             };

@@ -3,12 +3,48 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
+using Veldrid;
 /*
 This class holds (and provides dubiously mutex guarded access to) OpenGl vertex and colour data
 */
 namespace rgatCore
 {
+    struct WritableRgbaFloat
+    {
+
+        public float R { get; set; }
+        public float G { get; set; }
+        public float B { get; set; }
+        public float A { get; set; }
+
+    }
+    struct VertexPositionColor
+    {
+        public const uint SizeInBytes = 28;
+        public Vector3 Position;
+        public WritableRgbaFloat Color;
+        
+        public VertexPositionColor(Vector3 position, WritableRgbaFloat color)
+        {
+            Position = position;
+            Color = color;
+        }
+        public void SetAlpha(float alpha) => Color.A = alpha;
+        public VertexPositionColor(Vector3 position, Veldrid.RgbaFloat color)
+        {
+            Position = position;
+            Color = new WritableRgbaFloat()
+            {
+                A = color.A,
+                B = color.B,
+                G = color.G,
+                R = color.R
+            };
+        }
+    }
+
     class GraphDisplayData
     {
 
@@ -21,30 +57,19 @@ namespace rgatCore
         }
 
 
-        public List<float> acquire_pos_read(int holder = 0)
-        {
-            //poslock_.lock_shared();
-            return vposarray;
-        }
-
-        public List<float> acquire_col_read()
+        public List<VertexPositionColor> acquire_vert_read()
         {
             //collock_.lock_shared();
-            return vcolarray;
+            return VertList;
         }
-        public List<float> acquire_pos_write(int holder = 0)
+        public List<VertexPositionColor> acquire_vert_write(int holder = 0)
         {
             //poslock_.lock () ;
-            return vposarray;
-        }
-        public List<float> acquire_col_write()
-        {
-            //collock_.lock();
-            return vcolarray;
+            return VertList;
         }
 
-        List<float> readonly_col() { if (vcolarray.Count > 0) return vcolarray; return null; }
-        List<float> readonly_pos() { if (vposarray.Count > 0) return vposarray; return null; }
+
+        List<VertexPositionColor> readonly_col() { if (VertList.Count > 0) return VertList; return null; }
 
         public void release_pos_write()
         {
@@ -79,14 +104,6 @@ namespace rgatCore
 			*/
         }
 
-        int col_sizec() { return vcolarray.Count; }
-
-        public void set_numVerts(int num)
-        {
-            Debug.Assert(num >= CountVerts);
-            CountVerts = num;
-            vcolarraySize = (ulong)vcolarray.Count;
-        }
         //uint get_renderedEdges() { return edgesRendered; }
         public void inc_edgesRendered() { ++CountRenderedEdges; }
 
@@ -112,11 +129,10 @@ namespace rgatCore
         //mutable std::shared_mutex poslock_;
         //mutable std::shared_mutex collock_;
 
-        public int CountVerts { private set; get; } = 0;
-        public int CountLoadedVerts = 0;
+        public int CountVerts() => VertList.Count;
 
-        List<float> vposarray = new List<float>();
-        List<float> vcolarray = new List<float>();
+        public List<VertexPositionColor> VertList = new List<VertexPositionColor>();
+
         public ulong vcolarraySize { get; private set; } = 0;
 
         //not used for nodes

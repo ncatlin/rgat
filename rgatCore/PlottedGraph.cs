@@ -12,13 +12,13 @@ namespace rgatCore
 {
 	class GRAPH_SCALE
 	{
-		public long plotSize = 10000;
-		public long basePlotSize = 10000;
+		public float plotSize = 10000;
+		public float basePlotSize = 10000;
 		public float userSizeModifier = 1;
 		public int maxA = 360;
 		public int maxB = 180;
 		public int maxC = 1;
-		public int pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B;
+		public float pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B; //todo rename sep
 		public float stretchA = 1, stretchB = 1;
 	};
 
@@ -82,7 +82,26 @@ namespace rgatCore
 				animated = false;
 			*/
 			graphColours = graphColourslist;
-			
+
+			/*
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Red));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(.75f, .75f, -.25f), RgbaFloat.Green));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Blue));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(.75f, -.75f, 0f), RgbaFloat.Yellow));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -0.75f), RgbaFloat.White));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Red));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-1.75f, 0f, -0.75f), RgbaFloat.Pink));
+			mainlinedata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Grey));
+
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(.75f, .75f, -.25f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(.75f, -.75f, 0f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -0.75f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, .75f, -.25f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-1.75f, 0f, -0.75f), RgbaFloat.Cyan));
+			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Cyan));
+			*/
 		}
 
 		
@@ -239,7 +258,7 @@ namespace rgatCore
 		
 		public void highlight_last_active_node()
         {
-			if (internalProtoGraph.lastNode < (uint)mainnodesdata.CountVerts)
+			if (internalProtoGraph.lastNode < (uint)mainnodesdata.CountVerts())
 				lastAnimatedNode = internalProtoGraph.lastNode;
 		}
 
@@ -464,7 +483,7 @@ namespace rgatCore
 			{
 				Tuple<uint,uint> edgeIt = internalProtoGraph.edgeList[(int)edgeIdx];
 				//render source node if not already done
-				if (edgeIt.Item1 >= (uint)mainnodesdata.CountVerts)
+				if (edgeIt.Item1 >= (uint)mainnodesdata.CountVerts())
 				{
 					NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item1);
 					render_node(n, ref lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
@@ -474,7 +493,7 @@ namespace rgatCore
 
 
 				//render target node if not already done
-				if (edgeIt.Item2 >= (uint)mainnodesdata.CountVerts)
+				if (edgeIt.Item2 >= (uint)mainnodesdata.CountVerts())
 				{
 					EdgeData e = internalProtoGraph.edgeDict[edgeIt];
 					if (e.edgeClass == eEdgeNodeType.eEdgeException)
@@ -509,14 +528,14 @@ namespace rgatCore
 				{
 					Tuple<uint,uint> nodePair = edgeIDIt.Key;
 
-					List<float> ecol = animlinedata.acquire_col_write();
+					List<VertexPositionColor> ecol = animlinedata.acquire_vert_write();
 
 					if (internalProtoGraph.edgeDict.TryGetValue(nodePair, out EdgeData e))
 					{
 					int numEdgeVerts = e.vertSize;
 					int colArrIndex = e.arraypos + GL_Constants.AOFF;
 						for (int i = 0; i<numEdgeVerts; ++i)
-							ecol[colArrIndex] = 1;
+							ecol[colArrIndex].SetAlpha(1);
 					}
 				//animlinedata.release_col_write();
 			}
@@ -635,15 +654,15 @@ namespace rgatCore
 */
 		void extend_faded_edges()
         {
-			int drawnVerts = mainlinedata.CountVerts;
-			int animatedVerts = animlinedata.CountVerts;
+			int drawnVerts = mainlinedata.CountVerts();
+			int animatedVerts = animlinedata.CountVerts();
 
 			Debug.Assert(drawnVerts >= animatedVerts);
 			int pendingVerts = drawnVerts - animatedVerts;
 			if (pendingVerts == 0) return;
 
-			List<float> animEdgeColours = animlinedata.acquire_col_write();
-			List<float> staticEdgeColours = mainlinedata.acquire_col_read();
+			List<VertexPositionColor> animEdgeColours = animlinedata.acquire_vert_read();
+			List<VertexPositionColor> staticEdgeColours = mainlinedata.acquire_vert_read();
 
 			//copy the colours over
 			Console.WriteLine("Todo all of this extend_faded_edges");
@@ -683,8 +702,8 @@ namespace rgatCore
 			ulong bufIndex = nIdx * GL_Constants.COLELEMS + GL_Constants.AOFF;
 			if (bufIndex >= nodesdata.vcolarraySize) return;
 
-			List<float> colarray = nodesdata.acquire_col_write();
-			colarray[(int)bufIndex] = alpha; //todo
+			List<VertexPositionColor> colarray = nodesdata.acquire_vert_write();
+			colarray[(int)bufIndex].SetAlpha(alpha); //todo
 			//nodesdata.release_col_write();
 		}
 		//node+edge col+pos
@@ -918,7 +937,7 @@ namespace rgatCore
 			currentUnchainedBlocks.Clear();
 			ROUTINE_STRUCT? dummy = null;
 			List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockAddr, (long)entry.blockID, ref dummy);
-			lastAnimatedNode = firstChainedBlock[firstChainedBlock.Count-1].threadvertIdx[tid]; //should this be front()?
+			lastAnimatedNode = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 			
 		}
 
@@ -1197,7 +1216,7 @@ namespace rgatCore
 
 		void brighten_new_active()
         {
-			if (animnodesdata.CountVerts == 0) return;
+			if (animnodesdata.CountVerts() == 0) return;
 
 			brighten_new_active_nodes();
 			brighten_new_active_extern_nodes();
@@ -1207,7 +1226,7 @@ namespace rgatCore
 
 		void maintain_active()
         {
-			if (animnodesdata.CountVerts == 0) return;
+			if (animnodesdata.CountVerts() == 0) return;
 			Console.WriteLine("todo maintain_active");
 			/*
 			Dictionary<uint, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
@@ -1264,10 +1283,10 @@ namespace rgatCore
 		   we can end up with a protograph with far more edges than the rendered edges
 		   so have to check that we are operating within bounds */
 
-			if (animnodesdata.CountVerts > 0)
+			if (animnodesdata.CountVerts() > 0)
 				darken_nodes(fadeRate);
 
-			if (animlinedata.CountVerts > 0)
+			if (animlinedata.CountVerts() > 0)
 				darken_edges(fadeRate);
 		}
 
@@ -1333,7 +1352,7 @@ namespace rgatCore
 		
 		void clear_active()
         {
-			if (animnodesdata.CountVerts == 0) return;
+			if (animnodesdata.CountVerts() == 0) return;
 
 			Console.WriteLine("Todo all of this clear_active");
 			if (activeAnimNodeTimes.Count > 0)
@@ -1347,8 +1366,8 @@ namespace rgatCore
 				animnodesdata.release_col_write();
 				*/
 				//todo obviously this is garbage but just trying to make it compile then come back to it
-				List<float> nodeColours = animnodesdata.acquire_col_write();
-				nodeColours.ForEach(x => x = x + Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
+				List<VertexPositionColor> nodeColours = animnodesdata.acquire_vert_write();
+				nodeColours.ForEach(x => x.Color.A += Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
 
 			}
 
@@ -1363,8 +1382,8 @@ namespace rgatCore
 						set_edge_alpha(edgeIDIt.first, animlinedata, ANIM_INACTIVE_EDGE_ALPHA);
 				}
 				*/
-				List<float> edgeColours = animlinedata.acquire_col_write();
-				edgeColours.ForEach(x => x = x + Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
+				List<VertexPositionColor> edgeColours = animlinedata.acquire_vert_write();
+				edgeColours.ForEach(x => x.Color.A += Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
 			}
 		}
 

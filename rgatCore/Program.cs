@@ -83,16 +83,17 @@ void main()
                 new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
                 new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
 
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
+            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+            {
+                BlendState = BlendStateDescription.SingleOverrideBlend,
 
-            pipelineDescription.BlendState = BlendStateDescription.SingleOverrideBlend;
+                DepthStencilState = new DepthStencilStateDescription(depthTestEnabled: true, depthWriteEnabled: true,
+                comparisonKind: ComparisonKind.LessEqual),
+                RasterizerState = new RasterizerStateDescription(cullMode: FaceCullMode.Back,
+                    fillMode: PolygonFillMode.Solid, frontFace: FrontFace.Clockwise, depthClipEnabled: true, scissorTestEnabled: false),
 
-            pipelineDescription.DepthStencilState = new DepthStencilStateDescription(depthTestEnabled: true, depthWriteEnabled: true,
-                comparisonKind: ComparisonKind.LessEqual);
-            pipelineDescription.RasterizerState = new RasterizerStateDescription(cullMode: FaceCullMode.Back,
-    fillMode: PolygonFillMode.Solid, frontFace: FrontFace.Clockwise, depthClipEnabled: true, scissorTestEnabled: false);
-
-            pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+                PrimitiveTopology = PrimitiveTopology.TriangleStrip
+            };
 
             ShaderDescription vertexShaderDesc = new ShaderDescription(
     ShaderStages.Vertex,
