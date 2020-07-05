@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,33 +67,33 @@ namespace rgatCore
 		bool insert_new_thread(uint TID, PlottedGraph graph_plot, PROTOGRAPH_CASTPTR graph_proto);
 		bool is_process(uint testpid, int testID);
 		
-		
-		PlottedGraph get_first_graph()
-        {
-			if (PlottedGraphs.empty()) return null;
+		*/
 
-			if (graphListLock.trylock())
-			{
-				void* result = NULL;
-				for (auto it = plottedGraphs.begin(); it != plottedGraphs.end(); it++)
-				{
-					PlottedGraph graph = (PlottedGraph)it.second;
-					if (!graph.get_protoGraph().nodeList.empty())
+		public PlottedGraph GetFirstGraph()
+        {
+			if (PlottedGraphs.Count == 0) return null;
+
+            //if (graphListLock.trylock())
+            //{
+                PlottedGraph result = null;
+                var plottedGraphList = PlottedGraphs.Values.ToList();
+				foreach (PlottedGraph graph in plottedGraphList)
+                { 
+					if (graph.internalProtoGraph.NodeList.Count > 0)
 					{
 						result = graph;
-						graph.increase_thread_references(33);
-						std::cout << graph.main_scalefactors.stretchA << std::endl;
+						//graph.increase_thread_references(33);
 						break;
 					}
 				}
 
-				graphListLock.unlock();
+				//graphListLock.unlock();
 
 				return result;
-			}
-			return NULL;
+			//}
+			return null;
 		}
-		*/
+		/*
 
         DateTime getStartedTime() { return launchedTime; }
 
@@ -211,7 +212,7 @@ namespace rgatCore
             if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
                 return false;
 
-            CylinderGraph renderedgraph = new CylinderGraph(protograph);//, &colours);
+            CylinderGraph renderedgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
 
             PlottedGraphs.Add(GraphThreadID, renderedgraph);
             renderedgraph.InitialiseDefaultDimensions();

@@ -58,6 +58,9 @@ namespace rgatCore.Threads
 		void perform_full_render(PlottedGraph renderGraph, bool replot_existing)
 		{
 
+			//_rgatstate.ActiveGraph?.InitMainGraphTexture(graphWidgetSize, _gd);
+
+
 			//save current rotation/scaling
 			float xrot = renderGraph.view_shift_x, yrot = renderGraph.view_shift_y;
 			double zoom = renderGraph.cameraZoomlevel;

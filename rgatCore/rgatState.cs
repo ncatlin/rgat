@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,17 +14,21 @@ namespace rgatCore
     {
         public BinaryTargets targets = new BinaryTargets();
 		public BinaryTarget ActiveTarget = null;// { get; private set; } = null;
+		public TraceRecord ActiveTrace = null;
 		public PlottedGraph ActiveGraph { get; private set; } = null;
-        public Veldrid.GraphicsDevice _GraphicsDevice;
+		public Veldrid.GraphicsDevice _GraphicsDevice;
 		public Veldrid.CommandList _CommandList;
 		
 		public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl) {
 			_GraphicsDevice = _gd;
 			_CommandList = _cl;
+			PlottedGraph.clientState = this;
 		}
 
-		public TraceRecord switchTrace = null;
+		public PlottedGraph SwitchGraph = null;
+		public TraceRecord SwitchTrace = null;
 		public bool rgatIsExiting { private set; get; } = false;
+		public bool WaitingForNewTrace = false;
 		public int AnimationStepRate = 1;
 		public graphLayouts newGraphLayout = graphLayouts.eCylinderLayout;
 
@@ -45,6 +50,36 @@ namespace rgatCore
                 ActiveTarget = newTarget;
             };
         }
+
+		public void ClearActiveGraph()
+		{
+			//activeGraphLock.lock () ;
+			if (ActiveGraph == null)
+			{
+				//activeGraphLock.unlock();
+				return;
+			}
+
+			//ActiveGraph.decrease_thread_references(50);
+			ActiveGraph = null;
+			//activeGraphLock.unlock();
+		}
+
+
+		public void SelectActiveTrace(TraceRecord trace = null)
+        {
+			ActiveGraph = null;
+
+			if (trace == null && ActiveTarget != null)
+			{
+				//waiting for a shiny new trace that the user just launched
+				if (WaitingForNewTrace)
+					return;
+				trace = ActiveTarget.GetFirstTrace();
+			}
+
+			ActiveTrace = trace;
+		}
 
 		bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
 		{
@@ -120,7 +155,7 @@ namespace rgatCore
 			{
 				case graphLayouts.eCylinderLayout:
 					{
-						newGraph = new CylinderGraph(protoGraph);//, &config.graphColours);
+						newGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
 						break;
 					}
 					/*
@@ -140,21 +175,6 @@ namespace rgatCore
 			}
 			return newGraph;
 		}
-
-		public void ClearActiveGraph()
-		{
-			//activeGraphLock.lock () ;
-			if (ActiveGraph == null)
-			{
-				//activeGraphLock.unlock();
-				return;
-			}
-
-			//((plotted_graph*)activeGraph).decrease_thread_references(50);
-			ActiveGraph = null;
-			//activeGraphLock.unlock();
-		}
-
 
 		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
 		{
@@ -252,7 +272,7 @@ namespace rgatCore
 			{
 				if (trace != null) //already existed
 				{
-					switchTrace = trace;
+					SwitchTrace = trace;
 				}
 				return false;
 			}

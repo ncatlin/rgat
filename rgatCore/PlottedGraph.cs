@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Numerics;
 using System.Text;
 using System.Threading;
+using Veldrid;
 
 namespace rgatCore
 {
@@ -37,11 +39,11 @@ namespace rgatCore
 		};
 		protected struct TEXTRECT
 		{
-			Rectangle rect;
+            System.Drawing.Rectangle rect;
 			uint index;
 		};
 
-		public PlottedGraph(ProtoGraph protoGraph)//, List<QColor> *graphColoursPtr);
+		public PlottedGraph(ProtoGraph protoGraph, List<Color> graphColourslist)
 		{
 			pid = protoGraph.TraceData.PID;
 			tid = protoGraph.ThreadID;
@@ -67,7 +69,8 @@ namespace rgatCore
 			needVBOReload_main = true;
 			needVBOReload_preview = true;
 
-
+			lastMainNode.lastVertID = 0;
+			lastMainNode.lastVertType = eEdgeNodeType.eFIRST_IN_THREAD;
 			//main_scalefactors = new GRAPH_SCALE;
 			//preview_scalefactors = new GRAPH_SCALE;
 
@@ -77,9 +80,9 @@ namespace rgatCore
 				animated = true;
 			else
 				animated = false;
-
-			graphColours = graphColoursPtr;
 			*/
+			graphColours = graphColourslist;
+			
 		}
 
 		
@@ -119,8 +122,8 @@ namespace rgatCore
 		{ cerr << "Warning: Virtual drawHighlight (uint) called\n" << endl; };
 
 
-
-		virtual void irregularActions() { }
+		*/
+		/*
 		virtual void previewYScroll() { }
 		virtual int prevScrollYPosition() { return -255; }
 		virtual float previewZoom() { return -550; }
@@ -289,7 +292,7 @@ namespace rgatCore
 		}
 		//void copy_node_data(GraphDisplayData* nodes);
 
-		float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, main_scalefactors.plotSize); }
+		public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, main_scalefactors.plotSize); }
 		/*
 
 		bool isWireframeSupported() { return wireframeSupported; }
@@ -304,7 +307,7 @@ namespace rgatCore
 		void setHighlightData(List<uint>* nodeList, egraphHighlightModes highlightType);
 		*/
 
-		protected static rgatState clientState;
+		public static rgatState clientState;
 
 		//GLuint graphVBOs[6] = { 0, 0, 0, 0, 0, 0 };
 
@@ -464,7 +467,7 @@ namespace rgatCore
 				if (edgeIt.Item1 >= (uint)mainnodesdata.CountVerts)
 				{
 					NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item1);
-					render_node(n, lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
+					render_node(n, ref lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 				}
 				else
 					lastMainNode = setLastNode(edgeIt.Item1);
@@ -478,7 +481,7 @@ namespace rgatCore
 						lastPreviewNode.lastVertType = eEdgeNodeType.eNodeException;
 
 					NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item2);
-					render_node(n, lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
+					render_node(n,ref lastMainNode, mainnodesdata, animnodesdata, main_scalefactors);
 				}
 				else
 					lastMainNode = setLastNode(edgeIt.Item1);
@@ -596,7 +599,7 @@ namespace rgatCore
 		public bool replotScheduled = false;
 
 		//keep track of which a,b coords are occupied - may need to be unique to each plot
-		protected Dictionary<Tuple<float, float>, bool> usedCoords;
+		protected Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
 		protected List<Tuple<ulong, uint>> MainCallStack = new List<Tuple<ulong, uint>>();
 		protected List<Tuple<ulong, uint>> PreviewCallStack = new List<Tuple<ulong, uint>>();
 
@@ -619,7 +622,7 @@ namespace rgatCore
 		virtual void display_graph(PROJECTDATA* pd) { };
 		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
 		*/
-		abstract public void render_node(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
+		abstract public void render_node(NodeData n, ref PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
 			GRAPH_SCALE dimensions);
 /*
 		virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
@@ -708,6 +711,7 @@ namespace rgatCore
 					return false;
 				}
 				*/
+
 				if (!externBlock.Value.thread_callers.TryGetValue(tid, out List<Tuple<uint,uint>> calls))
                 {
 					//piddata.dropExternCallerReadLock();
@@ -1364,8 +1368,42 @@ namespace rgatCore
 			}
 		}
 
+		public void UpdateGraphicBuffers(Vector2 size, GraphicsDevice _gd)
+        {
+			if (_outputFramebuffer == null)
+            {
+				InitMainGraphTexture(size, _gd);
+            }
+        }
+
+		public void InitMainGraphTexture(Vector2 size, GraphicsDevice _gd)
+		{
+			if (_outputTexture != null)
+            {
+				if (_outputTexture.Width == size.X && _outputTexture.Height == size.Y) return;
+                else
+                {
+					_outputTexture.Dispose();
+					_outputFramebuffer.Dispose();
+				}
+            }
+
+			_outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+								(uint)size.X,
+								(uint)size.Y,
+								1,
+								1,
+								PixelFormat.R32_G32_B32_A32_Float,
+								TextureUsage.RenderTarget | TextureUsage.Sampled));
+			_outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+
+		}
+
+
 		//private:
-		
+		public Veldrid.Texture _outputTexture = null;
+		public Veldrid.Framebuffer _outputFramebuffer = null;
+
 		ulong renderedBlocksCount = 0;
 
 		//position out of all the instructions instrumented
@@ -1395,9 +1433,9 @@ namespace rgatCore
 		int animationIndex = 0;
 
 		//have tried List<Tuple<uint,int>> but it's slower
-		Dictionary<uint, int> newAnimNodeTimes;
-		Dictionary<uint, int> activeAnimNodeTimes;
-		List<uint> fadingAnimNodesSet;
+		Dictionary<uint, int> newAnimNodeTimes = new Dictionary<uint, int>();
+		Dictionary<uint, int> activeAnimNodeTimes = new Dictionary<uint, int>();
+		List<uint> fadingAnimNodesSet = new List<uint>();
 
 		Dictionary<Tuple<uint,uint>, int> newAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
 		Dictionary<Tuple<uint, uint>, int> activeAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
@@ -1409,6 +1447,7 @@ namespace rgatCore
 		//int threadReferences = 0;
 		public bool IsAnimated { get; private set; } = false;
 		bool animation_needs_reset = false;
-		bool performSymbolResolve = false;
+		public bool NeedReplotting = false;
+		//bool performSymbolResolve = false;
 	}
 }

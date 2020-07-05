@@ -109,7 +109,7 @@ namespace rgatCore
                     //ReadLock disasReadLock(disassemblyRWLock);
                     
                     List<InstructionData> result = blockList[(int)blockID].Item2;
-
+                    externBlock = null;
                     //disasReadLock.unlock();
                     return result;
                 }
@@ -497,6 +497,7 @@ namespace rgatCore
 
             ROUTINE_STRUCT BBEntry = new ROUTINE_STRUCT();
 
+
             if (!externEntry.TryGetValue("M", out JToken ModID) || ModID.Type != JTokenType.Integer)
             {
                 Console.WriteLine("[rgat]Error: module ID not found in extern entry");
@@ -514,24 +515,26 @@ namespace rgatCore
 
             if (externEntry.TryGetValue("C", out JToken callers) && callers.Type != JTokenType.Array)
             {
-            JArray CallersArray = (JArray)callers;
-            foreach (JArray caller in CallersArray)
-            {
-
-                List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
-                uint threadID = caller[0].ToObject<uint>();
-                JArray edges = (JArray) caller[1];
-
-                foreach (JArray edge in edges)
+                BBEntry.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
+                JArray CallersArray = (JArray)callers;
+                foreach (JArray caller in CallersArray)
                 {
-                        uint source = edge[0].ToObject<uint>();
-                        uint target = edge[0].ToObject<uint>();
-                        ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
-                }
-                BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
+
+                    List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
+                    uint threadID = caller[0].ToObject<uint>();
+                    JArray edges = (JArray) caller[1];
+
+                    foreach (JArray edge in edges)
+                    {
+                            uint source = edge[0].ToObject<uint>();
+                            uint target = edge[0].ToObject<uint>();
+                            ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
+                    }
+                    BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
                   
+                }
             }
-            }
+
             externdict.Add(externAddr,BBEntry);
             return true;
         }

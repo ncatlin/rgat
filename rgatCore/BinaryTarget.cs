@@ -35,7 +35,7 @@ namespace rgatCore
         public string FormatNotes { get; private set; } = "Not Analysed";
 
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
-        //private List<TraceRecord> TraceRecordsList;
+        private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
 
         public BinaryTarget(string filepath)
@@ -121,7 +121,16 @@ namespace rgatCore
                 return false;
             }
             newRecord = new TraceRecord(PID, ID, this, timeStarted);
+            RecordedTraces.Add(timeStarted, newRecord);
+            TraceRecordsList.Add(newRecord);
             return true;
         }
+
+        public TraceRecord GetFirstTrace()
+        {
+            if (TraceRecordsList.Count == 0) return null;
+            return TraceRecordsList[0];
+        }
+
     }
 }

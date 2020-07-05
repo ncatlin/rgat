@@ -50,9 +50,15 @@ namespace rgatCore
 
         const int WIREFRAME_POINTSPERLINE = 64;
 
-        public CylinderGraph(ProtoGraph baseProtoGraph) : base(baseProtoGraph)//, vector<QColor>* coloursPtr)
+        public CylinderGraph(ProtoGraph baseProtoGraph, List<Color> colourslist) : base(baseProtoGraph, colourslist)
         {
             layout = graphLayouts.eCylinderLayout;
+            graphColours = colourslist;
+            if (graphColours.Count == 0)
+            {
+                Console.WriteLine("Warning: bad colour array. Assigning default");
+                graphColours = GlobalConfig.defaultGraphColours;
+            }
         }
 
         /*
@@ -139,6 +145,7 @@ namespace rgatCore
             main_scalefactors = scale;
         }
 
+
         /*
 		void setWireframeActive(int mode);
 
@@ -147,7 +154,7 @@ namespace rgatCore
 
 		int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data** node);
 		*/
-        override public void render_node(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
+        override public void render_node(NodeData n, ref PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
             GRAPH_SCALE dimensions)
         {
             CYLINDERCOORD coord;
