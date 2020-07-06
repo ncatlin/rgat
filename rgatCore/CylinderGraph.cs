@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Veldrid;
 using Veldrid.OpenGLBinding;
 
 namespace rgatCore
@@ -294,57 +295,53 @@ namespace rgatCore
             float diam = main_scalefactors.plotSize;
             List<VertexPositionColor> vertsList = wireframelines.acquire_vert_write();
             //horizontal circles
+            bool nextLoop = false;
+
+            List<Vector3> pointPositions = new List<Vector3>();
+            for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE + 1; ++circlePoint)
+            {
+                float angle = (float)(2 * Math.PI * circlePoint) / WIREFRAME_POINTSPERLINE;
+                Vector3 vertPosition = new Vector3(diam * (float)Math.Cos(angle), 0, diam * (float)Math.Sin(angle));
+                pointPositions.Add(vertPosition);
+            }
+
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * CYLINDER_SEP_PER_ROW;
-                for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE; ++circlePoint)
+                for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE+1; ++circlePoint)
                 { 
-                    float angle = (float)(2 * Math.PI * circlePoint) / WIREFRAME_POINTSPERLINE;
-                    VertexPositionColor newVert = new VertexPositionColor();
-                    newVert.Position = new Vector3(diam * (float)Math.Cos(angle), rowYcoord, diam * (float)Math.Sin(angle));
-                    newVert.Color = GlobalConfig.mainColours.wireframe;
-                    vertsList.Add(newVert);
+                    
+                    VertexPositionColor skipVert = new VertexPositionColor();
+                    skipVert.Position = pointPositions[circlePoint];
+                    skipVert.Position.Y = rowYcoord;
+                    skipVert.Color = new WritableRgbaFloat(Color.LightGray);
+                    vertsList.Add(skipVert);
+                    Console.WriteLine($"p0: {skipVert.Position}");
+
+                    skipVert = new VertexPositionColor();
+                    if (circlePoint < WIREFRAME_POINTSPERLINE)
+                    {
+                        skipVert.Position = pointPositions[circlePoint + 1];
+                        skipVert.Position.Y = rowYcoord;
+                    }
+                    else
+                    {
+                        skipVert.Position = pointPositions[0];
+                        skipVert.Position.Y = rowYcoord;
+                    }
+
+                    skipVert.Color = new WritableRgbaFloat(Color.LightGray);
+                    vertsList.Add(skipVert);
+                    Console.WriteLine($"p1: {skipVert.Position}");
                 }
             }
+            Console.WriteLine($"Drew {vertsList.Count} wireframe verts");
+            wireframelines.release_vert_write();
         }
 
 
-        /*
-        void draw_wireframe(graphGLWidget &gltarget)
-        {
-            gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_POS]);
-            glVertexPointer(POSELEMS, GL_FLOAT, 0, 0);
-
-            gltarget.glBindBuffer(GL_ARRAY_BUFFER, wireframeVBOs[VBO_CYLINDER_COL]);
-            glColorPointer(COLELEMS, GL_FLOAT, 0, 0);
-
-            gltarget.glMultiDrawArrays(GL_LINE_LOOP, &wireframeStarts.at(0), &wireframeSizes.at(0), wireframe_loop_count);
-            gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-        */
-
-        /*
-        void regen_wireframe_buffers(graphGLWidget &gltarget)
-        {
-            if (wireframeBuffersCreated)
-            {
-                gltarget.glDeleteBuffers(2, wireframeVBOs);
-            }
-            gltarget.glGenBuffers(2, wireframeVBOs);
-
-
-            //wireframe drawn using glMultiDrawArrays which takes a list of vert starts/sizes
-
-            for (int i = 0; i < wireframe_loop_count; ++i)
-            {
-                wireframeStarts.Add(i * WIREFRAME_POINTSPERLINE);
-                wireframeSizes.Add(WIREFRAME_POINTSPERLINE);
-            }
-
-            wireframeBuffersCreated = true;
-        }
         
-
+        /*
         
         void display_graph(GraphicsMaths.PROJECTDATA pd, graphGLWidget &gltarget)
         {
@@ -639,7 +636,7 @@ namespace rgatCore
                             if (!n.ins.hasSymbol && n.label.Length == 0)
                             {
                                 ulong nodeoffset = n.address - internalProtoGraph.moduleBase;
-                                n.label = "[InternalFunc_" + (internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString() + "]";
+                                n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
                                 n.placeholder = true;
 
                                 //callStackLock.lock () ;

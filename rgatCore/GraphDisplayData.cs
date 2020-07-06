@@ -77,23 +77,16 @@ namespace rgatCore
 
         List<VertexPositionColor> readonly_col() { if (VertList.Count > 0) return VertList; return null; }
 
-        public void release_pos_write()
+        public void release_vert_write()
         {
+            DataChanged = true;
             //poslock_.unlock();
         }
-        public void release_pos_read()
+        public void release_vert_read()
         {
             //poslock_.unlock_shared();
         }
 
-        public void release_col_write()
-        {
-            //collock_.unlock();
-        }
-        public void release_col_read()
-        {
-            //collock_.unlock_shared();
-        }
 
         void reset()
         {
@@ -110,10 +103,8 @@ namespace rgatCore
 			*/
         }
 
-        //uint get_renderedEdges() { return edgesRendered; }
         public void inc_edgesRendered() { ++CountRenderedEdges; }
-
-
+        public uint CountRenderedEdges { get; private set; } = 0;
         public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, out int arraypos)
         {
 
@@ -129,6 +120,8 @@ namespace rgatCore
             vertposlist.Add(vert);
             vert.Position = endC;
             vertposlist.Add(vert);
+
+            release_vert_write();
         }
 
         public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, WritableRgbaFloat colour, eEdgeNodeType edgeType, out int arraypos)
@@ -187,8 +180,7 @@ namespace rgatCore
                 Color = colour
             };
             vertposlist.Add(lastVert);
-            release_col_write();
-            release_pos_write();
+            release_vert_write();
 
             return curvePoints + 2;
         }
@@ -207,8 +199,8 @@ namespace rgatCore
 
         public ulong vcolarraySize { get; private set; } = 0;
 
-        //not used for nodes
-        public uint CountRenderedEdges { get; private set; } = 0;
+        public void SignalDataRead() { DataChanged = false; } //todo race condition possible here
+        public bool DataChanged { get; private set; } = false;
         public bool IsPreview { get; private set; } = false;
     }
 }

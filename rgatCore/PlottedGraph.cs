@@ -1467,7 +1467,7 @@ namespace rgatCore
 		//int threadReferences = 0;
 		public bool IsAnimated { get; private set; } = false;
 		bool animation_needs_reset = false;
-		public bool NeedReplotting = false;
+		public bool NeedReplotting = false; //all verts need re-plotting from scratch
 		//bool performSymbolResolve = false;
 	}
 }

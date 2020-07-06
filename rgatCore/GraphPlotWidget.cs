@@ -100,30 +100,72 @@ namespace rgatCore
 		private static DeviceBuffer _projectionBuffer;
 		private static DeviceBuffer _viewBuffer;
 		private static Shader[] _shaders;
+
+
+		private static Pipeline _wireframePipeline;
+		private static VertexPositionColor[] _WireframeVertices;
+		private static DeviceBuffer _WireframeVertexBuffer;
+		private static DeviceBuffer _WireframeIndexBuffer;
+
 		private static Pipeline _linesPipeline;
-		private static Pipeline _pointsPipeline;
 		private static VertexPositionColor[] _LineVertices;
-		private static VertexPositionColor[] _PointVertices;
 		private static DeviceBuffer _LineVertexBuffer;
 		private static DeviceBuffer _LineIndexBuffer;
+
+		private static Pipeline _pointsPipeline;
+		private static VertexPositionColor[] _PointVertices;
 		private static DeviceBuffer _PointVertexBuffer;
 		private static DeviceBuffer _PointIndexBuffer;
+
 		private static ResourceSet _projViewSet;
 
 
 
+		public static void InitWireframeVertexData(GraphicsDevice _gd, PlottedGraph graph)
+		{
 
+			List<VertexPositionColor> allVerts = graph.wireframelines.acquire_vert_read();
+			_WireframeVertices = allVerts.ToArray();
+
+			Console.WriteLine($"Initing graph with {_WireframeVertices.Length} wireframe verts");
+
+			ResourceFactory factory = _gd.ResourceFactory;
+			if (_WireframeIndexBuffer != null)
+			{
+				_WireframeIndexBuffer.Dispose();
+				_WireframeVertexBuffer.Dispose();
+			}
+
+
+			BufferDescription vbDescription = new BufferDescription(
+				(uint)_WireframeVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+			_WireframeVertexBuffer = factory.CreateBuffer(vbDescription);
+			_gd.UpdateBuffer(_WireframeVertexBuffer, 0, _WireframeVertices);
+
+			List<ushort> wfIndices = Enumerable.Range(0, _WireframeVertices.Length)
+				.Select(i => (ushort)i)
+				.ToList();
+
+			BufferDescription ibDescription = new BufferDescription((uint)wfIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+			_WireframeIndexBuffer = factory.CreateBuffer(ibDescription);
+			_gd.UpdateBuffer(_WireframeIndexBuffer, 0, wfIndices.ToArray());
+		}
 
 		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
 
-			List<VertexPositionColor> allVerts = graph.wireframelines.acquire_vert_read();
-			allVerts.AddRange(graph.mainlinedata.acquire_vert_read());
+			List<VertexPositionColor> allVerts = graph.mainlinedata.acquire_vert_read();
 			_LineVertices = allVerts.ToArray();
 
 			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
 			ResourceFactory factory = _gd.ResourceFactory;
+			if (_LineIndexBuffer != null)
+			{
+				_LineIndexBuffer.Dispose();
+				_LineVertexBuffer.Dispose();
+			}
+
 			BufferDescription vbDescription = new BufferDescription(
 				(uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
 			_LineVertexBuffer = factory.CreateBuffer(vbDescription);
@@ -147,8 +189,16 @@ namespace rgatCore
 
 			ResourceFactory factory = _gd.ResourceFactory;
 			uint bufferSize = (uint)_PointVertices.Length * VertexPositionColor.SizeInBytes;
+			
+			//TODO: can be much more efficient here with option to just add new stuff
+			if (_PointIndexBuffer != null)
+            {
+				_PointIndexBuffer.Dispose();
+				_PointVertexBuffer.Dispose();
+			}
 			BufferDescription vbDescription = new BufferDescription(bufferSize, BufferUsage.VertexBuffer);
 			_PointVertexBuffer = factory.CreateBuffer(vbDescription);
+			
 			_gd.UpdateBuffer(_PointVertexBuffer, 0, _PointVertices);
 
 			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length)
@@ -205,6 +255,7 @@ namespace rgatCore
 				ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
 
 				//create data
+				InitWireframeVertexData(_gd, ActiveGraph);
 				InitLineVertexData(_gd, ActiveGraph);
 				InitNodeVertexData(_gd, ActiveGraph);
 
@@ -231,12 +282,32 @@ namespace rgatCore
 
 				pipelineDescription.Outputs = _rgatState.ActiveGraph._outputFramebuffer.OutputDescription; // _gd.SwapchainFramebuffer.OutputDescription;
 
+				pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
+				_wireframePipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+
 				pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
 				_linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
 
 				pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
 				_pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+
 				inited1 = true;
+			}
+
+			if (ActiveGraph.wireframelines.DataChanged)
+			{
+				ActiveGraph.wireframelines.SignalDataRead();
+				InitWireframeVertexData(_gd, ActiveGraph);
+			}
+			if (ActiveGraph.mainnodesdata.DataChanged)
+			{
+				ActiveGraph.mainnodesdata.SignalDataRead();
+				InitNodeVertexData(_gd, ActiveGraph);
+			}
+			if (ActiveGraph.mainlinedata.DataChanged)
+			{
+				ActiveGraph.mainlinedata.SignalDataRead();
+				InitLineVertexData(_gd, ActiveGraph);
 			}
 
 
@@ -244,6 +315,7 @@ namespace rgatCore
 			_cl.ClearColorTarget(0, RgbaFloat.Black);
 			//_cl.ClearDepthStencil(1f);
 			SetupView(_cl);
+			DrawWireframe(_cl);
 			DrawLines(_cl);
 			DrawPoints(_cl);
 		}
@@ -269,6 +341,21 @@ namespace rgatCore
 			_cl.UpdateBuffer(_worldBuffer, 0, ref rotation);
 		}
 
+
+		private void DrawWireframe(CommandList _cl)
+		{
+			_cl.SetVertexBuffer(0, _WireframeVertexBuffer);
+			_cl.SetIndexBuffer(_WireframeIndexBuffer, IndexFormat.UInt16);
+			_cl.SetPipeline(_wireframePipeline);
+			_cl.SetGraphicsResourceSet(0, _projViewSet);
+			_cl.DrawIndexed(
+				indexCount: (uint)_WireframeVertices.Length,
+				instanceCount: 1,
+				indexStart: 0,
+				vertexOffset: 0,
+				instanceStart: 0);
+
+		}
 		private void DrawLines(CommandList _cl)
 		{
 			_cl.SetVertexBuffer(0, _LineVertexBuffer);
