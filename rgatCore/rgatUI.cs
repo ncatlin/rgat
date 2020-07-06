@@ -55,6 +55,10 @@ namespace rgatCore
 
         }
 
+        public void Exit()
+        {
+            _rgatstate.ShutdownRGAT();
+        }
 
         public void AlertResized(Vector2 size)
         {
@@ -458,9 +462,9 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
             {
 
-                ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, 4f, "%f%%");
+                ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
-                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 500f, "%f%%");
+                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 20000f, "%f%%");
                 ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 0.2f, -100, 100, "%f%%");
                 ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -100, 100, "%f%%");
                 ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%");

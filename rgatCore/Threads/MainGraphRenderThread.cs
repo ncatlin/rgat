@@ -141,6 +141,7 @@ namespace rgatCore.Threads
 				while (activeGraph == null || activeGraph.mainlinedata == null)
 				{
 					Thread.Sleep(50);
+					if (rgatState.rgatIsExiting) return;
 					activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
 					continue;
 				}

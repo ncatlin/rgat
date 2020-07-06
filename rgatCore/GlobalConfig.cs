@@ -20,6 +20,7 @@ namespace rgatCore.Threads
         {
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);
             public static WritableRgbaFloat highlightLine = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat wireframe = new WritableRgbaFloat(Color.LightGray);
             public static WritableRgbaFloat instructionText = new WritableRgbaFloat(Color.White);
             public static WritableRgbaFloat symbolTextExternal = new WritableRgbaFloat(Color.Green);
             public static WritableRgbaFloat symbolTextExternalRising = new WritableRgbaFloat(Color.Green);

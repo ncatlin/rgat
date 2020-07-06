@@ -175,6 +175,7 @@ void main()
                 _gd.SwapBuffers(_gd.MainSwapchain);
             }
 
+            _rgatui.Exit();
             // Clean up Veldrid resources
             _gd.WaitForIdle();
             _controller.Dispose();

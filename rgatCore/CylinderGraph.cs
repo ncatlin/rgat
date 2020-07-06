@@ -26,7 +26,7 @@ namespace rgatCore
         const int PREVIEW_PIX_PER_B_COORD = 4;
         const float B_PX_OFFSET_FROM_TOP = 0.01f;
 
-        const int CYLINDER_PIXELS_PER_ROW = 3000;
+        const float CYLINDER_SEP_PER_ROW = 8;
         const float JUMPA = -3;
         const float JUMPB = 3;
         const float JUMPA_CLASH = 1.5f;
@@ -59,14 +59,18 @@ namespace rgatCore
                 Console.WriteLine("Warning: bad colour array. Assigning default");
                 graphColours = GlobalConfig.defaultGraphColours;
             }
+
+            wireframelines = new GraphDisplayData();
         }
 
-        /*
-		void maintain_draw_wireframe(graphGLWidget &gltarget);
-		void plot_wireframe(graphGLWidget &gltarget);
 
-		void performMainGraphDrawing(graphGLWidget &gltarget);
-		*/
+
+
+        //void maintain_draw_wireframe(graphGLWidget &gltarget);
+
+
+		//void performMainGraphDrawing(graphGLWidget &gltarget);
+		
         public override void render_static_graph()
         {
             int drawCount = render_new_edges();
@@ -270,8 +274,41 @@ namespace rgatCore
 
         int needed_wireframe_loops()
         {
-            return (int)((maxB * main_scalefactors.pix_per_B) / CYLINDER_PIXELS_PER_ROW) + 2;
+            return (int)Math.Ceiling((maxB * main_scalefactors.pix_per_B) / CYLINDER_SEP_PER_ROW) + 2;
         }
+
+
+        void regenerate_wireframe_if_needed()
+        {
+            int requiredLoops = needed_wireframe_loops();
+            if (requiredLoops > wireframe_loop_count)
+            {
+                wireframe_loop_count = requiredLoops;
+                wireframelines.VertList.Clear();
+                plot_wireframe();
+            }
+        }
+
+        void plot_wireframe()
+        {
+            float diam = main_scalefactors.plotSize;
+            List<VertexPositionColor> vertsList = wireframelines.acquire_vert_write();
+            //horizontal circles
+            for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
+            {
+                float rowYcoord = -rowY * CYLINDER_SEP_PER_ROW;
+                for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE; ++circlePoint)
+                { 
+                    float angle = (float)(2 * Math.PI * circlePoint) / WIREFRAME_POINTSPERLINE;
+                    VertexPositionColor newVert = new VertexPositionColor();
+                    newVert.Position = new Vector3(diam * (float)Math.Cos(angle), rowYcoord, diam * (float)Math.Sin(angle));
+                    newVert.Color = GlobalConfig.mainColours.wireframe;
+                    vertsList.Add(newVert);
+                }
+            }
+        }
+
+
         /*
         void draw_wireframe(graphGLWidget &gltarget)
         {
@@ -285,12 +322,6 @@ namespace rgatCore
             gltarget.glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
         */
-
-        void regenerate_wireframe_if_needed()
-        {
-            if (needed_wireframe_loops() > wireframe_loop_count)
-                staleWireframe = true;
-        }
 
         /*
         void regen_wireframe_buffers(graphGLWidget &gltarget)
@@ -759,7 +790,6 @@ namespace rgatCore
         }
 
         int wireframe_loop_count = 0;
-        //GraphDisplayData* wireframe_data = NULL;
         //GLuint wireframeVBOs[2];
         bool staleWireframe = false;
         bool wireframeBuffersCreated = false;

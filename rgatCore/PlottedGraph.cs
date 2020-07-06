@@ -340,6 +340,7 @@ namespace rgatCore
 		public GraphDisplayData previewnodes = null;
 		public GraphDisplayData previewlines = null;
 		public GraphDisplayData blocklines = null;
+		public GraphDisplayData wireframelines = null;
 
 		protected bool needVBOReload_main = true;
 		protected bool needVBOReload_active = true;

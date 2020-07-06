@@ -35,6 +35,11 @@ namespace rgatCore
 		public bool showNodes = true;
 		public bool showEdges = true;
 
+		public void ShutdownRGAT()
+        {
+			rgatIsExiting = true;
+        }
+
 		public void AddTargetByPath(string path, bool selectIt = true)
         {
             targets.AddTargetByPath(path);

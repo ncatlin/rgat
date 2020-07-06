@@ -116,8 +116,13 @@ namespace rgatCore
 
 		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
-			_LineVertices = graph.mainlinedata.acquire_vert_read().ToArray();
+
+			List<VertexPositionColor> allVerts = graph.wireframelines.acquire_vert_read();
+			allVerts.AddRange(graph.mainlinedata.acquire_vert_read());
+			_LineVertices = allVerts.ToArray();
+
 			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
+
 			ResourceFactory factory = _gd.ResourceFactory;
 			BufferDescription vbDescription = new BufferDescription(
 				(uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
