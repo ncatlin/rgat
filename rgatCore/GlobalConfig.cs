@@ -18,36 +18,36 @@ namespace rgatCore.Threads
 
         public static class mainColours
         {
-            public static Color background = Color.Black;
-            public static Color highlightLine = Color.Green;
-            public static Color instructionText = Color.White;
-            public static Color symbolTextExternal = Color.Green;
-            public static Color symbolTextExternalRising = Color.Green;
-            public static Color symbolTextInternal = Color.Gray;
-            public static Color symbolTextInternalRising = Color.LightGray;
-            public static Color symbolTextPlaceholder = Color.LightGray;
-            public static Color activityLine = Color.Red;
+            public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);
+            public static WritableRgbaFloat highlightLine = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat instructionText = new WritableRgbaFloat(Color.White);
+            public static WritableRgbaFloat symbolTextExternal = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat symbolTextExternalRising = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat symbolTextInternal = new WritableRgbaFloat(Color.Gray);
+            public static WritableRgbaFloat symbolTextInternalRising = new WritableRgbaFloat(Color.LightGray);
+            public static WritableRgbaFloat symbolTextPlaceholder = new WritableRgbaFloat(Color.LightGray);
+            public static WritableRgbaFloat activityLine = new WritableRgbaFloat(Color.Red);
 
-            public static Color edgeCall = Color.Purple;
-            public static Color edgeOld = Color.White;
-            public static Color edgeReg = Color.Orange;
-            public static Color edgeLib = Color.Green;
-            public static Color edgeNew = Color.Yellow;
-            public static Color edgeExcept = Color.Cyan;
+            public static WritableRgbaFloat edgeCall = new WritableRgbaFloat(Color.Purple);
+            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.White);
+            public static WritableRgbaFloat edgeReg = new WritableRgbaFloat(Color.Orange);
+            public static WritableRgbaFloat edgeLib = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat edgeNew = new WritableRgbaFloat(Color.Yellow);
+            public static WritableRgbaFloat edgeExcept = new WritableRgbaFloat(Color.Cyan);
 
-            public static Color nodeStd = Color.Yellow;
-            public static Color nodeJump = Color.Red;
-            public static Color nodeCall = Color.Purple;
-            public static Color nodeRet = Color.Orange;
-            public static Color nodeExtern = Color.Green;
-            public static Color nodeExcept = Color.Cyan;
+            public static WritableRgbaFloat nodeStd = new WritableRgbaFloat(Color.Yellow);
+            public static WritableRgbaFloat nodeJump = new WritableRgbaFloat(Color.Red);
+            public static WritableRgbaFloat nodeCall = new WritableRgbaFloat(Color.Purple);
+            public static WritableRgbaFloat nodeRet = new WritableRgbaFloat(Color.Orange);
+            public static WritableRgbaFloat nodeExtern = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat nodeExcept = new WritableRgbaFloat(Color.Cyan);
         }
 
-        public static List<Color> defaultGraphColours = new List<Color>();
+        public static List<WritableRgbaFloat> defaultGraphColours = new List<WritableRgbaFloat>();
 
         public static void InitDefaultConfig()
         {
-            defaultGraphColours = new List<Color> { 
+            defaultGraphColours = new List<WritableRgbaFloat> { 
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeReg, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
             };

@@ -13,7 +13,13 @@ namespace rgatCore
 {
     struct WritableRgbaFloat
     {
-
+        public WritableRgbaFloat(Color col)
+        {
+            R = col.R;
+            G = col.G;
+            B = col.B;
+            A = col.A;
+        }
         public float R { get; set; }
         public float G { get; set; }
         public float B { get; set; }
@@ -108,17 +114,83 @@ namespace rgatCore
         public void inc_edgesRendered() { ++CountRenderedEdges; }
 
 
-        public void drawShortLinePoints(Vector3 startC, Vector3 endC, Color colour, out int arraypos)
+        public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, out int arraypos)
         {
-            arraypos = 0;
-            Console.WriteLine("todo drawShortLinePoints");
+
+            List<VertexPositionColor> vertposlist = acquire_vert_write();
+
+            arraypos = vertposlist.Count;
+
+            VertexPositionColor vert = new VertexPositionColor()
+            {
+                Position = startC,
+                Color = colour
+            };
+            vertposlist.Add(vert);
+            vert.Position = endC;
+            vertposlist.Add(vert);
         }
 
-        public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, Color colour, eEdgeNodeType edgeType, out int colarraypos)
+        public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, WritableRgbaFloat colour, eEdgeNodeType edgeType, out int arraypos)
         {
-            Console.WriteLine("todo drawLongCurvePoints");
-            colarraypos = 0;
-            return 0;
+            float[] fadeArray = { 0.4f, 0.4f, 0.5f, 0.5f, 0.7f, 0.7f, 0.6f, 0.8f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, 0.7f, 1, 1, 1 };
+
+            int curvePoints = GL_Constants.LONGCURVEPTS + 2;
+            List<VertexPositionColor> vertposlist = acquire_vert_write();
+
+            if (vertposlist == null)
+            {
+                Console.WriteLine("drawLongCurvePoints Error, failed to acquire vert lock");
+                arraypos = 0;
+                return 0;
+            }
+            arraypos = vertposlist.Count;
+
+            VertexPositionColor startVert = new VertexPositionColor() {
+                Position = startC,
+                Color = colour
+            };
+
+
+            vertposlist.Add(startVert);
+
+            // > for smoother lines, less performance
+            int dt;
+            float fadeA = (float)240;
+
+            int segments = curvePoints / 2;
+            for (dt = 1; dt < segments + 1; ++dt)
+            {
+                fadeA = fadeArray[dt - 1]*255.0f;
+                if (fadeA > 1) fadeA = 1;
+
+
+                colour.A = fadeA;
+                VertexPositionColor nextVert = new VertexPositionColor()
+                {
+                    Position = GraphicsMaths.bezierPT(startC, bezierC, endC, dt, segments),
+                    Color = colour
+                };
+
+                vertposlist.Add(nextVert);
+
+                //start new line at same point  
+                //todo: use indexing to avoid this
+
+                vertposlist.Add(nextVert);
+            }
+
+            colour.A = (float)255;
+            VertexPositionColor lastVert = new VertexPositionColor()
+            {
+                Position = endC,
+                Color = colour
+            };
+            vertposlist.Add(lastVert);
+            release_col_write();
+            release_pos_write();
+
+            return curvePoints + 2;
         }
 
         //bool get_coord(NODEINDEX index, FCOORD* result);

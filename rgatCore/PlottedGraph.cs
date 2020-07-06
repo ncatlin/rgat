@@ -12,8 +12,8 @@ namespace rgatCore
 {
 	class GRAPH_SCALE
 	{
-		public float plotSize = 10000;
-		public float basePlotSize = 10000;
+		public float plotSize = 1000;
+		public float basePlotSize = 1000;
 		public float userSizeModifier = 1;
 		public int maxA = 360;
 		public int maxB = 180;
@@ -43,7 +43,7 @@ namespace rgatCore
 			uint index;
 		};
 
-		public PlottedGraph(ProtoGraph protoGraph, List<Color> graphColourslist)
+		public PlottedGraph(ProtoGraph protoGraph, List<WritableRgbaFloat> graphColourslist)
 		{
 			pid = protoGraph.TraceData.PID;
 			tid = protoGraph.ThreadID;
@@ -123,7 +123,7 @@ namespace rgatCore
 
 		virtual void orient_to_user_view() { };
 		*/
-		protected abstract bool render_edge(Tuple<uint,uint> nodePair, GraphDisplayData edgedata, Color? forceColour, bool preview, bool noUpdate);
+		protected abstract bool render_edge(Tuple<uint,uint> nodePair, GraphDisplayData edgedata, WritableRgbaFloat? forceColour, bool preview, bool noUpdate);
 		/*
 		virtual uint get_graph_size() { return 0; };
 		virtual void* get_node_coord_ptr(uint idx) { return 0; }
@@ -627,7 +627,7 @@ namespace rgatCore
 		protected uint lastAnimatedNode = 0;
 		//Dictionary<uint, EXTTEXT> activeExternTimes;
 		protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
-		protected List<Color> graphColours = new List<Color>();
+		protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
 		protected bool wireframeSupported = false;
 		protected bool wireframeActive = false;

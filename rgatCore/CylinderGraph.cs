@@ -50,7 +50,7 @@ namespace rgatCore
 
         const int WIREFRAME_POINTSPERLINE = 64;
 
-        public CylinderGraph(ProtoGraph baseProtoGraph, List<Color> colourslist) : base(baseProtoGraph, colourslist)
+        public CylinderGraph(ProtoGraph baseProtoGraph, List<WritableRgbaFloat> colourslist) : base(baseProtoGraph, colourslist)
         {
             layout = graphLayouts.eCylinderLayout;
             graphColours = colourslist;
@@ -78,7 +78,7 @@ namespace rgatCore
         }
 
 
-        protected override bool render_edge(Tuple<uint, uint> ePair, GraphDisplayData edgedata, Color? colourOverride, bool preview, bool noUpdate)
+        protected override bool render_edge(Tuple<uint, uint> ePair, GraphDisplayData edgedata, WritableRgbaFloat? colourOverride, bool preview, bool noUpdate)
         {
             ulong nodeCoordQty = (ulong)node_coords.Count;
             if (ePair.Item1 >= nodeCoordQty || ePair.Item2 >= nodeCoordQty)
@@ -91,7 +91,7 @@ namespace rgatCore
             Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling, 0);
             Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling, 0);
 
-            Color edgeColourPtr = colourOverride != null ? (Color)colourOverride : graphColours[(int)e.edgeClass];
+            WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
             int vertsDrawn = drawCurve(edgedata, srcc, targc, edgeColourPtr, e.edgeClass, scaling, out int arraypos);
 
@@ -120,13 +120,13 @@ namespace rgatCore
             wireframeSupported = true;
             wireframeActive = true;
 
-            preview_scalefactors.plotSize = 3000;
-            preview_scalefactors.basePlotSize = 3000;
+            preview_scalefactors.plotSize = 500;
+            preview_scalefactors.basePlotSize = 500;
             preview_scalefactors.pix_per_A = PREVIEW_PIX_PER_A_COORD;
             preview_scalefactors.pix_per_B = PREVIEW_PIX_PER_B_COORD;
 
-            main_scalefactors.plotSize = 200;// 20000;
-            main_scalefactors.basePlotSize = 200;// 20000;
+            main_scalefactors.plotSize = 50;// 20000;
+            main_scalefactors.basePlotSize = 50;// 20000;
             main_scalefactors.userSizeModifier = 1;
             main_scalefactors.pix_per_A = DEFAULT_A_SEP;
             main_scalefactors.original_pix_per_A = DEFAULT_A_SEP;
@@ -194,7 +194,7 @@ namespace rgatCore
 
             List<VertexPositionColor> vertsList = vertdata.acquire_vert_write();
 
-            Color active_col;
+            WritableRgbaFloat active_col;
             if (n.IsExternal)
                 lastNode.lastVertType = eEdgeNodeType.eNodeExternal;
             else
@@ -384,7 +384,7 @@ namespace rgatCore
         */
 
         int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC,
-            Color colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos)
+            WritableRgbaFloat colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos)
         {
             //describe the normal
             GraphicsMaths.midpoint(startC, endC, out Vector3 middleC);

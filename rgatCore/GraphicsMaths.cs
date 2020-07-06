@@ -53,5 +53,17 @@ namespace rgatCore
             return (float)((Math.Abs(cameraZoom) - plotSize) / 1000) - 1;
         }
 
+        //computes location of point 'pointnum' on a quadratic bezier curve divided into totalpoints segments
+        static public Vector3 bezierPT(Vector3 startC, Vector3 bezierC, Vector3 endC, int pointnum, int totalpoints)
+        {
+            float t = pointnum / totalpoints;
+
+            //quadratic bezier
+            float x = ((1 - t) * (1 - t) * startC.X + 2 * (1 - t) * t * bezierC.X + t * t * endC.X);
+            float y = ((1 - t) * (1 - t) * startC.Y + 2 * (1 - t) * t * bezierC.Y + t * t * endC.Y);
+            float z = ((1 - t) * (1 - t) * startC.Z + 2 * (1 - t) * t * bezierC.Z + t * t * endC.Z);
+            return new Vector3(x, y, z);
+        }
+
     }
 }
