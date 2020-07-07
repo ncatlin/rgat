@@ -128,6 +128,7 @@ void main()
             preferDepthRangeZeroToOne: true,
             preferStandardClipSpaceYDirection: false);
 
+            //todo: work out how to create consistent rendering with each backend
             VeldridStartup.CreateWindowAndGraphicsDevice(
                 new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "ImGui.NET Sample Program"),
                 options,

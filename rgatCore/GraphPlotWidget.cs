@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -130,6 +131,7 @@ namespace rgatCore
 			Console.WriteLine($"Initing graph with {_WireframeVertices.Length} wireframe verts");
 
 			ResourceFactory factory = _gd.ResourceFactory;
+
 			if (_WireframeIndexBuffer != null)
 			{
 				_WireframeIndexBuffer.Dispose();
@@ -189,8 +191,14 @@ namespace rgatCore
 
 			ResourceFactory factory = _gd.ResourceFactory;
 			uint bufferSize = (uint)_PointVertices.Length * VertexPositionColor.SizeInBytes;
+			/*
+			 * 
+			 * 
+			TODO: can be much much more efficient here with option to just update new stuff
+			*
+			*
+			*/
 			
-			//TODO: can be much more efficient here with option to just add new stuff
 			if (_PointIndexBuffer != null)
             {
 				_PointIndexBuffer.Dispose();
@@ -264,12 +272,11 @@ namespace rgatCore
 
 				// Create pipelines
 				GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-				pipelineDescription.BlendState = BlendStateDescription.SingleOverrideBlend;
+				pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
 				pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
 					depthTestEnabled: true,
 					depthWriteEnabled: true,
 					comparisonKind: ComparisonKind.LessEqual);
-
 
 				pipelineDescription.RasterizerState = new RasterizerStateDescription(
 					cullMode: FaceCullMode.Back,
@@ -284,6 +291,7 @@ namespace rgatCore
 
 				pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
 				_wireframePipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+				
 
 				pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
 				_linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);

@@ -15,10 +15,10 @@ namespace rgatCore
     {
         public WritableRgbaFloat(Color col)
         {
-            R = col.R;
-            G = col.G;
-            B = col.B;
-            A = col.A;
+            R = (float)col.R/255f;
+            G = (float)col.G/255f;
+            B = (float)col.B/255f;
+            A = (float)col.A/255f;
         }
         public float R { get; set; }
         public float G { get; set; }

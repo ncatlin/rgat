@@ -305,34 +305,20 @@ namespace rgatCore
                 pointPositions.Add(vertPosition);
             }
 
+            VertexPositionColor wfVert = new VertexPositionColor();
+            wfVert.Color = new WritableRgbaFloat(Color.FromArgb(180,255,255,255));
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * CYLINDER_SEP_PER_ROW;
                 for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE+1; ++circlePoint)
-                { 
-                    
-                    VertexPositionColor skipVert = new VertexPositionColor();
-                    skipVert.Position = pointPositions[circlePoint];
-                    skipVert.Position.Y = rowYcoord;
-                    skipVert.Color = new WritableRgbaFloat(Color.LightGray);
-                    vertsList.Add(skipVert);
-                    Console.WriteLine($"p0: {skipVert.Position}");
+                {
+                    wfVert.Position = pointPositions[circlePoint];
+                    wfVert.Position.Y = rowYcoord;
+                    vertsList.Add(wfVert);
 
-                    skipVert = new VertexPositionColor();
-                    if (circlePoint < WIREFRAME_POINTSPERLINE)
-                    {
-                        skipVert.Position = pointPositions[circlePoint + 1];
-                        skipVert.Position.Y = rowYcoord;
-                    }
-                    else
-                    {
-                        skipVert.Position = pointPositions[0];
-                        skipVert.Position.Y = rowYcoord;
-                    }
-
-                    skipVert.Color = new WritableRgbaFloat(Color.LightGray);
-                    vertsList.Add(skipVert);
-                    Console.WriteLine($"p1: {skipVert.Position}");
+                    wfVert.Position = (circlePoint < WIREFRAME_POINTSPERLINE) ? pointPositions[circlePoint + 1] : pointPositions[0];
+                    wfVert.Position.Y = rowYcoord;
+                    vertsList.Add(wfVert);
                 }
             }
             Console.WriteLine($"Drew {vertsList.Count} wireframe verts");
