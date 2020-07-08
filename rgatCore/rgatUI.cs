@@ -36,6 +36,7 @@ namespace rgatCore
         Thread mainGraphThread = null;
 
         GraphPlotWidget MainGraphWidget = null;
+        PreviewGraphsWidget PreviewGraphWidget = null;
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
 
@@ -52,6 +53,7 @@ namespace rgatCore
 
 
             MainGraphWidget = new GraphPlotWidget(_rgatstate);
+            PreviewGraphWidget = new PreviewGraphsWidget(_rgatstate);
 
         }
 
@@ -319,6 +321,7 @@ namespace rgatCore
         {
             if (_rgatstate.ActiveGraph == null) return;
             MainGraphWidget.AddGraphicsCommands(_cl, _gd);
+            PreviewGraphWidget.AddGraphicsCommands(_cl, _gd);
         }
 
       
@@ -389,11 +392,13 @@ namespace rgatCore
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF253880);
-                if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), new Vector2(tracesGLFrameWidth, height)))
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x10253880);
+                Vector2 previewPaneSize = new Vector2(tracesGLFrameWidth, height);
+                if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
                 {
-
                     ImGui.Text("GLVisThreads");
+                    PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController);
+
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -461,14 +466,28 @@ namespace rgatCore
         {
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
             {
-
+                /*
                 ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
                 ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 20000f, "%f%%");
-                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 0.2f, -100, 100, "%f%%");
-                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -200, 1000, "%f%%");
+                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 400, "%f%%");
+                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 1000, "%f%%");
                 ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%");
                 ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.05f, -5, 5, "%f%%");
+                */
+                ImGui.DragFloat("FOV", ref PreviewGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
+                ImGui.DragFloat("Near Clipping", ref PreviewGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
+                ImGui.DragFloat("Far Clipping", ref PreviewGraphWidget.dbg_far, 1.0f, 0.1f, 20000f, "%f%%");
+                if (ImGui.DragFloat("X Shift", ref PreviewGraphWidget.dbg_camX, 1f, -400, 400, "%f%%")){
+                    MainGraphWidget.dbg_camX = PreviewGraphWidget.dbg_camX;
+                }
+                if(ImGui.DragFloat("Y Position", ref PreviewGraphWidget.dbg_camY, 1, -400, 1000, "%f%%")){
+                    MainGraphWidget.dbg_camY = PreviewGraphWidget.dbg_camY;
+                }
+                if (ImGui.DragFloat("Zoom", ref PreviewGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%")){
+                    MainGraphWidget.dbg_camZ = PreviewGraphWidget.dbg_camZ;
+                }
+                ImGui.DragFloat("Rotation", ref PreviewGraphWidget.dbg_rot, 0.05f, -5, 5, "%f%%");
 
                 ImGui.EndChild();
             }

@@ -13,7 +13,7 @@ namespace rgatCore.Threads
 		private rgatState rgatState = null;
 		public bool running = true;
 
-		void update_rendering(PlottedGraph graph)
+		static void update_rendering(PlottedGraph graph)
 		{
 			ProtoGraph protoGraph = graph.internalProtoGraph;
 			if (protoGraph == null || protoGraph.edgeList.Count == 0) return;

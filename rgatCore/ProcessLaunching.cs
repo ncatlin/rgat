@@ -30,6 +30,7 @@ namespace rgatCore
 			processThreads.previewThread = new PreviewRendererThread(runRecord, clientState);
 			Thread t1 = new Thread(processThreads.previewThread.ThreadProc);
 			processThreads.threads.Add(t1);
+			t1.Start();
 
 
 			Thread.Sleep(200);

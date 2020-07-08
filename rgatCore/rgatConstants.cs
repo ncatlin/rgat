@@ -22,6 +22,9 @@ namespace rgatCore
     static class UI_Constants
     {
         public const int MAX_DIFF_PATH_LENGTH = 50;
+        public const int PREVIEW_PANE_WIDTH = 300;
+        public const int PREVIEW_PANE_GRAPH_HEIGHT = 150;
+        public const int PREVIEW_PANE_PADDING = 5;
     }
 
     static class GL_Constants

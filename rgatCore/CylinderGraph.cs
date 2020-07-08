@@ -23,8 +23,8 @@ namespace rgatCore
     {
         const float DEFAULT_A_SEP = 0.8f; //was 80
         const float DEFAULT_B_SEP = 1.2f; //was 120
-        const int PREVIEW_PIX_PER_A_COORD = 3;
-        const int PREVIEW_PIX_PER_B_COORD = 4;
+        const float PREVIEW_A_SEP = 0.8f;
+        const float PREVIEW_B_SEP = 1.2f;
         const float B_PX_OFFSET_FROM_TOP = 0.01f;
 
         const float CYLINDER_SEP_PER_ROW = 8;
@@ -92,6 +92,14 @@ namespace rgatCore
             EdgeData e = internalProtoGraph.edgeDict[ePair];
 
             GRAPH_SCALE scaling = preview ? preview_scalefactors : main_scalefactors;
+            if (preview)
+            {
+                Console.WriteLine($"Rendering preview edge {ePair}");
+            }
+            else
+            {
+                Console.WriteLine($"Rendering main edge {ePair}");
+            }
 
             Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling, 0);
             Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling, 0);
@@ -106,6 +114,8 @@ namespace rgatCore
                 e.vertSize = vertsDrawn;
                 e.arraypos = arraypos;
             }
+
+            edgedata.inc_edgesRendered();
             return true;
         }
         /*
@@ -125,10 +135,13 @@ namespace rgatCore
             wireframeSupported = true;
             wireframeActive = true;
 
-            preview_scalefactors.plotSize = 500;
-            preview_scalefactors.basePlotSize = 500;
-            preview_scalefactors.pix_per_A = PREVIEW_PIX_PER_A_COORD;
-            preview_scalefactors.pix_per_B = PREVIEW_PIX_PER_B_COORD;
+            preview_scalefactors.plotSize = 50;
+            preview_scalefactors.basePlotSize = 50;
+            preview_scalefactors.pix_per_A = PREVIEW_A_SEP;
+            preview_scalefactors.pix_per_B = PREVIEW_B_SEP;
+            preview_scalefactors.original_pix_per_A = PREVIEW_A_SEP;
+            preview_scalefactors.original_pix_per_B = PREVIEW_B_SEP;
+            preview_scalefactors.userSizeModifier = 1;
 
             main_scalefactors.plotSize = 50;// 20000;
             main_scalefactors.basePlotSize = 50;// 20000;
@@ -242,10 +255,9 @@ namespace rgatCore
                 {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
 
             VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor);
-            mainnodesdata.VertList.Add(colorEntry);
-            
-            //vertdata.release_col_write();
-            //vertdata.release_pos_write();
+            vertsList.Add(colorEntry);
+
+            vertdata.release_vert_write();
 
             //place node on the animated version of the graph
             if (animvertdata != null)

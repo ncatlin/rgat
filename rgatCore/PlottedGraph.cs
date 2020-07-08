@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyModel;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -171,8 +172,70 @@ namespace rgatCore
         {
 			render_static_graph();
 		}
+
+		public void render_preview_graph()
+        {
+			if (previewNeedsResize)
+			{
+				Console.WriteLine("Unhandled preview resize");
+				//assert(false);
+				//previewlines->reset();
+				//previewNeedsResize = false;
+			}
+
+			if (!render_new_preview_edges())
+			{
+				Console.WriteLine("ERROR: Failed drawing new edges in render_preview_graph! ");
+				//assert(0);
+			}
+		}
+
+		bool render_new_preview_edges()
+		{
+			/*
+			//draw edges
+			EDGELIST::iterator edgeIt, edgeEnd;
+			//todo, this should be done without the mutex using indexing instead of iteration
+			internalProtoGraph->start_edgeL_iteration(&edgeIt, &edgeEnd);
+
+			std::advance(edgeIt, previewlines->get_renderedEdges());
+			if (edgeIt != edgeEnd)
+				needVBOReload_preview = true;
+			*/
+
+			int startIndex = (int)previewlines.CountRenderedEdges;
+			int endIndex = Math.Min(internalProtoGraph.get_num_edges(), startIndex + (int)GlobalConfig.Preview_EdgesPerRender);
+			for (int edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
+			{
+				var edgeNodes = internalProtoGraph.edgeList[edgeIdx];
+				if (edgeNodes.Item1 >= previewnodes.CountVerts())
+				{
+					NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
+					render_node(n1, ref lastPreviewNode, previewnodes, null, preview_scalefactors);
+				}
+
+				if (edgeNodes.Item2 >= previewnodes.CountVerts())
+				{
+					EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
+					if (e.edgeClass == eEdgeNodeType.eEdgeException)
+						lastPreviewNode.lastVertType = eEdgeNodeType.eNodeException;
+
+					NodeData n2 = internalProtoGraph.safe_get_node(edgeNodes.Item2);
+					render_node(n2, ref lastPreviewNode, previewnodes, null, preview_scalefactors);
+
+				}
+
+				if (!render_edge(edgeNodes, previewlines, null, true, false))
+				{
+					//internalProtoGraph->stop_edgeL_iteration();
+					return false;
+				}
+			}
+			//internalProtoGraph->stop_edgeL_iteration();
+			return true;
+		}
+
 		/*
-		int render_preview_graph();
 		void changeZoom(double delta, double deltaModifier);
 
 		void draw_instructions_text(int zdist, PROJECTDATA* pd, graphGLWidget &gltarget);
@@ -509,7 +572,6 @@ namespace rgatCore
 				if (render_edge(edgeIt, lines, null, false, false))
 				{
 					++edgesDrawn;
-					lines.inc_edgesRendered();
 				}
 				else
 					break;
@@ -651,8 +713,10 @@ namespace rgatCore
 		};
 
 		void set_max_wait_frames(uint frames) { maxWaitFrames = frames; }
-		int render_new_preview_edges();
 */
+
+
+
 		void extend_faded_edges()
         {
 			int drawnVerts = mainlinedata.CountVerts();
@@ -1394,7 +1458,11 @@ namespace rgatCore
             {
 				InitMainGraphTexture(size, _gd);
             }
-        }
+			if (_previewTexture == null)
+			{
+				InitPreviewGraphTexture(new Vector2(UI_Constants.PREVIEW_PANE_WIDTH-(UI_Constants.PREVIEW_PANE_PADDING*2), UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
+			}
+		}
 
 		public void InitMainGraphTexture(Vector2 size, GraphicsDevice _gd)
 		{
@@ -1403,8 +1471,8 @@ namespace rgatCore
 				if (_outputTexture.Width == size.X && _outputTexture.Height == size.Y) return;
                 else
                 {
-					_outputTexture.Dispose();
 					_outputFramebuffer.Dispose();
+					_outputTexture.Dispose();
 				}
             }
 
@@ -1415,14 +1483,40 @@ namespace rgatCore
 								1,
 								PixelFormat.R32_G32_B32_A32_Float,
 								TextureUsage.RenderTarget | TextureUsage.Sampled));
-			_outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+		_outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
 		}
 
+		public void InitPreviewGraphTexture(Vector2 size, GraphicsDevice _gd)
+		{
+			if (_previewTexture != null)
+			{
+				if (_previewTexture.Width == size.X && _previewTexture.Height == size.Y) return;
+				else
+				{
+					_previewFramebuffer.Dispose();
+					_previewTexture.Dispose();
+				}
+			}
+
+			_previewTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+								(uint)size.X,
+								(uint)size.Y,
+								1,
+								1,
+								PixelFormat.R32_G32_B32_A32_Float,
+								TextureUsage.RenderTarget | TextureUsage.Sampled));
+			_previewFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture));
+
+
+		}
 
 		//private:
 		public Veldrid.Texture _outputTexture = null;
+		public Veldrid.Texture _previewTexture = null;
 		public Veldrid.Framebuffer _outputFramebuffer = null;
+
+		public Veldrid.Framebuffer _previewFramebuffer = null;
 
 		ulong renderedBlocksCount = 0;
 

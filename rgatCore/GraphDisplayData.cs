@@ -107,6 +107,7 @@ namespace rgatCore
         public uint CountRenderedEdges { get; private set; } = 0;
         public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, out int arraypos)
         {
+            Console.WriteLine($"\tDraw short {startC} to {endC}");
 
             List<VertexPositionColor> vertposlist = acquire_vert_write();
 
@@ -126,6 +127,7 @@ namespace rgatCore
 
         public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, WritableRgbaFloat colour, eEdgeNodeType edgeType, out int arraypos)
         {
+            Console.WriteLine($"\tDraw long {startC} to {endC}");
             float[] fadeArray = { 0.4f, 0.4f, 0.5f, 0.5f, 0.7f, 0.7f, 0.6f, 0.8f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, 0.7f, 1, 1, 1 };
 
             int curvePoints = GL_Constants.LONGCURVEPTS + 2;

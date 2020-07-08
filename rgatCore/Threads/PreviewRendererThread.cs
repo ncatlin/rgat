@@ -38,11 +38,11 @@ namespace rgatCore.Threads
 						(graph.previewlines.CountRenderedEdges < protoGraph.get_num_edges()))
 					{
 						moreRenderingNeeded = true;
-						//graph.render_preview_graph();
+						graph.render_preview_graph();
 					}
 
 					if (!running) break;
-					Thread.Sleep(GlobalConfig.Preview_PerThreadLoopSleepMS);
+					Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);
 				}
 				/*
 				for (auto graph : graphlist)

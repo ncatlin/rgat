@@ -8,8 +8,9 @@ namespace rgatCore.Threads
 {
     class GlobalConfig
     {
-        public static int Preview_PerProcessLoopSleepMS = 100;
-        public static int Preview_PerThreadLoopSleepMS = 20;
+        public static uint Preview_PerProcessLoopSleepMS = 100;
+        public static uint Preview_PerThreadLoopSleepMS = 20;
+        public static uint Preview_EdgesPerRender = 60;
 
         public static float animationFadeRate = 0.07f;
         public static int renderFrequency = 25;
