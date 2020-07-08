@@ -342,7 +342,7 @@ namespace rgatCore
 			float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
 			float angle = _ticks / 10000;
 			//else
-			angle = dbg_rot;
+			//angle = dbg_rot;
 
 			Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
 			_cl.UpdateBuffer(_worldBuffer, 0, ref rotation);
