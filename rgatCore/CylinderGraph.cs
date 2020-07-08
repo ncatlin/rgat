@@ -92,14 +92,6 @@ namespace rgatCore
             EdgeData e = internalProtoGraph.edgeDict[ePair];
 
             GRAPH_SCALE scaling = preview ? preview_scalefactors : main_scalefactors;
-            if (preview)
-            {
-                Console.WriteLine($"Rendering preview edge {ePair}");
-            }
-            else
-            {
-                Console.WriteLine($"Rendering main edge {ePair}");
-            }
 
             Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling, 0);
             Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling, 0);

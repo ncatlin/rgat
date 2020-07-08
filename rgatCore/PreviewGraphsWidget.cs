@@ -28,7 +28,7 @@ namespace rgatCore
 		public float dbg_near = 0.5f;
 		public float dbg_far = 2000f;
 		public float dbg_camX = 0f;
-		public float dbg_camY = 0f;
+		public float dbg_camY = 65f;
 		public float dbg_camZ = -200f;
 		public float dbg_rot = 0;
 
