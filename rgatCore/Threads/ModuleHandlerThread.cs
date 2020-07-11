@@ -15,12 +15,10 @@ namespace rgatCore
         rgatState _clientState;
         int threadsCount = 0;
         ulong instanceID = 0;
-        public bool ControlPipeConnected = false;
-        public bool ModulePipeConnected = false;
         NamedPipeServerStream controlPipe = null;
-        NamedPipeServerStream modulePipe = null;
         List<IAsyncResult> pipeWaits = new List<IAsyncResult>();
         Thread listenerThread = null;
+
 
         public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState, ulong IDno)
         {
@@ -44,99 +42,217 @@ namespace rgatCore
             Console.WriteLine("CONNCALLbk");
             string pipeName = (String)ar.AsyncState;
 
-            if (pipeName == "Control") {
+            if (pipeName == "Control")
+            {
 
                 try
                 {
                     controlPipe.EndWaitForConnection(ar);
                     Console.WriteLine("Control pipe connected for PID " + trace.PID);
-                    ControlPipeConnected = true;
-                } 
+                }
                 catch (Exception e)
                 {
 
-                    ControlPipeConnected = false;
                 }
             }
+        }
 
-            if (pipeName == "Module")
+         
+
+        void HandleSymbol(byte[] buf)
+        {
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@',5);
+
+            int modnum = int.Parse(fields[1]);
+            ulong offset = Convert.ToUInt64(fields[2], 16);
+            string name = fields[3];
+
+            trace.DisassemblyData.AddSymbol(modnum, offset, name);
+        }
+
+        void HandleModule(byte[] buf)
+        {
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 6);
+
+            Console.WriteLine(fields);
+            string path = fields[1];
+            int modnum = int.Parse(fields[2]);
+            ulong start = Convert.ToUInt64(fields[3], 16);
+            ulong end = Convert.ToUInt64(fields[4], 16);
+            trace.DisassemblyData.AddModule(modnum, path, start, end);
+
+
+        }
+
+
+
+        void ReadCallback(IAsyncResult ar)
+        {
+            byte[] buf = (byte[])ar.AsyncState;
+            try
             {
-                try
-                {
-                    modulePipe.EndWaitForConnection(ar);
-                    Console.WriteLine("Module pipe connected for PID " + trace.PID);
-                    ModulePipeConnected = true;
-                }
-                catch (Exception e)
-                {
+                controlPipe.EndRead(ar);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Readcall back exception " + e.Message);
+                return;
+            }
 
-                    ModulePipeConnected = false;
+            if (buf[0] == 'T' && buf[1] == 'I')
+            {
+                Console.WriteLine("New Thread!");
+                return;
+            }
+
+            if (buf[0] == 's' && buf[1] == '!')
+            {
+                HandleSymbol(buf);
+                return;
+            }
+
+            if (buf[0] == 'm' && buf[1] == 'n')
+            {
+                Console.WriteLine("New Module! "+ System.Text.ASCIIEncoding.ASCII.GetString(buf));
+                HandleModule(buf);
+                return;
+            }
+
+            Console.WriteLine("Control pipe read unhandled entry from PID " + trace.PID);
+            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
+        }
+
+        public void Begin(string controlPipeName)
+        {
+
+            listenerThread = new Thread(new ParameterizedThreadStart(Listener));
+
+            listenerThread.Start(controlPipeName);
+        }
+
+        void SendIncludeLists()
+        {
+
+            byte[] buf;
+            if (target.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            {
+                List<string> tracedDirs = target.traceChoices.GetTracedDirs();
+                List<string> tracedFiles = target.traceChoices.GetTracedFiles();
+
+                if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
+                    Console.WriteLine("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
+
+
+                foreach (string name in tracedDirs)
+                {
+                    Console.Write("Sending included dir " + name + "\n");
+                    buf = System.Text.Encoding.Unicode.GetBytes(name);
+                    buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception '{e.Message}' while sending tracedDir data");
+                        return;
+                    }
                 }
+                foreach (string name in tracedFiles)
+                {
+                    Console.Write("Sending included file " + name + "\n");
+                    buf = System.Text.Encoding.Unicode.GetBytes(name);
+                    buf = System.Text.Encoding.UTF8.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception '{e.Message}' while sending tracedFile data");
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                List<string> ignoredDirs = target.traceChoices.GetIgnoredDirs();
+                List<string> ignoredFiles = target.traceChoices.GetIgnoredFiles();
+
+                foreach (string name in ignoredDirs)
+                {
+                    Console.Write("Sending ignored dir " + name +"\n");
+
+                    buf = System.Text.Encoding.Unicode.GetBytes(name);
+                    buf = System.Text.Encoding.UTF8.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception '{e.Message}' while sending ignored dir data");
+                        return;
+                    }
+                }
+                foreach (string name in ignoredFiles)
+                {
+                    Console.Write("Sending ignored file " + name + "\n");
+                    buf = System.Text.Encoding.Unicode.GetBytes(name);
+                    buf = System.Text.Encoding.UTF8.GetBytes($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception '{e.Message}' while sending ignored File data");
+                        return;
+                    }
+                }
+            }
+
+            buf = System.Text.Encoding.UTF8.GetBytes($"@XX@0@@\x00");
+            try { controlPipe.Write(buf, 0, buf.Length); }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception '{e.Message}' while finalising ignored File data");
+                return;
             }
         }
 
-        public void OpenPipes(string controlPipeName, string modulePipeName)
+        void SendTraceSettings()
         {
-
-           listenerThread = new Thread(new ParameterizedThreadStart(Listener));
-           
-            listenerThread.Start(new Tuple<string,string>(controlPipeName, modulePipeName));
+            SendIncludeLists();
         }
 
-        void Listener(Object pipenames)
+        void Listener(Object pipenameO)
         {
-            Tuple<string, string> names = (Tuple<string, string>)pipenames;
-            controlPipe = new NamedPipeServerStream(names.Item1, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+            string name = (string)pipenameO;
+            controlPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
             IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
-
-            modulePipe = new NamedPipeServerStream(names.Item2, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
-            IAsyncResult res2 = modulePipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Module");
 
 
             int totalWaited = 0;
             while (!_clientState.rgatIsExiting)
             {
-                if (ModulePipeConnected && ControlPipeConnected) break;
+                if (controlPipe.IsConnected) break;
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"ModuleHandlerThread Waiting ModulePipeConnected:{ModulePipeConnected} ControlPipeConnected:{ControlPipeConnected} TotalTime:{totalWaited}");
+                Console.WriteLine($"ModuleHandlerThread Waiting ControlPipeConnected:{controlPipe.IsConnected} TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
-                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. ModulePipeConnected:{ModulePipeConnected} ControlPipeConnected:{ControlPipeConnected} ");
+                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{controlPipe.IsConnected} ");
                     break;
                 }
             }
 
-
-
-            Console.WriteLine("Both pipes connected!");
-
-
-
-
-            while (!_clientState.rgatIsExiting && controlPipe.IsConnected && modulePipe.IsConnected)
+            if (controlPipe.IsConnected)
             {
-                /*
-                if (buf[0] == 'T' && buf[1] == 'I')
-                {
-                    Console.WriteLine("New Thread!");
-                }
+                SendTraceSettings();
+            }
 
-                if (buf[0] == 's' && buf[1] == '!')
+            while (!_clientState.rgatIsExiting && controlPipe.IsConnected)
+            {
+                byte[] buf = new byte[4096 * 4];
+                IAsyncResult res =  controlPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
+                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
+                if (!res.IsCompleted)
                 {
-                    Console.WriteLine("New Symbol!");
+                    try { controlPipe.EndRead(res); } catch { };
                 }
-
-                if (buf[0] == 'm' && buf[1] == 'n')
-                {
-                    Console.WriteLine("New module!");
-                }
-                */
-                Thread.Sleep(1000);
             }
 
             controlPipe.Dispose();
-            modulePipe.Dispose();
+            Console.WriteLine($"ControlHandler Listener thread exited for PID {trace.PID}");
         }
 
     }

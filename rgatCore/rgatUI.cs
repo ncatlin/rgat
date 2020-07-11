@@ -216,15 +216,19 @@ namespace rgatCore
             ImGui.SameLine();
             ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
             ImGui.SameLine();
-            string WLLabel = String.Format("Whitelist [{0}]", activeTarget.excludedLibs.whitelistedDirs.Count + activeTarget.excludedLibs.whitelistedFiles.Count);
-            ImGui.RadioButton(WLLabel, ref activeTarget.excludedLibs.tracingMode, 0);
+            string TraceLabel = $"Tracelist [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
+            if(ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0)){
+                activeTarget.traceChoices.TracingMode = (eModuleTracingMode) activeTarget.traceChoices._tracingModeRef;
+            };
             ImGui.SameLine();
-            ImguiUtils.HelpMarker("Only whitelisted libraries will be traced");
+            ImguiUtils.HelpMarker("Only specified libraries will be traced");
             ImGui.SameLine();
-            string BLLabel = String.Format("Blacklist [{0}]", activeTarget.excludedLibs.blacklistedDirs.Count + activeTarget.excludedLibs.blacklistedFiles.Count);
-            ImGui.RadioButton(BLLabel, ref activeTarget.excludedLibs.tracingMode, 1);
+            string IgnoreLabel = $"IgnoreList [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
+            if(ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1)){
+                activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+            };
             ImGui.SameLine();
-            ImguiUtils.HelpMarker("All libraries will be traced except for those on the blacklist");
+            ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
             ImGui.EndChildFrame();
 
 
@@ -234,34 +238,34 @@ namespace rgatCore
             if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                if ((eModuleTracingMode)activeTarget.excludedLibs.tracingMode == eModuleTracingMode.eBlackList)
+                if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
                 {
-                    if (ImGui.TreeNode("Blacklisted Directories (" + activeTarget.excludedLibs.blacklistedDirs.Count + ")"))
+                    if (ImGui.TreeNode($"Ignored Directories ({activeTarget.traceChoices.ignoreDirsCount})"))
                     {
-                        foreach (string dirstr in activeTarget.excludedLibs.blacklistedDirs)
-                            ImGui.Text(dirstr);
+                        List<string> names = activeTarget.traceChoices.GetIgnoredDirs();
+                        foreach (string fstr in names) ImGui.Text(fstr);
                         ImGui.TreePop();
                     }
-                    if (ImGui.TreeNode("Blacklisted Files (" + activeTarget.excludedLibs.blacklistedFiles.Count + ")"))
+                    if (ImGui.TreeNode($"Ignored Files ({activeTarget.traceChoices.ignoreFilesCount})"))
                     {
-                        foreach (string fstr in activeTarget.excludedLibs.blacklistedFiles)
-                            ImGui.Text(fstr);
+                        List<string> names = activeTarget.traceChoices.GetIgnoredFiles();
+                        foreach (string fstr in names)  ImGui.Text(fstr);
                         ImGui.TreePop();
                     }
                 }
 
-                else if ((eModuleTracingMode)activeTarget.excludedLibs.tracingMode == eModuleTracingMode.eWhiteList)
+                else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                 {
-                    if (ImGui.TreeNode("Whitelisted Directories (" + activeTarget.excludedLibs.whitelistedDirs.Count + ")"))
+                    if (ImGui.TreeNode($"Included Directories ({activeTarget.traceChoices.traceDirCount})"))
                     {
-                        foreach (string dirstr in activeTarget.excludedLibs.whitelistedDirs)
-                            ImGui.Text(dirstr);
+                        List<string> names = activeTarget.traceChoices.GetTracedDirs();
+                        foreach (string fstr in names) ImGui.Text(fstr);
                         ImGui.TreePop();
                     }
-                    if (ImGui.TreeNode("Whitelisted Files (" + activeTarget.excludedLibs.whitelistedFiles.Count + ")"))
+                    if (ImGui.TreeNode($"Included Files ({activeTarget.traceChoices.traceFilesCount})"))
                     {
-                        foreach (string fstr in activeTarget.excludedLibs.whitelistedFiles)
-                            ImGui.Text(fstr);
+                        List<string> names = activeTarget.traceChoices.GetTracedFiles();
+                        foreach (string fstr in names) ImGui.Text(fstr);
                         ImGui.TreePop();
                     }
                 }

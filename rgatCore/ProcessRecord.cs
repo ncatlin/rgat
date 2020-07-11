@@ -147,10 +147,44 @@ namespace rgatCore
             return -1;
         }
 
+
+
+
+        public void AddModule(int modnum, string path, ulong start, ulong end)
+        {
+            lock (ModulesLock)
+            {
+
+                //TODO - this next
+            }
+        }
+
+        public void AddSymbol(int modnum, ulong offset, string name)
+        {
+            lock (SymbolsLock)
+            {
+                if (!modsymsPlain.ContainsKey(modnum))
+                {
+                    modsymsPlain.Add(modnum, new Dictionary<ulong, string>());
+                }
+
+                if (modsymsPlain[modnum].ContainsKey(offset)){
+                    modsymsPlain[modnum][offset] += "/" + name;
+                }
+                else
+                    modsymsPlain[modnum].Add(offset, name);
+
+            }
+        }
+
+        private readonly object ModulesLock = new object();
         public List<string> LoadedModulePaths = new List<string>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
-        public Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
+
+
+        private readonly object SymbolsLock = new object();
+        private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
         /* 
             public ulong instruction_before(ulong addr);
 
@@ -569,11 +603,7 @@ namespace rgatCore
             return true;
         }
 
-        
-
-
-        private bool running = true;
-        private bool killed = false;
+       
         public bool dieFlag = false;
     }
 }

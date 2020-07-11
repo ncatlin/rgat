@@ -34,6 +34,21 @@ namespace rgatCore.Threads
 
 		}
 
+		void ConnectCallback(IAsyncResult ar)
+		{
+			NamedPipeServerStream nps = (NamedPipeServerStream)ar.AsyncState;
+
+			try
+			{
+				nps.EndWaitForConnection(ar);
+				Console.WriteLine("Coordinator pipe connected ");
+			}
+			catch (Exception e)
+			{
+
+			}
+			
+		}
 
 		rgatState _clientState = null;
         public void Listener()
@@ -43,8 +58,16 @@ namespace rgatCore.Threads
 
             while (!_clientState.rgatIsExiting)
             {
-                nps.WaitForConnection();
-                Console.WriteLine("rgatCoordinator pipe connected");
+				IAsyncResult res1 = nps.BeginWaitForConnection(new AsyncCallback(ConnectCallback), nps);
+
+				while (!nps.IsConnected)
+				{
+					if (_clientState.rgatIsExiting) return;
+					Thread.Sleep(100);
+				}
+
+
+				Console.WriteLine("rgatCoordinator pipe connected");
 
 
 				byte[] buf = new byte[1024];
@@ -80,7 +103,7 @@ namespace rgatCore.Threads
 							string programName = fields[4];
 							if (success)
 							{
-								string response = "NP@" + GetCtrlPipeName(PID, randno) + "@MD@" + GetModulePipeName(PID, randno) + "@BB@" +GetBBPipeName(PID,randno) + "@\x00";
+								string response = "CT@" + GetCtrlPipeName(PID, randno) + "@BB@" +GetBBPipeName(PID,randno) + "@\x00";
 								byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
 								nps.Write(outBuffer);
 								Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
@@ -106,11 +129,6 @@ namespace rgatCore.Threads
 
         }
 
-		public string GetModulePipeName(ulong PID, ulong instanceID)
-		{
-			return "MD" + PID.ToString() + instanceID.ToString();
-		}
-
 		public string GetCtrlPipeName(ulong PID, ulong instanceID)
 		{
 			return "CT" + PID.ToString() + instanceID.ToString();
@@ -127,9 +145,12 @@ namespace rgatCore.Threads
 			BinaryTarget bt = new BinaryTarget("dfoskdf");
 			TraceRecord tr = new TraceRecord(3445, 33424,bt , DateTime.Now);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(bt, tr, _clientState, 23213);
-			Console.WriteLine("before snepep");
-			moduleHandler.OpenPipes(GetCtrlPipeName(PID, ID), GetModulePipeName(PID, ID));
-			Console.WriteLine("fsdfs");
+
+			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
+
+
+			BlockHandlerThread blockHandler = new BlockHandlerThread(bt, tr, _clientState, 23213);
+			blockHandler.Begin(GetBBPipeName(PID, ID));
 			return;
 			//spawn_client_listeners()
 			/*
