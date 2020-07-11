@@ -201,9 +201,6 @@ namespace rgatCore
 
             cylinderCoord(coord, out Vector3 screenc, dimensions, 0);
 
-
-            List<VertexPositionColor> vertsList = vertdata.acquire_vert_write();
-
             WritableRgbaFloat active_col;
             if (n.IsExternal)
                 lastNode.lastVertType = eEdgeNodeType.eNodeExternal;
@@ -247,16 +244,14 @@ namespace rgatCore
                 {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
 
             VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor);
-            vertsList.Add(colorEntry);
 
-            vertdata.release_vert_write();
+            vertdata.safe_add_vert(colorEntry);
+
 
             //place node on the animated version of the graph
             if (animvertdata != null)
             {
-                List<VertexPositionColor> animNcol = animvertdata.acquire_vert_write();
-                animNcol.Add(colorEntry);
-                //animvertdata.release_col_write();
+                animvertdata.safe_add_vert(colorEntry);
             }
         }
 
@@ -578,6 +573,12 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeNonFlow:
                     {
                         b += B_BETWEEN_BLOCKNODES;
+                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        {
+                            b += B_BETWEEN_BLOCKNODES;
+                            a += 0.2f;
+                            ++clash;
+                        }
                         break;
                     }
 

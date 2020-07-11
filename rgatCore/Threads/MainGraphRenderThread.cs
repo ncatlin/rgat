@@ -8,7 +8,15 @@ namespace rgatCore.Threads
 {
     class MainGraphRenderThread
     {
-		public MainGraphRenderThread(rgatState _clientState) => rgatState = _clientState;
+		private Thread runningThread = null;
+		public MainGraphRenderThread(rgatState _clientState)
+		{
+			rgatState = _clientState;
+			runningThread = new Thread(ThreadProc);
+			runningThread.Start();
+		}
+
+
 
 		private rgatState rgatState = null;
 		public bool running = true;

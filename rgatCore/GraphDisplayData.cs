@@ -62,12 +62,46 @@ namespace rgatCore
             //acquire_col_write();
         }
 
+        private readonly object ListLock = new object();
 
-        public List<VertexPositionColor> acquire_vert_read()
+        public int safe_add_vert(VertexPositionColor input)
         {
-            //collock_.lock_shared();
-            return VertList;
+            int newsize = 0;
+            lock (ListLock) //todo, should be a read lock
+            {
+                VertList.Add(input);
+                DataChanged = true;
+                newsize = VertList.Count;
+            }
+
+            return newsize;
         }
+
+        public int safe_add_verts(List<VertexPositionColor> input)
+        {
+            int newsize = 0;
+            lock (ListLock) //todo, should be a read lock
+            {
+                VertList.AddRange(input);
+                DataChanged = true;
+                newsize = VertList.Count;
+            }
+
+            return newsize;
+        }
+
+
+        public bool safe_get_vert_array(out VertexPositionColor[] result)
+        {
+            lock (ListLock) //todo, should be a read lock
+            {
+                result = VertList.ToArray();
+            }
+
+            return true;
+        }
+
+
         public List<VertexPositionColor> acquire_vert_write(int holder = 0)
         {
             //poslock_.lock () ;
@@ -107,20 +141,19 @@ namespace rgatCore
         public uint CountRenderedEdges { get; private set; } = 0;
         public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, out int arraypos)
         {
-            List<VertexPositionColor> vertposlist = acquire_vert_write();
-
-            arraypos = vertposlist.Count;
 
             VertexPositionColor vert = new VertexPositionColor()
             {
                 Position = startC,
                 Color = colour
             };
-            vertposlist.Add(vert);
-            vert.Position = endC;
-            vertposlist.Add(vert);
 
-            release_vert_write();
+
+            arraypos = safe_add_vert(vert);
+            vert.Position = endC;
+            arraypos = safe_add_vert(vert);
+            
+
         }
 
         public int drawLongCurvePoints(Vector3 bezierC, Vector3 startC, Vector3 endC, WritableRgbaFloat colour, eEdgeNodeType edgeType, out int arraypos)
@@ -128,15 +161,8 @@ namespace rgatCore
             float[] fadeArray = { 0.4f, 0.4f, 0.5f, 0.5f, 0.7f, 0.7f, 0.6f, 0.8f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, 0.7f, 1, 1, 1 };
 
             int curvePoints = GL_Constants.LONGCURVEPTS + 2;
-            List<VertexPositionColor> vertposlist = acquire_vert_write();
+            List<VertexPositionColor> newVerts = new List<VertexPositionColor>();
 
-            if (vertposlist == null)
-            {
-                Console.WriteLine("drawLongCurvePoints Error, failed to acquire vert lock");
-                arraypos = 0;
-                return 0;
-            }
-            arraypos = vertposlist.Count;
 
             VertexPositionColor startVert = new VertexPositionColor() {
                 Position = startC,
@@ -144,7 +170,7 @@ namespace rgatCore
             };
 
 
-            vertposlist.Add(startVert);
+            newVerts.Add(startVert);
 
             // > for smoother lines, less performance
             int dt;
@@ -164,12 +190,12 @@ namespace rgatCore
                     Color = colour
                 };
 
-                vertposlist.Add(nextVert);
+                newVerts.Add(nextVert);
 
                 //start new line at same point  
                 //todo: use indexing to avoid this
 
-                vertposlist.Add(nextVert);
+                newVerts.Add(nextVert);
             }
 
             colour.A = (float)255;
@@ -178,8 +204,10 @@ namespace rgatCore
                 Position = endC,
                 Color = colour
             };
-            vertposlist.Add(lastVert);
-            release_vert_write();
+            newVerts.Add(lastVert);
+
+            arraypos = safe_add_verts(newVerts);
+
 
             return curvePoints + 2;
         }

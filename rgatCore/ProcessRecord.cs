@@ -118,8 +118,14 @@ namespace rgatCore
                 if (iterations > 3)
                     Thread.Sleep(1);
 
-                if (iterations++ > 20)
-                    Console.WriteLine("[rgat]Warning: Long wait for disassembly of address 0x"+blockaddr);
+                if (iterations++ > 20 && (iterations % 20 == 0))
+                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of address 0x{blockaddr} block {blockID}");
+
+                if (iterations++ > 200)
+                { 
+                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of address 0x{blockaddr} block {blockID}");
+                    return null;
+                }
 
                 if (dieFlag) return null;
             }

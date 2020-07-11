@@ -33,7 +33,7 @@ namespace rgatCore
         private int _selectedInstrumentationEngine = 0;
 
         Threads.MainGraphRenderThread mainRenderThreadObj = null;
-        Thread mainGraphThread = null;
+        ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         GraphPlotWidget MainGraphWidget = null;
         PreviewGraphsWidget PreviewGraphWidget = null;
@@ -47,10 +47,10 @@ namespace rgatCore
 
             _ImGuiController = imguicontroller;
 
-            mainRenderThreadObj = new Threads.MainGraphRenderThread(_rgatstate);
-            mainGraphThread = new Thread(mainRenderThreadObj.ThreadProc);
-            mainGraphThread.Start();
 
+            mainRenderThreadObj = new Threads.MainGraphRenderThread(_rgatstate);
+
+            processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
             MainGraphWidget = new GraphPlotWidget(_rgatstate);
             PreviewGraphWidget = new PreviewGraphsWidget(_rgatstate);

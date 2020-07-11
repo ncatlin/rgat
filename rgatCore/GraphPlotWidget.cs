@@ -125,10 +125,13 @@ namespace rgatCore
 		public static void InitWireframeVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
 
-			List<VertexPositionColor> allVerts = graph.wireframelines.acquire_vert_read();
-			_WireframeVertices = allVerts.ToArray();
+			if (!(graph.wireframelines.safe_get_vert_array(out _WireframeVertices)))
+			{
+				Console.WriteLine("Unhandled error 1");
+			}
 
-			Console.WriteLine($"Initing graph with {_WireframeVertices.Length} wireframe verts");
+
+				Console.WriteLine($"Initing graph with {_WireframeVertices.Length} wireframe verts");
 
 			ResourceFactory factory = _gd.ResourceFactory;
 
@@ -153,47 +156,61 @@ namespace rgatCore
 			_gd.UpdateBuffer(_WireframeIndexBuffer, 0, wfIndices.ToArray());
 		}
 
-		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
+		public static ulong InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph, ulong lastBufsize)
 		{
 
-			List<VertexPositionColor> allVerts = graph.mainlinedata.acquire_vert_read();
-			//List<VertexPositionColor> allVerts = graph.previewlines.acquire_vert_read();
-			_LineVertices = allVerts.ToArray();
+			if(!(graph.mainlinedata.safe_get_vert_array(out _LineVertices))){
+				Console.WriteLine("Unhandled error 1");
+            }
 
 			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
+			List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length).Select(i => (ushort)i).ToList();
 			ResourceFactory factory = _gd.ResourceFactory;
-			if (_LineIndexBuffer != null)
+			uint bufferSize = (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes;
+
+			if (lastBufsize < (ulong)bufferSize)
 			{
-				_LineIndexBuffer.Dispose();
-				_LineVertexBuffer.Dispose();
+				if (_LineIndexBuffer != null)
+				{
+					_LineIndexBuffer.Dispose();
+					_LineVertexBuffer.Dispose();
+				}
+				uint newVertBufSize = (uint)Math.Floor((uint)_LineVertices.Length * VertexPositionColor.SizeInBytes * 1.5);
+				lastBufsize = newVertBufSize;
+				BufferDescription vbDescription = new BufferDescription(newVertBufSize, BufferUsage.VertexBuffer);
+				_LineVertexBuffer = factory.CreateBuffer(vbDescription);
+
+				uint newIdxBufSize = (uint)Math.Floor((uint)lineIndices.Count * sizeof(ushort) * 1.5);
+				BufferDescription ibDescription = new BufferDescription(newIdxBufSize, BufferUsage.IndexBuffer);
+				_LineIndexBuffer = factory.CreateBuffer(ibDescription);
 			}
 
-			BufferDescription vbDescription = new BufferDescription(
-				(uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-			_LineVertexBuffer = factory.CreateBuffer(vbDescription);
 			_gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
-
-
-			List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
-				.Select(i => (ushort)i)
-				.ToList();
-
-			BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-			_LineIndexBuffer = factory.CreateBuffer(ibDescription);
 			_gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
+			return lastBufsize;
 		}
 
-		public static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph)
+		ulong lastLineBufferSize = 0;
+		ulong lastNodeBufferSize = 0;
+
+		public static ulong InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph, ulong lastBufsize)
 		{
-			
-			_PointVertices = graph.mainnodesdata.acquire_vert_read().ToArray();
-			//_PointVertices = graph.previewnodes.acquire_vert_read().ToArray();
+			if (!(graph.mainnodesdata.safe_get_vert_array(out _PointVertices)))
+			{
+				Console.WriteLine("Unhandled error 1");
+			}
+
 			Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
 
 
 			ResourceFactory factory = _gd.ResourceFactory;
 			uint bufferSize = (uint)_PointVertices.Length * VertexPositionColor.SizeInBytes;
+
+			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length)
+	.Select(i => (ushort)i)
+	.ToList();
+
 			/*
 			 * 
 			 * 
@@ -201,24 +218,27 @@ namespace rgatCore
 			*
 			*
 			*/
-			
-			if (_PointIndexBuffer != null)
+
+			if (lastBufsize < (ulong)bufferSize)
             {
-				_PointIndexBuffer.Dispose();
-				_PointVertexBuffer.Dispose();
+				if (_PointIndexBuffer != null)
+				{
+					_PointIndexBuffer.Dispose();
+					_PointVertexBuffer.Dispose();
+				}
+				uint newVertBufSize = (uint)Math.Floor((uint)_PointVertices.Length * VertexPositionColor.SizeInBytes * 1.5);
+				BufferDescription vbDescription = new BufferDescription(newVertBufSize, BufferUsage.VertexBuffer);
+				_PointVertexBuffer = factory.CreateBuffer(vbDescription);
+				lastBufsize = newVertBufSize;
+				Console.WriteLine($"Reiniting node very buffer to len {lastBufsize}");
+				uint newIdxBufSize = (uint)Math.Floor((uint)pointIndices.Count * sizeof(ushort) * 1.5);
+				BufferDescription ibDescription = new BufferDescription(newIdxBufSize, BufferUsage.IndexBuffer);
+				_PointIndexBuffer = factory.CreateBuffer(ibDescription);
 			}
-			BufferDescription vbDescription = new BufferDescription(bufferSize, BufferUsage.VertexBuffer);
-			_PointVertexBuffer = factory.CreateBuffer(vbDescription);
-			
+
 			_gd.UpdateBuffer(_PointVertexBuffer, 0, _PointVertices);
-
-			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length)
-				.Select(i => (ushort)i)
-				.ToList();
-
-			BufferDescription ibDescription = new BufferDescription((uint)pointIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-			_PointIndexBuffer = factory.CreateBuffer(ibDescription);
 			_gd.UpdateBuffer(_PointIndexBuffer, 0, pointIndices.ToArray());
+			return lastBufsize;
 		}
 
 
@@ -268,8 +288,8 @@ namespace rgatCore
 				//create data
 
 				InitWireframeVertexData(_gd, ActiveGraph);
-				InitLineVertexData(_gd, ActiveGraph);
-				InitNodeVertexData(_gd, ActiveGraph);
+				lastLineBufferSize = InitLineVertexData(_gd, ActiveGraph, lastLineBufferSize);
+				lastNodeBufferSize = InitNodeVertexData(_gd, ActiveGraph, lastNodeBufferSize);
 
 				ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
 
@@ -331,15 +351,16 @@ namespace rgatCore
 				InitWireframeVertexData(_gd, ActiveGraph);
 			}
 
+			ulong newBufSize = 0;
 			if (ActiveGraph.mainnodesdata.DataChanged)
 			{
 				ActiveGraph.mainnodesdata.SignalDataRead();
-				InitNodeVertexData(_gd, ActiveGraph);
+				lastNodeBufferSize = InitNodeVertexData(_gd, ActiveGraph, lastNodeBufferSize);
 			}
 			if (ActiveGraph.mainlinedata.DataChanged)
 			{
 				ActiveGraph.mainlinedata.SignalDataRead();
-				InitLineVertexData(_gd, ActiveGraph);
+				lastLineBufferSize = InitLineVertexData(_gd, ActiveGraph, lastLineBufferSize);
 			}
 
 			_cl.SetFramebuffer(_rgatState.ActiveGraph._outputFramebuffer);

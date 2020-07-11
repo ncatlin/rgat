@@ -168,9 +168,10 @@ namespace rgatCore
 		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
 
-			List<VertexPositionColor> allVerts = graph.previewlines.acquire_vert_read();
-			//List<VertexPositionColor> allVerts = graph.previewlines.acquire_vert_read();
-			_LineVertices = allVerts.ToArray();
+			if (!(graph.previewlines.safe_get_vert_array(out _LineVertices)))
+			{
+				Console.WriteLine("Unhandled error 1");
+			}
 
 			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
@@ -199,8 +200,10 @@ namespace rgatCore
 		public static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph)
 		{
 
-			_PointVertices = graph.previewnodes.acquire_vert_read().ToArray();
-			//_PointVertices = graph.previewnodes.acquire_vert_read().ToArray();
+			if (!(graph.previewnodes.safe_get_vert_array(out _PointVertices)))
+			{
+				Console.WriteLine("Unhandled error 1");
+			}
 			Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
 
 

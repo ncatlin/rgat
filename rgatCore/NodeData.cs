@@ -139,7 +139,7 @@ namespace rgatCore
         //ulong/int blockID;
 
         //an index used to lookup the caller/arguments of each instance of this being called
-        List<ulong> callRecordsIndexs;
+        List<ulong> callRecordsIndexs = new List<ulong>();
         ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
 
         //number of external functions called
