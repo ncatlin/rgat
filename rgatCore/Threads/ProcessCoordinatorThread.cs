@@ -22,6 +22,7 @@ namespace rgatCore.Threads
         public ProcessCoordinatorThread(rgatState _rgatstate) {
 			_clientState = _rgatstate;
 			runningThread = new Thread(Listener);
+			runningThread.Name = "ProcessCoordinator";
 			runningThread.Start();
 		}
 

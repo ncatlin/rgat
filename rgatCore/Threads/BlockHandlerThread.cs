@@ -35,6 +35,13 @@ namespace rgatCore
             disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
         }
 
+        public void Begin(string controlPipeName)
+        {
+
+            listenerThread = new Thread(new ParameterizedThreadStart(Listener));
+            listenerThread.Name = "Block" + trace.PID;
+            listenerThread.Start(controlPipeName);
+        }
 
         void ConnectCallback(IAsyncResult ar)
         {
@@ -126,13 +133,13 @@ namespace rgatCore
                 Debug.Assert(insByteCount < 16);
 
                 byte[] opcodes = new ReadOnlySpan<byte>(buf, bufPos, insByteCount).ToArray(); bufPos += insByteCount;
-
+                List<InstructionData> foundList = null;
                 lock (trace.DisassemblyData.InstructionsLock)
                 {
 
-                    if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out List<InstructionData> found))
+                    if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
-                        InstructionData possibleInstruction = found[^1];
+                        InstructionData possibleInstruction = foundList[^1];
 
                         //if address has been seen but opcodes are not same as most recent, disassemble again
                         //might be a better to check all mutations instead of most recent
@@ -143,11 +150,6 @@ namespace rgatCore
                             insaddr += (ulong)possibleInstruction.numbytes;
                             continue;
                         }
-                    }
-                    else
-                    {
-                        //the address has not been seen before, make a new disassembly list;
-                        trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                 }
 
@@ -170,6 +172,10 @@ namespace rgatCore
 
                 lock (trace.DisassemblyData.InstructionsLock)
                 {
+                    if (foundList == null)
+                    { 
+                        trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
+                    }
                     instruction.mutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
                     trace.DisassemblyData.disassembly[insaddr].Add(instruction);
                 }
@@ -180,13 +186,7 @@ namespace rgatCore
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
-        public void Begin(string controlPipeName)
-        {
-
-            listenerThread = new Thread(new ParameterizedThreadStart(Listener));
-
-            listenerThread.Start(controlPipeName);
-        }
+ 
 
         void Listener(Object pipenameO)
         {

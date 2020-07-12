@@ -13,6 +13,7 @@ namespace rgatCore.Threads
 		{
 			rgatState = _clientState;
 			runningThread = new Thread(ThreadProc);
+			runningThread.Name = "MainGraphRender";
 			runningThread.Start();
 		}
 

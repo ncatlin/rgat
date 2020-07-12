@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.IO.Pipes;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading;
@@ -15,17 +16,22 @@ namespace rgatCore
         ProtoGraph protograph;
         NamedPipeServerStream threadpipe;
         Thread runningThread;
-
+        ulong PendingDataSize = 0;
+        ulong ProcessedDataSize = 0;
+        ulong TotalProcessedData = 0;
         public bool StopFlag = false;
 
+        public ManualResetEvent dataReadyEvent = new ManualResetEvent(false);
+        bool WakeupRequested = false;
 
+        public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; dataReadyEvent.Reset(); } }
 
         private readonly object QueueSwitchLock = new object();
         int readIndex = 0;
-        List<string> FirstQueue = new List<string>();
-        List<string> SecondQueue = new List<string>();
-        List<string> ReadingQueue = null;
-        bool ReadingFirstQueue = true;
+        List<byte[]> FirstQueue = new List<byte[]>();
+        List<byte[]> SecondQueue = new List<byte[]>();
+        List<byte[]> ReadingQueue = null;
+        List<byte[]> WritingQueue = null;
 
 
 
@@ -34,33 +40,108 @@ namespace rgatCore
             TraceBufSize = GlobalConfig.TraceBufferSize;
             protograph = newProtoGraph;
             threadpipe = _threadpipe;
-
+            List<byte[]> ReadingQueue = FirstQueue;
+            List<byte[]> WritingQueue = SecondQueue;
             runningThread = new Thread(Reader);
+            runningThread.Name = "TraceReader" + this.protograph.ThreadID;
             runningThread.Start();
+        }
+
+
+        public byte[] DeQueueData()
+        {
+            lock (QueueSwitchLock)
+            {
+                if (ReadingQueue.Count == 0 || readIndex >= ReadingQueue.Count)
+                {
+
+                    if (ReadingQueue.Count != 0)
+                    {
+                        ReadingQueue.Clear();
+                    }
+                    readIndex = 0;
+
+                    //swap to the other queue
+                    ReadingQueue = (ReadingQueue == FirstQueue) ? SecondQueue : FirstQueue;
+                    WritingQueue = (ReadingQueue == FirstQueue) ? SecondQueue : FirstQueue;
+
+                    if (ProcessedDataSize > 0)
+                    {
+                        PendingDataSize -= ProcessedDataSize;
+                        ProcessedDataSize = 0;
+                    }
+                }
+
+            }
+
+            if (ReadingQueue.Count == 0)
+            {
+                return null;
+            }
+
+            byte[] nextMessage = ReadingQueue[readIndex++];
+            ProcessedDataSize += (ulong)nextMessage.Length;
+            TotalProcessedData += (ulong)nextMessage.Length;
+            return nextMessage;
+        }
+
+        void EnqueueData(byte[] datamsg)
+        {
+            lock (QueueSwitchLock)
+            {
+                if (WritingQueue.Count < GlobalConfig.TraceBufferSize)
+                {
+                    WritingQueue.Add(datamsg);
+                    PendingDataSize += (ulong)datamsg.Length;
+                    return;
+                }
+            }
+
+            Console.WriteLine("Trace Buffer maxed out, waiting for reader to catch up");
+            do
+            {
+
+                Thread.Sleep(1000);
+                Console.WriteLine($"Trace queue has {WritingQueue.Count}/{GlobalConfig.TraceBufferSize} items");
+                if (WritingQueue.Count < (GlobalConfig.TraceBufferSize / 2))
+                {
+                    Console.WriteLine("Resuming ingest...");
+                    break;
+                }
+            } while (!StopFlag);
+
+            lock (QueueSwitchLock)
+            {
+                WritingQueue.Add(datamsg);
+
+                PendingDataSize += (ulong)datamsg.Length;
+            }
+            Console.WriteLine($"Now {PendingDataSize} bytes of pending data");
+
+            if (WakeupRequested)
+            {
+                dataReadyEvent.Set();
+            }
         }
 
         void ReadCallback(IAsyncResult ar)
         {
-            int bytesread = 0;
             byte[] buf = (byte[])ar.AsyncState;
             try
             {
-                bytesread = threadpipe.EndRead(ar);
+                int bytesread = threadpipe.EndRead(ar);
+                if (bytesread > 0)
+                {
+                    byte[] msg = new byte[bytesread];
+                    Buffer.BlockCopy(buf, 0, msg, 0, bytesread);
+                    EnqueueData(msg);
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine("TraceIngest Readcall back exception " + e.Message);
                 return;
             }
-
-            if (bytesread == 0)
-            {
-                Console.WriteLine($"WARNING: Trace pipe read 0 bytes from RID {protograph.ThreadID}");
-                return;
-            }
-
-            Console.WriteLine("TraceIngest pipe read unhandled entry from TID " + protograph.ThreadID);
-            Console.WriteLine("\t"+System.Text.ASCIIEncoding.ASCII.GetString(buf));
         }
 
 
@@ -76,7 +157,8 @@ namespace rgatCore
             const uint TAGCACHESIZE = 1024 ^ 2;
             char[] TagReadBuffer = new char[TAGCACHESIZE];
 
-
+            WritingQueue = FirstQueue;
+            ReadingQueue = SecondQueue;
 
             while (!StopFlag && threadpipe.IsConnected)
             {
@@ -93,78 +175,18 @@ namespace rgatCore
                 }
             }
 
-            /*
-
-			//DateTime cl;
-			ulong itemsRead = 0;
-			uint bytesRead = 0;
-			long spins = 0;
-			DateTime endwait = DateTime.Now.AddSeconds(1);
-			while (!StopFlag)
-			{
-				//should maybe have this as a timer but the QT one is more of a pain to set up
-				DateTime secondsnow = DateTime.Now;
-				if (secondsnow > endwait)
-				{
-					endwait = DateTime.Now.AddSeconds(1);
-					//if (thisgraph)
-					//	thisgraph->setBacklogIn(itemsRead);
-					itemsRead = 0;
-				}
-
-				bool errorFlag = false;
-				if (!data_available(errorFlag))
-				{
-					if (errorFlag)
-						break;
-					else
-					{
-						//sleeping at every fail makes it very slow - tends to be either a few or thousands
-						//sleeping on a long wait reduces cpu usage a lot while not impacting performance much
-						spins++;
-						if (spins > 30)
-							Thread.Sleep(1);
-						continue;
-					}
-				}
-				spins = 0;
-
-				if (!read_data(tagReadBuf, bytesRead))
-					break;
-				if (bytesRead >= TAGCACHESIZE)
-				{
-					Console.WriteLine($"\t\t[rgat]Error: Thread trace messsage exceeded cache size {bytesRead} >= {TAGCACHESIZE}");
-					break;
-				}
-
-				TagReadBuffer[bytesRead] = 0;
-				if ((bytesRead == 0) || TagReadBuffer[bytesRead - 1] != '@')
-				{
-					StopFlag = true;
-					if (bytesRead == 0) break;
-					if (TagReadBuffer[0] != 'X')
-					{
-						string bufstring = TagReadBuffer[0..bytesRead];
-						Console.WriteLine($"[rgat]Warning: [threadid {protograph.ThreadID}] Improperly terminated trace message recieved [{bufstring}]. ({bufstring.Length} bytes) Terminating.");
-					}
-
-					break;
-				}
-
-				//we can improve this if it's a bottleneck
-				string* msgbuf = new string(tagReadBuf.begin(), tagReadBuf.begin() + bytesRead);
-
-				add_message(msgbuf);
-				++itemsRead;
-			}
-
-			*/
             threadpipe.Disconnect();
             threadpipe.Dispose();
 
             //wait until buffers emptied
             while ((FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
+            {
+                if (WakeupRequested) dataReadyEvent.Set();
                 Thread.Sleep(25);
+            }
+            StopFlag = true;
+            dataReadyEvent.Set();
+            Console.WriteLine(runningThread.Name + " finished after ingesting "+TotalProcessedData+" bytes of trace data");
 
         }
 
