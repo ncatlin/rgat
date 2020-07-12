@@ -63,11 +63,31 @@ namespace rgatCore
 		void notify_new_pid(uint pid, int PID_ID, uint parentPid) { runtimeline.notify_new_pid(pid, PID_ID, parentPid); running = true; }
 		void notify_pid_end(uint pid, int PID_ID) { running = runtimeline.notify_pid_end(pid, PID_ID); }
 		void notify_tid_end(uint tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
-		
-		bool insert_new_thread(uint TID, PlottedGraph graph_plot, PROTOGRAPH_CASTPTR graph_proto);
-		bool is_process(uint testpid, int testID);
-		
 		*/
+
+		public bool InsertNewThread(PlottedGraph graph_plot)
+        {
+            lock (GraphListLock)
+            {
+
+                if (protoGraphs.ContainsKey(graph_plot.tid))
+                {
+                    Console.WriteLine("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
+                    return false;
+                }
+
+                protoGraphs.Add(graph_plot.tid, graph_plot.internalProtoGraph);
+                plottedGraphs.Add(graph_plot.tid, graph_plot);
+                //runtimeline.notify_new_thread(getPID(), randID, TID);
+            }
+            Console.WriteLine("Todo implement runtimeline");
+            return true;
+        }
+		
+        
+        //bool is_process(uint testpid, int testID);
+		
+		
 
 		public PlottedGraph GetFirstGraph()
         {
@@ -229,6 +249,14 @@ namespace rgatCore
 
 
         //private bool loadTimeline(const rapidjson::Value& saveJSON);
+
+
+        private readonly object GraphListLock = new object();
+
+        Dictionary<uint, ProtoGraph> protoGraphs = new Dictionary<uint, ProtoGraph>();
+        Dictionary<uint, PlottedGraph> plottedGraphs = new Dictionary<uint, PlottedGraph>();
+
+
 
         public ProcessRecord DisassemblyData { private set; get; } = null; //the first disassembly of each address
 

@@ -177,6 +177,7 @@ namespace rgatCore
 						break;
 					}
 			}
+			newGraph.InitialiseDefaultDimensions();
 			return newGraph;
 		}
 

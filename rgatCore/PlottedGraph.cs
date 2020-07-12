@@ -327,7 +327,6 @@ namespace rgatCore
 
 
 
-        void set_animation_update_rate(int updatesPerFrame) { animEntriesPerFrame = updatesPerFrame; }
 
         bool setGraphBusy(bool set, int caller)
         {
@@ -935,7 +934,7 @@ namespace rgatCore
         {
             //too many updates at a time damages interactivity
             //too few creates big backlogs which delays the animation (can still see realtime in Structure mode though)
-            int updateLimit = animEntriesPerFrame;
+            int updateLimit = AnimationUpdatesPerFrame;
             while (updateProcessingIndex < internalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
                 process_live_update();
@@ -1546,7 +1545,9 @@ namespace rgatCore
         //prevent graph from being deleted while being used
         //rgatlocks::TestableLock graphBusyLock;
 
-        int animEntriesPerFrame = 150;
+
+        public int AnimationUpdatesPerFrame = GlobalConfig.animationUpdatesPerFrame;
+
         ulong animLoopCounter = 0;
         ulong unchainedWaitFrames = 0;
         uint maxWaitFrames = 0;

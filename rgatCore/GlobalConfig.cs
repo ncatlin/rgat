@@ -14,6 +14,8 @@ namespace rgatCore.Threads
 
         public static float animationFadeRate = 0.07f;
         public static int renderFrequency = 25;
+        public static int animationUpdatesPerFrame = 500;
+        public static uint TraceBufferSize = 400000;
 
         public static bool showRisingAnimated = true;
 

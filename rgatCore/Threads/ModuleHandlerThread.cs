@@ -1,4 +1,5 @@
-﻿using System;
+﻿using rgatCore.Threads;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipes;
@@ -16,7 +17,6 @@ namespace rgatCore
         rgatState _clientState;
         int threadsCount = 0;
         NamedPipeServerStream controlPipe = null;
-        List<IAsyncResult> pipeWaits = new List<IAsyncResult>();
         Thread listenerThread = null;
 
 
@@ -37,22 +37,17 @@ namespace rgatCore
 
         void ConnectCallback(IAsyncResult ar)
         {
-            Console.WriteLine("CONNCALLbk");
-            string pipeName = (String)ar.AsyncState;
-
-            if (pipeName == "Control")
+            try
+            {
+                controlPipe.EndWaitForConnection(ar);
+                Console.WriteLine("Control pipe connected for PID " + trace.PID);
+            }
+            catch (Exception e)
             {
 
-                try
-                {
-                    controlPipe.EndWaitForConnection(ar);
-                    Console.WriteLine("Control pipe connected for PID " + trace.PID);
-                }
-                catch (Exception e)
-                {
-
-                }
+                Console.WriteLine("Control pipe exception for PID " + trace.PID + " :"+e.Message);
             }
+            
         }
 
 
@@ -82,29 +77,37 @@ namespace rgatCore
             trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
         }
 
-
-
-        void HandleNewVisualiserThread(ulong TID)
+        void HandleNewVisualiserThread(uint TID)
         {
             string pipename = GetTracePipeName(TID);
 
             Console.WriteLine("Opening pipe "+pipename);
-            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
-            //threadListener.
-            threadListener.WaitForConnection();
-            Console.WriteLine("THREAD CON");
-            Thread.Sleep(10000);
+            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
 
-            threadListener.Dispose();
-          //      start_thread_rendering(TID, threadpipeThisEnd);
+            threadListener.WaitForConnection();
+            Console.WriteLine("Trace thread connected");
+                
+            ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
+            PlottedGraph newPlottedGraph = _clientState.CreateNewPlottedGraph(newProtoGraph);
+
+            ThreadTraceIngestThread TID_reader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
+
+            ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph, TID_reader);
+
+            if (!trace.InsertNewThread(newPlottedGraph))
+            {
+                Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
+                return;
+            }
 
         }
+
 
         void HandleNewThread(byte[] buf)
         {
             Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
-            ulong TID = ulong.Parse(fields[1], System.Globalization.NumberStyles.Integer);
+            uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} started!");
 
             switch (trace.TraceType)
@@ -130,16 +133,24 @@ namespace rgatCore
 
         void ReadCallback(IAsyncResult ar)
         {
+            int bytesread = 0;
             byte[] buf = (byte[])ar.AsyncState;
             try
             {
-                controlPipe.EndRead(ar);
+                bytesread = controlPipe.EndRead(ar);
             }
             catch (Exception e)
             {
                 Console.WriteLine("Readcall back exception " + e.Message);
                 return;
             }
+
+            if (bytesread == 0)
+            {
+                Console.WriteLine($"WARNING: Control pipe read 0 bytes from PID {trace.PID}");
+                return;
+            }
+
 
             if (buf[0] == 'T' && buf[1] == 'I')
             {
@@ -159,8 +170,13 @@ namespace rgatCore
                 return;
             }
 
-            Console.WriteLine("Control pipe read unhandled entry from PID " + trace.PID);
-            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
+            if (buf[0] == '!')
+            {
+                Console.WriteLine($"[!Log Msg from instrumentation]: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+                return;
+            }
+
+            Console.WriteLine($"Control pipe read unhandled entry from PID {trace.PID}: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
         }
 
         public void Begin(string controlPipeName)
@@ -187,8 +203,10 @@ namespace rgatCore
                 foreach (string name in tracedDirs)
                 {
                     Console.Write("Sending included dir " + name + "\n");
-                    buf = System.Text.Encoding.Unicode.GetBytes(name);
-                    buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    //buf = System.Text.Encoding.Unicode.GetBytes(name);
+                    //buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
@@ -199,8 +217,8 @@ namespace rgatCore
                 foreach (string name in tracedFiles)
                 {
                     Console.Write("Sending included file " + name + "\n");
-                    buf = System.Text.Encoding.Unicode.GetBytes(name);
-                    buf = System.Text.Encoding.UTF8.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
@@ -218,8 +236,8 @@ namespace rgatCore
                 {
                     Console.Write("Sending ignored dir " + name + "\n");
 
-                    buf = System.Text.Encoding.Unicode.GetBytes(name);
-                    buf = System.Text.Encoding.UTF8.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    buf = System.Text.Encoding.ASCII.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
@@ -230,8 +248,8 @@ namespace rgatCore
                 foreach (string name in ignoredFiles)
                 {
                     Console.Write("Sending ignored file " + name + "\n");
-                    buf = System.Text.Encoding.Unicode.GetBytes(name);
-                    buf = System.Text.Encoding.UTF8.GetBytes($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    buf = System.Text.Encoding.ASCII.GetBytes($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
@@ -254,6 +272,7 @@ namespace rgatCore
         {
             SendIncludeLists();
         }
+
 
         void Listener(Object pipenameO)
         {

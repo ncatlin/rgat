@@ -64,7 +64,7 @@ namespace rgatCore
 
         private int nlockholder = 0;
 
-        public TraceIngestThread TraceReader { set; get; } = null;
+        public ThreadTraceIngestThread TraceReader { set; get; } = null;
         public ProcessRecord ProcessData { private set; get; } = null;
         public TraceRecord TraceData { private set; get; } = null;
 

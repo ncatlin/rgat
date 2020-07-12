@@ -44,6 +44,31 @@ namespace rgatCore
             }
         }
 
+
+        void ReadCallback(IAsyncResult ar)
+        {
+            int bytesread = 0;
+            byte[] buf = (byte[])ar.AsyncState;
+            try
+            {
+                bytesread = blockPipe.EndRead(ar);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("BlockHandler Read callback exception " + e.Message);
+                return;
+            }
+
+            if (bytesread == 0)
+            {
+                Console.WriteLine($"WARNING: BlockHandler pipe read 0 bytes from PID {trace.PID}");
+                return;
+            }
+
+            Console.WriteLine("BlockHandler pipe read unhandled entry from PID {trace.PID}");
+            Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
+        }
+
         public void Begin(string controlPipeName)
         {
 
@@ -76,6 +101,23 @@ namespace rgatCore
 
             while (!_clientState.rgatIsExiting && blockPipe.IsConnected)
             {
+                byte[] buf = new byte[14096 * 4];
+                IAsyncResult res = blockPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
+                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
+                if (!res.IsCompleted)
+                {
+                    try { blockPipe.EndRead(res); }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Exception on blockreader read : " + e.Message);
+                    };
+                }
+            }
+
+
+            /*
+            while (!_clientState.rgatIsExiting && blockPipe.IsConnected)
+            {
                 
 
                 
@@ -95,6 +137,7 @@ namespace rgatCore
                     }
                 }
             }
+            */
 
             blockPipe.Dispose(); 
             Console.WriteLine($"BlockHandler Listener thread exited for PID {trace.PID}");
