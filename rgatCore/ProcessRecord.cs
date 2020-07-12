@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
@@ -96,14 +97,14 @@ namespace rgatCore
 
         }
 
-        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, long blockID, ref ROUTINE_STRUCT? externBlock)
+        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID, ref ROUTINE_STRUCT? externBlock)
         {
             int iterations = 0;
 
             while (true)
             {
 
-                if (blockID == -1)
+                if (externBlock != null)
                 {
                     int moduleNo = find_containing_module(blockaddr);
                     get_extern_at_address(blockaddr, moduleNo, ref externBlock);
@@ -112,12 +113,10 @@ namespace rgatCore
 
                 if (blockID < blockList.Count)
                 {
-                    //ReadLock disasReadLock(disassemblyRWLock);
-                    
-                    List<InstructionData> result = blockList[(int)blockID].Item2;
+                    var result = blockList[(int)blockID];
+                    Debug.Assert(result.Item1 == blockaddr);
                     externBlock = null;
-                    //disasReadLock.unlock();
-                    return result;
+                    return result.Item2;
                 }
 
 
@@ -207,6 +206,31 @@ namespace rgatCore
             }
         }
 
+        public bool SymbolExists(int GlobalModuleNumber, ulong address)
+        {
+            return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address);
+
+        }
+
+
+        public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)
+        {
+            //these arrive out of order so have to add some dummy entries
+            lock (InstructionsLock)
+            {
+                if (blockList.Count > blockID)
+                { 
+                    blockList[(int)blockID] = new Tuple<ulong, List<InstructionData>>(address, instructions);
+                    return;
+                }
+
+                while (blockList.Count < blockID)
+                {
+                    blockList.Add(null);
+                }
+                blockList.Add(new Tuple<ulong, List<InstructionData>>(address, instructions));
+            }
+        }
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
@@ -228,16 +252,21 @@ namespace rgatCore
             //must already have disassembly write lock
             public void addBlock_HaveLock(ulong addr, BLOCK_DESCRIPTOR* blk) { blockList.push_back(make_pair(addr, blk)); }
             */
-        //maps instruction addresses to all data about it
+
+
+
+        public readonly object InstructionsLock = new object();
+
+        //maps instruction addresses to list of different instructions that resided at that address
         public Dictionary<ulong, List<InstructionData>> disassembly = new Dictionary<ulong, List<InstructionData>>();
+
         //useful for mapping return addresses to callers without a locking search
         public Dictionary<ulong, ulong> previousInstructionsCache;
 
         //list of basic blocks
-        //   address		    blockID			instructionlist
-        //map <ulong, Dictionary<BLOCK_IDENTIFIER, INSLIST *>> addressBlockMap;
+        //              address
         public List<Tuple<ulong, List<InstructionData>>> blockList = new List<Tuple<ulong, List<InstructionData>>>();
-
+        //private Dictionary<uint, List<InstructionData>> blockDict = new Dictionary<uint, List<InstructionData>>();
 
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
         public int BitWidth;
@@ -345,7 +374,7 @@ namespace rgatCore
 
         //for disassembling saved instructions
         //takes a capstone context, opcode string, target instruction data struct and the address of the instruction
-        int DisassembleIns(CapstoneX86Disassembler disassembler, ref InstructionData insdata)
+        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ref InstructionData insdata)
         {
             X86Instruction[] instructions = disassembler.Disassemble(insdata.opcodes);
             //todo: catch some kind of exception, since i cant see any way of getting error codes

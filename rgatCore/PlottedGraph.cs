@@ -775,7 +775,7 @@ namespace rgatCore
         {
             ProcessRecord piddata = internalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
-            List<InstructionData> block = piddata.getDisassemblyBlock(blockAddr, (long)blockID, ref externBlock);
+            List<InstructionData> block = piddata.getDisassemblyBlock(blockAddr, (uint)blockID, ref externBlock);
             if (block == null)
             {
                 nodelist = null;
@@ -1006,7 +1006,7 @@ namespace rgatCore
 
             currentUnchainedBlocks.Clear();
             ROUTINE_STRUCT? dummy = null;
-            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockAddr, (long)entry.blockID, ref dummy);
+            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
             lastAnimatedNode = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
@@ -1064,7 +1064,7 @@ namespace rgatCore
             {
                 ProcessRecord piddata = internalProtoGraph.ProcessData;
                 ROUTINE_STRUCT? dummy = null;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (long)entry.blockID, ref dummy);
+                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
                 uint maxWait = (uint)Math.Floor((float)maxWaitFrames / stepSize); //todo test
@@ -1107,7 +1107,7 @@ namespace rgatCore
             {
                 ProcessRecord piddata = internalProtoGraph.ProcessData;
                 ROUTINE_STRUCT? dummy = null;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (long)entry.blockID, ref dummy);
+                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
 
                 if (block == null)
                     unchainedWaitFrames += calculate_wait_frames(entry.count); //external

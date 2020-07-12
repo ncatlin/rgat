@@ -66,7 +66,7 @@ namespace rgatCore
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
         private Byte[] startbytes = null;
 
-        public int BitWidth { get; private set; } = 0;
+        public int BitWidth = 0;
         public string FilePath { get; private set; } = "";
         public string FileName { get; private set; } = "";
         public string HexPreview { get; private set; } = "";
@@ -77,9 +77,10 @@ namespace rgatCore
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
 
-        public BinaryTarget(string filepath)
+        public BinaryTarget(string filepath, int bitWidth_ = 0)
         {
             FilePath = filepath;
+            BitWidth = bitWidth_;
             FileName = Path.GetFileName(FilePath);
             if (File.Exists(filepath))
             {

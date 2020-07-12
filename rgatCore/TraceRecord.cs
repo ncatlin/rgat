@@ -20,12 +20,13 @@ namespace rgatCore
 		1.construct every frame and save memory 
 		2.construct at disassemble time and improve render speed
 		*/
-
+        //store all the basic blocks this instruction is a member of
+        public List<Tuple<ulong, uint>> ContainingBlockIDs;
 
         public string ins_text;
         public eNodeType itype;
         public bool conditional;
-        bool dataEx;
+        public bool dataEx;
         public bool hasSymbol;
 
         public ulong address;
@@ -33,7 +34,7 @@ namespace rgatCore
         public ulong condDropAddress;
         public Dictionary<uint, uint> threadvertIdx; //was an unordered dictionary in the C++ version
         public int globalmodnum;
-        uint mutationIndex;
+        public int mutationIndex;
 
         //this was added later, might be worth ditching other stuff in exchange
         public byte[] opcodes;
@@ -44,7 +45,7 @@ namespace rgatCore
     class TraceRecord
     {
         public enum eTracePurpose { eVisualiser, eFuzzer };
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser)
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser, int arch = 0)
         {
             PID = newPID;
             randID = randomNo;
@@ -54,6 +55,11 @@ namespace rgatCore
             //modIDTranslationVec.resize(255, -1);
 
             binaryTarg = binary;
+            if (arch != 0 && binary.BitWidth != arch)
+            {
+                binary.BitWidth = arch;
+            }
+
             DisassemblyData = new ProcessRecord(binary.BitWidth);
             //DisassemblyData.modBounds.resize(255, null);
         }
@@ -182,10 +188,7 @@ namespace rgatCore
         public uint PID { get; private set; }
         public long randID { get; private set; } //to distinguish between processes with identical PIDs
 
-        //index of this vec == client reference to each module. returned value is our static reference to the module
-        //needed because each trace drgat can come up with a new ID for each module
-        List<long> modIDTranslationVec = new List<long>();
-        Dictionary<long, bool> activeMods = new Dictionary<long, bool>();
+
 
         int loadedModuleCount = 0;
 

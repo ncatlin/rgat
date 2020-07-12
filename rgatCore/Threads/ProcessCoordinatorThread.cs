@@ -72,7 +72,7 @@ namespace rgatCore.Threads
 
 				byte[] buf = new byte[1024];
 				var readres = nps.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
-				//int ff = nps.EndRead(readres);
+
 				Console.WriteLine("Began read");
 				int mush = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
 
@@ -142,8 +142,9 @@ namespace rgatCore.Threads
 		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
         {
 			int ret = 0;
-			BinaryTarget bt = new BinaryTarget("dfoskdf");
-			TraceRecord tr = new TraceRecord(PID, ID, bt , DateTime.Now);
+			BinaryTarget bt = new BinaryTarget("dfoskdf", arch);
+
+			TraceRecord tr = new TraceRecord(PID, ID, bt, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(bt, tr, _clientState);
 
 			moduleHandler.Begin(GetCtrlPipeName(PID, ID));

@@ -68,8 +68,6 @@ namespace rgatCore
             //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
             //do same for symbol
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 7);
-
-            Console.WriteLine(fields);
             string path = fields[1];
             int localmodnum = int.Parse(fields[2], System.Globalization.NumberStyles.Integer);
             ulong start = Convert.ToUInt64(fields[3], 16);
@@ -166,7 +164,7 @@ namespace rgatCore
 
             if (buf[0] == 'm' && buf[1] == 'n')
             {
-                Console.WriteLine("New Module! " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
+                HandleModule(buf);
                 return;
             }
 
@@ -307,7 +305,10 @@ namespace rgatCore
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
                 if (!res.IsCompleted)
                 {
-                    try { controlPipe.EndRead(res); } catch { };
+                    try { int bytesRead = controlPipe.EndRead(res); }
+                    catch {
+                        Console.WriteLine("Exception in outer ModhandlerRead");
+                    };
                 }
             }
 
