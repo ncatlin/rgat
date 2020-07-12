@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using System.Threading;
+using static rgatCore.TraceRecord;
 
 namespace rgatCore
 {
@@ -14,26 +15,23 @@ namespace rgatCore
         TraceRecord trace;
         rgatState _clientState;
         int threadsCount = 0;
-        ulong instanceID = 0;
         NamedPipeServerStream controlPipe = null;
         List<IAsyncResult> pipeWaits = new List<IAsyncResult>();
         Thread listenerThread = null;
 
 
-        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState, ulong IDno)
+        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState)
         {
             target = binaryTarg;
             trace = runrecord;
             _clientState = clientState;
-            instanceID = IDno;
-
         }
 
 
 
-        private string GetTracePipeName()
+        private string GetTracePipeName(ulong TID)
         {
-            return "TR" + trace.PID.ToString() + threadsCount.ToString() + instanceID.ToString();
+            return "TR" + trace.PID.ToString() + trace.randID.ToString() + TID.ToString();
         }
 
 
@@ -57,11 +55,11 @@ namespace rgatCore
             }
         }
 
-         
+
 
         void HandleSymbol(byte[] buf)
         {
-            string[] fields = Encoding.ASCII.GetString(buf).Split('@',5);
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 5);
 
             int modnum = int.Parse(fields[1]);
             ulong offset = Convert.ToUInt64(fields[2], 16);
@@ -72,18 +70,62 @@ namespace rgatCore
 
         void HandleModule(byte[] buf)
         {
-            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 6);
+            //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
+            //do same for symbol
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 7);
 
             Console.WriteLine(fields);
             string path = fields[1];
-            int modnum = int.Parse(fields[2]);
+            int localmodnum = int.Parse(fields[2], System.Globalization.NumberStyles.Integer);
             ulong start = Convert.ToUInt64(fields[3], 16);
             ulong end = Convert.ToUInt64(fields[4], 16);
-            trace.DisassemblyData.AddModule(modnum, path, start, end);
+            trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
+        }
 
+
+
+        void HandleNewVisualiserThread(ulong TID)
+        {
+            string pipename = GetTracePipeName(TID);
+
+            Console.WriteLine("Opening pipe "+pipename);
+            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
+            //threadListener.
+            threadListener.WaitForConnection();
+            Console.WriteLine("THREAD CON");
+            Thread.Sleep(10000);
+
+            threadListener.Dispose();
+          //      start_thread_rendering(TID, threadpipeThisEnd);
 
         }
 
+        void HandleNewThread(byte[] buf)
+        {
+            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
+            ulong TID = ulong.Parse(fields[1], System.Globalization.NumberStyles.Integer);
+            Console.WriteLine($"Thread {TID} started!");
+
+            switch (trace.TraceType)
+            {
+                case eTracePurpose.eVisualiser:
+                    HandleNewVisualiserThread(TID);
+                    break;
+                case eTracePurpose.eFuzzer:
+                    {
+                        /*
+                        fuzzRun* fuzzinstance = (fuzzRun*)runRecord->fuzzRunPtr;
+                        fuzzinstance->notify_new_thread(TID);
+                        */
+                        break;
+                    }
+                default:
+                    Console.WriteLine("[rgat] Bad Trace Type " + trace.TraceType);
+                    break;
+            }
+
+        }
 
 
         void ReadCallback(IAsyncResult ar)
@@ -101,7 +143,7 @@ namespace rgatCore
 
             if (buf[0] == 'T' && buf[1] == 'I')
             {
-                Console.WriteLine("New Thread!");
+                HandleNewThread(buf);
                 return;
             }
 
@@ -113,8 +155,7 @@ namespace rgatCore
 
             if (buf[0] == 'm' && buf[1] == 'n')
             {
-                Console.WriteLine("New Module! "+ System.Text.ASCIIEncoding.ASCII.GetString(buf));
-                HandleModule(buf);
+                Console.WriteLine("New Module! " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
                 return;
             }
 
@@ -175,7 +216,7 @@ namespace rgatCore
 
                 foreach (string name in ignoredDirs)
                 {
-                    Console.Write("Sending ignored dir " + name +"\n");
+                    Console.Write("Sending ignored dir " + name + "\n");
 
                     buf = System.Text.Encoding.Unicode.GetBytes(name);
                     buf = System.Text.Encoding.UTF8.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
@@ -243,7 +284,7 @@ namespace rgatCore
             while (!_clientState.rgatIsExiting && controlPipe.IsConnected)
             {
                 byte[] buf = new byte[4096 * 4];
-                IAsyncResult res =  controlPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
+                IAsyncResult res = controlPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
                 if (!res.IsCompleted)
                 {

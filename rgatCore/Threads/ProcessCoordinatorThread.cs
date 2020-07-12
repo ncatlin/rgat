@@ -97,9 +97,9 @@ namespace rgatCore.Threads
 						{
 							bool success = true;
 							if (fields[0] != "PID") success = false;
-							if (!ulong.TryParse(fields[1], out ulong PID)) success = false;
+							if (!uint.TryParse(fields[1], out uint PID)) success = false;
 							if (!int.TryParse(fields[2], out int arch)) success = false;
-							if (!ulong.TryParse(fields[3], out ulong randno)) success = false;
+							if (!long.TryParse(fields[3], out long randno)) success = false;
 							string programName = fields[4];
 							if (success)
 							{
@@ -129,27 +129,27 @@ namespace rgatCore.Threads
 
         }
 
-		public string GetCtrlPipeName(ulong PID, ulong instanceID)
+		public string GetCtrlPipeName(uint PID, long instanceID)
 		{
 			return "CT" + PID.ToString() + instanceID.ToString();
 		}
-		public string GetBBPipeName(ulong PID, ulong instanceID)
+		public string GetBBPipeName(uint PID, long instanceID)
 		{
 			return "BB" + PID.ToString() + instanceID.ToString();
 		}
 
 
-		private void process_new_pin_connection(ulong PID, int arch, ulong ID, string programName)
+		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
         {
 			int ret = 0;
 			BinaryTarget bt = new BinaryTarget("dfoskdf");
-			TraceRecord tr = new TraceRecord(3445, 33424,bt , DateTime.Now);
-			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(bt, tr, _clientState, 23213);
+			TraceRecord tr = new TraceRecord(PID, ID, bt , DateTime.Now);
+			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(bt, tr, _clientState);
 
 			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
 
 
-			BlockHandlerThread blockHandler = new BlockHandlerThread(bt, tr, _clientState, 23213);
+			BlockHandlerThread blockHandler = new BlockHandlerThread(bt, tr, _clientState);
 			blockHandler.Begin(GetBBPipeName(PID, ID));
 			return;
 			//spawn_client_listeners()

@@ -14,17 +14,14 @@ namespace rgatCore
         TraceRecord trace;
         rgatState _clientState;
         int threadsCount = 0;
-        ulong instanceID = 0;
         NamedPipeServerStream blockPipe = null;
         Thread listenerThread = null;
 
-        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState, ulong IDno)
+        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState)
         {
             target = binaryTarg;
             trace = runrecord;
             _clientState = clientState;
-            instanceID = IDno;
-
         }
 
 

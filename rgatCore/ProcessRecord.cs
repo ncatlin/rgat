@@ -12,7 +12,13 @@ namespace rgatCore
     class ProcessRecord
     {
 
-        public ProcessRecord(int binaryBitWidth) { BitWidth = binaryBitWidth; }
+        public ProcessRecord(int binaryBitWidth) {
+            BitWidth = binaryBitWidth; 
+            for (int i = 0; i < 150; i++)
+            {
+                modIDTranslationVec.Add(-1);
+            }
+        }
 
         
 		//public bool get_sym(uint modNum, ulong mem_addr, string &sym);
@@ -150,14 +156,38 @@ namespace rgatCore
 
 
 
-        public void AddModule(int modnum, string path, ulong start, ulong end)
+        public void AddModule(int localmodID, string path, ulong start, ulong end, char isInstrumented)
         {
+            if (localmodID > 1000)
+            {
+                Console.WriteLine($"Ignoring strangely huge module id {localmodID} {path}");
+                return;
+            }
+
+
             lock (ModulesLock)
             {
+                int globalModID = LoadedModuleCount; //index into our module lists
 
-                //TODO - this next
+                LoadedModulePaths.Add(path);
+                globalModuleIDs.Add(path, globalModID);
+
+                if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
+                modIDTranslationVec[localmodID] = globalModID; 
+
+                ModuleTraceStates.Add(isInstrumented == '1');
+                LoadedModuleBounds.Add(new Tuple<ulong, ulong>(start, end));
+                
+                LoadedModuleCount += 1;
             }
         }
+
+
+
+
+
+
+
 
         public void AddSymbol(int modnum, ulong offset, string name)
         {
@@ -177,11 +207,16 @@ namespace rgatCore
             }
         }
 
-        private readonly object ModulesLock = new object();
-        public List<string> LoadedModulePaths = new List<string>();
-        public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
-        public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
 
+        public List<string> LoadedModulePaths = new List<string>();
+        public List<int> modIDTranslationVec = new List<int>();
+        public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
+
+        public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
+        public List<bool> ModuleTraceStates = new List<bool>();
+        public int LoadedModuleCount = 0;
+
+        private readonly object ModulesLock = new object();
 
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();

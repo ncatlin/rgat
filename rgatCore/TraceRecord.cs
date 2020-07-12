@@ -44,7 +44,7 @@ namespace rgatCore
     class TraceRecord
     {
         public enum eTracePurpose { eVisualiser, eFuzzer };
-        public TraceRecord(uint newPID, uint randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser)
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser)
         {
             PID = newPID;
             randID = randomNo;
@@ -160,7 +160,7 @@ namespace rgatCore
         //void* fuzzRunPtr = null;
 
         public uint PID { get; private set; }
-        uint randID; //to distinguish between processes with identical PIDs
+        public long randID { get; private set; } //to distinguish between processes with identical PIDs
 
         //index of this vec == client reference to each module. returned value is our static reference to the module
         //needed because each trace drgat can come up with a new ID for each module

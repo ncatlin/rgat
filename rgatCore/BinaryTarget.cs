@@ -53,7 +53,7 @@ namespace rgatCore
             {
                 string windowsDir = Environment.GetEnvironmentVariable("windir", EnvironmentVariableTarget.Machine);
                 ignoreDirs.Add(windowsDir);
-                ignoreDirs.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
+                ignoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
     }
