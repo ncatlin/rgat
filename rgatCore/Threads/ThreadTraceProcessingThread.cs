@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,76 @@ namespace rgatCore.Threads
         }
 
 
+
+        void ProcessLoopMarker(byte[] entry)
+        {
+            if (entry[1] == 'S')//LOOP START MARKER
+            {
+                ulong loopIterations = BitConverter.ToUInt32(entry, 2);
+                protograph.SetLoopState(eLoopState.eBuildingLoop, loopIterations);
+            }
+            else if (entry[1] == 'E')//LOOP END MARKER
+            {
+                protograph.DumpLoop();
+            }
+        }
+
+        public void ProcessTraceTag(byte[] entry)
+        {
+            TAG thistag;
+            ulong nextBlockAddress;
+
+            thistag.blockID =  (uint)BitConverter.ToUInt64(entry, 1);
+
+            thistag.blockaddr = this.protograph.ProcessData.blockList[(int)thistag.blockID].Item1;
+            nextBlockAddress = BitConverter.ToUInt64(entry, 10);
+
+            thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode; //todo enum
+            if (protograph.loopState == eLoopState.eBuildingLoop)
+            {
+                protograph.loopCache.Add(thistag);
+            }
+            else
+            {
+                protograph.handle_tag(thistag);
+
+                ANIMATIONENTRY animUpdate;
+                animUpdate.blockAddr = thistag.blockaddr;
+                animUpdate.blockID = thistag.blockID;
+                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
+                protograph.push_anim_update(animUpdate);
+            }
+
+            //fallen through/failed conditional jump
+            if (nextBlockAddress == 0) return;
+
+            eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
+            if (modType == eCodeInstrumentation.eInstrumentedCode) return;
+
+            //modType could be known unknown here
+            //in case of unknown, this waits until we know. hopefully rare.
+            int attempts = 1;
+
+            TAG externTag;
+            externTag.jumpModifier = eCodeInstrumentation.eUninstrumentedCode;
+            externTag.blockaddr = nextBlockAddress;
+
+            if (protograph.loopState == eLoopState.eBuildingLoop)
+                protograph.loopCache.Add(externTag);
+            else
+            {
+                protograph.handle_tag(externTag);
+
+                ANIMATIONENTRY animUpdate;
+                animUpdate.blockAddr = nextBlockAddress;
+                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
+                animUpdate.blockID = uint.MaxValue; 
+                animUpdate.callCount = protograph.externFuncCallCounter[new Tuple<ulong, uint>(thistag.blockaddr, thistag.blockID)]++;
+                protograph.PushAnimUpdate(animUpdate);
+            }
+        }
+
+
         void Processor()
         {
             while (!ingestThread.StopFlag)
@@ -30,10 +101,8 @@ namespace rgatCore.Threads
                 byte[] msg = ingestThread.DeQueueData();
                 if (msg == null)
                 {
-                    Console.WriteLine("Proc got no data, waiting");
                     ingestThread.RequestWakeupOnData();
                     ingestThread.dataReadyEvent.WaitOne();
-                    Console.WriteLine("Proc woke");
                     continue;
                 }
 
@@ -41,9 +110,11 @@ namespace rgatCore.Threads
                 switch (msg[0])
                 {
                     case (byte)'j':
+                        ProcessTraceTag(msg);
                         Console.WriteLine("Handle TRACE_TAG_MARKER");
                         break;
                     case (byte)'R':
+                        ProcessLoopMarker(msg);
                         Console.WriteLine("Handle LOOP_MARKER");
                         break;
                     case (byte)'A':

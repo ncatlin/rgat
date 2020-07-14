@@ -106,7 +106,7 @@ namespace rgatCore
 
                 if (externBlock != null)
                 {
-                    int moduleNo = find_containing_module(blockaddr);
+                    int moduleNo = FindContainingModule(blockaddr);
                     get_extern_at_address(blockaddr, moduleNo, ref externBlock);
                     return null;
                 }
@@ -136,7 +136,7 @@ namespace rgatCore
             }
         }
         
-        public int find_containing_module(ulong address)
+        public int FindContainingModule(ulong address)
         {
             int numModules = LoadedModuleBounds.Count;
             for (int modNo = 0; modNo < numModules; ++modNo)
@@ -234,6 +234,7 @@ namespace rgatCore
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
+        public Dictionary<int, bool> ActiveModules = new Dictionary<int, bool>(); //make list if needed
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
 
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();

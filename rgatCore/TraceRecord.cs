@@ -165,10 +165,36 @@ namespace rgatCore
 		*/
         void killTraceProcess() { if (IsRunning) { killed = true; } }
         bool should_die() { return killed; }
-        /*
-		void killTree();
-		int find_containing_module(ulong address, int &localmodID);
-		*/
+        
+		//void killTree();
+
+		public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
+        {
+            localmodID = dynamicDisassemblyData->FindContainingModule(address);
+            if (localmodID == -1)
+            {
+
+                Console.WriteLine($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
+                int attempts = 1;
+                while (attempts-- != 0)
+                {
+                    std::this_thread::sleep_for(30ms);
+                    localmodID = dynamicDisassemblyData->FindContainingModule(address);
+                    if (localmodID != -1)
+                    {
+                        Console.WriteLine("found!");
+
+                        break;
+                    }
+                }
+
+                return eCodeInstrumentation.eUninstrumentedCode;
+                //assert(localmodID != -1);
+            }
+
+            return  .at(localmodID) ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode;
+        }
+		
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
         public Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
         public List<PlottedGraph> GetPlottedGraphsList()
