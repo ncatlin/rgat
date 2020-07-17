@@ -203,11 +203,11 @@ namespace rgatCore
 				needVBOReload_preview = true;
 			*/
 
-            int startIndex = (int)previewlines.CountRenderedEdges;
-            int endIndex = Math.Min(internalProtoGraph.get_num_edges(), startIndex + (int)GlobalConfig.Preview_EdgesPerRender);
-            for (int edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
+            uint startIndex = previewlines.CountRenderedEdges;
+            uint endIndex = Math.Min(internalProtoGraph.get_num_edges(), startIndex + GlobalConfig.Preview_EdgesPerRender);
+            for (uint edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
             {
-                var edgeNodes = internalProtoGraph.edgeList[edgeIdx];
+                var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
                 if (edgeNodes.Item1 >= previewnodes.CountVerts())
                 {
                     NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);

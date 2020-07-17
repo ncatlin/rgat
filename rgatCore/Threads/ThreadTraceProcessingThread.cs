@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -42,13 +43,22 @@ namespace rgatCore.Threads
         {
             TAG thistag;
             ulong nextBlockAddress;
+            int tokenpos = 0;
+            for (; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == ',') break;
 
-            thistag.blockID =  (uint)BitConverter.ToUInt64(entry, 1);
+            thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
 
-            thistag.blockaddr = this.protograph.ProcessData.blockList[(int)thistag.blockID].Item1;
-            nextBlockAddress = BitConverter.ToUInt64(entry, 10);
+            thistag.blockaddr = protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID);
+            Debug.Assert(thistag.blockID < protograph.ProcessData.blockList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
-            thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode; //todo enum
+            int addrstart = ++tokenpos;
+            for (tokenpos++; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == '@') break;
+            nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, tokenpos-addrstart), NumberStyles.HexNumber);
+
+            thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode; 
+            thistag.foundExtern = null;
+            thistag.insCount = 0; //meaningless here
+
             if (protograph.loopState == eLoopState.eBuildingLoop)
             {
                 protograph.loopCache.Add(thistag);
@@ -57,11 +67,11 @@ namespace rgatCore.Threads
             {
                 protograph.handle_tag(thistag);
 
-                ANIMATIONENTRY animUpdate;
+                ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
+                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
                 animUpdate.blockAddr = thistag.blockaddr;
                 animUpdate.blockID = thistag.blockID;
-                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-                protograph.push_anim_update(animUpdate);
+                protograph.PushAnimUpdate(animUpdate);
             }
 
             //fallen through/failed conditional jump
@@ -74,7 +84,7 @@ namespace rgatCore.Threads
             //in case of unknown, this waits until we know. hopefully rare.
             int attempts = 1;
 
-            TAG externTag;
+            TAG externTag = new TAG();
             externTag.jumpModifier = eCodeInstrumentation.eUninstrumentedCode;
             externTag.blockaddr = nextBlockAddress;
 
@@ -84,7 +94,7 @@ namespace rgatCore.Threads
             {
                 protograph.handle_tag(externTag);
 
-                ANIMATIONENTRY animUpdate;
+                ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
                 animUpdate.blockAddr = nextBlockAddress;
                 animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
                 animUpdate.blockID = uint.MaxValue; 
@@ -111,7 +121,6 @@ namespace rgatCore.Threads
                 {
                     case (byte)'j':
                         ProcessTraceTag(msg);
-                        Console.WriteLine("Handle TRACE_TAG_MARKER");
                         break;
                     case (byte)'R':
                         ProcessLoopMarker(msg);

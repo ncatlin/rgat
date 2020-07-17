@@ -141,24 +141,28 @@ namespace rgatCore.Threads
 
 
 		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
-        {
-			int ret = 0;
-			BinaryTarget bt = new BinaryTarget("dfoskdf", arch);
+		{
+			Console.WriteLine($"New Pin connection from {programName} (PID:{PID}, arch:{arch})");
 
-			TraceRecord tr = new TraceRecord(PID, ID, bt, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
-			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(bt, tr, _clientState);
+			BinaryTarget target = null;
+			if (!_clientState.targets.GetTargetByPath(programName, out target))
+            {
+				target = _clientState.AddTargetByPath(programName, arch, true);
+			}
+			int ret = 0;
+
+			TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
+			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
 
 			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
 
 
-			BlockHandlerThread blockHandler = new BlockHandlerThread(bt, tr, _clientState);
+			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);
 			blockHandler.Begin(GetBBPipeName(PID, ID));
 			return;
-			//spawn_client_listeners()
-			/*
+		/*
 
-			PIN_PIPES localHandles;
-			create_pipes_for_pin(PID, PID_ID, sharedMem, localHandles, bitWidth);
+
 
 			PID_TID parentPID = getParentPID(PID); //todo: pin can do this
 

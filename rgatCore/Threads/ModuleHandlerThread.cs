@@ -181,7 +181,7 @@ namespace rgatCore
         {
 
             listenerThread = new Thread(new ParameterizedThreadStart(Listener));
-
+            listenerThread.Name = "ControlThread";
             listenerThread.Start(controlPipeName);
         }
 
@@ -275,9 +275,17 @@ namespace rgatCore
         void Listener(Object pipenameO)
         {
             string name = (string)pipenameO;
-            controlPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
-            IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
 
+            try
+            {
+                controlPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+                IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
+            }
+            catch (System.IO.IOException e){
+                Console.WriteLine("IO Exception on ModuleHandlerThreadListener: " + e.Message);
+                controlPipe = null;
+                return;
+            }
 
             int totalWaited = 0;
             while (!_clientState.rgatIsExiting)

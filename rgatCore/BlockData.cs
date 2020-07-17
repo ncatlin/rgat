@@ -6,7 +6,7 @@ namespace rgatCore
 {
 	class BlockData
 	{
-		BlockData(uint firstVert, uint lastVert)
+		public BlockData(uint firstVert, uint lastVert)
 		{
 			FirstNodeIdx = firstVert;
 			LastNodeIdx = lastVert;

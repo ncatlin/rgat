@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,7 +34,7 @@ namespace rgatCore
         public ulong insCount;
         //used internally
         public eCodeInstrumentation jumpModifier;
-        public ROUTINE_STRUCT foundExtern;
+        public ROUTINE_STRUCT? foundExtern;
     };
     enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimUnchainedDone, eAnimExecException };
     enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
@@ -41,6 +42,15 @@ namespace rgatCore
 
     struct ANIMATIONENTRY
     {
+        public void InitNull()
+        {
+                   blockAddr = 0;
+            blockID = 0;
+            count = 0;
+            targetAddr = 0;
+            targetID = 0;
+            callCount = 0;
+    }
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
@@ -180,12 +190,53 @@ namespace rgatCore
             }
         }
 
-        /*
 
-		private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats);
-		private void run_faulting_BB(TAG &tag);
+		private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats)
+        {
+            Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(lastVertID, targVertID);
+
+            if (EdgeExists(edgeIDPair))
+            {
+                //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
+                return;
+            }
+
+            if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
+
+            EdgeData newEdge = new EdgeData();
+            newEdge.chainedWeight = 0;
+
+            if (instructionIndex > 0)
+                newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
+            else
+            {
+                if (alreadyExecuted)
+                    newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+                else
+                    switch (lastNodeType)
+                    {
+                        case eEdgeNodeType.eNodeReturn:
+                            newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+                            break;
+                        case eEdgeNodeType.eNodeException:
+                            newEdge.edgeClass = eEdgeNodeType.eEdgeException;
+                            break;
+                        case eEdgeNodeType.eNodeCall:
+                            newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+                            break;
+                        default:
+                            newEdge.edgeClass = eEdgeNodeType.eEdgeNew;
+                            break;
+                    }
+            }
+
+
+            AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
+        }
+
+        /*private void run_faulting_BB(TAG &tag);
         */
-        private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<int,int>? resultPair)
+        private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint,uint>? resultPair)
         {
             //start by examining our caller
             NodeData lastNode = safe_get_node(lastVertID);
@@ -193,186 +244,211 @@ namespace rgatCore
             Debug.Assert(lastNode.ins.numbytes > 0);
 
             //if caller is also external then we are not interested in this
-            if (!ProcessData.ActiveModules[lastNode.GlobalModuleID]) { resultPair = null; return false; }
+            if (!ProcessData.ModuleTraceStates[lastNode.GlobalModuleID]) { resultPair = null; return false; }
 
 
             ROUTINE_STRUCT? thisbb = null;
             int modnum = ProcessData.FindContainingModule(targaddr);
             Debug.Assert(modnum != -1);
 
-            ProcessData.get_extern_at_address(targaddr, modnum, ref thisbb);
-            Debug.Assert(thisbb != null);
+            if(!ProcessData.get_extern_at_address(targaddr, modnum, ref thisbb))
+            {
+                Console.WriteLine($"Failed to get extern addr 0x{targaddr} in module {TraceData.DisassemblyData.LoadedModulePaths[modnum]}");
+                resultPair = null;
+                return false; //happens at end of program
+            }    
+            
+            Debug.Assert(thisbb != null); //todo - this happens at end
 
             //see if caller already called this
             //if so, get the destination node so we can just increase edge weight
-            auto x = thisbb->thread_callers.find(tid);
-            piddata->getExternCallerReadLock();
-            if (x != thisbb->thread_callers.end())
+            if(thisbb.Value.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint,uint>> callers))
             {
-                EDGELIST::iterator vecit = x->second.begin();
-                for (; vecit != x->second.end(); ++vecit)
+                //piddata->getExternCallerReadLock();
+                foreach (var caller in callers)
                 {
-                    if (vecit->first != lastVertID) continue;
+                    if (caller.Item1 != lastVertID) continue;
 
-                    piddata->dropExternCallerReadLock();
+                    //piddata->dropExternCallerReadLock();
 
                     //this instruction in this thread has already called it
                     //cout << "repeated external edge from " << lastVertID << "->" << targVertID << endl;
 
-                    targVertID = vecit->second;
+                    targVertID = caller.Item2;
 
-                    node_data* targNode = safe_get_node(targVertID);
-                    targNode->executionCount += repeats;
-                    targNode->currentCallIndex += repeats;
+                    NodeData targNode = safe_get_node(targVertID);
+                    targNode.executionCount += repeats;
+                    targNode.currentCallIndex += repeats;
                     lastVertID = targVertID;
-
+                    resultPair = caller;
                     return true;
                 }
-                //else: thread has already called it, but from a different place
-            }
-            //else: thread hasn't called this function before
+                //not found: thread has already called it, but from a different place
 
-            piddata->dropExternCallerReadLock();
+            }//else: thread hasn't called this function before
 
-            lastNode->childexterns += 1;
-            targVertID = (NODEINDEX)get_num_nodes();
 
-            piddata->getExternCallerWriteLock();
+            //piddata->dropExternCallerReadLock();
+
+            lastNode.childexterns += 1;
+            targVertID = get_num_nodes();
+            resultPair = new Tuple<uint, uint>(lastVertID, targVertID);
+
+            //piddata->getExternCallerWriteLock();
 
             //has this thread executed this basic block before?
-            auto callersIt = thisbb->thread_callers.find(tid);
-            if (callersIt == thisbb->thread_callers.end())
+            if (callers != null)
             {
-                EDGELIST callervec;
+                List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>();
                 //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
-                callervec.push_back(make_pair(lastVertID, targVertID));
-                thisbb->thread_callers.emplace(tid, callervec);
+                callervec.Add(resultPair);
+                thisbb.Value.thread_callers.Add(ThreadID, callervec);
             }
             else
-                callersIt->second.push_back(make_pair(lastVertID, targVertID));
+                callers.Add(resultPair);
 
-            piddata->dropExternCallerWriteLock();
+            //piddata->dropExternCallerWriteLock();
 
-            int module = thisbb->globalmodnum;
+            int module = thisbb.Value.globalmodnum;
 
             //make new external/library call node
-            node_data newTargNode;
-            newTargNode.globalModID = module;
-            newTargNode.external = true;
+            NodeData newTargNode = new NodeData();
+            newTargNode.GlobalModuleID = module;
+            newTargNode.IsExternal = true;
             newTargNode.address = targaddr;
             newTargNode.index = targVertID;
             newTargNode.parentIdx = lastVertID;
             newTargNode.executionCount = 1;
 
-            insert_node(targVertID, newTargNode); //this invalidates all node_data* pointers
-            lastNode = &newTargNode;
+            InsertNode(targVertID, newTargNode); //this invalidates all node_data* pointers
+            lastNode = newTargNode;
 
-            *resultPair = std::make_pair(lastVertID, targVertID);
 
-            piddata->getExternDictWriteLock();
-            piddata->externdict.insert(make_pair(targaddr, thisbb));
-            piddata->dropExternDictWriteLock();
 
-            edge_data newEdge;
+            //piddata->getExternDictWriteLock();
+            TraceData.DisassemblyData.externdict.Add(targaddr, thisbb.Value);
+            //piddata->dropExternDictWriteLock();
+
+            EdgeData newEdge = new EdgeData();
             newEdge.chainedWeight = 0;
-            newEdge.edgeClass = eEdgeLib;
-            add_edge(newEdge, *safe_get_node(lastVertID), *safe_get_node(targVertID));
+            newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
+            AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
-            lastNodeType = eNodeExternal;
+            lastNodeType = eEdgeNodeType.eNodeExternal;
             lastVertID = targVertID;
             return true;
         }
+
+
 		private void ProcessNewArgs()
         {
-            //target function		caller  		args
-            Dictionary<ulong, Dictionary<ulong, vector<ARGLIST>>>::iterator pendingCallArgIt = pendingcallargs.begin();
-            while (pendingCallArgIt != pendingcallargs.end())
+            foreach (var pendingcallarg in pendingcallargs)
             {
+                ulong calledFunc = pendingcallarg.Key;
+                Dictionary<ulong, List<List<Tuple<int, string>>>> pendingArgs = pendingcallarg.Value;
 
-                EDGELIST threadCalls;
-                //each function can have multiple nodes in a thread, so we have to get the list of 
-                //every edge that has this extern as a target
-                if (!lookup_extern_func_calls(pendingCallArgIt->first, threadCalls))
-                {
-                    ++pendingCallArgIt;
+                    //each function can have multiple nodes in a thread, so we have to get the list of 
+                    //every edge that has this extern as a target
+                    if (!lookup_extern_func_calls(calledFunc, out List<Tuple<uint, uint>> threadCalls))
+                    {
+                        continue;
+                    }
+
+                    //run through each edge, trying to match args to the right caller-callee pair
+                    //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
+                    for( var i = threadCalls.Count-1; i > 0; i--)
+                    {
+                                NodeData callerNode = safe_get_node(threadCalls[i].Item1);
+                                ulong callerAddress = callerNode.ins.address; //this breaks if call not used?
+                                NodeData functionNode = safe_get_node(threadCalls[i].Item2);
+
+                    //externCallsLock.lock () ;
+                    
+                                foreach (var caller_args in pendingArgs)
+                                {
+                                    //check if we have found the source of the call that used these arguments
+                                    if (caller_args.Key != callerAddress)
+                                    {
+                                        continue;
+                                    }
+                        
+                        //vector<ARGLIST> & calls_arguments_list = caller_args_vec_IT->second;
+
+                        //ARGLIST args;
+                        
+                        foreach (var args in caller_args.Value)
+                        {
+                            //each node can only have a certain number of arguments to prevent simple DoS
+                            //todo: should be a launch option though
+                            if (functionNode.callRecordsIndexs.Count < GlobalConfig.ArgStorageMax)
+                            {
+                                EXTERNCALLDATA callRecord;
+                                callRecord.edgeIdx = threadCalls[i];
+                                callRecord.argList = args;
+
+                                ExternCallRecords.Add(callRecord);
+                                functionNode.callRecordsIndexs.Add((ulong)ExternCallRecords.Count - 1);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Warning, dropping args to extern 0x{calledFunc:X} because the storage limit is {GlobalConfig.ArgStorageMax}");
+                            }
+                        }
+                        caller_args.Value.Clear();
+
+
+                        if (pendingArgs.Count == 0)
+                            pendingcallargs.Remove(calledFunc); //probably going to break b/c deleting in the loop
+                    }
+                    //externCallsLock.unlock();
                     continue;
                 }
 
-                //run through each edge, trying to match args to the right caller-callee pair
-                //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
-                EDGELIST::reverse_iterator callEdgeIt = threadCalls.rbegin();
-                while (callEdgeIt != threadCalls.rend())
-                {
-                    node_data* callerNode = safe_get_node(callEdgeIt->first);
-                    MEM_ADDRESS callerAddress = callerNode->ins->address; //this breaks if call not used?
-                    node_data* functionNode = safe_get_node(callEdgeIt->second);
 
-                    externCallsLock.lock () ;
-                    map<MEM_ADDRESS, vector<ARGLIST>>::iterator caller_args_vec_IT = pendingCallArgIt->second.begin();
-
-                    while (caller_args_vec_IT != pendingCallArgIt->second.end())
-                    {
-                        //check if we have found the source of the call that used these arguments
-                        if (caller_args_vec_IT->first != callerAddress)
-                        {
-                            ++caller_args_vec_IT;
-                            continue;
-                        }
-
-                        vector<ARGLIST> & calls_arguments_list = caller_args_vec_IT->second;
-
-                        ARGLIST args;
-                        foreach (args, calls_arguments_list)
-				{
-                            //each node can only have a certain number of arguments to prevent simple DoS
-                            //todo: should be a launch option though
-                            if (functionNode->callRecordsIndexs.size() < arg_storage_capacity)
-                            {
-                                EXTERNCALLDATA callRecord;
-                                callRecord.edgeIdx = *callEdgeIt;
-                                callRecord.argList = args;
-
-                                externCallRecords.push_back(callRecord);
-                                functionNode->callRecordsIndexs.push_back((unsigned long)externCallRecords.size() - 1);
-                            }
-                            else
-                                break;
-                        }
-                        calls_arguments_list.clear();
-
-                        if (caller_args_vec_IT->second.empty())
-                            caller_args_vec_IT = pendingCallArgIt->second.erase(caller_args_vec_IT);
-                        else
-                            ++caller_args_vec_IT;
-                    }
-                    externCallsLock.unlock();
-
-                    ++callEdgeIt;
-                }
-                if (pendingCallArgIt->second.empty())
-                    pendingCallArgIt = pendingcallargs.erase(pendingCallArgIt);
-                else
-                    ++pendingCallArgIt;
+                if (pendingcallarg.Value.Count == 0)
+                    pendingcallargs.Remove(pendingcallarg.Key); //probably going to break b/c deleting in the loop
             }
+
         }
+
+
+
+
+
+            private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
+            {
+                //piddata->getExternDictReadLock();
+               // piddata->getExternCallerReadLock();
+
+
+                if(TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
+                {
+                    return rtn.thread_callers.TryGetValue(ThreadID, out callEdges);
+                }
+
+                // piddata->dropExternDictReadLock();
+                //piddata->dropExternCallerReadLock();
+                callEdges = null;
+                return false;
+            }
+
+            //private void build_functioncall_from_args();
+
+
+            //         function 	      caller		       argidx  arg
+            Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>> pendingcallargs = new Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>>();
+
+           
         /*
-		private bool lookup_extern_func_calls(ulong called_function_address, EDGELIST &callEdges);
-		private void build_functioncall_from_args();
-		
+            private ulong pendingCalledFunc = 0;
+            private ulong pendingFuncCaller = 0;
 
-		//   function 	      caller		
-		Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>> pendingcallargs;
+            private List<Tuple<int,string>> pendingArgs;
 
-		private uint arg_storage_capacity = 100;
-		private ulong pendingCalledFunc = 0;
-		private ulong pendingFuncCaller = 0;
 
-		private List<Tuple<int,string>> pendingArgs;
-		
 
-		
-		public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
-		*/
+            public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
+            */
         void InsertNode(uint targVertID, NodeData node)
         {
             if (NodeList.Count > 0)
@@ -396,7 +472,25 @@ namespace rgatCore
             //dropNodeWriteLock();
         }
 
-        //public bool edge_exists(NODEPAIR edge, edge_data** edged);
+
+        public bool EdgeExists(Tuple<uint, uint> edge)
+        {
+            lock (edgeLock)
+            {
+                return edgeDict.ContainsKey(edge);
+            }
+        }
+
+        public bool EdgeExists(Tuple<uint, uint> edge, out EdgeData? edged)
+        {
+            lock(edgeLock)
+            {
+                return edgeDict.TryGetValue(edge, out edged);
+            }
+        }
+
+
+
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
@@ -416,10 +510,12 @@ namespace rgatCore
             target.IncomingNeighboursSet.Add(edgePair.Item1);
             //dropNodeWriteLock();
 
-            //getEdgeWriteLock();
-            edgeDict.Add(edgePair, e);
-            edgeList.Add(edgePair);
-            //dropEdgeWriteLock();
+            lock (edgeLock)
+            {
+                edgeDict.Add(edgePair, e);
+                edgeList.Add(edgePair);
+            }
+
         }
 
 
@@ -444,9 +540,11 @@ namespace rgatCore
                 if (lastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
-                RunExternal(thistag.blockaddr, repeats, out Tuple<int, int> resultPair);
-                process_new_args();
-                set_active_node(resultPair.Item2);
+                if (RunExternal(thistag.blockaddr, repeats, out Tuple<uint, uint> resultPair))
+                    {
+                    ProcessNewArgs();
+                    set_active_node(resultPair.Item2);
+                }
             }
             else
             {
@@ -460,31 +558,67 @@ namespace rgatCore
         //public bool notify_pending_func(ulong funcpc, ulong returnpc);
         //public bool hasPendingCalledFunc() { return pendingCalledFunc != null; }
 
+        private readonly object edgeLock = new object();
         //node id pairs to edge data
         public Dictionary<Tuple<uint, uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
         public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
-
-        public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
         public List<BlockData> BlockList = new List<BlockData>(); //node id to node data
 
+
+
+
+        public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
+
         public bool node_exists(uint idx) { return (NodeList.Count > idx); }
-        public int get_num_nodes() { return NodeList.Count; }
-        public int get_num_edges() { return edgeList.Count; }
+        public uint get_num_nodes() { return (uint)NodeList.Count; }
+        public uint get_num_edges() { return (uint)edgeList.Count; }
         /*
 		public void acquireNodeReadLock() { getNodeReadLock(); }
 		public void releaseNodeReadLock() { dropNodeReadLock(); }
+                */
 
-		public uint handle_new_instruction(InstructionData instruction, ulong blockID, ulong repeats);
-		public void handle_previous_instruction(uint targVertID, ulong repeats);
-        */
+        public uint handle_new_instruction(InstructionData instruction, uint blockID, ulong repeats)
+        {
+
+            NodeData thisnode = new NodeData();
+            uint targVertID = get_num_nodes();
+            thisnode.index = targVertID;
+            thisnode.ins = instruction;
+            thisnode.conditional = thisnode.ins.conditional ? eConditionalType.ISCONDITIONAL : eConditionalType.NOTCONDITIONAL;
+            thisnode.address = instruction.address;
+            thisnode.BlockID = blockID;
+            thisnode.executionCount = repeats;
+            thisnode.GlobalModuleID = instruction.globalmodnum;
+
+            Debug.Assert(!node_exists(targVertID));
+            InsertNode(targVertID, thisnode);
+
+                       lock (TraceData.DisassemblyData.InstructionsLock)
+            {
+                instruction.threadvertIdx.Add(ThreadID, targVertID);
+            }
+
+            lastNode = targVertID; //obsolete
+            return targVertID;
+        }
+
+
+		public void handle_previous_instruction(uint targVertID, ulong repeats) 
+        {
+
+            safe_get_node(targVertID).executionCount += repeats;
+            lastNode = targVertID;
+        }
+
+
         public void addBlockLineToGraph(TAG tag, ulong repeats)
         {
-            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockaddr, tag.blockID, null);
+            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockaddr, tag.blockID);
             int numInstructions = block.Count;
 
-            Tuple<int,int> firstVert;
-            Tuple<int, int> lastVert;
+            uint firstVert = 0;
+            uint lastVert;
 
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
@@ -503,10 +637,10 @@ namespace rgatCore
                 //end possible  #ifdef DEBUG candidate
 
                 //target vert already on this threads graph?
-                bool alreadyExecuted = SetTR(instruction);
+                bool alreadyExecuted = set_target_instruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    targVertID = handle_new_instruction(*instruction, tag->blockID, repeats);
+                    targVertID = handle_new_instruction(instruction, tag.blockID, repeats);
                 }
                 else
                 {
@@ -545,31 +679,28 @@ namespace rgatCore
                 lastVertID = targVertID;
             }
 
-            block_data newblock(firstVert, lastVertID);
-            getEdgeWriteLock();
-            blockList.push_back(newblock);
-            dropEdgeWriteLock();
-            std::cout << "draw block from nidx " << firstVert << " -to- " << lastVertID << std::endl;
+            BlockData newblock = new BlockData(firstVert, lastVertID);
+
+            lock (edgeLock)
+            {
+                BlockList.Add(newblock);
+            }
+
+            Console.WriteLine($"draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
-        public void addBlockNodesToGraph(TAG tag, int repeats)
+        public void addBlockNodesToGraph(TAG tag, ulong repeats)
         {
-            INSLIST* block = piddata->getDisassemblyBlock(tag->blockaddr, tag->blockID, 0);
-            size_t numInstructions = (int)block->size();
-
-            for (size_t instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
+            List<InstructionData> block =  TraceData.DisassemblyData.getDisassemblyBlock(tag.blockaddr, tag.blockID);
+            for (int instructionIndex = 0; instructionIndex < block.Count; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
 
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
-                    if (!node_exists(lastVertID))
-                    {
-                        //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
-                        cerr << "\t\t[rgat]ERROR: RunBB- Last vert " << lastVertID << " not found. Node list size is: " << nodeList.size() << endl;
-                        assert(0);
-                    }
+                    //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
+                    Debug.Assert(node_exists(lastVertID), $"\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found. Node list size is: {NodeList.Count}");
                 }
                 //end possible  #ifdef DEBUG candidate
 
@@ -698,12 +829,13 @@ namespace rgatCore
 
         public void PushAnimUpdate(ANIMATIONENTRY entry)
         {
-            //animationListsRWLOCK_.lock () ;
-            SavedAnimationData.Add(entry);
-            //animationListsRWLOCK_.unlock();
+            lock (AnimDataLock)
+            {
+                SavedAnimationData.Add(entry);
+            }
         }
 
-        
+        private readonly object AnimDataLock = new object();
         //animation data received from target
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
 
@@ -763,12 +895,12 @@ namespace rgatCore
                     animUpdate.callCount = externFuncCallCounter[uniqueExternID]++;
                 }
 
-                push_anim_update(animUpdate);
+                PushAnimUpdate(animUpdate);
             }
 
-            ANIMATIONENTRY lastanimUpdate;
+            ANIMATIONENTRY lastanimUpdate = new ANIMATIONENTRY();
             lastanimUpdate.entryType = eTraceUpdateType.eAnimLoopLast;
-            push_anim_update(lastanimUpdate);
+            PushAnimUpdate(lastanimUpdate);
 
             loopCache.Clear();
             loopIterations = 0;
@@ -879,7 +1011,7 @@ namespace rgatCore
         List<string> loggedCalls;
 
         //number of times an external function has been called. used to Dictionary arguments to calls
-        public Dictionary<Tuple<ulong, uint>, ulong> externFuncCallCounter;
+        public Dictionary<Tuple<ulong, uint>, ulong> externFuncCallCounter = new Dictionary<Tuple<ulong, uint>, ulong>();
 
         bool updated = true;
 

@@ -163,6 +163,7 @@ namespace rgatCore
                 instruction.ContainingBlockIDs = new List<Tuple<ulong, uint>>();
                 instruction.ContainingBlockIDs.Add(new Tuple<ulong, uint>(insaddr, blockID));
                 instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
+                instruction.threadvertIdx = new Dictionary<uint, uint>();
 
                 if (ProcessRecord.DisassembleIns(disassembler, ref instruction) < 1)
                 {

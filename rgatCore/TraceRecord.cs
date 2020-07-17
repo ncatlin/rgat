@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace rgatCore
 {
@@ -170,7 +171,7 @@ namespace rgatCore
 
 		public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
         {
-            localmodID = dynamicDisassemblyData->FindContainingModule(address);
+            localmodID = DisassemblyData.FindContainingModule(address);
             if (localmodID == -1)
             {
 
@@ -178,8 +179,8 @@ namespace rgatCore
                 int attempts = 1;
                 while (attempts-- != 0)
                 {
-                    std::this_thread::sleep_for(30ms);
-                    localmodID = dynamicDisassemblyData->FindContainingModule(address);
+                    Thread.Sleep(30);
+                    localmodID = DisassemblyData.FindContainingModule(address);
                     if (localmodID != -1)
                     {
                         Console.WriteLine("found!");
@@ -192,7 +193,7 @@ namespace rgatCore
                 //assert(localmodID != -1);
             }
 
-            return  .at(localmodID) ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode;
+            return DisassemblyData.ModuleTraceStates[localmodID] ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode;
         }
 		
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();

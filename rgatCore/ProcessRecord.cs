@@ -97,6 +97,38 @@ namespace rgatCore
 
         }
 
+        //is there a better way of doing this?
+        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID)
+        {
+            ROUTINE_STRUCT? stub = null;
+            return getDisassemblyBlock(blockaddr, blockID, ref stub);
+        }
+
+        //returns address once it does
+        public ulong EnsureBlockExistsGetAddress(uint blockID)
+        {
+            int timewaited = 0;
+            while (true)
+            {
+
+                lock (InstructionsLock)
+                {
+                    if (blockList.Count > blockID && blockList[(int)blockID] != null)
+                    {
+                        return blockList[(int)blockID].Item1;
+                    }
+                }
+                if (dieFlag) return 0;
+                Thread.Sleep(2);
+                timewaited += 2;
+                if (timewaited > 2500 && (timewaited % 1000)  == 0)
+                {
+                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited/1000}s");
+                }
+
+            }
+        }
+
         public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID, ref ROUTINE_STRUCT? externBlock)
         {
             int iterations = 0;
@@ -234,11 +266,10 @@ namespace rgatCore
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
-        public Dictionary<int, bool> ActiveModules = new Dictionary<int, bool>(); //make list if needed
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
+        public List<bool> ModuleTraceStates = new List<bool>();
 
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
-        public List<bool> ModuleTraceStates = new List<bool>();
         public int LoadedModuleCount = 0;
 
         private readonly object ModulesLock = new object();
@@ -264,7 +295,7 @@ namespace rgatCore
         //useful for mapping return addresses to callers without a locking search
         public Dictionary<ulong, ulong> previousInstructionsCache;
 
-        //list of basic blocks
+        //list of basic blocks - guarded by instructionslock
         //              address
         public List<Tuple<ulong, List<InstructionData>>> blockList = new List<Tuple<ulong, List<InstructionData>>>();
         //private Dictionary<uint, List<InstructionData>> blockDict = new Dictionary<uint, List<InstructionData>>();

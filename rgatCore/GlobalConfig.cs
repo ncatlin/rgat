@@ -17,6 +17,8 @@ namespace rgatCore.Threads
         public static int animationUpdatesPerFrame = 500;
         public static uint TraceBufferSize = 400000;
 
+        public static int ArgStorageMax = 100;
+
         public static bool showRisingAnimated = true;
 
         public static class mainColours

@@ -132,22 +132,22 @@ namespace rgatCore
         public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
         public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
         public InstructionData ins;
-        public bool IsExternal { get; private set; } = false;
+        public bool IsExternal { get; set; } = false;
         bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
         public int GlobalModuleID;
 
-        //ulong/int blockID;
+        public uint BlockID;
 
         //an index used to lookup the caller/arguments of each instance of this being called
-        List<ulong> callRecordsIndexs = new List<ulong>();
-        ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
+        public List<ulong> callRecordsIndexs = new List<ulong>();
+        public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
 
         //number of external functions called
         public uint childexterns = 0;
         public ulong address = 0;
-        uint parentIdx = 0;
+        public uint parentIdx = 0;
 
-        ulong executionCount = 0;
+        public ulong executionCount = 0;
         ulong chain_remaining_in = 0;
         ulong chain_remaining_out = 0;
 

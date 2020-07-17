@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ImGuiNET;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using rgatCore.Threads;
 using System;
@@ -40,10 +41,11 @@ namespace rgatCore
 			rgatIsExiting = true;
         }
 
-		public void AddTargetByPath(string path, bool selectIt = true)
+		public BinaryTarget AddTargetByPath(string path, int arch = 0, bool selectIt = true)
         {
-            targets.AddTargetByPath(path);
-            if (selectIt) SetActiveTarget(path);
+			BinaryTarget targ = targets.AddTargetByPath(path, arch);
+            if (selectIt) SetActiveTarget(targ);
+			return targ;
         }
 
         public void SetActiveTarget(string path)
@@ -54,6 +56,13 @@ namespace rgatCore
                 ActiveTarget = newTarget;
             };
         }
+		public void SetActiveTarget(BinaryTarget newTarget)
+		{
+			if (newTarget != null && newTarget != ActiveTarget)
+			{
+				ActiveTarget = newTarget;
+			};
+		}
 
 		public void ClearActiveGraph()
 		{
@@ -93,7 +102,10 @@ namespace rgatCore
 			string binaryPath = (string)saveJSON.GetValue("BinaryPath");
 			if (binaryPath == null) return false;
 	
-			bool newBinary = targets.GetTargetByPath(binaryPath, out target);
+			if(!targets.GetTargetByPath(binaryPath, out target))
+            {
+				target = targets.AddTargetByPath(binaryPath);
+            }
 			//myui.targetListCombo.addTargetToInterface(target, newBinary);
 
 			targetResult = target; 
