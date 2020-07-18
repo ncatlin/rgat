@@ -706,7 +706,11 @@ namespace rgatCore
                             {
                                 foreach (PlottedGraph selectablegraph in graphs)
                                 {
-                                    ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid);
+                                    if(ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid)){
+                                        _rgatstate.SwitchToGraph(selectablegraph);
+                                        MainGraphWidget.SetActiveGraph(selectablegraph, _rgatstate._GraphicsDevice);
+                                        PreviewGraphWidget.SetSelectedGraph(selectablegraph);
+                                    }
                                 }
                                 ImGui.EndCombo();
                             }
@@ -798,6 +802,7 @@ namespace rgatCore
                 { 
                     MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
+                    PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
                 
             }

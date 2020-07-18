@@ -148,41 +148,18 @@ namespace rgatCore
 		public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
 		{
 			if (ActiveGraph == null) return;
+
+			//definately should not be called every time!
 			ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
-
-			if (!inited1)
-			{
-
-				inited1 = true; 
-			}
-
-			if (ActiveGraph.wireframelines.DataChanged)
-			{
-				ActiveGraph.wireframelines.SignalDataRead();
-				graphBuffers.InitWireframeVertexData(_gd);
-			}
-
-			ulong newBufSize = 0;
-			if (ActiveGraph.mainnodesdata.DataChanged)
-			{
-				ActiveGraph.mainnodesdata.SignalDataRead();
-				Console.WriteLine("Re-initing main nodes data with " + ActiveGraph.mainnodesdata.VertList.Count + " verts");
-				graphBuffers.InitNodeVertexData(_gd, ActiveGraph.mainnodesdata);
-			}
-			if (ActiveGraph.mainlinedata.DataChanged)
-			{
-				ActiveGraph.mainlinedata.SignalDataRead();
-				graphBuffers.InitLineVertexData(_gd, ActiveGraph.mainlinedata);
-			}
 
 			_cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
 			_cl.ClearColorTarget(0, RgbaFloat.Black);
 			//_cl.ClearDepthStencil(1f);
 
 			SetupView(_cl, graphBuffers);
-			graphBuffers.DrawWireframe(_cl);
-			graphBuffers.DrawLines(_cl);
-			graphBuffers.DrawPoints(_cl);
+			graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
+			graphBuffers.DrawLines(_cl, _gd, ActiveGraph.mainlinedata);
+			graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.mainnodesdata);
 		}
 
 

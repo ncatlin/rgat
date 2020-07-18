@@ -117,7 +117,7 @@ namespace rgatCore
 
 		}
 
-		void SwitchToGraph(PlottedGraph graph)
+		public void SwitchToGraph(PlottedGraph graph)
 		{
 			//valid target or not, we assume current graph is no longer fashionable
 			ClearActiveGraph();
@@ -237,6 +237,7 @@ namespace rgatCore
 			//activeGraphLock.unlock();
 			return true;
 		}
+
 		public PlottedGraph getActiveGraph(bool increaseReferences)
 		{
 			if (ActiveGraph != null && ActiveGraph.beingDeleted) return null;

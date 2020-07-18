@@ -13,14 +13,13 @@ namespace rgatCore
     class PreviewGraphsWidget
     {
         List<PlottedGraph> DrawnGraphs = new List<PlottedGraph>();
-        private bool inited1 = false;
+
 
         System.Timers.Timer FrameTimer;
         bool FrameTimerFired = false;
 
         TraceRecord ActiveTrace = null;
 
-        private Vector2 graphWidgetSize;
 
         public float dbg_FOV = 1.0f;//1.0f;
         public float dbg_near = 0.5f;
@@ -33,6 +32,8 @@ namespace rgatCore
         public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
         public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
         public float MarginWidth = 5f;
+
+        public uint selectedGraphTID;
 
 
         public PreviewGraphsWidget()
@@ -77,6 +78,9 @@ namespace rgatCore
             {
                 if (graph.previewnodes.CountVerts() == 0 || graph._previewTexture == null) continue;
                 ImGui.Text($"TID:{graph.tid} {graph.previewnodes.CountVerts()}vts");
+                if (graph.tid == selectedGraphTID)
+                    ImGui.Text("[Selected]");
+
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     pos,
@@ -175,27 +179,19 @@ namespace rgatCore
                 }
 
 
-                if (graph.previewnodes.DataChanged)
-                {
-                    graph.previewnodes.SignalDataRead();
-                    graphRenderInfo.InitNodeVertexData(_gd, graph.previewnodes);
-                }
-                if (graph.previewlines.DataChanged)
-                {
-                    graph.previewlines.SignalDataRead();
-                    graphRenderInfo.InitLineVertexData(_gd, graph.previewlines);
-                }
-
-
                 _cl.SetFramebuffer(graph._previewFramebuffer);
                 _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
                 //_cl.ClearDepthStencil(1f);
                 SetupView(_cl, graphRenderInfo);
-                graphRenderInfo.DrawLines(_cl);
-                graphRenderInfo.DrawPoints(_cl);
+                graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);
+                graphRenderInfo.DrawPoints(_cl, _gd, graph.previewnodes);
             }
         }
 
+        public void SetSelectedGraph(PlottedGraph graph)
+        {
+            selectedGraphTID = graph.tid;
+        }
 
         /*
 		private void DrawWireframe(CommandList _cl)
