@@ -34,6 +34,7 @@ namespace rgatCore
         public float MarginWidth = 5f;
 
         public uint selectedGraphTID;
+        public PlottedGraph clickedGraph { get; private set; }
 
 
         public PreviewGraphsWidget()
@@ -63,12 +64,36 @@ namespace rgatCore
 
         public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
 
+        private void HandleClickedGraph(PlottedGraph graph)
+        {
+            clickedGraph = graph;
+        }
+
         public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
             //if (FrameTimerFired) Update();
 
+            clickedGraph = null;
             if (ActiveTrace == null)
                 return;
+
+            Vector2? ClickedPos = null;
+            if (ImGui.IsMouseClicked(0))
+            {
+                Vector2 MousePos = ImGui.GetMousePos();
+                Vector2 WidgetPos = ImGui.GetCursorScreenPos();
+
+                if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + widgetSize.X))
+                {
+                    if (MousePos.Y >= (WidgetPos.Y + ImGui.GetScrollY()) && MousePos.Y < (WidgetPos.Y + widgetSize.Y + ImGui.GetScrollY()))
+                    {
+                        //ClickedPos = new Vector2(MousePos.X - WidgetPos.X, MousePos.Y - WidgetPos.Y);
+                        ClickedPos = new Vector2(MousePos.X, MousePos.Y);
+                    }
+                }
+
+            }
+
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             Vector2 pos = ImGui.GetCursorScreenPos();
             pos.X += MarginWidth;
@@ -85,6 +110,11 @@ namespace rgatCore
                 imdp.AddImage(CPUframeBufferTextureId,
                     pos,
                     new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
+
+                if (ClickedPos.HasValue && ClickedPos.Value.Y > pos.Y && ClickedPos.Value.Y < (pos.Y + EachGraphHeight))
+                {
+                    HandleClickedGraph(graph);
+                }
 
                 int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
 
@@ -107,13 +137,6 @@ namespace rgatCore
 		*/
 
         Dictionary<uint, VeldridGraphBuffers> graphicInfos = new Dictionary<uint, VeldridGraphBuffers>();
-
-     
-
-
-
-
-
 
 
         private void SetupView(CommandList _cl, VeldridGraphBuffers graphRenderInfo)
@@ -165,7 +188,6 @@ namespace rgatCore
 
                 if (graph._previewTexture == null)
                 {
-
                     graph.UpdatePreviewBuffers(_gd);
                 }
 
@@ -192,29 +214,6 @@ namespace rgatCore
         {
             selectedGraphTID = graph.tid;
         }
-
-        /*
-		private void DrawWireframe(CommandList _cl)
-		{
-			_cl.SetVertexBuffer(0, _WireframeVertexBuffer);
-			_cl.SetIndexBuffer(_WireframeIndexBuffer, IndexFormat.UInt16);
-			_cl.SetPipeline(_wireframePipeline);
-			_cl.SetGraphicsResourceSet(0, _projViewSet);
-			_cl.DrawIndexed(
-				indexCount: (uint)_WireframeVertices.Length,
-				instanceCount: 1,
-				indexStart: 0,
-				vertexOffset: 0,
-				instanceStart: 0);
-
-		}
-		*/
-
-
-
-
-
-
 
 
 

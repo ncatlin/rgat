@@ -111,7 +111,7 @@ namespace rgatCore.Threads
 				renderGraph.InitialiseDefaultDimensions();
 			}
 
-			bool setactive = rgatState.SetActiveGraph(renderGraph);
+			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid
 			Debug.Assert(setactive);
 			activeTrace.PlottedGraphs[protoGraph.ThreadID] = renderGraph;
 

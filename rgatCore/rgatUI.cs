@@ -403,9 +403,11 @@ namespace rgatCore
                 Vector2 previewPaneSize = new Vector2(tracesGLFrameWidth, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
                 {
-                    ImGui.Text("GLVisThreads");
                     PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController, _rgatstate._GraphicsDevice);
-
+                    if (PreviewGraphWidget.clickedGraph != null)
+                    {
+                        SetActiveGraph(PreviewGraphWidget.clickedGraph);
+                    }
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -671,6 +673,13 @@ namespace rgatCore
             ImGui.PopStyleColor();
         }
 
+        private void SetActiveGraph(PlottedGraph graph)
+        {
+            _rgatstate.SwitchToGraph(graph);
+            MainGraphWidget.SetActiveGraph(graph, _rgatstate._GraphicsDevice);
+            PreviewGraphWidget.SetSelectedGraph(graph);
+        }
+
         private void DrawTraceSelector(float frameHeight)
         {
 
@@ -707,9 +716,7 @@ namespace rgatCore
                                 foreach (PlottedGraph selectablegraph in graphs)
                                 {
                                     if(ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid)){
-                                        _rgatstate.SwitchToGraph(selectablegraph);
-                                        MainGraphWidget.SetActiveGraph(selectablegraph, _rgatstate._GraphicsDevice);
-                                        PreviewGraphWidget.SetSelectedGraph(selectablegraph);
+                                        SetActiveGraph(selectablegraph);
                                     }
                                 }
                                 ImGui.EndCombo();
@@ -804,15 +811,11 @@ namespace rgatCore
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
-                
             }
             
-            
-
             float controlsHeight = 230;
 
             DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);
-
             DrawVisualiserControls(controlsHeight);
 
         }

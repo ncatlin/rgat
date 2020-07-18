@@ -201,7 +201,7 @@ namespace rgatCore
                 int globalModID = LoadedModuleCount; //index into our module lists
 
                 LoadedModulePaths.Add(path);
-                globalModuleIDs.Add(path, globalModID);
+                //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
                 if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
                 modIDTranslationVec[localmodID] = globalModID; 
