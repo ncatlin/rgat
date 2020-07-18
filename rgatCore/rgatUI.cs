@@ -390,7 +390,10 @@ namespace rgatCore
                 if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
                 {
                     MainGraphWidget.Draw(graphSize, _ImGuiController, _rgatstate._GraphicsDevice);
-                    ImGui.Text("GLVisMain");
+                    if (_rgatstate.ActiveGraph != null) 
+                        ImGui.Text($"Displaying thread {_rgatstate.ActiveGraph.tid}");
+                    else
+                        ImGui.Text($"No active graph to display");
                     ImGui.EndChild();
 
                 }

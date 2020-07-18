@@ -31,37 +31,7 @@ namespace rgatCore
         public DeviceBuffer _projectionBuffer { get; private set; }
         public DeviceBuffer _viewBuffer { get; private set; }
 
-        public void InitLineVertexData(GraphicsDevice _gd)
-        {
-
-            if (!(graph.previewlines.safe_get_vert_array(out _LineVertices)))
-            {
-                Console.WriteLine("Unhandled error 1");
-            }
-
-            Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
-
-            ResourceFactory factory = _gd.ResourceFactory;
-            if (_LineIndexBuffer != null)
-            {
-                _LineIndexBuffer.Dispose();
-                _LineVertexBuffer.Dispose();
-            }
-
-            BufferDescription vbDescription = new BufferDescription(
-                (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-            _LineVertexBuffer = factory.CreateBuffer(vbDescription);
-            _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
-
-
-            List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
-                .Select(i => (ushort)i)
-                .ToList();
-
-            BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-            _LineIndexBuffer = factory.CreateBuffer(ibDescription);
-            _gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
-        }
+        
 
         ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
         {
@@ -192,10 +162,10 @@ namespace rgatCore
         }
 
 
-        public void InitNodeVertexData(GraphicsDevice _gd)
+        public void InitNodeVertexData(GraphicsDevice _gd, GraphDisplayData nodes)
         {
 
-            if (!(graph.previewnodes.safe_get_vert_array(out _PointVertices)))
+            if (!(nodes.safe_get_vert_array(out _PointVertices)))
             {
                 Console.WriteLine("Unhandled error 1");
             }
@@ -229,6 +199,38 @@ namespace rgatCore
             BufferDescription ibDescription = new BufferDescription((uint)pointIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
             _PointIndexBuffer = factory.CreateBuffer(ibDescription);
             _gd.UpdateBuffer(_PointIndexBuffer, 0, pointIndices.ToArray());
+        }
+
+        public void InitLineVertexData(GraphicsDevice _gd, GraphDisplayData lines)
+        {
+
+            if (!(lines.safe_get_vert_array(out _LineVertices)))
+            {
+                Console.WriteLine("Unhandled error 1");
+            }
+
+            Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
+
+            ResourceFactory factory = _gd.ResourceFactory;
+            if (_LineIndexBuffer != null)
+            {
+                _LineIndexBuffer.Dispose();
+                _LineVertexBuffer.Dispose();
+            }
+
+            BufferDescription vbDescription = new BufferDescription(
+                (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+            _LineVertexBuffer = factory.CreateBuffer(vbDescription);
+            _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
+
+
+            List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
+                .Select(i => (ushort)i)
+                .ToList();
+
+            BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+            _LineIndexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
         }
     }
 

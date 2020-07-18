@@ -178,12 +178,12 @@ namespace rgatCore
                 if (graph.previewnodes.DataChanged)
                 {
                     graph.previewnodes.SignalDataRead();
-                    graphRenderInfo.InitNodeVertexData(_gd);
+                    graphRenderInfo.InitNodeVertexData(_gd, graph.previewnodes);
                 }
                 if (graph.previewlines.DataChanged)
                 {
                     graph.previewlines.SignalDataRead();
-                    graphRenderInfo.InitLineVertexData(_gd);
+                    graphRenderInfo.InitLineVertexData(_gd, graph.previewlines);
                 }
 
 

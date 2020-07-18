@@ -166,12 +166,13 @@ namespace rgatCore
 			if (ActiveGraph.mainnodesdata.DataChanged)
 			{
 				ActiveGraph.mainnodesdata.SignalDataRead();
-				graphBuffers.InitNodeVertexData(_gd);
+				Console.WriteLine("Re-initing main nodes data with " + ActiveGraph.mainnodesdata.VertList.Count + " verts");
+				graphBuffers.InitNodeVertexData(_gd, ActiveGraph.mainnodesdata);
 			}
 			if (ActiveGraph.mainlinedata.DataChanged)
 			{
 				ActiveGraph.mainlinedata.SignalDataRead();
-				graphBuffers.InitLineVertexData(_gd);
+				graphBuffers.InitLineVertexData(_gd, ActiveGraph.mainlinedata);
 			}
 
 			_cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
