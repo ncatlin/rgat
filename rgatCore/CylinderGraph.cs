@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using Veldrid;
 using Veldrid.OpenGLBinding;
 
@@ -184,7 +185,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    positionVert(n, lastNode, out CYLINDERCOORD newPos);
+                    positionVert(n, lastNode, vertdata, out CYLINDERCOORD newPos);
                     coord = newPos;
 
                     //acquire_nodecoord_write();
@@ -193,7 +194,7 @@ namespace rgatCore
                 }
 
                 updateStats(coord.a, coord.b, 0);
-                usedCoords.Add(new Tuple<float, float>(coord.a, coord.b), true);
+                vertdata.usedCoords.Add(new Tuple<float, float>(coord.a, coord.b), true);
             }
             else
                 get_node_coord((int)n.index, out coord);
@@ -537,7 +538,7 @@ namespace rgatCore
         }
         */
 
-        void positionVert(NodeData n, PLOT_TRACK lastNode, out CYLINDERCOORD newPosition)
+        void positionVert(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, out CYLINDERCOORD newPosition)
         {
             if (!get_node_coord((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
             {
@@ -573,7 +574,7 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeNonFlow:
                     {
                         b += B_BETWEEN_BLOCKNODES;
-                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             b += B_BETWEEN_BLOCKNODES;
                             a += 0.2f;
@@ -595,7 +596,7 @@ namespace rgatCore
                         a += JUMPA;
                         b += JUMPB;
 
-                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             ++clash;
@@ -608,7 +609,7 @@ namespace rgatCore
                         a += JUMPA;
                         b += JUMPB;
 
-                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             ++clash;
@@ -640,7 +641,7 @@ namespace rgatCore
                         a -= CALLA;
                         b += CALLB;
 
-                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a -= CALLA_CLASH;
                             b += CALLB_CLASH;
@@ -695,7 +696,7 @@ namespace rgatCore
                         }
                         //callStackLock.unlock();
 
-                        while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             b += 1;

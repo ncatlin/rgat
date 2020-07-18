@@ -23,7 +23,7 @@ namespace rgatCore.Threads
 			int StopTimer = -1;
 			bool moreRenderingNeeded = false;
 
-			while (!rgatState.rgatIsExiting && (StopTimer != 0))
+			while (!rgatState.rgatIsExiting)
 			{
 				//only write we are protecting against happens while creating new threads
 				//so not important to release this quickly
@@ -37,6 +37,7 @@ namespace rgatCore.Threads
 					if ((graph.previewnodes.CountVerts() < protoGraph.get_num_nodes()) ||
 						(graph.previewlines.CountRenderedEdges < protoGraph.get_num_edges()))
 					{
+						Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 						moreRenderingNeeded = true;
 						graph.render_preview_graph();
 					}

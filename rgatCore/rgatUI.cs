@@ -17,6 +17,7 @@ using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
 using System.Linq;
 using rgatCore.Threads;
+using Microsoft.VisualBasic;
 
 namespace rgatCore
 {
@@ -676,20 +677,38 @@ namespace rgatCore
 
             if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(300, frameHeight)))
             {
+
                 float combosHeight = 60 - vpadding;
-                if (false && ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
+                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
                 {
-                    if (ImGui.BeginCombo("Process (0/1)", ""))
+                    if (_rgatstate.ActiveTarget != null)
                     {
-                        ImGui.Selectable("PID 12345 (xyz.exe)");
-                        ImGui.Selectable("PID 12345");
-                        ImGui.EndCombo();
-                    }
-                    if (ImGui.BeginCombo("Thread Trace (0/1)", ""))
-                    {
-                        ImGui.Selectable("TID 12345");
-                        ImGui.Selectable("TID 12345");
-                        ImGui.EndCombo();
+                        var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
+                        string selString = (_rgatstate.ActiveGraph != null) ? "PID " + _rgatstate.ActiveGraph.pid : "";
+                        if (ImGui.BeginCombo("Process (0/1)", selString))
+                        {
+                            foreach (var timepid in tracelist)
+                            {
+                                ImGui.Selectable("PID " + timepid.Item2, _rgatstate.ActiveGraph.pid == timepid.Item2);
+                                //ImGui.Selectable("PID 12345 (xyz.exe)");
+                            }
+                            ImGui.EndCombo();
+                        }
+
+                        if (_rgatstate.ActiveTrace != null)
+                        {
+                            selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
+                            uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
+                            List <PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList();
+                            if (ImGui.BeginCombo($"Thread ({graphs.Count})", selString))
+                            {
+                                foreach (PlottedGraph graph in graphs)
+                                {
+                                    ImGui.Selectable("TID " + graph.tid, activeTID == graph.tid);
+                                }
+                                ImGui.EndCombo();
+                            }
+                        }
                     }
                     ImGui.EndChild();
                 }
@@ -815,7 +834,7 @@ namespace rgatCore
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = _rgatstate.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
-            if (ImGui.BeginCombo("Active Target", activeString, flags))
+            if (ImGui.BeginCombo("Selected Binary", activeString, flags))
             {
                 foreach (string path in paths)
                 {

@@ -686,7 +686,7 @@ namespace rgatCore
                 BlockList.Add(newblock);
             }
 
-            Console.WriteLine($"draw block from nidx {firstVert} -to- {lastVertID}");
+            Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
         public void addBlockNodesToGraph(TAG tag, ulong repeats)

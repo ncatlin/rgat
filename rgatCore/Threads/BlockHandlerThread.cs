@@ -87,13 +87,13 @@ namespace rgatCore
                 Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
                 return;
             }
-            Console.WriteLine("ProcBlock " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
+            //Console.WriteLine("ProcBlock " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
 
             ulong BlockAddress = (bitWidth == 32) ? BitConverter.ToUInt32(buf, 1) : BitConverter.ToUInt64(buf, 1);
             bufPos += pointerSize;
 
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
-            Console.WriteLine($"Got {bitWidth}bit block addr {BlockAddress:X}");
+            //Console.WriteLine($"Got {bitWidth}bit block addr {BlockAddress:X}");
 
             uint localmodnum = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
@@ -116,7 +116,7 @@ namespace rgatCore
             }
 
             uint blockID = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
-            Console.WriteLine("Processing block id " + blockID);
+            //Console.WriteLine("Processing block id " + blockID);
 
             if (!instrumented) //should no longer happen
             {
@@ -186,8 +186,8 @@ namespace rgatCore
                 blockInstructions.Add(instruction);
                 insaddr += (ulong)instruction.numbytes;
             }
-            //Debug.Assert(blockInstructions.Count != 0);
-            Console.WriteLine($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
+            Debug.Assert(blockInstructions.Count != 0);
+            //Console.WriteLine($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 

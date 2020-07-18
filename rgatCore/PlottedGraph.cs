@@ -679,8 +679,7 @@ namespace rgatCore
         bool freeMe = false;
         public bool replotScheduled = false;
 
-        //keep track of which a,b coords are occupied - may need to be unique to each plot
-        protected Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
+
         protected List<Tuple<ulong, uint>> MainCallStack = new List<Tuple<ulong, uint>>();
         protected List<Tuple<ulong, uint>> PreviewCallStack = new List<Tuple<ulong, uint>>();
 
@@ -779,7 +778,7 @@ namespace rgatCore
             if (block == null)
             {
                 nodelist = null;
-                return false; 
+                return false;
             }
             //if (internalProtoGraph.terminationFlag) return false;
 
@@ -820,14 +819,14 @@ namespace rgatCore
                 return true;
             }
 
-        
+
             nodelist = new List<uint>();
             foreach (InstructionData ins in block)
             {
                 if (!ins.threadvertIdx.TryGetValue(tid, out uint val)) return false;
                 nodelist.Add(val);
             }
-            
+
             return true;
         }
 
@@ -1465,11 +1464,17 @@ namespace rgatCore
             {
                 InitMainGraphTexture(size, _gd);
             }
+
+        }
+
+        public void UpdatePreviewBuffers(GraphicsDevice _gd)
+        {
             if (_previewTexture == null)
             {
                 InitPreviewGraphTexture(new Vector2(UI_Constants.PREVIEW_PANE_WIDTH - (UI_Constants.PREVIEW_PANE_PADDING * 2), UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
         }
+
 
         public void InitMainGraphTexture(Vector2 size, GraphicsDevice _gd)
         {

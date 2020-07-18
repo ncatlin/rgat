@@ -229,5 +229,8 @@ namespace rgatCore
         public void SignalDataRead() { DataChanged = false; } //todo race condition possible here
         public bool DataChanged { get; private set; } = false;
         public bool IsPreview { get; private set; } = false;
+
+        //keep track of which a,b coords are occupied - may need to be unique to each plot
+        public Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
     }
 }

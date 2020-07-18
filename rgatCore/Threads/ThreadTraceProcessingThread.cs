@@ -125,7 +125,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                Console.WriteLine("IngestedMsg: "+Encoding.ASCII.GetString(msg, 0, msg.Length));
+                bool todoprint = false;
                 switch (msg[0])
                 {
                     case (byte)'j':
@@ -133,33 +133,44 @@ namespace rgatCore.Threads
                         break;
                     case (byte)'R':
                         ProcessLoopMarker(msg);
+                        todoprint = true;
                         Console.WriteLine("Handle LOOP_MARKER");
                         break;
                     case (byte)'A':
+                        todoprint = true;
                         Console.WriteLine("Handle ARG_MARKER");
                         break;
                     case (byte)'U':
+                        todoprint = true;
                         Console.WriteLine("Handle UNLINK_MARKER");
                         break;
                     case (byte)'u':
+                        todoprint = true;
                         Console.WriteLine("Handle UNCHAIN_MARKER");
                         break;
                     case (byte)'B':
+                        todoprint = true;
                         Console.WriteLine("Handle EXECUTECOUNT_MARKER");
                         break;
                     case (byte)'s':
+                        todoprint = true;
                         Console.WriteLine("Handle SATISFY_MARKER");
                         break;
                     case (byte)'X':
+                        todoprint = true;
                         Console.WriteLine("Handle EXCEPTION_MARKER");
                         break;
                     case (byte)'Z':
+                        todoprint = true;
                         Console.WriteLine("Handle Thread Terminated");
                         break;
                     default:
+                        todoprint = true;
                         Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
                         break;
                 }
+                if (todoprint)
+                    Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
 
             }
             Console.WriteLine(runningThread.Name + " finished");

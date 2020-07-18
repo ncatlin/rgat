@@ -12,160 +12,167 @@ namespace rgatCore
 {
     class PreviewGraphsWidget
     {
-		PlottedGraph ActiveGraph = null;
-		static rgatState _rgatState = null;
-		private bool inited1 = false;
+        List<PlottedGraph> DrawnGraphs = new List<PlottedGraph>();
+        static rgatState _rgatState = null;
+        private bool inited1 = false;
 
-		Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
-		Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
-		System.Timers.Timer FrameTimer;
-		bool FrameTimerFired = false;
+        System.Timers.Timer FrameTimer;
+        bool FrameTimerFired = false;
 
 
-		private Vector2 graphWidgetSize;
+        private Vector2 graphWidgetSize;
 
-		public float dbg_FOV = 1.0f;//1.0f;
-		public float dbg_near = 0.5f;
-		public float dbg_far = 2000f;
-		public float dbg_camX = 0f;
-		public float dbg_camY = 65f;
-		public float dbg_camZ = -200f;
-		public float dbg_rot = 0;
+        public float dbg_FOV = 1.0f;//1.0f;
+        public float dbg_near = 0.5f;
+        public float dbg_far = 8000f;
+        public float dbg_camX = 0f;
+        public float dbg_camY = 65f;
+        public float dbg_camZ = -800f;
+        public float dbg_rot = 0;
 
-		public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
-		public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
-		public float MarginWidth = 5f;
+        public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
+        public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
+        public float MarginWidth = 5f;
 
 
-		public PreviewGraphsWidget(rgatState clientState)
-		{
-			_rgatState = clientState;
-			FrameTimer = new System.Timers.Timer(600);
-			FrameTimer.Elapsed += FireFrameTimer;
-			FrameTimer.AutoReset = true;
-			FrameTimer.Start();
+        public PreviewGraphsWidget(rgatState clientState)
+        {
+            _rgatState = clientState;
+            FrameTimer = new System.Timers.Timer(600);
+            FrameTimer.Elapsed += FireFrameTimer;
+            FrameTimer.AutoReset = true;
+            FrameTimer.Start();
 
-		}
-		private void FireFrameTimer(object sender, ElapsedEventArgs e) { FrameTimerFired = true; }
+        }
+        private void FireFrameTimer(object sender, ElapsedEventArgs e) { FrameTimerFired = true; }
 
-		/* 
+        /* 
 	 * Triggered automatically when main window is resized
 	 * Manually called when we detect window changes size otherwise
 	 */
-		public void AlertResized(Vector2 size)
-		{
-			lastResizeSize = size;
-			lastResize = DateTime.Now;
-			scheduledGraphResize = true;
-		}
+        public void AlertResized(Vector2 size)
+        {
+            lastResizeSize = size;
+            lastResize = DateTime.Now;
+            scheduledGraphResize = true;
+        }
 
-		private DateTime lastResize = DateTime.Now;
-		private bool scheduledGraphResize = true;
-		private Vector2 lastResizeSize = new Vector2(0, 0);
+        private DateTime lastResize = DateTime.Now;
+        private bool scheduledGraphResize = true;
+        private Vector2 lastResizeSize = new Vector2(0, 0);
 
 
-		public void Draw(Vector2 widgetSize,ImGuiController _ImGuiController)
-		{
-			if (FrameTimerFired) Update();
-			if (ActiveGraph == null || ActiveGraph.beingDeleted)
-				return;
-			if (ActiveGraph._previewTexture == null) return;
+        public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController)
+        {
+            //if (FrameTimerFired) Update();
 
-			ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-			Vector2 pos = ImGui.GetCursorScreenPos();
-			pos.X += MarginWidth;
+            if (_rgatState.ActiveTrace == null)
+                return;
+            ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
+            Vector2 pos = ImGui.GetCursorScreenPos();
+            pos.X += MarginWidth;
+            float captionHeight = ImGui.CalcTextSize("123456789").Y;
+            DrawnGraphs = _rgatState.ActiveTrace.GetPlottedGraphsList();
+            foreach (PlottedGraph graph in DrawnGraphs)
+            {
+                if (graph.previewnodes.CountVerts() == 0 || graph._previewTexture == null) continue;
+                ImGui.Text($"TID:{graph.tid} {graph.previewnodes.CountVerts()}vts");
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_rgatState._GraphicsDevice.ResourceFactory, graph._previewTexture);
+                imdp.AddImage(CPUframeBufferTextureId,
+                    pos,
+                    new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
 
-			var graphs = _rgatState.ActiveTrace.GetPlottedGraphsList();
-			foreach (PlottedGraph graph in graphs)
-			{
-				ImGui.Text("g1 start");
-				IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_rgatState._GraphicsDevice.ResourceFactory, _rgatState.ActiveGraph._previewTexture);
-				imdp.AddImage(CPUframeBufferTextureId,
-					pos,
-					new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
+                int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
 
-				int cursorGap = (int)EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - (int)(ImGui.CalcTextSize("g3 start").Y + 4f); //ideally want to draw the text in the texture itself
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
+                pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
+            }
 
-				ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-				pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			}
+            //drawHUD();
+        }
 
-			//drawHUD();
-		}
+        private static long _startTime = System.DateTime.Now.Ticks;
 
-		private static long _startTime = System.DateTime.Now.Ticks;
-		private static DeviceBuffer _worldBuffer;
-		private static DeviceBuffer _projectionBuffer;
-		private static DeviceBuffer _viewBuffer;
-		private static Shader[] _shaders;
+        private static Shader[] _shaders;
 
-		/*
+        /*
 		private static Pipeline _wireframePipeline;
 		private static VertexPositionColor[] _WireframeVertices;
 		private static DeviceBuffer _WireframeVertexBuffer;
 		private static DeviceBuffer _WireframeIndexBuffer;
 		*/
 
-		private static Pipeline _linesPipeline;
-		private static VertexPositionColor[] _LineVertices;
-		private static DeviceBuffer _LineVertexBuffer;
-		private static DeviceBuffer _LineIndexBuffer;
+        Dictionary<uint, perPreviewData> graphicInfos = new Dictionary<uint, perPreviewData>();
 
-		private static Pipeline _pointsPipeline;
-		private static VertexPositionColor[] _PointVertices;
-		private static DeviceBuffer _PointVertexBuffer;
-		private static DeviceBuffer _PointIndexBuffer;
+        //TODO: move a bunch of the functionality into this class, maybe use it from maingraph widget too
+        private class perPreviewData
+        {
 
-		private static ResourceSet _projViewSet;
+            public  Pipeline _linesPipeline;
+            public VertexPositionColor[] _LineVertices;
+            public DeviceBuffer _LineVertexBuffer;
+            public DeviceBuffer _LineIndexBuffer;
 
+            public Pipeline _pointsPipeline;
+            public VertexPositionColor[] _PointVertices;
+            public DeviceBuffer _PointVertexBuffer;
+            public DeviceBuffer _PointIndexBuffer;
 
+            public ResourceSet _projViewSet;
 
+            public DeviceBuffer _worldBuffer;
+            public DeviceBuffer _projectionBuffer;
+            public DeviceBuffer _viewBuffer;
 
-		public static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
-		{
-
-			if (!(graph.previewlines.safe_get_vert_array(out _LineVertices)))
-			{
-				Console.WriteLine("Unhandled error 1");
-			}
-
-			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
-
-			ResourceFactory factory = _gd.ResourceFactory;
-			if (_LineIndexBuffer != null)
-			{
-				_LineIndexBuffer.Dispose();
-				_LineVertexBuffer.Dispose();
-			}
-
-			BufferDescription vbDescription = new BufferDescription(
-				(uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-			_LineVertexBuffer = factory.CreateBuffer(vbDescription);
-			_gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
+        }
 
 
-			List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
-				.Select(i => (ushort)i)
-				.ToList();
 
-			BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-			_LineIndexBuffer = factory.CreateBuffer(ibDescription);
-			_gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
-		}
+        static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph, perPreviewData renderInfo)
+        {
 
-		public static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph)
-		{
+            if (!(graph.previewlines.safe_get_vert_array(out renderInfo._LineVertices)))
+            {
+                Console.WriteLine("Unhandled error 1");
+            }
 
-			if (!(graph.previewnodes.safe_get_vert_array(out _PointVertices)))
-			{
-				Console.WriteLine("Unhandled error 1");
-			}
-			Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
+            Console.WriteLine($"Initing graph with {renderInfo._LineVertices.Length} line verts");
+
+            ResourceFactory factory = _gd.ResourceFactory;
+            if (renderInfo._LineIndexBuffer != null)
+            {
+                renderInfo._LineIndexBuffer.Dispose();
+                renderInfo._LineVertexBuffer.Dispose();
+            }
+
+            BufferDescription vbDescription = new BufferDescription(
+                (uint)renderInfo._LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+            renderInfo._LineVertexBuffer = factory.CreateBuffer(vbDescription);
+            _gd.UpdateBuffer(renderInfo._LineVertexBuffer, 0, renderInfo._LineVertices);
 
 
-			ResourceFactory factory = _gd.ResourceFactory;
-			uint bufferSize = (uint)_PointVertices.Length * VertexPositionColor.SizeInBytes;
-			/*
+            List<ushort> lineIndices = Enumerable.Range(0, renderInfo._LineVertices.Length)
+                .Select(i => (ushort)i)
+                .ToList();
+
+            BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+            renderInfo._LineIndexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(renderInfo._LineIndexBuffer, 0, lineIndices.ToArray());
+        }
+
+        static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph, perPreviewData renderInfo)
+        {
+
+            if (!(graph.previewnodes.safe_get_vert_array(out renderInfo._PointVertices)))
+            {
+                Console.WriteLine("Unhandled error 1");
+            }
+            Console.WriteLine($"Initing graph with {renderInfo._PointVertices.Length} node verts");
+
+
+            ResourceFactory factory = _gd.ResourceFactory;
+            uint bufferSize = (uint)renderInfo._PointVertices.Length * VertexPositionColor.SizeInBytes;
+            /*
 			 * 
 			 * 
 			TODO: can be much much more efficient here with option to just update new stuff
@@ -173,143 +180,153 @@ namespace rgatCore
 			*
 			*/
 
-			if (_PointIndexBuffer != null)
-			{
-				_PointIndexBuffer.Dispose();
-				_PointVertexBuffer.Dispose();
-			}
-			BufferDescription vbDescription = new BufferDescription(bufferSize, BufferUsage.VertexBuffer);
-			_PointVertexBuffer = factory.CreateBuffer(vbDescription);
+            if (renderInfo._PointIndexBuffer != null)
+            {
+                renderInfo._PointIndexBuffer.Dispose();
+                renderInfo._PointVertexBuffer.Dispose();
+            }
+            BufferDescription vbDescription = new BufferDescription(bufferSize, BufferUsage.VertexBuffer);
+            renderInfo._PointVertexBuffer = factory.CreateBuffer(vbDescription);
 
-			_gd.UpdateBuffer(_PointVertexBuffer, 0, _PointVertices);
+            _gd.UpdateBuffer(renderInfo._PointVertexBuffer, 0, renderInfo._PointVertices);
 
-			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length)
-				.Select(i => (ushort)i)
-				.ToList();
+            List<ushort> pointIndices = Enumerable.Range(0, renderInfo._PointVertices.Length)
+                .Select(i => (ushort)i)
+                .ToList();
 
-			BufferDescription ibDescription = new BufferDescription((uint)pointIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-			_PointIndexBuffer = factory.CreateBuffer(ibDescription);
-			_gd.UpdateBuffer(_PointIndexBuffer, 0, pointIndices.ToArray());
-		}
-
-
-		private static ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
-		{
-			ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-			ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-			ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-			ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
-			_worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-			_projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-			_viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-			_projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _projectionBuffer, _viewBuffer, _worldBuffer));
-			return projViewLayout;
-		}
-
-		private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
-		{
-
-			//create shaders
-			VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
-			VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-			VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
-
-			ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
-			ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
-
-			_shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-			ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
-			vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-			shaders: _shaders);
-
-			return shaderSetDesc;
-		}
+            BufferDescription ibDescription = new BufferDescription((uint)pointIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+            renderInfo._PointIndexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(renderInfo._PointIndexBuffer, 0, pointIndices.ToArray());
+        }
 
 
-		public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
-		{
-			if (ActiveGraph == null) return;
-			if (ActiveGraph._previewTexture == null) return;
-			if (ActiveGraph.previewlines.CountRenderedEdges == 0 || ActiveGraph.previewnodes.CountVerts() == 0) return;
+        private static ResourceLayout SetupProjectionBuffers(ResourceFactory factory, perPreviewData renderInfo)
+        {
+            ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+            ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+            ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+            ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
+            renderInfo._worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            renderInfo._projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            renderInfo._viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            renderInfo._projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, renderInfo._projectionBuffer, renderInfo._viewBuffer, renderInfo._worldBuffer));
+            return projViewLayout;
+        }
 
-			if (!inited1)
-			{
-				ResourceFactory factory = _gd.ResourceFactory;
-				ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
-				ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
+        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
+        {
 
+            //create shaders
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-				// Create pipelines
-				GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-				pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-				pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
-					depthTestEnabled: true,
-					depthWriteEnabled: true,
-					comparisonKind: ComparisonKind.LessEqual);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
 
-				pipelineDescription.RasterizerState = new RasterizerStateDescription(
-					cullMode: FaceCullMode.Back,
-					fillMode: PolygonFillMode.Solid,
-					frontFace: FrontFace.Clockwise,
-					depthClipEnabled: true,
-					scissorTestEnabled: false);
-				pipelineDescription.ResourceLayouts = new[] { projViewLayout };
-				pipelineDescription.ShaderSet = shaderSetDesc;
+            _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+            shaders: _shaders);
 
-				pipelineDescription.Outputs = ActiveGraph._previewFramebuffer.OutputDescription;
-
-				pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
-				_linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-				pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-				_pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-				inited1 = true;
-			}
+            return shaderSetDesc;
+        }
 
 
-			if (ActiveGraph.previewnodes.DataChanged)
-			{
-				ActiveGraph.previewnodes.SignalDataRead();
-				InitNodeVertexData(_gd, ActiveGraph);
-			}
-			if (ActiveGraph.previewlines.DataChanged)
-			{
-				ActiveGraph.previewlines.SignalDataRead();
-				InitLineVertexData(_gd, ActiveGraph);
-			}
+        public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
+        {
+            foreach (PlottedGraph graph in DrawnGraphs)
+            {
+                if (graph == null) continue;
+                if (graph.previewlines.CountRenderedEdges == 0 || graph.previewnodes.CountVerts() == 0) continue;
 
-			
-			_cl.SetFramebuffer(ActiveGraph._previewFramebuffer);
-			_cl.ClearColorTarget(0, new RgbaFloat(1,0,0,0.1f));
-			//_cl.ClearDepthStencil(1f);
-			SetupView(_cl);
-			DrawLines(_cl);
-			DrawPoints(_cl);
-		}
+                if (graph._previewTexture == null)
+                {
+
+                    graph.UpdatePreviewBuffers(_rgatState._GraphicsDevice);
+                }
+
+                perPreviewData graphRenderInfo = null;
+                if (!graphicInfos.TryGetValue(graph.tid, out graphRenderInfo))
+                {
+                    graphicInfos.Add(graph.tid, new perPreviewData());
+                    graphRenderInfo = graphicInfos[graph.tid];
+
+                    ResourceFactory factory = _gd.ResourceFactory;
+                    ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
+                    ResourceLayout projViewLayout = SetupProjectionBuffers(factory, graphRenderInfo);
 
 
-		private void SetupView(CommandList _cl)
-		{
+                    // Create pipelines
+                    GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
+                    pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
+                    pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
+                        depthTestEnabled: true,
+                        depthWriteEnabled: true,
+                        comparisonKind: ComparisonKind.LessEqual);
 
-			_cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
-			_cl.UpdateBuffer(_projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far));
+                    pipelineDescription.RasterizerState = new RasterizerStateDescription(
+                        cullMode: FaceCullMode.Back,
+                        fillMode: PolygonFillMode.Solid,
+                        frontFace: FrontFace.Clockwise,
+                        depthClipEnabled: true,
+                        scissorTestEnabled: false);
+                    pipelineDescription.ResourceLayouts = new[] { projViewLayout };
+                    pipelineDescription.ShaderSet = shaderSetDesc;
 
-			Vector3 cameraPosition = new Vector3(dbg_camX,dbg_camY, dbg_camZ);
-			//_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
-			_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+                    pipelineDescription.Outputs = graph._previewFramebuffer.OutputDescription;
 
-			//if autorotation...
-			float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
-			float angle = _ticks / 10000;
-			//else
-			//angle = dbg_rot;
+                    pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
+                    graphRenderInfo._linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
 
-			Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
-			_cl.UpdateBuffer(_worldBuffer, 0, ref rotation);
-		}
+                    pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
+                    graphRenderInfo._pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+                }
 
-		/*
+
+                if (graph.previewnodes.DataChanged)
+                {
+                    graph.previewnodes.SignalDataRead();
+                    InitNodeVertexData(_gd, graph, graphRenderInfo);
+                }
+                if (graph.previewlines.DataChanged)
+                {
+                    graph.previewlines.SignalDataRead();
+                    InitLineVertexData(_gd, graph, graphRenderInfo);
+                }
+
+
+                _cl.SetFramebuffer(graph._previewFramebuffer);
+                _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
+                //_cl.ClearDepthStencil(1f);
+                SetupView(_cl, graphRenderInfo);
+                DrawLines(_cl, graphRenderInfo);
+                DrawPoints(_cl, graphRenderInfo);
+            }
+        }
+
+
+        private void SetupView(CommandList _cl, perPreviewData graphRenderInfo)
+        {
+
+            _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
+            _cl.UpdateBuffer(graphRenderInfo._projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far));
+
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+            //_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
+            _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+
+            //if autorotation...
+            float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
+            float angle = _ticks / 10000;
+            //else
+            //angle = dbg_rot;
+
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
+            _cl.UpdateBuffer(graphRenderInfo._worldBuffer, 0, ref rotation);
+        }
+
+        /*
 		private void DrawWireframe(CommandList _cl)
 		{
 			_cl.SetVertexBuffer(0, _WireframeVertexBuffer);
@@ -327,42 +344,42 @@ namespace rgatCore
 		*/
 
 
-		private void DrawLines(CommandList _cl)
-		{
-			_cl.SetVertexBuffer(0, _LineVertexBuffer);
-			_cl.SetIndexBuffer(_LineIndexBuffer, IndexFormat.UInt16);
-			_cl.SetPipeline(_linesPipeline);
-			_cl.SetGraphicsResourceSet(0, _projViewSet);
-			_cl.DrawIndexed(
-				indexCount: (uint)_LineVertices.Length,
-				instanceCount: 1,
-				indexStart: 0,
-				vertexOffset: 0,
-				instanceStart: 0);
-		}
+        private void DrawLines(CommandList _cl, perPreviewData graphicObjs)
+        {
+            _cl.SetVertexBuffer(0, graphicObjs._LineVertexBuffer);
+            _cl.SetIndexBuffer(graphicObjs._LineIndexBuffer, IndexFormat.UInt16);
+            _cl.SetPipeline(graphicObjs._linesPipeline);
+            _cl.SetGraphicsResourceSet(0, graphicObjs._projViewSet);
+            _cl.DrawIndexed(
+                indexCount: (uint)graphicObjs._LineVertices.Length,
+                instanceCount: 1,
+                indexStart: 0,
+                vertexOffset: 0,
+                instanceStart: 0);
+        }
 
-		private void DrawPoints(CommandList _cl)
-		{
-			_cl.SetVertexBuffer(0, _PointVertexBuffer);
-			_cl.SetIndexBuffer(_PointIndexBuffer, IndexFormat.UInt16);
-			_cl.SetPipeline(_pointsPipeline);
-			_cl.SetGraphicsResourceSet(0, _projViewSet);
-			_cl.DrawIndexed(
-				indexCount: (uint)_PointVertices.Length,
-				instanceCount: 1,
-				indexStart: 0,
-				vertexOffset: 0,
-				instanceStart: 0);
-		}
-
-
+        private void DrawPoints(CommandList _cl, perPreviewData graphicObjs)
+        {
+            _cl.SetVertexBuffer(0, graphicObjs._PointVertexBuffer);
+            _cl.SetIndexBuffer(graphicObjs._PointIndexBuffer, IndexFormat.UInt16);
+            _cl.SetPipeline(graphicObjs._pointsPipeline);
+            _cl.SetGraphicsResourceSet(0, graphicObjs._projViewSet);
+            _cl.DrawIndexed(
+                indexCount: (uint)graphicObjs._PointVertices.Length,
+                instanceCount: 1,
+                indexStart: 0,
+                vertexOffset: 0,
+                instanceStart: 0);
+        }
 
 
 
 
 
 
-		private const string VertexCode = @"
+
+
+        private const string VertexCode = @"
 #version 450
 
 layout(location = 0) in vec3 Position;
@@ -399,7 +416,7 @@ void main()
     fsin_Color = Color;
 }";
 
-		private const string FragmentCode = @"
+        private const string FragmentCode = @"
 #version 450
 
 layout(location = 0) in vec4 fsin_Color;
@@ -416,11 +433,9 @@ void main()
 
 
 
-		bool setMouseoverNode()
-		{
-			if (ActiveGraph == null)
-				return false;
-			/*
+        bool setMouseoverNode()
+        {
+            /*
 			float zmul = ActiveGraph.zoomMultiplier();
 			if (!_rgatState.should_show_external_symbols(zmul) && !_rgatState.should_show_internal_symbols(zmul))
 				return false;
@@ -460,133 +475,7 @@ void main()
 
 			activeMouseoverNode = false;
 			*/
-			return false;
-		}
-
-
-
-		private void Update()
-		{
-			bool haveDisplayGraph = chooseGraphToDisplay();
-			if (!haveDisplayGraph)
-				return;
-
-			if (ActiveGraph.replayState == PlottedGraph.REPLAY_STATE.ePlaying)
-			{
-				//ui->replaySlider->setValue(1000 * ActiveGraph.getAnimationPercent());
-			}
-
-			if (ActiveGraph.replayState == PlottedGraph.REPLAY_STATE.eEnded)
-			{
-				//ui->dynamicAnalysisContentsTab->stopAnimation();
-			}
-
-			if (!setMouseoverNode())
-			{
-				//_rgatState.labelMouseoverWidget->hide();
-			}
-		}
-
-		void SwitchToGraph(PlottedGraph graph)
-		{
-			//valid target or not, we assume current graph is no longer fashionable
-			_rgatState.ClearActiveGraph();
-
-			if (graph == null || graph.NeedReplotting || graph.beingDeleted) return;
-
-			TraceRecord trace = _rgatState.ActiveTrace;
-			if (trace == null) return;
-
-			if (_rgatState.SetActiveGraph(graph))
-			{
-				LastGraphs[trace] = graph;
-				LastSelectedTheads[trace] = graph.tid;
-			}
-
-			//setGraphUIControls(graph);
-		}
-
-		bool chooseGraphToDisplay()
-		{
-			if (_rgatState.SwitchTrace != null)
-			{
-				_rgatState.SelectActiveTrace(_rgatState.SwitchTrace);
-				_rgatState.SwitchTrace = null;
-				//ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
-			}
-
-			PlottedGraph switchGraph = _rgatState.SwitchGraph;
-			if (_rgatState.SwitchGraph != null && switchGraph.beingDeleted && !switchGraph.NeedReplotting)
-			{
-				SwitchToGraph(switchGraph);
-				_rgatState.SwitchGraph = null;
-			}
-
-			if (ActiveGraph != null)
-			{
-				if (ActiveGraph.beingDeleted || (ActiveGraph != _rgatState.getActiveGraph(false)))
-				{
-					//ActiveGraph.decrease_thread_references(141);
-					ActiveGraph = null;
-					return false;
-				}
-
-				return true;
-			}
-
-			ActiveGraph = _rgatState.getActiveGraph(true);
-			if (ActiveGraph == null && !_rgatState.WaitingForNewTrace)
-			{
-				if (_rgatState.ActiveTrace != null)
-					_rgatState.SelectActiveTrace();
-
-
-				selectGraphInActiveTrace();
-			}
-
-
-			return (ActiveGraph != null);
-
-		}
-
-		//activate a graph in the active trace
-		//selects the last one that was active in this trace, or the first seen
-		void selectGraphInActiveTrace()
-		{
-			TraceRecord selectedTrace = _rgatState.ActiveTrace;
-			if (selectedTrace == null) return;
-
-			if (LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
-			{
-				bool found = false;
-				List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphsList();
-				if (traceGraphs.Contains(foundGraph))
-				{
-					SwitchToGraph(foundGraph);
-					found = true;
-				}
-				else
-				{
-					uint lastTID = LastSelectedTheads[selectedTrace];
-					PlottedGraph lastgraph = traceGraphs.Find(pg => pg.tid == lastTID);
-					if (lastgraph != null)
-					{
-						SwitchToGraph(lastgraph);
-						found = true;
-					}
-				}
-
-				//foreach (graph, traceGraphs){ graph->decrease_thread_references(144); }
-				if (found) return;
-			}
-
-			PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
-			if (firstgraph != null)
-			{
-				Console.WriteLine("Got first graph " + firstgraph.tid);
-				SwitchToGraph(firstgraph);
-				//firstgraph->decrease_thread_references(33);
-			}
-		}
-	}
+            return false;
+        }
+    }
 }

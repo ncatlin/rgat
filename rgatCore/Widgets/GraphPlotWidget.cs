@@ -162,6 +162,7 @@ namespace rgatCore
 			if(!(graph.mainlinedata.safe_get_vert_array(out _LineVertices))){
 				Console.WriteLine("Unhandled error 1");
             }
+			if (_LineVertices.Length == 0) return 0;
 
 			Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
@@ -200,8 +201,9 @@ namespace rgatCore
 			{
 				Console.WriteLine("Unhandled error 1");
 			}
+			if (_PointVertices.Length == 0) return 0;
 
-			Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
+			//Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
 
 
 			ResourceFactory factory = _gd.ResourceFactory;
@@ -288,6 +290,7 @@ namespace rgatCore
 				InitWireframeVertexData(_gd, ActiveGraph);
 				lastLineBufferSize = InitLineVertexData(_gd, ActiveGraph, lastLineBufferSize);
 				lastNodeBufferSize = InitNodeVertexData(_gd, ActiveGraph, lastNodeBufferSize);
+				if (lastLineBufferSize == 0 || lastNodeBufferSize == 0) return;
 
 				ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
 

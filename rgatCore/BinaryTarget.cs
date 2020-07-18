@@ -76,6 +76,16 @@ namespace rgatCore
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
+        public List<Tuple<DateTime, uint>> GetTracesUIList()
+        {
+            List<Tuple<DateTime, uint>> uilist = new List<Tuple<DateTime, uint>>();
+            foreach (var rec in RecordedTraces)
+            {
+                uilist.Add(new Tuple<DateTime, uint>(rec.Key, rec.Value.PID));
+            }
+            return uilist;
+        }
+
 
         public BinaryTarget(string filepath, int bitWidth_ = 0)
         {
