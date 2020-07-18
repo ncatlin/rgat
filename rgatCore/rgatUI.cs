@@ -845,7 +845,7 @@ namespace rgatCore
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Visualiser", ref dummy, ImGuiTabItemFlags.SetSelected))
+                if (ImGui.BeginTabItem("Visualiser"))
                 {
                     DrawVisTab();
                     ImGui.EndTabItem();

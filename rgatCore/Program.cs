@@ -130,7 +130,7 @@ void main()
 
             //todo: work out how to create consistent rendering with each backend
             VeldridStartup.CreateWindowAndGraphicsDevice(
-                new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "ImGui.NET Sample Program"),
+                new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
                 options,
                 preferredBackend: GraphicsBackend.Vulkan,
                 out _window,

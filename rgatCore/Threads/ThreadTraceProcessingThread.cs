@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -47,13 +48,11 @@ namespace rgatCore.Threads
             for (; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == ',') break;
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
-
             thistag.blockaddr = protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID);
             Debug.Assert(thistag.blockID < protograph.ProcessData.blockList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
             int addrstart = ++tokenpos;
-            for (tokenpos++; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == '@') break;
-            nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, tokenpos-addrstart), NumberStyles.HexNumber);
+            nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, entry.Length-addrstart), NumberStyles.HexNumber);
 
             thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode; 
             thistag.foundExtern = null;
@@ -97,8 +96,18 @@ namespace rgatCore.Threads
                 ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
                 animUpdate.blockAddr = nextBlockAddress;
                 animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-                animUpdate.blockID = uint.MaxValue; 
-                animUpdate.callCount = protograph.externFuncCallCounter[new Tuple<ulong, uint>(thistag.blockaddr, thistag.blockID)]++;
+                animUpdate.blockID = uint.MaxValue;
+                Tuple<ulong, uint> callkey = new Tuple<ulong, uint>(thistag.blockaddr, thistag.blockID);
+                if (protograph.externFuncCallCounter.TryGetValue(callkey, out ulong prevCount))
+                {
+                    protograph.externFuncCallCounter[callkey] = prevCount + 1;
+                    animUpdate.callCount = prevCount + 1;
+                }
+                else
+                {
+                    protograph.externFuncCallCounter.Add(callkey, 1);
+                    animUpdate.callCount = 1;
+                }
                 protograph.PushAnimUpdate(animUpdate);
             }
         }
@@ -106,7 +115,7 @@ namespace rgatCore.Threads
 
         void Processor()
         {
-            while (!ingestThread.StopFlag)
+            while (!ingestThread.StopFlag || ingestThread.HasPendingData())
             {
                 byte[] msg = ingestThread.DeQueueData();
                 if (msg == null)
@@ -116,7 +125,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-
+                Console.WriteLine("IngestedMsg: "+Encoding.ASCII.GetString(msg, 0, msg.Length));
                 switch (msg[0])
                 {
                     case (byte)'j':

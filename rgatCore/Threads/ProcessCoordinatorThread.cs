@@ -27,12 +27,46 @@ namespace rgatCore.Threads
 		}
 
 		byte[] buf = new byte[1024];
-		NamedPipeServerStream nps = null;
+		NamedPipeServerStream coordPipe = null;
 
 		void GotMessage(IAsyncResult ir)
         {
 
+			int bytesRead = coordPipe.EndRead(ir);
+			bytesRead = Array.FindIndex(buf, elem => elem == 0);
 
+			if (bytesRead > 0 && bytesRead < 1024)
+			{
+
+				string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
+
+				string[] fields = csString.Split(',');
+
+				Console.WriteLine($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: " + fields.ToString());
+				if (fields.Length == 5)
+				{
+					bool success = true;
+					if (fields[0] != "PID") success = false;
+					if (!uint.TryParse(fields[1], out uint PID)) success = false;
+					if (!int.TryParse(fields[2], out int arch)) success = false;
+					if (!long.TryParse(fields[3], out long randno)) success = false;
+					if (success)
+					{
+						string programName = fields[4];
+						string response = $"CT@{GetCtrlPipeName(PID, randno)}@BB@{GetBBPipeName(PID, randno)}@\x00";
+						byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
+						coordPipe.Write(outBuffer);
+						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
+						Console.WriteLine("Coordinator connection complete");
+					}
+					else
+					{
+						Console.WriteLine("Coordinator got bad buf from client: " + csString);
+					}
+				}
+			}
+
+			if (coordPipe.IsConnected) coordPipe.Disconnect();
 		}
 
 		void ConnectCallback(IAsyncResult ar)
@@ -55,13 +89,13 @@ namespace rgatCore.Threads
         public void Listener()
         {
 
-            nps = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
+            coordPipe = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
 
             while (!_clientState.rgatIsExiting)
             {
-				IAsyncResult res1 = nps.BeginWaitForConnection(new AsyncCallback(ConnectCallback), nps);
+				IAsyncResult res1 = coordPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), coordPipe);
 
-				while (!nps.IsConnected)
+				while (!coordPipe.IsConnected)
 				{
 					if (_clientState.rgatIsExiting) return;
 					Thread.Sleep(100);
@@ -70,9 +104,7 @@ namespace rgatCore.Threads
 
 				Console.WriteLine("rgatCoordinator pipe connected");
 
-
-				byte[] buf = new byte[1024];
-				var readres = nps.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
+				var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
 
 				Console.WriteLine("Began read");
 				int mush = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
@@ -80,52 +112,8 @@ namespace rgatCore.Threads
 				if (!readres.IsCompleted)
 				{
 					Console.WriteLine($"Warning: Read timeout for coordinator connection, abandoning");
-					
 				}
-				else
-                {
-					int bytesRead = Array.FindIndex(buf, elem => elem == 0);
-
-					if (bytesRead > 0 && bytesRead < 1024)
-					{
-
-						string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
-
-						string[] fields = csString.Split(',');
-
-						Console.WriteLine($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: " + fields.ToString());
-						if (fields.Length == 5)
-						{
-							bool success = true;
-							if (fields[0] != "PID") success = false;
-							if (!uint.TryParse(fields[1], out uint PID)) success = false;
-							if (!int.TryParse(fields[2], out int arch)) success = false;
-							if (!long.TryParse(fields[3], out long randno)) success = false;
-							string programName = fields[4];
-							if (success)
-							{
-								string response = "CT@" + GetCtrlPipeName(PID, randno) + "@BB@" +GetBBPipeName(PID,randno) + "@\x00";
-								byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
-								nps.Write(outBuffer);
-								Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
-								Console.WriteLine("Coordinator connection complete");
-							}
-							else
-							{
-								Console.WriteLine("Coordinator got bad buf from client: " + csString);
-							}
-						}
-					}
-
-				}
-				nps.EndRead(readres);
-				if (nps.IsConnected) nps.Disconnect();
-
-				//process_new_pin_connection(clientState, threadsList, pBuf);
-				//read in PID 
-				//open pipe/coordinator threads
-				//send pipenames for PID
-
+				while (coordPipe.IsConnected) Thread.Sleep(5);
 			}
 
         }
@@ -151,7 +139,9 @@ namespace rgatCore.Threads
 			}
 			int ret = 0;
 
-			TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
+			//TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
+
+			target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
 
 			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
@@ -159,6 +149,12 @@ namespace rgatCore.Threads
 
 			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);
 			blockHandler.Begin(GetBBPipeName(PID, ID));
+
+			_clientState.SwitchTrace = tr;
+
+
+			ProcessLaunching.launch_new_visualiser_threads(target, tr, _clientState);
+
 			return;
 		/*
 

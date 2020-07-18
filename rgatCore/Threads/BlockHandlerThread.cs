@@ -87,7 +87,7 @@ namespace rgatCore
                 Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
                 return;
             }
-
+            Console.WriteLine("ProcBlock " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
 
             ulong BlockAddress = (bitWidth == 32) ? BitConverter.ToUInt32(buf, 1) : BitConverter.ToUInt64(buf, 1);
             bufPos += pointerSize;
@@ -127,10 +127,12 @@ namespace rgatCore
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
-            while (buf[bufPos++] == '@')
+            while (buf[bufPos] == '@')
             {
-                byte insByteCount = buf[bufPos++];
-                Debug.Assert(insByteCount < 16);
+                bufPos++;
+                byte insByteCount = buf[bufPos];
+                bufPos++;
+                Debug.Assert(insByteCount > 0 && insByteCount < 16);
 
                 byte[] opcodes = new ReadOnlySpan<byte>(buf, bufPos, insByteCount).ToArray(); bufPos += insByteCount;
                 List<InstructionData> foundList = null;
@@ -181,9 +183,11 @@ namespace rgatCore
                     trace.DisassemblyData.disassembly[insaddr].Add(instruction);
                 }
 
+                blockInstructions.Add(instruction);
                 insaddr += (ulong)instruction.numbytes;
             }
-
+            //Debug.Assert(blockInstructions.Count != 0);
+            Console.WriteLine($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 

@@ -207,9 +207,7 @@ namespace rgatCore
 			ResourceFactory factory = _gd.ResourceFactory;
 			uint bufferSize = (uint)_PointVertices.Length * VertexPositionColor.SizeInBytes;
 
-			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length)
-	.Select(i => (ushort)i)
-	.ToList();
+			List<ushort> pointIndices = Enumerable.Range(0, _PointVertices.Length).Select(i => (ushort)i).ToList();
 
 			/*
 			 * 

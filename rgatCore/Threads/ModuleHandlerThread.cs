@@ -122,7 +122,7 @@ namespace rgatCore
                         break;
                     }
                 default:
-                    Console.WriteLine("[rgat] Bad Trace Type " + trace.TraceType);
+                    Console.WriteLine("[rgat]HandleNewThread Bad Trace Type " + trace.TraceType);
                     break;
             }
 
@@ -139,13 +139,12 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Console.WriteLine("Readcall back exception " + e.Message);
+                Console.WriteLine("ModuleHandlerThread Readcall back exception " + e.Message);
                 return;
             }
 
-            if (bytesread == 0)
+            if (bytesread == 0) //probably pipe ended
             {
-                Console.WriteLine($"WARNING: Control pipe read 0 bytes from PID {trace.PID}");
                 return;
             }
 
@@ -153,6 +152,12 @@ namespace rgatCore
             if (buf[0] == 'T' && buf[1] == 'I')
             {
                 HandleNewThread(buf);
+                return;
+            }
+
+            if (buf[0] == 'T' && buf[1] == 'Z')
+            {
+                Console.WriteLine("Handle thread end");
                 return;
             }
 
@@ -272,13 +277,13 @@ namespace rgatCore
         }
 
 
-        void Listener(Object pipenameO)
+        void Listener(Object pipenameobj_)
         {
-            string name = (string)pipenameO;
+            string pipename = (string)pipenameobj_;
 
             try
             {
-                controlPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+                controlPipe = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
                 IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
             }
             catch (System.IO.IOException e){
@@ -309,7 +314,7 @@ namespace rgatCore
             while (!_clientState.rgatIsExiting && controlPipe.IsConnected)
             {
                 byte[] buf = new byte[4096 * 4];
-                IAsyncResult res = controlPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
+                IAsyncResult res = controlPipe.BeginRead(buf, 0, 4096 * 4, new AsyncCallback(ReadCallback), buf);
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
                 if (!res.IsCompleted)
                 {

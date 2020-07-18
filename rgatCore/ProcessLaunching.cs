@@ -29,6 +29,7 @@ namespace rgatCore
 
 			processThreads.previewThread = new PreviewRendererThread(runRecord, clientState);
 			Thread t1 = new Thread(processThreads.previewThread.ThreadProc);
+			t1.Name = "PreviewRendererS";
 			processThreads.threads.Add(t1);
 			t1.Start();
 
@@ -56,58 +57,33 @@ namespace rgatCore
 			public int controlpipe;
 		};
 
-		static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState)
-		{
-			PIN_PIPES localhandles;
-			localhandles.bbpipe = 0;
-			localhandles.controlpipe = 0;
-			localhandles.modpipe = 0;
-			launch_new_visualiser_threads(target, runRecord, clientState, localhandles);
-		}
 
-		static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState, PIN_PIPES localhandles)
+		public static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState)
 		{
-			//spawns trace threads + handles module data for process
-			/*
-			ModuleHandlerThread tPIDThread = new ModuleHandlerThread(target, runRecord, L"rgatThreadMod", localhandles.modpipe, localhandles.controlpipe);
+			//non-graphical
+			//if (!clientState.openGLWorking()) return;
 
 			RGAT_THREADS_STRUCT processThreads = new RGAT_THREADS_STRUCT();
-			runRecord.processThreads = processThreads;
-			std::thread modthread(&gat_module_handler::ThreadEntry, tPIDThread);
-			modthread.detach();
-			processThreads.modThread = tPIDThread;
-			processThreads.threads.push_back(tPIDThread);
+			processThreads.threads = new List<Thread>();
 
-			//handles new disassembly data
-			gat_basicblock_handler* tBBHandler = new gat_basicblock_handler(target, runRecord, L"rgatThreadBB", localhandles.bbpipe);
+			processThreads.previewThread = new PreviewRendererThread(runRecord, clientState);
+			Thread t1 = new Thread(processThreads.previewThread.ThreadProc);
+			t1.Name = "PreviewRendererL";
+			processThreads.threads.Add(t1);
+			t1.Start();
 
-			std::thread bbthread(&gat_basicblock_handler::ThreadEntry, tBBHandler);
-			bbthread.detach();
-			processThreads.BBthread = tBBHandler;
-			processThreads.threads.push_back(tBBHandler);
 
-			//non-graphical
-			if (!clientState.openGLWorking()) return;
+			Thread.Sleep(200);
+			processThreads.conditionalThread = new ConditionalRendererThread(runRecord, clientState);
+			Thread t2 = new Thread(processThreads.conditionalThread.ThreadProc);
+			processThreads.threads.Add(t2);
 
-			//graphics rendering threads for each process here	
-			preview_renderer* tPrevThread = new preview_renderer(runRecord);
-			processThreads.previewThread = tPrevThread;
-			std::thread previewthread(&preview_renderer::ThreadEntry, tPrevThread);
-			previewthread.detach();
+			Thread.Sleep(200);
+			processThreads.heatmapThread = new HeatmapRendererThread(runRecord, clientState);
+			Thread t3 = new Thread(processThreads.heatmapThread.ThreadProc);
+			processThreads.threads.Add(t3);
 
-			heatmap_renderer* tHeatThread = new heatmap_renderer(runRecord);
-			std::thread heatthread(&heatmap_renderer::ThreadEntry, tHeatThread);
-			heatthread.detach();
-			processThreads.heatmapThread = tHeatThread;
-			processThreads.threads.push_back(tHeatThread);
-
-			conditional_renderer* tCondThread = new conditional_renderer(runRecord);
-			std::this_thread::sleep_for(200ms);
-			std::thread condthread(&conditional_renderer::ThreadEntry, tCondThread);
-			condthread.detach();
-			processThreads.conditionalThread = tCondThread;
-			processThreads.threads.push_back(tCondThread);
-			*/
+			runRecord.ProcessThreads = processThreads;
 		}
 	}
 }

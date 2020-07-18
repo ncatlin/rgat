@@ -77,14 +77,14 @@ namespace rgatCore
             lock (GraphListLock)
             {
 
-                if (protoGraphs.ContainsKey(graph_plot.tid))
+                if (ProtoGraphs.ContainsKey(graph_plot.tid))
                 {
                     Console.WriteLine("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
                     return false;
                 }
 
-                protoGraphs.Add(graph_plot.tid, graph_plot.internalProtoGraph);
-                plottedGraphs.Add(graph_plot.tid, graph_plot);
+                ProtoGraphs.Add(graph_plot.tid, graph_plot.internalProtoGraph);
+                PlottedGraphs.Add(graph_plot.tid, graph_plot);
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
             Console.WriteLine("Todo implement runtimeline");
@@ -195,7 +195,8 @@ namespace rgatCore
 
             return DisassemblyData.ModuleTraceStates[localmodID] ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode;
         }
-		
+
+        private readonly object GraphListLock = new object();
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
         public Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
         public List<PlottedGraph> GetPlottedGraphsList()
@@ -281,10 +282,7 @@ namespace rgatCore
         //private bool loadTimeline(const rapidjson::Value& saveJSON);
 
 
-        private readonly object GraphListLock = new object();
 
-        Dictionary<uint, ProtoGraph> protoGraphs = new Dictionary<uint, ProtoGraph>();
-        Dictionary<uint, PlottedGraph> plottedGraphs = new Dictionary<uint, PlottedGraph>();
 
 
 

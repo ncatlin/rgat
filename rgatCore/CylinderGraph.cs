@@ -624,7 +624,7 @@ namespace rgatCore
                     {
                         if (!n.IsExternal)
                         {
-                            if (!n.ins.hasSymbol && n.label.Length == 0)
+                            if (!n.ins.hasSymbol && n.label == null)
                             {
                                 ulong nodeoffset = n.address - internalProtoGraph.moduleBase;
                                 n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";

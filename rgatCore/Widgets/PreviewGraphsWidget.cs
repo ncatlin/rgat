@@ -75,65 +75,21 @@ namespace rgatCore
 			Vector2 pos = ImGui.GetCursorScreenPos();
 			pos.X += MarginWidth;
 
-			ImGui.Text("g1 start");
-			IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_rgatState._GraphicsDevice.ResourceFactory, _rgatState.ActiveGraph._previewTexture);
-			imdp.AddImage(CPUframeBufferTextureId,
-				pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
+			var graphs = _rgatState.ActiveTrace.GetPlottedGraphsList();
+			foreach (PlottedGraph graph in graphs)
+			{
+				ImGui.Text("g1 start");
+				IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_rgatState._GraphicsDevice.ResourceFactory, _rgatState.ActiveGraph._previewTexture);
+				imdp.AddImage(CPUframeBufferTextureId,
+					pos,
+					new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
 
-			int cursorGap = (int)EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - (int)(ImGui.CalcTextSize("g3 start").Y + 4f); //ideally want to draw the text in the texture itself
+				int cursorGap = (int)EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - (int)(ImGui.CalcTextSize("g3 start").Y + 4f); //ideally want to draw the text in the texture itself
 
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-			ImGui.Text("g2 start");
+				ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
+				pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
+			}
 
-
-			pos.Y += (EachGraphHeight+ UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() +cursorGap);
-			ImGui.Text("g3 start");
-
-			pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-			ImGui.Text("g4 start");
-
-			pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-			ImGui.Text("g4 start");
-
-			pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-			ImGui.Text("g4 start");
-
-			pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-			ImGui.Text("g4 start");
-
-			pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
-			imdp.AddImage(CPUframeBufferTextureId,
-			pos,
-				new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
 			//drawHUD();
 		}
 
@@ -274,6 +230,8 @@ namespace rgatCore
 		{
 			if (ActiveGraph == null) return;
 			if (ActiveGraph._previewTexture == null) return;
+			if (ActiveGraph.previewlines.CountRenderedEdges == 0 || ActiveGraph.previewnodes.CountVerts() == 0) return;
+
 			if (!inited1)
 			{
 				ResourceFactory factory = _gd.ResourceFactory;
@@ -321,7 +279,7 @@ namespace rgatCore
 				InitLineVertexData(_gd, ActiveGraph);
 			}
 
-
+			
 			_cl.SetFramebuffer(ActiveGraph._previewFramebuffer);
 			_cl.ClearColorTarget(0, new RgbaFloat(1,0,0,0.1f));
 			//_cl.ClearDepthStencil(1f);
