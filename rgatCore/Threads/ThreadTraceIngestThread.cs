@@ -34,7 +34,7 @@ namespace rgatCore
         List<byte[]> SecondQueue = new List<byte[]>();
         List<byte[]> ReadingQueue = null;
         List<byte[]> WritingQueue = null;
-
+        public ulong QueueSize = 0;
 
 
         public ThreadTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe)
@@ -79,6 +79,8 @@ namespace rgatCore
                 nextMessage = ReadingQueue[readIndex++];
 
             }
+
+            QueueSize -= 1;
             PendingDataSize -= (ulong)nextMessage.Length;
             ProcessedDataSize += (ulong)nextMessage.Length;
             TotalProcessedData += (ulong)nextMessage.Length;
@@ -92,6 +94,7 @@ namespace rgatCore
                 if (WritingQueue.Count < GlobalConfig.TraceBufferSize)
                 {
                     WritingQueue.Add(datamsg);
+                    QueueSize += 1;
                     PendingDataSize += (ulong)datamsg.Length;
                     return;
                 }
@@ -113,7 +116,7 @@ namespace rgatCore
             lock (QueueSwitchLock)
             {
                 WritingQueue.Add(datamsg);
-
+                QueueSize += 1;
                 PendingDataSize += (ulong)datamsg.Length;
             }
             Console.WriteLine($"Now {PendingDataSize} bytes of pending data");

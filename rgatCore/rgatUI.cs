@@ -704,9 +704,9 @@ namespace rgatCore
                             List <PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList();
                             if (ImGui.BeginCombo($"Thread ({graphs.Count})", selString))
                             {
-                                foreach (PlottedGraph graph in graphs)
+                                foreach (PlottedGraph selectablegraph in graphs)
                                 {
-                                    ImGui.Selectable("TID " + graph.tid, activeTID == graph.tid);
+                                    ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid);
                                 }
                                 ImGui.EndCombo();
                             }
@@ -715,8 +715,14 @@ namespace rgatCore
                     ImGui.EndChild();
                 }
 
+                PlottedGraph graph = _rgatstate.ActiveGraph;
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-                ImGui.Text("Active Thread ID: 12345");
+                if(graph != null)
+                    ImGui.Text($"Active Thread ID: {graph.tid}");
+                else
+                    ImGui.Text($"No selected graph");
+
+
                 float metricsHeight = 80;
                 ImGui.Columns(3, "smushes");
                 ImGui.SetColumnWidth(0, 20);
@@ -729,7 +735,14 @@ namespace rgatCore
                 
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
-                    ImGui.Text("Edges: 123");ImGui.Text("Nodes: 456");ImGui.Text("Updates: 498496");ImGui.Text("Backlog: 441");
+
+                    if (graph != null)
+                    {
+                        ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
+                        ImGui.Text($"Nodes: {graph.internalProtoGraph.NodeList.Count}");
+                        ImGui.Text($"Updates: {graph.internalProtoGraph.SavedAnimationData.Count}");
+                        ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                    }
                     ImGui.EndChild();
                 }
 

@@ -88,9 +88,9 @@ namespace rgatCore
             ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
             PlottedGraph newPlottedGraph = _clientState.CreateNewPlottedGraph(newProtoGraph);
 
-            ThreadTraceIngestThread TID_reader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
+            newProtoGraph.TraceReader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
 
-            ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph, TID_reader);
+            ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph);
 
             if (!trace.InsertNewThread(newPlottedGraph))
             {

@@ -12,13 +12,11 @@ namespace rgatCore.Threads
     class ThreadTraceProcessingThread
     {
         ProtoGraph protograph;
-        ThreadTraceIngestThread ingestThread;
         Thread runningThread;
 
-        public ThreadTraceProcessingThread(ProtoGraph newProtoGraph, ThreadTraceIngestThread _ingestionthread)
+        public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
-            ingestThread = _ingestionthread;
 
             runningThread = new Thread(Processor);
             runningThread.Name = "TraceProcessor"+this.protograph.ThreadID;
@@ -115,13 +113,13 @@ namespace rgatCore.Threads
 
         void Processor()
         {
-            while (!ingestThread.StopFlag || ingestThread.HasPendingData())
+            while (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData())
             {
-                byte[] msg = ingestThread.DeQueueData();
+                byte[] msg = protograph.TraceReader.DeQueueData();
                 if (msg == null)
                 {
-                    ingestThread.RequestWakeupOnData();
-                    ingestThread.dataReadyEvent.WaitOne();
+                    protograph.TraceReader.RequestWakeupOnData();
+                    protograph.TraceReader.dataReadyEvent.WaitOne();
                     continue;
                 }
 
