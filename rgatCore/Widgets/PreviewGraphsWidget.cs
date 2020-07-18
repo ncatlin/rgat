@@ -102,12 +102,14 @@ namespace rgatCore
 		private static DeviceBuffer _WireframeIndexBuffer;
 		*/
 
-        Dictionary<uint, perPreviewData> graphicInfos = new Dictionary<uint, perPreviewData>();
+        Dictionary<uint, GraphRenderObject> graphicInfos = new Dictionary<uint, GraphRenderObject>();
 
         //TODO: move a bunch of the functionality into this class, maybe use it from maingraph widget too
-        private class perPreviewData
+        private class GraphRenderObject
         {
+            public GraphRenderObject(PlottedGraph _graph) => graph = _graph;
 
+            PlottedGraph graph;
             public  Pipeline _linesPipeline;
             public VertexPositionColor[] _LineVertices;
             public DeviceBuffer _LineVertexBuffer;
@@ -124,43 +126,89 @@ namespace rgatCore
             public DeviceBuffer _projectionBuffer;
             public DeviceBuffer _viewBuffer;
 
+            public void InitLineVertexData(GraphicsDevice _gd)
+            {
+
+                if (!(graph.previewlines.safe_get_vert_array(out _LineVertices)))
+                {
+                    Console.WriteLine("Unhandled error 1");
+                }
+
+                Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
+
+                ResourceFactory factory = _gd.ResourceFactory;
+                if (_LineIndexBuffer != null)
+                {
+                    _LineIndexBuffer.Dispose();                 
+                    _LineVertexBuffer.Dispose();
+                }
+
+                BufferDescription vbDescription = new BufferDescription(
+                    (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+                _LineVertexBuffer = factory.CreateBuffer(vbDescription);
+                _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
+
+
+                List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
+                    .Select(i => (ushort)i)
+                    .ToList();
+
+                BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+                _LineIndexBuffer = factory.CreateBuffer(ibDescription);
+                _gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
+            }
+
+            public ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
+            {
+                ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+                ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+                ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
+                ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
+                _worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+                _projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+                _viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+                _projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _projectionBuffer, _viewBuffer, _worldBuffer));
+                return projViewLayout;
+            }
+
+
+
+
+
+            public void DrawLines(CommandList _cl)
+            {
+                _cl.SetVertexBuffer(0, _LineVertexBuffer);
+                _cl.SetIndexBuffer(_LineIndexBuffer, IndexFormat.UInt16);
+                _cl.SetPipeline(_linesPipeline);
+                _cl.SetGraphicsResourceSet(0, _projViewSet);
+                _cl.DrawIndexed(
+                    indexCount: (uint)_LineVertices.Length,
+                    instanceCount: 1,
+                    indexStart: 0,
+                    vertexOffset: 0,
+                    instanceStart: 0);
+            }
+
+            public void DrawPoints(CommandList _cl)
+            {
+                _cl.SetVertexBuffer(0, _PointVertexBuffer);
+                _cl.SetIndexBuffer(_PointIndexBuffer, IndexFormat.UInt16);
+                _cl.SetPipeline(_pointsPipeline);
+                _cl.SetGraphicsResourceSet(0, _projViewSet);
+                _cl.DrawIndexed(
+                    indexCount: (uint)_PointVertices.Length,
+                    instanceCount: 1,
+                    indexStart: 0,
+                    vertexOffset: 0,
+                    instanceStart: 0);
+            }
         }
 
 
 
-        static void InitLineVertexData(GraphicsDevice _gd, PlottedGraph graph, perPreviewData renderInfo)
-        {
-
-            if (!(graph.previewlines.safe_get_vert_array(out renderInfo._LineVertices)))
-            {
-                Console.WriteLine("Unhandled error 1");
-            }
-
-            Console.WriteLine($"Initing graph with {renderInfo._LineVertices.Length} line verts");
-
-            ResourceFactory factory = _gd.ResourceFactory;
-            if (renderInfo._LineIndexBuffer != null)
-            {
-                renderInfo._LineIndexBuffer.Dispose();
-                renderInfo._LineVertexBuffer.Dispose();
-            }
-
-            BufferDescription vbDescription = new BufferDescription(
-                (uint)renderInfo._LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-            renderInfo._LineVertexBuffer = factory.CreateBuffer(vbDescription);
-            _gd.UpdateBuffer(renderInfo._LineVertexBuffer, 0, renderInfo._LineVertices);
 
 
-            List<ushort> lineIndices = Enumerable.Range(0, renderInfo._LineVertices.Length)
-                .Select(i => (ushort)i)
-                .ToList();
-
-            BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-            renderInfo._LineIndexBuffer = factory.CreateBuffer(ibDescription);
-            _gd.UpdateBuffer(renderInfo._LineIndexBuffer, 0, lineIndices.ToArray());
-        }
-
-        static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph, perPreviewData renderInfo)
+        static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph, GraphRenderObject renderInfo)
         {
 
             if (!(graph.previewnodes.safe_get_vert_array(out renderInfo._PointVertices)))
@@ -200,17 +248,25 @@ namespace rgatCore
         }
 
 
-        private static ResourceLayout SetupProjectionBuffers(ResourceFactory factory, perPreviewData renderInfo)
+
+        private void SetupView(CommandList _cl, GraphRenderObject graphRenderInfo)
         {
-            ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
-            renderInfo._worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            renderInfo._projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            renderInfo._viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            renderInfo._projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, renderInfo._projectionBuffer, renderInfo._viewBuffer, renderInfo._worldBuffer));
-            return projViewLayout;
+
+            _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
+            _cl.UpdateBuffer(graphRenderInfo._projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far));
+
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+            //_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
+            _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+
+            //if autorotation...
+            float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
+            float angle = _ticks / 10000;
+            //else
+            //angle = dbg_rot;
+
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
+            _cl.UpdateBuffer(graphRenderInfo._worldBuffer, 0, ref rotation);
         }
 
         private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
@@ -246,15 +302,15 @@ namespace rgatCore
                     graph.UpdatePreviewBuffers(_rgatState._GraphicsDevice);
                 }
 
-                perPreviewData graphRenderInfo = null;
+                GraphRenderObject graphRenderInfo = null;
                 if (!graphicInfos.TryGetValue(graph.tid, out graphRenderInfo))
                 {
-                    graphicInfos.Add(graph.tid, new perPreviewData());
+                    graphicInfos.Add(graph.tid, new GraphRenderObject(graph));
                     graphRenderInfo = graphicInfos[graph.tid];
 
                     ResourceFactory factory = _gd.ResourceFactory;
                     ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
-                    ResourceLayout projViewLayout = SetupProjectionBuffers(factory, graphRenderInfo);
+                    ResourceLayout projViewLayout = graphRenderInfo.SetupProjectionBuffers(factory);
 
 
                     // Create pipelines
@@ -292,7 +348,7 @@ namespace rgatCore
                 if (graph.previewlines.DataChanged)
                 {
                     graph.previewlines.SignalDataRead();
-                    InitLineVertexData(_gd, graph, graphRenderInfo);
+                    graphRenderInfo.InitLineVertexData(_gd);
                 }
 
 
@@ -300,31 +356,11 @@ namespace rgatCore
                 _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
                 //_cl.ClearDepthStencil(1f);
                 SetupView(_cl, graphRenderInfo);
-                DrawLines(_cl, graphRenderInfo);
-                DrawPoints(_cl, graphRenderInfo);
+                graphRenderInfo.DrawLines(_cl);
+                graphRenderInfo.DrawPoints(_cl);
             }
         }
 
-
-        private void SetupView(CommandList _cl, perPreviewData graphRenderInfo)
-        {
-
-            _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
-            _cl.UpdateBuffer(graphRenderInfo._projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far));
-
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
-            //_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
-            _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
-
-            //if autorotation...
-            float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
-            float angle = _ticks / 10000;
-            //else
-            //angle = dbg_rot;
-
-            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
-            _cl.UpdateBuffer(graphRenderInfo._worldBuffer, 0, ref rotation);
-        }
 
         /*
 		private void DrawWireframe(CommandList _cl)
@@ -344,33 +380,6 @@ namespace rgatCore
 		*/
 
 
-        private void DrawLines(CommandList _cl, perPreviewData graphicObjs)
-        {
-            _cl.SetVertexBuffer(0, graphicObjs._LineVertexBuffer);
-            _cl.SetIndexBuffer(graphicObjs._LineIndexBuffer, IndexFormat.UInt16);
-            _cl.SetPipeline(graphicObjs._linesPipeline);
-            _cl.SetGraphicsResourceSet(0, graphicObjs._projViewSet);
-            _cl.DrawIndexed(
-                indexCount: (uint)graphicObjs._LineVertices.Length,
-                instanceCount: 1,
-                indexStart: 0,
-                vertexOffset: 0,
-                instanceStart: 0);
-        }
-
-        private void DrawPoints(CommandList _cl, perPreviewData graphicObjs)
-        {
-            _cl.SetVertexBuffer(0, graphicObjs._PointVertexBuffer);
-            _cl.SetIndexBuffer(graphicObjs._PointIndexBuffer, IndexFormat.UInt16);
-            _cl.SetPipeline(graphicObjs._pointsPipeline);
-            _cl.SetGraphicsResourceSet(0, graphicObjs._projViewSet);
-            _cl.DrawIndexed(
-                indexCount: (uint)graphicObjs._PointVertices.Length,
-                instanceCount: 1,
-                indexStart: 0,
-                vertexOffset: 0,
-                instanceStart: 0);
-        }
 
 
 
