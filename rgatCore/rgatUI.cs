@@ -53,8 +53,8 @@ namespace rgatCore
 
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
-            MainGraphWidget = new GraphPlotWidget(_rgatstate);
-            PreviewGraphWidget = new PreviewGraphsWidget(_rgatstate);
+            MainGraphWidget = new GraphPlotWidget();
+            PreviewGraphWidget = new PreviewGraphsWidget();
 
         }
 
@@ -384,13 +384,12 @@ namespace rgatCore
         private void DrawVisualiserGraphs(float height)
         {
             float tracesGLFrameWidth = 300;
-
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
                 Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - tracesGLFrameWidth, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
                 {
-                    MainGraphWidget.Draw(graphSize, _ImGuiController);
+                    MainGraphWidget.Draw(graphSize, _ImGuiController, _rgatstate._GraphicsDevice);
                     ImGui.Text("GLVisMain");
                     ImGui.EndChild();
 
@@ -402,7 +401,7 @@ namespace rgatCore
                 if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
                 {
                     ImGui.Text("GLVisThreads");
-                    PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController);
+                    PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController, _rgatstate._GraphicsDevice);
 
                     ImGui.EndChild();
                 }
@@ -777,6 +776,18 @@ namespace rgatCore
 
         private void DrawVisTab()
         {
+            if (_rgatstate.ActiveGraph == null)
+            {
+                if (_rgatstate.ChooseActiveGraph())
+                { 
+                    MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
+                    PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
+                }
+                
+            }
+            
+            
+
             float controlsHeight = 230;
 
             DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);

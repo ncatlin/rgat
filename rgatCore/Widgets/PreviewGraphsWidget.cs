@@ -13,12 +13,12 @@ namespace rgatCore
     class PreviewGraphsWidget
     {
         List<PlottedGraph> DrawnGraphs = new List<PlottedGraph>();
-        static rgatState _rgatState = null;
         private bool inited1 = false;
 
         System.Timers.Timer FrameTimer;
         bool FrameTimerFired = false;
 
+        TraceRecord ActiveTrace = null;
 
         private Vector2 graphWidgetSize;
 
@@ -35,9 +35,8 @@ namespace rgatCore
         public float MarginWidth = 5f;
 
 
-        public PreviewGraphsWidget(rgatState clientState)
+        public PreviewGraphsWidget()
         {
-            _rgatState = clientState;
             FrameTimer = new System.Timers.Timer(600);
             FrameTimer.Elapsed += FireFrameTimer;
             FrameTimer.AutoReset = true;
@@ -61,23 +60,24 @@ namespace rgatCore
         private bool scheduledGraphResize = true;
         private Vector2 lastResizeSize = new Vector2(0, 0);
 
+        public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
 
-        public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController)
+        public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
             //if (FrameTimerFired) Update();
 
-            if (_rgatState.ActiveTrace == null)
+            if (ActiveTrace == null)
                 return;
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             Vector2 pos = ImGui.GetCursorScreenPos();
             pos.X += MarginWidth;
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
-            DrawnGraphs = _rgatState.ActiveTrace.GetPlottedGraphsList();
+            DrawnGraphs = ActiveTrace.GetPlottedGraphsList();
             foreach (PlottedGraph graph in DrawnGraphs)
             {
                 if (graph.previewnodes.CountVerts() == 0 || graph._previewTexture == null) continue;
                 ImGui.Text($"TID:{graph.tid} {graph.previewnodes.CountVerts()}vts");
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_rgatState._GraphicsDevice.ResourceFactory, graph._previewTexture);
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     pos,
                     new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
@@ -102,154 +102,17 @@ namespace rgatCore
 		private static DeviceBuffer _WireframeIndexBuffer;
 		*/
 
-        Dictionary<uint, GraphRenderObject> graphicInfos = new Dictionary<uint, GraphRenderObject>();
+        Dictionary<uint, VeldridGraphBuffers> graphicInfos = new Dictionary<uint, VeldridGraphBuffers>();
 
-        //TODO: move a bunch of the functionality into this class, maybe use it from maingraph widget too
-        private class GraphRenderObject
-        {
-            public GraphRenderObject(PlottedGraph _graph) => graph = _graph;
-
-            PlottedGraph graph;
-            public  Pipeline _linesPipeline;
-            public VertexPositionColor[] _LineVertices;
-            public DeviceBuffer _LineVertexBuffer;
-            public DeviceBuffer _LineIndexBuffer;
-
-            public Pipeline _pointsPipeline;
-            public VertexPositionColor[] _PointVertices;
-            public DeviceBuffer _PointVertexBuffer;
-            public DeviceBuffer _PointIndexBuffer;
-
-            public ResourceSet _projViewSet;
-
-            public DeviceBuffer _worldBuffer;
-            public DeviceBuffer _projectionBuffer;
-            public DeviceBuffer _viewBuffer;
-
-            public void InitLineVertexData(GraphicsDevice _gd)
-            {
-
-                if (!(graph.previewlines.safe_get_vert_array(out _LineVertices)))
-                {
-                    Console.WriteLine("Unhandled error 1");
-                }
-
-                Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
-
-                ResourceFactory factory = _gd.ResourceFactory;
-                if (_LineIndexBuffer != null)
-                {
-                    _LineIndexBuffer.Dispose();                 
-                    _LineVertexBuffer.Dispose();
-                }
-
-                BufferDescription vbDescription = new BufferDescription(
-                    (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-                _LineVertexBuffer = factory.CreateBuffer(vbDescription);
-                _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
-
-
-                List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
-                    .Select(i => (ushort)i)
-                    .ToList();
-
-                BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-                _LineIndexBuffer = factory.CreateBuffer(ibDescription);
-                _gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
-            }
-
-            public ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
-            {
-                ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-                ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-                ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-                ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
-                _worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-                _projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-                _viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-                _projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _projectionBuffer, _viewBuffer, _worldBuffer));
-                return projViewLayout;
-            }
+     
 
 
 
 
 
-            public void DrawLines(CommandList _cl)
-            {
-                _cl.SetVertexBuffer(0, _LineVertexBuffer);
-                _cl.SetIndexBuffer(_LineIndexBuffer, IndexFormat.UInt16);
-                _cl.SetPipeline(_linesPipeline);
-                _cl.SetGraphicsResourceSet(0, _projViewSet);
-                _cl.DrawIndexed(
-                    indexCount: (uint)_LineVertices.Length,
-                    instanceCount: 1,
-                    indexStart: 0,
-                    vertexOffset: 0,
-                    instanceStart: 0);
-            }
-
-            public void DrawPoints(CommandList _cl)
-            {
-                _cl.SetVertexBuffer(0, _PointVertexBuffer);
-                _cl.SetIndexBuffer(_PointIndexBuffer, IndexFormat.UInt16);
-                _cl.SetPipeline(_pointsPipeline);
-                _cl.SetGraphicsResourceSet(0, _projViewSet);
-                _cl.DrawIndexed(
-                    indexCount: (uint)_PointVertices.Length,
-                    instanceCount: 1,
-                    indexStart: 0,
-                    vertexOffset: 0,
-                    instanceStart: 0);
-            }
-        }
 
 
-
-
-
-        static void InitNodeVertexData(GraphicsDevice _gd, PlottedGraph graph, GraphRenderObject renderInfo)
-        {
-
-            if (!(graph.previewnodes.safe_get_vert_array(out renderInfo._PointVertices)))
-            {
-                Console.WriteLine("Unhandled error 1");
-            }
-            Console.WriteLine($"Initing graph with {renderInfo._PointVertices.Length} node verts");
-
-
-            ResourceFactory factory = _gd.ResourceFactory;
-            uint bufferSize = (uint)renderInfo._PointVertices.Length * VertexPositionColor.SizeInBytes;
-            /*
-			 * 
-			 * 
-			TODO: can be much much more efficient here with option to just update new stuff
-			*
-			*
-			*/
-
-            if (renderInfo._PointIndexBuffer != null)
-            {
-                renderInfo._PointIndexBuffer.Dispose();
-                renderInfo._PointVertexBuffer.Dispose();
-            }
-            BufferDescription vbDescription = new BufferDescription(bufferSize, BufferUsage.VertexBuffer);
-            renderInfo._PointVertexBuffer = factory.CreateBuffer(vbDescription);
-
-            _gd.UpdateBuffer(renderInfo._PointVertexBuffer, 0, renderInfo._PointVertices);
-
-            List<ushort> pointIndices = Enumerable.Range(0, renderInfo._PointVertices.Length)
-                .Select(i => (ushort)i)
-                .ToList();
-
-            BufferDescription ibDescription = new BufferDescription((uint)pointIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-            renderInfo._PointIndexBuffer = factory.CreateBuffer(ibDescription);
-            _gd.UpdateBuffer(renderInfo._PointIndexBuffer, 0, pointIndices.ToArray());
-        }
-
-
-
-        private void SetupView(CommandList _cl, GraphRenderObject graphRenderInfo)
+        private void SetupView(CommandList _cl, VeldridGraphBuffers graphRenderInfo)
         {
 
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
@@ -299,51 +162,23 @@ namespace rgatCore
                 if (graph._previewTexture == null)
                 {
 
-                    graph.UpdatePreviewBuffers(_rgatState._GraphicsDevice);
+                    graph.UpdatePreviewBuffers(_gd);
                 }
 
-                GraphRenderObject graphRenderInfo = null;
+                VeldridGraphBuffers graphRenderInfo = null;
                 if (!graphicInfos.TryGetValue(graph.tid, out graphRenderInfo))
                 {
-                    graphicInfos.Add(graph.tid, new GraphRenderObject(graph));
+                    graphicInfos.Add(graph.tid, new VeldridGraphBuffers(graph));
                     graphRenderInfo = graphicInfos[graph.tid];
 
-                    ResourceFactory factory = _gd.ResourceFactory;
-                    ShaderSetDescription shaderSetDesc = CreateGraphShaders(factory);
-                    ResourceLayout projViewLayout = graphRenderInfo.SetupProjectionBuffers(factory);
-
-
-                    // Create pipelines
-                    GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-                    pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-                    pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
-                        depthTestEnabled: true,
-                        depthWriteEnabled: true,
-                        comparisonKind: ComparisonKind.LessEqual);
-
-                    pipelineDescription.RasterizerState = new RasterizerStateDescription(
-                        cullMode: FaceCullMode.Back,
-                        fillMode: PolygonFillMode.Solid,
-                        frontFace: FrontFace.Clockwise,
-                        depthClipEnabled: true,
-                        scissorTestEnabled: false);
-                    pipelineDescription.ResourceLayouts = new[] { projViewLayout };
-                    pipelineDescription.ShaderSet = shaderSetDesc;
-
-                    pipelineDescription.Outputs = graph._previewFramebuffer.OutputDescription;
-
-                    pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
-                    graphRenderInfo._linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-                    pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-                    graphRenderInfo._pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+                    graphRenderInfo.InitPipelines(_gd, CreateGraphShaders(_gd.ResourceFactory), graph._previewFramebuffer);
                 }
 
 
                 if (graph.previewnodes.DataChanged)
                 {
                     graph.previewnodes.SignalDataRead();
-                    InitNodeVertexData(_gd, graph, graphRenderInfo);
+                    graphRenderInfo.InitNodeVertexData(_gd);
                 }
                 if (graph.previewlines.DataChanged)
                 {

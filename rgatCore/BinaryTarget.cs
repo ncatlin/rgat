@@ -73,15 +73,19 @@ namespace rgatCore
         public string ASCIIPreview { get; private set; } = "";
         public string FormatNotes { get; private set; } = "Not Analysed";
 
+        private readonly Object tracesLock = new Object();
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
         public List<Tuple<DateTime, uint>> GetTracesUIList()
         {
             List<Tuple<DateTime, uint>> uilist = new List<Tuple<DateTime, uint>>();
-            foreach (var rec in RecordedTraces)
+            lock (tracesLock)
             {
-                uilist.Add(new Tuple<DateTime, uint>(rec.Key, rec.Value.PID));
+                foreach (var rec in RecordedTraces)
+                {
+                    uilist.Add(new Tuple<DateTime, uint>(rec.Key, rec.Value.PID));
+                }
             }
             return uilist;
         }
@@ -162,20 +166,27 @@ namespace rgatCore
 
         public bool CreateNewTrace(DateTime timeStarted, uint PID, uint ID, out TraceRecord newRecord)
         {
-            if (RecordedTraces.TryGetValue(timeStarted, out newRecord))
+            lock (tracesLock)
             {
-                return false;
+
+                if (RecordedTraces.TryGetValue(timeStarted, out newRecord))
+                {
+                    return false;
+                }
+                newRecord = new TraceRecord(PID, ID, this, timeStarted);
+                RecordedTraces.Add(timeStarted, newRecord);
+                TraceRecordsList.Add(newRecord);
+                return true;
             }
-            newRecord = new TraceRecord(PID, ID, this, timeStarted);
-            RecordedTraces.Add(timeStarted, newRecord);
-            TraceRecordsList.Add(newRecord);
-            return true;
         }
 
         public TraceRecord GetFirstTrace()
         {
-            if (TraceRecordsList.Count == 0) return null;
-            return TraceRecordsList[0];
+            lock (tracesLock)
+            {
+                if (TraceRecordsList.Count == 0) return null;
+                return TraceRecordsList[0];
+            }
         }
 
     }

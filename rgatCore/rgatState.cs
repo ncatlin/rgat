@@ -36,6 +36,10 @@ namespace rgatCore
 		public bool showNodes = true;
 		public bool showEdges = true;
 
+
+		Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
+		Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+
 		public void ShutdownRGAT()
         {
 			rgatIsExiting = true;
@@ -112,6 +116,108 @@ namespace rgatCore
 			return true;
 
 		}
+
+		void SwitchToGraph(PlottedGraph graph)
+		{
+			//valid target or not, we assume current graph is no longer fashionable
+			ClearActiveGraph();
+
+			if (graph == null || graph.NeedReplotting || graph.beingDeleted) return;
+
+			TraceRecord trace = ActiveTrace;
+			if (trace == null) return;
+
+			if (SetActiveGraph(graph))
+			{
+				LastGraphs[trace] = graph;
+				LastSelectedTheads[trace] = graph.tid;
+			}
+			//setGraphUIControls(graph);
+		}
+			
+		public bool ChooseActiveGraph()
+		{
+			if (SwitchTrace != null)
+			{
+				SelectActiveTrace(SwitchTrace);
+				SwitchTrace = null;
+				//ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
+			}
+
+			PlottedGraph switchGraph = SwitchGraph;
+			if (SwitchGraph != null && switchGraph.beingDeleted && !switchGraph.NeedReplotting)
+			{
+				SwitchToGraph(switchGraph);
+				SwitchGraph = null;
+			}
+
+			if (ActiveGraph != null)
+			{
+				if (ActiveGraph.beingDeleted)
+				{
+					//ActiveGraph.decrease_thread_references(141);
+					ActiveGraph = null;
+					return false;
+				}
+
+				return true;
+			}
+
+			if (ActiveGraph == null && !WaitingForNewTrace)
+			{
+				if (ActiveTrace != null)
+					SelectActiveTrace();
+
+
+				selectGraphInActiveTrace();
+			}
+
+
+			return (ActiveGraph != null);
+
+		}
+	
+		//activate a graph in the active trace
+		//selects the last one that was active in this trace, or the first seen
+		void selectGraphInActiveTrace()
+		{
+			TraceRecord selectedTrace = ActiveTrace;
+			if (selectedTrace == null) return;
+
+			if(LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
+			{
+				bool found = false;
+				List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphsList();
+				if (traceGraphs.Contains(foundGraph))
+                {
+					SwitchToGraph(foundGraph);
+					found = true;
+				}
+				else
+				{
+					uint lastTID = LastSelectedTheads[selectedTrace];
+					PlottedGraph lastgraph = traceGraphs.Find(pg => pg.tid == lastTID);
+					if (lastgraph != null)
+                    {
+						SwitchToGraph(lastgraph);
+						found = true;
+					}
+				}
+
+				//foreach (graph, traceGraphs){ graph->decrease_thread_references(144); }
+				if (found) return;
+			}
+
+			PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
+			if (firstgraph != null)
+			{
+				Console.WriteLine("Got first graph "+firstgraph.tid);
+				SwitchToGraph(firstgraph);
+				//firstgraph->decrease_thread_references(33);
+			}
+		}
+		
+		
 
 		public bool SetActiveGraph(PlottedGraph graph)
 		{
