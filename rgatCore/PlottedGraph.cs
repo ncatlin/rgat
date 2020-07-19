@@ -16,9 +16,11 @@ namespace rgatCore
         public float plotSize = 1000;
         public float basePlotSize = 1000;
         public float userSizeModifier = 1;
+        /*
         public int maxA = 360;
         public int maxB = 180;
         public int maxC = 1;
+        */
         public float pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B; //todo rename sep
         public float stretchA = 1, stretchB = 1;
     };
@@ -53,8 +55,6 @@ namespace rgatCore
             mainnodesdata = new GraphDisplayData();
             mainlinedata = new GraphDisplayData();
 
-            animlinedata = new GraphDisplayData();
-            animnodesdata = new GraphDisplayData();
 
             previewlines = new GraphDisplayData(true);
             previewnodes = new GraphDisplayData(true);
@@ -63,7 +63,9 @@ namespace rgatCore
             conditionalnodes = new GraphDisplayData();
             heatmaplines = new GraphDisplayData();
 
-            blocklines = new GraphDisplayData();
+            animlinedata = new GraphDisplayData();
+            animnodesdata = new GraphDisplayData();
+            //blocklines = new GraphDisplayData();
 
             needVBOReload_conditional = true;
             needVBOReload_heatmap = true;
@@ -167,6 +169,26 @@ namespace rgatCore
 
 
         //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
+
+        public void ReRender(bool alsoPreview = false)
+        {
+            mainlinedata = new GraphDisplayData();
+            mainnodesdata = new GraphDisplayData();
+            wireframelines = new GraphDisplayData();
+            animnodesdata = new GraphDisplayData();
+            animlinedata = new GraphDisplayData();
+            conditionallines = new GraphDisplayData();
+            conditionalnodes = new GraphDisplayData();
+
+            if (alsoPreview)
+            {
+                previewlines = new GraphDisplayData();
+                previewnodes = new GraphDisplayData();
+            }
+            NeedReplotting = false;
+        }
+
+
 
         public void UpdateMainRender()
         {
@@ -401,7 +423,7 @@ namespace rgatCore
         public GraphDisplayData conditionalnodes = null;
         public GraphDisplayData previewnodes = null;
         public GraphDisplayData previewlines = null;
-        public GraphDisplayData blocklines = null;
+        //public GraphDisplayData blocklines = null;
         public GraphDisplayData wireframelines = null;
 
         protected bool needVBOReload_main = true;

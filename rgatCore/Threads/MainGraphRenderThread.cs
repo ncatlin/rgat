@@ -95,6 +95,8 @@ namespace rgatCore.Threads
 
 			//now everything has finished with the old rendering, do the actual deletion
 			//delete activeGraph;
+
+
 			Console.WriteLine("Deleted graph " + renderGraph);
 
 			//create a new rendering
@@ -118,11 +120,6 @@ namespace rgatCore.Threads
 			//activeTrace.graphListLock.unlock();
 			//if they dont exist, create threads to rebuild alternate renderings
 			/*
-			if (!activeTrace.ProcessThreads.previewThread.is_alive())
-			{
-				std::thread prevthread(&preview_renderer::ThreadEntry, activeTrace.ProcessThreads.previewThread);
-				prevthread.detach();
-			}
 
 			if (!activeTrace.ProcessThreads.conditionalThread.is_alive())
 			{
@@ -160,10 +157,11 @@ namespace rgatCore.Threads
 				if (true)
 				{
 					bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
-					if (layoutChanged || activeGraph.replotScheduled)
+					if (layoutChanged || activeGraph.NeedReplotting)
 					{
 						//graph gets destroyed, this resets references, don't need to decrease
-						perform_full_render(activeGraph, activeGraph.replotScheduled);
+						activeGraph.ReRender();
+						//perform_full_render(activeGraph, activeGraph.replotScheduled);
 						continue;
 					}
 

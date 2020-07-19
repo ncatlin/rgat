@@ -28,7 +28,7 @@ namespace rgatCore
         const float PREVIEW_B_SEP = 1.2f;
         const float B_PX_OFFSET_FROM_TOP = 0.01f;
 
-        const float CYLINDER_SEP_PER_ROW = 8;
+        const float CYLINDER_SEP_PER_ROW = 15;
         const float JUMPA = -3;
         const float JUMPB = 3;
         const float JUMPA_CLASH = 1.5f;
@@ -65,7 +65,7 @@ namespace rgatCore
             wireframelines = new GraphDisplayData();
         }
 
-
+        
 
 
         //void maintain_draw_wireframe(graphGLWidget &gltarget);
@@ -275,14 +275,14 @@ namespace rgatCore
 
         int needed_wireframe_loops()
         {
-            return (int)Math.Ceiling((maxB * main_scalefactors.pix_per_B) / CYLINDER_SEP_PER_ROW) + 2;
+            return (int)Math.Ceiling((maxB * main_scalefactors.pix_per_B) / (CYLINDER_SEP_PER_ROW * main_scalefactors.pix_per_B)) + 2;
         }
 
 
         void regenerate_wireframe_if_needed()
         {
             int requiredLoops = needed_wireframe_loops();
-            if (requiredLoops > wireframe_loop_count)
+            if (requiredLoops > wireframe_loop_count || wireframelines.CountVerts() == 0)
             {
                 wireframe_loop_count = requiredLoops;
                 wireframelines.VertList.Clear();
@@ -305,11 +305,14 @@ namespace rgatCore
                 pointPositions.Add(vertPosition);
             }
 
+            float Loop_vert_sep = (maxB * main_scalefactors.pix_per_B) / (wireframe_loop_count - 2);
+
+
             VertexPositionColor wfVert = new VertexPositionColor();
             wfVert.Color = new WritableRgbaFloat(Color.FromArgb(180,255,255,255));
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
-                float rowYcoord = -rowY * CYLINDER_SEP_PER_ROW;
+                float rowYcoord = -rowY * Loop_vert_sep;// (CYLINDER_SEP_PER_ROW + Math.Max(0, main_scalefactors.pix_per_B));
                 for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE+1; ++circlePoint)
                 {
                     wfVert.Position = pointPositions[circlePoint];

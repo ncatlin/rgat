@@ -451,20 +451,27 @@ namespace rgatCore
                 new Vector2(3, 7), progressBarSize.Y, 240f);
 
         }
+
+
+        private void InitGraphReplot()
+        {
+            _rgatstate.ActiveGraph.NeedReplotting = true;
+        }
+
         private void DrawScalePopup() 
         {
             if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
             {
 
                 if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.005f, 0.05f, 4f, "%f%%")){
-                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                    InitGraphReplot();
                     Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.main_scalefactors.pix_per_A}");
                 };
-                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 1.0f, 0.1f, 200f, "%f%%")){
-                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.02f, 0.1f, 200f, "%f%%")){
+                    InitGraphReplot();
                 };
-                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 500f, "%f%%")){
-                    _rgatstate.ActiveGraph.NeedReplotting = true;
+                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 1000f, "%f%%")){
+                    InitGraphReplot();
                 };
 
                 ImGui.EndChild();
@@ -483,9 +490,6 @@ namespace rgatCore
                 ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 20000, "%f%%");
                 ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%");
                 ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.05f, -5, 5, "%f%%");
-                
-
-
                 ImGui.EndChild();
             }
         }
@@ -574,7 +578,10 @@ namespace rgatCore
                 }
 
                 ImGui.SameLine();
-                ImGui.Button("Rerender");
+                if (ImGui.Button("Rerender"))
+                {
+                    _rgatstate.ActiveGraph?.ReRender();
+                }
 
                 ImGui.EndChild();
             }
