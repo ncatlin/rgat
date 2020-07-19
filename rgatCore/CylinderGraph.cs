@@ -631,9 +631,10 @@ namespace rgatCore
                                 n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
                                 n.placeholder = true;
 
-                                //callStackLock.lock () ;
-                                internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
-                                //callStackLock.unlock();
+                                lock (CallStackLock) //?
+                                {
+                                    internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
+                                }
                             }
                         }
 
@@ -666,35 +667,36 @@ namespace rgatCore
 
                         List<Tuple<ulong, uint>> callStack = mainnodesdata.IsPreview ? PreviewCallStack : MainCallStack;
 
-                        //callStackLock.lock () ;
-
-                        var found = callStack.Where(item => item.Item1 == n.address);
-                        result = found.Any() ? (long)found.First<Tuple<ulong, uint>>().Item2 : (long)-1;
-
-                        //testing
-                        //result = -1;
-
-                        //if so, position next node near caller
-                        if (result != -1)
+                        lock (CallStackLock)
                         {
-                            if (!get_node_coord((int)result, out CYLINDERCOORD caller))
+
+                            var found = callStack.Where(item => item.Item1 == n.address);
+                            result = found.Any() ? (long)found.First<Tuple<ulong, uint>>().Item2 : (long)-1;
+
+                            //testing
+                            //result = -1;
+
+                            //if so, position next node near caller
+                            if (result != -1)
                             {
-                                Debug.Assert(false);
-                            }
-                            a = caller.a + RETURNA_OFFSET;
-                            b = caller.b + RETURNB_OFFSET;
+                                if (!get_node_coord((int)result, out CYLINDERCOORD caller))
+                                {
+                                    Debug.Assert(false);
+                                }
+                                a = caller.a + RETURNA_OFFSET;
+                                b = caller.b + RETURNB_OFFSET;
 
-                            //may not have returned to the last item in the callstack
-                            //delete everything inbetween
-                            Console.WriteLine("Todo, resize callstack down");
-                            //callStack.resize(stackIt - callStack.begin());
+                                //may not have returned to the last item in the callstack
+                                //delete everything inbetween
+                                Console.WriteLine("Todo, resize callstack down");
+                                //callStack.resize(stackIt - callStack.begin());
+                            }
+                            else
+                            {
+                                a += RETURNA_OFFSET;
+                                b += RETURNB_OFFSET;
+                            }
                         }
-                        else
-                        {
-                            a += RETURNA_OFFSET;
-                            b += RETURNB_OFFSET;
-                        }
-                        //callStackLock.unlock();
 
                         while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
@@ -770,12 +772,13 @@ namespace rgatCore
 
         void Add_to_callstack(bool isPreview, ulong address, uint idx)
         {
-            //callStackLock.lock ();
-            if (isPreview)
-                PreviewCallStack.Add(new Tuple<ulong, uint>(address, idx));
-            else
-                MainCallStack.Add(new Tuple<ulong, uint>(address, idx));
-            //callStackLock.unlock();
+            lock (CallStackLock)
+            {
+                if (isPreview)
+                    PreviewCallStack.Add(new Tuple<ulong, uint>(address, idx));
+                else
+                    MainCallStack.Add(new Tuple<ulong, uint>(address, idx));
+            }
         }
 
         int wireframe_loop_count = 0;
@@ -783,6 +786,8 @@ namespace rgatCore
         bool staleWireframe = false;
         bool wireframeBuffersCreated = false;
         List<int> wireframeStarts, wireframeSizes;
+
+        private readonly Object CallStackLock = new Object();
 
         //List<CYLINDERCOORD> node_coords_storage;
         List<CYLINDERCOORD> node_coords = new List<CYLINDERCOORD>();

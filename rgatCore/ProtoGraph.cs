@@ -432,23 +432,23 @@ namespace rgatCore
                 return false;
             }
 
-            //private void build_functioncall_from_args();
 
 
             //         function 	      caller		       argidx  arg
             Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>> pendingcallargs = new Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>>();
 
            
-        /*
+        
             private ulong pendingCalledFunc = 0;
+
             private ulong pendingFuncCaller = 0;
 
-            private List<Tuple<int,string>> pendingArgs;
+            private List<Tuple<int,string>> pendingArgs = new List<Tuple<int, string>>();
 
 
 
-            public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
-            */
+            //public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
+            
         void InsertNode(uint targVertID, NodeData node)
         {
             if (NodeList.Count > 0)
@@ -517,9 +517,47 @@ namespace rgatCore
             }
 
         }
+        
+        //builds a new list of arguments from arguments provided by seperate Arg trace tags
+        private void build_functioncall_from_args()
+        {
+            //func been called in thread already? if not, have to place args in holding buffer
+            Dictionary<ulong, List<List<Tuple<int, string>>>> argmap = null;
+            if (!pendingcallargs.TryGetValue(pendingCalledFunc, out argmap))
+            {
+                argmap = new Dictionary<ulong, List<List<Tuple<int, string>>>>();
+                pendingcallargs.Add(pendingCalledFunc, argmap);
+            }
 
+            List<List<Tuple<int, string>>> pendCaller = null;
+            if (!argmap.TryGetValue(pendingFuncCaller, out pendCaller))
+            {
+                pendCaller = new List<List<Tuple<int, string>>>();
+                argmap.Add(pendingFuncCaller, pendCaller);
+            }
 
-        //public void add_pending_arguments(int argpos, string contents, bool callDone);
+            List<Tuple<int, string>> newArgList = new List<Tuple<int, string>>();
+            foreach (Tuple<int,string> idx_arg in pendingArgs)
+            {
+                newArgList.Add(idx_arg);
+            }
+
+            pendCaller.Add(newArgList);
+
+            pendingArgs.Clear();
+            pendingCalledFunc = 0;
+            pendingFuncCaller = 0;
+
+            ProcessNewArgs();
+        }
+
+        public void add_pending_arguments(int argpos, string contents, bool callDone)
+        {
+            pendingArgs.Add(new Tuple<int, string>(argpos, contents));
+
+            if (callDone)
+                build_functioncall_from_args();
+        }
 
         //public void handle_exception_tag(TAG &thistag);
         
@@ -555,8 +593,14 @@ namespace rgatCore
 
         }
 
-        //public bool notify_pending_func(ulong funcpc, ulong returnpc);
-        //public bool hasPendingCalledFunc() { return pendingCalledFunc != null; }
+        public bool notify_pending_func(ulong funcpc, ulong returnpc)
+        {
+            pendingCalledFunc = funcpc;
+            return ProcessData.instruction_before(returnpc, out pendingFuncCaller);
+        }
+
+
+        public bool hasPendingCalledFunc() { return pendingCalledFunc != 0; }
 
         private readonly object edgeLock = new object();
         //node id pairs to edge data
@@ -686,7 +730,7 @@ namespace rgatCore
                 BlockList.Add(newblock);
             }
 
-            Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
+            //Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
         public void addBlockNodesToGraph(TAG tag, ulong repeats)
@@ -996,8 +1040,8 @@ namespace rgatCore
         uint finalNodeID = 0;
 
         //important state variables!
-        uint lastVertID = 0; //the vert that led to new instruction
-        uint targVertID = 0; //new vert we are creating
+        public uint lastVertID = 0; //the vert that led to new instruction
+        public uint targVertID = 0; //new vert we are creating
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
         ulong loopIterations = 0;

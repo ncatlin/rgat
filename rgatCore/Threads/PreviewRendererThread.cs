@@ -37,7 +37,7 @@ namespace rgatCore.Threads
 					if ((graph.previewnodes.CountVerts() < protoGraph.get_num_nodes()) ||
 						(graph.previewlines.CountRenderedEdges < protoGraph.get_num_edges()))
 					{
-						Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
+						//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 						moreRenderingNeeded = true;
 						graph.render_preview_graph();
 					}

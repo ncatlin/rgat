@@ -22,7 +22,26 @@ namespace rgatCore
         }
 
         
-		//public bool get_sym(uint modNum, ulong mem_addr, string &sym);
+		public bool get_sym(int globalmodNum, ulong mem_addr, out string sym)
+        {
+            bool found;
+            lock (InstructionsLock)
+            {
+                if (modsymsPlain[globalmodNum][mem_addr].Length == 0)
+                {
+                    sym = "";
+                    found = false;
+                }
+                else
+                {
+                    sym = modsymsPlain[globalmodNum][mem_addr];
+                    found = true;
+                }
+            }
+            return found;
+        }
+
+
 		//public bool get_modpath(uint modNum, boost::filesystem::path* path);
 		//bool get_modbase(uint modNum, ulong &moduleBase);
         
@@ -97,12 +116,7 @@ namespace rgatCore
 
         }
 
-        //is there a better way of doing this?
-        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID)
-        {
-            ROUTINE_STRUCT? stub = null;
-            return getDisassemblyBlock(blockaddr, blockID, ref stub);
-        }
+
 
         //returns address once it does
         public ulong EnsureBlockExistsGetAddress(uint blockID)
@@ -129,6 +143,12 @@ namespace rgatCore
             }
         }
 
+        //is there a better way of doing this?
+        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID)
+        {
+            ROUTINE_STRUCT? stub = null;
+            return getDisassemblyBlock(blockaddr, blockID, ref stub);
+        }
         public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID, ref ROUTINE_STRUCT? externBlock)
         {
             int iterations = 0;
@@ -146,7 +166,7 @@ namespace rgatCore
                 if (blockID < blockList.Count)
                 {
                     var result = blockList[(int)blockID];
-                    Debug.Assert(result.Item1 == blockaddr);
+                    Debug.Assert((blockaddr == 0) || result.Item1 == blockaddr);
                     externBlock = null;
                     return result.Item2;
                 }
@@ -276,9 +296,49 @@ namespace rgatCore
 
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
-        /* 
-            public ulong instruction_before(ulong addr);
+        
+            public bool instruction_before(ulong addr, out ulong result)
+        {
+            const int LARGEST_X86_INSTRUCTION = 15;
+{
+                //first lookup in cache
+                if (previousInstructionsCache.TryGetValue(addr, out result))
+                {
+                    return true;
+                }
 
+                if (disassembly.Count == 0) return false;
+
+                //x86 has variable length instructions so we have to 
+                //search backwards, byte by byte
+                lock (InstructionsLock)
+                {
+                    ulong testaddr = 0, addrMinus;
+                    for (addrMinus = 1; addrMinus < (LARGEST_X86_INSTRUCTION + 1); addrMinus++)
+                    {
+                        testaddr = addr - addrMinus;
+                        if (disassembly.ContainsKey(testaddr))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (addrMinus > LARGEST_X86_INSTRUCTION)
+                    {
+                        //cerr << "[rgat]Error: Unable to find instruction before 0x" << hex << addr << endl;
+                        return false;
+                    }
+
+                    previousInstructionsCache.Add(addr, testaddr);
+                    result = testaddr;
+                    return true;
+                }
+
+            }
+        }
+
+
+        /*
             public Tuple<ulong, BLOCK_DESCRIPTOR*> blockDetails(BLOCK_IDENTIFIER blockid);
             public ulong numBlocksSeen() { return blockList.size(); }
             //must already have disassembly write lock
@@ -293,7 +353,7 @@ namespace rgatCore
         public Dictionary<ulong, List<InstructionData>> disassembly = new Dictionary<ulong, List<InstructionData>>();
 
         //useful for mapping return addresses to callers without a locking search
-        public Dictionary<ulong, ulong> previousInstructionsCache;
+        public Dictionary<ulong, ulong> previousInstructionsCache = new Dictionary<ulong, ulong>();
 
         //list of basic blocks - guarded by instructionslock
         //              address

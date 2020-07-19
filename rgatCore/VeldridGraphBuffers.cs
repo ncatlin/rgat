@@ -125,7 +125,7 @@ namespace rgatCore
             {
                 Console.WriteLine("Unhandled error 1");
             }
-            Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
+            //Console.WriteLine($"Initing graph with {_PointVertices.Length} node verts");
 
 
             ResourceFactory factory = _gd.ResourceFactory;
@@ -165,7 +165,7 @@ namespace rgatCore
                 Console.WriteLine("Unhandled error 1");
             }
 
-            Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
+            //Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
             ResourceFactory factory = _gd.ResourceFactory;
             if (_LineIndexBuffer != null)
