@@ -14,6 +14,18 @@ namespace rgatCore.Threads
         ProtoGraph protograph;
         Thread runningThread;
 
+        struct BLOCKREPEAT
+        {
+            //public ulong blockaddr;
+            public uint blockID;
+            //public uint insCount;
+            public List<uint> targBlocks;
+            public ulong totalExecs;
+            //public List<InstructionData> blockInslist;
+        };
+
+        List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
+
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
@@ -282,6 +294,44 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
         }
 
+
+
+        void AddExecCountUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 4);
+
+
+            BLOCKREPEAT newRepeat;
+            newRepeat.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            newRepeat.totalExecs = ulong.Parse(entries[2], NumberStyles.HexNumber);
+            newRepeat.targBlocks = new List<uint>();
+
+            string[] rptblocks = entries[3].Split(',');
+            
+            foreach (string bid_s in rptblocks)
+            {
+                uint targblockID = uint.Parse(bid_s, NumberStyles.HexNumber);
+                newRepeat.targBlocks.Add(targblockID);
+            }
+
+            //newRepeat.blockInslist = null;
+            //newRepeat.insCount = 0;
+            //newRepeat.blockaddr = 0;
+            blockRepeatQueue.Add(newRepeat);
+
+            ANIMATIONENTRY animUpdate;
+            animUpdate.entryType = eTraceUpdateType.eAnimUnchainedResults;
+            animUpdate.blockAddr = 0;
+            animUpdate.blockID = newRepeat.blockID;
+            animUpdate.count = newRepeat.totalExecs;
+            animUpdate.callCount = 0;
+            animUpdate.targetAddr = 0;
+            animUpdate.targetID = 0;
+            protograph.PushAnimUpdate(animUpdate);
+        }
+
+
         void Processor()
         {
             while (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData())
@@ -313,8 +363,7 @@ namespace rgatCore.Threads
                         AddUnchainedUpdate(msg);
                         break;
                     case (byte)'B':
-                        todoprint = true;
-                        Console.WriteLine("Handle EXECUTECOUNT_MARKER");
+                        AddExecCountUpdate(msg);
                         break;
                     case (byte)'s':
                         todoprint = true;
