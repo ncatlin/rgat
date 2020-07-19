@@ -26,6 +26,16 @@ namespace rgatCore.Threads
 
         List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
 
+        struct NEW_EDGE_BLOCKDATA
+        {
+            public ulong sourceAddr;
+            public uint sourceID;
+            public ulong targAddr;
+            public uint targID;
+        };
+
+        List<NEW_EDGE_BLOCKDATA> PendingEdges = new List<NEW_EDGE_BLOCKDATA>();
+
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
@@ -331,6 +341,19 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
         }
 
+        void AddSatisfyUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 5);
+            NEW_EDGE_BLOCKDATA edgeNotification;
+            edgeNotification.sourceAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
+            edgeNotification.sourceID = uint.Parse(entries[2], NumberStyles.HexNumber);
+            edgeNotification.targAddr = ulong.Parse(entries[3], NumberStyles.HexNumber);
+            edgeNotification.targID = uint.Parse(entries[4], NumberStyles.HexNumber);
+
+            PendingEdges.Add(edgeNotification);
+        }
+
 
         void Processor()
         {
@@ -366,8 +389,7 @@ namespace rgatCore.Threads
                         AddExecCountUpdate(msg);
                         break;
                     case (byte)'s':
-                        todoprint = true;
-                        Console.WriteLine("Handle SATISFY_MARKER");
+                        AddSatisfyUpdate(msg);
                         break;
                     case (byte)'X':
                         todoprint = true;
