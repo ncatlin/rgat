@@ -204,77 +204,78 @@ namespace rgatCore.Threads
 
             if (protograph.TraceData.FindContainingModule(targetAddr, out int modnum) == eCodeInstrumentation.eUninstrumentedCode)
             {
-                ROUTINE_STRUCT? foundExtern = null;
-                protograph.ProcessData.get_extern_at_address(targetAddr, modnum, ref foundExtern);
+                protograph.ProcessData.get_extern_at_address(targetAddr, modnum, out ROUTINE_STRUCT foundExtern);
 
                 bool targetFound = false;
-
-                if (foundExtern.Value.thread_callers.TryGetValue(protograph.ThreadID, out List<Tuple<uint, uint>> callList))
+                lock (protograph.ProcessData.ExternCallerLock)
                 {
-                    foreach (Tuple<uint, uint> edge in callList)
+                    if (foundExtern.thread_callers.TryGetValue(protograph.ThreadID, out List<Tuple<uint, uint>> callList))
                     {
-                        if (edge.Item1 == protograph.targVertID)
+                        foreach (Tuple<uint, uint> edge in callList)
                         {
-                            targetFound = true;
-                            protograph.lastVertID = foundExtern.Value.thread_callers[protograph.ThreadID][0].Item2;
-                            NodeData lastnode = protograph.safe_get_node(protograph.lastVertID);
-                            ++lastnode.executionCount;
-                            break;
-                        }
-                    }
-                    if (!targetFound)
-                    {
-                        Console.WriteLine($"[rgat]Warning: 0x{targetAddr:X} in {protograph.ProcessData.LoadedModulePaths[foundExtern.Value.globalmodnum]} not found. Heatmap accuracy may suffer.");
-                    }
-                }
-                else
-                {
-                    /*
-                    i've only seen this fail when unlinking happens at the end of a program. eg:
-                        int main()
-                        {
-                            for (many iterations){ do a thing; }
-                            return 0;  <- targ2 points to address outside program... can't draw an edge to it
-                        }
-                    which is not a problem. this happens in the nestedloops tests
-
-                    Could come up with a way to only warn if the thread continues (eg: if anything at all comes after this from the trace pipe).
-                    For now as it hasn't been a problem i've improvised by checking if we return to code after the BaseThreadInitThunk symbol,
-                        but this is not reliable outside of my runtime environment
-                    */
-
-
-                    bool foundsym = false;
-                    string sym = "";
-                    ulong offset;
-
-                    if (foundExtern.Value.globalmodnum != -1)
-                    {
-                        offset = targetAddr - protograph.ProcessData.LoadedModuleBounds[foundExtern.Value.globalmodnum].Item1;
-
-                        //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
-
-                        for (int i = 0; i < 4096; i++)
-                        {
-                            if (protograph.ProcessData.get_sym(foundExtern.Value.globalmodnum, offset - (ulong)i, out sym))
+                            if (edge.Item1 == protograph.targVertID)
                             {
-                                foundsym = true;
+                                targetFound = true;
+                                protograph.lastVertID = foundExtern.thread_callers[protograph.ThreadID][0].Item2;
+                                NodeData lastnode = protograph.safe_get_node(protograph.lastVertID);
+                                ++lastnode.executionCount;
                                 break;
                             }
                         }
-                        if (!foundsym) sym = "Unknown Symbol";
-
-                        if (sym != "BaseThreadInitThunk")
+                        if (!targetFound)
                         {
-                            string modulepath = protograph.ProcessData.LoadedModulePaths[foundExtern.Value.globalmodnum];
-                            Console.WriteLine($"[rgat]Warning,  unseen code executed after a busy block. (Module:{modulepath}+0x{offset:X}): '{sym}'");
-                            Console.WriteLine("\t If this happened at a thread exit it is not a problem and can be ignored");
+                            Console.WriteLine($"[rgat]Warning: 0x{targetAddr:X} in {protograph.ProcessData.LoadedModulePaths[foundExtern.globalmodnum]} not found. Heatmap accuracy may suffer.");
                         }
                     }
                     else
                     {
+                        /*
+                        i've only seen this fail when unlinking happens at the end of a program. eg:
+                            int main()
+                            {
+                                for (many iterations){ do a thing; }
+                                return 0;  <- targ2 points to address outside program... can't draw an edge to it
+                            }
+                        which is not a problem. this happens in the nestedloops tests
 
-                        Console.WriteLine($"[rgat]Warning, unknown module with addr 0x{targetAddr:X}");
+                        Could come up with a way to only warn if the thread continues (eg: if anything at all comes after this from the trace pipe).
+                        For now as it hasn't been a problem i've improvised by checking if we return to code after the BaseThreadInitThunk symbol,
+                            but this is not reliable outside of my runtime environment
+                        */
+
+
+                        bool foundsym = false;
+                        string sym = "";
+                        ulong offset;
+
+                        if (foundExtern.globalmodnum != -1)
+                        {
+                            offset = targetAddr - protograph.ProcessData.LoadedModuleBounds[foundExtern.globalmodnum].Item1;
+
+                            //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+
+                            for (int i = 0; i < 4096; i++)
+                            {
+                                if (protograph.ProcessData.get_sym(foundExtern.globalmodnum, offset - (ulong)i, out sym))
+                                {
+                                    foundsym = true;
+                                    break;
+                                }
+                            }
+                            if (!foundsym) sym = "Unknown Symbol";
+
+                            if (sym != "BaseThreadInitThunk")
+                            {
+                                string modulepath = protograph.ProcessData.LoadedModulePaths[foundExtern.globalmodnum];
+                                Console.WriteLine($"[rgat]Warning,  unseen code executed after a busy block. (Module:{modulepath}+0x{offset:X}): '{sym}'");
+                                Console.WriteLine("\t If this happened at a thread exit it is not a problem and can be ignored");
+                            }
+                        }
+                        else
+                        {
+
+                            Console.WriteLine($"[rgat]Warning, unknown module with addr 0x{targetAddr:X}");
+                        }
                     }
                 }
 

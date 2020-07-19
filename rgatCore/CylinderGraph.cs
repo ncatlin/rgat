@@ -564,6 +564,12 @@ namespace rgatCore
                 newPosition.a = a + EXTERNA - 1 * lastNodeData.childexterns;
                 newPosition.b = b + EXTERNB + 0.7f * lastNodeData.childexterns;
                 newPosition.bMod = 0;
+
+                while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(newPosition.a, newPosition.b)))
+                {
+                    newPosition.a += 0.5f;
+                    ++clash;
+                }
                 return;
             }
 

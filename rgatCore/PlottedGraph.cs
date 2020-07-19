@@ -797,15 +797,19 @@ namespace rgatCore
 					return false;
 				}
 				*/
-
-                if (!externBlock.Value.thread_callers.TryGetValue(tid, out List<Tuple<uint, uint>> calls))
+                bool found = false;
+                List < Tuple<uint, uint> > calls = null;
+                while (!found)
                 {
-                    //piddata.dropExternCallerReadLock();
+                    lock (piddata.ExternCallerLock)
+                    {
+                        found = externBlock.Value.thread_callers.TryGetValue(tid, out calls);
+                    }
+                    if (found) break;
                     Thread.Sleep(10);
                     Console.WriteLine("[rgat]Fail to find edge for thread " + tid + " calling extern " + blockAddr);
-                    nodelist = null;
-                    return false;
                 }
+
 
                 //piddata.dropExternCallerReadLock();
                 nodelist = new List<uint>();

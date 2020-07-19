@@ -46,31 +46,23 @@ namespace rgatCore
 		//bool get_modbase(uint modNum, ulong &moduleBase);
         
 
-		public bool get_extern_at_address(ulong address, int moduleNum, ref ROUTINE_STRUCT? BB)
+		public void get_extern_at_address(ulong address, int moduleNum, out ROUTINE_STRUCT BB)
         {
-            //getExternDictReadLock();
-            if (!externdict.TryGetValue(address, out ROUTINE_STRUCT foundBB))
+            lock (ExternCallerLock)
             {
-                //dropExternDictReadLock();
-                if (BB == null)
-                    return false;
-
-                //getExternDictWriteLock();
-                ROUTINE_STRUCT newExtern = new ROUTINE_STRUCT();
-                newExtern.globalmodnum = moduleNum;
-                //dropExternDictWriteLock();
-
-                BB = newExtern;
-                return true;
+                if (!externdict.TryGetValue(address, out BB))
+                {
+                    BB = new ROUTINE_STRUCT();
+                    BB.globalmodnum = moduleNum;
+                    BB.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
+ 
+                    externdict.Add(address, BB);
+                    
+                }
             }
-
-            if (BB != null)
-                BB = foundBB;
-            //dropExternDictReadLock();
-            return true;
         }
-		//public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		
+        //public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+
         public bool load(JObject tracejson)
         {
 
@@ -160,7 +152,9 @@ namespace rgatCore
                     int moduleNo = FindContainingModule(externBlockaddr);
                     if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
                     {
-                        get_extern_at_address(externBlockaddr, moduleNo, ref externBlock);
+                        ROUTINE_STRUCT tmpexternBlock;
+                        get_extern_at_address(externBlockaddr, moduleNo, out tmpexternBlock);
+                        externBlock = tmpexternBlock;
                         return null;
                     }
                 }
@@ -293,8 +287,10 @@ namespace rgatCore
 
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
         public int LoadedModuleCount = 0;
-
+        
+        //todo review these
         private readonly object ModulesLock = new object();
+        public readonly object ExternCallerLock = new object(); //todo stop this being public
 
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();

@@ -31,7 +31,7 @@ namespace rgatCore
         //come from trace
         public ulong blockaddr;
         public uint blockID;
-        public ulong insCount; 
+        public ulong insCount;
         //used internally
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
@@ -44,13 +44,13 @@ namespace rgatCore
     {
         public void InitNull()
         {
-                   blockAddr = 0;
+            blockAddr = 0;
             blockID = 0;
             count = 0;
             targetAddr = 0;
             targetID = 0;
             callCount = 0;
-    }
+        }
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
@@ -191,7 +191,7 @@ namespace rgatCore
         }
 
 
-		private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats)
+        private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(lastVertID, targVertID);
 
@@ -234,7 +234,7 @@ namespace rgatCore
             AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
         }
 
-       private void run_faulting_BB(TAG tag)
+        private void run_faulting_BB(TAG tag)
         {
             ROUTINE_STRUCT? foundExtern = null;
             List<InstructionData> block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
@@ -276,15 +276,15 @@ namespace rgatCore
                     lastNodeType = eEdgeNodeType.eNodeException;
                     lock (highlightsLock)
                     {
-                        if(!exceptionSet.Contains(targVertID)) exceptionSet.Add(targVertID);
+                        if (!exceptionSet.Contains(targVertID)) exceptionSet.Add(targVertID);
                     }
                 }
 
                 lastVertID = targVertID;
             }
         }
-        
-        private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint,uint>? resultPair)
+
+        private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint, uint>? resultPair)
         {
             //start by examining our caller
             NodeData lastNode = safe_get_node(lastVertID);
@@ -295,22 +295,15 @@ namespace rgatCore
             if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
 
 
-            ROUTINE_STRUCT? thisbb = null;
             int modnum = ProcessData.FindContainingModule(targaddr);
             Debug.Assert(modnum != -1);
 
-            if(!ProcessData.get_extern_at_address(targaddr, modnum, ref thisbb))
-            {
-                Console.WriteLine($"Failed to get extern addr 0x{targaddr:X} in module {TraceData.DisassemblyData.LoadedModulePaths[modnum]}");
-                resultPair = null;
-                return false; //happens at end of program
-            }    
-            
-            Debug.Assert(thisbb != null); //todo - this happens at end
+            ProcessData.get_extern_at_address(targaddr, modnum, out ROUTINE_STRUCT thisbb);
+
 
             //see if caller already called this
             //if so, get the destination node so we can just increase edge weight
-            if(thisbb.Value.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint,uint>> callers))
+            if (thisbb.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint, uint>> callers))
             {
                 //piddata->getExternCallerReadLock();
                 foreach (var caller in callers)
@@ -342,22 +335,21 @@ namespace rgatCore
             targVertID = get_num_nodes();
             resultPair = new Tuple<uint, uint>(lastVertID, targVertID);
 
-            //piddata->getExternCallerWriteLock();
-
-            //has this thread executed this basic block before?
-            if (callers != null)
+            lock (ProcessData.ExternCallerLock)
             {
-                List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>();
-                //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
-                callervec.Add(resultPair);
-                thisbb.Value.thread_callers.Add(ThreadID, callervec);
+                //has this thread executed this basic block before?
+                if (callers == null)
+                {
+                    List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>();
+                    //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
+                    callervec.Add(resultPair);
+                    thisbb.thread_callers.Add(ThreadID, callervec);
+                }
+                else
+                    callers.Add(resultPair);
             }
-            else
-                callers.Add(resultPair);
 
-            //piddata->dropExternCallerWriteLock();
-
-            int module = thisbb.Value.globalmodnum;
+            int module = thisbb.globalmodnum;
 
             //make new external/library call node
             NodeData newTargNode = new NodeData();
@@ -373,10 +365,8 @@ namespace rgatCore
 
 
 
-            //piddata->getExternDictWriteLock();
-            TraceData.DisassemblyData.externdict.Add(targaddr, thisbb.Value);
-            //piddata->dropExternDictWriteLock();
 
+ 
             EdgeData newEdge = new EdgeData();
             newEdge.chainedWeight = 0;
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
@@ -388,42 +378,42 @@ namespace rgatCore
         }
 
 
-		private void ProcessNewArgs()
+        private void ProcessNewArgs()
         {
             foreach (var pendingcallarg in pendingcallargs)
             {
                 ulong calledFunc = pendingcallarg.Key;
                 Dictionary<ulong, List<List<Tuple<int, string>>>> pendingArgs = pendingcallarg.Value;
 
-                    //each function can have multiple nodes in a thread, so we have to get the list of 
-                    //every edge that has this extern as a target
-                    if (!lookup_extern_func_calls(calledFunc, out List<Tuple<uint, uint>> threadCalls))
-                    {
-                        continue;
-                    }
+                //each function can have multiple nodes in a thread, so we have to get the list of 
+                //every edge that has this extern as a target
+                if (!lookup_extern_func_calls(calledFunc, out List<Tuple<uint, uint>> threadCalls))
+                {
+                    continue;
+                }
 
-                    //run through each edge, trying to match args to the right caller-callee pair
-                    //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
-                    for( var i = threadCalls.Count-1; i > 0; i--)
-                    {
-                                NodeData callerNode = safe_get_node(threadCalls[i].Item1);
-                                ulong callerAddress = callerNode.ins.address; //this breaks if call not used?
-                                NodeData functionNode = safe_get_node(threadCalls[i].Item2);
+                //run through each edge, trying to match args to the right caller-callee pair
+                //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
+                for (var i = threadCalls.Count - 1; i > 0; i--)
+                {
+                    NodeData callerNode = safe_get_node(threadCalls[i].Item1);
+                    ulong callerAddress = callerNode.ins.address; //this breaks if call not used?
+                    NodeData functionNode = safe_get_node(threadCalls[i].Item2);
 
                     //externCallsLock.lock () ;
-                    
-                                foreach (var caller_args in pendingArgs)
-                                {
-                                    //check if we have found the source of the call that used these arguments
-                                    if (caller_args.Key != callerAddress)
-                                    {
-                                        continue;
-                                    }
-                        
+
+                    foreach (var caller_args in pendingArgs)
+                    {
+                        //check if we have found the source of the call that used these arguments
+                        if (caller_args.Key != callerAddress)
+                        {
+                            continue;
+                        }
+
                         //vector<ARGLIST> & calls_arguments_list = caller_args_vec_IT->second;
 
                         //ARGLIST args;
-                        
+
                         foreach (var args in caller_args.Value)
                         {
                             //each node can only have a certain number of arguments to prevent simple DoS
@@ -463,40 +453,39 @@ namespace rgatCore
 
 
 
-            private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
+        private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
+        {
+
+            lock (ProcessData.ExternCallerLock)
             {
-                //piddata->getExternDictReadLock();
-               // piddata->getExternCallerReadLock();
-
-
-                if(TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
+                if (TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
                 {
                     return rtn.thread_callers.TryGetValue(ThreadID, out callEdges);
                 }
-
-                // piddata->dropExternDictReadLock();
-                //piddata->dropExternCallerReadLock();
-                callEdges = null;
-                return false;
             }
 
 
-
-            //         function 	      caller		       argidx  arg
-            Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>> pendingcallargs = new Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>>();
-
-           
-        
-            private ulong pendingCalledFunc = 0;
-
-            private ulong pendingFuncCaller = 0;
-
-            private List<Tuple<int,string>> pendingArgs = new List<Tuple<int, string>>();
+            callEdges = null;
+            return false;
+        }
 
 
 
-            //public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
-            
+        //         function 	      caller		       argidx  arg
+        Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>> pendingcallargs = new Dictionary<ulong, Dictionary<ulong, List<List<Tuple<int, string>>>>>();
+
+
+
+        private ulong pendingCalledFunc = 0;
+
+        private ulong pendingFuncCaller = 0;
+
+        private List<Tuple<int, string>> pendingArgs = new List<Tuple<int, string>>();
+
+
+
+        //public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
+
         void InsertNode(uint targVertID, NodeData node)
         {
             if (NodeList.Count > 0)
@@ -531,7 +520,7 @@ namespace rgatCore
 
         public bool EdgeExists(Tuple<uint, uint> edge, out EdgeData? edged)
         {
-            lock(edgeLock)
+            lock (edgeLock)
             {
                 return edgeDict.TryGetValue(edge, out edged);
             }
@@ -565,7 +554,7 @@ namespace rgatCore
             }
 
         }
-        
+
         //builds a new list of arguments from arguments provided by seperate Arg trace tags
         private void build_functioncall_from_args()
         {
@@ -585,7 +574,7 @@ namespace rgatCore
             }
 
             List<Tuple<int, string>> newArgList = new List<Tuple<int, string>>();
-            foreach (Tuple<int,string> idx_arg in pendingArgs)
+            foreach (Tuple<int, string> idx_arg in pendingArgs)
             {
                 newArgList.Add(idx_arg);
             }
@@ -640,7 +629,7 @@ namespace rgatCore
                 Debug.Assert(false);
             }
         }
-        
+
         public void handle_tag(TAG thistag, ulong repeats = 1)
         {
 
@@ -659,7 +648,7 @@ namespace rgatCore
 
                 //find caller,external vertids if old + add node to graph if new
                 if (RunExternal(thistag.blockaddr, repeats, out Tuple<uint, uint> resultPair))
-                    {
+                {
                     ProcessNewArgs();
                     set_active_node(resultPair.Item2);
                 }
@@ -729,7 +718,7 @@ namespace rgatCore
         }
 
 
-		public void handle_previous_instruction(uint targVertID, ulong repeats) 
+        public void handle_previous_instruction(uint targVertID, ulong repeats)
         {
 
             safe_get_node(targVertID).executionCount += repeats;
@@ -816,7 +805,7 @@ namespace rgatCore
 
         public void addBlockNodesToGraph(TAG tag, ulong repeats)
         {
-            List<InstructionData> block =  TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
+            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
             for (int instructionIndex = 0; instructionIndex < block.Count; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
@@ -1133,7 +1122,7 @@ namespace rgatCore
         Tuple<uint, uint> repeatStart;
         Tuple<uint, uint> repeatEnd;
 
-        List<string> loggedCalls;
+        List<string> loggedCalls = new List<string>();
 
         //number of times an external function has been called. used to Dictionary arguments to calls
         public Dictionary<Tuple<ulong, uint>, ulong> externFuncCallCounter = new Dictionary<Tuple<ulong, uint>, ulong>();
