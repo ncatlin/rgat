@@ -270,7 +270,9 @@ namespace rgatCore
 
                 //setup conditions for next instruction
                 if ((ulong)instructionIndex < tag.insCount)
+                {
                     lastNodeType = eEdgeNodeType.eNodeNonFlow;
+                }
                 else
                 {
                     lastNodeType = eEdgeNodeType.eNodeException;

@@ -17,7 +17,7 @@ namespace rgatCore
     {
         public float a; //across/latitude
         public float b; //down/longitude
-        public int bMod; //small modifications to longitude
+        public float diamMod; //position protrude/intrude from the wireframe
     };
 
     class CylinderGraph : PlottedGraph
@@ -94,8 +94,8 @@ namespace rgatCore
 
             GRAPH_SCALE scaling = preview ? preview_scalefactors : main_scalefactors;
 
-            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling, 0);
-            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling, 0);
+            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling);
+            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling);
 
             WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
@@ -176,7 +176,7 @@ namespace rgatCore
                 {
                     Debug.Assert(n.index == 0);
                     CYLINDERCOORD tempPos;
-                    tempPos.a = 0; tempPos.b = 0; tempPos.bMod = 0;
+                    tempPos.a = 0; tempPos.b = 0; tempPos.diamMod = 0;
                     coord = tempPos;
 
                     //acquire_nodecoord_write();
@@ -200,7 +200,7 @@ namespace rgatCore
                 get_node_coord((int)n.index, out coord);
 
 
-            cylinderCoord(coord, out Vector3 screenc, dimensions, 0);
+            cylinderCoord(coord, out Vector3 screenc, dimensions);
 
             WritableRgbaFloat active_col;
             if (n.IsExternal)
@@ -258,11 +258,11 @@ namespace rgatCore
 
 
         //take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
-        Vector3 nodeIndexToXYZ(int index, GRAPH_SCALE dimensions, float diamModifier)
+        Vector3 nodeIndexToXYZ(int index, GRAPH_SCALE dimensions)
         {
             bool success = get_node_coord(index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
-            cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, out Vector3 result, dimensions, diamModifier);
+            cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod,  out Vector3 result, dimensions);
             return result;
         }
 
@@ -434,7 +434,7 @@ namespace rgatCore
                             getCylinderCoordAB(middleC, dimensions, out float oldMidA, out float oldMidB);
                             float curveMagnitude = Math.Min(eLen / 2, (float)(dimensions.plotSize / 2));
                             //recalculate the midpoint coord as if it was inside the cylinder
-                            cylinderCoord(oldMidA, oldMidB, out Vector3 bezierC2, dimensions, -curveMagnitude);
+                            cylinderCoord(oldMidA, oldMidB, -curveMagnitude, out Vector3 bezierC2, dimensions);
                             bezierC = bezierC2;
 
                             //i dont know why this problem happens or why this fixes it
@@ -559,6 +559,7 @@ namespace rgatCore
 
             float a = oldPosition.a;
             float b = oldPosition.b;
+            float diamMod = 0;
             int clash = 0;
 
             if (n.IsExternal)
@@ -566,7 +567,7 @@ namespace rgatCore
                 NodeData lastNodeData = internalProtoGraph.safe_get_node(lastNode.lastVertID);
                 newPosition.a = a + EXTERNA - 1 * lastNodeData.childexterns;
                 newPosition.b = b + EXTERNB + 0.7f * lastNodeData.childexterns;
-                newPosition.bMod = 0;
+                newPosition.diamMod = 6;
 
                 while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(newPosition.a, newPosition.b)))
                 {
@@ -617,6 +618,7 @@ namespace rgatCore
                     {
                         a += JUMPA;
                         b += JUMPB;
+                        diamMod = 8f;
 
                         while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
@@ -727,7 +729,7 @@ namespace rgatCore
 
             newPosition.a = a;
             newPosition.b = b;
-            newPosition.bMod = oldPosition.bMod;
+            newPosition.diamMod = diamMod;
         }
 
         bool get_node_coord(int nodeidx, out CYLINDERCOORD result)
@@ -750,13 +752,14 @@ namespace rgatCore
 		bool a_coord_on_screen(int a, float hedgesep);
 		*/
 
-        void cylinderCoord(CYLINDERCOORD sc, out Vector3 c, GRAPH_SCALE dimensions, float diamModifier = 0)
+        void cylinderCoord(CYLINDERCOORD sc, out Vector3 c, GRAPH_SCALE dimensions)
         {
-            cylinderCoord(sc.a, sc.b, out c, dimensions, diamModifier);
+           
+            cylinderCoord(sc.a, sc.b, sc.diamMod, out c, dimensions);
         }
-        void cylinderCoord(float a, float b, out Vector3 c, GRAPH_SCALE dimensions, float diamModifier)
+        void cylinderCoord(float a, float b, float diamModifier, out Vector3 c, GRAPH_SCALE dimensions)
         {
-            double r = (dimensions.plotSize + diamModifier);// +0.1 to make sure we are above lines
+            double r = (dimensions.plotSize + diamModifier );// +0.1 to make sure we are above lines
 
             a *= dimensions.pix_per_A;
             c.X = (float)(r * Math.Cos((a * Math.PI) / r));
