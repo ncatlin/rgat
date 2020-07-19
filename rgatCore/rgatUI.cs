@@ -680,6 +680,23 @@ namespace rgatCore
             PreviewGraphWidget.SetSelectedGraph(graph);
         }
 
+
+        private void CreateTracesDropdown(TraceRecord tr, int level)
+        {
+            foreach (TraceRecord child in tr.children)
+            {
+                string tabs = new String("  ");
+                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatstate.ActiveGraph.pid == child.PID))
+                {
+                    _rgatstate.SelectActiveTrace(child);
+                }
+                if (child.children.Count > 0)
+                {
+                    CreateTracesDropdown(tr, level + 1);
+                }
+            }
+        }
+
         private void DrawTraceSelector(float frameHeight)
         {
 
@@ -696,11 +713,19 @@ namespace rgatCore
                     {
                         var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
                         string selString = (_rgatstate.ActiveGraph != null) ? "PID " + _rgatstate.ActiveGraph.pid : "";
-                        if (ImGui.BeginCombo("Process (0/1)", selString))
+                        if (ImGui.BeginCombo($"Process (X/{tracelist.Count})", selString))
                         {
                             foreach (var timepid in tracelist)
                             {
-                                ImGui.Selectable("PID " + timepid.Item2, _rgatstate.ActiveGraph.pid == timepid.Item2);
+                                TraceRecord selectableTrace = timepid.Item2;
+                                if(ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
+                                { 
+                                    _rgatstate.SelectActiveTrace(selectableTrace); 
+                                }    
+                                if (selectableTrace.children.Count > 0)
+                                {
+                                    CreateTracesDropdown(selectableTrace, 1);
+                                }
                                 //ImGui.Selectable("PID 12345 (xyz.exe)");
                             }
                             ImGui.EndCombo();
@@ -805,6 +830,10 @@ namespace rgatCore
         {
             if (_rgatstate.ActiveGraph == null)
             {
+                if (_rgatstate.ActiveTrace == null)
+                {
+                    _rgatstate.SelectActiveTrace();
+                }
                 if (_rgatstate.ChooseActiveGraph())
                 { 
                     MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
@@ -961,7 +990,7 @@ namespace rgatCore
             launch_all_trace_threads(trace, _rgatstate);
 
             _rgatstate.ActiveTarget = trace.binaryTarg;
-            _rgatstate.SwitchTrace = trace;
+            //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
             

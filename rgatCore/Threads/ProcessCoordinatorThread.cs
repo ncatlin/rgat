@@ -150,7 +150,7 @@ namespace rgatCore.Threads
 			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);
 			blockHandler.Begin(GetBBPipeName(PID, ID));
 
-			_clientState.SwitchTrace = tr;
+			//_clientState.SwitchTrace = tr;
 
 
 			ProcessLaunching.launch_new_visualiser_threads(target, tr, _clientState);

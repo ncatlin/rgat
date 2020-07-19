@@ -27,7 +27,7 @@ namespace rgatCore
 		}
 
 		public PlottedGraph SwitchGraph = null;
-		public TraceRecord SwitchTrace = null;
+
 		public bool rgatIsExiting { private set; get; } = false;
 		public bool WaitingForNewTrace = false;
 		public int AnimationStepRate = 1;
@@ -96,6 +96,7 @@ namespace rgatCore
 			}
 
 			ActiveTrace = trace;
+			selectGraphInActiveTrace();
 		}
 
 		bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
@@ -137,13 +138,6 @@ namespace rgatCore
 			
 		public bool ChooseActiveGraph()
 		{
-			if (SwitchTrace != null)
-			{
-				SelectActiveTrace(SwitchTrace);
-				SwitchTrace = null;
-				//ui->dynamicAnalysisContentsTab->updateVisualiserUI(true);
-			}
-
 			PlottedGraph switchGraph = SwitchGraph;
 			if (SwitchGraph != null && switchGraph.beingDeleted && !switchGraph.NeedReplotting)
 			{
@@ -182,7 +176,10 @@ namespace rgatCore
 		void selectGraphInActiveTrace()
 		{
 			TraceRecord selectedTrace = ActiveTrace;
-			if (selectedTrace == null) return;
+			if (selectedTrace == null)
+			{
+				return;
+			}
 
 			if(LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
 			{
@@ -394,10 +391,6 @@ namespace rgatCore
 			
 			if (!initialiseTrace(saveJSON, target, out trace))
 			{
-				if (trace != null) //already existed
-				{
-					SwitchTrace = trace;
-				}
 				return false;
 			}
 			
