@@ -253,7 +253,7 @@ namespace rgatCore
 
             if(!ProcessData.get_extern_at_address(targaddr, modnum, ref thisbb))
             {
-                Console.WriteLine($"Failed to get extern addr 0x{targaddr} in module {TraceData.DisassemblyData.LoadedModulePaths[modnum]}");
+                Console.WriteLine($"Failed to get extern addr 0x{targaddr:X} in module {TraceData.DisassemblyData.LoadedModulePaths[modnum]}");
                 resultPair = null;
                 return false; //happens at end of program
             }    

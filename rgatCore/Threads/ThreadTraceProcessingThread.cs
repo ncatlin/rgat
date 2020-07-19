@@ -142,7 +142,7 @@ namespace rgatCore.Threads
         }
 
 
-        void add_unlinking_update(byte[] entry)
+        void AddUnlinkingUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 6);
@@ -266,6 +266,21 @@ namespace rgatCore.Threads
 
         }
 
+        void AddUnchainedUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 5);
+
+            ANIMATIONENTRY animUpdate;
+            animUpdate.entryType = eTraceUpdateType.eAnimUnchained;
+            animUpdate.blockAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
+            animUpdate.blockID = uint.Parse(entries[2], NumberStyles.HexNumber);
+            animUpdate.targetAddr = ulong.Parse(entries[3], NumberStyles.HexNumber);
+            animUpdate.targetID = uint.Parse(entries[4], NumberStyles.HexNumber);
+            animUpdate.count = 0;
+            animUpdate.callCount = 0;
+            protograph.PushAnimUpdate(animUpdate);
+        }
 
         void Processor()
         {
@@ -292,11 +307,10 @@ namespace rgatCore.Threads
                         HandleArg(msg);
                         break;
                     case (byte)'U':
-                        add_unlinking_update(msg);
+                        AddUnlinkingUpdate(msg);
                         break;
                     case (byte)'u':
-                        todoprint = true;
-                        Console.WriteLine("Handle UNCHAIN_MARKER");
+                        AddUnchainedUpdate(msg);
                         break;
                     case (byte)'B':
                         todoprint = true;
