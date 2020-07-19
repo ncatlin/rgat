@@ -158,6 +158,7 @@ namespace rgatCore
 
 
                 InstructionData instruction = new InstructionData();
+                instruction.address = insaddr;
                 instruction.numbytes = insByteCount;
                 instruction.opcodes = opcodes;
                 instruction.globalmodnum = globalModNum;
@@ -167,7 +168,7 @@ namespace rgatCore
                 instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
                 instruction.threadvertIdx = new Dictionary<uint, uint>();
 
-                if (ProcessRecord.DisassembleIns(disassembler, ref instruction) < 1)
+                if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
                 {
                     Console.WriteLine($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?");
                     return;

@@ -144,29 +144,31 @@ namespace rgatCore
         }
 
         //is there a better way of doing this?
-        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID)
+        public List<InstructionData> getDisassemblyBlock(uint blockID)
         {
             ROUTINE_STRUCT? stub = null;
-            return getDisassemblyBlock(blockaddr, blockID, ref stub);
+            return getDisassemblyBlock(blockID, ref stub);
         }
-        public List<InstructionData> getDisassemblyBlock(ulong blockaddr, uint blockID, ref ROUTINE_STRUCT? externBlock)
+        public List<InstructionData> getDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
         {
             int iterations = 0;
 
             while (true)
             {
-
-                if (externBlock != null)
+                if (externBlockaddr != 0)
                 {
-                    int moduleNo = FindContainingModule(blockaddr);
-                    get_extern_at_address(blockaddr, moduleNo, ref externBlock);
-                    return null;
+                    int moduleNo = FindContainingModule(externBlockaddr);
+                    if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
+                    {
+                        get_extern_at_address(externBlockaddr, moduleNo, ref externBlock);
+                        return null;
+                    }
                 }
+                
 
                 if (blockID < blockList.Count)
                 {
                     var result = blockList[(int)blockID];
-                    Debug.Assert((blockaddr == 0) || result.Item1 == blockaddr);
                     externBlock = null;
                     return result.Item2;
                 }
@@ -176,11 +178,11 @@ namespace rgatCore
                     Thread.Sleep(1);
 
                 if (iterations++ > 20 && (iterations % 20 == 0))
-                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of address 0x{blockaddr} block {blockID}");
+                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block {blockID}");
 
                 if (iterations++ > 200)
                 { 
-                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of address 0x{blockaddr} block {blockID}");
+                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block {blockID}");
                     return null;
                 }
 
@@ -226,7 +228,7 @@ namespace rgatCore
                 if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
                 modIDTranslationVec[localmodID] = globalModID; 
 
-                ModuleTraceStates.Add(isInstrumented == '1');
+                ModuleTraceStates.Add(isInstrumented == '1' ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode);
                 LoadedModuleBounds.Add(new Tuple<ulong, ulong>(start, end));
                 
                 LoadedModuleCount += 1;
@@ -287,7 +289,7 @@ namespace rgatCore
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
-        public List<bool> ModuleTraceStates = new List<bool>();
+        public List<eCodeInstrumentation> ModuleTraceStates = new List<eCodeInstrumentation>();
 
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
         public int LoadedModuleCount = 0;
@@ -466,9 +468,9 @@ namespace rgatCore
 
         //for disassembling saved instructions
         //takes a capstone context, opcode string, target instruction data struct and the address of the instruction
-        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ref InstructionData insdata)
+        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, ref InstructionData insdata)
         {
-            X86Instruction[] instructions = disassembler.Disassemble(insdata.opcodes);
+            X86Instruction[] instructions = disassembler.Disassemble(insdata.opcodes, (long)address);
             //todo: catch some kind of exception, since i cant see any way of getting error codes
             if (instructions.Length != 1)
             {
@@ -486,8 +488,8 @@ namespace rgatCore
             {
                 try
                 {
-                    insdata.branchAddress = ulong.Parse(insdata.op_str);
-                    //insdata.branchAddress = std::stoull(insdata.op_str, 0, 16);
+
+                    insdata.branchAddress = Convert.ToUInt64(insn.Operand, 16);
                 }
                 catch
                 {
@@ -548,7 +550,7 @@ namespace rgatCore
                     return false;
                 }
 
-                DisassembleIns(disassembler, ref ins);
+                DisassembleIns(disassembler, addressData.address, ref ins);
 
                 JArray threadNodes = (JArray)mutation[1];
 

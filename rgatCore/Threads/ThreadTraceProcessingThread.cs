@@ -163,8 +163,7 @@ namespace rgatCore.Threads
 
         }
 
-
-        void AddUnlinkingUpdate(byte[] entry)
+        bool AddUnlinkingUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 6);
@@ -174,10 +173,14 @@ namespace rgatCore.Threads
             uint srcblockID = (uint)blockID_numins >> 32;
             uint srcinscount = (uint)blockID_numins & 0xff;
 
-            List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(0, srcblockID);
+            List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(srcblockID);
             InstructionData lastIns = lastBB[^1];
             bool found = lastIns.threadvertIdx.TryGetValue(protograph.ThreadID, out uint srcidx);
-            Debug.Assert(found);
+            if (!found)
+            {
+                Console.WriteLine($"AddUnlinkingUpdate Error: Unable to find node for instruction 0x{lastIns.address:X}: {lastIns.ins_text} in thread {protograph.ThreadID}");
+                return false;
+            }
 
             protograph.lastVertID = srcidx;
 
@@ -285,7 +288,7 @@ namespace rgatCore.Threads
             animUpdate.targetAddr = 0;
             animUpdate.targetID = 0;
             protograph.PushAnimUpdate(animUpdate);
-
+            return true;
         }
 
         void AddUnchainedUpdate(byte[] entry)
@@ -355,6 +358,76 @@ namespace rgatCore.Threads
         }
 
 
+
+        void AddExceptionUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 4);
+
+            ulong address = ulong.Parse(entries[1], NumberStyles.HexNumber);
+            ulong code = ulong.Parse(entries[2], NumberStyles.HexNumber);
+            ulong flags = ulong.Parse(entries[3], NumberStyles.HexNumber);
+
+
+            Console.WriteLine($"[rgat]Exception detected in PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
+            List<InstructionData> faultingBlock;
+            bool gotDisas = false;
+            lock (protograph.ProcessData.InstructionsLock) //read lock
+            {
+                gotDisas = protograph.ProcessData.disassembly.TryGetValue(address, out  faultingBlock);
+            }
+
+
+            //problem here: no way of knowing which mutation of the faulting instruction was executed
+            //going to have to assume it's the most recent mutation
+            if (!gotDisas)
+            {
+                Thread.Sleep(50);
+                lock (protograph.ProcessData.InstructionsLock) //read lock
+                {
+                    if (!protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock))
+                    {
+                        Console.WriteLine($"[rgat]Exception address 0x{address:X} not found in disassembly");
+                        return;
+                    }
+                }
+            }
+
+            //problem here: no way of knowing which mutation of the faulting block was executed
+            //going to have to assume it's the most recent mutation
+            InstructionData exceptingins = faultingBlock[^1];
+            var faultingBBAddrID = exceptingins.ContainingBlockIDs[^1];
+            List<InstructionData> faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBBAddrID.Item2);
+
+            //todo: Lock, linq
+            int instructionsUntilFault = 0;
+            for (;  instructionsUntilFault < faultingBB.Count; ++instructionsUntilFault)
+            {
+                if (faultingBB[instructionsUntilFault].address == address) break;
+        
+            }
+
+            TAG interruptedBlockTag;
+            interruptedBlockTag.blockaddr = faultingBBAddrID.Item1;
+            interruptedBlockTag.insCount = (ulong)instructionsUntilFault;
+            interruptedBlockTag.blockID = faultingBBAddrID.Item2;
+            interruptedBlockTag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
+            interruptedBlockTag.foundExtern = null;
+            interruptedBlockTag.insCount = 0;
+            protograph.handle_exception_tag(interruptedBlockTag);
+
+            ANIMATIONENTRY animUpdate;
+            animUpdate.entryType =  eTraceUpdateType.eAnimExecException;
+            animUpdate.blockAddr = interruptedBlockTag.blockaddr;
+            animUpdate.blockID = interruptedBlockTag.blockID;
+            animUpdate.count = (ulong)instructionsUntilFault;
+            animUpdate.callCount = 0;
+            animUpdate.targetAddr = 0;
+            animUpdate.targetID = 0;
+            protograph.PushAnimUpdate(animUpdate);
+        }
+
+
         void Processor()
         {
             while (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData())
@@ -392,8 +465,7 @@ namespace rgatCore.Threads
                         AddSatisfyUpdate(msg);
                         break;
                     case (byte)'X':
-                        todoprint = true;
-                        Console.WriteLine("Handle EXCEPTION_MARKER");
+                        AddExceptionUpdate(msg);
                         break;
                     case (byte)'Z':
                         todoprint = true;
@@ -406,8 +478,9 @@ namespace rgatCore.Threads
                 }
                 if (todoprint)
                     Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-
             }
+
+
             Console.WriteLine(runningThread.Name + " finished");
         }
 

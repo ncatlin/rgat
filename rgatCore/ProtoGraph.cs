@@ -31,7 +31,7 @@ namespace rgatCore
         //come from trace
         public ulong blockaddr;
         public uint blockID;
-        public ulong insCount;
+        public ulong insCount; 
         //used internally
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
@@ -234,8 +234,56 @@ namespace rgatCore
             AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
         }
 
-        /*private void run_faulting_BB(TAG &tag);
-        */
+       private void run_faulting_BB(TAG tag)
+        {
+            ROUTINE_STRUCT? foundExtern = null;
+            List<InstructionData> block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
+            if (block == null)
+            {
+                if (foundExtern != null)
+                    Console.WriteLine($"[rgat]Warning - faulting block was in uninstrumented code at 0x{tag.blockaddr}");
+                else
+                    Console.WriteLine($"[rgat]Warning - failed to ged disassebly for faulting block at 0x{tag.blockaddr}");
+
+                return;
+            }
+
+            for (int instructionIndex = 0; (ulong)instructionIndex <= tag.insCount; ++instructionIndex)
+            {
+                InstructionData instruction = block[instructionIndex];
+
+                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !node_exists(lastVertID))
+                {
+                    Console.WriteLine("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
+                    Debug.Assert(false);
+                }
+
+                //target vert already on this threads graph?
+                bool alreadyExecuted = set_target_instruction(instruction);
+                if (!alreadyExecuted)
+                    targVertID = handle_new_instruction(instruction, tag.blockID, 1);
+                else
+                    safe_get_node(targVertID).executionCount += 1;
+                BB_addNewEdge(alreadyExecuted, instructionIndex, 1);
+
+                //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
+
+                //setup conditions for next instruction
+                if ((ulong)instructionIndex < tag.insCount)
+                    lastNodeType = eEdgeNodeType.eNodeNonFlow;
+                else
+                {
+                    lastNodeType = eEdgeNodeType.eNodeException;
+                    lock (highlightsLock)
+                    {
+                        if(!exceptionSet.Contains(targVertID)) exceptionSet.Add(targVertID);
+                    }
+                }
+
+                lastVertID = targVertID;
+            }
+        }
+        
         private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint,uint>? resultPair)
         {
             //start by examining our caller
@@ -244,7 +292,7 @@ namespace rgatCore
             Debug.Assert(lastNode.ins.numbytes > 0);
 
             //if caller is also external then we are not interested in this
-            if (!ProcessData.ModuleTraceStates[lastNode.GlobalModuleID]) { resultPair = null; return false; }
+            if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
 
 
             ROUTINE_STRUCT? thisbb = null;
@@ -559,7 +607,39 @@ namespace rgatCore
                 build_functioncall_from_args();
         }
 
-        //public void handle_exception_tag(TAG &thistag);
+        public void handle_exception_tag(TAG thistag)
+        {
+            if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
+            {
+                run_faulting_BB(thistag);
+
+                TotalInstructions += thistag.insCount;
+
+                set_active_node(lastVertID);
+            }
+
+            else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
+            {
+                if (lastVertID == 0) return;
+
+                //find caller,external vertids if old + add node to graph if new
+                Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
+                    "I have no idea if this code will handle it; Let me know when you reach the other side...");
+                if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair))
+                {
+                    set_active_node(resultPair.Item2);
+                }
+                else
+                {
+                    Console.WriteLine($"\tSecondary error - couldn't deal with extern address 0x{thistag.blockaddr:X}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[rgat]Error: Bad jump tag while handling exception");
+                Debug.Assert(false);
+            }
+        }
         
         public void handle_tag(TAG thistag, ulong repeats = 1)
         {
@@ -610,6 +690,7 @@ namespace rgatCore
         public List<BlockData> BlockList = new List<BlockData>(); //node id to node data
 
 
+        private readonly object highlightsLock = new object();
 
 
         public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
@@ -638,12 +719,12 @@ namespace rgatCore
             Debug.Assert(!node_exists(targVertID));
             InsertNode(targVertID, thisnode);
 
-                       lock (TraceData.DisassemblyData.InstructionsLock)
+            lock (TraceData.DisassemblyData.InstructionsLock)
             {
                 instruction.threadvertIdx.Add(ThreadID, targVertID);
             }
 
-            lastNode = targVertID; //obsolete
+            //lastVertID = targVertID;
             return targVertID;
         }
 
@@ -652,13 +733,13 @@ namespace rgatCore
         {
 
             safe_get_node(targVertID).executionCount += repeats;
-            lastNode = targVertID;
+            //lastVertID = targVertID;
         }
 
 
         public void addBlockLineToGraph(TAG tag, ulong repeats)
         {
-            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockaddr, tag.blockID);
+            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
             int numInstructions = block.Count;
 
             uint firstVert = 0;
@@ -735,7 +816,7 @@ namespace rgatCore
 
         public void addBlockNodesToGraph(TAG tag, ulong repeats)
         {
-            List<InstructionData> block =  TraceData.DisassemblyData.getDisassemblyBlock(tag.blockaddr, tag.blockID);
+            List<InstructionData> block =  TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
             for (int instructionIndex = 0; instructionIndex < block.Count; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
@@ -1035,7 +1116,7 @@ namespace rgatCore
         public string modulePath;
         public Dictionary<ulong, uint> InternalPlaceholderFuncNames = new Dictionary<ulong, uint>();
 
-        public uint lastNode = 0;
+        //public uint lastNode = 0;
         //used by heatDictionary solver
         uint finalNodeID = 0;
 
@@ -1058,6 +1139,8 @@ namespace rgatCore
         public Dictionary<Tuple<ulong, uint>, ulong> externFuncCallCounter = new Dictionary<Tuple<ulong, uint>, ulong>();
 
         bool updated = true;
+
+        List<uint> exceptionSet = new List<uint>();
 
         void set_terminated()
         {

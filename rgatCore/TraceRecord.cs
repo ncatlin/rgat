@@ -193,7 +193,7 @@ namespace rgatCore
                 //assert(localmodID != -1);
             }
 
-            return DisassemblyData.ModuleTraceStates[localmodID] ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode;
+            return DisassemblyData.ModuleTraceStates[localmodID];
         }
 
         private readonly object GraphListLock = new object();

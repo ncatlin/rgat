@@ -321,8 +321,8 @@ namespace rgatCore
 
         public void highlight_last_active_node()
         {
-            if (internalProtoGraph.lastNode < (uint)mainnodesdata.CountVerts())
-                lastAnimatedNode = internalProtoGraph.lastNode;
+            if (internalProtoGraph.lastVertID < (uint)mainnodesdata.CountVerts())
+                lastAnimatedNode = internalProtoGraph.lastVertID;
         }
 
 
@@ -774,7 +774,7 @@ namespace rgatCore
         {
             ProcessRecord piddata = internalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
-            List<InstructionData> block = piddata.getDisassemblyBlock(blockAddr, (uint)blockID, ref externBlock);
+            List<InstructionData> block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
             if (block == null)
             {
                 nodelist = null;
@@ -1004,8 +1004,7 @@ namespace rgatCore
         {
 
             currentUnchainedBlocks.Clear();
-            ROUTINE_STRUCT? dummy = null;
-            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
+            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
             lastAnimatedNode = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
@@ -1062,8 +1061,7 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
                 ProcessRecord piddata = internalProtoGraph.ProcessData;
-                ROUTINE_STRUCT? dummy = null;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
+                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
                 uint maxWait = (uint)Math.Floor((float)maxWaitFrames / stepSize); //todo test
@@ -1105,8 +1103,7 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
             {
                 ProcessRecord piddata = internalProtoGraph.ProcessData;
-                ROUTINE_STRUCT? dummy = null;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockAddr, (uint)entry.blockID, ref dummy);
+                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
 
                 if (block == null)
                     unchainedWaitFrames += calculate_wait_frames(entry.count); //external
