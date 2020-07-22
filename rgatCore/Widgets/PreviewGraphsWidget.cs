@@ -143,20 +143,22 @@ namespace rgatCore
         {
 
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
-            _cl.UpdateBuffer(graphRenderInfo._projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far));
 
+
+
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far);
             Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
-            //_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(Vector3.UnitZ*7, cameraPosition, Vector3.UnitY));
-            _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+            Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             //if autorotation...
             float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
             float angle = _ticks / 10000;
-            //else
-            //angle = dbg_rot;
-
             Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
-            _cl.UpdateBuffer(graphRenderInfo._worldBuffer, 0, ref rotation);
+            Matrix4x4 newView = rotation;
+            newView = Matrix4x4.Multiply(newView, view);
+            newView = Matrix4x4.Multiply(newView, projection);
+
+            _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, newView);
         }
 
         private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
@@ -224,19 +226,9 @@ namespace rgatCore
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
 
-layout(set = 0, binding = 0) uniform ProjectionBuffer
-{
-    mat4 Projection;
-};
-
-layout(set = 0, binding = 1) uniform ViewBuffer
+layout(set = 0, binding = 0) uniform ViewBuffer
 {
     mat4 View;
-};
-
-layout(set = 0, binding = 2) uniform WorldBuffer
-{
-    mat4 Rotation;
 };
 
 
@@ -244,14 +236,8 @@ layout(location = 0) out vec4 fsin_Color;
 
 void main()
 {
-
-
-    vec4 worldPosition = Rotation * vec4(Position,1);
-    vec4 viewPosition = View * worldPosition;
-    vec4 clipPosition = Projection * viewPosition;
-
     gl_PointSize = 3.0f;
-    gl_Position =clipPosition;
+    gl_Position = View * vec4(Position,1);
     fsin_Color = Color;
 }";
 

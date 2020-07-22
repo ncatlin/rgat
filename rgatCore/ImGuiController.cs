@@ -23,7 +23,7 @@ namespace ImGuiNET
         private DeviceBuffer _indexBuffer;
         private DeviceBuffer _projMatrixBuffer;
         private Texture _fontTexture;
-        private TextureView _fontTextureView;
+        public TextureView _fontTextureView;
         private Shader _vertexShader;
         private Shader _fragmentShader;
         private ResourceLayout _layout;
@@ -52,7 +52,7 @@ namespace ImGuiNET
         private int _lastAssignedID = 100;
 
         //private ImFontPtr _customFont = null;
-        private ImFontPtr _unicodeFont = null;
+        public ImFontPtr _unicodeFont = null;
         private ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
 
@@ -256,7 +256,7 @@ namespace ImGuiNET
             _lastAssignedID = 100;
         }
 
-        private byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
+        public byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
         {
             switch (factory.BackendType)
             {
@@ -335,6 +335,9 @@ namespace ImGuiNET
             _fontTextureView = gd.ResourceFactory.CreateTextureView(_fontTexture);
 
             io.Fonts.ClearTexData();
+
+            ImFontPtr f;
+            
         }
 
         /// <summary>

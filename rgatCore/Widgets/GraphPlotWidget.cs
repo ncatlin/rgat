@@ -24,7 +24,7 @@ namespace rgatCore
 
 		Dictionary<PlottedGraph, VeldridGraphBuffers> graphBufferDict = new Dictionary<PlottedGraph, VeldridGraphBuffers>();
 		VeldridGraphBuffers graphBuffers = null;
-
+		ImGuiController _controller;
 
 
 		private Vector2 graphWidgetSize;
@@ -39,8 +39,9 @@ namespace rgatCore
 
 
 
-		public GraphPlotWidget(Vector2? initialSize = null)
+		public GraphPlotWidget(ImGuiController controller, Vector2? initialSize = null)
         {
+			_controller = controller;
 			graphWidgetSize = initialSize ?? new Vector2(400, 400);
 			IrregularActionTimer = new System.Timers.Timer(600);
 			IrregularActionTimer.Elapsed += FireIrregularTimer;
@@ -112,18 +113,28 @@ namespace rgatCore
 				pos,
 				new Vector2(pos.X + ActiveGraph._outputTexture.Width, pos.Y + ActiveGraph._outputTexture.Height), new Vector2(0, 1), new Vector2(1, 0));
 
+			CylinderGraph.SCREENINFO scrn;
+			scrn.X = 0;
+			scrn.Y = 0;
+			scrn.Width = graphWidgetSize.X;
+			scrn.Height = graphWidgetSize.Y;
+			scrn.MinDepth = dbg_near;
+			scrn.MaxDepth = dbg_far;
+			scrn.CamPos = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+			scrn.FOV = dbg_FOV;
+			scrn.angle = dbg_rot;
+
+			foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
+            {
+				Vector2 textpos = ImGui.GetCursorScreenPos();
+				textpos += txtitm.screenXY;
+
+				imdp.AddText(_ImGuiController._unicodeFont, txtitm.fontSize, textpos, (uint)txtitm.color.ToArgb(), txtitm.contents);
+				//Veldrid.OpenGLBinding.OpenGLNative.gl
+			}
 
 			//drawHUD();
 		}
-
-		private static long _startTime = System.DateTime.Now.Ticks;
-
-
-
-
-		ulong lastLineBufferSize = 0;
-		ulong lastNodeBufferSize = 0;
-
 
 		private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
 		{
@@ -166,22 +177,33 @@ namespace rgatCore
 		private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
 		{
 
-
 			_cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
-			_cl.UpdateBuffer(graphBuffers._projectionBuffer, 0, Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far));
 
-			Vector3 cameraPosition = new Vector3(dbg_camX,dbg_camY,dbg_camZ);
-			//_cl.UpdateBuffer(_viewBuffer, 0, Matrix4x4.CreateLookAt(new Vector3(0,0,-200), new Vector3(0, 0, 0), Vector3.UnitY));
-			_cl.UpdateBuffer(graphBuffers._viewBuffer, 0, Matrix4x4.CreateTranslation(cameraPosition));
+
+
+			
 
 			//if autorotation...
-			float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
-			float angle = _ticks / 10000;
+			//float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
+			//float angle = _ticks / 10000;
 			//else
-			angle = dbg_rot;
-
+			float angle = dbg_rot;
+	
 			Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
-			_cl.UpdateBuffer(graphBuffers._worldBuffer, 0, ref rotation);
+			Matrix4x4 combined = rotation;
+
+			Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+			Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
+			combined = Matrix4x4.Multiply(combined, view);
+
+			Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far);
+			combined = Matrix4x4.Multiply(combined, projection);
+
+			ActiveGraph.projection = projection;
+			ActiveGraph.view = view;
+			ActiveGraph.rotation = rotation;
+			_cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
+
 		}
 
 
@@ -193,20 +215,12 @@ namespace rgatCore
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
 
-layout(set = 0, binding = 0) uniform ProjectionBuffer
-{
-    mat4 Projection;
-};
 
-layout(set = 0, binding = 1) uniform ViewBuffer
+layout(set = 0, binding = 0) uniform ViewBuffer
 {
     mat4 View;
 };
 
-layout(set = 0, binding = 2) uniform WorldBuffer
-{
-    mat4 Rotation;
-};
 
 
 layout(location = 0) out vec4 fsin_Color;
@@ -214,15 +228,21 @@ layout(location = 0) out vec4 fsin_Color;
 void main()
 {
 
-
-    vec4 worldPosition = Rotation * vec4(Position,1);
-    vec4 viewPosition = View * worldPosition;
-    vec4 clipPosition = Projection * viewPosition;
-
     gl_PointSize = 5.0f;
-    gl_Position =clipPosition;
+    gl_Position = View * vec4(Position,1);
     fsin_Color = Color;
 }";
+
+		/*
+		 *
+		 *    
+		 *    
+		 vec4 worldPosition = Rotation * vec4(Position,1);
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+		 * 
+		 */
+
 
 		private const string FragmentCode = @"
 #version 450

@@ -53,7 +53,7 @@ namespace rgatCore
 
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
-            MainGraphWidget = new GraphPlotWidget();
+            MainGraphWidget = new GraphPlotWidget(imguicontroller);
             PreviewGraphWidget = new PreviewGraphsWidget();
 
         }
@@ -88,10 +88,10 @@ namespace rgatCore
             window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
 
-            ImGui.SetNextWindowPos(new Vector2(50,50), ImGuiCond.Appearing);
+            ImGui.SetNextWindowPos(new Vector2(50, 50), ImGuiCond.Appearing);
 
             //ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Appearing);
-            ImGui.SetNextWindowSize(new Vector2(1200,800), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
             ImGui.Begin("rgat Primary Window", window_flags);
 
@@ -104,7 +104,7 @@ namespace rgatCore
             if (_show_select_exe_window) DrawFileSelectBox();
             if (_show_load_trace_window) DrawTraceLoadBox();
             ImGui.End();
-            
+
         }
 
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
@@ -136,7 +136,7 @@ namespace rgatCore
                 ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
 
                 ImGui.Text("Hex Preview"); ImGui.NextColumn();
-                
+
                 _ImGuiController.PushOriginalFont(); //it's monospace and UTF8
                 {
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
@@ -151,7 +151,7 @@ namespace rgatCore
                     ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
                     ImGui.PopFont();
                 }
-                
+
                 ImGui.Text("Format"); ImGui.NextColumn();
                 string formatNotes = activeTarget.FormatNotes;
                 ImGui.InputTextMultiline("##fmtnote", ref formatNotes, 400, new Vector2(0, 80), ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
@@ -218,14 +218,16 @@ namespace rgatCore
             ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
             ImGui.SameLine();
             string TraceLabel = $"Tracelist [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
-            if(ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0)){
-                activeTarget.traceChoices.TracingMode = (eModuleTracingMode) activeTarget.traceChoices._tracingModeRef;
+            if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
+            {
+                activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
             };
             ImGui.SameLine();
             ImguiUtils.HelpMarker("Only specified libraries will be traced");
             ImGui.SameLine();
             string IgnoreLabel = $"IgnoreList [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
-            if(ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1)){
+            if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
+            {
                 activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
             };
             ImGui.SameLine();
@@ -250,7 +252,7 @@ namespace rgatCore
                     if (ImGui.TreeNode($"Ignored Files ({activeTarget.traceChoices.ignoreFilesCount})"))
                     {
                         List<string> names = activeTarget.traceChoices.GetIgnoredFiles();
-                        foreach (string fstr in names)  ImGui.Text(fstr);
+                        foreach (string fstr in names) ImGui.Text(fstr);
                         ImGui.TreePop();
                     }
                 }
@@ -318,7 +320,7 @@ namespace rgatCore
 
 
 
-       
+
 
 
 
@@ -329,7 +331,7 @@ namespace rgatCore
             PreviewGraphWidget.AddGraphicsCommands(_cl, _gd);
         }
 
-      
+
 
 
 
@@ -390,7 +392,7 @@ namespace rgatCore
                 if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
                 {
                     MainGraphWidget.Draw(graphSize, _ImGuiController, _rgatstate._GraphicsDevice);
-                    if (_rgatstate.ActiveGraph != null) 
+                    if (_rgatstate.ActiveGraph != null)
                         ImGui.Text($"Displaying thread {_rgatstate.ActiveGraph.tid}");
                     else
                         ImGui.Text($"No active graph to display");
@@ -425,7 +427,7 @@ namespace rgatCore
             ImGui.InvisibleButton("Replay Progress", progressBarSize);
             Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
             AnimationProgressBarPos.X += progressBarPadding;
-           
+
             if (ImGui.IsItemActive())
             {
                 sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
@@ -447,7 +449,7 @@ namespace rgatCore
             if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
             if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
-                SliderArrowDrawPos, 
+                SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
 
         }
@@ -458,19 +460,22 @@ namespace rgatCore
             _rgatstate.ActiveGraph.NeedReplotting = true;
         }
 
-        private void DrawScalePopup() 
+        private void DrawScalePopup()
         {
             if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
             {
 
-                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.005f, 0.05f, 4f, "%f%%")){
+                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.005f, 0.05f, 4f, "%f%%"))
+                {
                     InitGraphReplot();
                     Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.main_scalefactors.pix_per_A}");
                 };
-                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.02f, 0.1f, 200f, "%f%%")){
+                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.02f, 0.1f, 200f, "%f%%"))
+                {
                     InitGraphReplot();
                 };
-                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 1000f, "%f%%")){
+                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 1000f, "%f%%"))
+                {
                     InitGraphReplot();
                 };
 
@@ -482,7 +487,7 @@ namespace rgatCore
         {
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
             {
-                
+
                 ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
                 ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 20000f, "%f%%");
@@ -661,7 +666,7 @@ namespace rgatCore
                     if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
                     ImGui.EndGroup();
 
-                    ImGui.NextColumn(); 
+                    ImGui.NextColumn();
 
                     ImGui.BeginGroup();
                     if (ImGui.Button("Pause/Break")) Console.WriteLine("Kill clicked");
@@ -725,10 +730,10 @@ namespace rgatCore
                             foreach (var timepid in tracelist)
                             {
                                 TraceRecord selectableTrace = timepid.Item2;
-                                if(ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
-                                { 
-                                    _rgatstate.SelectActiveTrace(selectableTrace); 
-                                }    
+                                if (ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
+                                {
+                                    _rgatstate.SelectActiveTrace(selectableTrace);
+                                }
                                 if (selectableTrace.children.Count > 0)
                                 {
                                     CreateTracesDropdown(selectableTrace, 1);
@@ -742,12 +747,13 @@ namespace rgatCore
                         {
                             selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
                             uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
-                            List <PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList();
+                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList();
                             if (ImGui.BeginCombo($"Thread ({graphs.Count})", selString))
                             {
                                 foreach (PlottedGraph selectablegraph in graphs)
                                 {
-                                    if(ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid)){
+                                    if (ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid))
+                                    {
                                         SetActiveGraph(selectablegraph);
                                     }
                                 }
@@ -760,45 +766,49 @@ namespace rgatCore
 
                 PlottedGraph graph = _rgatstate.ActiveGraph;
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-                if(graph != null)
+                if (graph != null)
                     ImGui.Text($"Active Thread ID: {graph.tid}");
                 else
                     ImGui.Text($"No selected graph");
 
 
-                float metricsHeight = 80;
-                ImGui.Columns(3, "smushes");
-                ImGui.SetColumnWidth(0, 20);
-                ImGui.SetColumnWidth(1, 130);
-                ImGui.SetColumnWidth(2, 90);
-                ImGui.NextColumn();
 
-                
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
-                
-                if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
+                if (graph != null)
                 {
+                    float metricsHeight = 80;
+                    ImGui.Columns(3, "smushes");
+                    ImGui.SetColumnWidth(0, 20);
+                    ImGui.SetColumnWidth(1, 130);
+                    ImGui.SetColumnWidth(2, 200);
+                    ImGui.NextColumn();
 
-                    if (graph != null)
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+                    if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                     {
+
+
                         ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
                         ImGui.Text($"Nodes: {graph.internalProtoGraph.NodeList.Count}");
                         ImGui.Text($"Updates: {graph.internalProtoGraph.SavedAnimationData.Count}");
                         ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+
+                        ImGui.EndChild();
                     }
-                    ImGui.EndChild();
+
+                    ImGui.NextColumn();
+
+                    if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
+                    {
+                        ImGui.Text($"Instructions: {graph.internalProtoGraph.TotalInstructions}");
+                        ImGui.Text("Y: 456");
+                        ImGui.Text("Z: 496");
+                        ImGui.Text("Q: 41");
+                        ImGui.EndChild();
+                    }
+                    ImGui.PopStyleColor();
+                    ImGui.Columns(1, "smushes");
                 }
 
-                ImGui.NextColumn();
-                
-                if (ImGui.BeginChild("OtherMetrics", new Vector2(90, metricsHeight)))
-                {
-                    ImGui.Text("X: 123");ImGui.Text("Y: 456");ImGui.Text("Z: 496");ImGui.Text("Q: 41");
-                    ImGui.EndChild();
-                }  
-                ImGui.PopStyleColor();
-              
-                ImGui.Columns(1, "smushes");
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
@@ -828,7 +838,7 @@ namespace rgatCore
 
         }
 
-      
+
 
 
 
@@ -842,13 +852,13 @@ namespace rgatCore
                     _rgatstate.SelectActiveTrace();
                 }
                 if (_rgatstate.ChooseActiveGraph())
-                { 
+                {
                     MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
             }
-            
+
             float controlsHeight = 230;
 
             DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);
@@ -993,21 +1003,21 @@ namespace rgatCore
         private void LoadTraceByPath(string filepath)
         {
             if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
-            
+
             launch_all_trace_threads(trace, _rgatstate);
 
             _rgatstate.ActiveTarget = trace.binaryTarg;
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
-            
+
         }
         void launch_all_trace_threads(TraceRecord trace, rgatState clientState)
         {
             ProcessLaunching.launch_saved_process_threads(trace, clientState);
 
             foreach (TraceRecord childTrace in trace.children)
-	        {
+            {
                 launch_all_trace_threads(childTrace, clientState);
             }
         }

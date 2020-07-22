@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,10 @@ namespace rgatCore.Threads
     {
         ProtoGraph protograph;
         Thread runningThread;
+        bool IrregularTimerFired = false;
+        System.Timers.Timer IrregularActionTimer = null;
+
+
 
         struct BLOCKREPEAT
         {
@@ -21,7 +26,7 @@ namespace rgatCore.Threads
             //public uint insCount;
             public List<uint> targBlocks;
             public ulong totalExecs;
-            //public List<InstructionData> blockInslist;
+            public List<InstructionData> blockInslist;
         };
 
         List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
@@ -43,8 +48,137 @@ namespace rgatCore.Threads
             runningThread = new Thread(Processor);
             runningThread.Name = "TraceProcessor" + this.protograph.ThreadID;
             runningThread.Start();
+
+            IrregularActionTimer = new System.Timers.Timer(800);
+            IrregularActionTimer.Elapsed += (sender, args) => IrregularTimerFired = true;
+            IrregularActionTimer.AutoReset = false;
+            IrregularActionTimer.Start();
         }
 
+
+        void PerformIrregularActions()
+        {
+            if (PendingEdges.Count > 0)     SatisfyPendingEdges();
+            if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
+            IrregularActionTimer.Start();
+        }
+
+        //peforms non-sequence critical graph updates
+        //update nodes with cached execution counts and new edges from unchained runs
+        //also updates graph with delayed edge notifications
+        bool AssignBlockRepeats()
+        {
+
+            int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
+            List<BLOCKREPEAT> doneRepeats = new List<BLOCKREPEAT>();
+            for (var i = 0; i < blockRepeatQueue.Count; i++)
+            {
+                BLOCKREPEAT brep = blockRepeatQueue[i];
+                //first find the blocks instruction list
+                if (brep.blockID >= RecordedBlocksQty) continue;
+                NodeData n = null;
+
+                if (brep.blockInslist == null)
+                {
+                    if (brep.blockID >= protograph.BlocksFirstLastNodeList.Count ||
+                        protograph.BlocksFirstLastNodeList[(int)brep.blockID] == null)
+                    {
+                        continue;
+                    }
+
+                    brep.blockInslist = protograph.ProcessData.blockList[(int)brep.blockID].Item2;
+                }
+
+                //first record execution of each instruction
+                foreach (InstructionData ins in brep.blockInslist)
+                {
+
+                    n = protograph.safe_get_node(ins.threadvertIdx[protograph.ThreadID]);
+                    n.executionCount += brep.totalExecs;
+                    protograph.TotalInstructions += brep.totalExecs;
+                }
+
+
+                //create any new edges between unchained nodes
+                List<uint> donelist = new List<uint>();
+                foreach (uint targetblockidx in brep.targBlocks)
+                {
+
+                    if (targetblockidx < RecordedBlocksQty)
+                    {
+                        //external libraries will not be found by find_block_disassembly, but will be handled by run_external
+                        //this notices it has been handled and drops it from pending list
+                        bool alreadyHandled = false;
+                        foreach (uint targnidx in n.OutgoingNeighboursSet)
+                        {
+                            if (protograph.safe_get_node(targnidx).BlockID == targetblockidx)
+                            {
+                                Console.WriteLine($"Found existing link between node {n.index} and block {targetblockidx}, don't need to make new edge");
+                                donelist.Add(targetblockidx);
+                                alreadyHandled = true;
+                                break;
+                            }
+                        }
+                        if (alreadyHandled) 
+                            continue;
+                    }
+
+                    List<InstructionData> targetBlock = protograph.ProcessData.blockList[(int)targetblockidx].Item2;
+                    InstructionData firstIns = targetBlock[0];
+                    if (firstIns.threadvertIdx.ContainsKey(protograph.ThreadID))
+                    {
+
+                        uint srcNode = protograph.BlocksFirstLastNodeList[(int)brep.blockID].Item2;
+                        uint targNode = firstIns.threadvertIdx[protograph.ThreadID];
+                        if (!protograph.edgeDict.ContainsKey(new Tuple<uint, uint>(srcNode, targNode)))
+                        {
+                            Console.WriteLine($"Assigned new edge from node {srcNode} to {targNode}");
+                            protograph.AddEdge(srcNode, targNode);
+                        }
+
+                        //cout << "assign block repeats. block id " <<dec << blockid << " / addr 0x" << hex << 
+                        //	firstIns->address << " not on graph in thread " << dec << TID << endl;
+
+                        donelist.Add(targetblockidx);
+                        continue;
+                    }
+
+                    //todo - need to render instruction text to be able to debug this
+                    string insmodule = protograph.ProcessData.LoadedModulePaths[protograph.ProcessData.FindContainingModule(firstIns.address)];
+                    Console.WriteLine($"Can't create edge from block {brep.blockID} to block {targetblockidx} because first" +
+                        $" ins 0x{firstIns.address:X}: {firstIns.ins_text} (module: {insmodule}) not on graph");
+                }
+
+                brep.targBlocks = brep.targBlocks.Except(donelist).ToList();
+                if (brep.targBlocks.Count == 0)
+                {
+                    doneRepeats.Add(brep);
+                }
+            }
+
+            blockRepeatQueue = blockRepeatQueue.Except(doneRepeats).ToList();
+            return blockRepeatQueue.Count == 0;
+        }
+
+
+
+        void SatisfyPendingEdges()
+        {
+            int blockQty = protograph.BlocksFirstLastNodeList.Count;
+            List<NEW_EDGE_BLOCKDATA> doneList = new List<NEW_EDGE_BLOCKDATA>();
+            foreach( NEW_EDGE_BLOCKDATA pnd in PendingEdges )
+            {
+                if (pnd.sourceID > blockQty || pnd.targID > blockQty) continue;
+                Console.WriteLine($"Satisfying an edge request! {pnd.sourceID}:0x{pnd.sourceAddr:X}->{pnd.targID}:0x{pnd.targAddr:X}");
+
+                uint SrcNodeIdx = protograph.BlocksFirstLastNodeList[(int)pnd.sourceID].Item2;
+                uint TargNodeIdx = protograph.BlocksFirstLastNodeList[(int)pnd.targID].Item1;
+                protograph.AddEdge(SrcNodeIdx, TargNodeIdx);
+                doneList.Add(pnd);
+            }
+
+            PendingEdges = PendingEdges.Except(doneList).ToList();
+        }
 
 
         void ProcessLoopMarker(byte[] entry)
@@ -187,7 +321,7 @@ namespace rgatCore.Threads
             ulong currentAddr = ulong.Parse(entries[3], NumberStyles.HexNumber);
             ulong currentblockID_numins = ulong.Parse(entries[4], NumberStyles.HexNumber);
 
-            Debug.Assert(protograph.BlockList.Count > srcblockID, "Bad src block id in unlinking update");
+            Debug.Assert(protograph.BlocksFirstLastNodeList.Count > srcblockID, "Bad src block id in unlinking update");
 
 
             TAG thistag;
@@ -329,7 +463,7 @@ namespace rgatCore.Threads
                 newRepeat.targBlocks.Add(targblockID);
             }
 
-            //newRepeat.blockInslist = null;
+            newRepeat.blockInslist = null;
             //newRepeat.insCount = 0;
             //newRepeat.blockaddr = 0;
             blockRepeatQueue.Add(newRepeat);
@@ -344,6 +478,9 @@ namespace rgatCore.Threads
             animUpdate.targetID = 0;
             protograph.PushAnimUpdate(animUpdate);
         }
+
+
+
 
         void AddSatisfyUpdate(byte[] entry)
         {
@@ -436,6 +573,7 @@ namespace rgatCore.Threads
                 byte[] msg = protograph.TraceReader.DeQueueData();
                 if (msg == null)
                 {
+                    AssignBlockRepeats();
                     protograph.TraceReader.RequestWakeupOnData();
                     protograph.TraceReader.dataReadyEvent.WaitOne();
                     continue;
@@ -479,10 +617,15 @@ namespace rgatCore.Threads
                 }
                 if (todoprint)
                     Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+
+                if (IrregularTimerFired)
+                {
+                    PerformIrregularActions();
+                }
             }
 
 
-            Console.WriteLine(runningThread.Name + " finished");
+            Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
         }
 
     }

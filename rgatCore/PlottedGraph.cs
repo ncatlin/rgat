@@ -40,6 +40,15 @@ namespace rgatCore
             public float yOffset;
             public string displayString;
         };
+
+        public struct TEXTITEM
+        {
+           public Vector2 screenXY;
+           public Color color;
+           public string contents;
+            public int fontSize;
+        }
+
         protected struct TEXTRECT
         {
             System.Drawing.Rectangle rect;
@@ -105,6 +114,8 @@ namespace rgatCore
 			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-1.75f, 0f, -0.75f), RgbaFloat.Cyan));
 			mainnodesdata.VertList.Add(new VertexPositionColor(new Vector3(-.75f, -.75f, 0f), RgbaFloat.Cyan));
 			*/
+
+
         }
 
 
@@ -257,11 +268,109 @@ namespace rgatCore
             return true;
         }
 
-        /*
-		void changeZoom(double delta, double deltaModifier);
+        
+		//void changeZoom(double delta, double deltaModifier);
 
-		void draw_instructions_text(int zdist, PROJECTDATA* pd, graphGLWidget &gltarget);
-		void show_external_symbol_labels(PROJECTDATA* pd, graphGLWidget &gltarget);
+        //iterate through all the nodes, draw instruction text for the ones in view
+        //TODO: in animation mode don't show text for inactive nodes
+        void DrawInstructionsText(int zdist)//, PROJECTDATA* pd, graphGLWidget &gltarget)
+        {
+            
+
+            
+            Vector3 screenCoord;
+            string displayText  = "?";
+
+            /*
+            SCREEN_QUERY_PTRS screenInfo;
+            screenInfo.mainverts = get_mainnodes();
+            screenInfo.pd = pd;
+            */
+
+            //QPainter painter(&gltarget);
+            //painter.setPen(clientState->config.mainColours.instructionText);
+            //painter.setFont(clientState->instructionFont);
+
+            uint numVerts = internalProtoGraph.get_num_nodes();
+            for (uint i = 0; i < numVerts; ++i)
+            {
+                NodeData n = internalProtoGraph.safe_get_node(i);
+
+                if (n.IsExternal) continue;
+                //if (!get_visible_node_pos(i, &screenCoord, &screenInfo, gltarget)) continue;
+
+                bool compactDisplay;
+
+                if (!GlobalConfig.instructionTextVisibility.extraDetail || zdist > GlobalConfig.insTextCompactThreshold)
+                {
+                    if (n.ins.itype != eNodeType.eInsUndefined || !n.IsConditional() || n.label?.Length > 0)
+                        compactDisplay = false;
+                    else
+                        compactDisplay = true;
+                }
+                else
+                    compactDisplay = false;
+
+                if (compactDisplay && n.ins.itype == eNodeType.eInsUndefined) continue; //dont want to see add,mov,etc from far away
+
+                if (n.ins.itype == eNodeType.eInsCall || n.ins.itype == eNodeType.eInsJump)
+                {
+                    if (GlobalConfig.instructionTextVisibility.fullPaths && n.ins.branchAddress != 0)
+                    {
+                        List<uint> outnodes = null;
+                        lock (internalProtoGraph.nodeLock)
+                        {
+                           outnodes = n.OutgoingNeighboursSet;
+                        }
+
+                        bool expectedTarget = false;
+                        foreach(uint nidx in outnodes)
+        
+                        {
+                            NodeData possibleTargN = internalProtoGraph.safe_get_node(nidx);
+                            if (possibleTargN.address == n.ins.branchAddress)
+                            {
+                                if (possibleTargN.label?.Length > 0)
+                                {
+                                    displayText = n.ins.ins_text;
+                                }
+                                else
+                                { 
+                                    displayText = n.ins.mnemonic + " " + possibleTargN.label; 
+                                }
+                                expectedTarget = true;
+                                break;
+                            }
+                        }
+                        if (!expectedTarget)
+                            displayText = n.ins.ins_text;
+
+                    }
+                    else
+                        displayText = n.ins.ins_text;
+                }
+                else
+                    displayText = n.ins.ins_text;
+
+
+                string string2 = $"{i}";
+
+                if (!compactDisplay && GlobalConfig.instructionTextVisibility.addresses)
+                {
+                    if (GlobalConfig.instructionTextVisibility.offsets)
+                        string2 += $"+0x{(n.ins.address - internalProtoGraph.moduleBase):X}: {displayText}";
+                    else
+                        string2 += $"+0x{n.ins.address:X}: {displayText}";
+                }
+
+                //painter.drawText(screenCoord.x + INS_X_OFF, gltarget.height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
+            }
+
+        }
+
+        /*
+		 * 
+        void show_external_symbol_labels(PROJECTDATA* pd, graphGLWidget &gltarget);
 		void show_internal_symbol_labels(PROJECTDATA* pd, graphGLWidget &gltarget, bool placeHolders);
 		void draw_internal_symbol(DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, QPainter* painter, const QFontMetrics* fontMetric);
 		void draw_internal_symbol(DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, QPainter* painter, const QFontMetrics* fontMetric, string symbolText);
@@ -445,7 +554,6 @@ namespace rgatCore
         Tuple<ulong, ulong> condCounts;
 
         public ulong vertResizeIndex = 0;
-        bool VBOsGenned = false;
         public int userSelectedAnimPosition = 0;
 
         public double cameraZoomlevel = -1;
@@ -460,6 +568,17 @@ namespace rgatCore
         bool schedule_performSymbolResolve = false;
 
         protected List<TEXTRECT> labelPositions = new List<TEXTRECT>();
+
+        protected readonly Object textLock = new Object();
+        protected List<TEXTITEM> texts = new List<TEXTITEM>();
+
+        public struct SCREENINFO
+        {
+            public float X, Y, Width, Height, MinDepth, MaxDepth, FOV, angle;
+            public Vector3 CamPos;
+        }
+        public abstract List<TEXTITEM> GetOnScreenTexts(SCREENINFO scrn);
+
         int wireframeMode; //used to query the current mode
 
         //protected:
@@ -1550,8 +1669,10 @@ namespace rgatCore
         public Veldrid.Texture _outputTexture = null;
         public Veldrid.Texture _previewTexture = null;
         public Veldrid.Framebuffer _outputFramebuffer = null;
-
         public Veldrid.Framebuffer _previewFramebuffer = null;
+
+
+
 
         ulong renderedBlocksCount = 0;
 
@@ -1573,6 +1694,9 @@ namespace rgatCore
         //prevent graph from being deleted while being used
         //rgatlocks::TestableLock graphBusyLock;
 
+        public Matrix4x4 projection;
+        public Matrix4x4 view;
+        public Matrix4x4 rotation;
 
         public int AnimationUpdatesPerFrame = GlobalConfig.animationUpdatesPerFrame;
 

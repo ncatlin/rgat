@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ImGuiNET;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,22 +28,14 @@ namespace rgatCore
         DeviceBuffer _PointIndexBuffer;
 
         ResourceSet _projViewSet;
-        public DeviceBuffer _worldBuffer { get; private set; }
-        public DeviceBuffer _projectionBuffer { get; private set; }
         public DeviceBuffer _viewBuffer { get; private set; }
-
-        
 
         ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
         {
-            ResourceLayoutElementDescription pb = new ResourceLayoutElementDescription("ProjectionBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
             ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayoutElementDescription wb = new ResourceLayoutElementDescription("WorldBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(pb, vb, wb));
-            _worldBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            _projectionBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(vb));
             _viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            _projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _projectionBuffer, _viewBuffer, _worldBuffer));
+            _projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _viewBuffer));
             return projViewLayout;
         }
 
@@ -246,8 +239,6 @@ namespace rgatCore
                 vertexOffset: 0,
                 instanceStart: 0);
         }
-
-
 
     }
 

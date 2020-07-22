@@ -65,14 +65,154 @@ namespace rgatCore
             wireframelines = new GraphDisplayData();
         }
 
-        
+        //https://gist.github.com/sixman9/871099
+        private static bool WithinEpsilon(float a, float b)
+        {
+            float num = a - b;
+            return ((-1.401298E-45f <= num) && (num <= float.Epsilon));
+        }
 
+   
+        
+        public Vector3 Project(Vector3 source, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, SCREENINFO box)
+        {
+            Matrix4x4 matrix = Matrix4x4.Multiply(Matrix4x4.Multiply(world, view), projection);
+            
+
+            Vector3 vector = Vector3.Transform(source, matrix);
+            float a = (((source.X * matrix.M14) + (source.Y * matrix.M24)) + (source.Z * matrix.M34)) + matrix.M44;
+            if (!WithinEpsilon(a, 1f))
+            {
+               vector = (Vector3)(vector / a);
+            }
+            vector.X = (((vector.X + 1f) * 0.5f) * box.Width) + box.X;
+            vector.Y = (((-vector.Y + 1f) * 0.5f) * box.Height) + box.Y;
+            vector.Z = (vector.Z * box.CamPos.Z) * -1; //distance from cam
+            return vector;
+        }
+
+        Vector3 NodeScreeenPosition(uint index, GRAPH_SCALE dimensions, SCREENINFO scrn, Vector3 offset)
+        {
+            bool success = get_node_coord((int)index, out CYLINDERCOORD nodeCoordCyl);
+            Debug.Assert(success);
+            cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod, out Vector3 NodeCoord, dimensions);
+
+            Matrix4x4 TextCoordMatrix = Matrix4x4.CreateTranslation(0f, 0f, 0f);
+
+            Matrix4x4 world = Matrix4x4.Multiply(TextCoordMatrix, rotation);
+
+            NodeCoord.X += 0.5f;
+            NodeCoord.Y += 1f;
+            Vector3 pos2 = Project(NodeCoord, projection, view, world, scrn);
+            return pos2;
+        }
+
+        public override List<TEXTITEM> GetOnScreenTexts(SCREENINFO scrn)
+        {
+            texts.Clear();
+
+            List<NodeData> nodes;
+            lock(internalProtoGraph.nodeLock)
+            {
+                nodes = internalProtoGraph.NodeList.ToList<NodeData>();
+            }
+
+            /*
+            performance todo - want to update position of displayed texts every frame but 
+            choosing which nodes to display can be an irregular action
+            */
+            Vector3 noOffset = new Vector3(0, 0, 0);
+            foreach(NodeData node in nodes)
+            {
+                Vector3 pos = NodeScreeenPosition(node.index, main_scalefactors, scrn, noOffset);
+                if (pos.X > scrn.Width || pos.X < 0) continue;
+                if (pos.Y > scrn.Height || pos.Y < 0) continue;
+
+                if (!node.IsExternal)
+                {
+                    if (pos.Z > GlobalConfig.FurthestInstructionText) continue;
+                }
+                else
+                {
+                    if (pos.Z > GlobalConfig.FurthestSymbol) continue;
+                }
+
+
+                TEXTITEM itm;
+                if (pos.Z < 20) itm.fontSize = 20;
+                else if (pos.Z < 40) itm.fontSize = 19;
+                else if (pos.Z < 60) itm.fontSize = 18;
+                else if (pos.Z < 90) itm.fontSize = 17;
+                else if (pos.Z < 130) itm.fontSize = 16;
+                else itm.fontSize = 15;
+
+                if (node.IsExternal)
+                {
+                    itm.contents = "todo sym";
+                    itm.color = Color.SpringGreen;
+                }
+                else
+                {
+                    itm.contents = node.ins.ins_text;
+                    itm.color = Color.White;
+                }
+
+
+                itm.screenXY.X = pos.X;
+                itm.screenXY.Y = pos.Y;
+
+                texts.Add(itm);
+            }
+            //Console.WriteLine(texts.Count);
+            
+
+            return texts;
+            
+        }
+
+        //returns the screen coordinate of a node if it is on the screen
+        bool GetNodeScreenXYPos(uint nidx, out Vector2 screenPos)
+        {
+            if (!get_node_coord((int)nidx, out CYLINDERCOORD nodeCoord))
+            {
+                screenPos = new Vector2(0,0);
+                return false; //usually happens with block interrupted by exception
+            }
+
+            /*
+            this check removes the bulk of the offscreen instructions with low performance penalty, including those
+            on screen but on the other side of the cylinder
+            */
+
+            /*
+            if (!a_coord_on_screen(nodeCoord->a, 1)) //TODO needs reimplementing
+            {
+                screenPos = new Vector2(0, 0);
+                return false; 
+            }
+            */
+
+
+
+
+            //Matrix4x4.Decompose()
+            //if (!get_screen_pos(nidx, screenInfo->mainverts, screenInfo->pd, out screenPos)) return false; //in graph but not rendered
+
+
+
+            //not visible if not within bounds of opengl widget rectangle
+            //if (screenCoord.x > gltarget.width() || screenCoord.x < -100) return false;
+            //if (screenCoord.y > gltarget.height() || screenCoord.y < -100) return false;
+
+            screenPos = new Vector2(0, 0);
+            return true;
+        }
 
         //void maintain_draw_wireframe(graphGLWidget &gltarget);
 
 
-		//void performMainGraphDrawing(graphGLWidget &gltarget);
-		
+        //void performMainGraphDrawing(graphGLWidget &gltarget);
+
         public override void render_static_graph()
         {
             int drawCount = render_new_edges();
@@ -266,12 +406,14 @@ namespace rgatCore
             return result;
         }
 
-
-
-        void initialise()
+        Vector2 nodeIndexToXYZ_Text(int index)
         {
-            layout = graphLayouts.eCylinderLayout;
+            bool success = get_node_coord(index, out CYLINDERCOORD nodeCoordCyl);
+            Debug.Assert(success);
+            cylinderCoord_Text(nodeCoordCyl.a, nodeCoordCyl.b, 1, out Vector2 result);
+            return result;
         }
+
 
         int needed_wireframe_loops()
         {
@@ -289,6 +431,7 @@ namespace rgatCore
                 plot_wireframe();
             }
         }
+
 
         void plot_wireframe()
         {
@@ -329,7 +472,7 @@ namespace rgatCore
         }
 
 
-        
+
         /*
         
         void display_graph(GraphicsMaths.PROJECTDATA pd, graphGLWidget &gltarget)
@@ -400,7 +543,7 @@ namespace rgatCore
         }
         */
 
-        int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC,
+        static int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC,
             WritableRgbaFloat colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos)
         {
             //describe the normal
@@ -732,6 +875,7 @@ namespace rgatCore
             newPosition.diamMod = diamMod;
         }
 
+
         bool get_node_coord(int nodeidx, out CYLINDERCOORD result)
         {
 
@@ -752,12 +896,14 @@ namespace rgatCore
 		bool a_coord_on_screen(int a, float hedgesep);
 		*/
 
-        void cylinderCoord(CYLINDERCOORD sc, out Vector3 c, GRAPH_SCALE dimensions)
+
+        static void cylinderCoord(CYLINDERCOORD sc, out Vector3 c, GRAPH_SCALE dimensions)
         {
            
             cylinderCoord(sc.a, sc.b, sc.diamMod, out c, dimensions);
         }
-        void cylinderCoord(float a, float b, float diamModifier, out Vector3 c, GRAPH_SCALE dimensions)
+
+        static void cylinderCoord(float a, float b, float diamModifier, out Vector3 c, GRAPH_SCALE dimensions)
         {
             double r = (dimensions.plotSize + diamModifier );// +0.1 to make sure we are above lines
 
@@ -771,8 +917,13 @@ namespace rgatCore
             c.Y = fb;
         }
 
+        static void cylinderCoord_Text(float a, float b, float diamModifier, out Vector2 c)
+        {
+            c.X = (float)(diamModifier * Math.Cos((a * Math.PI) / diamModifier));
+            c.Y = -1 * B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
+        }
 
-        void getCylinderCoordAB(Vector3 c, GRAPH_SCALE dimensions, out float aOut, out float bOut)
+        static void getCylinderCoordAB(Vector3 c, GRAPH_SCALE dimensions, out float aOut, out float bOut)
         {
             double r = dimensions.plotSize;
             aOut = (float)((Math.Asin(c.Z / r) * r) / Math.PI) / dimensions.pix_per_A;

@@ -529,12 +529,32 @@ namespace rgatCore
         }
 
 
+        public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx)
+        {
+            NodeData sourceNode = safe_get_node(SrcNodeIdx);
+            NodeData targNode = safe_get_node(TargNodeIdx);
+
+            EdgeData newEdge = new EdgeData();
+
+            if (targNode.IsExternal)
+                newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
+            else if (sourceNode.ins.itype == eNodeType.eInsCall)
+                newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+            else if (sourceNode.ins.itype == eNodeType.eInsReturn)
+                newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+            else
+                newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+
+            AddEdge(newEdge, sourceNode, targNode);
+
+        }
+
 
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
 
-            //getNodeWriteLock();
+           
 
             source.OutgoingNeighboursSet.Add(edgePair.Item2);
             if (source.conditional != eConditionalType.NOTCONDITIONAL &&
@@ -546,8 +566,10 @@ namespace rgatCore
                     source.conditional |= eConditionalType.CONDTAKEN;
             }
 
-            target.IncomingNeighboursSet.Add(edgePair.Item1);
-            //dropNodeWriteLock();
+            lock (nodeLock)
+            {
+                target.IncomingNeighboursSet.Add(edgePair.Item1);
+            }
 
             lock (edgeLock)
             {
@@ -640,7 +662,7 @@ namespace rgatCore
                 //addBlockNodesToGraph(thistag, repeats);
                 addBlockLineToGraph(thistag, repeats);
 
-                TotalInstructions += thistag.insCount * repeats;
+                //TotalInstructions += thistag.insCount * repeats;
                 set_active_node(lastVertID);
             }
 
@@ -678,12 +700,14 @@ namespace rgatCore
         public Dictionary<Tuple<uint, uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
         public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
-        public List<BlockData> BlockList = new List<BlockData>(); //node id to node data
+        //light-touch list of blocks for filling in edges without locking disassembly data
+        public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint,uint>>(); 
 
 
         private readonly object highlightsLock = new object();
 
 
+        public readonly object nodeLock = new object();
         public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
 
         public bool node_exists(uint idx) { return (NodeList.Count > idx); }
@@ -732,6 +756,7 @@ namespace rgatCore
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
             int numInstructions = block.Count;
+            TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
             uint lastVert;
@@ -795,11 +820,14 @@ namespace rgatCore
                 lastVertID = targVertID;
             }
 
-            BlockData newblock = new BlockData(firstVert, lastVertID);
 
             lock (edgeLock)
             {
-                BlockList.Add(newblock);
+                while (BlocksFirstLastNodeList.Count <= tag.blockID) BlocksFirstLastNodeList.Add(null);
+                if (BlocksFirstLastNodeList[(int)tag.blockID] == null)
+                {
+                    BlocksFirstLastNodeList[(int)tag.blockID] = new Tuple<uint, uint>(firstVert, lastVertID);
+                }
             }
 
             //Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
@@ -1101,7 +1129,7 @@ namespace rgatCore
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
         List<EXTERNCALLDATA> ExternCallRecords = new List<EXTERNCALLDATA>();
-        public ulong TotalInstructions { get; private set; } = 0;
+        public ulong TotalInstructions { get; set; } = 0;
         int exeModuleID = -1;
         public ulong moduleBase = 0;
         public string modulePath;
