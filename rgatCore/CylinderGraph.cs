@@ -864,6 +864,7 @@ namespace rgatCore
             result = new CYLINDERCOORD();
             return false;
         }
+
         /*
 		bool get_screen_pos(NODEINDEX nodeIndex, GraphDisplayData* vdata, GraphicsMaths.PROJECTDATA pd, DCOORD* screenPos);
 		bool a_coord_on_screen(int a, float hedgesep);

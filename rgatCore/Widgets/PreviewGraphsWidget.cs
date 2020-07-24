@@ -15,11 +15,10 @@ namespace rgatCore
         List<PlottedGraph> DrawnGraphs = new List<PlottedGraph>();
 
 
-        System.Timers.Timer FrameTimer;
-        bool FrameTimerFired = false;
+        System.Timers.Timer IrregularTimer;
+        bool IrregularTimerFired = false;
 
         TraceRecord ActiveTrace = null;
-
 
         public float dbg_FOV = 1.0f;//1.0f;
         public float dbg_near = 0.5f;
@@ -39,45 +38,23 @@ namespace rgatCore
 
         public PreviewGraphsWidget()
         {
-            FrameTimer = new System.Timers.Timer(600);
-            FrameTimer.Elapsed += FireFrameTimer;
-            FrameTimer.AutoReset = true;
-            FrameTimer.Start();
+            IrregularTimer = new System.Timers.Timer(600);
+            IrregularTimer.Elapsed += FireTimer;
+            IrregularTimer.AutoReset = true;
+            IrregularTimer.Start();
 
         }
-        private void FireFrameTimer(object sender, ElapsedEventArgs e) { FrameTimerFired = true; }
 
-        /* 
-	 * Triggered automatically when main window is resized
-	 * Manually called when we detect window changes size otherwise
-	 */
-        public void AlertResized(Vector2 size)
-        {
-            lastResizeSize = size;
-            lastResize = DateTime.Now;
-            scheduledGraphResize = true;
-        }
-
-        private DateTime lastResize = DateTime.Now;
-        private bool scheduledGraphResize = true;
-        private Vector2 lastResizeSize = new Vector2(0, 0);
+        private void FireTimer(object sender, ElapsedEventArgs e) { IrregularTimerFired = true; }
 
         public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
 
-        private void HandleClickedGraph(PlottedGraph graph)
+        public void SetSelectedGraph(PlottedGraph graph) => selectedGraphTID = graph.tid;
+
+        private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
+
+        private Vector2? HandleInput(Vector2 widgetSize)
         {
-            clickedGraph = graph;
-        }
-
-        public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
-        {
-            //if (FrameTimerFired) Update();
-
-            clickedGraph = null;
-            if (ActiveTrace == null)
-                return;
-
-            Vector2? ClickedPos = null;
             if (ImGui.IsMouseClicked(0))
             {
                 Vector2 MousePos = ImGui.GetMousePos();
@@ -87,55 +64,62 @@ namespace rgatCore
                 {
                     if (MousePos.Y >= (WidgetPos.Y + ImGui.GetScrollY()) && MousePos.Y < (WidgetPos.Y + widgetSize.Y + ImGui.GetScrollY()))
                     {
-                        //ClickedPos = new Vector2(MousePos.X - WidgetPos.X, MousePos.Y - WidgetPos.Y);
-                        ClickedPos = new Vector2(MousePos.X, MousePos.Y);
+                        return new Vector2(MousePos.X, MousePos.Y);
                     }
                 }
-
             }
+            return null;
+        }
+
+        //we do it via Draw so events are handled by the same thread
+        public void HandleFrameTimerFired()
+        {
+            //Console.WriteLine("Handling timer fired");
+            IrregularTimerFired = false;
+        }
+
+        public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
+        {
+            if (ActiveTrace == null)  return;
+            if (IrregularTimerFired) HandleFrameTimerFired();
+
+            Vector2? ClickedPos = HandleInput(widgetSize);
 
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-            Vector2 pos = ImGui.GetCursorScreenPos();
-            pos.X += MarginWidth;
+            Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
+            subGraphPosition.X += MarginWidth;
+
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
+            int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
+
             DrawnGraphs = ActiveTrace.GetPlottedGraphsList();
             foreach (PlottedGraph graph in DrawnGraphs)
             {
                 if (graph.previewnodes.CountVerts() == 0 || graph._previewTexture == null) continue;
+
                 ImGui.Text($"TID:{graph.tid} {graph.previewnodes.CountVerts()}vts");
                 if (graph.tid == selectedGraphTID)
                     ImGui.Text("[Selected]");
 
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
-                    pos,
-                    new Vector2(pos.X + EachGraphWidth, pos.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
+                    subGraphPosition,
+                    new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
 
-                if (ClickedPos.HasValue && ClickedPos.Value.Y > pos.Y && ClickedPos.Value.Y < (pos.Y + EachGraphHeight))
+                if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y && 
+                    ClickedPos.Value.Y < (subGraphPosition.Y + EachGraphHeight))
                 {
                     HandleClickedGraph(graph);
                 }
 
-                int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
-
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
-                pos.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
+                subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
             }
-
-            //drawHUD();
         }
 
+
         private static long _startTime = System.DateTime.Now.Ticks;
-
         private static Shader[] _shaders;
-
-        /*
-		private static Pipeline _wireframePipeline;
-		private static VertexPositionColor[] _WireframeVertices;
-		private static DeviceBuffer _WireframeVertexBuffer;
-		private static DeviceBuffer _WireframeIndexBuffer;
-		*/
-
         Dictionary<uint, VeldridGraphBuffers> graphicInfos = new Dictionary<uint, VeldridGraphBuffers>();
 
 
@@ -143,8 +127,6 @@ namespace rgatCore
         {
 
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
-
-
 
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far);
             Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
@@ -205,17 +187,12 @@ namespace rgatCore
 
                 _cl.SetFramebuffer(graph._previewFramebuffer);
                 _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
-                //_cl.ClearDepthStencil(1f);
                 SetupView(_cl, graphRenderInfo);
                 graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);
                 graphRenderInfo.DrawPoints(_cl, _gd, graph.previewnodes);
             }
         }
 
-        public void SetSelectedGraph(PlottedGraph graph)
-        {
-            selectedGraphTID = graph.tid;
-        }
 
 
 
@@ -252,55 +229,5 @@ void main()
     fsout_Color = fsin_Color;
 }";
 
-
-
-
-
-
-
-        bool setMouseoverNode()
-        {
-            /*
-			float zmul = ActiveGraph.zoomMultiplier();
-			if (!_rgatState.should_show_external_symbols(zmul) && !_rgatState.should_show_internal_symbols(zmul))
-				return false;
-
-			//mouse still over same node?
-			if (activeMouseoverNode && mouseoverNodeRect.rect.contains(mousePos.x(), mousePos.y()))
-			{
-				node_data* nodeptr = ActiveGraph.get_protoGraph()->safe_get_node(mouseoverNode());
-				if (nodeptr->external)
-					return _rgatState.should_show_external_symbols(zmul);
-				else
-					return _rgatState.should_show_internal_symbols(zmul);
-			}
-
-			//mouse over any node?
-			for each(TEXTRECT nodelabel in ActiveGraph.labelPositions)
-			{
-				if (nodelabel.rect.contains(mousePos.x(), mousePos.y()))
-				{
-					node_data* nodeptr = ActiveGraph.get_protoGraph()->safe_get_node(nodelabel.index);
-					if (nodeptr->external)
-					{
-						if (!_rgatState.should_show_external_symbols(zmul))
-							return false;
-					}
-					else
-					{
-						if (!_rgatState.should_show_internal_symbols(zmul))
-							return false;
-					}
-
-					mouseoverNodeRect = nodelabel;
-					activeMouseoverNode = true;
-					return false;
-				}
-			}
-
-			activeMouseoverNode = false;
-			*/
-            return false;
-        }
     }
 }
