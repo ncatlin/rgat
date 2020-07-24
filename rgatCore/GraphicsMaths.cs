@@ -64,6 +64,49 @@ namespace rgatCore
             float z = ((1 - t) * (1 - t) * startC.Z + 2 * (1 - t) * t * bezierC.Z + t * t * endC.Z);
             return new Vector3(x, y, z);
         }
+        public struct SCREENINFO
+        {
+            public float X, Y, Width, Height, MinDepth, MaxDepth, CamZoom;
+        }
+
+        //https://gist.github.com/sixman9/871099
+        private static bool WithinEpsilon(float a, float b)
+        {
+            float num = a - b;
+            return ((-1.401298E-45f <= num) && (num <= float.Epsilon));
+        }
+
+        public static Vector3 Project(Vector3 source, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, SCREENINFO box)
+        {
+            Matrix4x4 matrix = Matrix4x4.Multiply(Matrix4x4.Multiply(world, view), projection);
+
+
+            Vector3 vector = Vector3.Transform(source, matrix);
+            float a = (((source.X * matrix.M14) + (source.Y * matrix.M24)) + (source.Z * matrix.M34)) + matrix.M44;
+            if (!WithinEpsilon(a, 1f))
+            {
+                vector = (Vector3)(vector / a);
+            }
+            vector.X = (((vector.X + 1f) * 0.5f) * box.Width) + box.X;
+            vector.Y = (((-vector.Y + 1f) * 0.5f) * box.Height) + box.Y;
+            //vector.Z = (vector.Z * (box.MaxDepth - box.MinDepth)) + box.MinDepth;
+            return vector;
+        }
+
+        public static Vector3 Unproject(Vector3 source, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, SCREENINFO box)
+        {
+            Matrix4x4.Invert(Matrix4x4.Multiply(Matrix4x4.Multiply(world, view), projection), out Matrix4x4 matrix);
+            source.X = (((source.X - box.X) / (box.Width)) * 2f) - 1f;
+            source.Y = -((((source.Y - box.Y) / (box.Height)) * 2f) - 1f);
+            source.Z = (source.Z - box.MinDepth) / (box.MaxDepth - box.MinDepth);
+            Vector3 vector = Vector3.Transform(source, matrix);
+            float a = (((source.X * matrix.M14) + (source.Y * matrix.M24)) + (source.Z * matrix.M34)) + matrix.M44;
+            if (!WithinEpsilon(a, 1f))
+            {
+                vector = (Vector3)(vector / a);
+            }
+            return vector;
+        }
 
     }
 }

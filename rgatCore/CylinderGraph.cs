@@ -22,8 +22,8 @@ namespace rgatCore
 
     class CylinderGraph : PlottedGraph
     {
-        const float DEFAULT_A_SEP = 0.8f; //was 80
-        const float DEFAULT_B_SEP = 1.2f; //was 120
+        const float DEFAULT_A_SEP = 80f; //was 80
+        const float DEFAULT_B_SEP = 120f; //was 120
         const float PREVIEW_A_SEP = 0.8f;
         const float PREVIEW_B_SEP = 1.2f;
         const float B_PX_OFFSET_FROM_TOP = 0.01f;
@@ -65,49 +65,26 @@ namespace rgatCore
             wireframelines = new GraphDisplayData();
         }
 
-        //https://gist.github.com/sixman9/871099
-        private static bool WithinEpsilon(float a, float b)
-        {
-            float num = a - b;
-            return ((-1.401298E-45f <= num) && (num <= float.Epsilon));
-        }
 
-   
-        
-        public Vector3 Project(Vector3 source, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, SCREENINFO box)
-        {
-            Matrix4x4 matrix = Matrix4x4.Multiply(Matrix4x4.Multiply(world, view), projection);
-            
 
-            Vector3 vector = Vector3.Transform(source, matrix);
-            float a = (((source.X * matrix.M14) + (source.Y * matrix.M24)) + (source.Z * matrix.M34)) + matrix.M44;
-            if (!WithinEpsilon(a, 1f))
-            {
-               vector = (Vector3)(vector / a);
-            }
-            vector.X = (((vector.X + 1f) * 0.5f) * box.Width) + box.X;
-            vector.Y = (((-vector.Y + 1f) * 0.5f) * box.Height) + box.Y;
-            vector.Z = (vector.Z * box.CamPos.Z) * -1; //distance from cam
-            return vector;
-        }
-
-        Vector3 NodeScreeenPosition(uint index, GRAPH_SCALE dimensions, SCREENINFO scrn, Vector3 offset)
+        Vector3 NodeScreeenPosition(uint index, GRAPH_SCALE dimensions, GraphicsMaths.SCREENINFO scrn, Vector3 offset)
         {
             bool success = get_node_coord((int)index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
             cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod, out Vector3 NodeCoord, dimensions);
 
-            Matrix4x4 TextCoordMatrix = Matrix4x4.CreateTranslation(0f, 0f, 0f);
+            Matrix4x4 TextCoordMatrix = Matrix4x4.Identity;// Matrix4x4.CreateTranslation(0f, 0f, 0f);
 
             Matrix4x4 world = Matrix4x4.Multiply(TextCoordMatrix, rotation);
 
-            NodeCoord.X += 0.5f;
-            NodeCoord.Y += 1f;
-            Vector3 pos2 = Project(NodeCoord, projection, view, world, scrn);
+            
+            Vector3 pos2 = GraphicsMaths.Project(NodeCoord, projection, view, world, scrn);
+            pos2.Z = (pos2.Z - scrn.CamZoom) - dimensions.plotSize;
+
             return pos2;
         }
 
-        public override List<TEXTITEM> GetOnScreenTexts(SCREENINFO scrn)
+        public override List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn)
         {
             texts.Clear();
 
@@ -125,25 +102,21 @@ namespace rgatCore
             foreach(NodeData node in nodes)
             {
                 Vector3 pos = NodeScreeenPosition(node.index, main_scalefactors, scrn, noOffset);
-                if (pos.X > scrn.Width || pos.X < 0) continue;
-                if (pos.Y > scrn.Height || pos.Y < 0) continue;
 
-                if (!node.IsExternal)
-                {
-                    if (pos.Z > GlobalConfig.FurthestInstructionText) continue;
-                }
-                else
-                {
-                    if (pos.Z > GlobalConfig.FurthestSymbol) continue;
-                }
+                if ((pos.X - scrn.X) > scrn.Width || (pos.X - scrn.X) < 0) continue;
+                if ((pos.Y - scrn.Y) > scrn.Height || (pos.Y - scrn.Y) < 0) continue;
 
+                //TODO: see how to adjust this to make this relative to plot size
+
+                if (node.IsExternal && pos.Z > GlobalConfig.FurthestSymbol) continue;
+                if (!node.IsExternal && pos.Z > GlobalConfig.FurthestInstructionText) continue;
 
                 TEXTITEM itm;
-                if (pos.Z < 20) itm.fontSize = 20;
-                else if (pos.Z < 40) itm.fontSize = 19;
-                else if (pos.Z < 60) itm.fontSize = 18;
-                else if (pos.Z < 90) itm.fontSize = 17;
-                else if (pos.Z < 130) itm.fontSize = 16;
+                if (pos.Z < 500) itm.fontSize = 20;
+                else if (pos.Z < 800) itm.fontSize = 19;
+                else if (pos.Z < 1100) itm.fontSize = 18;
+                else if (pos.Z < 1400) itm.fontSize = 17;
+                else if (pos.Z < 1700) itm.fontSize = 16;
                 else itm.fontSize = 15;
 
                 if (node.IsExternal)
@@ -276,8 +249,8 @@ namespace rgatCore
             preview_scalefactors.original_pix_per_B = PREVIEW_B_SEP;
             preview_scalefactors.userSizeModifier = 1;
 
-            main_scalefactors.plotSize = 50;// 20000;
-            main_scalefactors.basePlotSize = 50;// 20000;
+            main_scalefactors.plotSize = 20000;
+            main_scalefactors.basePlotSize = 20000;
             main_scalefactors.userSizeModifier = 1;
             main_scalefactors.pix_per_A = DEFAULT_A_SEP;
             main_scalefactors.original_pix_per_A = DEFAULT_A_SEP;
@@ -350,7 +323,7 @@ namespace rgatCore
                 switch (n.ins.itype)
                 {
                     case eNodeType.eInsUndefined:
-                        lastNode.lastVertType = !n.IsConditional() ?
+                        lastNode.lastVertType = n.IsConditional() ?
                             eEdgeNodeType.eNodeJump :
                             eEdgeNodeType.eNodeNonFlow;
                         break;

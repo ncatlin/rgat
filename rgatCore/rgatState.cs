@@ -58,6 +58,7 @@ namespace rgatCore
             if (newTarget != null && newTarget != ActiveTarget)
             {
                 ActiveTarget = newTarget;
+				ClearActiveGraph();
             };
         }
 		public void SetActiveTarget(BinaryTarget newTarget)

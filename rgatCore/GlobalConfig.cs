@@ -42,8 +42,8 @@ namespace rgatCore.Threads
         public static SYMS_VISIBILITY instructionTextVisibility;
         public static float insTextCompactThreshold = 2.5f;
 
-        public static float FurthestInstructionText = 150f;
-        public static float FurthestSymbol = 400f;
+        public static float FurthestInstructionText = 2000f;
+        public static float FurthestSymbol = 5000f;
 
         public static class mainColours
         {

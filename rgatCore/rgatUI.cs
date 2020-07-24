@@ -414,6 +414,7 @@ namespace rgatCore
                 }
                 ImGui.PopStyleColor();
             }
+            
 
         }
 
@@ -464,17 +465,17 @@ namespace rgatCore
         {
             if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
             {
-
-                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.005f, 0.05f, 4f, "%f%%"))
+                
+                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
                 {
                     InitGraphReplot();
                     Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.main_scalefactors.pix_per_A}");
                 };
-                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.02f, 0.1f, 200f, "%f%%"))
+                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
                 {
                     InitGraphReplot();
                 };
-                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 1.0f, 0.1f, 1000f, "%f%%"))
+                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
                 {
                     InitGraphReplot();
                 };
@@ -490,11 +491,12 @@ namespace rgatCore
 
                 ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
-                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 20000f, "%f%%");
-                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 400, "%f%%");
-                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 20000, "%f%%");
-                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -20000, 0, "%f%%");
-                ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.05f, -5, 5, "%f%%");
+                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 200000f, "%f%%");
+                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 40000, "%f%%");
+                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 200000, "%f%%");
+                //todo: adjust speed as we get nearer plotsize
+                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -200000, 0, "%f%%");
+                ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.01f, -10, 10, "%f%%");
                 ImGui.EndChild();
             }
         }
@@ -639,6 +641,7 @@ namespace rgatCore
 
             ImGui.PopStyleColor();
         }
+
         private unsafe void DrawLiveTraceControls(float otherControlsHeight)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);

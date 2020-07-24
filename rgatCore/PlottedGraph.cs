@@ -572,12 +572,8 @@ namespace rgatCore
         protected readonly Object textLock = new Object();
         protected List<TEXTITEM> texts = new List<TEXTITEM>();
 
-        public struct SCREENINFO
-        {
-            public float X, Y, Width, Height, MinDepth, MaxDepth, FOV, angle;
-            public Vector3 CamPos;
-        }
-        public abstract List<TEXTITEM> GetOnScreenTexts(SCREENINFO scrn);
+
+        public abstract List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn);
 
         int wireframeMode; //used to query the current mode
 

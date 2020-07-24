@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using Newtonsoft.Json.Bson;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -31,11 +32,11 @@ namespace rgatCore
 
 		public float dbg_FOV = 1.0f;
 		public float dbg_near = 0.5f;
-		public float dbg_far = 2000f;
+		public float dbg_far = 20000;
 		public float dbg_camX = 0f;
-		public float dbg_camY = 65f;
-		public float dbg_camZ = -200f;
-		public float dbg_rot = 0;
+		public float dbg_camY = 0f;
+		public float dbg_camZ = -22500f;
+		public float dbg_rot = -1.55f;
 
 
 
@@ -85,9 +86,35 @@ namespace rgatCore
 		private bool scheduledGraphResize = true;
 		private Vector2 lastResizeSize = new Vector2(0, 0);
 
+		public void ApplyZoom(float direction)
+        {
+			
+			dbg_camZ += (direction * 100);
+        }
+
+		public void HandleInput(Vector2 graphSize)
+		{
+			float scroll = ImGui.GetIO().MouseWheel;
+			if (scroll != 0)
+			{
+				Vector2 MousePos = ImGui.GetMousePos();
+				Vector2 WidgetPos = ImGui.GetCursorScreenPos();
+
+				if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + graphSize.X))
+				{
+					if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + graphSize.Y))
+					{
+						ApplyZoom(scroll);
+					}
+				}
+			}
+		}
 
 		public void Draw(Vector2 graphSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
+
+			HandleInput(graphSize);
+
 			if (IrregularActionTimerFired) PerformIrregularActions();
 			if (ActiveGraph == null || ActiveGraph.beingDeleted)
 				return;
@@ -113,24 +140,26 @@ namespace rgatCore
 				pos,
 				new Vector2(pos.X + ActiveGraph._outputTexture.Width, pos.Y + ActiveGraph._outputTexture.Height), new Vector2(0, 1), new Vector2(1, 0));
 
-			CylinderGraph.SCREENINFO scrn;
-			scrn.X = 0;
-			scrn.Y = 0;
+			Vector2 textpos = ImGui.GetCursorScreenPos();
+			//textpos += txtitm.screenXY;
+
+			GraphicsMaths.SCREENINFO scrn;
+			scrn.X = ImGui.GetCursorScreenPos().X;
+			scrn.Y = ImGui.GetCursorScreenPos().Y;
 			scrn.Width = graphWidgetSize.X;
 			scrn.Height = graphWidgetSize.Y;
 			scrn.MinDepth = dbg_near;
 			scrn.MaxDepth = dbg_far;
-			scrn.CamPos = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
-			scrn.FOV = dbg_FOV;
-			scrn.angle = dbg_rot;
+			scrn.CamZoom = dbg_camZ;
 
 			foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
             {
-				Vector2 textpos = ImGui.GetCursorScreenPos();
-				textpos += txtitm.screenXY;
-
-				imdp.AddText(_ImGuiController._unicodeFont, txtitm.fontSize, textpos, (uint)txtitm.color.ToArgb(), txtitm.contents);
-				//Veldrid.OpenGLBinding.OpenGLNative.gl
+				//Vector2 textpos = ImGui.GetCursorScreenPos();
+				//textpos += txtitm.screenXY;
+				PlottedGraph.TEXTITEM txtitm2 = txtitm;
+				txtitm2.screenXY.X += 5;
+				txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y/2;
+				imdp.AddText(_ImGuiController._unicodeFont, txtitm2.fontSize, txtitm2.screenXY, (uint)txtitm2.color.ToArgb(), txtitm2.contents);
 			}
 
 			//drawHUD();
