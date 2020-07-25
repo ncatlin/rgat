@@ -579,6 +579,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
+
                 bool todoprint = false;
                 switch (msg[0])
                 {

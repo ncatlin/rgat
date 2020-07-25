@@ -1162,14 +1162,6 @@ namespace rgatCore
 
         List<uint> exceptionSet = new List<uint>();
 
-        void set_terminated()
-        {
-            terminated = true;
-            updated = true; //aka needvboreloadpreview
-            IsActive = false;
-            finalNodeID = lastVertID;
-        }
-
         //void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
         //void stop_edgeL_iteration();
 

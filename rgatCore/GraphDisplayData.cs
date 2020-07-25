@@ -20,6 +20,20 @@ namespace rgatCore
             B = (float)col.B/255f;
             A = (float)col.A/255f;
         }
+
+        public Vector4 ToVec4()
+        {
+            return new Vector4(R, G, B, A);
+        }
+
+        public static Vector4 ToVec4(Color col)
+        {
+            float R = (float)col.R / 255f;
+            float G = (float)col.G / 255f;
+            float B = (float)col.B / 255f;
+            float A = (float)col.A / 255f;
+            return new Vector4(R, G, B, A);
+        }
         public float R { get; set; }
         public float G { get; set; }
         public float B { get; set; }

@@ -129,6 +129,18 @@ namespace rgatCore
         }
 
 
+        void HandleTerminatedThread(byte[] buf)
+        {
+            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
+            uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
+            Console.WriteLine($"Thread {TID} ended!");
+
+            trace.PlottedGraphs[TID].internalProtoGraph.terminated = true;
+
+        }
+
+
         void ReadCallback(IAsyncResult ar)
         {
             int bytesread = 0;
@@ -157,7 +169,8 @@ namespace rgatCore
 
             if (buf[0] == 'T' && buf[1] == 'Z')
             {
-                Console.WriteLine("Handle thread end");
+
+                HandleTerminatedThread(buf);
                 return;
             }
 

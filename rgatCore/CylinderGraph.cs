@@ -130,7 +130,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    itm.contents = node.ins.ins_text;
+                    itm.contents = $"{node.index} 0x{node.address:X}: {node.ins.ins_text}";
                     itm.color = Color.White;
                 }
 
@@ -344,7 +344,9 @@ namespace rgatCore
                     }
                     else
                     {
-                        n.label = "SymLookupFailed";
+                        string module = internalProtoGraph.ProcessData.LoadedModulePaths[n.GlobalModuleID];
+                        
+                        n.label = $"{module}: 0x{n.address}";
                     }
                 }
 
@@ -902,7 +904,8 @@ namespace rgatCore
                     return true;
                 }
             }
-            Debug.Assert(false);
+
+            Debug.Assert(false, "Tried to get coord of node that hasn't been rendered yet");
             result = new CYLINDERCOORD();
             return false;
         }

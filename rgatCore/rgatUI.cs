@@ -18,6 +18,7 @@ using Veldrid.StartupUtilities;
 using System.Linq;
 using rgatCore.Threads;
 using Microsoft.VisualBasic;
+using System.Drawing;
 
 namespace rgatCore
 {
@@ -770,7 +771,15 @@ namespace rgatCore
                 PlottedGraph graph = _rgatstate.ActiveGraph;
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
                 if (graph != null)
-                    ImGui.Text($"Active Thread ID: {graph.tid}");
+                {
+                    ImGui.Text($"Thread ID: {graph.tid}");
+
+                    ImGui.SameLine();
+                    if (graph.internalProtoGraph.terminated)
+                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
+                    else
+                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
+                }
                 else
                     ImGui.Text($"No selected graph");
 
@@ -793,7 +802,10 @@ namespace rgatCore
                         ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
                         ImGui.Text($"Nodes: {graph.internalProtoGraph.NodeList.Count}");
                         ImGui.Text($"Updates: {graph.internalProtoGraph.SavedAnimationData.Count}");
-                        ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                        if (graph.internalProtoGraph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                        else
+                            ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
 
                         ImGui.EndChild();
                     }
@@ -803,7 +815,7 @@ namespace rgatCore
                     if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                     {
                         ImGui.Text($"Instructions: {graph.internalProtoGraph.TotalInstructions}");
-                        ImGui.Text("Y: 456");
+                        ImGui.Text($"Loop: {graph.internalProtoGraph.loopState == eLoopState.eBuildingLoop}");
                         ImGui.Text("Z: 496");
                         ImGui.Text("Q: 41");
                         ImGui.EndChild();
@@ -860,6 +872,12 @@ namespace rgatCore
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
+            }
+            else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
+            {
+                MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
+                PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
+                PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
             }
 
             float controlsHeight = 230;

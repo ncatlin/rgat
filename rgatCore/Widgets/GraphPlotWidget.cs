@@ -16,7 +16,7 @@ namespace rgatCore
 {
     class GraphPlotWidget
     {
-        PlottedGraph ActiveGraph = null;
+        public PlottedGraph ActiveGraph { get; private set; } = null;
         private bool inited1 = false;
 
 

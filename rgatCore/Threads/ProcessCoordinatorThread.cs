@@ -88,10 +88,16 @@ namespace rgatCore.Threads
 		rgatState _clientState = null;
         public void Listener()
         {
+            try { 
 
-            coordPipe = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
+				coordPipe = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
+			} catch ( System.IO.IOException e)
+            {
+				Console.WriteLine($"Error: Failed to start bootstrap thread {e.Message}, rgat will not process incoming traces");
+				return;
+            }
 
-            while (!_clientState.rgatIsExiting)
+			while (!_clientState.rgatIsExiting)
             {
 				IAsyncResult res1 = coordPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), coordPipe);
 

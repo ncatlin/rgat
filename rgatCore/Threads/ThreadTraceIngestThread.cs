@@ -96,6 +96,11 @@ namespace rgatCore
                     WritingQueue.Add(datamsg);
                     QueueSize += 1;
                     PendingDataSize += (ulong)datamsg.Length;
+
+                    if (WakeupRequested)
+                    {
+                        dataReadyEvent.Set();
+                    }
                     return;
                 }
             }

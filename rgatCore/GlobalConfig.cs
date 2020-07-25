@@ -60,7 +60,7 @@ namespace rgatCore.Threads
             public static WritableRgbaFloat activityLine = new WritableRgbaFloat(Color.Red);
 
             public static WritableRgbaFloat edgeCall = new WritableRgbaFloat(Color.Purple);
-            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.White);
+            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.FromArgb(0,244,244,244));
             public static WritableRgbaFloat edgeReg = new WritableRgbaFloat(Color.Orange);
             public static WritableRgbaFloat edgeLib = new WritableRgbaFloat(Color.Green);
             public static WritableRgbaFloat edgeNew = new WritableRgbaFloat(Color.Yellow);

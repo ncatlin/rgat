@@ -48,7 +48,10 @@ namespace rgatCore
 		public BinaryTarget AddTargetByPath(string path, int arch = 0, bool selectIt = true)
         {
 			BinaryTarget targ = targets.AddTargetByPath(path, arch);
-            if (selectIt) SetActiveTarget(targ);
+			if (selectIt) {
+				ClearActiveGraph();
+				SetActiveTarget(targ);
+			}
 			return targ;
         }
 

@@ -101,24 +101,28 @@ namespace rgatCore
 			if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-            //{
+
                 PlottedGraph result = null;
-                var plottedGraphList = PlottedGraphs.Values.ToList();
-				foreach (PlottedGraph graph in plottedGraphList)
-                { 
-					if (graph.internalProtoGraph.NodeList.Count > 0)
-					{
-						result = graph;
-						//graph.increase_thread_references(33);
-						break;
-					}
-				}
+                var graphsWithNodes = PlottedGraphs.Values.Where(g => g.internalProtoGraph.NodeList.Count > 0);
+                if (graphsWithNodes.Any())
+                {
+                    return graphsWithNodes.First();
+                }
 
-				//graphListLock.unlock();
+                var graphsWithInstructions = PlottedGraphs.Values.Where(g => g.internalProtoGraph.TotalInstructions > 0);
+                if (graphsWithInstructions.Any())
+                {
+                    return graphsWithInstructions.First();
+                }
 
-				return result;
-			//}
-			return null;
+                var graphsWithData = PlottedGraphs.Values.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
+                if (graphsWithData.Any())
+                {
+                    return graphsWithData.First();
+                }
+
+                return PlottedGraphs.Values.First();
+
 		}
 		/*
 

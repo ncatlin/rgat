@@ -186,7 +186,11 @@ namespace rgatCore
 
 
                 _cl.SetFramebuffer(graph._previewFramebuffer);
-                _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
+                if (graph.internalProtoGraph.terminated)
+                    _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
+                else
+                    _cl.ClearColorTarget(0, new RgbaFloat(0, 1, 0, 0.1f));
+
                 SetupView(_cl, graphRenderInfo, graph);
                 graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);
                 graphRenderInfo.DrawPoints(_cl, _gd, graph.previewnodes);
