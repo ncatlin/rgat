@@ -361,6 +361,7 @@ namespace rgatCore
             newTargNode.index = targVertID;
             newTargNode.parentIdx = lastVertID;
             newTargNode.executionCount = 1;
+            
 
             InsertNode(targVertID, newTargNode); //this invalidates all node_data* pointers
             lastNode = newTargNode;

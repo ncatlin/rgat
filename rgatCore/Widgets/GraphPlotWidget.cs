@@ -17,228 +17,261 @@ namespace rgatCore
     class GraphPlotWidget
     {
         PlottedGraph ActiveGraph = null;
-		private bool inited1 = false;
+        private bool inited1 = false;
 
 
-		System.Timers.Timer IrregularActionTimer;
-		bool IrregularActionTimerFired = false;
+        System.Timers.Timer IrregularActionTimer;
+        bool IrregularActionTimerFired = false;
 
-		Dictionary<PlottedGraph, VeldridGraphBuffers> graphBufferDict = new Dictionary<PlottedGraph, VeldridGraphBuffers>();
-		VeldridGraphBuffers graphBuffers = null;
-		ImGuiController _controller;
-
-
-		private Vector2 graphWidgetSize;
-
-		public float dbg_FOV = 1.0f;
-		public float dbg_near = 0.5f;
-		public float dbg_far = 20000;
-		public float dbg_camX = 0f;
-		public float dbg_camY = 0f;
-		public float dbg_camZ = -22500f;
-		public float dbg_rot = -1.55f;
+        Dictionary<PlottedGraph, VeldridGraphBuffers> graphBufferDict = new Dictionary<PlottedGraph, VeldridGraphBuffers>();
+        VeldridGraphBuffers graphBuffers = null;
+        ImGuiController _controller;
 
 
+        private Vector2 graphWidgetSize;
 
-		public GraphPlotWidget(ImGuiController controller, Vector2? initialSize = null)
+        public float dbg_FOV = 1.0f;
+        public float dbg_near = 0.5f;
+        public float dbg_far = 20000;
+        public float dbg_camX = 0f;
+        public float dbg_camY = 0f;
+        public float dbg_camZ = 1000f;
+        public float dbg_rot = -1.55f;
+
+
+
+        public GraphPlotWidget(ImGuiController controller, Vector2? initialSize = null)
         {
-			_controller = controller;
-			graphWidgetSize = initialSize ?? new Vector2(400, 400);
-			IrregularActionTimer = new System.Timers.Timer(600);
-			IrregularActionTimer.Elapsed += FireIrregularTimer;
-			IrregularActionTimer.AutoReset = true;
-			IrregularActionTimer.Start();
+            _controller = controller;
+            graphWidgetSize = initialSize ?? new Vector2(400, 400);
+            IrregularActionTimer = new System.Timers.Timer(600);
+            IrregularActionTimer.Elapsed += FireIrregularTimer;
+            IrregularActionTimer.AutoReset = true;
+            IrregularActionTimer.Start();
 
-		}
+        }
 
-		public void SetActiveGraph(PlottedGraph graph, GraphicsDevice _gd) 
-		{
-			if (graph == null) {
-				ActiveGraph = graph; 
-				return;
-			}
-			
-			if (!graphBufferDict.TryGetValue(graph, out graphBuffers))
+        public void SetActiveGraph(PlottedGraph graph, GraphicsDevice _gd)
+        {
+            if (graph == null)
             {
-				graphBuffers = new VeldridGraphBuffers(graph);
-				graphBufferDict.Add(graph, graphBuffers);
-				ResourceFactory factory = _gd.ResourceFactory;
-				graph.UpdateGraphicBuffers(graphWidgetSize, _gd);
-					graphBuffers.InitPipelines(_gd, CreateGraphShaders(factory), graph._outputFramebuffer, true);
-			}
-			ActiveGraph = graph;
-		}
+                ActiveGraph = graph;
+                return;
+            }
 
-		private void FireIrregularTimer(object sender, ElapsedEventArgs e) { IrregularActionTimerFired = true; }
+            if (!graphBufferDict.TryGetValue(graph, out graphBuffers))
+            {
+                graphBuffers = new VeldridGraphBuffers(graph);
+                graphBufferDict.Add(graph, graphBuffers);
+                ResourceFactory factory = _gd.ResourceFactory;
+                graph.UpdateGraphicBuffers(graphWidgetSize, _gd);
+                graphBuffers.InitPipelines(_gd, CreateGraphShaders(factory), graph._outputFramebuffer, true);
+            }
+            ActiveGraph = graph;
+        }
 
-		/* 
+        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { IrregularActionTimerFired = true; }
+
+        /* 
 	 * Triggered automatically when main window is resized
 	 * Manually called when we detect window changes size otherwise
 	 */
-		public void AlertResized(Vector2 size)
-		{
-			lastResizeSize = size;
-			lastResize = DateTime.Now;
-			scheduledGraphResize = true;
-		}
-
-		private DateTime lastResize = DateTime.Now;
-		private bool scheduledGraphResize = true;
-		private Vector2 lastResizeSize = new Vector2(0, 0);
-
-		public void ApplyZoom(float direction)
+        public void AlertResized(Vector2 size)
         {
-			
-			dbg_camZ += (direction * 100);
+            lastResizeSize = size;
+            lastResize = DateTime.Now;
+            scheduledGraphResize = true;
         }
 
-		public void HandleInput(Vector2 graphSize)
-		{
-			float scroll = ImGui.GetIO().MouseWheel;
-			if (scroll != 0)
-			{
-				Vector2 MousePos = ImGui.GetMousePos();
-				Vector2 WidgetPos = ImGui.GetCursorScreenPos();
+        private DateTime lastResize = DateTime.Now;
+        private bool scheduledGraphResize = true;
+        private Vector2 lastResizeSize = new Vector2(0, 0);
 
-				if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + graphSize.X))
-				{
-					if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + graphSize.Y))
-					{
-						ApplyZoom(scroll);
-					}
-				}
-			}
-		}
+        public void ApplyZoom(float direction)
+        {
+            float newValue = dbg_camZ - (direction * 100);
+            if (newValue >= 100)
+                dbg_camZ = newValue;
+        }
 
-		public void Draw(Vector2 graphSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
+        public bool IsMouseInWidget(Vector2 graphSize)
+        {
+            Vector2 MousePos = ImGui.GetMousePos();
+            Vector2 WidgetPos = ImGui.GetCursorScreenPos();
+
+            if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + graphSize.X))
+            {
+                if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + graphSize.Y))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void HandleInput(Vector2 graphSize)
+        {
+            bool mouseInWidget = IsMouseInWidget(graphSize);
+
+
+            if (mouseInWidget)
+            {
+                float scroll = ImGui.GetIO().MouseWheel;
+                if (scroll != 0) ApplyZoom(scroll);
+
+                if (ImGui.GetIO().MouseDown[0])
+                {
+                    dbg_camY -= ImGui.GetIO().MouseDelta.Y * CamBoomFactor();
+                    dbg_rot += ImGui.GetIO().MouseDelta.X * RotationFactor();
+                }
+            }
+
+
+        }
+
+        //how much to move the camera on the y axis per mouse movement
+        private float CamBoomFactor()
+        {
+            return 30f;
+        }
+
+        //how much to rotate our cylinder per mouse movent
+        private float RotationFactor()
+        {
+            return 0.002f;
+        }
+
+        public void Draw(Vector2 graphSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
 
-			HandleInput(graphSize);
+            HandleInput(graphSize);
 
-			if (IrregularActionTimerFired) PerformIrregularActions();
-			if (ActiveGraph == null || ActiveGraph.beingDeleted)
-				return;
+            if (IrregularActionTimerFired) PerformIrregularActions();
+            if (ActiveGraph == null || ActiveGraph.beingDeleted)
+                return;
 
-			ActiveGraph.UpdateGraphicBuffers(graphSize, _gd);
-			if (scheduledGraphResize)
-			{
-				double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
-				if (TimeSinceLastResize > 150)
-				{
-					graphWidgetSize = graphSize;
-					ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
-					scheduledGraphResize = false;
-				}
-			}
-			//Can't find an event for in-imgui resize of childwindows so have to check on every render
-			if (graphSize != graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
-
-			ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-			Vector2 pos = ImGui.GetCursorScreenPos();
-			IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, ActiveGraph._outputTexture);
-			imdp.AddImage(CPUframeBufferTextureId,
-				pos,
-				new Vector2(pos.X + ActiveGraph._outputTexture.Width, pos.Y + ActiveGraph._outputTexture.Height), new Vector2(0, 1), new Vector2(1, 0));
-
-			Vector2 textpos = ImGui.GetCursorScreenPos();
-			//textpos += txtitm.screenXY;
-
-			GraphicsMaths.SCREENINFO scrn;
-			scrn.X = ImGui.GetCursorScreenPos().X;
-			scrn.Y = ImGui.GetCursorScreenPos().Y;
-			scrn.Width = graphWidgetSize.X;
-			scrn.Height = graphWidgetSize.Y;
-			scrn.MinDepth = dbg_near;
-			scrn.MaxDepth = dbg_far;
-			scrn.CamZoom = dbg_camZ;
-
-			foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
+            ActiveGraph.UpdateGraphicBuffers(graphSize, _gd);
+            if (scheduledGraphResize)
             {
-				//Vector2 textpos = ImGui.GetCursorScreenPos();
-				//textpos += txtitm.screenXY;
-				PlottedGraph.TEXTITEM txtitm2 = txtitm;
-				txtitm2.screenXY.X += 5;
-				txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y/2;
-				imdp.AddText(_ImGuiController._unicodeFont, txtitm2.fontSize, txtitm2.screenXY, (uint)txtitm2.color.ToArgb(), txtitm2.contents);
-			}
+                double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
+                if (TimeSinceLastResize > 150)
+                {
+                    graphWidgetSize = graphSize;
+                    ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
+                    scheduledGraphResize = false;
+                }
+            }
+            //Can't find an event for in-imgui resize of childwindows so have to check on every render
+            if (graphSize != graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
 
-			//drawHUD();
-		}
+            ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
+            Vector2 pos = ImGui.GetCursorScreenPos();
+            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, ActiveGraph._outputTexture);
+            imdp.AddImage(CPUframeBufferTextureId,
+                pos,
+                new Vector2(pos.X + ActiveGraph._outputTexture.Width, pos.Y + ActiveGraph._outputTexture.Height), new Vector2(0, 1), new Vector2(1, 0));
 
-		private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
-		{
+            Vector2 textpos = ImGui.GetCursorScreenPos();
+            //textpos += txtitm.screenXY;
 
-			//create shaders
-			VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
-			VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-			VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
+            GraphicsMaths.SCREENINFO scrn;
+            scrn.X = ImGui.GetCursorScreenPos().X;
+            scrn.Y = ImGui.GetCursorScreenPos().Y;
+            scrn.Width = graphWidgetSize.X;
+            scrn.Height = graphWidgetSize.Y;
+            scrn.MinDepth = dbg_near;
+            scrn.MaxDepth = dbg_far;
+            scrn.CamZoom = ActiveGraph.main_scalefactors.plotSize + dbg_camZ;
 
-			ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
-			ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
+            
+            foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
+            {
+                //Vector2 textpos = ImGui.GetCursorScreenPos();
+                //textpos += txtitm.screenXY;
+                PlottedGraph.TEXTITEM txtitm2 = txtitm;
+                txtitm2.screenXY.X += 5;
+                txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y / 2;
+                imdp.AddText(_ImGuiController._unicodeFont, txtitm2.fontSize, txtitm2.screenXY, (uint)txtitm2.color.ToArgb(), txtitm2.contents);
+            }
+            
 
-			Shader[] _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-			ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
-			vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-			shaders: _shaders);
+            //drawHUD();
+        }
 
-			return shaderSetDesc;
-		}
+        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
+        {
 
+            //create shaders
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-		public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
-		{
-			if (ActiveGraph == null) return;
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
 
-			//definately should not be called every time!
-			ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
+            Shader[] _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+            shaders: _shaders);
 
-			_cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
-			_cl.ClearColorTarget(0, RgbaFloat.Black);
-			//_cl.ClearDepthStencil(1f);
-
-			SetupView(_cl, graphBuffers);
-			graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
-			graphBuffers.DrawLines(_cl, _gd, ActiveGraph.mainlinedata);
-			graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.mainnodesdata);
-		}
-
-
-		private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
-		{
-
-			_cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
-
-
-
-			
-
-			//if autorotation...
-			//float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
-			//float angle = _ticks / 10000;
-			//else
-			float angle = dbg_rot;
-	
-			Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
-			Matrix4x4 combined = rotation;
-
-			Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
-			Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
-			combined = Matrix4x4.Multiply(combined, view);
-
-			Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far);
-			combined = Matrix4x4.Multiply(combined, projection);
-
-			ActiveGraph.projection = projection;
-			ActiveGraph.view = view;
-			ActiveGraph.rotation = rotation;
-			_cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
-
-		}
+            return shaderSetDesc;
+        }
 
 
+        public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
+        {
+            if (ActiveGraph == null) return;
+
+            //definately should not be called every time!
+            ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
+
+            _cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
+            _cl.ClearColorTarget(0, RgbaFloat.Black);
+            //_cl.ClearDepthStencil(1f);
+
+            SetupView(_cl, graphBuffers);
+            graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
+            graphBuffers.DrawLines(_cl, _gd, ActiveGraph.mainlinedata);
+            graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.mainnodesdata);
+        }
 
 
-		private const string VertexCode = @"
+        private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
+        {
+
+            _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
+
+
+
+
+
+            //if autorotation...
+            //float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
+            //float angle = _ticks / 10000;
+            //else
+            float angle = dbg_rot;
+
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
+            Matrix4x4 combined = rotation;
+
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1*ActiveGraph.main_scalefactors.plotSize) - dbg_camZ);
+            Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
+            combined = Matrix4x4.Multiply(combined, view);
+
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far);
+            combined = Matrix4x4.Multiply(combined, projection);
+
+            ActiveGraph.projection = projection;
+            ActiveGraph.view = view;
+            ActiveGraph.rotation = rotation;
+            _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
+
+        }
+
+
+
+
+        private const string VertexCode = @"
 #version 450
 
 layout(location = 0) in vec3 Position;
@@ -262,7 +295,7 @@ void main()
     fsin_Color = Color;
 }";
 
-		/*
+        /*
 		 *
 		 *    
 		 *    
@@ -273,7 +306,7 @@ void main()
 		 */
 
 
-		private const string FragmentCode = @"
+        private const string FragmentCode = @"
 #version 450
 
 layout(location = 0) in vec4 fsin_Color;
@@ -290,11 +323,11 @@ void main()
 
 
 
-		bool setMouseoverNode()
+        bool setMouseoverNode()
         {
-			//if (ActiveGraph == null)
-			//	return false;
-			/*
+            //if (ActiveGraph == null)
+            //	return false;
+            /*
 			float zmul = ActiveGraph.zoomMultiplier();
 			if (!_rgatState.should_show_external_symbols(zmul) && !_rgatState.should_show_internal_symbols(zmul))
 				return false;
@@ -334,12 +367,12 @@ void main()
 
 			activeMouseoverNode = false;
 			*/
-			return false;
-		}
+            return false;
+        }
 
 
 
-		private void PerformIrregularActions()
+        private void PerformIrregularActions()
         {
             //bool haveDisplayGraph = chooseGraphToDisplay();
             if (ActiveGraph == null)
@@ -361,7 +394,7 @@ void main()
             }
         }
 
-		
 
-	}
+
+    }
 }

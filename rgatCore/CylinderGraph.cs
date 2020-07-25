@@ -121,7 +121,10 @@ namespace rgatCore
 
                 if (node.IsExternal)
                 {
-                    itm.contents = "todo sym";
+                    if (node.label != null)
+                        itm.contents = node.label;
+                    else
+                        itm.contents = "[NULL]";
                     itm.color = Color.SpringGreen;
                 }
                 else
@@ -188,9 +191,13 @@ namespace rgatCore
 
         public override void render_static_graph()
         {
-            int drawCount = render_new_edges();
-            if (drawCount > 0)
-                needVBOReload_main = true;
+            lock (renderingLock)
+            {
+
+                Console.WriteLine("In rendermain lock");
+                render_new_edges(false);
+                Console.WriteLine("left rendermain lock");
+            }
 
             redraw_anim_edges();
             regenerate_wireframe_if_needed();
@@ -284,7 +291,7 @@ namespace rgatCore
             CYLINDERCOORD coord;
             if (n.index >= node_coords.Count)
             {
-
+                Console.WriteLine($"Node {n.index} {n.ins.ins_text} not plotted yet, plotting");
                 if (node_coords.Count == 0)
                 {
                     Debug.Assert(n.index == 0);
@@ -303,14 +310,45 @@ namespace rgatCore
 
                     //acquire_nodecoord_write();
                     node_coords.Add(newPos);
+                    Debug.Assert(node_coords.Count == n.index+1);
                     //release_nodecoord_write();
                 }
 
                 updateStats(coord.a, coord.b, 0);
                 vertdata.usedCoords.Add(new Tuple<float, float>(coord.a, coord.b), true);
+
+                if (!n.IsExternal)
+                {
+                    if (n.ins.hasSymbol && n.label == null)
+                    {
+                        ulong nodeoffset = n.address - internalProtoGraph.moduleBase;
+                        n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
+                        n.placeholder = true;
+
+                        lock (CallStackLock) //?
+                        {
+                            internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
+                        }
+                    }
+                }
+                else
+                {
+                    if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string symbol))
+                    {
+                        n.label = symbol;
+                    }
+                    else
+                    {
+                        n.label = "SymLookupFailed";
+                    }
+                }
+
             }
             else
+            {
+                Console.WriteLine($"Node {n.index} already plotted, retrieving");
                 get_node_coord((int)n.index, out coord);
+            }
 
 
             cylinderCoord(coord, out Vector3 screenc, dimensions);
@@ -323,12 +361,15 @@ namespace rgatCore
                 switch (n.ins.itype)
                 {
                     case eNodeType.eInsUndefined:
+                        if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
                         lastNode.lastVertType = n.IsConditional() ?
                             eEdgeNodeType.eNodeJump :
                             eEdgeNodeType.eNodeNonFlow;
                         break;
 
                     case eNodeType.eInsJump:
+                        Console.WriteLine($"render_node jump because n {n.index} is jump");
+                        
                         lastNode.lastVertType = eEdgeNodeType.eNodeJump;
                         break;
 
@@ -410,9 +451,8 @@ namespace rgatCore
         {
             float diam = main_scalefactors.plotSize;
             List<VertexPositionColor> vertsList = wireframelines.acquire_vert_write();
-            //horizontal circles
-            bool nextLoop = false;
 
+            //horizontal circles
             List<Vector3> pointPositions = new List<Vector3>();
             for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE + 1; ++circlePoint)
             {
@@ -423,9 +463,8 @@ namespace rgatCore
 
             float Loop_vert_sep = (maxB * main_scalefactors.pix_per_B) / (wireframe_loop_count - 2);
 
-
             VertexPositionColor wfVert = new VertexPositionColor();
-            wfVert.Color = new WritableRgbaFloat(Color.FromArgb(180,255,255,255));
+            wfVert.Color = GlobalConfig.mainColours.wireframe;
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * Loop_vert_sep;// (CYLINDER_SEP_PER_ROW + Math.Max(0, main_scalefactors.pix_per_B));
@@ -657,6 +696,10 @@ namespace rgatCore
         }
         */
 
+        /*
+         * This positions the node in the format of the graph, with abstract layout specific coordinates
+         * Translating these abstract coordinates into real x/y/z coords is the job of CylinderCoord()
+         */
         void positionVert(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, out CYLINDERCOORD newPosition)
         {
             if (!get_node_coord((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
@@ -699,6 +742,9 @@ namespace rgatCore
                 //small vertical distance between instructions in a basic block	
                 case eEdgeNodeType.eNodeNonFlow:
                     {
+                        if (n.index < 10)
+                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} nonflow");
+                        
                         b += B_BETWEEN_BLOCKNODES;
                         while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
@@ -711,6 +757,9 @@ namespace rgatCore
 
                 case eEdgeNodeType.eNodeJump://long diagonal separation to show distinct basic blocks
                     {
+                        if (n.index < 10)
+                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} jump");
+
                         //check if this is a conditional which fell through (ie: sequential)
                         NodeData lastNodeData = internalProtoGraph.safe_get_node(lastNode.lastVertID);
                         if (lastNodeData.IsConditional() && n.address == lastNodeData.ins.condDropAddress)
@@ -750,20 +799,8 @@ namespace rgatCore
                 //long purple line to show possible distinct functional blocks of the program
                 case eEdgeNodeType.eNodeCall:
                     {
-                        if (!n.IsExternal)
-                        {
-                            if (!n.ins.hasSymbol && n.label == null)
-                            {
-                                ulong nodeoffset = n.address - internalProtoGraph.moduleBase;
-                                n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
-                                n.placeholder = true;
-
-                                lock (CallStackLock) //?
-                                {
-                                    internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
-                                }
-                            }
-                        }
+                        if (n.index < 10)
+                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} call");
 
                         //note: b sometimes huge after this?
                         a -= CALLA;
@@ -792,12 +829,12 @@ namespace rgatCore
                         //returning to address in call stack?
                         long result = -1;
 
-                        List<Tuple<ulong, uint>> callStack = mainnodesdata.IsPreview ? PreviewCallStack : MainCallStack;
+                        //List<Tuple<ulong, uint>> callStack =  mainnodesdata.IsPreview ? PreviewCallStack : MainCallStack;
 
                         lock (CallStackLock)
                         {
 
-                            var found = callStack.Where(item => item.Item1 == n.address);
+                            var found = ThreadCallStack.Where(item => item.Item1 == n.address);
                             result = found.Any() ? (long)found.First<Tuple<ulong, uint>>().Item2 : (long)-1;
 
                             //testing
@@ -911,18 +948,17 @@ namespace rgatCore
         {
             lock (CallStackLock)
             {
+                ThreadCallStack.Add(new Tuple<ulong, uint>(address, idx));
+                /*
                 if (isPreview)
                     PreviewCallStack.Add(new Tuple<ulong, uint>(address, idx));
                 else
                     MainCallStack.Add(new Tuple<ulong, uint>(address, idx));
+                */
             }
         }
 
         int wireframe_loop_count = 0;
-        //GLuint wireframeVBOs[2];
-        bool staleWireframe = false;
-        bool wireframeBuffersCreated = false;
-        List<int> wireframeStarts, wireframeSizes;
 
         private readonly Object CallStackLock = new Object();
 

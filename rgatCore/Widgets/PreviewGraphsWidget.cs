@@ -24,8 +24,8 @@ namespace rgatCore
         public float dbg_near = 0.5f;
         public float dbg_far = 8000f;
         public float dbg_camX = 0f;
-        public float dbg_camY = 65f;
-        public float dbg_camZ = -800f;
+        public float dbg_camY = 5f;
+        public float dbg_camZ = 100f;
         public float dbg_rot = 0;
 
         public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
@@ -123,13 +123,13 @@ namespace rgatCore
         Dictionary<uint, VeldridGraphBuffers> graphicInfos = new Dictionary<uint, VeldridGraphBuffers>();
 
 
-        private void SetupView(CommandList _cl, VeldridGraphBuffers graphRenderInfo)
+        private void SetupView(CommandList _cl, VeldridGraphBuffers graphRenderInfo, PlottedGraph graph)
         {
 
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
 
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far);
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, dbg_camZ);
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * graph.preview_scalefactors.plotSize) - dbg_camZ);
             Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             //if autorotation...
@@ -187,7 +187,7 @@ namespace rgatCore
 
                 _cl.SetFramebuffer(graph._previewFramebuffer);
                 _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
-                SetupView(_cl, graphRenderInfo);
+                SetupView(_cl, graphRenderInfo, graph);
                 graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);
                 graphRenderInfo.DrawPoints(_cl, _gd, graph.previewnodes);
             }

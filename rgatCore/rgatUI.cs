@@ -494,8 +494,8 @@ namespace rgatCore
                 ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 200000f, "%f%%");
                 ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 40000, "%f%%");
                 ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 200000, "%f%%");
-                //todo: adjust speed as we get nearer plotsize
-                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, -200000, 0, "%f%%");
+                
+                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, 100, 100000, "%f%%");
                 ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.01f, -10, 10, "%f%%");
                 ImGui.EndChild();
             }

@@ -236,10 +236,12 @@ namespace rgatCore
 
 
 
-        public void AddSymbol(int modnum, ulong offset, string name)
+        public void AddSymbol(int localModnum, ulong offset, string name)
         {
             lock (SymbolsLock)
             {
+                int modnum = modIDTranslationVec[localModnum];
+
                 if (!modsymsPlain.ContainsKey(modnum))
                 {
                     modsymsPlain.Add(modnum, new Dictionary<ulong, string>());
@@ -259,6 +261,22 @@ namespace rgatCore
             return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address);
 
         }
+
+        public bool GetSymbol(int GlobalModuleNumber, ulong address, out string symbol)
+        {
+            lock (ModulesLock)
+            {
+                if (modsymsPlain.ContainsKey(GlobalModuleNumber))
+                {
+                    ulong offset = address - LoadedModuleBounds[GlobalModuleNumber].Item1;
+                    return modsymsPlain[GlobalModuleNumber].TryGetValue(offset, out symbol);
+                }
+            }
+            symbol = "";
+            return false;
+
+        }
+
 
 
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)

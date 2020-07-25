@@ -38,88 +38,22 @@ namespace ImGuiNET
 
         static void SetThing(out float i, float val) { i = val; }
 
-        private const string VertexCode = @"
-#version 450
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-
-layout(location = 0) out vec4 fsin_Color;
-
-void main()
-{
-    gl_Position = vec4(Position, 0, 1);
-    fsin_Color = Color;
-}";
-
-        private const string FragmentCode = @"#version 450
-layout(location = 0) in vec4 fsin_Color;
-layout(location = 0) out vec4 fsout_Color;
-void main()
-{
-    fsout_Color = fsin_Color;
-}";
-        private static Shader[] _shaders;
-
-
-        static void VKINIT(GraphicsDevice _gd)
-        {
-            VertexPositionColor[] quadVertices = {
-                        new VertexPositionColor(new Vector2(-.75f, .75f), RgbaFloat.Red),
-                        new VertexPositionColor(new Vector2(.75f, .75f), RgbaFloat.Green),
-                        new VertexPositionColor(new Vector2(-.75f, -.75f), RgbaFloat.Blue),
-                        new VertexPositionColor(new Vector2(.75f, -.75f), RgbaFloat.Yellow)
-                    };
-            ushort[] quadIndices = { 0, 1, 2, 3 };
-
-            DeviceBuffer _vertexBuffer;
-            DeviceBuffer _indexBuffer;
-            _vertexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription(4 * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer));
-            _indexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription(4 * sizeof(ushort), BufferUsage.IndexBuffer));
-            _gd.UpdateBuffer(_vertexBuffer, 0, quadVertices);
-            _gd.UpdateBuffer(_indexBuffer, 0, quadIndices);
-
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(
-                new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
-                new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
-
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
-            {
-                BlendState = BlendStateDescription.SingleOverrideBlend,
-
-                DepthStencilState = new DepthStencilStateDescription(depthTestEnabled: true, depthWriteEnabled: true,
-                comparisonKind: ComparisonKind.LessEqual),
-                RasterizerState = new RasterizerStateDescription(cullMode: FaceCullMode.Back,
-                    fillMode: PolygonFillMode.Solid, frontFace: FrontFace.Clockwise, depthClipEnabled: true, scissorTestEnabled: false),
-
-                PrimitiveTopology = PrimitiveTopology.TriangleStrip
-            };
-
-            ShaderDescription vertexShaderDesc = new ShaderDescription(
-    ShaderStages.Vertex,
-    Encoding.UTF8.GetBytes(VertexCode),
-    "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(
-                ShaderStages.Fragment,
-                Encoding.UTF8.GetBytes(FragmentCode),
-                "main");
-
-            /*
-            _shaders = _gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-
-            pipelineDescription.ResourceLayouts = System.Array.Empty<ResourceLayout>();
-            pipelineDescription.ShaderSet = new ShaderSetDescription(
-    vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-    shaders: _shaders);
-            */
-
-
-        }
 
 
         static void Main(string[] args)
         {
+            Setup();
 
+            while (_window.Exists)
+            {
+                Update();
+            }
+
+            Cleanup();
+        }
+
+        private static void Setup()
+        {
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
             debug: true,
             swapchainDepthFormat: PixelFormat.R16_UNorm,
@@ -149,33 +83,33 @@ void main()
             Random random = new Random();
             _memoryEditorData = Enumerable.Range(0, 1024).Select(i => (byte)random.Next(255)).ToArray();
 
-             _rgatui = new rgatUI(_controller, _gd, _cl);
+            _rgatui = new rgatUI(_controller, _gd, _cl);
 
+            //probably not going to have movable windows at all
+            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+        }
 
-            // Main application loop
-            while (_window.Exists)
-            {
-                InputSnapshot snapshot = _window.PumpEvents();
-                if (!_window.Exists) { break; }
-                _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
+        private static void Update()
+        {
+            InputSnapshot snapshot = _window.PumpEvents();
+            if (!_window.Exists) { return; }
+            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
 
-                SubmitUI();
+            SubmitUI();
 
-                _cl.Begin();
-                _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
-                _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
-                _controller.Render(_gd, _cl);
+            _cl.Begin();
+            _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
+            _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
+            _controller.Render(_gd, _cl);
+            _rgatui.AddGraphicsCommands(_cl, _gd);
+            _cl.End();
 
-                _rgatui.AddGraphicsCommands(_cl, _gd);
+            _gd.SubmitCommands(_cl);
+            _gd.SwapBuffers(_gd.MainSwapchain);
+        }
 
-
-                _cl.End();
-
-
-                _gd.SubmitCommands(_cl);
-                _gd.SwapBuffers(_gd.MainSwapchain);
-            }
-
+        private static void Cleanup()
+        {
             _rgatui.Exit();
             // Clean up Veldrid resources
             _gd.WaitForIdle();
@@ -183,7 +117,6 @@ void main()
             _cl.Dispose();
             _gd.Dispose();
         }
-
 
         private static unsafe void SubmitDemoUI()
         {
