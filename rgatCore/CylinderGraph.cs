@@ -101,6 +101,7 @@ namespace rgatCore
             Vector3 noOffset = new Vector3(0, 0, 0);
             foreach(NodeData node in nodes)
             {
+                if (node.index >= node_coords.Count) break;
                 Vector3 pos = NodeScreeenPosition(node.index, main_scalefactors, scrn, noOffset);
 
                 if ((pos.X - scrn.X) > scrn.Width || (pos.X - scrn.X) < 0) continue;
@@ -138,6 +139,7 @@ namespace rgatCore
                 itm.screenXY.Y = pos.Y;
 
                 texts.Add(itm);
+                if (texts.Count > GlobalConfig.OnScreenNodeTextCountLimit) break;
             }
             //Console.WriteLine(texts.Count);
             
@@ -299,19 +301,22 @@ namespace rgatCore
                     tempPos.a = 0; tempPos.b = 0; tempPos.diamMod = 0;
                     coord = tempPos;
 
-                    //acquire_nodecoord_write();
-                    node_coords.Add(tempPos);
-                    //release_nodecoord_write();
+
+                    lock (internalProtoGraph.nodeLock)
+                    {
+                        node_coords.Add(tempPos);
+                    }
                 }
                 else
                 {
                     positionVert(n, lastNode, vertdata, out CYLINDERCOORD newPos);
                     coord = newPos;
 
-                    //acquire_nodecoord_write();
-                    node_coords.Add(newPos);
-                    Debug.Assert(node_coords.Count == n.index+1);
-                    //release_nodecoord_write();
+                    lock (internalProtoGraph.nodeLock)
+                    {
+                        node_coords.Add(newPos);
+                        Debug.Assert(node_coords.Count == n.index + 1);
+                    }
                 }
 
                 updateStats(coord.a, coord.b, 0);
@@ -888,14 +893,14 @@ namespace rgatCore
 
         bool get_node_coord(int nodeidx, out CYLINDERCOORD result)
         {
-
-            if (nodeidx < node_coords.Count)
+            lock (internalProtoGraph.nodeLock)
             {
+                if (nodeidx < node_coords.Count)
+                {
 
-                //acquire_nodecoord_read();
-                result = node_coords[nodeidx];
-                //release_nodecoord_read();
-                return true;
+                    result = node_coords[nodeidx];
+                    return true;
+                }
             }
             Debug.Assert(false);
             result = new CYLINDERCOORD();

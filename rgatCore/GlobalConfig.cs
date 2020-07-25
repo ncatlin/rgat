@@ -41,6 +41,7 @@ namespace rgatCore.Threads
         public static SYMS_VISIBILITY placeholderLabelVisibility;
         public static SYMS_VISIBILITY instructionTextVisibility;
         public static float insTextCompactThreshold = 2.5f;
+        public static int OnScreenNodeTextCountLimit = 100;
 
         public static float FurthestInstructionText = 2000f;
         public static float FurthestSymbol = 5000f;
