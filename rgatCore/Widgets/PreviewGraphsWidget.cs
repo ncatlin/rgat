@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -80,7 +81,7 @@ namespace rgatCore
 
         public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
-            if (ActiveTrace == null)  return;
+            if (ActiveTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
             Vector2? ClickedPos = HandleInput(widgetSize);
@@ -106,7 +107,7 @@ namespace rgatCore
                     subGraphPosition,
                     new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
 
-                if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y && 
+                if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y &&
                     ClickedPos.Value.Y < (subGraphPosition.Y + EachGraphHeight))
                 {
                     HandleClickedGraph(graph);
@@ -186,10 +187,11 @@ namespace rgatCore
 
 
                 _cl.SetFramebuffer(graph._previewFramebuffer);
-                if (graph.internalProtoGraph.terminated)
-                    _cl.ClearColorTarget(0, new RgbaFloat(1, 0, 0, 0.1f));
-                else
-                    _cl.ClearColorTarget(0, new RgbaFloat(0, 1, 0, 0.1f));
+                RgbaFloat graphBackground = graph.internalProtoGraph.Terminated ?
+                    new RgbaFloat(0.5f, 0, 0, 0.2f) :
+                    new RgbaFloat(0, 0.5f, 0, 0.2f);
+
+                _cl.ClearColorTarget(0, graphBackground);
 
                 SetupView(_cl, graphRenderInfo, graph);
                 graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);

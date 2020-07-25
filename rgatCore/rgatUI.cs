@@ -596,18 +596,17 @@ namespace rgatCore
             ImGui.PopStyleColor();
         }
 
-        private unsafe void DrawPlaybackControls(float otherControlsHeight)
+        private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
 
-            float replayControlsSize = ImGui.GetContentRegionAvail().X - 300f;
-            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(replayControlsSize, otherControlsHeight)))
+            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
             {
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
                 ImGui.Text("Trace Replay: Paused");
 
-                DrawReplaySlider(replayControlsSize);
+                DrawReplaySlider(width);
 
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
@@ -713,17 +712,17 @@ namespace rgatCore
             }
         }
 
-        private void DrawTraceSelector(float frameHeight)
+        private void DrawTraceSelector(float frameHeight, float frameWidth)
         {
 
             float vpadding = 4;
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
 
-            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(300, frameHeight)))
+            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
             {
 
                 float combosHeight = 60 - vpadding;
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(280, combosHeight)))
+                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth-20, combosHeight)))
                 {
                     if (_rgatstate.ActiveTarget != null)
                     {
@@ -775,7 +774,7 @@ namespace rgatCore
                     ImGui.Text($"Thread ID: {graph.tid}");
 
                     ImGui.SameLine();
-                    if (graph.internalProtoGraph.terminated)
+                    if (graph.internalProtoGraph.Terminated)
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
                     else
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
@@ -791,7 +790,7 @@ namespace rgatCore
                     ImGui.Columns(3, "smushes");
                     ImGui.SetColumnWidth(0, 20);
                     ImGui.SetColumnWidth(1, 130);
-                    ImGui.SetColumnWidth(2, 200);
+                    ImGui.SetColumnWidth(2, 250);
                     ImGui.NextColumn();
 
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
@@ -815,7 +814,13 @@ namespace rgatCore
                     if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                     {
                         ImGui.Text($"Instructions: {graph.internalProtoGraph.TotalInstructions}");
-                        ImGui.Text($"Loop: {graph.internalProtoGraph.loopState == eLoopState.eBuildingLoop}");
+                        if (graph.internalProtoGraph.PerformingUnchainedExecution)
+                        { 
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True"); 
+                        }
+                        else
+                            ImGui.Text("Busy: False");
+
                         ImGui.Text("Z: 496");
                         ImGui.Text("Q: 41");
                         ImGui.EndChild();
@@ -843,10 +848,11 @@ namespace rgatCore
             float frameHeight = otherControlsHeight - vpadding;
             if (ImGui.BeginChild(ImGui.GetID("ControlsOhter"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
             {
+                const float selectorWidth = 350;
                 //DrawLiveTraceControls(frameHeight);
-                DrawPlaybackControls(frameHeight);
+                DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X - selectorWidth);
                 ImGui.SameLine();
-                DrawTraceSelector(frameHeight);
+                DrawTraceSelector(frameHeight, selectorWidth);
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();

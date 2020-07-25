@@ -48,15 +48,14 @@ namespace rgatCore.Threads
 				else
 					graph.highlight_last_active_node();
 			}
-			else if (protoGraph.terminated)
+			else if (protoGraph.Terminated)
 			{
 				graph.schedule_animation_reset();
 				graph.reset_animation_if_scheduled();
-				protoGraph.terminated = false;
+				protoGraph.Terminated = false;
 			}
 
-			else if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || 
-				graph.userSelectedAnimPosition != -1)
+			else if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
 			{
 				graph.render_replay_animation(GlobalConfig.animationFadeRate);
 			}

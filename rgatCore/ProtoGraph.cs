@@ -1166,6 +1166,7 @@ namespace rgatCore
         //void stop_edgeL_iteration();
 
         public bool IsActive = true;
-        public bool terminated = false;
+        public bool Terminated = false;
+        public bool PerformingUnchainedExecution = false;
     }
 }

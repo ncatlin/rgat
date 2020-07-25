@@ -297,7 +297,10 @@ namespace rgatCore.Threads
 
         }
 
-        bool AddUnlinkingUpdate(byte[] entry)
+        /*
+         Adds a link between previously unlinked instructions that are within an unchained area
+         */
+        bool UnchainedLinkingUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 6);
@@ -306,6 +309,8 @@ namespace rgatCore.Threads
             ulong blockID_numins = ulong.Parse(entries[2], NumberStyles.HexNumber);
             uint srcblockID = (uint)blockID_numins >> 32;
             uint srcinscount = (uint)blockID_numins & 0xff;
+
+            protograph.PerformingUnchainedExecution = false;
 
             List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(srcblockID);
             InstructionData lastIns = lastBB[^1];
@@ -414,6 +419,7 @@ namespace rgatCore.Threads
                 }
 
             }
+            
             ANIMATIONENTRY animUpdate;
             animUpdate.blockAddr = thistag.blockaddr;
             animUpdate.blockID = thistag.blockID;
@@ -425,6 +431,7 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
             return true;
         }
+
 
         void AddUnchainedUpdate(byte[] entry)
         {
@@ -440,6 +447,8 @@ namespace rgatCore.Threads
             animUpdate.count = 0;
             animUpdate.callCount = 0;
             protograph.PushAnimUpdate(animUpdate);
+
+            protograph.PerformingUnchainedExecution = true;
         }
 
 
@@ -581,6 +590,7 @@ namespace rgatCore.Threads
 
 
                 bool todoprint = false;
+                Console.WriteLine((char)msg[0]);
                 switch (msg[0])
                 {
                     case (byte)'j':
@@ -593,7 +603,7 @@ namespace rgatCore.Threads
                         HandleArg(msg);
                         break;
                     case (byte)'U':
-                        AddUnlinkingUpdate(msg);
+                        UnchainedLinkingUpdate(msg);
                         break;
                     case (byte)'u':
                         AddUnchainedUpdate(msg);

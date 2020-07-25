@@ -136,7 +136,7 @@ namespace rgatCore
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} ended!");
 
-            trace.PlottedGraphs[TID].internalProtoGraph.terminated = true;
+            trace.PlottedGraphs[TID].internalProtoGraph.Terminated = true;
 
         }
 
