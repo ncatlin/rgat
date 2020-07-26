@@ -521,9 +521,14 @@ namespace rgatCore
             }
             else if (insdata.mnemonic == "jmp")
             {
-                try { insdata.branchAddress = ulong.Parse(insdata.op_str); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
-                catch { insdata.branchAddress = 0; }
                 insdata.itype = eNodeType.eInsJump;
+                try { insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+                catch { insdata.branchAddress = 0; }
+
+                if (insdata.branchAddress == (address + (ulong)insdata.numbytes))
+                {
+                    insdata.itype = eNodeType.eInsUndefined; //junp to next address is nop
+                }
             }
             else
             {
