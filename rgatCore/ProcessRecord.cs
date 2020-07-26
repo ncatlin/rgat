@@ -158,13 +158,16 @@ namespace rgatCore
                         return null;
                     }
                 }
-                
+
 
                 if (blockID < blockList.Count)
                 {
                     var result = blockList[(int)blockID];
-                    externBlock = null;
-                    return result.Item2;
+                    if (result != null)
+                    {
+                        externBlock = null;
+                        return result.Item2;
+                    }
                 }
 
 

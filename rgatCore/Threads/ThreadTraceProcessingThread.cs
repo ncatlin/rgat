@@ -186,10 +186,12 @@ namespace rgatCore.Threads
             if (entry[1] == 'S')//LOOP START MARKER
             {
                 ulong loopIterations = BitConverter.ToUInt32(entry, 2);
+                Console.WriteLine($"Processing loop started marker {loopIterations} iterations");
                 protograph.SetLoopState(eLoopState.eBuildingLoop, loopIterations);
             }
             else if (entry[1] == 'E')//LOOP END MARKER
             {
+                Console.WriteLine($"Processing loop ended marker");
                 protograph.DumpLoop();
             }
         }
@@ -211,6 +213,7 @@ namespace rgatCore.Threads
             thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
             thistag.foundExtern = null;
             thistag.insCount = 0; //meaningless here
+
 
             if (protograph.loopState == eLoopState.eBuildingLoop)
             {
@@ -303,16 +306,22 @@ namespace rgatCore.Threads
         bool UnchainedLinkingUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
-            string[] entries = msg.Split(',', 6);
+            string[] entries = msg.Split(',', 8);
 
             ulong sourceAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
-            ulong blockID_numins = ulong.Parse(entries[2], NumberStyles.HexNumber);
-            uint srcblockID = (uint)blockID_numins >> 32;
-            uint srcinscount = (uint)blockID_numins & 0xff;
+            uint src_blockID = (uint)ulong.Parse(entries[2], NumberStyles.HexNumber);
+            uint src_numins = (uint)ulong.Parse(entries[3], NumberStyles.HexNumber);
+
+
+
+
+            ulong targetAddr = ulong.Parse(entries[7], NumberStyles.HexNumber);
+
+
 
             protograph.PerformingUnchainedExecution = false;
 
-            List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(srcblockID);
+            List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(src_blockID);
             InstructionData lastIns = lastBB[^1];
             bool found = lastIns.threadvertIdx.TryGetValue(protograph.ThreadID, out uint srcidx);
             if (!found)
@@ -323,23 +332,22 @@ namespace rgatCore.Threads
 
             protograph.lastVertID = srcidx;
 
-            ulong currentAddr = ulong.Parse(entries[3], NumberStyles.HexNumber);
-            ulong currentblockID_numins = ulong.Parse(entries[4], NumberStyles.HexNumber);
-
-            Debug.Assert(protograph.BlocksFirstLastNodeList.Count > srcblockID, "Bad src block id in unlinking update");
-
 
             TAG thistag;
-            thistag.insCount = (uint)currentblockID_numins & 0xff;
-            thistag.blockID = (uint)currentblockID_numins >> 32;
+            thistag.blockaddr = ulong.Parse(entries[4], NumberStyles.HexNumber);
+            thistag.blockID = (uint)ulong.Parse(entries[5], NumberStyles.HexNumber);
+            thistag.insCount = (uint)ulong.Parse(entries[6], NumberStyles.HexNumber);
             thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
             thistag.foundExtern = null;
-            thistag.blockaddr = 0;
             protograph.handle_tag(thistag);
 
 
+            Debug.Assert(protograph.BlocksFirstLastNodeList.Count > src_blockID, "Bad src block id in unlinking update");
 
-            ulong targetAddr = ulong.Parse(entries[5], NumberStyles.HexNumber);
+
+            Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
+
+
 
             if (protograph.TraceData.FindContainingModule(targetAddr, out int modnum) == eCodeInstrumentation.eUninstrumentedCode)
             {
@@ -448,6 +456,8 @@ namespace rgatCore.Threads
             animUpdate.callCount = 0;
             protograph.PushAnimUpdate(animUpdate);
 
+
+            Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
             protograph.PerformingUnchainedExecution = true;
         }
 
@@ -464,12 +474,16 @@ namespace rgatCore.Threads
             newRepeat.totalExecs = ulong.Parse(entries[2], NumberStyles.HexNumber);
             newRepeat.targBlocks = new List<uint>();
 
+            Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID } ");
+
             string[] rptblocks = entries[3].Split(',');
             
             foreach (string bid_s in rptblocks)
             {
                 uint targblockID = uint.Parse(bid_s, NumberStyles.HexNumber);
                 newRepeat.targBlocks.Add(targblockID);
+
+                Console.WriteLine($"\t +targ {targblockID} ");
             }
 
             newRepeat.blockInslist = null;
@@ -575,6 +589,7 @@ namespace rgatCore.Threads
         }
 
 
+        private readonly Object debug_tag_lock = new Object();
         void Processor()
         {
             while (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData())
@@ -588,46 +603,46 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-
-                bool todoprint = false;
-                Console.WriteLine((char)msg[0]);
-                switch (msg[0])
+                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                lock (debug_tag_lock)
                 {
-                    case (byte)'j':
-                        ProcessTraceTag(msg);
-                        break;
-                    case (byte)'R':
-                        ProcessLoopMarker(msg);
-                        break;
-                    case (byte)'A':
-                        HandleArg(msg);
-                        break;
-                    case (byte)'U':
-                        UnchainedLinkingUpdate(msg);
-                        break;
-                    case (byte)'u':
-                        AddUnchainedUpdate(msg);
-                        break;
-                    case (byte)'B':
-                        AddExecCountUpdate(msg);
-                        break;
-                    case (byte)'s':
-                        AddSatisfyUpdate(msg);
-                        break;
-                    case (byte)'X':
-                        AddExceptionUpdate(msg);
-                        break;
-                    case (byte)'Z':
-                        todoprint = true;
-                        Console.WriteLine("Handle Thread Terminated");
-                        break;
-                    default:
-                        todoprint = true;
-                        Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
-                        break;
+                    bool todoprint = false;
+                    switch (msg[0])
+                    {
+                        case (byte)'j':
+                            ProcessTraceTag(msg);
+                            break;
+                        case (byte)'R':
+                            ProcessLoopMarker(msg);
+                            break;
+                        case (byte)'A':
+                            HandleArg(msg);
+                            break;
+                        case (byte)'U':
+                            UnchainedLinkingUpdate(msg);
+                            break;
+                        case (byte)'u':
+                            AddUnchainedUpdate(msg);
+                            break;
+                        case (byte)'B':
+                            AddExecCountUpdate(msg);
+                            break;
+                        case (byte)'s':
+                            AddSatisfyUpdate(msg);
+                            break;
+                        case (byte)'X':
+                            AddExceptionUpdate(msg);
+                            break;
+                        case (byte)'Z':
+                            todoprint = true;
+                            Console.WriteLine("Handle Thread Terminated");
+                            break;
+                        default:
+                            Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
+                            Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                            break;
+                    }
                 }
-                if (todoprint)
-                    Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
 
                 if (IrregularTimerFired)
                 {

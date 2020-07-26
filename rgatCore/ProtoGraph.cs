@@ -186,6 +186,7 @@ namespace rgatCore
             //ReadLock(piddata->disassemblyRWLock);
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
+                Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
                 return (instruction.threadvertIdx.TryGetValue(ThreadID, out targVertID));
             }
         }
@@ -195,6 +196,7 @@ namespace rgatCore
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(lastVertID, targVertID);
 
+            Console.WriteLine($"\tBB_addNewEdge {lastVertID} -> {targVertID}");
             if (EdgeExists(edgeIDPair))
             {
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
@@ -554,8 +556,8 @@ namespace rgatCore
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
+            Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
-           
 
             source.OutgoingNeighboursSet.Add(edgePair.Item2);
             if (source.conditional != eConditionalType.NOTCONDITIONAL &&
@@ -655,11 +657,15 @@ namespace rgatCore
             }
         }
 
+
         public void handle_tag(TAG thistag, ulong repeats = 1)
         {
 
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
+
+                Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
+
                 //addBlockNodesToGraph(thistag, repeats);
                 addBlockLineToGraph(thistag, repeats);
 
@@ -761,7 +767,7 @@ namespace rgatCore
 
             uint firstVert = 0;
             uint lastVert;
-
+            Console.WriteLine($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
@@ -782,10 +788,12 @@ namespace rgatCore
                 bool alreadyExecuted = set_target_instruction(instruction);
                 if (!alreadyExecuted)
                 {
+                    Console.WriteLine($"\tins addr 0x{instruction.address:X} is new, handling as new");
                     targVertID = handle_new_instruction(instruction, tag.blockID, repeats);
                 }
                 else
                 {
+                    Console.WriteLine($"\tins addr 0x{instruction.address:X} exists, handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
@@ -796,6 +804,7 @@ namespace rgatCore
                     firstLoopVert = targVertID;
                     loopState = eLoopState.eLoopProgress;
                 }
+
 
                 BB_addNewEdge(alreadyExecuted, instructionIndex, repeats);
 

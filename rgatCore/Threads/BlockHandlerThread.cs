@@ -57,9 +57,10 @@ namespace rgatCore
         }
 
 
+
         void ReadCallback(IAsyncResult ar)
         {
-            int pointerSize = (bitWidth / 8);
+
             int bytesread = 0;
             byte[] buf = (byte[])ar.AsyncState;
             try
@@ -80,8 +81,7 @@ namespace rgatCore
 
 
             buf[bytesread] = 0;
-            int bufPos = 0;
-            if (buf[bufPos++] != 'B')
+            if (buf[0] != 'B')
             {
                 Console.WriteLine("BlockHandler pipe read unhandled entry from PID {trace.PID}");
                 Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
@@ -89,11 +89,21 @@ namespace rgatCore
             }
             //Console.WriteLine("ProcBlock " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
 
+
+            IngestBlock(buf);
+
+        }
+
+        void IngestBlock(byte[] buf)
+        {
+            int pointerSize = (bitWidth / 8);
+            int bufPos = 1;
             ulong BlockAddress = (bitWidth == 32) ? BitConverter.ToUInt32(buf, 1) : BitConverter.ToUInt64(buf, 1);
+
+
             bufPos += pointerSize;
 
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
-            //Console.WriteLine($"Got {bitWidth}bit block addr {BlockAddress:X}");
 
             uint localmodnum = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
@@ -114,9 +124,11 @@ namespace rgatCore
                 if (instrumentedStatusByte == eBlkInstrumentation.eCodeInDataArea)
                     dataExecution = true;
             }
+            Debug.Assert(instrumented);
 
             uint blockID = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
-            //Console.WriteLine("Processing block id " + blockID);
+
+            Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
 
             if (!instrumented) //should no longer happen
             {
@@ -127,6 +139,7 @@ namespace rgatCore
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
+            int dbginscount = -1;
             while (buf[bufPos] == '@')
             {
                 bufPos++;
@@ -136,13 +149,13 @@ namespace rgatCore
 
                 byte[] opcodes = new ReadOnlySpan<byte>(buf, bufPos, insByteCount).ToArray(); bufPos += insByteCount;
                 List<InstructionData> foundList = null;
+
                 lock (trace.DisassemblyData.InstructionsLock)
                 {
-
+                    dbginscount++;
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
                         InstructionData possibleInstruction = foundList[^1];
-
                         //if address has been seen but opcodes are not same as most recent, disassemble again
                         //might be a better to check all mutations instead of most recent
                         bool mutation = possibleInstruction.numbytes != insByteCount || !possibleInstruction.opcodes.SequenceEqual<byte>(opcodes);
@@ -153,46 +166,50 @@ namespace rgatCore
                             continue;
                         }
                     }
-                }
 
+                    Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
+                    InstructionData instruction = new InstructionData();
+                    instruction.address = insaddr;
+                    instruction.numbytes = insByteCount;
+                    instruction.opcodes = opcodes;
+                    instruction.globalmodnum = globalModNum;
+                    instruction.dataEx = dataExecution;
+                    instruction.ContainingBlockIDs = new List<Tuple<ulong, uint>>();
+                    instruction.ContainingBlockIDs.Add(new Tuple<ulong, uint>(insaddr, blockID));
+                    instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
+                    instruction.threadvertIdx = new Dictionary<uint, uint>();
 
-                InstructionData instruction = new InstructionData();
-                instruction.address = insaddr;
-                instruction.numbytes = insByteCount;
-                instruction.opcodes = opcodes;
-                instruction.globalmodnum = globalModNum;
-                instruction.dataEx = dataExecution;
-                instruction.ContainingBlockIDs = new List<Tuple<ulong, uint>>();
-                instruction.ContainingBlockIDs.Add(new Tuple<ulong, uint>(insaddr, blockID));
-                instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
-                instruction.threadvertIdx = new Dictionary<uint, uint>();
+                    //need to move this out of the lock
+                    if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
+                    {
+                        Console.WriteLine($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?");
+                        return;
+                    }
 
-                if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
-                {
-                    Console.WriteLine($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?");
-                    return;
-                }
+                    Console.WriteLine($"\t Block {blockID} ins {dbginscount}: {instruction.ins_text}");
 
-                lock (trace.DisassemblyData.InstructionsLock)
-                {
                     if (foundList == null)
-                    { 
+                    {
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                     instruction.mutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
-                    trace.DisassemblyData.disassembly[insaddr].Add(instruction);
-                }
 
-                blockInstructions.Add(instruction);
-                insaddr += (ulong)instruction.numbytes;
+                    instruction.DebugID = trace.DisassemblyData.disassembly.Count;
+
+                    trace.DisassemblyData.disassembly[insaddr].Add(instruction);
+
+
+                    blockInstructions.Add(instruction);
+
+                    insaddr += (ulong)instruction.numbytes;
+                }
             }
             Debug.Assert(blockInstructions.Count != 0);
             //Console.WriteLine($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
- 
 
         void Listener(Object pipenameO)
         {

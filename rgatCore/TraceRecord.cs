@@ -11,6 +11,7 @@ namespace rgatCore
 {
     struct InstructionData
     {
+        public int DebugID;
 
         //void* bb_ptr;
         public string mnemonic;
