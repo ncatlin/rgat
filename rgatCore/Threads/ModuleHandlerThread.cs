@@ -80,7 +80,7 @@ namespace rgatCore
             string pipename = GetTracePipeName(TID);
 
             Console.WriteLine("Opening pipe "+pipename);
-            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
             threadListener.WaitForConnection();
             Console.WriteLine("Trace thread connected");

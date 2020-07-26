@@ -493,25 +493,26 @@ namespace rgatCore
 
         void InsertNode(uint targVertID, NodeData node)
         {
-            if (NodeList.Count > 0)
-                Debug.Assert(targVertID == NodeList[NodeList.Count - 1].index + 1);
-
-            if (node.IsExternal)
+            lock (nodeLock)
             {
-                //highlightsLock.lock () ;
-                externalNodeList.Add(node.index);
-                //highlightsLock.unlock();
-            }
-            else if (node.ins.hasSymbol)
-            {
-                //highlightsLock.lock () ;
-                internalNodeList.Add(node.index);
-                //highlightsLock.unlock();
-            }
+                if (NodeList.Count > 0)
+                    Debug.Assert(targVertID == NodeList[NodeList.Count - 1].index + 1);
 
-            //getNodeWriteLock();
-            NodeList.Add(node);
-            //dropNodeWriteLock();
+                if (node.IsExternal)
+                {
+                    //highlightsLock.lock () ;
+                    externalNodeList.Add(node.index);
+                    //highlightsLock.unlock();
+                }
+                else if (node.ins.hasSymbol)
+                {
+                    //highlightsLock.lock () ;
+                    internalNodeList.Add(node.index);
+                    //highlightsLock.unlock();
+                }
+
+                NodeList.Add(node);
+            }
         }
 
 

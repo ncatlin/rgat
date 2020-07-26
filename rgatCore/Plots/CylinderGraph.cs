@@ -36,7 +36,8 @@ namespace rgatCore
         const float CALLA = 5;
         const float CALLB = 3;
 
-        const float B_BETWEEN_BLOCKNODES = 0.25f;
+        const float B_BETWEEN_BLOCKNODES = 0.25f; //vertical separation between non-flow instructions
+        const float B_AFTER_COND_DROP = 0.35f;    //vertical separation after a conditional that didnt execute
 
         //how to adjust placement if it jumps to a prexisting node (eg: if caller has called multiple)
         const int CALLA_CLASH = 0;
@@ -195,10 +196,7 @@ namespace rgatCore
         {
             lock (renderingLock)
             {
-
-                Console.WriteLine("In rendermain lock");
                 render_new_edges(false);
-                Console.WriteLine("left rendermain lock");
             }
 
             redraw_anim_edges();
@@ -221,7 +219,8 @@ namespace rgatCore
 
             WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
-            int vertsDrawn = drawCurve(edgedata, srcc, targc, edgeColourPtr, e.edgeClass, scaling, out int arraypos);
+            bool shiftedMiddle = e.edgeClass == eEdgeNodeType.eEdgeOld;
+            int vertsDrawn = drawCurve(edgedata, srcc, targc, edgeColourPtr, e.edgeClass, scaling, out int arraypos, shiftedMiddle);
 
             //previews, diffs, etc where we don't want to affect the original edges
             if (!noUpdate && !preview)
@@ -293,7 +292,7 @@ namespace rgatCore
             CYLINDERCOORD coord;
             if (n.index >= node_coords.Count)
             {
-                Console.WriteLine($"Node {n.index} {n.ins.ins_text} not plotted yet, plotting");
+                //Console.WriteLine($"Node {n.index} {n.ins.ins_text} not plotted yet, plotting");
                 if (node_coords.Count == 0)
                 {
                     Debug.Assert(n.index == 0);
@@ -353,7 +352,7 @@ namespace rgatCore
             }
             else
             {
-                Console.WriteLine($"Node {n.index} already plotted, retrieving");
+                //Console.WriteLine($"Node {n.index} already plotted, retrieving");
                 get_node_coord((int)n.index, out coord);
             }
 
@@ -563,10 +562,16 @@ namespace rgatCore
         */
 
         static int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC,
-            WritableRgbaFloat colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos)
+            WritableRgbaFloat colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos, bool shiftedMidPoint = false)
         {
             //describe the normal
             GraphicsMaths.midpoint(startC, endC, out Vector3 middleC);
+            if (shiftedMidPoint)
+            {
+                middleC.X -= 1f;
+                middleC.Z -= 1f;
+            }
+
             float eLen = GraphicsMaths.linedist(startC, endC);
 
             Vector3 bezierC;
@@ -771,7 +776,7 @@ namespace rgatCore
                         NodeData lastNodeData = internalProtoGraph.safe_get_node(lastNode.lastVertID);
                         if (lastNodeData.IsConditional() && n.address == lastNodeData.ins.condDropAddress)
                         {
-                            b += B_BETWEEN_BLOCKNODES;
+                            b += B_AFTER_COND_DROP;
                             break;
                         }
 

@@ -858,14 +858,14 @@ namespace rgatCore
                                                      //nodesdata.release_col_write();
         }
         //node+edge col+pos
-        bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint> nodelist)
+        bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint> newnodelist)
         {
             ProcessRecord piddata = internalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
             List<InstructionData> block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
             if (block == null)
             {
-                nodelist = null;
+                newnodelist = null;
                 return false;
             }
             //if (internalProtoGraph.terminationFlag) return false;
@@ -899,24 +899,25 @@ namespace rgatCore
                 }
 
 
-                //piddata.dropExternCallerReadLock();
-                nodelist = new List<uint>();
+
+                newnodelist = new List<uint>();
                 foreach (Tuple<uint, uint> edge in calls) //record each call by caller
                 {
                     if (edge.Item1 == lastAnimatedNode)
                     {
-                        nodelist.Add(edge.Item2);
+                        newnodelist.Add(edge.Item2);
                     }
                 }
+                
                 return true;
             }
 
 
-            nodelist = new List<uint>();
+            newnodelist = new List<uint>();
             foreach (InstructionData ins in block)
             {
                 if (!ins.threadvertIdx.TryGetValue(tid, out uint val)) return false;
-                nodelist.Add(val);
+                newnodelist.Add(val);
             }
 
             return true;

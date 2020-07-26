@@ -21,28 +21,7 @@ namespace rgatCore
             }
         }
 
-        
-		public bool get_sym(int globalmodNum, ulong mem_addr, out string sym)
-        {
-            bool found;
-            lock (InstructionsLock)
-            {
-                if (modsymsPlain[globalmodNum][mem_addr].Length == 0)
-                {
-                    sym = "";
-                    found = false;
-                }
-                else
-                {
-                    sym = modsymsPlain[globalmodNum][mem_addr];
-                    found = true;
-                }
-            }
-            return found;
-        }
-
-
-		//public bool get_modpath(uint modNum, boost::filesystem::path* path);
+    		//public bool get_modpath(uint modNum, boost::filesystem::path* path);
 		//bool get_modbase(uint modNum, ulong &moduleBase);
         
 

@@ -60,8 +60,8 @@ namespace rgatCore.Threads
             public static WritableRgbaFloat activityLine = new WritableRgbaFloat(Color.Red);
 
             public static WritableRgbaFloat edgeCall = new WritableRgbaFloat(Color.Purple);
-            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.FromArgb(0,244,244,244));
-            public static WritableRgbaFloat edgeReg = new WritableRgbaFloat(Color.Orange);
+            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.FromArgb(150, 150, 150, 150));
+            public static WritableRgbaFloat edgeRet = new WritableRgbaFloat(Color.Orange);
             public static WritableRgbaFloat edgeLib = new WritableRgbaFloat(Color.Green);
             public static WritableRgbaFloat edgeNew = new WritableRgbaFloat(Color.Yellow);
             public static WritableRgbaFloat edgeExcept = new WritableRgbaFloat(Color.Cyan);
@@ -79,7 +79,7 @@ namespace rgatCore.Threads
         public static void InitDefaultConfig()
         {
             defaultGraphColours = new List<WritableRgbaFloat> { 
-                mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeReg, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
+                mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
             };
 

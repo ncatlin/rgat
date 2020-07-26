@@ -403,7 +403,7 @@ namespace rgatCore.Threads
 
                             for (int i = 0; i < 4096; i++)
                             {
-                                if (protograph.ProcessData.get_sym(foundExtern.globalmodnum, offset - (ulong)i, out sym))
+                                if (protograph.ProcessData.GetSymbol(foundExtern.globalmodnum, offset - (ulong)i, out sym))
                                 {
                                     foundsym = true;
                                     break;
