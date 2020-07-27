@@ -31,8 +31,7 @@ namespace rgatCore
         private Vector2 graphWidgetSize;
 
         public float dbg_FOV = 1.0f;
-        public float dbg_near = 0.5f;
-        public float dbg_far = 20000;
+        public float dbg_far = 0f;
         public float dbg_camX = 0f;
         public float dbg_camY = 0f;
         public float dbg_camZ = 1000f;
@@ -175,22 +174,23 @@ namespace rgatCore
             //textpos += txtitm.screenXY;
 
             GraphicsMaths.SCREENINFO scrn;
-            scrn.X = ImGui.GetCursorScreenPos().X;
-            scrn.Y = ImGui.GetCursorScreenPos().Y;
+            scrn.X = 0;// ImGui.GetCursorScreenPos().X;
+            scrn.Y = 0;// ImGui.GetCursorScreenPos().Y;
             scrn.Width = graphWidgetSize.X;
             scrn.Height = graphWidgetSize.Y;
-            scrn.MinDepth = dbg_near;
-            scrn.MaxDepth = dbg_far;
-            scrn.CamZoom = ActiveGraph.main_scalefactors.plotSize + dbg_camZ;
+            scrn.MaxDepth = ActiveGraph.main_scalefactors.plotSize;
+            scrn.MinDepth = 1;
+            scrn.CamZoom = dbg_camZ;
 
             
             foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
             {
-                //Vector2 textpos = ImGui.GetCursorScreenPos();
-                //textpos += txtitm.screenXY;
                 PlottedGraph.TEXTITEM txtitm2 = txtitm;
                 txtitm2.screenXY.X += 5;
-                txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y / 2;
+                txtitm2.screenXY.X += ImGui.GetCursorScreenPos().X;
+
+                txtitm2.screenXY.Y += ImGui.GetCursorScreenPos().Y;
+                txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y / 2 ;
                 imdp.AddText(_ImGuiController._unicodeFont, txtitm2.fontSize, txtitm2.screenXY, (uint)txtitm2.color.ToArgb(), txtitm2.contents);
             }
             
@@ -238,34 +238,28 @@ namespace rgatCore
 
         private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
         {
+            float angle = dbg_rot;
+            float nearClip = dbg_camZ;
+            float farClip = nearClip + ActiveGraph.main_scalefactors.plotSize + dbg_far;
+            if (nearClip <= 0) nearClip = 1;
+            if (farClip <= nearClip) farClip = nearClip + 1;
 
             _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
 
-
-
-
-
-            //if autorotation...
-            //float _ticks = (System.DateTime.Now.Ticks - _startTime) / (1000f);
-            //float angle = _ticks / 10000;
-            //else
-            float angle = dbg_rot;
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * ActiveGraph.main_scalefactors.plotSize) - dbg_camZ);
+            Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
             Matrix4x4 combined = rotation;
-
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1*ActiveGraph.main_scalefactors.plotSize) - dbg_camZ);
-            Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
             combined = Matrix4x4.Multiply(combined, view);
 
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, dbg_near, dbg_far);
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, nearClip, farClip);
             combined = Matrix4x4.Multiply(combined, projection);
 
             ActiveGraph.projection = projection;
             ActiveGraph.view = view;
             ActiveGraph.rotation = rotation;
             _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
-
         }
 
 

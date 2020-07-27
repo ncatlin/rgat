@@ -103,9 +103,9 @@ namespace rgatCore.Threads
 			if (replot_existing)
 			{
 				renderGraph.initialiseCustomDimensions(newScaleFactors);
-				renderGraph.view_shift_x = xrot;
-				renderGraph.view_shift_y = yrot;
-				renderGraph.cameraZoomlevel = zoom;
+				//renderGraph.view_shift_x = xrot;
+				//renderGraph.view_shift_y = yrot;
+				//renderGraph.cameraZoomlevel = zoom;
 			}
 			else
 			{

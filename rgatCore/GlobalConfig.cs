@@ -43,7 +43,7 @@ namespace rgatCore.Threads
         public static float insTextCompactThreshold = 2.5f;
         public static int OnScreenNodeTextCountLimit = 100;
 
-        public static float FurthestInstructionText = 2000f;
+        public static float FurthestInstructionText = 2500f;
         public static float FurthestSymbol = 5000f;
 
         public static class mainColours

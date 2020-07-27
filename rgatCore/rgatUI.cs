@@ -491,7 +491,8 @@ namespace rgatCore
             {
 
                 ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
-                ImGui.DragFloat("Near Clipping", ref MainGraphWidget.dbg_near, 1.0f, 0.1f, 200f, "%f%%");
+                //todo: max should be just beyond full cylinder (+ extrusions)
+                //      speed should scale with plot size
                 ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 200000f, "%f%%");
                 ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 40000, "%f%%");
                 ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 200000, "%f%%");
