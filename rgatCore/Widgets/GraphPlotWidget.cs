@@ -151,6 +151,7 @@ namespace rgatCore
                 return;
 
             ActiveGraph.UpdateGraphicBuffers(graphSize, _gd);
+
             if (scheduledGraphResize)
             {
                 double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
@@ -199,26 +200,6 @@ namespace rgatCore
             //drawHUD();
         }
 
-        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
-        {
-
-            //create shaders
-            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
-            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-            VertexElementDescription AnimAlpha = new VertexElementDescription("ActiveAnimAlpha", VertexElementSemantic.Color, VertexElementFormat.Float1);
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol, AnimAlpha);
-
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
-
-            Shader[] _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
-            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-            shaders: _shaders);
-
-            return shaderSetDesc;
-        }
-
 
         public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
         {
@@ -233,12 +214,9 @@ namespace rgatCore
 
             SetupView(_cl, graphBuffers);
 
-            float _ticks = (System.DateTime.Now.Ticks - _startTime) / 10000;
-            float alpha = (_ticks % 255) / 255;
             VeldridGraphBuffers.AnimDataStruct animInfo;
-            animInfo.animEnabled = 1;
+            animInfo.animEnabled = ActiveGraph.IsAnimated ? 1 : 0;
             _cl.UpdateBuffer(graphBuffers._animBuffer, 0, ref animInfo, (uint)Marshal.SizeOf(animInfo));
-            //Console.WriteLine(alpha);
 
 
             graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
@@ -274,6 +252,27 @@ namespace rgatCore
         }
 
         private static long _startTime = System.DateTime.Now.Ticks;
+
+
+        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
+        {
+
+            //create shaders
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexElementDescription AnimAlpha = new VertexElementDescription("ActiveAnimAlpha", VertexElementSemantic.Color, VertexElementFormat.Float1);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol, AnimAlpha);
+
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
+
+            Shader[] _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+            shaders: _shaders);
+
+            return shaderSetDesc;
+        }
 
 
 

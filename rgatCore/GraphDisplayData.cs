@@ -65,6 +65,11 @@ namespace rgatCore
             ActiveAnimAlpha = AnimDarkAlpha;
         }
         public void SetAlpha(float alpha) => Color.A = alpha;
+        public void SetAnimAlpha(float alpha)
+        {
+            ActiveAnimAlpha = alpha;
+        }
+
         public VertexPositionColor(Vector3 position, Veldrid.RgbaFloat color, float AnimDarkAlpha)
         {
             Position = position;
@@ -91,6 +96,32 @@ namespace rgatCore
         }
 
         private readonly object ListLock = new object();
+
+        public void SetNodeAnimAlpha(uint index, float alpha)
+        {
+            lock (ListLock) //todo, should be a read lock 
+            {
+                if (index < VertList.Count)
+                {
+                    VertexPositionColor vpc = VertList[(int)index];
+                    vpc.ActiveAnimAlpha = alpha;
+                    VertList[(int)index] = vpc;
+                    DataChanged = true;
+                }
+            }
+        }
+
+        public bool ReduceNodeAnimAlpha(uint index, float alpha)
+        {
+            lock (ListLock) //todo, should be a read lock
+            {
+                VertexPositionColor vpc = VertList[(int)index];
+                vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, 0);
+                VertList[(int)index] = vpc;
+                DataChanged = true;
+                return (vpc.ActiveAnimAlpha == 0);
+            }
+        }
 
         public int safe_add_vert(VertexPositionColor input)
         {

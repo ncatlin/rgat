@@ -59,7 +59,6 @@ namespace rgatCore
             mainnodesdata = new GraphDisplayData();
             mainlinedata = new GraphDisplayData();
 
-
             previewlines = new GraphDisplayData(true);
             previewnodes = new GraphDisplayData(true);
 
@@ -67,8 +66,6 @@ namespace rgatCore
             conditionalnodes = new GraphDisplayData();
             heatmaplines = new GraphDisplayData();
 
-            animlinedata = new GraphDisplayData();
-            animnodesdata = new GraphDisplayData();
             //blocklines = new GraphDisplayData();
 
             lastPlottedNode.lastVertID = 0;
@@ -78,7 +75,7 @@ namespace rgatCore
 
             internalProtoGraph = protoGraph;
 
-            IsAnimated = !internalProtoGraph.Terminated;			
+            IsAnimated = !internalProtoGraph.Terminated;
             graphColours = graphColourslist;
 
         }
@@ -151,8 +148,6 @@ namespace rgatCore
             mainlinedata = new GraphDisplayData();
             mainnodesdata = new GraphDisplayData();
             wireframelines = new GraphDisplayData();
-            animnodesdata = new GraphDisplayData();
-            animlinedata = new GraphDisplayData();
             conditionallines = new GraphDisplayData();
             conditionalnodes = new GraphDisplayData();
 
@@ -335,10 +330,9 @@ namespace rgatCore
             {
                 internalProtoGraph.set_active_node(0);
                 darken_fading(1.0f);
-                darken_fading(1.0f);
             }
 
-            Debug.Assert(fadingAnimEdgesSet.Count == 0 && fadingAnimNodesSet.Count == 0);
+            Debug.Assert(fadingAnimEdgesSet.Count == 0 && FadingAnimNodesSet.Count == 0);
 
             animInstructionIndex = 0;
             lastAnimatedNode = 0;
@@ -445,8 +439,6 @@ namespace rgatCore
 
         public GraphDisplayData mainnodesdata = null;
         public GraphDisplayData mainlinedata = null;
-        public GraphDisplayData animnodesdata = null;
-        public GraphDisplayData animlinedata = null;
         public GraphDisplayData conditionallines = null;
         public GraphDisplayData conditionalnodes = null;
         public GraphDisplayData previewnodes = null;
@@ -581,6 +573,7 @@ namespace rgatCore
 
                 case REPLAY_STATE.ePaused: //unpause it
                     replayState = REPLAY_STATE.ePlaying;
+                    SetAnimated(true);
                     Console.WriteLine("Animation state Paused -> Playing");
                     break;
 
@@ -682,7 +675,8 @@ namespace rgatCore
         //protected int render_new_blocks();
         protected void redraw_anim_edges()
         {
-
+            Console.WriteLine("todo redraw_anim_edges");
+            /*
             List<VertexPositionColor> ecol = animlinedata.acquire_vert_write();
             foreach (var edgeIDIt in activeAnimEdgeTimes)
             {
@@ -698,6 +692,7 @@ namespace rgatCore
                 }
             }
             animlinedata.release_vert_write();
+            */
         }
         /*
 		protected void acquire_nodecoord_read();
@@ -820,19 +815,22 @@ namespace rgatCore
 
         void extend_faded_edges()
         {
+
+            Console.WriteLine("todo extend_faded_edges");
+            /*
             int drawnVerts = mainlinedata.CountVerts();
             int animatedVerts = animlinedata.CountVerts();
 
             Debug.Assert(drawnVerts >= animatedVerts);
             int pendingVerts = drawnVerts - animatedVerts;
             if (pendingVerts == 0) return;
-
+            */
             //List<VertexPositionColor> animEdgeColours = animlinedata.acquire_vert_read();
             //List<VertexPositionColor> staticEdgeColours = mainlinedata.acquire_vert_read();
 
             //copy the colours over
-            Console.WriteLine("Todo all of this extend_faded_edges");
-            int fadedIndex = animatedVerts * GL_Constants.COLELEMS;
+            //Console.WriteLine("Todo all of this extend_faded_edges");
+            //int fadedIndex = animatedVerts * GL_Constants.COLELEMS;
             //vector<float>::iterator mainEIt = staticEdgeColours.begin();
             //advance(mainEIt, fadedIndex);
             //animEdgeColours.insert(animEdgeColours.end(), mainEIt, staticEdgeColours.end());
@@ -856,7 +854,7 @@ namespace rgatCore
             maintain_active();
             darken_fading(fadeRate);
 
-            set_node_alpha(lastAnimatedNode, animnodesdata, GraphicsMaths.getPulseAlpha());
+            mainnodesdata.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
 
             //live process always at least has pulsing active node
             //needVBOReload_active = true;
@@ -923,7 +921,7 @@ namespace rgatCore
                         newnodelist.Add(edge.Item2);
                     }
                 }
-                
+
                 return true;
             }
 
@@ -999,39 +997,39 @@ namespace rgatCore
 
         void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
         {
-            Console.WriteLine($"Todo brighten_node_list with list of {nodeIDList.Count} nodes for time: {brightTime}");
-            int instructionCount = 0;
-            /*
-			foreach (; nodeIt != nodeIDList.end(); ++nodeIt)
-			{
-				NODEINDEX nodeIdx = *nodeIt;
-				newAnimNodeTimes[nodeIdx] = brightTime;
+            ulong instructionCount = 0;
 
-				if (internalProtoGraph.safe_get_node(nodeIdx).external)
-				{
-					if (brightTime == KEEP_BRIGHT)
-						newExternTimes[make_pair(nodeIdx, entry.callCount)] = KEEP_BRIGHT;
-					else
-						newExternTimes[make_pair(nodeIdx, entry.callCount)] = EXTERN_LIFETIME_FRAMES;
-				}
+            foreach (uint nodeIdx in nodeIDList)
+            {
+                newAnimNodeTimes[nodeIdx] = brightTime;
 
-				if (!(entry.entryType == eAnimUnchained && nodeIt == nodeIDList.begin()))
-				{
-					NODEPAIR edge = make_pair(lastAnimatedNode, nodeIdx);
-					if (internalProtoGraph.edge_exists(edge, 0))
-					{
-						newAnimEdgeTimes[edge] = brightTime;
-					}
-					//if it doesn't exist it may be because user is skipping code with animation slider
-				}
+                if (internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
+                {
+                    if (brightTime == (int)Anim_Constants.eKB.KEEP_BRIGHT)
+                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = (int)Anim_Constants.eKB.KEEP_BRIGHT;
+                    else
+                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = GlobalConfig.ExternAnimDisplayFrames;
+                }
 
-				lastAnimatedNode = nodeIdx;
+                if (!(entry.entryType == eTraceUpdateType.eAnimUnchained && instructionCount == 0))
+                {
+                    Tuple<uint,uint> edge =  new Tuple<uint, uint>(lastAnimatedNode, nodeIdx);
+                    if (internalProtoGraph.EdgeExists(edge))
+                    {
+                        newAnimEdgeTimes[edge] = brightTime;
+                    }
+                    //if it doesn't exist it may be because user is skipping code with animation slider
+                }
 
-				++instructionCount;
-				if ((entry.entryType == eAnimExecException) && (instructionCount == (entry.count + 1))) break;
-			}
-			*/
+                lastAnimatedNode = nodeIdx;
+
+                ++instructionCount;
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (instructionCount == (entry.count + 1))) break;
+
+            }
         }
+
+
         //void draw_condition_ins_text(float zdist, PROJECTDATA* pd, GraphDisplayData* vertsdata, graphGLWidget &gltarget);
         //void draw_edge_heat_text(int zdist, PROJECTDATA* pd, graphGLWidget &gltarget);
         //void set_edge_alpha(NODEPAIR eIdx, GraphDisplayData* edgesdata, float alpha);
@@ -1141,7 +1139,9 @@ namespace rgatCore
 
             for (; animationIndex < targetAnimIndex; ++animationIndex)
             {
+                Console.WriteLine($"Anim Step {animationIndex}");
                 process_replay_update();
+                Thread.Sleep(100);
             }
 
             internalProtoGraph.set_active_node(lastAnimatedNode);
@@ -1149,12 +1149,7 @@ namespace rgatCore
             if (animationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
             {
                 replayState = REPLAY_STATE.eEnded;
-                return;
             }
-
-            else
-                return;
-
         }
 
         void process_replay_update()
@@ -1253,7 +1248,32 @@ namespace rgatCore
 
         void brighten_new_active_nodes()
         {
-            Console.WriteLine("todo brighten_new_active_nodes");
+
+            foreach (KeyValuePair<uint,int> node_time in newAnimNodeTimes)
+            {
+                uint nodeIdx = node_time.Key;
+                int animTime = node_time.Value;
+
+                if (nodeIdx >= mainnodesdata.CountVerts()) break;
+
+                mainnodesdata.SetNodeAnimAlpha(nodeIdx,1);//set animation brightness to full 
+
+
+                //want to delay fading if in loop/unchained area, 
+                if (animTime > 0)
+                {
+                    activeAnimNodeTimes[nodeIdx] = animTime;
+                    //Console.WriteLine("todo want to delay fading if in loop/unchained area, ");
+                    //set<NODEINDEX>::iterator fadeIt = fadingAnimNodes.find(arrIndexNodeAlpha);
+                    //if (fadeIt != fadingAnimNodes.end())
+                    //    fadingAnimNodes.erase(fadeIt);
+                }
+                else
+                    FadingAnimNodesSet.Add(nodeIdx);
+
+            }
+
+
             /*
 			Dictionary<uint, int>::iterator vertIDIt = newAnimNodeTimes.begin();
 			while (vertIDIt != newAnimNodeTimes.end())
@@ -1290,6 +1310,8 @@ namespace rgatCore
 			}
 			*/
         }
+
+
         void brighten_new_active_extern_nodes()
         {
             Console.WriteLine("todo brighten_new_active_extern_nodes");
@@ -1390,7 +1412,7 @@ namespace rgatCore
 
         void brighten_new_active()
         {
-            if (animnodesdata.CountVerts() == 0) return;
+            //if (animnodesdata.CountVerts() == 0) return;
 
             brighten_new_active_nodes();
             brighten_new_active_extern_nodes();
@@ -1400,7 +1422,7 @@ namespace rgatCore
 
         void maintain_active()
         {
-            if (animnodesdata.CountVerts() == 0) return;
+            
             Console.WriteLine("todo maintain_active");
             /*
 			Dictionary<uint, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
@@ -1457,16 +1479,26 @@ namespace rgatCore
 		   we can end up with a protograph with far more edges than the rendered edges
 		   so have to check that we are operating within bounds */
 
-            if (animnodesdata.CountVerts() > 0)
+
                 darken_nodes(fadeRate);
 
-            if (animlinedata.CountVerts() > 0)
                 darken_edges(fadeRate);
         }
 
         void darken_nodes(float fadeRate)
         {
-            Console.WriteLine("Todo - darken nodes");
+            List<uint> expiredNodes = new List<uint>();
+            foreach (uint nodeIdx in FadingAnimNodesSet)
+            {
+                if (mainnodesdata.ReduceNodeAnimAlpha(nodeIdx, fadeRate)) 
+                    expiredNodes.Add(nodeIdx);
+
+                Console.WriteLine($"Darkening node {nodeIdx}");
+            }
+
+            foreach (uint expiredNode in expiredNodes) FadingAnimNodesSet.Remove(expiredNode);
+            
+
         }
         void darken_edges(float fadeRate)
         {
@@ -1526,25 +1558,19 @@ namespace rgatCore
 
         void clear_active()
         {
-            if (animnodesdata.CountVerts() == 0) return;
-
-            Console.WriteLine("Todo all of this clear_active");
-            if (activeAnimNodeTimes.Count > 0)
+            foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
             {
-                /*
-				Dictionary<uint, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
-				float ncol = &animnodesdata.acquire_col_write().at(0);
-
-				for (; nodeAPosTimeIt != activeAnimNodeTimes.end(); ++nodeAPosTimeIt)
-					ncol[nodeAPosTimeIt.first] = ANIM_INACTIVE_NODE_ALPHA;
-				animnodesdata.release_col_write();
-				*/
-                //todo obviously this is garbage but just trying to make it compile then come back to it
-                List<VertexPositionColor> nodeColours = animnodesdata.acquire_vert_write();
-                nodeColours.ForEach(x => x.Color.A += Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
-                animnodesdata.release_vert_write();
-
+                mainnodesdata.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                Console.WriteLine($"Clearing active node {nodeIdx}");
             }
+            activeAnimNodeTimes.Clear();
+
+            foreach (uint nodeIdx in FadingAnimNodesSet)
+            {
+                mainnodesdata.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                Console.WriteLine($"Clearing fading node {nodeIdx}");
+            }
+            FadingAnimNodesSet.Clear();
 
             if (activeAnimEdgeTimes.Count > 0)
             {
@@ -1556,10 +1582,10 @@ namespace rgatCore
 					if (internalProtoGraph.edge_exists(edgeIDIt.first, &pulsingEdge))
 						set_edge_alpha(edgeIDIt.first, animlinedata, ANIM_INACTIVE_EDGE_ALPHA);
 				}
-				*/
                 List<VertexPositionColor> edgeColours = animlinedata.acquire_vert_write();
                 edgeColours.ForEach(x => x.Color.A += Anim_Constants.ANIM_INACTIVE_NODE_ALPHA);
                 animlinedata.release_vert_write();
+				*/
             }
         }
 
@@ -1653,7 +1679,7 @@ namespace rgatCore
         public uint tid { get; private set; }
         //PLOT_TRACK lastPreviewNode;
 
-        //Dictionary<Tuple<uint, ulong>, int> newExternTimes;
+        Dictionary<Tuple<uint, ulong>, int> newExternTimes = new Dictionary<Tuple<uint, ulong>, int>();
 
         //prevent graph from being deleted while being used
         //rgatlocks::TestableLock graphBusyLock;
@@ -1674,7 +1700,7 @@ namespace rgatCore
         //have tried List<Tuple<uint,int>> but it's slower
         Dictionary<uint, int> newAnimNodeTimes = new Dictionary<uint, int>();
         Dictionary<uint, int> activeAnimNodeTimes = new Dictionary<uint, int>();
-        List<uint> fadingAnimNodesSet = new List<uint>();
+        List<uint> FadingAnimNodesSet = new List<uint>();
 
         Dictionary<Tuple<uint, uint>, int> newAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
         Dictionary<Tuple<uint, uint>, int> activeAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();

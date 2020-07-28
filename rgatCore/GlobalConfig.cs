@@ -49,6 +49,9 @@ namespace rgatCore.Threads
         public static float AnimatedFadeMinimumAlpha = 0.4f;
         public static float WireframeAnimatedAlpha = 0.7f;
 
+        public static int ExternAnimDisplayFrames = 40;
+        public static float ExternAnimFloatSpeed = 0.3f;
+
         public static class mainColours
         {
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);

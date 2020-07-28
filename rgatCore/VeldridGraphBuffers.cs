@@ -245,6 +245,7 @@ namespace rgatCore
 
         public void DrawPoints(CommandList _cl, GraphicsDevice _gd, GraphDisplayData nodes)
         {
+            //todo:! update, dont refill
             if (_PointVertexBuffer == null || nodes.DataChanged)
             {
                 InitNodeVertexData(_gd, nodes);

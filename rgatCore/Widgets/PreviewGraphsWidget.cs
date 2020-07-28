@@ -81,9 +81,6 @@ namespace rgatCore
 
         public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
-            return;
-
-
             if (ActiveTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
@@ -147,24 +144,7 @@ namespace rgatCore
             _cl.UpdateBuffer(graphRenderInfo._viewBuffer, 0, newView);
         }
 
-        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
-        {
 
-            //create shaders
-            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
-            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
-
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
-
-            _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
-            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-            shaders: _shaders);
-
-            return shaderSetDesc;
-        }
 
 
         public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
@@ -205,6 +185,23 @@ namespace rgatCore
 
 
 
+        private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
+        {
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexElementDescription AnimAlpha = new VertexElementDescription("ActiveAnimAlpha", VertexElementSemantic.Color, VertexElementFormat.Float1);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol, AnimAlpha);
+
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
+
+            _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+            vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+            shaders: _shaders);
+
+            return shaderSetDesc;
+        }
 
         private const string VertexCode = @"
 #version 450
