@@ -123,6 +123,24 @@ namespace rgatCore
             }
         }
 
+        public void SetEdgeAnimAlpha(int arraystart, int vertcount, float alpha)
+        {
+            lock (ListLock) //todo, should be a read lock
+            {
+                Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
+                for (int index = arraystart; index < arraystart+vertcount; index++)
+                {
+                    VertexPositionColor vpc = VertList[(int)index];
+                    vpc.ActiveAnimAlpha = alpha;
+                    VertList[(int)index] = vpc;
+                }
+
+                DataChanged = true;
+            }
+        }
+
+
+
         public int safe_add_vert(VertexPositionColor input)
         {
             int newsize = 0;
@@ -138,15 +156,14 @@ namespace rgatCore
 
         public int safe_add_verts(List<VertexPositionColor> input)
         {
-            int newsize = 0;
+            int oldSize = VertList.Count;
             lock (ListLock) //todo, should be a read lock
             {
                 VertList.AddRange(input);
                 DataChanged = true;
-                newsize = VertList.Count;
             }
 
-            return newsize;
+            return oldSize;
         }
 
 

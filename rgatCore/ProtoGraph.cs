@@ -56,7 +56,7 @@ namespace rgatCore
         public uint blockID;
         public ulong count;
         public ulong targetAddr;
-        public ulong targetID;
+        public uint targetID;
         public ulong callCount;
     };
 
@@ -141,7 +141,7 @@ namespace rgatCore
                 entry.blockID = animFields[2].ToObject<uint>();
                 entry.count = animFields[3].ToObject<ulong>();
                 entry.targetAddr = animFields[4].ToObject<ulong>();
-                entry.targetID = animFields[5].ToObject<ulong>();
+                entry.targetID = animFields[5].ToObject<uint>();
                 entry.callCount = animFields[6].ToObject<ulong>();
 
                 SavedAnimationData.Add(entry);

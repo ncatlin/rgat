@@ -126,7 +126,7 @@ namespace rgatCore
 
             while (true)
             {
-                if (externBlockaddr != 0)
+                if (externBlockaddr != 0 || blockID == uint.MaxValue)
                 {
                     int moduleNo = FindContainingModule(externBlockaddr);
                     if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
@@ -154,11 +154,11 @@ namespace rgatCore
                     Thread.Sleep(1);
 
                 if (iterations++ > 20 && (iterations % 20 == 0))
-                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block {blockID}");
+                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block ID {blockID}");
 
                 if (iterations++ > 200)
                 { 
-                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block {blockID}");
+                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block ID {blockID}");
                     return null;
                 }
 
