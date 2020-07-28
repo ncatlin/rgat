@@ -69,18 +69,8 @@ namespace rgatCore
             MainGraphWidget?.AlertResized(size);
         }
 
-
-        private bool finit = false;
         public void DrawUI()
         {
-
-            if (!finit)
-            {
-
-
-                finit = true;
-            }
-
 
             //Console.WriteLine(ImGui.GetWindowViewport());
 
@@ -98,6 +88,8 @@ namespace rgatCore
 
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
 
+            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Escape))) CloseDialogs();
+
             DrawMainMenu();
             DrawTargetBar();
             DrawTabs();
@@ -106,6 +98,14 @@ namespace rgatCore
             if (_show_load_trace_window) DrawTraceLoadBox();
             ImGui.End();
 
+        }
+
+        private void CloseDialogs()
+        {
+            _show_load_trace_window = false;
+            _settings_window_shown = false;
+            _show_select_exe_window = false;
+            
         }
 
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
@@ -1013,17 +1013,19 @@ namespace rgatCore
 
             if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.None))
             {
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
-                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
-                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
-                {
-                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+
+                    var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                    rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                    if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                     {
-                        _rgatstate.AddTargetByPath(picker.SelectedFile);
+                        if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                        {
+                            _rgatstate.AddTargetByPath(picker.SelectedFile);
+                        }
+                        rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                        _show_select_exe_window = false;
                     }
-                    rgatFilePicker.FilePicker.RemoveFilePicker(this);
-                    _show_select_exe_window = false;
-                }
+                
                 ImGui.EndPopup();
             }
         }
@@ -1056,18 +1058,20 @@ namespace rgatCore
 
             if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.None))
             {
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
-                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
-                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
-                {
-                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
-                    {
-                        LoadTraceByPath(picker.SelectedFile);
 
+                    var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                    rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                    if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
+                    {
+                        if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                        {
+                            LoadTraceByPath(picker.SelectedFile);
+
+                        }
+                        rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                        _show_load_trace_window = false;
                     }
-                    rgatFilePicker.FilePicker.RemoveFilePicker(this);
-                    _show_load_trace_window = false;
-                }
+                
                 ImGui.EndPopup();
             }
         }
