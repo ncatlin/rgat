@@ -613,10 +613,19 @@ namespace rgatCore
 
                 if (ImGui.BeginChild("ctrls2354"))
                 {
-                    ImGui.BeginGroup();
-                    if (ImGui.Button("Play", new Vector2(36, 36))) Console.WriteLine("Play clicked");
-                    if (ImGui.Button("Reset", new Vector2(36, 36))) Console.WriteLine("Reset clicked");
-                    ImGui.EndGroup();
+                    PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+
+                    if (activeGraph != null)
+                    {
+                        string BtnText = activeGraph.replayState == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
+                        ImGui.BeginGroup();
+                        if (ImGui.Button(BtnText, new Vector2(36, 36)))
+                        {
+                            _rgatstate.ActiveGraph?.PlayPauseClicked();
+                        }
+                        if (ImGui.Button("Reset", new Vector2(36, 36))) Console.WriteLine("Reset clicked");
+                        ImGui.EndGroup();
+                    }
 
                     ImGui.SameLine(); //pointless?
                     ImGui.SetNextItemWidth(60f);
@@ -642,6 +651,8 @@ namespace rgatCore
 
             ImGui.PopStyleColor();
         }
+
+
 
         private unsafe void DrawLiveTraceControls(float otherControlsHeight)
         {
@@ -1042,6 +1053,7 @@ namespace rgatCore
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
 
         }
+
         void launch_all_trace_threads(TraceRecord trace, rgatState clientState)
         {
             ProcessLaunching.launch_saved_process_threads(trace, clientState);

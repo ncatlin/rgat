@@ -16,12 +16,7 @@ namespace rgatCore
         public float plotSize = 1000;
         public float basePlotSize = 1000;
         public float userSizeModifier = 1;
-        /*
-        public int maxA = 360;
-        public int maxB = 180;
-        public int maxC = 1;
-        */
-        public float pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B; //todo rename sep
+        public float pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B;
         public float stretchA = 1, stretchB = 1;
     };
 
@@ -82,12 +77,8 @@ namespace rgatCore
             //preview_scalefactors = new GRAPH_SCALE;
 
             internalProtoGraph = protoGraph;
-            /*
-			if (internalProtoGraph.active)
-				animated = true;
-			else
-				animated = false;
-			*/
+
+            IsAnimated = !internalProtoGraph.Terminated;			
             graphColours = graphColourslist;
 
         }
@@ -303,12 +294,13 @@ namespace rgatCore
 		void draw_func_args(QPainter* painter, DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, const QFontMetrics* fontMetric);
 		void gen_graph_VBOs(graphGLWidget &gltarget);
 		*/
+
         public void render_replay_animation(float fadeRate)
         {
             if (userSelectedAnimPosition != -1)
             {
-                schedule_animation_reset();
-                reset_animation_if_scheduled();
+                //schedule_animation_reset();
+                //reset_animation_if_scheduled();
 
                 SetAnimated(true);
 
@@ -332,11 +324,9 @@ namespace rgatCore
                 userSelectedAnimPosition = -1;
         }
 
-        public void schedule_animation_reset() { animation_needs_reset = true; }
-        public void reset_animation_if_scheduled()
+        //public void schedule_animation_reset() { animation_needs_reset = true; }
+        public void ResetAnimation()
         {
-            if (!animation_needs_reset) return;
-
             //deactivate any active nodes/edges
             clear_active();
 
@@ -365,9 +355,12 @@ namespace rgatCore
             animBuildingLoop = false;
             IsAnimated = false;
 
+            replayState = REPLAY_STATE.eStopped;
+
+            Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
-            animation_needs_reset = false;
         }
+
         //float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph.savedAnimationData.size()); }
         public void render_live_animation(float fadeRate)
         {
@@ -571,6 +564,28 @@ namespace rgatCore
         //protected void display_big_conditional(graphGLWidget &gltarget);
         //protected void display_big_heatmap(graphGLWidget &gltarget);
 
+        public void PlayPauseClicked()
+        {
+            switch (replayState)
+            {
+                case REPLAY_STATE.eStopped: //start it from beginning
+                    replayState = REPLAY_STATE.ePlaying;
+                    SetAnimated(true);
+                    Console.WriteLine("Animation state Stopped -> Playing");
+                    break;
+
+                case REPLAY_STATE.ePlaying: //pause it
+                    replayState = REPLAY_STATE.ePaused;
+                    Console.WriteLine("Animation state Playing -> Paused");
+                    break;
+
+                case REPLAY_STATE.ePaused: //unpause it
+                    replayState = REPLAY_STATE.ePlaying;
+                    Console.WriteLine("Animation state Paused -> Playing");
+                    break;
+
+            }
+        }
 
         protected void render_new_edges(bool isPreview)
         {
@@ -863,14 +878,14 @@ namespace rgatCore
             ProcessRecord piddata = internalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
             List<InstructionData> block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
-            if (block == null)
+            if (block == null && externBlock == null)
             {
                 newnodelist = null;
                 return false;
             }
             //if (internalProtoGraph.terminationFlag) return false;
 
-            if (block != null && externBlock != null)
+            if (externBlock != null)
             {
                 //cout << "fill block nodelist with extern addr " << std::hex << blockAddr << " mod " << std::dec << externBlock.globalmodnum << endl;
                 //assume it's an external block, find node in extern call list
@@ -925,8 +940,7 @@ namespace rgatCore
 
         void brighten_next_block_edge(ANIMATIONENTRY entry, int brightTime)
         {
-            Console.WriteLine("Todo brighten_next_block_edge");
-
+            Console.WriteLine($"Todo brighten_next_block_edge with list of addr 0x{entry.targetAddr:X} for time: {brightTime}");
             /*
             PROCESS_DATA *piddata = internalProtoGraph.get_piddata();
             NODEINDEX nextNode;
@@ -985,7 +999,7 @@ namespace rgatCore
 
         void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
         {
-            Console.WriteLine("Todo brighten_node_list");
+            Console.WriteLine($"Todo brighten_node_list with list of {nodeIDList.Count} nodes for time: {brightTime}");
             int instructionCount = 0;
             /*
 			foreach (; nodeIt != nodeIDList.end(); ++nodeIt)
@@ -1217,8 +1231,9 @@ namespace rgatCore
                 Thread.Sleep(5);
                 while (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out nodeIDList))
                 {
-                    Thread.Sleep(5);
+                    Thread.Sleep(15);
                     Console.WriteLine("[rgat] ANst block 0x" + entry.blockAddr); //todo hex
+                    if (clientState.rgatIsExiting) return;
                 }
             }
 
@@ -1451,11 +1466,11 @@ namespace rgatCore
 
         void darken_nodes(float fadeRate)
         {
-            //todo
+            Console.WriteLine("Todo - darken nodes");
         }
         void darken_edges(float fadeRate)
         {
-            //todo
+            Console.WriteLine("Todo - darken edges");
         }
 
         void remove_unchained_from_animation()

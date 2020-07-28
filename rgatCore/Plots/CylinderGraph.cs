@@ -110,8 +110,8 @@ namespace rgatCore
         public float ConvertScreenYtoBCoord(float YCoord, GraphicsMaths.SCREENINFO scrn)
         {
             cylinderCoord(0, 0, 0, out Vector3 CylXYZCoordBeforeProject, main_scalefactors);
-            Vector3 ScrenPosAfterProject = GraphicsMaths.Project(CylXYZCoordBeforeProject, projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
-            Vector3 RawGraphicPos = GraphicsMaths.Unproject(new Vector3(0, YCoord, ScrenPosAfterProject.Z), projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
+            Vector3 ScreenPosAfterProject = GraphicsMaths.Project(CylXYZCoordBeforeProject, projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
+            Vector3 RawGraphicPos = GraphicsMaths.Unproject(new Vector3(0, YCoord, ScreenPosAfterProject.Z), projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
             return (float)(RawGraphicPos.Y / (-1 * main_scalefactors.pix_per_B));
         }
 
@@ -423,7 +423,7 @@ namespace rgatCore
             WritableRgbaFloat nodeColor = new WritableRgbaFloat()
                 {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
 
-            VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor);
+            VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor, GlobalConfig.AnimatedFadeMinimumAlpha);
 
             vertdata.safe_add_vert(colorEntry);
 
@@ -490,6 +490,7 @@ namespace rgatCore
 
             VertexPositionColor wfVert = new VertexPositionColor();
             wfVert.Color = GlobalConfig.mainColours.wireframe;
+            wfVert.ActiveAnimAlpha = GlobalConfig.WireframeAnimatedAlpha;
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * Loop_vert_sep;// (CYLINDER_SEP_PER_ROW + Math.Max(0, main_scalefactors.pix_per_B));

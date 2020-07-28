@@ -98,6 +98,7 @@ namespace ImGuiNET
             SubmitUI();
 
             _cl.Begin();
+
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
             _controller.Render(_gd, _cl);
@@ -243,24 +244,6 @@ namespace ImGuiNET
                 _memoryEditor.Draw("Memory Editor", _memoryEditorData, _memoryEditorData.Length);
             }
         }
-
-
-
-        struct VertexPositionColor
-        {
-            public Vector2 Position; // This is the position, in normalized device coordinates.
-            public RgbaFloat Color; // This is the color of the vertex.
-            public VertexPositionColor(Vector2 position, RgbaFloat color)
-            {
-                Position = position;
-                Color = color;
-            }
-            public const uint SizeInBytes = 24;
-        }
-
-
-
-
 
         private static unsafe void SubmitUI()
         {

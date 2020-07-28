@@ -1,4 +1,5 @@
-﻿using System;
+﻿using rgatCore.Threads;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -52,17 +53,19 @@ namespace rgatCore
     }
     struct VertexPositionColor
     {
-        public const uint SizeInBytes = 28;
         public Vector3 Position;
         public WritableRgbaFloat Color;
-        
-        public VertexPositionColor(Vector3 position, WritableRgbaFloat color)
+        public float ActiveAnimAlpha;
+        public const uint SizeInBytes = 32;
+
+        public VertexPositionColor(Vector3 position, WritableRgbaFloat color, float AnimDarkAlpha)
         {
             Position = position;
             Color = color;
+            ActiveAnimAlpha = AnimDarkAlpha;
         }
         public void SetAlpha(float alpha) => Color.A = alpha;
-        public VertexPositionColor(Vector3 position, Veldrid.RgbaFloat color)
+        public VertexPositionColor(Vector3 position, Veldrid.RgbaFloat color, float AnimDarkAlpha)
         {
             Position = position;
             Color = new WritableRgbaFloat()
@@ -72,6 +75,7 @@ namespace rgatCore
                 G = color.G,
                 R = color.R
             };
+            ActiveAnimAlpha = AnimDarkAlpha;
         }
     }
 
@@ -169,7 +173,8 @@ namespace rgatCore
             VertexPositionColor vert = new VertexPositionColor()
             {
                 Position = startC,
-                Color = colour
+                Color = colour,
+                ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
             };
 
 
@@ -190,7 +195,8 @@ namespace rgatCore
 
             VertexPositionColor startVert = new VertexPositionColor() {
                 Position = startC,
-                Color = colour
+                Color = colour,
+                ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
             };
 
 
@@ -211,7 +217,8 @@ namespace rgatCore
                 VertexPositionColor nextVert = new VertexPositionColor()
                 {
                     Position = GraphicsMaths.bezierPT(startC, bezierC, endC, dt, segments),
-                    Color = colour
+                    Color = colour,
+                    ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
                 };
 
                 newVerts.Add(nextVert);
@@ -226,7 +233,8 @@ namespace rgatCore
             VertexPositionColor lastVert = new VertexPositionColor()
             {
                 Position = endC,
-                Color = colour
+                Color = colour,
+                ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
             };
             newVerts.Add(lastVert);
 

@@ -30,7 +30,10 @@ namespace rgatCore.Threads
 			if (graph.mainnodesdata == null)// || !graph.setGraphBusy(true, 2))
 				return;
 
-			graph.reset_animation_if_scheduled();
+			if (graph.replayState == PlottedGraph.REPLAY_STATE.eEnded)
+			{
+				graph.ResetAnimation();
+			}
 
 			//update the render if there are more verts/edges or graph is being resized
 			if (
@@ -41,24 +44,29 @@ namespace rgatCore.Threads
 				graph.UpdateMainRender();
 			}
 
-			if (protoGraph.IsActive)
-			{
-				if (graph.IsAnimated)
-					graph.render_live_animation(GlobalConfig.animationFadeRate);
-				else
-					graph.highlight_last_active_node();
-			}
-			else if (protoGraph.Terminated)
-			{
-				graph.schedule_animation_reset();
-				graph.reset_animation_if_scheduled();
-				protoGraph.Terminated = false;
-			}
 
-			else if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
+			if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
 			{
 				graph.render_replay_animation(GlobalConfig.animationFadeRate);
 			}
+			else
+			{
+				if (!protoGraph.Terminated)
+				{
+					if (graph.IsAnimated)
+						graph.render_live_animation(GlobalConfig.animationFadeRate);
+					else
+						graph.highlight_last_active_node();
+				}
+				else
+				{
+					//todo check if we should come here every time
+					//graph.schedule_animation_reset();
+					//graph.reset_animation_if_scheduled();
+				}
+			}
+
+	
 
 			//graph.setGraphBusy(false, 2);
 		}

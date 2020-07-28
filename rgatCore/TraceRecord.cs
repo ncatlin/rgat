@@ -275,7 +275,7 @@ namespace rgatCore
             renderedgraph.SetAnimated(false);
 
 
-            protograph.IsActive = false;
+            protograph.Terminated = true;
             protograph.AssignModulePath();
 
             return true;

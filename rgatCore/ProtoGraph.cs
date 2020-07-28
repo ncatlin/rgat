@@ -1175,7 +1175,6 @@ namespace rgatCore
         //void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
         //void stop_edgeL_iteration();
 
-        public bool IsActive = true;
         public bool Terminated = false;
         public bool PerformingUnchainedExecution = false;
     }

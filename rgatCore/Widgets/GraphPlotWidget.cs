@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -204,7 +205,8 @@ namespace rgatCore
             //create shaders
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
+            VertexElementDescription AnimAlpha = new VertexElementDescription("ActiveAnimAlpha", VertexElementSemantic.Color, VertexElementFormat.Float1);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol, AnimAlpha);
 
             ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
             ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
@@ -230,11 +232,19 @@ namespace rgatCore
             //_cl.ClearDepthStencil(1f);
 
             SetupView(_cl, graphBuffers);
+
+            float _ticks = (System.DateTime.Now.Ticks - _startTime) / 10000;
+            float alpha = (_ticks % 255) / 255;
+            VeldridGraphBuffers.AnimDataStruct animInfo;
+            animInfo.animEnabled = 1;
+            _cl.UpdateBuffer(graphBuffers._animBuffer, 0, ref animInfo, (uint)Marshal.SizeOf(animInfo));
+            //Console.WriteLine(alpha);
+
+
             graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
             graphBuffers.DrawLines(_cl, _gd, ActiveGraph.mainlinedata);
             graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.mainnodesdata);
         }
-
 
         private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
         {
@@ -255,13 +265,15 @@ namespace rgatCore
 
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, nearClip, farClip);
             combined = Matrix4x4.Multiply(combined, projection);
+            _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
+
 
             ActiveGraph.projection = projection;
             ActiveGraph.view = view;
             ActiveGraph.rotation = rotation;
-            _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
         }
 
+        private static long _startTime = System.DateTime.Now.Ticks;
 
 
 
@@ -270,6 +282,7 @@ namespace rgatCore
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
+layout(location = 2) in float ActiveAnimAlpha;
 
 
 layout(set = 0, binding = 0) uniform ViewBuffer
@@ -277,9 +290,8 @@ layout(set = 0, binding = 0) uniform ViewBuffer
     mat4 View;
 };
 
-
-
 layout(location = 0) out vec4 fsin_Color;
+layout(location = 1) out float fsin_ActiveAnimAlpha;
 
 void main()
 {
@@ -287,28 +299,28 @@ void main()
     gl_PointSize = 5.0f;
     gl_Position = View * vec4(Position,1);
     fsin_Color = Color;
+    fsin_ActiveAnimAlpha = ActiveAnimAlpha;
 }";
-
-        /*
-		 *
-		 *    
-		 *    
-		 vec4 worldPosition = Rotation * vec4(Position,1);
-    vec4 viewPosition = View * worldPosition;
-    vec4 clipPosition = Projection * viewPosition;
-		 * 
-		 */
 
 
         private const string FragmentCode = @"
 #version 450
 
 layout(location = 0) in vec4 fsin_Color;
+layout(location = 1) in float fsin_ActiveAnimAlpha;
 layout(location = 0) out vec4 fsout_Color;
+
+
+layout(set = 1, binding = 0) uniform AnimBuffer
+{
+    int AnimEnabled;
+};
+
 
 void main()
 {
-    fsout_Color = fsin_Color;
+  
+    fsout_Color = (AnimEnabled == 1) ? vec4(fsin_Color.xyz, fsin_ActiveAnimAlpha) : fsin_Color;
 }";
 
 

@@ -46,6 +46,9 @@ namespace rgatCore.Threads
         public static float FurthestInstructionText = 2500f;
         public static float FurthestSymbol = 5000f;
 
+        public static float AnimatedFadeMinimumAlpha = 0.4f;
+        public static float WireframeAnimatedAlpha = 0.7f;
+
         public static class mainColours
         {
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);

@@ -30,6 +30,9 @@ namespace rgatCore
         ResourceSet _projViewSet;
         public DeviceBuffer _viewBuffer { get; private set; }
 
+        ResourceSet _animBuffSet;
+        public DeviceBuffer _animBuffer { get; private set; }
+
         ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
         {
             ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
@@ -39,12 +42,26 @@ namespace rgatCore
             return projViewLayout;
         }
 
+        ResourceLayout SetupAnimDataBuffers(ResourceFactory factory)
+        {
+            ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("AnimBuffer", ResourceKind.UniformBuffer, ShaderStages.Fragment);
+            ResourceLayout animLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(vb));
+            _animBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            _animBuffSet = factory.CreateResourceSet(new ResourceSetDescription(animLayout, _animBuffer));
+            return animLayout;
+        }
 
+        public struct AnimDataStruct
+        {
+            public int animEnabled; //if the basealpha overrides the true alpha of each vert
+            //public float baseAlpha; //the base alpha to override it with
+        }
 
         public void InitPipelines(GraphicsDevice _gd, ShaderSetDescription shaders, Framebuffer frmbuf, bool wireframe = false)
         {
             ResourceFactory factory = _gd.ResourceFactory;
             ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
+            ResourceLayout AnimDataLayout = SetupAnimDataBuffers(factory);
 
 
             // Create pipelines
@@ -61,7 +78,7 @@ namespace rgatCore
                 frontFace: FrontFace.Clockwise,
                 depthClipEnabled: true,
                 scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { projViewLayout };
+            pipelineDescription.ResourceLayouts = new[] { projViewLayout,  AnimDataLayout };
             pipelineDescription.ShaderSet = shaders;
 
             pipelineDescription.Outputs = frmbuf.OutputDescription;
@@ -78,12 +95,14 @@ namespace rgatCore
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
             _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
         }
+
         void InitWireframeVertexData(GraphicsDevice _gd, GraphDisplayData lines)
         {
 
             if (!(lines.safe_get_vert_array(out _WireframeVertices)))
             {
-                Console.WriteLine("Unhandled error 1");
+                Console.WriteLine("Unhandled error 1 InitWireframeVertexData lines.safe_get_vert_array");
+                return;
             }
 
 
@@ -167,15 +186,14 @@ namespace rgatCore
                 _LineVertexBuffer.Dispose();
             }
 
-            BufferDescription vbDescription = new BufferDescription(
-                (uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+            BufferDescription vbDescription = new BufferDescription((uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
             _LineVertexBuffer = factory.CreateBuffer(vbDescription);
             _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
 
 
             List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
-                .Select(i => (ushort)i)
-                .ToList();
+                                                 .Select(i => (ushort)i)
+                                                 .ToList();
 
             BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
             _LineIndexBuffer = factory.CreateBuffer(ibDescription);
@@ -193,12 +211,15 @@ namespace rgatCore
             _cl.SetIndexBuffer(_WireframeIndexBuffer, IndexFormat.UInt16);
             _cl.SetPipeline(_wireframePipeline);
             _cl.SetGraphicsResourceSet(0, _projViewSet);
+            _cl.SetGraphicsResourceSet(1, _animBuffSet);
+
             _cl.DrawIndexed(
                 indexCount: (uint)_WireframeVertices.Length,
                 instanceCount: 1,
                 indexStart: 0,
                 vertexOffset: 0,
                 instanceStart: 0);
+
 
         }
 
@@ -213,6 +234,7 @@ namespace rgatCore
             _cl.SetIndexBuffer(_LineIndexBuffer, IndexFormat.UInt16);
             _cl.SetPipeline(_linesPipeline);
             _cl.SetGraphicsResourceSet(0, _projViewSet);
+            _cl.SetGraphicsResourceSet(1, _animBuffSet);
             _cl.DrawIndexed(
                 indexCount: (uint)_LineVertices.Length,
                 instanceCount: 1,
@@ -232,6 +254,7 @@ namespace rgatCore
             _cl.SetIndexBuffer(_PointIndexBuffer, IndexFormat.UInt16);
             _cl.SetPipeline(_pointsPipeline);
             _cl.SetGraphicsResourceSet(0, _projViewSet);
+            _cl.SetGraphicsResourceSet(1, _animBuffSet);
             _cl.DrawIndexed(
                 indexCount: (uint)_PointVertices.Length,
                 instanceCount: 1,

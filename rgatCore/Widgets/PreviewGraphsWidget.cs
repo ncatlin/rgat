@@ -81,6 +81,9 @@ namespace rgatCore
 
         public void Draw(Vector2 widgetSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
+            return;
+
+
             if (ActiveTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
