@@ -167,7 +167,7 @@ namespace rgatCore
                         }
                     }
 
-                    Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
+                    //Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
                     InstructionData instruction = new InstructionData();
                     instruction.address = insaddr;
@@ -187,7 +187,7 @@ namespace rgatCore
                         return;
                     }
 
-                    Console.WriteLine($"\t Block {blockID} ins {dbginscount}: {instruction.ins_text}");
+                    //Console.WriteLine($"\t Block {blockID} ins {dbginscount}: {instruction.ins_text}");
 
                     if (foundList == null)
                     {

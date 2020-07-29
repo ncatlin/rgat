@@ -360,6 +360,7 @@ namespace rgatCore
         {
             process_live_animation_updates();
             render_animation(fadeRate);
+            
         }
 
 
@@ -784,7 +785,7 @@ namespace rgatCore
         public ProtoGraph internalProtoGraph { get; protected set; } = null;
         PLOT_TRACK lastPlottedNode;
         protected uint lastAnimatedNode = 0;
-        //Dictionary<uint, EXTTEXT> activeExternTimes;
+        Dictionary<uint, EXTTEXT> activeExternTimes = new Dictionary<uint, EXTTEXT>();
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
@@ -854,10 +855,13 @@ namespace rgatCore
             maintain_active();
             darken_fading(fadeRate);
 
-            mainnodesdata.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
+            if (!activeAnimNodeTimes.ContainsKey(lastAnimatedNode))
+            {
+                mainnodesdata.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
+                if (!FadingAnimNodesSet.Contains(lastAnimatedNode)) 
+                    FadingAnimNodesSet.Add(lastAnimatedNode);
+            }
 
-            //live process always at least has pulsing active node
-            //needVBOReload_active = true;
         }
 
 
@@ -970,8 +974,8 @@ namespace rgatCore
 
                 if (internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
-                    if (brightTime == (int)Anim_Constants.eKB.KEEP_BRIGHT)
-                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = (int)Anim_Constants.eKB.KEEP_BRIGHT;
+                    if (brightTime == Anim_Constants.KEEP_BRIGHT)
+                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = Anim_Constants.KEEP_BRIGHT;
                     else
                         newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = GlobalConfig.ExternAnimDisplayFrames;
                 }
@@ -1131,7 +1135,7 @@ namespace rgatCore
                 ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[animationIndex - 1]; 
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
-                    brighten_next_block_edge(entry.blockID, entry.blockAddr, 20);
+                    brighten_next_block_edge(entry.blockID, entry.blockAddr, GlobalConfig.animationLingerFrames);
                 }    
             }
 
@@ -1173,10 +1177,10 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
                 currentUnchainedBlocks.Add(entry);
-                brightTime = (int)Anim_Constants.eKB.KEEP_BRIGHT;
+                brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
-                brightTime = 20;
+                brightTime = GlobalConfig.animationLingerFrames;
 
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
             {
@@ -1235,13 +1239,17 @@ namespace rgatCore
                 mainnodesdata.SetNodeAnimAlpha(nodeIdx,1);//set animation brightness to full 
 
                 //want to delay fading if in loop/unchained area, 
-                if (animTime > 0)
+                if (animTime != 0)
                 {
+                    Console.WriteLine($"Set node {nodeIdx} to bright for time {animTime}");
                     activeAnimNodeTimes[nodeIdx] = animTime;
                     if (FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Remove(nodeIdx);
                 }
                 else
-                    FadingAnimNodesSet.Add(nodeIdx);
+                {
+                    Console.WriteLine($"Set node {nodeIdx} to bright for instant fade");
+                    if (!FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Add(nodeIdx); 
+                }
                 actioned += 1;
             }
 
@@ -1338,7 +1346,9 @@ namespace rgatCore
                     if (fadingAnimEdgesSet.Contains(nodePair)) fadingAnimEdgesSet.Remove(nodePair);
                 }
                 else
-                    fadingAnimEdgesSet.Add(nodePair);
+                {
+                    if (!fadingAnimEdgesSet.Contains(nodePair)) fadingAnimEdgesSet.Add(nodePair);              
+                }
                 actioned++;
             }
             if (actioned == newAnimEdgeTimes.Count)
@@ -1359,34 +1369,46 @@ namespace rgatCore
             brighten_new_active_edges();
         }
 
+        /*
+         Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
+         These pulse
+         */
         void maintain_active()
         {
-            
-            Console.WriteLine("todo maintain_active");
+
+            float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
+            Console.WriteLine(currentPulseAlpha);
+            List<uint> expiredNodes = new List<uint>();
+            List<uint> activeNodes = activeAnimNodeTimes.Keys.ToList();
+            foreach (uint nodeIdx in activeNodes)
+            {
+                mainnodesdata.SetNodeAnimAlpha(nodeIdx, currentPulseAlpha);
+
+                int brightTime = activeAnimNodeTimes[nodeIdx];
+                if (brightTime != Anim_Constants.KEEP_BRIGHT)
+                {
+                    brightTime--;
+                    if (brightTime > 0)
+                    {
+                        Console.WriteLine($"maintain_active Node {nodeIdx} has {brightTime} frames remaining bright");
+                        activeAnimNodeTimes[nodeIdx] = brightTime;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"maintain_active Node {nodeIdx} expired, now fading");
+                        expiredNodes.Add(nodeIdx);
+                    }
+                }
+            }
+
+            foreach(uint expiredNodeIdx in expiredNodes)
+            {
+                if (!FadingAnimNodesSet.Contains(expiredNodeIdx)) 
+                    FadingAnimNodesSet.Add(expiredNodeIdx);
+                activeAnimNodeTimes.Remove(expiredNodeIdx);
+            }
+
             /*
-			Dictionary<uint, int>::iterator nodeAPosTimeIt = activeAnimNodeTimes.begin();
-
-			float ncol = &animnodesdata.acquire_col_write().at(0);
-			float currentPulseAlpha = Math.Max(ANIM_INACTIVE_NODE_ALPHA, getPulseAlpha());
-			while (nodeAPosTimeIt != activeAnimNodeTimes.end())
-			{
-				int brightTime = nodeAPosTimeIt.second;
-				if (brightTime == KEEP_BRIGHT)
-				{
-					ncol[nodeAPosTimeIt.first] = currentPulseAlpha;
-					++nodeAPosTimeIt;
-					continue;
-				}
-
-				if (--nodeAPosTimeIt.second <= 0)
-				{
-					fadingAnimNodes.insert(nodeAPosTimeIt.first);
-					nodeAPosTimeIt = activeAnimNodeTimes.erase(nodeAPosTimeIt);
-				}
-				else
-					++nodeAPosTimeIt;
-			}
-			animnodesdata.release_col_write();
 
 			currentPulseAlpha = Math.Max(ANIM_INACTIVE_EDGE_ALPHA, getPulseAlpha());
 			map<NODEPAIR, int>::iterator edgeIDIt = activeAnimEdgeTimes.begin();
@@ -1419,9 +1441,9 @@ namespace rgatCore
 		   so have to check that we are operating within bounds */
 
 
-                darken_nodes(fadeRate);
+            darken_nodes(fadeRate);
 
-                darken_edges(fadeRate);
+            darken_edges(fadeRate);
         }
 
         void darken_nodes(float fadeRate)
@@ -1429,10 +1451,13 @@ namespace rgatCore
             List<uint> expiredNodes = new List<uint>();
             foreach (uint nodeIdx in FadingAnimNodesSet)
             {
-                if (mainnodesdata.ReduceNodeAnimAlpha(nodeIdx, fadeRate)) 
-                    expiredNodes.Add(nodeIdx);
+                Console.WriteLine($"\tdarken_nodes: Darkening node {nodeIdx}");
+                if (mainnodesdata.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
+                {
+                    Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
+                    expiredNodes.Add(nodeIdx); 
+                }
 
-                Console.WriteLine($"Darkening node {nodeIdx}");
             }
 
             foreach (uint expiredNode in expiredNodes) FadingAnimNodesSet.Remove(expiredNode);
@@ -1441,46 +1466,56 @@ namespace rgatCore
         }
         void darken_edges(float fadeRate)
         {
-            Console.WriteLine("Todo - darken edges");
+            List<Tuple<uint,uint>> expiredEdges = new List<Tuple<uint, uint>>();
+            foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
+            {
+                if (ReduceEdgeAnimAlpha(edge, fadeRate))
+                    expiredEdges.Add(edge);
+
+                Console.WriteLine($"Darkening edge {edge}");
+            }
+
+            foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
+            { 
+                fadingAnimEdgesSet.Remove(expiredEdge); 
+            }
         }
 
         void remove_unchained_from_animation()
         {
-            Console.WriteLine("todo remove_unchained_from_animation");
-            /*
-			//get rid of any nodes/edges waiting to be activated
-			map<NODEINDEX, int>::iterator newNodeIt = newAnimNodeTimes.begin();
-			while (newNodeIt != newAnimNodeTimes.end() && !newAnimNodeTimes.empty())
-				if (newNodeIt.second == KEEP_BRIGHT)
-					newNodeIt = newAnimNodeTimes.erase(newNodeIt);
-				else
-					++newNodeIt;
+            //get rid of any KEEP_BRIGHT nodes/edges waiting to be activated
+            newAnimNodeTimes = newAnimNodeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
+            newAnimEdgeTimes = newAnimEdgeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
 
-			map<NODEPAIR, int>::iterator newEdgeIt = newAnimEdgeTimes.begin();
-			while (newEdgeIt != newAnimEdgeTimes.end() && !newAnimEdgeTimes.empty())
-				if (newEdgeIt.second == KEEP_BRIGHT)
-					newEdgeIt = newAnimEdgeTimes.erase(newEdgeIt);
-				else
-					++newEdgeIt;
+            //allow any nodes/externals/edges that have already been activated to fade
+            List<uint> activeKeys = activeAnimNodeTimes.Keys.ToList();
+            foreach (uint nodeIdx in activeKeys)
+            {
+                if (activeAnimNodeTimes[nodeIdx] == Anim_Constants.KEEP_BRIGHT)
+                {
+                    Console.WriteLine($"remove_unchained_from_animation allowing active node {nodeIdx} to fade");
+                    activeAnimNodeTimes[nodeIdx] = 0; 
+                }
+            }
 
-			//get rid of any nodes/externals/edges that have already been activated
-			map<NODEINDEX, int>::iterator nodeIt = activeAnimNodeTimes.begin();
-			for (; nodeIt != activeAnimNodeTimes.end(); ++nodeIt)
-				if (nodeIt.second == KEEP_BRIGHT)
-					nodeIt.second = 0;
+            //internalProtoGraph.externCallsLock.lock () ;
+            activeKeys = activeExternTimes.Keys.ToList();
+            foreach (uint nodeIdx in activeKeys)
+            {
+                EXTTEXT externEntry = activeExternTimes[nodeIdx];
+                if (externEntry.framesRemaining == Anim_Constants.KEEP_BRIGHT)
+                {
+                    externEntry.framesRemaining = GlobalConfig.ExternAnimDisplayFrames / 2;
+                    activeExternTimes[nodeIdx] = externEntry;
+                }
+            }
+            //internalProtoGraph.externCallsLock.unlock();
+            var activeEdges = activeAnimEdgeTimes.Keys.ToList();
+            foreach (var edgeTuple in activeEdges)
+            {
+                if (activeAnimEdgeTimes[edgeTuple] == Anim_Constants.KEEP_BRIGHT) activeAnimEdgeTimes[edgeTuple] = 0;
+            }
 
-			internalProtoGraph.externCallsLock.lock () ;
-			map<NODEINDEX, EXTTEXT>::iterator activeExternIt = activeExternTimes.begin();
-			for (; activeExternIt != activeExternTimes.end(); ++activeExternIt)
-				if (activeExternIt.second.framesRemaining == KEEP_BRIGHT)
-					activeExternIt.second.framesRemaining = (int)(EXTERN_LIFETIME_FRAMES / 2);
-			internalProtoGraph.externCallsLock.unlock();
-
-			map<NODEPAIR, int>::iterator edgeIt = activeAnimEdgeTimes.begin();
-			for (; edgeIt != activeAnimEdgeTimes.end(); ++edgeIt)
-				if (edgeIt.second == KEEP_BRIGHT)
-					edgeIt.second = 0;
-			*/
         }
 
         ulong calculate_wait_frames(ulong executions)
@@ -1527,8 +1562,18 @@ namespace rgatCore
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
             if (mainlinedata.CountVerts() <= (edge.arraypos + edge.vertSize)) return false;
 
-            Console.WriteLine($"Brightening edge {edgeTuple.Item1}->{edgeTuple.Item2}");
+            Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
             mainlinedata.SetEdgeAnimAlpha(edge.arraypos, edge.vertSize, alpha);
+            return true;
+        }
+
+        public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
+        {
+            EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
+            if (mainlinedata.CountVerts() <= (edge.arraypos + edge.vertSize)) return false;
+
+            Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
+            mainlinedata.ReduceEdgeAnimAlpha(edge.arraypos, edge.vertSize, alpha);
             return true;
         }
 

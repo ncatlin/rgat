@@ -27,7 +27,8 @@ namespace rgatCore.Threads
         public static uint Preview_PerThreadLoopSleepMS = 20;
         public static uint Preview_EdgesPerRender = 60;
 
-        public static float animationFadeRate = 0.07f;
+        public static float animationFadeRate = 0.07f; //amount of alpha to reduce fading item by each frame
+        public static int animationLingerFrames = 0; //number of frames before fade begins
         public static int renderFrequency = 25;
         public static int animationUpdatesPerFrame = 500;
         public static uint TraceBufferSize = 400000;

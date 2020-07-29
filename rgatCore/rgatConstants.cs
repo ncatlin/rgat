@@ -57,7 +57,7 @@ namespace rgatCore
         public const float ANIM_INACTIVE_NODE_ALPHA = 0.00f;
         public const float ANIM_INACTIVE_EDGE_ALPHA = 0.00f;
         public const float EXTERN_FLOAT_RATE = 0.3f;
-        public enum eKB { KEEP_BRIGHT = -1 };
+        public const int KEEP_BRIGHT = -1;
 
     }
 }

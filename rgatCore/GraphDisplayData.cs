@@ -106,22 +106,26 @@ namespace rgatCore
                     VertexPositionColor vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
                     VertList[(int)index] = vpc;
+                    Console.WriteLine($"SetNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
                     DataChanged = true;
                 }
             }
         }
+
 
         public bool ReduceNodeAnimAlpha(uint index, float alpha)
         {
             lock (ListLock) //todo, should be a read lock
             {
                 VertexPositionColor vpc = VertList[(int)index];
-                vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, 0);
+                vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
                 VertList[(int)index] = vpc;
+                Console.WriteLine($"ReduceNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
                 DataChanged = true;
-                return (vpc.ActiveAnimAlpha == 0);
+                return (vpc.ActiveAnimAlpha <= GlobalConfig.AnimatedFadeMinimumAlpha);
             }
         }
+
 
         public void SetEdgeAnimAlpha(int arraystart, int vertcount, float alpha)
         {
@@ -133,11 +137,33 @@ namespace rgatCore
                     VertexPositionColor vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
                     VertList[(int)index] = vpc;
+
                 }
 
                 DataChanged = true;
             }
         }
+
+        public void ReduceEdgeAnimAlpha(int arraystart, int vertcount, float alpha)
+        {
+            lock (ListLock) //todo, should be a read lock
+            {
+                bool done = false;
+                float highestAlpha = -1;
+                Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
+                for (int index = arraystart; index < arraystart + vertcount; index++)
+                {
+                    VertexPositionColor vpc = VertList[(int)index];
+                    vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
+                    VertList[(int)index] = vpc;
+                    if (vpc.ActiveAnimAlpha > highestAlpha) highestAlpha = vpc.ActiveAnimAlpha;
+                    if (vpc.ActiveAnimAlpha <= GlobalConfig.AnimatedFadeMinimumAlpha) done = true;
+                }
+                Debug.Assert(!done || highestAlpha <= GlobalConfig.AnimatedFadeMinimumAlpha);
+                DataChanged = true;
+            }
+        }
+
 
 
 

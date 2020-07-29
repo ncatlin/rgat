@@ -32,19 +32,17 @@ namespace rgatCore
             return (float)Math.Sqrt(dist);
         }
 
+        
         public static float getPulseAlpha()
         {
-            long clockVal = DateTime.Now.Ticks;
-            int millisecond = ((int)(clockVal / 100)) % 10;
-            int countUp = ((int)(clockVal / 1000) % 10) % 2;
-
-            float pulseAlpha;
-            if (countUp == 0)
-                pulseAlpha = (float)millisecond / 10.0f;
-            else
-                pulseAlpha = 1.0f - (millisecond / 10.0f);
-
-            return pulseAlpha;
+            const float period = 1; //number of seconds to go from 0..1..0
+            double ticksMS = DateTime.Now.TimeOfDay.TotalMilliseconds;
+            float pulsePoint = (float)ticksMS % (1000 * period);
+            float pulsePercent = (float)pulsePoint / (float)(1000 * period);
+            float pulseInTermsOfPI = (pulsePercent * 2f * (float)Math.PI) - (float)Math.PI;
+            float sinVal = (float)Math.Sin(pulseInTermsOfPI);
+            float res = (sinVal + 1) / 2;
+            return res;
         }
 
         //returns a small number indicating rough zoom
