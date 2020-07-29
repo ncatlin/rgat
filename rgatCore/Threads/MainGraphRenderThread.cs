@@ -58,12 +58,6 @@ namespace rgatCore.Threads
 					else
 						graph.highlight_last_active_node();
 				}
-				else
-				{
-					//todo check if we should come here every time
-					//graph.schedule_animation_reset();
-					//graph.reset_animation_if_scheduled();
-				}
 			}
 
 	

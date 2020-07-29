@@ -137,7 +137,7 @@ namespace rgatCore
             Console.WriteLine($"Thread {TID} ended!");
 
             trace.PlottedGraphs[TID].internalProtoGraph.Terminated = true;
-
+            trace.PlottedGraphs[TID].replayState = PlottedGraph.REPLAY_STATE.eEnded;
         }
 
 
