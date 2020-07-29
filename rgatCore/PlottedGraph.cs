@@ -355,7 +355,11 @@ namespace rgatCore
             //animnodesdata.release_col_write();
         }
 
-        //float getAnimationPercent() { return (float)((float)animationIndex / (float)internalProtoGraph.savedAnimationData.size()); }
+        public float GetAnimationPercent() {
+            if (internalProtoGraph.SavedAnimationData.Count == 0) return 0;
+            return (float)((float)animationIndex / (float)internalProtoGraph.SavedAnimationData.Count); 
+        }
+        
         public void render_live_animation(float fadeRate)
         {
             process_live_animation_updates();

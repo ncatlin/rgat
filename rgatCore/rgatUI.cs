@@ -430,14 +430,24 @@ namespace rgatCore
             Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
             AnimationProgressBarPos.X += progressBarPadding;
 
+            Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
+            Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
+
+
             if (ImGui.IsItemActive())
             {
                 sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
             }
+            else
+            {
+                PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+                if (activeGraph != null)
+                {
+                    float animPercentage = activeGraph.GetAnimationPercent();
+                    sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
+                }
+            }
 
-
-            Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
-            Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
 
             Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + sliderPosX, AnimationProgressBarPos.Y);
             if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
