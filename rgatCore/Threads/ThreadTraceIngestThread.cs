@@ -1,5 +1,6 @@
 ﻿using rgatCore.Threads;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.IO.Pipes;
@@ -16,24 +17,28 @@ namespace rgatCore
         ProtoGraph protograph;
         NamedPipeServerStream threadpipe;
         Thread runningThread;
+        Thread splittingThread;
         ulong PendingDataSize = 0;
         ulong ProcessedDataSize = 0;
         ulong TotalProcessedData = 0;
         public bool StopFlag = false;
         bool PipeBroke = false;
 
-        public ManualResetEvent dataReadyEvent = new ManualResetEvent(false);
+        public ManualResetEvent TagDataReadyEvent = new ManualResetEvent(false);
+        public ManualResetEvent RawIngestCompleteEvent = new ManualResetEvent(false);
         bool WakeupRequested = false;
 
         public bool HasPendingData() { return PendingDataSize != 0; }
-        public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; dataReadyEvent.Reset(); } }
+        public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; TagDataReadyEvent.Reset(); } }
 
         private readonly object QueueSwitchLock = new object();
+        private readonly object RawQueueLock = new object();
         int readIndex = 0;
         List<byte[]> FirstQueue = new List<byte[]>();
         List<byte[]> SecondQueue = new List<byte[]>();
         List<byte[]> ReadingQueue = null;
         List<byte[]> WritingQueue = null;
+        ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
         public ulong QueueSize = 0;
 
 
@@ -48,6 +53,9 @@ namespace rgatCore
             runningThread = new Thread(Reader);
             runningThread.Name = "TraceReader" + this.protograph.ThreadID;
             runningThread.Start();
+            splittingThread = new Thread(MessageSplitterThread);
+            splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
+            splittingThread.Start();
         }
 
 
@@ -99,7 +107,7 @@ namespace rgatCore
 
                     if (WakeupRequested)
                     {
-                        dataReadyEvent.Set();
+                        TagDataReadyEvent.Set();
                     }
                     return;
                 }
@@ -128,56 +136,86 @@ namespace rgatCore
 
             if (WakeupRequested)
             {
-                dataReadyEvent.Set();
+                TagDataReadyEvent.Set();
             }
         }
+
+        /*
+         * It's very important that we clear data from the named pipe as fast as possible 
+         * as this will slow the traced program. This second ingest thread receives tag
+         * blobs and splits them up to be queued for the trace processor to handle
+         * 
+         * Could possibly have the ingest thread deal with this but then the full buffers 
+         * are in the main queues
+         */
+        void MessageSplitterThread()
+        {
+            while (threadpipe.IsConnected || RawQueue.Count > 0)
+            {
+                if (!RawQueue.TryDequeue(out Tuple<byte[], int> buf_sz))
+                {
+                    RawIngestCompleteEvent.WaitOne();
+                    RawIngestCompleteEvent.Reset();
+                    continue; 
+                }
+
+                byte[] buf = buf_sz.Item1;
+                int bytesread = buf_sz.Item2;
+
+                buf[bytesread] = 0;
+                //Console.WriteLine("Splitting: " + Encoding.ASCII.GetString(buf, 0, buf.Length));
+                int msgstart = 0;
+                for (int tokenpos = 0; tokenpos < bytesread; tokenpos++)
+                {
+                    if (buf[tokenpos] == '\x00')
+                    {
+                        Console.WriteLine($"Null break at {tokenpos}");
+                        break;
+                    }
+
+                    if (buf[tokenpos] == '\x01')
+                    {
+                        int msgsize = tokenpos - msgstart;
+                        if (msgsize == 0)
+                        {
+                            Console.WriteLine($"msg size 0 break");
+                            break;
+                        }
+                        byte[] msg = new byte[msgsize];
+                        Buffer.BlockCopy(buf, msgstart, msg, 0, msgsize);
+                        //Console.WriteLine($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                        EnqueueData(msg);
+                        msgstart = tokenpos + 1;
+                    }
+                }
+            }
+        }
+
+
 
         void IncomingMessageCallback(IAsyncResult ar)
         {
             byte[] buf = (byte[])ar.AsyncState;
             try
             {
-                int bytesread = threadpipe.EndRead(ar);
-                if (bytesread == 0 || threadpipe.IsConnected == false)
+                lock (RawQueueLock)
                 {
-                    PipeBroke = true;
-                }
-                if (bytesread > 0)
-                {
-                    buf[bytesread] = 0;
-                    //Console.WriteLine("Splitting: "+Encoding.ASCII.GetString(buf, 0, buf.Length));
-                    int msgstart = 0;
-                    for (int tokenpos = 0; tokenpos < bytesread; tokenpos++)
+                    int bytesread = threadpipe.EndRead(ar);
+                    if (bytesread == 0 || threadpipe.IsConnected == false)
                     {
-                        if (buf[tokenpos] == '\x00')
-                        {
-                            Console.WriteLine($"Null break at {tokenpos}");
-                            break;
-                        }
-
-                        if (buf[tokenpos] == '\x01')
-                        {
-                            int msgsize = tokenpos - msgstart;
-                            if (msgsize == 0)
-                            {
-                                Console.WriteLine($"msg size 0 break");
-                                break;
-                            }
-                            byte[] msg = new byte[msgsize];
-                            Buffer.BlockCopy(buf, msgstart, msg, 0, msgsize);
-                            //Console.WriteLine($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-                            EnqueueData(msg);
-                            msgstart = tokenpos + 1;
-                        }
+                        PipeBroke = true;
                     }
-                }
+                    else
+                    { 
+                        RawQueue.Enqueue(new Tuple<byte[], int>(buf, bytesread));
+                        RawIngestCompleteEvent.Set();
+                    }
+                } 
             }
             catch (Exception e)
             {
                 Console.WriteLine("TraceIngest Readcall back exception " + e.Message);
-                return;
             }
-           
         }
 
 
@@ -190,8 +228,6 @@ namespace rgatCore
                 return;
             }
 
-
-
             lock (QueueSwitchLock)
             {
                 WritingQueue = FirstQueue;
@@ -203,7 +239,8 @@ namespace rgatCore
                 const int TAGCACHESIZE = 1024 ^ 2;
                 byte[] TagReadBuffer = new byte[TAGCACHESIZE];
                 IAsyncResult res = threadpipe.BeginRead(TagReadBuffer, 0, TAGCACHESIZE, new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
-                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
+                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 1500); //timeout so we can check for rgat exit
+                
                 if (!res.IsCompleted)
                 {
                     try { threadpipe.EndRead(res); }
@@ -217,14 +254,13 @@ namespace rgatCore
             threadpipe.Disconnect();
             threadpipe.Dispose();
 
-            //wait until buffers emptied
-            while ((FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
+            while ((RawQueue.Count > 0 || FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
             {
-                if (WakeupRequested) dataReadyEvent.Set();
+                if (WakeupRequested) TagDataReadyEvent.Set();
                 Thread.Sleep(25);
             }
             StopFlag = true;
-            dataReadyEvent.Set();
+            TagDataReadyEvent.Set();
             Console.WriteLine(runningThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 
         }

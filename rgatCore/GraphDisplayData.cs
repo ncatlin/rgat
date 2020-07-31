@@ -87,8 +87,12 @@ namespace rgatCore
     class GraphDisplayData
     {
 
-        public GraphDisplayData(bool preview = false) => IsPreview = preview;
-
+        public GraphDisplayData(bool preview = false)
+        {
+            LastRenderedNode.lastVertID = 0;
+            LastRenderedNode.lastVertType = eEdgeNodeType.eFIRST_IN_THREAD;
+            IsPreview = preview;
+        }
         ~GraphDisplayData()
         {
             //acquire_pos_write();vector
@@ -320,8 +324,12 @@ namespace rgatCore
 
         //bool get_coord(NODEINDEX index, FCOORD* result);
 
-
-
+        public struct PLOT_TRACK
+        {
+            public uint lastVertID;
+            public eEdgeNodeType lastVertType;
+        };
+        public PLOT_TRACK LastRenderedNode;
 
         //mutable std::shared_mutex poslock_;
         //mutable std::shared_mutex collock_;
@@ -338,5 +346,34 @@ namespace rgatCore
 
         //keep track of which a,b coords are occupied - may need to be unique to each plot
         public Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
+
+        private readonly object coordLock = new object();
+        public bool get_node_coord<T>(int nodeidx, out T result)
+        {
+            lock (coordLock)
+            {
+                if (nodeidx < node_coords.Count)
+                {
+
+                    result = (T)node_coords[nodeidx];
+                    return true;
+                }
+            }
+
+            Debug.Assert(false, "Tried to get coord of node that hasn't been rendered yet");
+            result = (T)new object();
+            return false;
+        }
+
+        public void add_node_coord<T>(T coord)
+        {
+            lock (coordLock)
+            {
+                node_coords.Add(coord);
+            }
+        }
+
+        private List<object> node_coords = new List<object>();
+        public int NodeCount() => node_coords.Count;
     }
 }

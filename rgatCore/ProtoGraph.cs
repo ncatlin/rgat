@@ -186,7 +186,7 @@ namespace rgatCore
             //ReadLock(piddata->disassemblyRWLock);
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
-                Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
+                //Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
                 return (instruction.threadvertIdx.TryGetValue(ThreadID, out targVertID));
             }
         }
@@ -196,7 +196,7 @@ namespace rgatCore
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(lastVertID, targVertID);
 
-            Console.WriteLine($"\tBB_addNewEdge {lastVertID} -> {targVertID}");
+            //Console.WriteLine($"\tBB_addNewEdge {lastVertID} -> {targVertID}");
             if (EdgeExists(edgeIDPair))
             {
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
@@ -557,7 +557,7 @@ namespace rgatCore
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
-            Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
+            //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
 
             source.OutgoingNeighboursSet.Add(edgePair.Item2);
@@ -789,12 +789,12 @@ namespace rgatCore
                 bool alreadyExecuted = set_target_instruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    Console.WriteLine($"\tins addr 0x{instruction.address:X} is new, handling as new");
+                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} is new, handling as new");
                     targVertID = handle_new_instruction(instruction, tag.blockID, repeats);
                 }
                 else
                 {
-                    Console.WriteLine($"\tins addr 0x{instruction.address:X} exists, handling as existing");
+                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} exists, handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 

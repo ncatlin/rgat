@@ -113,7 +113,6 @@ namespace rgatCore.Threads
                         {
                             if (protograph.safe_get_node(targnidx).BlockID == targetblockidx)
                             {
-                                Console.WriteLine($"Found existing link between node {n.index} and block {targetblockidx}, don't need to make new edge");
                                 donelist.Add(targetblockidx);
                                 alreadyHandled = true;
                                 break;
@@ -599,14 +598,13 @@ namespace rgatCore.Threads
                 {
                     AssignBlockRepeats();
                     protograph.TraceReader.RequestWakeupOnData();
-                    protograph.TraceReader.dataReadyEvent.WaitOne();
+                    protograph.TraceReader.TagDataReadyEvent.WaitOne();
                     continue;
                 }
 
                 Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 lock (debug_tag_lock)
                 {
-                    bool todoprint = false;
                     switch (msg[0])
                     {
                         case (byte)'j':
@@ -632,10 +630,6 @@ namespace rgatCore.Threads
                             break;
                         case (byte)'X':
                             AddExceptionUpdate(msg);
-                            break;
-                        case (byte)'Z':
-                            todoprint = true;
-                            Console.WriteLine("Handle Thread Terminated");
                             break;
                         default:
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");

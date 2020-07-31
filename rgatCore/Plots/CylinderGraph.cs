@@ -140,9 +140,9 @@ namespace rgatCore
             List<Tuple<NodeData, Vector3>> visibleNodes = new List<Tuple<NodeData, Vector3>>();
             foreach (NodeData node in nodes)
             {
-                if (node.index >= node_coords.Count) break;
+                if (node.index >= mainnodesdata.NodeCount()) break;
 
-                get_node_coord((int)node.index, out CYLINDERCOORD nodeCoordCyl);
+                mainnodesdata.get_node_coord((int)node.index, out CYLINDERCOORD nodeCoordCyl);
                 if (nodeCoordCyl.b >= highestVisibleNodeB && nodeCoordCyl.b <= lowestVisibleNodeB)
                 {
                     Vector3 pos = NodeScreenPosition(nodeCoordCyl, main_scalefactors, scrn);
@@ -213,19 +213,20 @@ namespace rgatCore
 
         public override void render_static_graph()
         {
-            lock (renderingLock)
+            //lock (renderingLock)
             {
                 render_new_edges(false);
             }
 
-            redraw_anim_edges();
+            //redraw_anim_edges();
             regenerate_wireframe_if_needed();
         }
 
 
-        protected override bool render_edge(Tuple<uint, uint> ePair, GraphDisplayData edgedata, WritableRgbaFloat? colourOverride, bool preview, bool noUpdate)
+        protected override bool render_edge(Tuple<uint, uint> ePair, GraphDisplayData nodedata, GraphDisplayData edgedata,
+            WritableRgbaFloat? colourOverride, bool preview, bool noUpdate)
         {
-            ulong nodeCoordQty = (ulong)node_coords.Count;
+            ulong nodeCoordQty = (ulong)nodedata.NodeCount();
             if (ePair.Item1 >= nodeCoordQty || ePair.Item2 >= nodeCoordQty)
                 return false;
 
@@ -233,8 +234,8 @@ namespace rgatCore
 
             GRAPH_SCALE scaling = preview ? preview_scalefactors : main_scalefactors;
 
-            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, scaling);
-            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, scaling);
+            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, nodedata, scaling);
+            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, nodedata, scaling);
 
             WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
@@ -305,14 +306,13 @@ namespace rgatCore
 
 		int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data** node);
 		*/
-        override public void render_node(NodeData n, ref PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
-            GRAPH_SCALE dimensions)
+        override public void render_node(NodeData n, GraphDisplayData vertdata, GRAPH_SCALE dimensions)
         {
             CYLINDERCOORD coord;
-            if (n.index >= node_coords.Count)
+            if (n.index >= vertdata.NodeCount())
             {
                 //Console.WriteLine($"Node {n.index} {n.ins.ins_text} not plotted yet, plotting");
-                if (node_coords.Count == 0)
+                if (vertdata.NodeCount() == 0)
                 {
                     Debug.Assert(n.index == 0);
                     CYLINDERCOORD tempPos;
@@ -322,18 +322,18 @@ namespace rgatCore
 
                     lock (internalProtoGraph.nodeLock)
                     {
-                        node_coords.Add(tempPos);
+                        vertdata.add_node_coord(tempPos);
                     }
                 }
                 else
                 {
-                    positionVert(n, lastNode, vertdata, out CYLINDERCOORD newPos);
+                    positionVert(n, vertdata, out CYLINDERCOORD newPos);
                     coord = newPos;
 
-                    lock (internalProtoGraph.nodeLock)
+                    lock (internalProtoGraph.nodeLock)//todo change lock
                     {
-                        node_coords.Add(newPos);
-                        Debug.Assert(node_coords.Count == n.index + 1);
+                        vertdata.add_node_coord(newPos);
+                        Debug.Assert(vertdata.NodeCount() == n.index + 1);
                     }
                 }
 
@@ -372,7 +372,7 @@ namespace rgatCore
             else
             {
                 //Console.WriteLine($"Node {n.index} already plotted, retrieving");
-                get_node_coord((int)n.index, out coord);
+                vertdata.get_node_coord<CYLINDERCOORD>((int)n.index, out coord);
             }
 
 
@@ -380,34 +380,34 @@ namespace rgatCore
 
             WritableRgbaFloat active_col;
             if (n.IsExternal)
-                lastNode.lastVertType = eEdgeNodeType.eNodeExternal;
+                vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeExternal;
             else
             {
                 switch (n.ins.itype)
                 {
                     case eNodeType.eInsUndefined:
                         if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
-                        lastNode.lastVertType = n.IsConditional() ?
+                        vertdata.LastRenderedNode.lastVertType = n.IsConditional() ?
                             eEdgeNodeType.eNodeJump :
                             eEdgeNodeType.eNodeNonFlow;
                         break;
 
                     case eNodeType.eInsJump:
                         Console.WriteLine($"render_node jump because n {n.index} is jump");
-                        
-                        lastNode.lastVertType = eEdgeNodeType.eNodeJump;
+
+                        vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeJump;
                         break;
 
                     case eNodeType.eInsReturn:
-                        lastNode.lastVertType = eEdgeNodeType.eNodeReturn;
+                        vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeReturn;
                         break;
 
                     case eNodeType.eInsCall:
                         {
-                            lastNode.lastVertType = eEdgeNodeType.eNodeCall;
+                            vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeCall;
                             //if code arrives to next instruction after a return then arrange as a function
                             ulong nextAddress = n.ins.address + (ulong)n.ins.numbytes;
-                            Add_to_callstack(vertdata.IsPreview, nextAddress, lastNode.lastVertID);
+                            Add_to_callstack(vertdata.IsPreview, nextAddress, vertdata.LastRenderedNode.lastVertID);
                             break;
                         }
                     default:
@@ -417,8 +417,8 @@ namespace rgatCore
                 }
             }
 
-            active_col = graphColours[(int)lastNode.lastVertType];
-            lastNode.lastVertID = n.index;
+            active_col = graphColours[(int)vertdata.LastRenderedNode.lastVertType];
+            vertdata.LastRenderedNode.lastVertID = n.index;
 
             WritableRgbaFloat nodeColor = new WritableRgbaFloat()
                 {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
@@ -426,20 +426,13 @@ namespace rgatCore
             VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor, GlobalConfig.AnimatedFadeMinimumAlpha);
 
             vertdata.safe_add_vert(colorEntry);
-
-
-            //place node on the animated version of the graph
-            if (animvertdata != null)
-            {
-                animvertdata.safe_add_vert(colorEntry);
-            }
         }
 
 
         //take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
-        Vector3 nodeIndexToXYZ(int index, GRAPH_SCALE dimensions)
+        Vector3 nodeIndexToXYZ(int index, GraphDisplayData vertdata, GRAPH_SCALE dimensions)
         {
-            bool success = get_node_coord(index, out CYLINDERCOORD nodeCoordCyl);
+            bool success = vertdata.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
             cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod,  out Vector3 result, dimensions);
             return result;
@@ -447,7 +440,7 @@ namespace rgatCore
 
         Vector2 nodeIndexToXYZ_Text(int index)
         {
-            bool success = get_node_coord(index, out CYLINDERCOORD nodeCoordCyl);
+            bool success = mainnodesdata.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
             cylinderCoord_Text(nodeCoordCyl.a, nodeCoordCyl.b, 1, out Vector2 result);
             return result;
@@ -732,9 +725,10 @@ namespace rgatCore
          * This positions the node in the format of the graph, with abstract layout specific coordinates
          * Translating these abstract coordinates into real x/y/z coords is the job of CylinderCoord()
          */
-        void positionVert(NodeData n, PLOT_TRACK lastNode, GraphDisplayData vertdata, out CYLINDERCOORD newPosition)
+        void positionVert(NodeData n, GraphDisplayData vertdata, out CYLINDERCOORD newPosition)
         {
-            if (!get_node_coord((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
+            GraphDisplayData.PLOT_TRACK lastNode = vertdata.LastRenderedNode;
+            if (!vertdata.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
             {
                 Console.WriteLine("[rgat]Warning: Positionvert() Waiting for node " + lastNode.lastVertID);
                 int waitPeriod = 5;
@@ -744,7 +738,7 @@ namespace rgatCore
                 {
                     System.Threading.Thread.Sleep(waitPeriod);
                     waitPeriod += (150 * iterations++);
-                    found = get_node_coord((int)lastNode.lastVertID, out oldPosition);
+                    found = vertdata.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out oldPosition);
                 } while (!found);
             }
 
@@ -875,7 +869,7 @@ namespace rgatCore
                             //if so, position next node near caller
                             if (result != -1)
                             {
-                                if (!get_node_coord((int)result, out CYLINDERCOORD caller))
+                                if (!vertdata.get_node_coord<CYLINDERCOORD>((int)result, out CYLINDERCOORD caller))
                                 {
                                     Debug.Assert(false);
                                 }
@@ -918,22 +912,7 @@ namespace rgatCore
         }
 
 
-        bool get_node_coord(int nodeidx, out CYLINDERCOORD result)
-        {
-            lock (internalProtoGraph.nodeLock)
-            {
-                if (nodeidx < node_coords.Count)
-                {
 
-                    result = node_coords[nodeidx];
-                    return true;
-                }
-            }
-
-            Debug.Assert(false, "Tried to get coord of node that hasn't been rendered yet");
-            result = new CYLINDERCOORD();
-            return false;
-        }
 
         /*
 		bool get_screen_pos(NODEINDEX nodeIndex, GraphDisplayData* vdata, GraphicsMaths.PROJECTDATA pd, DCOORD* screenPos);
@@ -1017,7 +996,7 @@ namespace rgatCore
         private readonly Object CallStackLock = new Object();
 
         //List<CYLINDERCOORD> node_coords_storage;
-        List<CYLINDERCOORD> node_coords = new List<CYLINDERCOORD>();
+        //List<CYLINDERCOORD> node_coords = new List<CYLINDERCOORD>();
 
         //these are the edges/nodes that are brightend in the animation
         //map<NODEPAIR, edge_data*> activeEdgeMap;

@@ -26,11 +26,7 @@ namespace rgatCore
     abstract class PlottedGraph
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
-        public struct PLOT_TRACK
-        {
-            public uint lastVertID;
-            public eEdgeNodeType lastVertType;
-        };
+
         protected struct EXTTEXT
         {
             public int framesRemaining;
@@ -70,8 +66,7 @@ namespace rgatCore
 
             //blocklines = new GraphDisplayData();
 
-            lastPlottedNode.lastVertID = 0;
-            lastPlottedNode.lastVertType = eEdgeNodeType.eFIRST_IN_THREAD;
+
             //main_scalefactors = new GRAPH_SCALE;
             //preview_scalefactors = new GRAPH_SCALE;
 
@@ -101,7 +96,7 @@ namespace rgatCore
 
 		virtual void orient_to_user_view() { };
 		*/
-        protected abstract bool render_edge(Tuple<uint, uint> nodePair, GraphDisplayData edgedata, WritableRgbaFloat? forceColour, bool preview, bool noUpdate);
+        protected abstract bool render_edge(Tuple<uint, uint> nodePair, GraphDisplayData nodedata, GraphDisplayData edgedata, WritableRgbaFloat? forceColour, bool preview, bool noUpdate);
         /*
 		virtual uint get_graph_size() { return 0; };
 		virtual void* get_node_coord_ptr(uint idx) { return 0; }
@@ -178,7 +173,7 @@ namespace rgatCore
                 //previewNeedsResize = false;
             }
 
-            lock (renderingLock)
+            //lock (renderingLock)
             {
                 render_new_edges(true);
             }
@@ -600,80 +595,26 @@ namespace rgatCore
                 if (edgeNodes.Item1 >= nodeData.CountVerts())
                 {
                     NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
-                    render_node(n1, ref lastPlottedNode, nodeData, null, scalefactors);
+                    render_node(n1, nodeData, scalefactors);
                 }
 
                 if (edgeNodes.Item2 >= nodeData.CountVerts())
                 {
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
                     if (e.edgeClass == eEdgeNodeType.eEdgeException)
-                        lastPlottedNode.lastVertType = eEdgeNodeType.eNodeException;
+                        nodeData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
 
                     NodeData n2 = internalProtoGraph.safe_get_node(edgeNodes.Item2);
-                    render_node(n2, ref lastPlottedNode, nodeData, null, scalefactors);
+                    render_node(n2, nodeData, scalefactors);
 
                 }
 
-                if (!render_edge(edgeNodes, linedata, null, isPreview, false))
+                if (!render_edge(edgeNodes, nodeData, linedata, null, isPreview, false))
                 {
-                    //internalProtoGraph->stop_edgeL_iteration();
                     Console.WriteLine("Error: rendering edge");
                 }
                 edgesDrawn++;
             }
-            //internalProtoGraph->stop_edgeL_iteration();
-
-
-            /*
-            GraphDisplayData lines = mainlinedata;
-
-            int edgesDrawn = 0;
-
-            //internalProtoGraph.getEdgeReadLock();
-            if (lines.CountRenderedEdges >= internalProtoGraph.edgeList.Count) return 0;
-
-            for (uint edgeIdx = lines.CountRenderedEdges; edgeIdx != internalProtoGraph.edgeList.Count && !Stopping; edgeIdx++)
-            {
-                Tuple<uint, uint> edgeIt = internalProtoGraph.edgeList[(int)edgeIdx];
-                //render source node if not already done
-                if (edgeIt.Item1 >= (uint)mainnodesdata.CountVerts())
-                {
-                    NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item1);
-                    render_node(n, ref lastPlottedNode, mainnodesdata, animnodesdata, main_scalefactors);
-                }
-                else
-                {
-                    lastPlottedNode = setLastNode(edgeIt.Item1); 
-                }
-
-
-                //render target node if not already done
-                if (edgeIt.Item2 >= (uint)mainnodesdata.CountVerts())
-                {
-                    EdgeData e = internalProtoGraph.edgeDict[edgeIt];
-                    if (e.edgeClass == eEdgeNodeType.eEdgeException)
-                        lastPlottedNode.lastVertType = eEdgeNodeType.eNodeException;
-
-                    NodeData n = internalProtoGraph.safe_get_node(edgeIt.Item2);
-                    render_node(n, ref lastPlottedNode, mainnodesdata, animnodesdata, main_scalefactors);
-                }
-                else
-                {
-                    lastPlottedNode = setLastNode(edgeIt.Item1); 
-                }
-
-                if (render_edge(edgeIt, lines, null, false, false))
-                {
-                    ++edgesDrawn;
-                }
-                else
-                    break;
-            }
-
-            extend_faded_edges();
-            //internalProtoGraph.dropEdgeReadLock();
-            return edgesDrawn;
-            */
         }
 
 
@@ -787,7 +728,7 @@ namespace rgatCore
         protected List<Tuple<ulong, uint>> ThreadCallStack = new List<Tuple<ulong, uint>>();
 
         public ProtoGraph internalProtoGraph { get; protected set; } = null;
-        PLOT_TRACK lastPlottedNode;
+        //PLOT_TRACK lastPlottedNode;
         protected uint lastAnimatedNode = 0;
         Dictionary<uint, EXTTEXT> activeExternTimes = new Dictionary<uint, EXTTEXT>();
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
@@ -805,8 +746,7 @@ namespace rgatCore
 		virtual void display_graph(PROJECTDATA* pd) { };
 		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
 		*/
-        abstract public void render_node(NodeData n, ref PLOT_TRACK lastNode, GraphDisplayData vertdata, GraphDisplayData animvertdata,
-            GRAPH_SCALE dimensions);
+        abstract public void render_node(NodeData n, GraphDisplayData vertdata,  GRAPH_SCALE dimensions);
         /*
                 virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
                 {
@@ -1219,7 +1159,7 @@ namespace rgatCore
             //add all the nodes+edges in the block to the brightening list
             brighten_node_list(entry, brightTime, nodeIDList);
 
-            lastPlottedNode.lastVertID = lastAnimatedNode;
+            mainnodesdata.LastRenderedNode.lastVertID = lastAnimatedNode;
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
