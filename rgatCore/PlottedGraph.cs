@@ -165,6 +165,18 @@ namespace rgatCore
             
         }
 
+        public void SeekToAnimationPosition(float position)
+        {
+            if (replayState == REPLAY_STATE.eStopped)
+            {
+                replayState = REPLAY_STATE.ePaused;
+                SetAnimated(true);
+            }
+
+            int NewPosition = (int)(position * (float)internalProtoGraph.SavedAnimationData.Count);
+            userSelectedAnimPosition = NewPosition;
+
+        }
 
         //void changeZoom(double delta, double deltaModifier);
 
@@ -277,8 +289,7 @@ namespace rgatCore
         {
             if (userSelectedAnimPosition != -1)
             {
-                //schedule_animation_reset();
-                //reset_animation_if_scheduled();
+                replotScheduled = true;
 
                 SetAnimated(true);
 
@@ -1035,7 +1046,6 @@ namespace rgatCore
             {
                 Console.WriteLine($"Anim Step {animationIndex}");
                 process_replay_update();
-                Thread.Sleep(100);
             }
 
             internalProtoGraph.set_active_node(lastAnimatedNode);

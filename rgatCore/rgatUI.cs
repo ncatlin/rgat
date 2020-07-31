@@ -434,14 +434,14 @@ namespace rgatCore
             Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
             Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
 
-
+            PlottedGraph activeGraph = _rgatstate.ActiveGraph;
             if (ImGui.IsItemActive())
             {
                 sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
             }
             else
             {
-                PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+                
                 if (activeGraph != null)
                 {
                     float animPercentage = activeGraph.GetAnimationPercent();
@@ -455,12 +455,20 @@ namespace rgatCore
             if (SliderArrowDrawPos.X > SliderRectEnd.X) SliderArrowDrawPos.X = SliderRectEnd.X;
 
             float sliderBarPosition = (SliderArrowDrawPos.X - SliderRectStart.X) / progressBarSize.X;
-            if (ImGui.IsItemActive())
-                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
-
-            ImGui.GetWindowDrawList().AddRectFilledMultiColor(SliderRectStart, SliderRectEnd, 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
             if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
             if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
+
+            if (ImGui.IsItemActive())
+            {
+                if (activeGraph != null)
+                {
+                    activeGraph.SeekToAnimationPosition(sliderBarPosition);
+                }
+                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
+            }
+
+            ImGui.GetWindowDrawList().AddRectFilledMultiColor(SliderRectStart, SliderRectEnd, 0xff004400, 0xfff04420, 0xff994400, 0xff004477);
+
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
                 SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
