@@ -328,7 +328,7 @@ namespace rgatCore
             Debug.Assert(fadingAnimEdgesSet.Count == 0 && FadingAnimNodesSet.Count == 0);
 
             animInstructionIndex = 0;
-            lastAnimatedNode = 0;
+            NodesDisplayData.LastAnimatedNode.lastVertID = 0;
             animationIndex = 0;
 
             //animnodesdata.acquire_col_write();
@@ -363,7 +363,7 @@ namespace rgatCore
         public void highlight_last_active_node()
         {
             if (NodesDisplayData.LastRenderedNode.lastVertID < (uint)NodesDisplayData.CountVerts())
-                lastAnimatedNode = NodesDisplayData.LastRenderedNode.lastVertID;
+                NodesDisplayData.LastAnimatedNode = NodesDisplayData.LastRenderedNode;
         }
 
 
@@ -721,7 +721,7 @@ namespace rgatCore
 
         public ProtoGraph internalProtoGraph { get; protected set; } = null;
         //PLOT_TRACK lastPlottedNode;
-        protected uint lastAnimatedNode = 0;
+        //protected uint lastAnimatedNode = 0;
         Dictionary<uint, EXTTEXT> activeExternTimes = new Dictionary<uint, EXTTEXT>();
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
@@ -791,11 +791,12 @@ namespace rgatCore
             maintain_active();
             darken_fading(fadeRate);
 
-            if (!activeAnimNodeTimes.ContainsKey(lastAnimatedNode))
+            uint lastNodeID = NodesDisplayData.LastAnimatedNode.lastVertID;
+            if (!activeAnimNodeTimes.ContainsKey(lastNodeID))
             {
-                NodesDisplayData.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
-                if (!FadingAnimNodesSet.Contains(lastAnimatedNode)) 
-                    FadingAnimNodesSet.Add(lastAnimatedNode);
+                NodesDisplayData.SetNodeAnimAlpha(lastNodeID, GraphicsMaths.getPulseAlpha());
+                if (!FadingAnimNodesSet.Contains(lastNodeID)) 
+                    FadingAnimNodesSet.Add(lastNodeID);
             }
 
         }
@@ -848,7 +849,7 @@ namespace rgatCore
                 newnodelist = new List<uint>();
                 foreach (Tuple<uint, uint> edge in calls) //record each call by caller
                 {
-                    if (edge.Item1 == lastAnimatedNode)
+                    if (edge.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID)
                     {
                         newnodelist.Add(edge.Item2);
                     }
@@ -876,8 +877,8 @@ namespace rgatCore
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[internalProtoGraph.ThreadID];
-                uint callerIdx = callers.Find(n => n.Item1 == lastAnimatedNode).Item2;
-                LinkingPair = new Tuple<uint, uint>(lastAnimatedNode, callerIdx);
+                uint callerIdx = callers.Find(n => n.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID).Item2;
+                LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, callerIdx);
             }
             else
             {
@@ -885,7 +886,7 @@ namespace rgatCore
                 InstructionData nextIns = nextBlock[0];
                 uint caller = nextIns.threadvertIdx[internalProtoGraph.ThreadID];
 
-                LinkingPair = new Tuple<uint, uint>(lastAnimatedNode, caller);
+                LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, caller);
             }
 
             /*
@@ -918,7 +919,7 @@ namespace rgatCore
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained && instructionCount == 0))
                 {
-                    Tuple<uint,uint> edge =  new Tuple<uint, uint>(lastAnimatedNode, nodeIdx);
+                    Tuple<uint,uint> edge =  new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
                     if (internalProtoGraph.EdgeExists(edge))
                     {
                         newAnimEdgeTimes[edge] = brightTime;
@@ -926,7 +927,7 @@ namespace rgatCore
                     //if it doesn't exist it may be because user is skipping code with animation slider
                 }
 
-                lastAnimatedNode = nodeIdx;
+                NodesDisplayData.LastAnimatedNode.lastVertID = nodeIdx;
 
                 ++instructionCount;
                 if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (instructionCount == (entry.count + 1))) break;
@@ -1015,7 +1016,7 @@ namespace rgatCore
 
             currentUnchainedBlocks.Clear();
             List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            lastAnimatedNode = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
 
@@ -1048,7 +1049,7 @@ namespace rgatCore
                 process_replay_update();
             }
 
-            internalProtoGraph.set_active_node(lastAnimatedNode);
+            internalProtoGraph.set_active_node(NodesDisplayData.LastAnimatedNode.lastVertID);
 
             if (animationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
             {
