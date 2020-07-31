@@ -54,15 +54,12 @@ namespace rgatCore
             tid = protoGraph.ThreadID;
 
             //possibly conditional. diff graphs won't want heatmaps etc
-            mainnodesdata = new GraphDisplayData();
-            mainlinedata = new GraphDisplayData();
+            NodesDisplayData = new GraphDisplayData();
+            LinesDisplayData = new GraphDisplayData();
 
-            previewlines = new GraphDisplayData(true);
-            previewnodes = new GraphDisplayData(true);
-
-            conditionallines = new GraphDisplayData();
-            conditionalnodes = new GraphDisplayData();
-            heatmaplines = new GraphDisplayData();
+            //conditionallines = new GraphDisplayData();
+            //conditionalnodes = new GraphDisplayData();
+            //heatmaplines = new GraphDisplayData();
 
             //blocklines = new GraphDisplayData();
 
@@ -79,6 +76,7 @@ namespace rgatCore
 
 
         public abstract void InitialiseDefaultDimensions();
+        public abstract void InitialisePreviewDimensions();
         public abstract void initialiseCustomDimensions(GRAPH_SCALE scale);
         /*
 		virtual void plot_wireframe(graphGLWidget &gltarget) { };
@@ -96,7 +94,7 @@ namespace rgatCore
 
 		virtual void orient_to_user_view() { };
 		*/
-        protected abstract bool render_edge(Tuple<uint, uint> nodePair, GraphDisplayData nodedata, GraphDisplayData edgedata, WritableRgbaFloat? forceColour, bool preview, bool noUpdate);
+        protected abstract bool render_edge(Tuple<uint, uint> nodePair, WritableRgbaFloat? forceColour);
         /*
 		virtual uint get_graph_size() { return 0; };
 		virtual void* get_node_coord_ptr(uint idx) { return 0; }
@@ -140,23 +138,13 @@ namespace rgatCore
 
         //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
 
-        public void ReRender(bool alsoPreview = false)
+        public void ReRender()
         {
-            mainlinedata = new GraphDisplayData();
-            mainnodesdata = new GraphDisplayData();
+            LinesDisplayData = new GraphDisplayData();
+            NodesDisplayData = new GraphDisplayData();
             wireframelines = new GraphDisplayData();
-            conditionallines = new GraphDisplayData();
-            conditionalnodes = new GraphDisplayData();
-
-            if (alsoPreview)
-            {
-                previewlines = new GraphDisplayData();
-                previewnodes = new GraphDisplayData();
-            }
             NeedReplotting = false;
         }
-
-
 
         public void UpdateMainRender()
         {
@@ -173,10 +161,8 @@ namespace rgatCore
                 //previewNeedsResize = false;
             }
 
-            //lock (renderingLock)
-            {
-                render_new_edges(true);
-            }
+            render_new_edges();
+            
         }
 
 
@@ -365,8 +351,8 @@ namespace rgatCore
 
         public void highlight_last_active_node()
         {
-            if (internalProtoGraph.lastVertID < (uint)mainnodesdata.CountVerts())
-                lastAnimatedNode = internalProtoGraph.lastVertID;
+            if (NodesDisplayData.LastRenderedNode.lastVertID < (uint)NodesDisplayData.CountVerts())
+                lastAnimatedNode = NodesDisplayData.LastRenderedNode.lastVertID;
         }
 
 
@@ -417,7 +403,7 @@ namespace rgatCore
         }
         //void copy_node_data(GraphDisplayData* nodes);
 
-        public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, main_scalefactors.plotSize); }
+        public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
         /*
 
 		bool isWireframeSupported() { return wireframeSupported; }
@@ -437,18 +423,15 @@ namespace rgatCore
         //GLuint graphVBOs[6] = { 0, 0, 0, 0, 0, 0 };
 
 
-        public GraphDisplayData mainnodesdata = null;
-        public GraphDisplayData mainlinedata = null;
-        public GraphDisplayData conditionallines = null;
-        public GraphDisplayData conditionalnodes = null;
-        public GraphDisplayData previewnodes = null;
-        public GraphDisplayData previewlines = null;
+        public GraphDisplayData NodesDisplayData = null;
+        public GraphDisplayData LinesDisplayData = null;
+        //public GraphDisplayData conditionallines = null;
+        //public GraphDisplayData conditionalnodes = null;
         //public GraphDisplayData blocklines = null;
         public GraphDisplayData wireframelines = null;
 
 
-        public GRAPH_SCALE main_scalefactors = new GRAPH_SCALE();
-        public GRAPH_SCALE preview_scalefactors = new GRAPH_SCALE();
+        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
         //GLuint previewVBOs[4] = { 0, 0, 0, 0 };
 
         //HIGHLIGHT_DATA highlightData;
@@ -580,40 +563,38 @@ namespace rgatCore
             }
         }
 
-        protected void render_new_edges(bool isPreview)
+        protected void render_new_edges()
         {
-            GraphDisplayData linedata = isPreview ? previewlines : mainlinedata;
-            GraphDisplayData nodeData = isPreview ? previewnodes : mainnodesdata;
-            GRAPH_SCALE scalefactors = isPreview ? preview_scalefactors : main_scalefactors;
-
             int edgesDrawn = 0;
-            uint startIndex = linedata.CountRenderedEdges;
+            uint startIndex = LinesDisplayData.CountRenderedEdges;
             int endIndex = internalProtoGraph.edgeList.Count;
             for (uint edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
             {
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
-                if (edgeNodes.Item1 >= nodeData.CountVerts())
+                if (edgeNodes.Item1 >= NodesDisplayData.CountVerts())
                 {
                     NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
-                    render_node(n1, nodeData, scalefactors);
+                    render_node(n1);
                 }
 
-                if (edgeNodes.Item2 >= nodeData.CountVerts())
+                if (edgeNodes.Item2 >= NodesDisplayData.CountVerts())
                 {
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
                     if (e.edgeClass == eEdgeNodeType.eEdgeException)
-                        nodeData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
+                        NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
 
                     NodeData n2 = internalProtoGraph.safe_get_node(edgeNodes.Item2);
-                    render_node(n2, nodeData, scalefactors);
+                    render_node(n2);
 
                 }
 
-                if (!render_edge(edgeNodes, nodeData, linedata, null, isPreview, false))
+                if (!render_edge(edgeNodes, null))
                 {
                     Console.WriteLine("Error: rendering edge");
                 }
                 edgesDrawn++;
+
+                if (replotScheduled || clientState.rgatIsExiting) break;
             }
         }
 
@@ -725,7 +706,7 @@ namespace rgatCore
 
         //protected List<Tuple<ulong, uint>> MainCallStack = new List<Tuple<ulong, uint>>();
         //protected List<Tuple<ulong, uint>> PreviewCallStack = new List<Tuple<ulong, uint>>();
-        protected List<Tuple<ulong, uint>> ThreadCallStack = new List<Tuple<ulong, uint>>();
+        protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
 
         public ProtoGraph internalProtoGraph { get; protected set; } = null;
         //PLOT_TRACK lastPlottedNode;
@@ -746,7 +727,7 @@ namespace rgatCore
 		virtual void display_graph(PROJECTDATA* pd) { };
 		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
 		*/
-        abstract public void render_node(NodeData n, GraphDisplayData vertdata,  GRAPH_SCALE dimensions);
+        abstract public void render_node(NodeData n);
         /*
                 virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
                 {
@@ -801,7 +782,7 @@ namespace rgatCore
 
             if (!activeAnimNodeTimes.ContainsKey(lastAnimatedNode))
             {
-                mainnodesdata.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
+                NodesDisplayData.SetNodeAnimAlpha(lastAnimatedNode, GraphicsMaths.getPulseAlpha());
                 if (!FadingAnimNodesSet.Contains(lastAnimatedNode)) 
                     FadingAnimNodesSet.Add(lastAnimatedNode);
             }
@@ -1159,7 +1140,6 @@ namespace rgatCore
             //add all the nodes+edges in the block to the brightening list
             brighten_node_list(entry, brightTime, nodeIDList);
 
-            mainnodesdata.LastRenderedNode.lastVertID = lastAnimatedNode;
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
@@ -1178,20 +1158,20 @@ namespace rgatCore
                 uint nodeIdx = node_time.Key;
                 int animTime = node_time.Value;
 
-                if (nodeIdx >= mainnodesdata.CountVerts()) break;
+                if (nodeIdx >= NodesDisplayData.CountVerts()) break;
 
-                mainnodesdata.SetNodeAnimAlpha(nodeIdx,1);//set animation brightness to full 
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx,1);//set animation brightness to full 
 
                 //want to delay fading if in loop/unchained area, 
                 if (animTime != 0)
                 {
-                    Console.WriteLine($"Set node {nodeIdx} to bright for time {animTime}");
+                    //Console.WriteLine($"Set node {nodeIdx} to bright for time {animTime}");
                     activeAnimNodeTimes[nodeIdx] = animTime;
                     if (FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Remove(nodeIdx);
                 }
                 else
                 {
-                    Console.WriteLine($"Set node {nodeIdx} to bright for instant fade");
+                    //Console.WriteLine($"Set node {nodeIdx} to bright for instant fade");
                     if (!FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Add(nodeIdx); 
                 }
                 actioned += 1;
@@ -1326,7 +1306,7 @@ namespace rgatCore
             List<uint> activeNodes = activeAnimNodeTimes.Keys.ToList();
             foreach (uint nodeIdx in activeNodes)
             {
-                mainnodesdata.SetNodeAnimAlpha(nodeIdx, currentPulseAlpha);
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, currentPulseAlpha);
 
                 int brightTime = activeAnimNodeTimes[nodeIdx];
                 if (brightTime != Anim_Constants.KEEP_BRIGHT)
@@ -1395,10 +1375,10 @@ namespace rgatCore
             List<uint> expiredNodes = new List<uint>();
             foreach (uint nodeIdx in FadingAnimNodesSet)
             {
-                Console.WriteLine($"\tdarken_nodes: Darkening node {nodeIdx}");
-                if (mainnodesdata.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
+                //Console.WriteLine($"\tdarken_nodes: Darkening node {nodeIdx}");
+                if (NodesDisplayData.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
                 {
-                    Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
+                    //Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
                     expiredNodes.Add(nodeIdx); 
                 }
 
@@ -1416,7 +1396,7 @@ namespace rgatCore
                 if (ReduceEdgeAnimAlpha(edge, fadeRate))
                     expiredEdges.Add(edge);
 
-                Console.WriteLine($"Darkening edge {edge}");
+                //Console.WriteLine($"Darkening edge {edge}");
             }
 
             foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
@@ -1478,13 +1458,13 @@ namespace rgatCore
         {
             foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
             {
-                mainnodesdata.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
             }
             activeAnimNodeTimes.Clear();
 
             foreach (uint nodeIdx in FadingAnimNodesSet)
             {
-                mainnodesdata.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
             }
             FadingAnimNodesSet.Clear();
 
@@ -1504,20 +1484,23 @@ namespace rgatCore
         public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (mainlinedata.CountVerts() <= (edge.arraypos + edge.vertSize)) return false;
+            LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
+
+            if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
             Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
-            mainlinedata.SetEdgeAnimAlpha(edge.arraypos, edge.vertSize, alpha);
+            LinesDisplayData.SetEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
 
         public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (mainlinedata.CountVerts() <= (edge.arraypos + edge.vertSize)) return false;
+            LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
+            if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
             Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
-            mainlinedata.ReduceEdgeAnimAlpha(edge.arraypos, edge.vertSize, alpha);
+            LinesDisplayData.ReduceEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
 

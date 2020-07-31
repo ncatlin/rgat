@@ -409,6 +409,7 @@ namespace rgatCore
                     PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController, _rgatstate._GraphicsDevice);
                     if (PreviewGraphWidget.clickedGraph != null)
                     {
+
                         SetActiveGraph(PreviewGraphWidget.clickedGraph);
                     }
                     ImGui.EndChild();
@@ -477,16 +478,16 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
             {
                 
-                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
+                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
                 {
                     InitGraphReplot();
-                    Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.main_scalefactors.pix_per_A}");
+                    Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.scalefactors.pix_per_A}");
                 };
-                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.main_scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
+                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
                 {
                     InitGraphReplot();
                 };
-                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.main_scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
+                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
                 {
                     InitGraphReplot();
                 };
@@ -599,7 +600,7 @@ namespace rgatCore
                 ImGui.SameLine();
                 if (ImGui.Button("Rerender"))
                 {
-                    _rgatstate.ActiveGraph?.ReRender();
+                    InitGraphReplot();
                 }
 
                 ImGui.EndChild();
@@ -772,7 +773,7 @@ namespace rgatCore
                         {
                             selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
                             uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
-                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList();
+                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetMainPlottedGraphsList();
                             if (ImGui.BeginCombo($"Thread ({graphs.Count})", selString))
                             {
                                 foreach (PlottedGraph selectablegraph in graphs)

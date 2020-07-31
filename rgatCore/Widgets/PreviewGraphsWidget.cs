@@ -13,7 +13,7 @@ namespace rgatCore
 {
     class PreviewGraphsWidget
     {
-        List<PlottedGraph> DrawnGraphs = new List<PlottedGraph>();
+        List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
 
 
         System.Timers.Timer IrregularTimer;
@@ -93,12 +93,13 @@ namespace rgatCore
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
             int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
 
-            DrawnGraphs = ActiveTrace.GetPlottedGraphsList();
-            foreach (PlottedGraph graph in DrawnGraphs)
+            DrawnPreviewGraphs = ActiveTrace.GetPreviewPlottedGraphsList();
+            for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
-                if (graph.previewnodes.CountVerts() == 0 || graph._previewTexture == null) continue;
+                PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
+                if (graph.NodesDisplayData.CountVerts() == 0 || graph._previewTexture == null) continue;
 
-                ImGui.Text($"TID:{graph.tid} {graph.previewnodes.CountVerts()}vts");
+                ImGui.Text($"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts");
                 if (graph.tid == selectedGraphTID)
                     ImGui.Text("[Selected]");
 
@@ -110,7 +111,8 @@ namespace rgatCore
                 if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y &&
                     ClickedPos.Value.Y < (subGraphPosition.Y + EachGraphHeight))
                 {
-                    HandleClickedGraph(graph);
+                    var MainGraphs = ActiveTrace.GetMainPlottedGraphsList();
+                    HandleClickedGraph(MainGraphs[graphIdx]);
                 }
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
@@ -130,7 +132,7 @@ namespace rgatCore
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, 0, 200));
 
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)EachGraphWidth / EachGraphHeight, dbg_near, dbg_far);
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * graph.preview_scalefactors.plotSize) - dbg_camZ);
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * graph.scalefactors.plotSize) - dbg_camZ);
             Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             //if autorotation...
@@ -149,10 +151,10 @@ namespace rgatCore
 
         public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
         {
-            foreach (PlottedGraph graph in DrawnGraphs)
+            foreach (PlottedGraph graph in DrawnPreviewGraphs)
             {
                 if (graph == null) continue;
-                if (graph.previewlines.CountRenderedEdges == 0 || graph.previewnodes.CountVerts() == 0) continue;
+                if (graph.LinesDisplayData.CountRenderedEdges == 0 || graph.NodesDisplayData.CountVerts() == 0) continue;
 
                 if (graph._previewTexture == null)
                 {
@@ -177,8 +179,8 @@ namespace rgatCore
                 _cl.ClearColorTarget(0, graphBackground);
 
                 SetupView(_cl, graphRenderInfo, graph);
-                graphRenderInfo.DrawLines(_cl, _gd, graph.previewlines);
-                graphRenderInfo.DrawPoints(_cl, _gd, graph.previewnodes);
+                graphRenderInfo.DrawLines(_cl, _gd, graph.LinesDisplayData);
+                graphRenderInfo.DrawPoints(_cl, _gd, graph.NodesDisplayData);
             }
         }
 

@@ -188,7 +188,7 @@ namespace rgatCore
 			if(LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
 			{
 				bool found = false;
-				List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphsList();
+				List<PlottedGraph> traceGraphs = selectedTrace.GetMainPlottedGraphsList();
 				if (traceGraphs.Contains(foundGraph))
                 {
 					SwitchToGraph(foundGraph);
@@ -271,16 +271,17 @@ namespace rgatCore
 			return tmp;
 		}
 
-		public PlottedGraph CreateNewPlottedGraph(ProtoGraph protoGraph)
+		public bool CreateNewPlottedGraph(ProtoGraph protoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph)
 		{
-			PlottedGraph newGraph = null;
-
 			switch (newGraphLayout)
 			{
 				case graphLayouts.eCylinderLayout:
 					{
-						newGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
-						break;
+						MainGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
+						MainGraph.InitialiseDefaultDimensions();
+						PreviewGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
+						PreviewGraph.InitialisePreviewDimensions();
+						return true;
 					}
 					/*
 				case eTreeLayout:
@@ -292,13 +293,13 @@ namespace rgatCore
 					*/
 				default:
 					{
+						MainGraph = null;
+						PreviewGraph = null;
 						Console.WriteLine("Bad graph layout: " + newGraphLayout);
 						Debug.Assert(false);
-						break;
+						return false;
 					}
 			}
-			newGraph.InitialiseDefaultDimensions();
-			return newGraph;
 		}
 
 		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)

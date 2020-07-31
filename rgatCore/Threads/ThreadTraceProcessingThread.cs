@@ -141,11 +141,7 @@ namespace rgatCore.Threads
                         donelist.Add(targetblockidx);
                         continue;
                     }
-
-                    //todo - need to render instruction text to be able to debug this
-                    string insmodule = protograph.ProcessData.LoadedModulePaths[protograph.ProcessData.FindContainingModule(firstIns.address)];
-                    Console.WriteLine($"Can't create edge from block {brep.blockID} to block {targetblockidx} because first" +
-                        $" ins 0x{firstIns.address:X}: {firstIns.ins_text} (module: {insmodule}) not on graph");
+                    
                 }
 
                 brep.targBlocks = brep.targBlocks.Except(donelist).ToList();
@@ -329,7 +325,7 @@ namespace rgatCore.Threads
                 return false;
             }
 
-            protograph.lastVertID = srcidx;
+            protograph.ProtoLastVertID = srcidx;
 
 
             TAG thistag;
@@ -362,8 +358,8 @@ namespace rgatCore.Threads
                             if (edge.Item1 == protograph.targVertID)
                             {
                                 targetFound = true;
-                                protograph.lastVertID = foundExtern.thread_callers[protograph.ThreadID][0].Item2;
-                                NodeData lastnode = protograph.safe_get_node(protograph.lastVertID);
+                                protograph.ProtoLastVertID = foundExtern.thread_callers[protograph.ThreadID][0].Item2;
+                                NodeData lastnode = protograph.safe_get_node(protograph.ProtoLastVertID);
                                 ++lastnode.executionCount;
                                 break;
                             }
@@ -602,7 +598,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                //Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 lock (debug_tag_lock)
                 {
                     switch (msg[0])

@@ -194,7 +194,7 @@ namespace rgatCore
 
         private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
-            Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(lastVertID, targVertID);
+            Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
             //Console.WriteLine($"\tBB_addNewEdge {lastVertID} -> {targVertID}");
             if (EdgeExists(edgeIDPair))
@@ -233,7 +233,7 @@ namespace rgatCore
             }
 
 
-            AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
+            AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
         }
 
         private void run_faulting_BB(TAG tag)
@@ -254,7 +254,7 @@ namespace rgatCore
             {
                 InstructionData instruction = block[instructionIndex];
 
-                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !node_exists(lastVertID))
+                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !node_exists(ProtoLastVertID))
                 {
                     Console.WriteLine("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
                     Debug.Assert(false);
@@ -284,14 +284,14 @@ namespace rgatCore
                     }
                 }
 
-                lastVertID = targVertID;
+                ProtoLastVertID = targVertID;
             }
         }
 
         private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint, uint>? resultPair)
         {
             //start by examining our caller
-            NodeData lastNode = safe_get_node(lastVertID);
+            NodeData lastNode = safe_get_node(ProtoLastVertID);
             if (lastNode.IsExternal) { resultPair = null; return false; }
             Debug.Assert(lastNode.ins.numbytes > 0);
 
@@ -312,7 +312,7 @@ namespace rgatCore
                 //piddata->getExternCallerReadLock();
                 foreach (var caller in callers)
                 {
-                    if (caller.Item1 != lastVertID) continue;
+                    if (caller.Item1 != ProtoLastVertID) continue;
 
                     //piddata->dropExternCallerReadLock();
 
@@ -324,7 +324,7 @@ namespace rgatCore
                     NodeData targNode = safe_get_node(targVertID);
                     targNode.executionCount += repeats;
                     targNode.currentCallIndex += repeats;
-                    lastVertID = targVertID;
+                    ProtoLastVertID = targVertID;
                     resultPair = caller;
                     return true;
                 }
@@ -337,7 +337,7 @@ namespace rgatCore
 
             lastNode.childexterns += 1;
             targVertID = get_num_nodes();
-            resultPair = new Tuple<uint, uint>(lastVertID, targVertID);
+            resultPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
             lock (ProcessData.ExternCallerLock)
             {
@@ -361,7 +361,7 @@ namespace rgatCore
             newTargNode.IsExternal = true;
             newTargNode.address = targaddr;
             newTargNode.index = targVertID;
-            newTargNode.parentIdx = lastVertID;
+            newTargNode.parentIdx = ProtoLastVertID;
             newTargNode.executionCount = 1;
             
 
@@ -375,10 +375,10 @@ namespace rgatCore
             EdgeData newEdge = new EdgeData();
             newEdge.chainedWeight = 0;
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
-            AddEdge(newEdge, safe_get_node(lastVertID), safe_get_node(targVertID));
+            AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
-            lastVertID = targVertID;
+            ProtoLastVertID = targVertID;
             return true;
         }
 
@@ -632,12 +632,12 @@ namespace rgatCore
 
                 TotalInstructions += thistag.insCount;
 
-                set_active_node(lastVertID);
+                set_active_node(ProtoLastVertID);
             }
 
             else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
             {
-                if (lastVertID == 0) return;
+                if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
                 Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
@@ -665,18 +665,18 @@ namespace rgatCore
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
 
-                Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
+                //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
 
                 //addBlockNodesToGraph(thistag, repeats);
                 addBlockLineToGraph(thistag, repeats);
 
                 //TotalInstructions += thistag.insCount * repeats;
-                set_active_node(lastVertID);
+                set_active_node(ProtoLastVertID);
             }
 
             else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode)
             {
-                if (lastVertID == 0) return;
+                if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
                 if (RunExternal(thistag.blockaddr, repeats, out Tuple<uint, uint> resultPair))
@@ -768,7 +768,7 @@ namespace rgatCore
 
             uint firstVert = 0;
             uint lastVert;
-            Console.WriteLine($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
+            //Console.WriteLine($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
@@ -776,10 +776,10 @@ namespace rgatCore
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
-                    if (!node_exists(lastVertID))
+                    if (!node_exists(ProtoLastVertID))
                     {
                         //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
-                        Console.WriteLine($"\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found. Node list size is: {NodeList.Count}");
+                        Console.WriteLine($"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
                         Debug.Assert(false);
                     }
                 }
@@ -828,7 +828,7 @@ namespace rgatCore
                         lastNodeType = eEdgeNodeType.eNodeNonFlow;
                         break;
                 }
-                lastVertID = targVertID;
+                ProtoLastVertID = targVertID;
             }
 
 
@@ -837,7 +837,7 @@ namespace rgatCore
                 while (BlocksFirstLastNodeList.Count <= tag.blockID) BlocksFirstLastNodeList.Add(null);
                 if (BlocksFirstLastNodeList[(int)tag.blockID] == null)
                 {
-                    BlocksFirstLastNodeList[(int)tag.blockID] = new Tuple<uint, uint>(firstVert, lastVertID);
+                    BlocksFirstLastNodeList[(int)tag.blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
                 }
             }
 
@@ -855,7 +855,7 @@ namespace rgatCore
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
                     //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
-                    Debug.Assert(node_exists(lastVertID), $"\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found. Node list size is: {NodeList.Count}");
+                    Debug.Assert(node_exists(ProtoLastVertID), $"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
                 }
                 //end possible  #ifdef DEBUG candidate
 
@@ -897,7 +897,7 @@ namespace rgatCore
                         lastNodeType = eEdgeNodeType.eNodeNonFlow;
                         break;
                 }
-                lastVertID = targVertID;
+                ProtoLastVertID = targVertID;
             }
         }
 
@@ -1151,7 +1151,7 @@ namespace rgatCore
         uint finalNodeID = 0;
 
         //important state variables!
-        public uint lastVertID = 0; //the vert that led to new instruction
+        public uint ProtoLastVertID = 0; //the vert that led to new instruction
         public uint targVertID = 0; //new vert we are creating
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 

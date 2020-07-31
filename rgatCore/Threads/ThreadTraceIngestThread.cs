@@ -260,6 +260,8 @@ namespace rgatCore
                 Thread.Sleep(25);
             }
             StopFlag = true;
+
+            RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
             Console.WriteLine(runningThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 

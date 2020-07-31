@@ -27,15 +27,15 @@ namespace rgatCore.Threads
 			{
 				//only write we are protecting against happens while creating new threads
 				//so not important to release this quickly
-				graphlist = RenderedTrace.GetPlottedGraphsList();
+				graphlist = RenderedTrace.GetPreviewPlottedGraphsList();
 
 				moreRenderingNeeded = false;
 				foreach (PlottedGraph graph in graphlist)
 				{
 					//check for trace data that hasn't been rendered yet
 					ProtoGraph protoGraph = graph.internalProtoGraph;
-					if ((graph.previewnodes.CountVerts() < protoGraph.get_num_nodes()) ||
-						(graph.previewlines.CountRenderedEdges < protoGraph.get_num_edges()))
+					if ((graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
+						(graph.LinesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
 					{
 						//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 						moreRenderingNeeded = true;

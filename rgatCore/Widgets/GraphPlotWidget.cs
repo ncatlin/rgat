@@ -180,7 +180,7 @@ namespace rgatCore
             scrn.Y = 0;// ImGui.GetCursorScreenPos().Y;
             scrn.Width = graphWidgetSize.X;
             scrn.Height = graphWidgetSize.Y;
-            scrn.MaxDepth = ActiveGraph.main_scalefactors.plotSize;
+            scrn.MaxDepth = ActiveGraph.scalefactors.plotSize;
             scrn.MinDepth = 1;
             scrn.CamZoom = dbg_camZ;
 
@@ -220,21 +220,21 @@ namespace rgatCore
 
 
             graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
-            graphBuffers.DrawLines(_cl, _gd, ActiveGraph.mainlinedata);
-            graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.mainnodesdata);
+            graphBuffers.DrawLines(_cl, _gd, ActiveGraph.LinesDisplayData);
+            graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.NodesDisplayData);
         }
 
         private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
         {
             float angle = dbg_rot;
             float nearClip = dbg_camZ;
-            float farClip = nearClip + ActiveGraph.main_scalefactors.plotSize + dbg_far;
+            float farClip = nearClip + ActiveGraph.scalefactors.plotSize + dbg_far;
             if (nearClip <= 0) nearClip = 1;
             if (farClip <= nearClip) farClip = nearClip + 1;
 
             _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
 
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * ActiveGraph.main_scalefactors.plotSize) - dbg_camZ);
+            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * ActiveGraph.scalefactors.plotSize) - dbg_camZ);
             Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);

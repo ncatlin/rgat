@@ -86,13 +86,17 @@ namespace rgatCore
             Console.WriteLine("Trace thread connected");
                 
             ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
-            PlottedGraph newPlottedGraph = _clientState.CreateNewPlottedGraph(newProtoGraph);
+            if(!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph))
+            {
+                Console.WriteLine("ERROR: Failed to create plotted graphs for new thread, abandoning");
+                return;
+            }
 
             newProtoGraph.TraceReader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
 
             ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph);
 
-            if (!trace.InsertNewThread(newPlottedGraph))
+            if (!trace.InsertNewThread(MainGraph, PreviewGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
                 return;
@@ -136,8 +140,8 @@ namespace rgatCore
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} ended!");
 
-            trace.PlottedGraphs[TID].internalProtoGraph.Terminated = true;
-            trace.PlottedGraphs[TID].replayState = PlottedGraph.REPLAY_STATE.eEnded;
+            trace.MainPlottedGraphs[TID].internalProtoGraph.Terminated = true;
+            trace.MainPlottedGraphs[TID].replayState = PlottedGraph.REPLAY_STATE.eEnded;
         }
 
 

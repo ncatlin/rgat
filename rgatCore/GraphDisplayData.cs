@@ -91,6 +91,8 @@ namespace rgatCore
         {
             LastRenderedNode.lastVertID = 0;
             LastRenderedNode.lastVertType = eEdgeNodeType.eFIRST_IN_THREAD;
+            LastAnimatedNode.lastVertID = 0;
+            LastAnimatedNode.lastVertType = eEdgeNodeType.eFIRST_IN_THREAD;
             IsPreview = preview;
         }
         ~GraphDisplayData()
@@ -110,7 +112,7 @@ namespace rgatCore
                     VertexPositionColor vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
                     VertList[(int)index] = vpc;
-                    Console.WriteLine($"SetNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
+                    //Console.WriteLine($"SetNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
                     DataChanged = true;
                 }
             }
@@ -124,7 +126,7 @@ namespace rgatCore
                 VertexPositionColor vpc = VertList[(int)index];
                 vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
                 VertList[(int)index] = vpc;
-                Console.WriteLine($"ReduceNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
+                //Console.WriteLine($"ReduceNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
                 DataChanged = true;
                 return (vpc.ActiveAnimAlpha <= GlobalConfig.AnimatedFadeMinimumAlpha);
             }
@@ -330,7 +332,16 @@ namespace rgatCore
             public eEdgeNodeType lastVertType;
         };
         public PLOT_TRACK LastRenderedNode;
+        public PLOT_TRACK LastAnimatedNode;
 
+        public void GetEdgeDrawData(int DrawIndex, out int vertcount, out int arraypos)
+        {
+            Debug.Assert(DrawIndex < Edges_VertSizes_ArrayPositions.Count);
+            vertcount = Edges_VertSizes_ArrayPositions[DrawIndex].Item1;
+            arraypos = Edges_VertSizes_ArrayPositions[DrawIndex].Item2;
+        }
+
+        public List<Tuple<int, int>> Edges_VertSizes_ArrayPositions = new List<Tuple<int, int>>();
         //mutable std::shared_mutex poslock_;
         //mutable std::shared_mutex collock_;
 
@@ -354,14 +365,12 @@ namespace rgatCore
             {
                 if (nodeidx < node_coords.Count)
                 {
-
                     result = (T)node_coords[nodeidx];
                     return true;
                 }
             }
 
-            Debug.Assert(false, "Tried to get coord of node that hasn't been rendered yet");
-            result = (T)new object();
+            result = default(T);
             return false;
         }
 
@@ -370,10 +379,11 @@ namespace rgatCore
             lock (coordLock)
             {
                 node_coords.Add(coord);
+                NodeCount = node_coords.Count;
             }
         }
 
         private List<object> node_coords = new List<object>();
-        public int NodeCount() => node_coords.Count;
+        public int NodeCount { get; private set; } = 0;
     }
 }

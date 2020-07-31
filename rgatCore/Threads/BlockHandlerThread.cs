@@ -128,11 +128,11 @@ namespace rgatCore
 
             uint blockID = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
 
-            Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
+            //Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
 
             if (!instrumented) //should no longer happen
             {
-                Console.WriteLine($"[rgat] Error: Uninstrumented block at address {BlockAddress} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
+                Console.WriteLine($"[rgat] Error: Uninstrumented block at address 0x{BlockAddress:X} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
                 return;
             }
 

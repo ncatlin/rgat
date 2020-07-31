@@ -27,7 +27,7 @@ namespace rgatCore.Threads
 			ProtoGraph protoGraph = graph.internalProtoGraph;
 			if (protoGraph == null || protoGraph.edgeList.Count == 0) return;
 
-			if (graph.mainnodesdata == null)// || !graph.setGraphBusy(true, 2))
+			if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
 				return;
 
 			if (graph.replayState == PlottedGraph.REPLAY_STATE.eEnded)
@@ -37,8 +37,8 @@ namespace rgatCore.Threads
 
 			//update the render if there are more verts/edges or graph is being resized
 			if (
-				(graph.mainnodesdata.CountVerts() < protoGraph.get_num_nodes()) ||
-				(graph.mainlinedata.CountRenderedEdges < protoGraph.get_num_edges()) ||
+				(graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
+				(graph.LinesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
 				graph.vertResizeIndex != 0)
 			{
 				graph.UpdateMainRender();
@@ -74,7 +74,7 @@ namespace rgatCore.Threads
 			//save current rotation/scaling
 			float xrot = renderGraph.view_shift_x, yrot = renderGraph.view_shift_y;
 			double zoom = renderGraph.cameraZoomlevel;
-			GRAPH_SCALE newScaleFactors = renderGraph.main_scalefactors;
+			GRAPH_SCALE newScaleFactors = renderGraph.scalefactors;
 
 			//schedule purge of the current rendering
 			//renderGraph.setBeingDeleted();
@@ -92,7 +92,7 @@ namespace rgatCore.Threads
 
 			//renderGraph.setGraphBusy(true, 101);
 
-			activeTrace.PlottedGraphs[protoGraph.ThreadID] = null;
+			activeTrace.MainPlottedGraphs[protoGraph.ThreadID] = null;
 
 			//now everything has finished with the old rendering, do the actual deletion
 			//delete activeGraph;
@@ -101,22 +101,19 @@ namespace rgatCore.Threads
 			Console.WriteLine("Deleted graph " + renderGraph);
 
 			//create a new rendering
-			renderGraph = rgatState.CreateNewPlottedGraph(protoGraph);
+			rgatState.CreateNewPlottedGraph(protoGraph, out PlottedGraph maingraph, out PlottedGraph previewgraph);
 			if (replot_existing)
 			{
-				renderGraph.initialiseCustomDimensions(newScaleFactors);
+				maingraph.initialiseCustomDimensions(newScaleFactors);
 				//renderGraph.view_shift_x = xrot;
 				//renderGraph.view_shift_y = yrot;
 				//renderGraph.cameraZoomlevel = zoom;
 			}
-			else
-			{
-				renderGraph.InitialiseDefaultDimensions();
-			}
 
 			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid
 			Debug.Assert(setactive);
-			activeTrace.PlottedGraphs[protoGraph.ThreadID] = renderGraph;
+			activeTrace.MainPlottedGraphs[protoGraph.ThreadID] = renderGraph;
+			activeTrace.PreviewPlottedGraphs[protoGraph.ThreadID] = previewgraph; //do we want to rerender this?
 
 			//activeTrace.graphListLock.unlock();
 			//if they dont exist, create threads to rebuild alternate renderings
@@ -145,7 +142,7 @@ namespace rgatCore.Threads
 			{
 
 				activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
-				while (activeGraph == null || activeGraph.mainlinedata == null)
+				while (activeGraph == null || activeGraph.LinesDisplayData == null)
 				{
 					Thread.Sleep(50);
 					if (rgatState.rgatIsExiting) return;
@@ -153,24 +150,17 @@ namespace rgatCore.Threads
 					continue;
 				}
 
-				//TODO
-				//if (activeGraph.increase_thread_references(1))
 				if (true)
 				{
 					bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
 					if (layoutChanged || activeGraph.NeedReplotting)
 					{
-						//graph gets destroyed, this resets references, don't need to decrease
 						activeGraph.ReRender();
-						//perform_full_render(activeGraph, activeGraph.replotScheduled);
 						continue;
 					}
 
 					update_rendering(activeGraph);
-					//activeGraph.decrease_thread_references(1);
 				}
-				activeGraph = null;
-
 				Thread.Sleep(GlobalConfig.renderFrequency);
 			}
 

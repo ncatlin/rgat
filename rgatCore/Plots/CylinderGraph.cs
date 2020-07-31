@@ -109,10 +109,10 @@ namespace rgatCore
 
         public float ConvertScreenYtoBCoord(float YCoord, GraphicsMaths.SCREENINFO scrn)
         {
-            cylinderCoord(0, 0, 0, out Vector3 CylXYZCoordBeforeProject, main_scalefactors);
+            cylinderCoord(0, 0, 0, out Vector3 CylXYZCoordBeforeProject, scalefactors);
             Vector3 ScreenPosAfterProject = GraphicsMaths.Project(CylXYZCoordBeforeProject, projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
             Vector3 RawGraphicPos = GraphicsMaths.Unproject(new Vector3(0, YCoord, ScreenPosAfterProject.Z), projection, view, Matrix4x4.Multiply(Matrix4x4.Identity, rotation), scrn);
-            return (float)(RawGraphicPos.Y / (-1 * main_scalefactors.pix_per_B));
+            return (float)(RawGraphicPos.Y / (-1 * scalefactors.pix_per_B));
         }
 
         public override List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn)
@@ -126,7 +126,7 @@ namespace rgatCore
 
 
             List<NodeData> nodes;
-            lock(internalProtoGraph.nodeLock)
+            lock (internalProtoGraph.nodeLock)
             {
                 nodes = internalProtoGraph.NodeList.ToList<NodeData>();
             }
@@ -135,17 +135,17 @@ namespace rgatCore
             performance todo - want to update position of displayed texts every frame but 
             choosing which nodes to display can be an irregular action
             */
-            float ZMidPoint = scrn.CamZoom + (main_scalefactors.plotSize/2);
-            
+            float ZMidPoint = scrn.CamZoom + (scalefactors.plotSize / 2);
+
             List<Tuple<NodeData, Vector3>> visibleNodes = new List<Tuple<NodeData, Vector3>>();
             foreach (NodeData node in nodes)
             {
-                if (node.index >= mainnodesdata.NodeCount()) break;
+                if (node.index >= NodesDisplayData.NodeCount) break;
 
-                mainnodesdata.get_node_coord((int)node.index, out CYLINDERCOORD nodeCoordCyl);
+                NodesDisplayData.get_node_coord((int)node.index, out CYLINDERCOORD nodeCoordCyl);
                 if (nodeCoordCyl.b >= highestVisibleNodeB && nodeCoordCyl.b <= lowestVisibleNodeB)
                 {
-                    Vector3 pos = NodeScreenPosition(nodeCoordCyl, main_scalefactors, scrn);
+                    Vector3 pos = NodeScreenPosition(nodeCoordCyl, scalefactors, scrn);
                     if ((pos.X - scrn.X) > scrn.Width || (pos.X - scrn.X) < 0) continue;
                     if ((pos.Y - scrn.Y) > scrn.Height || (pos.Y - scrn.Y) < 0) continue;
                     if (pos.Z > ZMidPoint) continue; //don't show text further back than half way around the cylinder
@@ -190,8 +190,11 @@ namespace rgatCore
                 else
                 {
                     float dist = Vector2.Distance(new Vector2(pos.X, pos.Y), new Vector2(scrn.Width / 2, scrn.Height / 2));
+
+                    CYLINDERCOORD cylcoord;
+                    NodesDisplayData.get_node_coord((int)node.index, out cylcoord);
+                    //itm.contents = $"N<{node.index}>  X:{cylcoord.a} Y:{cylcoord.b}";
                     //itm.contents = $"N<{node.index}>  X:{pos.X} Y:{pos.Y} z:{pos.Z} Dist:{dist}";
-                    //itm.contents = $"z: {pos.Z}";
                     itm.contents = $"{node.index} 0x{node.address:X}: {node.ins.ins_text}";
                     itm.color = Color.White;
                 }
@@ -204,52 +207,53 @@ namespace rgatCore
                 if (texts.Count > GlobalConfig.OnScreenNodeTextCountLimit) break;
             }
             //Console.WriteLine(texts.Count);
-            
+
 
             return texts;
-            
+
         }
 
 
         public override void render_static_graph()
         {
-            //lock (renderingLock)
-            {
-                render_new_edges(false);
-            }
+
+            render_new_edges();
 
             //redraw_anim_edges();
             regenerate_wireframe_if_needed();
         }
 
 
-        protected override bool render_edge(Tuple<uint, uint> ePair, GraphDisplayData nodedata, GraphDisplayData edgedata,
-            WritableRgbaFloat? colourOverride, bool preview, bool noUpdate)
+        protected override bool render_edge(Tuple<uint, uint> ePair, WritableRgbaFloat? colourOverride)
         {
-            ulong nodeCoordQty = (ulong)nodedata.NodeCount();
+            ulong nodeCoordQty = (ulong)NodesDisplayData.NodeCount;
             if (ePair.Item1 >= nodeCoordQty || ePair.Item2 >= nodeCoordQty)
                 return false;
 
+
+
             EdgeData e = internalProtoGraph.edgeDict[ePair];
 
-            GRAPH_SCALE scaling = preview ? preview_scalefactors : main_scalefactors;
-
-            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1, nodedata, scaling);
-            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2, nodedata, scaling);
-
+            Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1);
+            Vector3 targc = nodeIndexToXYZ((int)ePair.Item2);
             WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
             bool shiftedMiddle = e.edgeClass == eEdgeNodeType.eEdgeOld;
-            int vertsDrawn = drawCurve(edgedata, srcc, targc, edgeColourPtr, e.edgeClass, scaling, out int arraypos, shiftedMiddle);
+            int vertsDrawn = drawCurve(LinesDisplayData, srcc, targc, scalefactors, edgeColourPtr, e.edgeClass, out int arraypos, shiftedMiddle);
+
 
             //previews, diffs, etc where we don't want to affect the original edges
-            if (!noUpdate && !preview)
+            if (!e.IsDrawn)
             {
-                e.vertSize = vertsDrawn;
-                e.arraypos = arraypos;
+                e.DrawIndex = LinesDisplayData.CountRenderedEdges;
+                LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
+            }
+            else
+            {
+                Debug.Assert(e.DrawIndex == LinesDisplayData.CountRenderedEdges);
             }
 
-            edgedata.inc_edgesRendered();
+            LinesDisplayData.inc_edgesRendered();
             return true;
         }
         /*
@@ -264,26 +268,34 @@ namespace rgatCore
 
 		void orient_to_user_view();
 		*/
+
+        override public void InitialisePreviewDimensions()
+        {
+            wireframeSupported = false;
+            wireframeActive = false;
+
+            scalefactors.plotSize = 50;
+            scalefactors.basePlotSize = 50;
+            scalefactors.pix_per_A = PREVIEW_A_SEP;
+            scalefactors.pix_per_B = PREVIEW_B_SEP;
+            scalefactors.original_pix_per_A = PREVIEW_A_SEP;
+            scalefactors.original_pix_per_B = PREVIEW_B_SEP;
+            scalefactors.userSizeModifier = 1;
+
+        }
+
         override public void InitialiseDefaultDimensions()
         {
             wireframeSupported = true;
             wireframeActive = true;
 
-            preview_scalefactors.plotSize = 50;
-            preview_scalefactors.basePlotSize = 50;
-            preview_scalefactors.pix_per_A = PREVIEW_A_SEP;
-            preview_scalefactors.pix_per_B = PREVIEW_B_SEP;
-            preview_scalefactors.original_pix_per_A = PREVIEW_A_SEP;
-            preview_scalefactors.original_pix_per_B = PREVIEW_B_SEP;
-            preview_scalefactors.userSizeModifier = 1;
-
-            main_scalefactors.plotSize = 20000;
-            main_scalefactors.basePlotSize = 20000;
-            main_scalefactors.userSizeModifier = 1;
-            main_scalefactors.pix_per_A = DEFAULT_A_SEP;
-            main_scalefactors.original_pix_per_A = DEFAULT_A_SEP;
-            main_scalefactors.pix_per_B = DEFAULT_B_SEP;
-            main_scalefactors.original_pix_per_B = DEFAULT_B_SEP;
+            scalefactors.plotSize = 20000;
+            scalefactors.basePlotSize = 20000;
+            scalefactors.userSizeModifier = 1;
+            scalefactors.pix_per_A = DEFAULT_A_SEP;
+            scalefactors.original_pix_per_A = DEFAULT_A_SEP;
+            scalefactors.pix_per_B = DEFAULT_B_SEP;
+            scalefactors.original_pix_per_B = DEFAULT_B_SEP;
 
             //view_shift_x = 96;
             //view_shift_y = 65;
@@ -294,7 +306,7 @@ namespace rgatCore
         {
             InitialiseDefaultDimensions();
             scale.plotSize = (long)(scale.basePlotSize * scale.userSizeModifier);
-            main_scalefactors = scale;
+            scalefactors = scale;
         }
 
 
@@ -306,13 +318,13 @@ namespace rgatCore
 
 		int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data** node);
 		*/
-        override public void render_node(NodeData n, GraphDisplayData vertdata, GRAPH_SCALE dimensions)
+        override public void render_node(NodeData n)
         {
             CYLINDERCOORD coord;
-            if (n.index >= vertdata.NodeCount())
+            if (n.index >= NodesDisplayData.NodeCount)
             {
                 //Console.WriteLine($"Node {n.index} {n.ins.ins_text} not plotted yet, plotting");
-                if (vertdata.NodeCount() == 0)
+                if (NodesDisplayData.NodeCount == 0)
                 {
                     Debug.Assert(n.index == 0);
                     CYLINDERCOORD tempPos;
@@ -322,23 +334,21 @@ namespace rgatCore
 
                     lock (internalProtoGraph.nodeLock)
                     {
-                        vertdata.add_node_coord(tempPos);
+                        NodesDisplayData.add_node_coord(tempPos);
                     }
                 }
                 else
                 {
-                    positionVert(n, vertdata, out CYLINDERCOORD newPos);
+                    positionVert(n, out CYLINDERCOORD newPos);
                     coord = newPos;
+                    NodesDisplayData.add_node_coord(newPos);
+                    //Console.WriteLine($"Thread {internalProtoGraph.ThreadID} added vert {n.index}");
+                    Debug.Assert(NodesDisplayData.NodeCount == n.index + 1);
 
-                    lock (internalProtoGraph.nodeLock)//todo change lock
-                    {
-                        vertdata.add_node_coord(newPos);
-                        Debug.Assert(vertdata.NodeCount() == n.index + 1);
-                    }
                 }
 
                 updateStats(coord.a, coord.b, 0);
-                vertdata.usedCoords.Add(new Tuple<float, float>(coord.a, coord.b), true);
+                NodesDisplayData.usedCoords.Add(new Tuple<float, float>(coord.a, coord.b), true);
 
                 if (!n.IsExternal)
                 {
@@ -348,10 +358,9 @@ namespace rgatCore
                         n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
                         n.placeholder = true;
 
-                        lock (CallStackLock) //?
-                        {
-                            internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
-                        }
+
+                        internalProtoGraph.InternalPlaceholderFuncNames[nodeoffset] = n.index;
+
                     }
                 }
                 else
@@ -363,7 +372,7 @@ namespace rgatCore
                     else
                     {
                         string module = internalProtoGraph.ProcessData.LoadedModulePaths[n.GlobalModuleID];
-                        
+
                         n.label = $"{module}: 0x{n.address}";
                     }
                 }
@@ -371,23 +380,23 @@ namespace rgatCore
             }
             else
             {
-                //Console.WriteLine($"Node {n.index} already plotted, retrieving");
-                vertdata.get_node_coord<CYLINDERCOORD>((int)n.index, out coord);
+                NodesDisplayData.get_node_coord<CYLINDERCOORD>((int)n.index, out coord);
+                Console.WriteLine($"Node {n.index} already plotted, retrieved to coord {coord.a} {coord.b}");
             }
 
 
-            cylinderCoord(coord, out Vector3 screenc, dimensions);
+            cylinderCoord(coord, out Vector3 screenc, scalefactors);
 
             WritableRgbaFloat active_col;
             if (n.IsExternal)
-                vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeExternal;
+                NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeExternal;
             else
             {
                 switch (n.ins.itype)
                 {
                     case eNodeType.eInsUndefined:
                         if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
-                        vertdata.LastRenderedNode.lastVertType = n.IsConditional() ?
+                        NodesDisplayData.LastRenderedNode.lastVertType = n.IsConditional() ?
                             eEdgeNodeType.eNodeJump :
                             eEdgeNodeType.eNodeNonFlow;
                         break;
@@ -395,19 +404,19 @@ namespace rgatCore
                     case eNodeType.eInsJump:
                         Console.WriteLine($"render_node jump because n {n.index} is jump");
 
-                        vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeJump;
+                        NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeJump;
                         break;
 
                     case eNodeType.eInsReturn:
-                        vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeReturn;
+                        NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeReturn;
                         break;
 
                     case eNodeType.eInsCall:
                         {
-                            vertdata.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeCall;
+                            NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeCall;
                             //if code arrives to next instruction after a return then arrange as a function
                             ulong nextAddress = n.ins.address + (ulong)n.ins.numbytes;
-                            Add_to_callstack(vertdata.IsPreview, nextAddress, vertdata.LastRenderedNode.lastVertID);
+                            Add_to_callstack(nextAddress, NodesDisplayData.LastRenderedNode.lastVertID);
                             break;
                         }
                     default:
@@ -417,30 +426,31 @@ namespace rgatCore
                 }
             }
 
-            active_col = graphColours[(int)vertdata.LastRenderedNode.lastVertType];
-            vertdata.LastRenderedNode.lastVertID = n.index;
+            active_col = graphColours[(int)NodesDisplayData.LastRenderedNode.lastVertType];
+            NodesDisplayData.LastRenderedNode.lastVertID = n.index;
+            //Console.WriteLine($"Thread {internalProtoGraph.ThreadID} setting last vert to {n.index}");
 
             WritableRgbaFloat nodeColor = new WritableRgbaFloat()
-                {A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
+            { A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
 
             VertexPositionColor colorEntry = new VertexPositionColor(screenc, nodeColor, GlobalConfig.AnimatedFadeMinimumAlpha);
 
-            vertdata.safe_add_vert(colorEntry);
+            NodesDisplayData.safe_add_vert(colorEntry);
         }
 
 
         //take the a/b/bmod coords, convert to opengl coordinates based on supplied cylinder multipliers/size
-        Vector3 nodeIndexToXYZ(int index, GraphDisplayData vertdata, GRAPH_SCALE dimensions)
+        Vector3 nodeIndexToXYZ(int index)
         {
-            bool success = vertdata.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
+            bool success = NodesDisplayData.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
-            cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod,  out Vector3 result, dimensions);
+            cylinderCoord(nodeCoordCyl.a, nodeCoordCyl.b, nodeCoordCyl.diamMod, out Vector3 result, scalefactors);
             return result;
         }
 
         Vector2 nodeIndexToXYZ_Text(int index)
         {
-            bool success = mainnodesdata.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
+            bool success = NodesDisplayData.get_node_coord<CYLINDERCOORD>(index, out CYLINDERCOORD nodeCoordCyl);
             Debug.Assert(success);
             cylinderCoord_Text(nodeCoordCyl.a, nodeCoordCyl.b, 1, out Vector2 result);
             return result;
@@ -449,7 +459,7 @@ namespace rgatCore
 
         int needed_wireframe_loops()
         {
-            return (int)Math.Ceiling((maxB * main_scalefactors.pix_per_B) / (CYLINDER_SEP_PER_ROW * main_scalefactors.pix_per_B)) + 2;
+            return (int)Math.Ceiling((maxB * scalefactors.pix_per_B) / (CYLINDER_SEP_PER_ROW * scalefactors.pix_per_B)) + 2;
         }
 
 
@@ -467,7 +477,7 @@ namespace rgatCore
 
         void plot_wireframe()
         {
-            float diam = main_scalefactors.plotSize;
+            float diam = scalefactors.plotSize;
             List<VertexPositionColor> vertsList = wireframelines.acquire_vert_write();
 
             //horizontal circles
@@ -479,7 +489,7 @@ namespace rgatCore
                 pointPositions.Add(vertPosition);
             }
 
-            float Loop_vert_sep = (maxB * main_scalefactors.pix_per_B) / (wireframe_loop_count - 2);
+            float Loop_vert_sep = (maxB * scalefactors.pix_per_B) / (wireframe_loop_count - 2);
 
             VertexPositionColor wfVert = new VertexPositionColor();
             wfVert.Color = GlobalConfig.mainColours.wireframe;
@@ -487,7 +497,7 @@ namespace rgatCore
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * Loop_vert_sep;// (CYLINDER_SEP_PER_ROW + Math.Max(0, main_scalefactors.pix_per_B));
-                for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE+1; ++circlePoint)
+                for (int circlePoint = 0; circlePoint < WIREFRAME_POINTSPERLINE + 1; ++circlePoint)
                 {
                     wfVert.Position = pointPositions[circlePoint];
                     wfVert.Position.Y = rowYcoord;
@@ -574,8 +584,8 @@ namespace rgatCore
         }
         */
 
-        static int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC,
-            WritableRgbaFloat colour, eEdgeNodeType edgeType, GRAPH_SCALE dimensions, out int arraypos, bool shiftedMidPoint = false)
+        static int drawCurve(GraphDisplayData linedata, Vector3 startC, Vector3 endC, GRAPH_SCALE scalefactors,
+            WritableRgbaFloat colour, eEdgeNodeType edgeType, out int arraypos, bool shiftedMidPoint = false)
         {
             //describe the normal
             GraphicsMaths.midpoint(startC, endC, out Vector3 middleC);
@@ -611,10 +621,10 @@ namespace rgatCore
                         {
                             bezierC = middleC;
                             //calculate the AB coords of the midpoint of the cylinder
-                            getCylinderCoordAB(middleC, dimensions, out float oldMidA, out float oldMidB);
-                            float curveMagnitude = Math.Min(eLen / 2, (float)(dimensions.plotSize / 2));
+                            getCylinderCoordAB(middleC, scalefactors, out float oldMidA, out float oldMidB);
+                            float curveMagnitude = Math.Min(eLen / 2, (float)(scalefactors.plotSize / 2));
                             //recalculate the midpoint coord as if it was inside the cylinder
-                            cylinderCoord(oldMidA, oldMidB, -curveMagnitude, out Vector3 bezierC2, dimensions);
+                            cylinderCoord(oldMidA, oldMidB, -curveMagnitude, out Vector3 bezierC2, scalefactors);
                             bezierC = bezierC2;
 
                             //i dont know why this problem happens or why this fixes it
@@ -725,10 +735,10 @@ namespace rgatCore
          * This positions the node in the format of the graph, with abstract layout specific coordinates
          * Translating these abstract coordinates into real x/y/z coords is the job of CylinderCoord()
          */
-        void positionVert(NodeData n, GraphDisplayData vertdata, out CYLINDERCOORD newPosition)
+        void positionVert(NodeData n, out CYLINDERCOORD newPosition)
         {
-            GraphDisplayData.PLOT_TRACK lastNode = vertdata.LastRenderedNode;
-            if (!vertdata.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
+            GraphDisplayData.PLOT_TRACK lastNode = NodesDisplayData.LastRenderedNode;
+            if (!NodesDisplayData.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out CYLINDERCOORD oldPosition))
             {
                 Console.WriteLine("[rgat]Warning: Positionvert() Waiting for node " + lastNode.lastVertID);
                 int waitPeriod = 5;
@@ -736,9 +746,15 @@ namespace rgatCore
                 bool found = false;
                 do
                 {
+                    if (waitPeriod > 1000)
+                    {
+                        Console.WriteLine($"Warning! Very long wait for vert ID {lastNode.lastVertID}, something has gone wrong");
+                        Debug.Assert(waitPeriod < 5000);
+                    }
                     System.Threading.Thread.Sleep(waitPeriod);
                     waitPeriod += (150 * iterations++);
-                    found = vertdata.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out oldPosition);
+                    found = NodesDisplayData.get_node_coord<CYLINDERCOORD>((int)lastNode.lastVertID, out oldPosition);
+
                 } while (!found);
             }
 
@@ -754,7 +770,7 @@ namespace rgatCore
                 newPosition.b = b + EXTERNB + 0.7f * lastNodeData.childexterns;
                 newPosition.diamMod = 6;
 
-                while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(newPosition.a, newPosition.b)))
+                while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(newPosition.a, newPosition.b)))
                 {
                     newPosition.a += 0.5f;
                     ++clash;
@@ -769,10 +785,10 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeNonFlow:
                     {
                         if (n.index < 10)
-                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} nonflow");
-                        
+                            Console.WriteLine($"Thread {internalProtoGraph.ThreadID} positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} nonflow");
+
                         b += B_BETWEEN_BLOCKNODES;
-                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             b += B_BETWEEN_BLOCKNODES;
                             a += 0.2f;
@@ -784,7 +800,7 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeJump://long diagonal separation to show distinct basic blocks
                     {
                         if (n.index < 10)
-                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} jump");
+                            Console.WriteLine($"Thread {internalProtoGraph.ThreadID} positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} jump");
 
                         //check if this is a conditional which fell through (ie: sequential)
                         NodeData lastNodeData = internalProtoGraph.safe_get_node(lastNode.lastVertID);
@@ -797,7 +813,7 @@ namespace rgatCore
                         a += JUMPA;
                         b += JUMPB;
 
-                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             ++clash;
@@ -811,7 +827,7 @@ namespace rgatCore
                         b += JUMPB;
                         diamMod = 8f;
 
-                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             ++clash;
@@ -826,13 +842,13 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeCall:
                     {
                         if (n.index < 10)
-                            Console.WriteLine($"positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} call");
+                            Console.WriteLine($"Thread {internalProtoGraph.ThreadID} positionVert Vert idx {n.index} after vert {lastNode.lastVertID} type {lastNode.lastVertType} call");
 
                         //note: b sometimes huge after this?
                         a -= CALLA;
                         b += CALLB;
 
-                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                        while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a -= CALLA_CLASH;
                             b += CALLB_CLASH;
@@ -853,42 +869,36 @@ namespace rgatCore
                 case eEdgeNodeType.eNodeExternal:
                     {
                         //returning to address in call stack?
-                        long result = -1;
 
-                        //List<Tuple<ulong, uint>> callStack =  mainnodesdata.IsPreview ? PreviewCallStack : MainCallStack;
+                        var found = ThreadCallStack.Where(item => item.Item1 == n.address);
+                        Tuple<ulong, uint>? foundFrame = found.Any() ? found.First<Tuple<ulong, uint>>() : null;
 
-                        lock (CallStackLock)
+                        //if so, position next node near caller
+                        if (foundFrame != null)
                         {
-
-                            var found = ThreadCallStack.Where(item => item.Item1 == n.address);
-                            result = found.Any() ? (long)found.First<Tuple<ulong, uint>>().Item2 : (long)-1;
-
-                            //testing
-                            //result = -1;
-
-                            //if so, position next node near caller
-                            if (result != -1)
+                            if (!NodesDisplayData.get_node_coord((int)foundFrame.Item2, out CYLINDERCOORD caller))
                             {
-                                if (!vertdata.get_node_coord<CYLINDERCOORD>((int)result, out CYLINDERCOORD caller))
-                                {
-                                    Debug.Assert(false);
-                                }
-                                a = caller.a + RETURNA_OFFSET;
-                                b = caller.b + RETURNB_OFFSET;
+                                Debug.Assert(false, "Error: Failed to find node for entry on the callstack");
+                            }
+                            a = caller.a + RETURNA_OFFSET;
+                            b = caller.b + RETURNB_OFFSET;
 
-                                //may not have returned to the last item in the callstack
-                                //delete everything inbetween
-                                Console.WriteLine("Todo, resize callstack down");
-                                //callStack.resize(stackIt - callStack.begin());
-                            }
-                            else
-                            {
-                                a += RETURNA_OFFSET;
-                                b += RETURNB_OFFSET;
-                            }
+                            //may not have returned to the last item in the callstack
+                            //delete everything inbetween
+                            var topFrame = ThreadCallStack.Pop();
+                            while (topFrame.Item1 != foundFrame.Item1)
+                                topFrame = ThreadCallStack.Pop();
+
+                            Console.WriteLine($"Thread {internalProtoGraph.ThreadID} positionVert Vert idx {n.index} after vert {foundFrame.Item2} found on callstack");
+                        }
+                        else
+                        {
+                            a += RETURNA_OFFSET;
+                            b += RETURNB_OFFSET;
                         }
 
-                        while (vertdata.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+
+                        while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
                         {
                             a += JUMPA_CLASH;
                             b += 1;
@@ -922,13 +932,13 @@ namespace rgatCore
 
         static void cylinderCoord(CYLINDERCOORD sc, out Vector3 c, GRAPH_SCALE dimensions)
         {
-           
+
             cylinderCoord(sc.a, sc.b, sc.diamMod, out c, dimensions);
         }
 
         static void cylinderCoord(float a, float b, float diamModifier, out Vector3 c, GRAPH_SCALE dimensions)
         {
-            double r = (dimensions.plotSize + diamModifier );// +0.1 to make sure we are above lines
+            double r = (dimensions.plotSize + diamModifier);// +0.1 to make sure we are above lines
 
             a *= dimensions.pix_per_A;
             c.X = (float)(r * Math.Cos((a * Math.PI) / r));
@@ -949,51 +959,25 @@ namespace rgatCore
         static void getCylinderCoordAB(Vector3 c, GRAPH_SCALE dimensions, out float aOut, out float bOut)
         {
             double r = dimensions.plotSize;
-            float g0 = (float)(c.X / r);
-            float g11 = (float)Math.Acos(g0);
-            float g1 = (float)Math.Acos(r/ c.X);
-            float g2 = (float)(Math.Acos(r/c.X) * r);
-            float g3 = (float)((Math.Acos(r / c.X) * r) / Math.PI);
-            float g4 = (float)((Math.Acos(r / c.X) * r) / Math.PI) / dimensions.pix_per_A;
-            aOut = g4;
 
-            //aOut = (float)((Math.Asin(c.X / r) * r) / Math.PI) / dimensions.pix_per_A;
+            float rdiv = (float)Math.Acos(r / c.X);
+            rdiv = rdiv < 1 ? rdiv : 0;
+            float g2 = (float)(Math.Acos(rdiv) * r);
+            float g3 = (float)((Math.Acos(rdiv) * r) / Math.PI);
+
+            aOut = (float)((Math.Acos(rdiv) * r) / Math.PI) / dimensions.pix_per_A;
 
             double tb = c.Y;
             tb -= B_PX_OFFSET_FROM_TOP;
             bOut = (float)(tb / (-1 * dimensions.pix_per_B));
-
-            /*
-             *             
-            double r = (dimensions.plotSize + diamModifier );// +0.1 to make sure we are above lines
-            a *= dimensions.pix_per_A;
-            c.X = (float)(r * Math.Cos((a * Math.PI) / r));
-            c.Z = (float)(r * Math.Sin((a * Math.PI) / r));
-
-            float fb = 0;
-            fb += -1 * B_PX_OFFSET_FROM_TOP; //offset start down on cylinder
-            fb += -1 * b * dimensions.pix_per_B;
-            c.Y = fb;
-            */
         }
 
-        void Add_to_callstack(bool isPreview, ulong address, uint idx)
+        void Add_to_callstack(ulong address, uint idx)
         {
-            lock (CallStackLock)
-            {
-                ThreadCallStack.Add(new Tuple<ulong, uint>(address, idx));
-                /*
-                if (isPreview)
-                    PreviewCallStack.Add(new Tuple<ulong, uint>(address, idx));
-                else
-                    MainCallStack.Add(new Tuple<ulong, uint>(address, idx));
-                */
+            ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
         }
-    }
 
         int wireframe_loop_count = 0;
-
-        private readonly Object CallStackLock = new Object();
 
         //List<CYLINDERCOORD> node_coords_storage;
         //List<CYLINDERCOORD> node_coords = new List<CYLINDERCOORD>();
