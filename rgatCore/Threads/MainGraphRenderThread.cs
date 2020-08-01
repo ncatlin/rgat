@@ -33,7 +33,7 @@ namespace rgatCore.Threads
 			if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
 				return;
 
-			if (graph.replayState == PlottedGraph.REPLAY_STATE.eEnded && protoGraph.Terminated)
+			if (graph.ReplayState == PlottedGraph.REPLAY_STATE.eEnded && protoGraph.Terminated)
 			{
 				graph.ResetAnimation();
 			}
@@ -44,6 +44,7 @@ namespace rgatCore.Threads
 				(graph.LinesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
 				graph.vertResizeIndex != 0)
 			{
+				Console.WriteLine("Doing updatemainrender");
 				graph.UpdateMainRender();
 			}
 
@@ -58,7 +59,7 @@ namespace rgatCore.Threads
 			}
 			else
 			{
-				if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
+				if (graph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
 				{
 					graph.render_replay_animation(GlobalConfig.animationFadeRate);
 				}
@@ -145,7 +146,7 @@ namespace rgatCore.Threads
 				{
 					Thread.Sleep(50);
 					if (rgatState.rgatIsExiting) return;
-					activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
+					activeGraph = rgatState.getActiveGraph(false);
 					continue;
 				}
 

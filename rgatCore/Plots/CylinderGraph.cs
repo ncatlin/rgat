@@ -216,10 +216,7 @@ namespace rgatCore
 
         public override void render_static_graph()
         {
-
             render_new_edges();
-
-            //redraw_anim_edges();
             regenerate_wireframe_if_needed();
         }
 
@@ -241,8 +238,13 @@ namespace rgatCore
             int vertsDrawn = drawCurve(LinesDisplayData, srcc, targc, scalefactors, edgeColourPtr, e.edgeClass, out int arraypos, shiftedMiddle);
 
             uint EdgeIndex = e.EdgeIndex;
-            Debug.Assert(EdgeIndex == LinesDisplayData.Edges_VertSizes_ArrayPositions.Count);
-            LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
+            //Debug.Assert();
+            if(EdgeIndex == LinesDisplayData.Edges_VertSizes_ArrayPositions.Count)
+                LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
+            else
+            {
+                LinesDisplayData.Edges_VertSizes_ArrayPositions[(int)EdgeIndex] = new Tuple<int, int>(vertsDrawn, arraypos);
+            }
 
             LinesDisplayData.inc_edgesRendered();
             return true;
@@ -458,6 +460,7 @@ namespace rgatCore
         void regenerate_wireframe_if_needed()
         {
             int requiredLoops = needed_wireframe_loops();
+            Console.WriteLine($"Neededloops {requiredLoops} vs haveloops {wireframe_loop_count}");
             if (requiredLoops > wireframe_loop_count || wireframelines.CountVerts() == 0)
             {
                 wireframe_loop_count = requiredLoops;

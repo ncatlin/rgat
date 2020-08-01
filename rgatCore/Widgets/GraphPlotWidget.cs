@@ -83,9 +83,12 @@ namespace rgatCore
 
         public void ApplyZoom(float direction)
         {
-            float newValue = ActiveGraph.CameraZoom - (direction * 100);
-            if (newValue >= 100)
-                ActiveGraph.CameraZoom = newValue;
+            if (ActiveGraph != null)
+            {
+                float newValue = ActiveGraph.CameraZoom - (direction * 100);
+                if (newValue >= 100)
+                    ActiveGraph.CameraZoom = newValue;
+            }
         }
 
         public bool IsMouseInWidget(Vector2 graphSize)
@@ -377,12 +380,12 @@ void main()
             if (ActiveGraph == null)
                 return;
 
-            if (ActiveGraph.replayState == PlottedGraph.REPLAY_STATE.ePlaying)
+            if (ActiveGraph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying)
             {
                 //ui->replaySlider->setValue(1000 * ActiveGraph.getAnimationPercent());
             }
 
-            if (ActiveGraph.replayState == PlottedGraph.REPLAY_STATE.eEnded)
+            if (ActiveGraph.ReplayState == PlottedGraph.REPLAY_STATE.eEnded)
             {
                 //ui->dynamicAnalysisContentsTab->stopAnimation();
             }

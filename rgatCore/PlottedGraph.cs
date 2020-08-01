@@ -151,25 +151,11 @@ namespace rgatCore
             render_static_graph();
         }
 
-        public void render_preview_graph()
-        {
-            if (previewNeedsResize)
-            {
-                Console.WriteLine("Unhandled preview resize");
-                //assert(false);
-                //previewlines->reset();
-                //previewNeedsResize = false;
-            }
-
-            render_new_edges();
-            
-        }
-
         public void SeekToAnimationPosition(float position)
         {
-            if (replayState == REPLAY_STATE.eStopped)
+            if (ReplayState == REPLAY_STATE.eStopped)
             {
-                replayState = REPLAY_STATE.ePaused;
+                ReplayState = REPLAY_STATE.ePaused;
                 SetAnimated(true);
             }
 
@@ -314,6 +300,8 @@ namespace rgatCore
         }
 
         //public void schedule_animation_reset() { animation_needs_reset = true; }
+
+        //This should only ever be called from the rendering thread
         public void ResetAnimation()
         {
             ResetAllActiveAnimatedAlphas();
@@ -341,7 +329,7 @@ namespace rgatCore
             animBuildingLoop = false;
             IsAnimated = false;
 
-            replayState = REPLAY_STATE.eStopped;
+            ReplayState = REPLAY_STATE.eStopped;
 
             Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
@@ -458,7 +446,7 @@ namespace rgatCore
         public ulong vertResizeIndex = 0;
         public int userSelectedAnimPosition = -1;
 
-        public REPLAY_STATE replayState = REPLAY_STATE.eEnded;
+        public REPLAY_STATE ReplayState = REPLAY_STATE.eEnded;
         int updateProcessingIndex = 0;
         protected float maxA = 0, maxB = 0, maxC = 0;
 
@@ -550,27 +538,34 @@ namespace rgatCore
 
         public void PlayPauseClicked()
         {
-            switch (replayState)
+            switch (ReplayState)
             {
                 case REPLAY_STATE.eStopped: //start it from beginning
-                    replayState = REPLAY_STATE.ePlaying;
+                    ReplayState = REPLAY_STATE.ePlaying;
                     SetAnimated(true);
                     Console.WriteLine("Animation state Stopped -> Playing");
                     break;
 
                 case REPLAY_STATE.ePlaying: //pause it
-                    replayState = REPLAY_STATE.ePaused;
+                    ReplayState = REPLAY_STATE.ePaused;
                     Console.WriteLine("Animation state Playing -> Paused");
                     break;
 
                 case REPLAY_STATE.ePaused: //unpause it
-                    replayState = REPLAY_STATE.ePlaying;
+                    ReplayState = REPLAY_STATE.ePlaying;
                     SetAnimated(true);
                     Console.WriteLine("Animation state Paused -> Playing");
                     break;
 
             }
         }
+
+        public void ResetClicked()
+        {
+                    ReplayState = REPLAY_STATE.eEnded;
+
+        }
+
 
         protected void render_new_edges()
         {
@@ -1021,7 +1016,7 @@ namespace rgatCore
         {
             if (internalProtoGraph.SavedAnimationData.Count == 0)
             {
-                replayState = REPLAY_STATE.eEnded;
+                ReplayState = REPLAY_STATE.eEnded;
                 return;
             }
 
@@ -1032,7 +1027,7 @@ namespace rgatCore
             }
             else
             {
-                stepSize = (replayState != REPLAY_STATE.ePaused) ? clientState.AnimationStepRate : 0;
+                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? clientState.AnimationStepRate : 0;
             }
 
             int targetAnimIndex = animationIndex + stepSize;
@@ -1050,7 +1045,7 @@ namespace rgatCore
 
             if (animationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
             {
-                replayState = REPLAY_STATE.eEnded;
+                ReplayState = REPLAY_STATE.eEnded;
             }
         }
 

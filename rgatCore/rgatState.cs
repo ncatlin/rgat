@@ -134,6 +134,7 @@ namespace rgatCore
 
 			if (SetActiveGraph(graph))
 			{
+				Debug.Assert(trace.PID == graph.pid);
 				LastGraphs[trace] = graph;
 				LastSelectedTheads[trace] = graph.tid;
 			}

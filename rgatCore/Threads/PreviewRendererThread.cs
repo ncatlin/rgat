@@ -41,7 +41,7 @@ namespace rgatCore.Threads
 						{
 							//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 							moreRenderingNeeded = true;
-							graph.render_preview_graph();
+							graph.render_static_graph();
 						}
 					}
 

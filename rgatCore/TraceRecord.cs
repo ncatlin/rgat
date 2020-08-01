@@ -87,7 +87,7 @@ namespace rgatCore
                 ProtoGraphs.Add(mainplot.tid, mainplot.internalProtoGraph);
                 PlottedGraphs.Add(mainplot.tid, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[mainplot.tid][eRenderingMode.eStandardControlFlow] = mainplot;
-                PlottedGraphs[mainplot.tid][eRenderingMode.ePreview] = mainplot;
+                PlottedGraphs[mainplot.tid][eRenderingMode.ePreview] = previewplot;
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
@@ -272,14 +272,14 @@ namespace rgatCore
                 return false;
 
             CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow,standardRenderedGraph);
             standardRenderedGraph.InitialiseDefaultDimensions();
             standardRenderedGraph.SetAnimated(false);
+            PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
 
             CylinderGraph previewgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
             previewgraph.InitialisePreviewDimensions();
             previewgraph.SetAnimated(false);
+            PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
 
             protograph.Terminated = true;
             protograph.AssignModulePath();
