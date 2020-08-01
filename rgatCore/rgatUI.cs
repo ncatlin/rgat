@@ -512,6 +512,7 @@ namespace rgatCore
 
         struct moduleEntry
         {
+            public string path;
             public Dictionary<ulong , symbolInfo> symbols;
         };
 
@@ -542,13 +543,11 @@ namespace rgatCore
                     ImGui.TreePop();
                 }
 
-                displayedModules[moduleNumber].entry = moduleItem;
-
                //return &displayedModules.at(moduleNumber);
             }
         }
 
-        private void RefreshExternHighlightData(List<uint> externNodes)
+        private void RefreshExternHighlightData(uint[] externNodes)
         {
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
             ProtoGraph protog = ActiveGraph?.internalProtoGraph;
@@ -566,6 +565,7 @@ namespace rgatCore
                 {
                     modentry = new moduleEntry();
                     modentry.symbols = new Dictionary<ulong, symbolInfo>();
+                    modentry.path = processrec.GetModulePath(n.GlobalModuleID);
                     displayedModules.Add(n.GlobalModuleID, modentry);
                 }
                 if (!modentry.symbols.TryGetValue(n.address, out symbolInfo symentry))
@@ -580,7 +580,6 @@ namespace rgatCore
                     modentry.symbols.Add(n.address, symentry);
                 }
 
-                DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
             }
         }
 
@@ -599,22 +598,37 @@ namespace rgatCore
                 RefreshExternHighlightData(externNodes);
             }
 
+            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFFFFFFF);
             if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsFrame"), ImGui.GetContentRegionAvail()))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                foreach (uint nodeIdx in externNodes)
+
+                foreach (moduleEntry module_modentry in displayedModules.Values)
                 {
-                    NodeData n = protog.safe_get_node(nodeIdx);
-                    DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
+                    if (ImGui.TreeNode($"{module_modentry.path}"))
+                    {
+                        foreach (symbolInfo syminfo in module_modentry.symbols.Values)
+                        {
+                            if (ImGui.TreeNode($"{syminfo.name}"))
+                            {
+
+                                ImGui.TreePop();
+                            }
+                        }
+                        ImGui.TreePop();
+                    }
+                    //NodeData n = protog.safe_get_node(nodeIdx);
+                    //DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
                 }
-                ImGui.PopStyleColor();
                 ImGui.EndChildFrame();
             }
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
         }
 
         private void DrawHighlightsPopup()
         {
-            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(200, 200)))
+            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(600, 300)))
             {
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
                 if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))

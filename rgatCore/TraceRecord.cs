@@ -106,7 +106,7 @@ namespace rgatCore
 
             //if (graphListLock.trylock())
             var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-            var graphsWithNodes = MainPlottedGraphs.Where(g => g.internalProtoGraph.NodeList.Count > 0);
+            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.internalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
                 return graphsWithNodes.First();
@@ -210,7 +210,10 @@ namespace rgatCore
 
         public List<PlottedGraph> GetPlottedGraphsList(eRenderingMode mode)
         {
-            return PlottedGraphs.Values.Select(gDict => gDict.ContainsKey(mode) ? gDict[mode] : null).ToList();
+            lock (GraphListLock)
+            {
+                return PlottedGraphs.Values.Select(gDict => gDict.ContainsKey(mode) ? gDict[mode] : null).ToList();
+            }
         }
 
         public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
@@ -267,20 +270,28 @@ namespace rgatCore
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
             ProtoGraph protograph = new ProtoGraph(this, GraphThreadID);
-            ProtoGraphs.Add(GraphThreadID, protograph);
+            lock (GraphListLock)
+            {
+                ProtoGraphs.Add(GraphThreadID, protograph);
+            }
+
             if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
                 return false;
 
             CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
             standardRenderedGraph.InitialiseDefaultDimensions();
             standardRenderedGraph.SetAnimated(false);
-            PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
+
 
             CylinderGraph previewgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
             previewgraph.InitialisePreviewDimensions();
             previewgraph.SetAnimated(false);
-            PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
 
+            lock (GraphListLock)
+            {
+                    PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
+                    PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
+            }
             protograph.Terminated = true;
             protograph.AssignModulePath();
 
