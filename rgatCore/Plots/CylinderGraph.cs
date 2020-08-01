@@ -297,9 +297,9 @@ namespace rgatCore
             scalefactors.pix_per_B = DEFAULT_B_SEP;
             scalefactors.original_pix_per_B = DEFAULT_B_SEP;
 
-            //view_shift_x = 96;
-            //view_shift_y = 65;
-            //cameraZoomlevel = 60000;
+            CameraZoom = 2000f;
+            CameraXOffset = 0;
+            CameraYOffset = 0;
         }
 
         override public void initialiseCustomDimensions(GRAPH_SCALE scale)
@@ -318,6 +318,7 @@ namespace rgatCore
 
 		int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, node_data** node);
 		*/
+
         override public void render_node(NodeData n)
         {
             CYLINDERCOORD coord;
@@ -355,7 +356,7 @@ namespace rgatCore
                     if (n.ins.hasSymbol && n.label == null)
                     {
                         ulong nodeoffset = n.address - internalProtoGraph.moduleBase;
-                        n.label = $"[InternalFunc_{(internalProtoGraph.InternalPlaceholderFuncNames.Count + 1).ToString()}]";
+                        n.label = $"[InternalFunc_{internalProtoGraph.InternalPlaceholderFuncNames.Count + 1}]";
                         n.placeholder = true;
 
 
@@ -730,6 +731,10 @@ namespace rgatCore
             painter.end();
         }
         */
+
+       
+     
+       
 
         /*
          * This positions the node in the format of the graph, with abstract layout specific coordinates

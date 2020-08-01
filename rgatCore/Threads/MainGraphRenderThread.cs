@@ -51,6 +51,7 @@ namespace rgatCore.Threads
 					graph.render_live_animation(GlobalConfig.animationFadeRate);
 				else
 					graph.highlight_last_active_node();
+				
 			}
 			else
 			{
@@ -73,8 +74,6 @@ namespace rgatCore.Threads
 
 
 			//save current rotation/scaling
-			float xrot = renderGraph.view_shift_x, yrot = renderGraph.view_shift_y;
-			double zoom = renderGraph.cameraZoomlevel;
 			GRAPH_SCALE newScaleFactors = renderGraph.scalefactors;
 
 			//schedule purge of the current rendering
@@ -106,9 +105,6 @@ namespace rgatCore.Threads
 			if (replot_existing)
 			{
 				maingraph.initialiseCustomDimensions(newScaleFactors);
-				//renderGraph.view_shift_x = xrot;
-				//renderGraph.view_shift_y = yrot;
-				//renderGraph.cameraZoomlevel = zoom;
 			}
 
 			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid

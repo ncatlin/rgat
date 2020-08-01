@@ -345,6 +345,8 @@ namespace rgatCore
 
             Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
+
+
         }
 
         public float GetAnimationPercent() {
@@ -414,7 +416,7 @@ namespace rgatCore
         }
         //void copy_node_data(GraphDisplayData* nodes);
 
-        public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
+        //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
         /*
 
 		bool isWireframeSupported() { return wireframeSupported; }
@@ -455,10 +457,6 @@ namespace rgatCore
 
         public ulong vertResizeIndex = 0;
         public int userSelectedAnimPosition = -1;
-
-        public double cameraZoomlevel = -1;
-        public float view_shift_x = 0, view_shift_y = 0;
-        public float graph_pan_x = 0, graph_pan_y = 0;
 
         public REPLAY_STATE replayState = REPLAY_STATE.eEnded;
         int updateProcessingIndex = 0;
@@ -947,6 +945,7 @@ namespace rgatCore
             {
                 if (!process_live_update()) break;
             }
+            
         }
 
         bool process_live_update()
@@ -1587,6 +1586,13 @@ namespace rgatCore
         public Veldrid.Framebuffer _outputFramebuffer = null;
         public Veldrid.Framebuffer _previewFramebuffer = null;
 
+        public float CameraZoom = 1000f;
+        public float CameraFieldOfView = 1.0f;
+        public float CameraClippingFar = 0f;
+        public float CameraClippingNear => CameraZoom - 6; //extern jut
+        public float CameraXOffset = 0f;
+        public float CameraYOffset = 0f;
+        public float PlotRotation = -1.55f;
 
 
         protected readonly Object renderingLock = new Object();

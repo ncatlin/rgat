@@ -31,12 +31,6 @@ namespace rgatCore
 
         private Vector2 graphWidgetSize;
 
-        public float dbg_FOV = 1.0f;
-        public float dbg_far = 0f;
-        public float dbg_camX = 0f;
-        public float dbg_camY = 0f;
-        public float dbg_camZ = 1000f;
-        public float dbg_rot = -1.55f;
 
 
 
@@ -89,9 +83,9 @@ namespace rgatCore
 
         public void ApplyZoom(float direction)
         {
-            float newValue = dbg_camZ - (direction * 100);
+            float newValue = ActiveGraph.CameraZoom - (direction * 100);
             if (newValue >= 100)
-                dbg_camZ = newValue;
+                ActiveGraph.CameraZoom = newValue;
         }
 
         public bool IsMouseInWidget(Vector2 graphSize)
@@ -119,10 +113,10 @@ namespace rgatCore
                 float scroll = ImGui.GetIO().MouseWheel;
                 if (scroll != 0) ApplyZoom(scroll);
 
-                if (ImGui.GetIO().MouseDown[0])
+                if (ActiveGraph != null && ImGui.GetIO().MouseDown[0])
                 {
-                    dbg_camY -= ImGui.GetIO().MouseDelta.Y * CamBoomFactor();
-                    dbg_rot += ImGui.GetIO().MouseDelta.X * RotationFactor();
+                    ActiveGraph.CameraYOffset -= ImGui.GetIO().MouseDelta.Y * CamBoomFactor();
+                    ActiveGraph.PlotRotation += ImGui.GetIO().MouseDelta.X * RotationFactor();
                 }
             }
 
@@ -182,7 +176,7 @@ namespace rgatCore
             scrn.Height = graphWidgetSize.Y;
             scrn.MaxDepth = ActiveGraph.scalefactors.plotSize;
             scrn.MinDepth = 1;
-            scrn.CamZoom = dbg_camZ;
+            scrn.CamZoom = ActiveGraph.CameraZoom;
 
             
             foreach (PlottedGraph.TEXTITEM txtitm in ActiveGraph.GetOnScreenTexts(scrn))
@@ -226,22 +220,22 @@ namespace rgatCore
 
         private void SetupView(CommandList _cl, VeldridGraphBuffers graphBuffers)
         {
-            float angle = dbg_rot;
-            float nearClip = dbg_camZ;
-            float farClip = nearClip + ActiveGraph.scalefactors.plotSize + dbg_far;
-            if (nearClip <= 0) nearClip = 1;
+            float angle = ActiveGraph.PlotRotation;
+            float nearClip = ActiveGraph.CameraClippingNear;
+            float farClip = nearClip + ActiveGraph.scalefactors.plotSize + ActiveGraph.CameraClippingFar;
+            if (nearClip < 0) nearClip = 0f;
             if (farClip <= nearClip) farClip = nearClip + 1;
 
             _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, 0, 200));
 
-            Vector3 cameraPosition = new Vector3(dbg_camX, dbg_camY, (-1 * ActiveGraph.scalefactors.plotSize) - dbg_camZ);
+            Vector3 cameraPosition = new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, (-1 * ActiveGraph.scalefactors.plotSize) - ActiveGraph.CameraZoom);
             Matrix4x4 view = Matrix4x4.CreateTranslation(cameraPosition);
 
             Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle);
             Matrix4x4 combined = rotation;
             combined = Matrix4x4.Multiply(combined, view);
 
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(dbg_FOV, (float)graphWidgetSize.X / graphWidgetSize.Y, nearClip, farClip);
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(ActiveGraph.CameraFieldOfView, (float)graphWidgetSize.X / graphWidgetSize.Y, nearClip, farClip);
             combined = Matrix4x4.Multiply(combined, projection);
             _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
 

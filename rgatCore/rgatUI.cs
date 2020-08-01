@@ -506,18 +506,21 @@ namespace rgatCore
 
         private void DrawCameraPopup()
         {
+            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
+            if (ActiveGraph == null) return;
+
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
             {
 
-                ImGui.DragFloat("FOV", ref MainGraphWidget.dbg_FOV, 0.005f, 0.05f, (float)Math.PI, "%f%%");
+                ImGui.DragFloat("FOV", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 //todo: max should be just beyond full cylinder (+ extrusions)
                 //      speed should scale with plot size
-                ImGui.DragFloat("Far Clipping", ref MainGraphWidget.dbg_far, 1.0f, 0.1f, 200000f, "%f%%");
-                ImGui.DragFloat("X Shift", ref MainGraphWidget.dbg_camX, 1f, -400, 40000, "%f%%");
-                ImGui.DragFloat("Y Position", ref MainGraphWidget.dbg_camY, 1, -400, 200000, "%f%%");
+                ImGui.DragFloat("Far Clipping", ref ActiveGraph.CameraClippingFar, 1.0f, 0.1f, 200000f, "%f%%");
+                ImGui.DragFloat("X Shift", ref ActiveGraph.CameraXOffset, 1f, -400, 40000, "%f%%");
+                ImGui.DragFloat("Y Position", ref ActiveGraph.CameraYOffset, 1, -400, 200000, "%f%%");
                 
-                ImGui.DragFloat("Zoom", ref MainGraphWidget.dbg_camZ, 5, 100, 100000, "%f%%");
-                ImGui.DragFloat("Rotation", ref MainGraphWidget.dbg_rot, 0.01f, -10, 10, "%f%%");
+                ImGui.DragFloat("Zoom", ref ActiveGraph.CameraZoom, 5, 100, 100000, "%f%%");
+                ImGui.DragFloat("Rotation", ref ActiveGraph.PlotRotation, 0.01f, -10, 10, "%f%%");
                 ImGui.EndChild();
             }
         }
