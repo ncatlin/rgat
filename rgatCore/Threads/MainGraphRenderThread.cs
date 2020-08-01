@@ -17,7 +17,10 @@ namespace rgatCore.Threads
 			runningThread.Start();
 		}
 
+		public void SetRenderingMode(eRenderingMode newMode)
+        {
 
+        }
 
 		private rgatState rgatState = null;
 		public bool running = true;
@@ -91,8 +94,7 @@ namespace rgatCore.Threads
 			ProtoGraph protoGraph = renderGraph.internalProtoGraph;
 
 			//renderGraph.setGraphBusy(true, 101);
-
-			activeTrace.MainPlottedGraphs[protoGraph.ThreadID] = null;
+			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.eStandardControlFlow] = null;
 
 			//now everything has finished with the old rendering, do the actual deletion
 			//delete activeGraph;
@@ -109,8 +111,8 @@ namespace rgatCore.Threads
 
 			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid
 			Debug.Assert(setactive);
-			activeTrace.MainPlottedGraphs[protoGraph.ThreadID] = renderGraph;
-			activeTrace.PreviewPlottedGraphs[protoGraph.ThreadID] = previewgraph; //do we want to rerender this?
+			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.eStandardControlFlow] = renderGraph;
+			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.ePreview] = previewgraph; //do we want to rerender this?
 
 			//activeTrace.graphListLock.unlock();
 			//if they dont exist, create threads to rebuild alternate renderings
@@ -149,13 +151,14 @@ namespace rgatCore.Threads
 
 				if (true)
 				{
+					
 					bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
 					if (layoutChanged || activeGraph.NeedReplotting)
 					{
 						activeGraph.ReRender();
 						continue;
 					}
-
+			
 					update_rendering(activeGraph);
 				}
 				Thread.Sleep(GlobalConfig.renderFrequency);

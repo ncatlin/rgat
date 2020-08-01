@@ -784,7 +784,7 @@ namespace rgatCore
                         {
                             selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
                             uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
-                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetMainPlottedGraphsList();
+                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                             if (ImGui.BeginCombo($"Thread ({graphs.Count})", selString))
                             {
                                 foreach (PlottedGraph selectablegraph in graphs)

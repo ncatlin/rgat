@@ -240,18 +240,9 @@ namespace rgatCore
             bool shiftedMiddle = e.edgeClass == eEdgeNodeType.eEdgeOld;
             int vertsDrawn = drawCurve(LinesDisplayData, srcc, targc, scalefactors, edgeColourPtr, e.edgeClass, out int arraypos, shiftedMiddle);
 
-
-            //previews, diffs, etc where we don't want to affect the original edges
-            if (!e.IsDrawn)
-            {
-                e.DrawIndex = LinesDisplayData.CountRenderedEdges;
-                LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
-                e.IsDrawn = true;
-            }
-            else
-            {
-                Debug.Assert(e.DrawIndex == LinesDisplayData.CountRenderedEdges);
-            }
+            uint EdgeIndex = e.EdgeIndex;
+            Debug.Assert(EdgeIndex == LinesDisplayData.Edges_VertSizes_ArrayPositions.Count);
+            LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
 
             LinesDisplayData.inc_edgesRendered();
             return true;

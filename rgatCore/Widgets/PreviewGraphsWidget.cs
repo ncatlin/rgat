@@ -93,7 +93,7 @@ namespace rgatCore
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
             int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
 
-            DrawnPreviewGraphs = ActiveTrace.GetPreviewPlottedGraphsList();
+            DrawnPreviewGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.ePreview);
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
                 PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
@@ -111,7 +111,7 @@ namespace rgatCore
                 if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y &&
                     ClickedPos.Value.Y < (subGraphPosition.Y + EachGraphHeight))
                 {
-                    var MainGraphs = ActiveTrace.GetMainPlottedGraphsList();
+                    var MainGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                     HandleClickedGraph(MainGraphs[graphIdx]);
                 }
 

@@ -1492,8 +1492,8 @@ namespace rgatCore
         public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.IsDrawn) return false;
-            LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
+            if (edge.EdgeIndex >= LinesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
+            LinesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
 
             if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
@@ -1505,9 +1505,9 @@ namespace rgatCore
         public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.IsDrawn) return false;
+            if (edge.EdgeIndex >= LinesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
 
-            LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
+            LinesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
             if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
             Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
@@ -1595,7 +1595,7 @@ namespace rgatCore
         public float PlotRotation = -1.55f;
 
 
-        protected readonly Object renderingLock = new Object();
+        public readonly Object RenderingLock = new Object();
 
         ulong renderedBlocksCount = 0;
 

@@ -6,7 +6,7 @@ namespace rgatCore
 {
     class EdgeData
 	{
-		public EdgeData() {; }
+		public EdgeData(int index) => EdgeIndex = (uint)index;
 
 		//write to provided file. This class doesn't actually contain the source
 		//and the target of the edge, so pass those along too
@@ -22,7 +22,6 @@ namespace rgatCore
 		//public int vertSize = 0;
 		//position in rendering data structure
 		//public int arraypos = 0;
-		public uint DrawIndex = 0;
-		public bool IsDrawn = false;
+		public uint EdgeIndex = 0;
 	}
 }

@@ -205,7 +205,7 @@ namespace rgatCore
 
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
-            EdgeData newEdge = new EdgeData();
+            EdgeData newEdge = new EdgeData(edgeList.Count);
             newEdge.chainedWeight = 0;
 
             if (instructionIndex > 0)
@@ -372,7 +372,7 @@ namespace rgatCore
 
 
  
-            EdgeData newEdge = new EdgeData();
+            EdgeData newEdge = new EdgeData(edgeList.Count);
             newEdge.chainedWeight = 0;
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
@@ -538,7 +538,7 @@ namespace rgatCore
             NodeData sourceNode = safe_get_node(SrcNodeIdx);
             NodeData targNode = safe_get_node(TargNodeIdx);
 
-            EdgeData newEdge = new EdgeData();
+            EdgeData newEdge = new EdgeData(edgeList.Count);
 
             if (targNode.IsExternal)
                 newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
@@ -969,7 +969,7 @@ namespace rgatCore
                 uint target = entry[1].ToObject<uint>();
                 uint edgeClass = entry[2].ToObject<uint>();
 
-                EdgeData edge = new EdgeData
+                EdgeData edge = new EdgeData(edgeList.Count)
                 {
                     edgeClass = (eEdgeNodeType)edgeClass
                 };

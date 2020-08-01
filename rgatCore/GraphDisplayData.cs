@@ -335,11 +335,11 @@ namespace rgatCore
         public PLOT_TRACK LastRenderedNode;
         public PLOT_TRACK LastAnimatedNode;
 
-        public void GetEdgeDrawData(int DrawIndex, out int vertcount, out int arraypos)
+        public void GetEdgeDrawData(int EdgeIndex, out int vertcount, out int arraypos)
         {
-            Debug.Assert(DrawIndex < Edges_VertSizes_ArrayPositions.Count);
-            vertcount = Edges_VertSizes_ArrayPositions[DrawIndex].Item1;
-            arraypos = Edges_VertSizes_ArrayPositions[DrawIndex].Item2;
+            Debug.Assert(EdgeIndex < Edges_VertSizes_ArrayPositions.Count);
+            vertcount = Edges_VertSizes_ArrayPositions[EdgeIndex].Item1;
+            arraypos = Edges_VertSizes_ArrayPositions[EdgeIndex].Item2;
         }
 
         public List<Tuple<int, int>> Edges_VertSizes_ArrayPositions = new List<Tuple<int, int>>();
@@ -385,6 +385,8 @@ namespace rgatCore
         }
 
         private List<object> node_coords = new List<object>();
+
+        
         public int NodeCount { get; private set; } = 0;
     }
 }

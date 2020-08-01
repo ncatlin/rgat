@@ -140,8 +140,8 @@ namespace rgatCore
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} ended!");
 
-            trace.MainPlottedGraphs[TID].internalProtoGraph.Terminated = true;
-            trace.MainPlottedGraphs[TID].replayState = PlottedGraph.REPLAY_STATE.eEnded;
+            trace.PlottedGraphs[TID][eRenderingMode.eStandardControlFlow].internalProtoGraph.Terminated = true;
+            trace.PlottedGraphs[TID][eRenderingMode.eStandardControlFlow].replayState = PlottedGraph.REPLAY_STATE.eEnded;
         }
 
 

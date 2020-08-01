@@ -73,7 +73,7 @@ namespace rgatCore
 		void notify_tid_end(uint tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
 		*/
 
-		public bool InsertNewThread(PlottedGraph mainplot, PlottedGraph previewplot)
+        public bool InsertNewThread(PlottedGraph mainplot, PlottedGraph previewplot)
         {
             lock (GraphListLock)
             {
@@ -85,48 +85,49 @@ namespace rgatCore
                 }
 
                 ProtoGraphs.Add(mainplot.tid, mainplot.internalProtoGraph);
-                MainPlottedGraphs.Add(mainplot.tid, mainplot);
-                PreviewPlottedGraphs.Add(mainplot.tid, previewplot);
-
+                PlottedGraphs.Add(mainplot.tid, new Dictionary<eRenderingMode, PlottedGraph>());
+                PlottedGraphs[mainplot.tid][eRenderingMode.eStandardControlFlow] = mainplot;
+                PlottedGraphs[mainplot.tid][eRenderingMode.ePreview] = mainplot;
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
             Console.WriteLine("Todo implement runtimeline");
             return true;
         }
-		
-        
-        //bool is_process(uint testpid, int testID);
-		
-		
 
-		public PlottedGraph GetFirstGraph()
+
+        //bool is_process(uint testpid, int testID);
+
+
+
+        public PlottedGraph GetFirstGraph()
         {
-			if (MainPlottedGraphs.Count == 0) return null;
+            if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-                var graphsWithNodes = MainPlottedGraphs.Values.Where(g => g.internalProtoGraph.NodeList.Count > 0);
-                if (graphsWithNodes.Any())
-                {
-                    return graphsWithNodes.First();
-                }
+            var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var graphsWithNodes = MainPlottedGraphs.Where(g => g.internalProtoGraph.NodeList.Count > 0);
+            if (graphsWithNodes.Any())
+            {
+                return graphsWithNodes.First();
+            }
 
-                var graphsWithInstructions = MainPlottedGraphs.Values.Where(g => g.internalProtoGraph.TotalInstructions > 0);
-                if (graphsWithInstructions.Any())
-                {
-                    return graphsWithInstructions.First();
-                }
+            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.internalProtoGraph.TotalInstructions > 0);
+            if (graphsWithInstructions.Any())
+            {
+                return graphsWithInstructions.First();
+            }
 
-                var graphsWithData = MainPlottedGraphs.Values.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
-                if (graphsWithData.Any())
-                {
-                    return graphsWithData.First();
-                }
+            var graphsWithData = MainPlottedGraphs.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
+            if (graphsWithData.Any())
+            {
+                return graphsWithData.First();
+            }
 
-                return MainPlottedGraphs.Values.First();
+            return MainPlottedGraphs.First();
 
-		}
-		/*
+        }
+        /*
 
         DateTime getStartedTime() { return launchedTime; }
 
@@ -172,10 +173,10 @@ namespace rgatCore
 		*/
         void killTraceProcess() { if (IsRunning) { killed = true; } }
         bool should_die() { return killed; }
-        
-		//void killTree();
 
-		public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
+        //void killTree();
+
+        public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
         {
             localmodID = DisassemblyData.FindContainingModule(address);
             if (localmodID == -1)
@@ -204,18 +205,13 @@ namespace rgatCore
 
         private readonly object GraphListLock = new object();
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
-        public Dictionary<uint, PlottedGraph> MainPlottedGraphs = new Dictionary<uint, PlottedGraph>();
-        public Dictionary<uint, PlottedGraph> PreviewPlottedGraphs = new Dictionary<uint, PlottedGraph>();
-        public List<PlottedGraph> GetMainPlottedGraphsList()
-        {
-            return MainPlottedGraphs.Values.ToList();
-        }
-        public List<PlottedGraph> GetPreviewPlottedGraphsList()
-        {
-            return PreviewPlottedGraphs.Values.ToList();
-        }
 
+        public Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>> PlottedGraphs = new Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>>();
 
+        public List<PlottedGraph> GetPlottedGraphsList(eRenderingMode mode)
+        {
+            return PlottedGraphs.Values.Select(gDict => gDict.ContainsKey(mode) ? gDict[mode] : null).ToList();
+        }
 
         public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
 
@@ -275,14 +271,13 @@ namespace rgatCore
             if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
                 return false;
 
-            CylinderGraph renderedgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            MainPlottedGraphs.Add(GraphThreadID, renderedgraph);
-            renderedgraph.InitialiseDefaultDimensions();
-            renderedgraph.SetAnimated(false);
-
+            CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
+            PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow,standardRenderedGraph);
+            standardRenderedGraph.InitialiseDefaultDimensions();
+            standardRenderedGraph.SetAnimated(false);
 
             CylinderGraph previewgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            PreviewPlottedGraphs.Add(GraphThreadID, previewgraph);
+            PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
             previewgraph.InitialisePreviewDimensions();
             previewgraph.SetAnimated(false);
 
