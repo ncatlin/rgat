@@ -37,7 +37,7 @@ namespace rgatCore.Threads
 					lock (graph.RenderingLock)
 					{
 						if ((graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
-							(graph.LinesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
+							(graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
 						{
 							//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 							moreRenderingNeeded = true;

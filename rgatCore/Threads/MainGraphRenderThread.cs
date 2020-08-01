@@ -41,7 +41,7 @@ namespace rgatCore.Threads
 			//update the render if there are more verts/edges or graph is being resized
 			if (
 				(graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
-				(graph.LinesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
+				(graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
 				graph.vertResizeIndex != 0)
 			{
 				Console.WriteLine("Doing updatemainrender");
@@ -142,7 +142,7 @@ namespace rgatCore.Threads
 			{
 
 				activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
-				while (activeGraph == null || activeGraph.LinesDisplayData == null)
+				while (activeGraph == null || activeGraph.EdgesDisplayData == null)
 				{
 					Thread.Sleep(50);
 					if (rgatState.rgatIsExiting) return;

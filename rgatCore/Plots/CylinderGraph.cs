@@ -213,7 +213,6 @@ namespace rgatCore
 
         }
 
-
         public override void render_static_graph()
         {
             render_new_edges();
@@ -235,20 +234,21 @@ namespace rgatCore
             WritableRgbaFloat edgeColourPtr = colourOverride != null ? (WritableRgbaFloat)colourOverride : graphColours[(int)e.edgeClass];
 
             bool shiftedMiddle = e.edgeClass == eEdgeNodeType.eEdgeOld;
-            int vertsDrawn = drawCurve(LinesDisplayData, srcc, targc, scalefactors, edgeColourPtr, e.edgeClass, out int arraypos, shiftedMiddle);
+            int vertsDrawn = drawCurve(EdgesDisplayData, srcc, targc, scalefactors, edgeColourPtr, e.edgeClass, out int arraypos, shiftedMiddle);
 
             uint EdgeIndex = e.EdgeIndex;
             //Debug.Assert();
-            if(EdgeIndex == LinesDisplayData.Edges_VertSizes_ArrayPositions.Count)
-                LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
+            if(EdgeIndex == EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count)
+                EdgesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
             else
             {
-                LinesDisplayData.Edges_VertSizes_ArrayPositions[(int)EdgeIndex] = new Tuple<int, int>(vertsDrawn, arraypos);
+                EdgesDisplayData.Edges_VertSizes_ArrayPositions[(int)EdgeIndex] = new Tuple<int, int>(vertsDrawn, arraypos);
             }
 
-            LinesDisplayData.inc_edgesRendered();
+            EdgesDisplayData.inc_edgesRendered();
             return true;
         }
+
         /*
 		void drawHighlight(NODEINDEX nodeIndex, GRAPH_SCALE* scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
 		void drawHighlight(GENERIC_COORD& graphCoord, GRAPH_SCALE* scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
@@ -654,7 +654,7 @@ namespace rgatCore
                     return vertsdrawn;
 
                 case 1:
-                    linedata.drawShortLinePoints(startC, endC, colour, out arraypos);
+                    linedata.drawShortLinePoints(startC, endC, colour, GlobalConfig.AnimatedFadeMinimumAlpha,  out arraypos);
                     return 2;
 
                 default:
@@ -920,6 +920,24 @@ namespace rgatCore
             newPosition.diamMod = diamMod;
         }
 
+        private void DrawHighlightLine(Vector3 start, Vector3 end)
+        {
+            HighlightsDisplayData.drawShortLinePoints(start, end, new WritableRgbaFloat(Color.Red),1f, out int arraypos);
+
+        }
+
+        public override void highlight_last_active_node()
+        {
+            if (NodesDisplayData.LastAnimatedNode.lastVertID > (uint)NodesDisplayData.CountVerts())
+                NodesDisplayData.LastAnimatedNode = NodesDisplayData.LastRenderedNode;
+
+            Vector3 srcc = new Vector3(0, 0, 0);
+
+            Vector3 targc = nodeIndexToXYZ((int)NodesDisplayData.LastAnimatedNode.lastVertID);
+
+            HighlightsDisplayData.Clear();
+            DrawHighlightLine(srcc, targc);
+        }
 
 
 

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -211,6 +212,17 @@ namespace rgatCore
         }
 
 
+        public bool safe_get_vert_list(out List<VertexPositionColor> result)
+        {
+            lock (ListLock) //todo, should be a read lock
+            {
+                result = VertList.Select(n => n).ToList();
+            }
+
+            return true;
+        }
+
+
         public List<VertexPositionColor> acquire_vert_write(int holder = 0)
         {
             //poslock_.lock () ;
@@ -248,14 +260,14 @@ namespace rgatCore
 
         public void inc_edgesRendered() { ++CountRenderedEdges; }
         public uint CountRenderedEdges { get; private set; } = 0;
-        public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, out int arraypos)
+        public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, float alpha, out int arraypos)
         {
 
             VertexPositionColor vert = new VertexPositionColor()
             {
                 Position = startC,
                 Color = colour,
-                ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
+                ActiveAnimAlpha = alpha
             };
 
 
@@ -325,6 +337,14 @@ namespace rgatCore
             return curvePoints + 2;
         }
 
+        //This is only for using by the highlight lines, usually better to simply replace the whole thing
+        public void Clear()
+        {
+            VertList.Clear();
+            NodeCount = 0;
+            Edges_VertSizes_ArrayPositions.Clear();
+        }
+
         //bool get_coord(NODEINDEX index, FCOORD* result);
 
         public struct PLOT_TRACK
@@ -349,8 +369,6 @@ namespace rgatCore
         public int CountVerts() => VertList.Count;
 
         public List<VertexPositionColor> VertList = new List<VertexPositionColor>();
-
-        public ulong vcolarraySize { get; private set; } = 0;
 
         public void SignalDataRead() { DataChanged = false; } //todo race condition possible here
         public bool DataChanged { get; private set; } = false;

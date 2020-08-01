@@ -154,7 +154,7 @@ namespace rgatCore
             foreach (PlottedGraph graph in DrawnPreviewGraphs)
             {
                 if (graph == null) continue;
-                if (graph.LinesDisplayData.CountRenderedEdges == 0 || graph.NodesDisplayData.CountVerts() == 0) continue;
+                if (graph.EdgesDisplayData.CountRenderedEdges == 0 || graph.NodesDisplayData.CountVerts() == 0) continue;
 
                 if (graph._previewTexture == null)
                 {
@@ -179,7 +179,7 @@ namespace rgatCore
                 _cl.ClearColorTarget(0, graphBackground);
 
                 SetupView(_cl, graphRenderInfo, graph);
-                graphRenderInfo.DrawLines(_cl, _gd, graph.LinesDisplayData);
+                graphRenderInfo.DrawEdges(_cl, _gd, graph.EdgesDisplayData);
                 graphRenderInfo.DrawPoints(_cl, _gd, graph.NodesDisplayData);
             }
         }

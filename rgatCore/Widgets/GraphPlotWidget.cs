@@ -91,7 +91,7 @@ namespace rgatCore
             }
         }
 
-        public bool IsMouseInWidget(Vector2 graphSize)
+        static public bool IsMouseInWidget(Vector2 graphSize)
         {
             Vector2 MousePos = ImGui.GetMousePos();
             Vector2 WidgetPos = ImGui.GetCursorScreenPos();
@@ -127,15 +127,15 @@ namespace rgatCore
         }
 
         //how much to move the camera on the y axis per mouse movement
-        private float CamBoomFactor()
+       static private float CamBoomFactor()
         {
-            return 30f;
+            return 30f; //todo adjust to zoom, plot size
         }
 
         //how much to rotate our cylinder per mouse movent
         private float RotationFactor()
         {
-            return 0.002f;
+            return 0.002f;//todo adjust to zoom, plot size
         }
 
         public void Draw(Vector2 graphSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
@@ -202,7 +202,6 @@ namespace rgatCore
         {
             if (ActiveGraph == null) return;
 
-            //definately should not be called every time!
             ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
 
             _cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
@@ -216,8 +215,8 @@ namespace rgatCore
             _cl.UpdateBuffer(graphBuffers._animBuffer, 0, ref animInfo, (uint)Marshal.SizeOf(animInfo));
 
 
-            graphBuffers.DrawWireframe(_cl, _gd, ActiveGraph.wireframelines);
-            graphBuffers.DrawLines(_cl, _gd, ActiveGraph.LinesDisplayData);
+            graphBuffers.DrawIllustrationLines(_cl, _gd, ActiveGraph);
+            graphBuffers.DrawEdges(_cl, _gd, ActiveGraph.EdgesDisplayData);
             graphBuffers.DrawPoints(_cl, _gd, ActiveGraph.NodesDisplayData);
         }
 
@@ -247,8 +246,6 @@ namespace rgatCore
             ActiveGraph.view = view;
             ActiveGraph.rotation = rotation;
         }
-
-        private static long _startTime = System.DateTime.Now.Ticks;
 
 
         private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)

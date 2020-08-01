@@ -13,14 +13,14 @@ namespace rgatCore
 
         PlottedGraph graph;
         Pipeline _linesPipeline;
-        VertexPositionColor[] _LineVertices;
-        DeviceBuffer _LineVertexBuffer;
-        DeviceBuffer _LineIndexBuffer;
+        VertexPositionColor[] _EdgeLineVertices;
+        DeviceBuffer _EdgeLineVertexBuffer;
+        DeviceBuffer _EdgeLineIndexBuffer;
 
-        Pipeline _wireframePipeline;
-        VertexPositionColor[] _WireframeVertices;
-        DeviceBuffer _WireframeVertexBuffer;
-        DeviceBuffer _WireframeIndexBuffer;
+        Pipeline _IllustrationLinePipeline;
+        VertexPositionColor[] _IllustrationLineVertices;
+        DeviceBuffer _IllustrationLineVertexBuffer;
+        DeviceBuffer _IllustrationLineIndexBuffer;
 
         Pipeline _pointsPipeline;
         VertexPositionColor[] _PointVertices;
@@ -83,11 +83,8 @@ namespace rgatCore
 
             pipelineDescription.Outputs = frmbuf.OutputDescription;
 
-            if (wireframe)
-            {
-                pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-                _wireframePipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-            }
+            pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
+            _IllustrationLinePipeline = factory.CreateGraphicsPipeline(pipelineDescription);
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
             _linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
@@ -96,40 +93,9 @@ namespace rgatCore
             _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
         }
 
-        void InitWireframeVertexData(GraphicsDevice _gd, GraphDisplayData lines)
-        {
-
-            if (!(lines.safe_get_vert_array(out _WireframeVertices)))
-            {
-                Console.WriteLine("Unhandled error 1 InitWireframeVertexData lines.safe_get_vert_array");
-                return;
-            }
 
 
-            Console.WriteLine($"Initing wireframe with {_WireframeVertices.Length} wireframe verts");
 
-            ResourceFactory factory = _gd.ResourceFactory;
-
-            if (_WireframeIndexBuffer != null)
-            {
-                _WireframeIndexBuffer.Dispose();
-                _WireframeVertexBuffer.Dispose();
-            }
-
-
-            BufferDescription vbDescription = new BufferDescription(
-                (uint)_WireframeVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-            _WireframeVertexBuffer = factory.CreateBuffer(vbDescription);
-            _gd.UpdateBuffer(_WireframeVertexBuffer, 0, _WireframeVertices);
-
-            List<ushort> wfIndices = Enumerable.Range(0, _WireframeVertices.Length)
-                .Select(i => (ushort)i)
-                .ToList();
-
-            BufferDescription ibDescription = new BufferDescription((uint)wfIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-            _WireframeIndexBuffer = factory.CreateBuffer(ibDescription);
-            _gd.UpdateBuffer(_WireframeIndexBuffer, 0, wfIndices.ToArray());
-        }
         void InitNodeVertexData(GraphicsDevice _gd, GraphDisplayData nodes)
         {
 
@@ -172,7 +138,7 @@ namespace rgatCore
         void InitLineVertexData(GraphicsDevice _gd, GraphDisplayData lines)
         {
 
-            if (!(lines.safe_get_vert_array(out _LineVertices)))
+            if (!(lines.safe_get_vert_array(out _EdgeLineVertices)))
             {
                 Console.WriteLine("Unhandled error 1");
             }
@@ -180,63 +146,124 @@ namespace rgatCore
             //Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
             ResourceFactory factory = _gd.ResourceFactory;
-            if (_LineIndexBuffer != null)
+            if (_EdgeLineIndexBuffer != null)
             {
-                _LineIndexBuffer.Dispose();
-                _LineVertexBuffer.Dispose();
+                _EdgeLineIndexBuffer.Dispose();
+                _EdgeLineVertexBuffer.Dispose();
             }
 
-            BufferDescription vbDescription = new BufferDescription((uint)_LineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
-            _LineVertexBuffer = factory.CreateBuffer(vbDescription);
-            _gd.UpdateBuffer(_LineVertexBuffer, 0, _LineVertices);
+            BufferDescription vbDescription = new BufferDescription((uint)_EdgeLineVertices.Length * VertexPositionColor.SizeInBytes, 
+                BufferUsage.VertexBuffer);
+            _EdgeLineVertexBuffer = factory.CreateBuffer(vbDescription);
+            _gd.UpdateBuffer(_EdgeLineVertexBuffer, 0, _EdgeLineVertices);
 
-
-            List<ushort> lineIndices = Enumerable.Range(0, _LineVertices.Length)
+            List<ushort> lineIndices = Enumerable.Range(0, _EdgeLineVertices.Length)
                                                  .Select(i => (ushort)i)
                                                  .ToList();
 
             BufferDescription ibDescription = new BufferDescription((uint)lineIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
-            _LineIndexBuffer = factory.CreateBuffer(ibDescription);
-            _gd.UpdateBuffer(_LineIndexBuffer, 0, lineIndices.ToArray());
+            _EdgeLineIndexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(_EdgeLineIndexBuffer, 0, lineIndices.ToArray());
         }
 
-        public void DrawWireframe(CommandList _cl, GraphicsDevice _gd, GraphDisplayData lines)
+
+        public void DrawActiveNodeLine()
         {
-            if (_WireframeVertexBuffer == null || lines.DataChanged)
+
+        }
+
+        void InitIllustrationLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
+        {
+            List<VertexPositionColor> vertslist = null;
+
+            GraphDisplayData wireframeLines = graph.wireframelines;
+            if (!wireframeLines.safe_get_vert_list(out vertslist))
             {
-                InitWireframeVertexData(_gd, lines);
-                lines.SignalDataRead();
+                Console.WriteLine("Unhandled error 1 InitWireframeVertexData wireframeLines.safe_get_vert_array");
+                vertslist = new List<VertexPositionColor>();
             }
-            _cl.SetVertexBuffer(0, _WireframeVertexBuffer);
-            _cl.SetIndexBuffer(_WireframeIndexBuffer, IndexFormat.UInt16);
-            _cl.SetPipeline(_wireframePipeline);
+
+
+            GraphDisplayData higlightlines = graph.HighlightsDisplayData;
+            if (higlightlines.safe_get_vert_list(out List<VertexPositionColor> highlightvertslist))
+            {
+                vertslist.AddRange(highlightvertslist);
+            }
+            else
+            {
+                Console.WriteLine("Unhandled error 2 InitWireframeVertexData higlightlines.safe_get_vert_array");
+            }
+
+            _IllustrationLineVertices = vertslist.ToArray();
+            Console.WriteLine($"Initing illustration with {_IllustrationLineVertices.Length} illustration verts");
+
+            ResourceFactory factory = _gd.ResourceFactory;
+            BufferDescription vbDescription = new BufferDescription(
+                (uint)_IllustrationLineVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+
+            if (_IllustrationLineIndexBuffer != null)
+            {
+                _IllustrationLineIndexBuffer.Dispose();
+                _IllustrationLineVertexBuffer.Dispose();
+            }
+
+            _IllustrationLineVertexBuffer = factory.CreateBuffer(vbDescription);
+            _gd.UpdateBuffer(_IllustrationLineVertexBuffer, 0, _IllustrationLineVertices);
+
+            List<ushort> wfIndices = Enumerable.Range(0, _IllustrationLineVertices.Length)
+                .Select(i => (ushort)i)
+                .ToList();
+
+            BufferDescription ibDescription = new BufferDescription((uint)wfIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+            _IllustrationLineIndexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(_IllustrationLineIndexBuffer, 0, wfIndices.ToArray());
+        }
+
+
+        public void DrawIllustrationLines(CommandList _cl, GraphicsDevice _gd, PlottedGraph graph)
+        {
+            if (_IllustrationLineVertexBuffer == null 
+                || graph.wireframelines.DataChanged
+                || graph.HighlightsDisplayData.DataChanged)
+            {
+                InitIllustrationLineVertexData(_gd, graph);
+                graph.wireframelines.SignalDataRead();
+                graph.HighlightsDisplayData.SignalDataRead();
+            }
+
+            _cl.SetVertexBuffer(0, _IllustrationLineVertexBuffer);
+            _cl.SetIndexBuffer(_IllustrationLineIndexBuffer, IndexFormat.UInt16);
+            _cl.SetPipeline(_IllustrationLinePipeline);
             _cl.SetGraphicsResourceSet(0, _projViewSet);
             _cl.SetGraphicsResourceSet(1, _animBuffSet);
 
             _cl.DrawIndexed(
-                indexCount: (uint)_WireframeVertices.Length,
+                indexCount: (uint)_IllustrationLineVertices.Length,
                 instanceCount: 1,
                 indexStart: 0,
                 vertexOffset: 0,
                 instanceStart: 0);
 
-
         }
 
-        public void DrawLines(CommandList _cl, GraphicsDevice _gd, GraphDisplayData lines)
+
+
+        public void DrawEdges(CommandList _cl, GraphicsDevice _gd, GraphDisplayData lines)
         {
-            if (_LineVertexBuffer == null || lines.DataChanged)
+            if (_EdgeLineVertexBuffer == null || lines.DataChanged)
             {
                 InitLineVertexData(_gd, lines);
                 lines.SignalDataRead();
             }
-            _cl.SetVertexBuffer(0, _LineVertexBuffer);
-            _cl.SetIndexBuffer(_LineIndexBuffer, IndexFormat.UInt16);
+
+            DrawActiveNodeLine();
+            _cl.SetVertexBuffer(0, _EdgeLineVertexBuffer);
+            _cl.SetIndexBuffer(_EdgeLineIndexBuffer, IndexFormat.UInt16);
             _cl.SetPipeline(_linesPipeline);
             _cl.SetGraphicsResourceSet(0, _projViewSet);
             _cl.SetGraphicsResourceSet(1, _animBuffSet);
             _cl.DrawIndexed(
-                indexCount: (uint)_LineVertices.Length,
+                indexCount: (uint)_EdgeLineVertices.Length,
                 instanceCount: 1,
                 indexStart: 0,
                 vertexOffset: 0,

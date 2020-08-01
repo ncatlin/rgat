@@ -55,7 +55,8 @@ namespace rgatCore
 
             //possibly conditional. diff graphs won't want heatmaps etc
             NodesDisplayData = new GraphDisplayData();
-            LinesDisplayData = new GraphDisplayData();
+            EdgesDisplayData = new GraphDisplayData();
+            HighlightsDisplayData = new GraphDisplayData();
 
             //conditionallines = new GraphDisplayData();
             //conditionalnodes = new GraphDisplayData();
@@ -140,8 +141,9 @@ namespace rgatCore
 
         public void ReRender()
         {
-            LinesDisplayData = new GraphDisplayData();
+            EdgesDisplayData = new GraphDisplayData();
             NodesDisplayData = new GraphDisplayData();
+            HighlightsDisplayData = new GraphDisplayData();
             wireframelines = new GraphDisplayData();
             NeedReplotting = false;
         }
@@ -330,7 +332,8 @@ namespace rgatCore
             IsAnimated = false;
 
             ReplayState = REPLAY_STATE.eStopped;
-
+            NodesDisplayData.LastAnimatedNode.lastVertID = 0;
+            highlight_last_active_node();
             Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
 
@@ -350,11 +353,7 @@ namespace rgatCore
         }
 
 
-        public void highlight_last_active_node()
-        {
-            if (NodesDisplayData.LastRenderedNode.lastVertID < (uint)NodesDisplayData.CountVerts())
-                NodesDisplayData.LastAnimatedNode = NodesDisplayData.LastRenderedNode;
-        }
+        public abstract void highlight_last_active_node();
 
 
 
@@ -425,7 +424,8 @@ namespace rgatCore
 
 
         public GraphDisplayData NodesDisplayData = null;
-        public GraphDisplayData LinesDisplayData = null;
+        public GraphDisplayData EdgesDisplayData = null;
+        public GraphDisplayData HighlightsDisplayData = null;
         //public GraphDisplayData conditionallines = null;
         //public GraphDisplayData conditionalnodes = null;
         //public GraphDisplayData blocklines = null;
@@ -570,7 +570,7 @@ namespace rgatCore
         protected void render_new_edges()
         {
             int edgesDrawn = 0;
-            uint startIndex = LinesDisplayData.CountRenderedEdges;
+            uint startIndex = EdgesDisplayData.CountRenderedEdges;
             int endIndex = internalProtoGraph.edgeList.Count;
             for (uint edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
             {
@@ -789,7 +789,7 @@ namespace rgatCore
                 if (!FadingAnimNodesSet.Contains(lastNodeID)) 
                     FadingAnimNodesSet.Add(lastNodeID);
             }
-
+            highlight_last_active_node();
         }
 
 
@@ -870,6 +870,7 @@ namespace rgatCore
                 var callers = externStr.Value.thread_callers[internalProtoGraph.ThreadID];
                 uint callerIdx = callers.Find(n => n.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID).Item2;
                 LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, callerIdx);
+                
             }
             else
             {
@@ -1487,26 +1488,26 @@ namespace rgatCore
         public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.EdgeIndex >= LinesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
-            LinesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
+            if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
+            EdgesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
 
-            if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
+            if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
             Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
-            LinesDisplayData.SetEdgeAnimAlpha(arraypos, vertcount, alpha);
+            EdgesDisplayData.SetEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
 
         public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.EdgeIndex >= LinesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
+            if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
 
-            LinesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
-            if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
+            EdgesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
+            if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
             Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
-            LinesDisplayData.ReduceEdgeAnimAlpha(arraypos, vertcount, alpha);
+            EdgesDisplayData.ReduceEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
 
@@ -1532,12 +1533,13 @@ namespace rgatCore
         {
             if (_outputTexture != null)
             {
-                if (_outputTexture.Width == size.X && _outputTexture.Height == size.Y) return;
-                else
+                if (_outputTexture.Width != size.X || _outputTexture.Height != size.Y)
                 {
                     _outputFramebuffer.Dispose();
                     _outputTexture.Dispose();
                 }
+                else
+                    return;
             }
 
             _outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
