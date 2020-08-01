@@ -88,6 +88,25 @@ namespace rgatCore
     class GraphDisplayData
     {
 
+        private readonly object ListLock = new object();
+
+        public List<VertexPositionColor> VertList = new List<VertexPositionColor>();
+        public int CountVerts() => VertList.Count;
+
+        private List<object> node_coords = new List<object>();
+        public int NodeCount { get; private set; } = 0;
+
+        //keep track of which a,b coords are occupied - may need to be unique to each plot
+        public Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
+
+        public PLOT_TRACK LastRenderedNode;
+        public PLOT_TRACK LastAnimatedNode;
+
+        public List<Tuple<int, int>> Edges_VertSizes_ArrayPositions = new List<Tuple<int, int>>();
+
+
+
+
         public GraphDisplayData(bool preview = false)
         {
             LastRenderedNode.lastVertID = 0;
@@ -101,8 +120,6 @@ namespace rgatCore
             //acquire_pos_write();vector
             //acquire_col_write();
         }
-
-        private readonly object ListLock = new object();
 
         public void SetNodeAnimAlpha(uint index, float alpha)
         {
@@ -242,22 +259,6 @@ namespace rgatCore
             //poslock_.unlock_shared();
         }
 
-
-        void reset()
-        {
-            /*
-			acquire_pos_write(342);
-			acquire_col_write();
-			//needed? try without
-			vposarray.clear();
-			vcolarray.clear();
-			numVerts = 0;
-			edgesRendered = 0;
-			release_col_write();
-			release_pos_write();
-			*/
-        }
-
         public void inc_edgesRendered() { ++CountRenderedEdges; }
         public uint CountRenderedEdges { get; private set; } = 0;
         public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, float alpha, out int arraypos)
@@ -352,8 +353,6 @@ namespace rgatCore
             public uint lastVertID;
             public eEdgeNodeType lastVertType;
         };
-        public PLOT_TRACK LastRenderedNode;
-        public PLOT_TRACK LastAnimatedNode;
 
         public void GetEdgeDrawData(int EdgeIndex, out int vertcount, out int arraypos)
         {
@@ -362,20 +361,13 @@ namespace rgatCore
             arraypos = Edges_VertSizes_ArrayPositions[EdgeIndex].Item2;
         }
 
-        public List<Tuple<int, int>> Edges_VertSizes_ArrayPositions = new List<Tuple<int, int>>();
         //mutable std::shared_mutex poslock_;
         //mutable std::shared_mutex collock_;
-
-        public int CountVerts() => VertList.Count;
-
-        public List<VertexPositionColor> VertList = new List<VertexPositionColor>();
 
         public void SignalDataRead() { DataChanged = false; } //todo race condition possible here
         public bool DataChanged { get; private set; } = false;
         public bool IsPreview { get; private set; } = false;
 
-        //keep track of which a,b coords are occupied - may need to be unique to each plot
-        public Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
 
         private readonly object coordLock = new object();
         public bool get_node_coord<T>(int nodeidx, out T result)
@@ -402,9 +394,6 @@ namespace rgatCore
             }
         }
 
-        private List<object> node_coords = new List<object>();
 
-        
-        public int NodeCount { get; private set; } = 0;
     }
 }

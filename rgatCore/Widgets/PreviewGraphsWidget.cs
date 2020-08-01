@@ -164,7 +164,7 @@ namespace rgatCore
                 VeldridGraphBuffers graphRenderInfo = null;
                 if (!graphicInfos.TryGetValue(graph.tid, out graphRenderInfo))
                 {
-                    graphicInfos.Add(graph.tid, new VeldridGraphBuffers(graph));
+                    graphicInfos.Add(graph.tid, new VeldridGraphBuffers());
                     graphRenderInfo = graphicInfos[graph.tid];
 
                     graphRenderInfo.InitPipelines(_gd, CreateGraphShaders(_gd.ResourceFactory), graph._previewFramebuffer);

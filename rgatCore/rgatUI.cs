@@ -483,9 +483,8 @@ namespace rgatCore
 
         private void DrawScalePopup()
         {
-            if (ImGui.BeginChild(ImGui.GetID("SizeControlsb"), new Vector2(200, 200)))
+            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(200, 200)))
             {
-
                 if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
                 {
                     InitGraphReplot();
@@ -504,6 +503,146 @@ namespace rgatCore
             }
         }
 
+        struct symbolInfo
+        {
+            public string name;
+            public List<uint> threadNodes;
+            public ulong address;
+        };
+
+        struct moduleEntry
+        {
+            public Dictionary<ulong , symbolInfo> symbols;
+        };
+
+        Dictionary<int, moduleEntry> displayedModules = new Dictionary<int, moduleEntry>();
+        int LastExternNodeCount = 0;
+
+        //returns the data for [module moduleNumber] in the item tree, adding a new one if non existant
+        void DisplayModuleHighlightTreeNode(ProcessRecord processrec, int moduleNumber)
+        {
+
+            if (!displayedModules.TryGetValue(moduleNumber, out moduleEntry modEntry))
+            {
+                string modulepath = processrec.GetModulePath(moduleNumber);
+
+                /*
+                QTreeWidgetItem* moduleItem = new QTreeWidgetItem;
+                moduleItem->setText(0, QString::fromStdWString(modpath.filename().wstring()));
+                moduleItem->setText(1, "(" + QString::fromStdWString(modpath.wstring()) + ")");
+                moduleItem->setText(2, NULL);
+                moduleItem->setData(3, Qt::UserRole, qVariantFromValue(moduleNumber));
+                */
+
+                if (ImGui.TreeNode($"{modulepath}"))
+                {
+                    ImGui.Text("item1");
+                    ImGui.Text("item2");
+                    ImGui.Text("item3");
+                    ImGui.TreePop();
+                }
+
+                displayedModules[moduleNumber].entry = moduleItem;
+
+               //return &displayedModules.at(moduleNumber);
+            }
+        }
+
+        private void RefreshExternHighlightData(List<uint> externNodes)
+        {
+            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
+            ProtoGraph protog = ActiveGraph?.internalProtoGraph;
+            ProcessRecord processrec = protog?.ProcessData;
+
+            if (processrec == null) return;
+            displayedModules.Clear();
+            LastExternNodeCount = 0;
+
+            foreach (uint nodeIdx in externNodes)
+            {
+                NodeData n = protog.safe_get_node(nodeIdx);
+
+                if (!displayedModules.TryGetValue(n.GlobalModuleID, out moduleEntry modentry))
+                {
+                    modentry = new moduleEntry();
+                    modentry.symbols = new Dictionary<ulong, symbolInfo>();
+                    displayedModules.Add(n.GlobalModuleID, modentry);
+                }
+                if (!modentry.symbols.TryGetValue(n.address, out symbolInfo symentry))
+                {
+                    symentry = new symbolInfo();
+                    symentry.address = n.address;
+                    if (!processrec.GetSymbol(n.GlobalModuleID, n.address, out symentry.name))
+                    {
+                        symentry.name = "[No Symbol Name]";
+                    }
+                    symentry.threadNodes = new List<uint>();
+                    modentry.symbols.Add(n.address, symentry);
+                }
+
+                DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
+            }
+        }
+
+
+        private void DrawSymbolsFrame()
+        {
+            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph; 
+            ProtoGraph protog = ActiveGraph?.internalProtoGraph;
+            ProcessRecord processrec = protog?.ProcessData;
+
+            if (processrec == null) return;
+
+            var externNodes = protog.copyExternalNodeList();
+            if (LastExternNodeCount < protog.ExternalNodesCount)
+            {
+                RefreshExternHighlightData(externNodes);
+            }
+
+            if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsFrame"), ImGui.GetContentRegionAvail()))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+                foreach (uint nodeIdx in externNodes)
+                {
+                    NodeData n = protog.safe_get_node(nodeIdx);
+                    DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
+                }
+                ImGui.PopStyleColor();
+                ImGui.EndChildFrame();
+            }
+        }
+
+        private void DrawHighlightsPopup()
+        {
+            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(200, 200)))
+            {
+                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
+                if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
+                {
+                    if (ImGui.BeginTabItem("Symbols"))
+                    {
+                        DrawSymbolsFrame();
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("Addresses"))
+                    {
+
+                        ImGui.Text("s");
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("Exceptions"))
+                    {
+                        ImGui.Text("s");
+
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
+
+                ImGui.EndChild();
+            }
+        }
+
         private void DrawCameraPopup()
         {
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
@@ -511,10 +650,7 @@ namespace rgatCore
 
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
             {
-
-                ImGui.DragFloat("FOV", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f%%");
-                //todo: max should be just beyond full cylinder (+ extrusions)
-                //      speed should scale with plot size
+                ImGui.DragFloat("Field Of View", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Far Clipping", ref ActiveGraph.CameraClippingFar, 1.0f, 0.1f, 200000f, "%f%%");
                 ImGui.DragFloat("X Shift", ref ActiveGraph.CameraXOffset, 1f, -400, 40000, "%f%%");
                 ImGui.DragFloat("Y Position", ref ActiveGraph.CameraYOffset, 1, -400, 200000, "%f%%");
@@ -582,15 +718,27 @@ namespace rgatCore
                 }
                 ImGui.PopItemWidth();
                 ImGui.SameLine();
-                ImGui.Button("Highlight");
+
+                if (ImGui.Button("Highlight"))
+                {
+                    ImGui.OpenPopup("##HighlightsDialog");
+                }
+
                 ImGui.SameLine();
+
+                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##HighlightsDialog", ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    DrawHighlightsPopup();
+                    ImGui.EndPopup();
+                }
+
 
                 if (ImGui.Button("Scale"))
                 {
-                    ImGui.OpenPopup("##ScaleGraph");
+                    ImGui.OpenPopup("##ScaleGraphDialog");
                 }
 
-                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##ScaleGraph", ImGuiWindowFlags.AlwaysAutoResize))
+                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##ScaleGraphDialog", ImGuiWindowFlags.AlwaysAutoResize))
                 {
                     DrawScalePopup();
                     ImGui.EndPopup();
@@ -910,7 +1058,7 @@ namespace rgatCore
                 {
                     string caption = "No trace to display";
                     Vector2 captionsize = ImGui.CalcTextSize(caption);
-                    ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - captionsize.X/2);
+                    ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - captionsize.X / 2);
                     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - captionsize.Y / 2);
                     ImGui.Text(caption);
                     ImGui.EndChild();

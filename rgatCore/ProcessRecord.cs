@@ -259,6 +259,13 @@ namespace rgatCore
 
         }
 
+        public string GetModulePath(int GlobalModuleID)
+        {
+            lock (ModulesLock)
+            {
+                return LoadedModulePaths[GlobalModuleID];
+            }
+        }
 
 
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)

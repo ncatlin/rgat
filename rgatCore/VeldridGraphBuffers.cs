@@ -9,19 +9,21 @@ namespace rgatCore
 {
     class VeldridGraphBuffers
     {
-        public VeldridGraphBuffers(PlottedGraph _graph) => graph = _graph;
+        public VeldridGraphBuffers() { }
 
-        PlottedGraph graph;
+        //LineStrip
         Pipeline _linesPipeline;
         VertexPositionColor[] _EdgeLineVertices;
         DeviceBuffer _EdgeLineVertexBuffer;
         DeviceBuffer _EdgeLineIndexBuffer;
 
+        //LineList
         Pipeline _IllustrationLinePipeline;
         VertexPositionColor[] _IllustrationLineVertices;
         DeviceBuffer _IllustrationLineVertexBuffer;
         DeviceBuffer _IllustrationLineIndexBuffer;
 
+        //Nodes
         Pipeline _pointsPipeline;
         VertexPositionColor[] _PointVertices;
         DeviceBuffer _PointVertexBuffer;
@@ -167,11 +169,6 @@ namespace rgatCore
         }
 
 
-        public void DrawActiveNodeLine()
-        {
-
-        }
-
         void InitIllustrationLineVertexData(GraphicsDevice _gd, PlottedGraph graph)
         {
             List<VertexPositionColor> vertslist = null;
@@ -256,7 +253,6 @@ namespace rgatCore
                 lines.SignalDataRead();
             }
 
-            DrawActiveNodeLine();
             _cl.SetVertexBuffer(0, _EdgeLineVertexBuffer);
             _cl.SetIndexBuffer(_EdgeLineIndexBuffer, IndexFormat.UInt16);
             _cl.SetPipeline(_linesPipeline);

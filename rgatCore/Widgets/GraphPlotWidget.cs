@@ -55,7 +55,7 @@ namespace rgatCore
 
             if (!graphBufferDict.TryGetValue(graph, out graphBuffers))
             {
-                graphBuffers = new VeldridGraphBuffers(graph);
+                graphBuffers = new VeldridGraphBuffers();
                 graphBufferDict.Add(graph, graphBuffers);
                 ResourceFactory factory = _gd.ResourceFactory;
                 graph.UpdateGraphicBuffers(graphWidgetSize, _gd);

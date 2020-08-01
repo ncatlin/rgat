@@ -918,9 +918,13 @@ namespace rgatCore
 		List<ANIMATIONENTRY>* getSavedAnimData() { return &savedAnimationData; }
 		
 		*/
+
         //list of all external nodes
         List<uint> externalNodeList = new List<uint>();
-        //List<uint> copyExternalNodeList();
+        public int ExternalNodesCount => externalNodeList.Count;
+        public uint[] copyExternalNodeList() {
+            return externalNodeList.ToArray();
+        }
 
         //list of all internal nodes with symbols
         List<uint> internalNodeList = new List<uint>();

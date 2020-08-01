@@ -928,12 +928,14 @@ namespace rgatCore
 
         public override void highlight_last_active_node()
         {
-            if (NodesDisplayData.LastAnimatedNode.lastVertID > (uint)NodesDisplayData.CountVerts())
-                NodesDisplayData.LastAnimatedNode = NodesDisplayData.LastRenderedNode;
+            uint lastAnimNodeIdx = NodesDisplayData.LastAnimatedNode.lastVertID;
+            int vertscount = NodesDisplayData.CountVerts();
+            if (vertscount == 0) return;
+            if (lastAnimNodeIdx >= vertscount)
+                lastAnimNodeIdx = NodesDisplayData.LastRenderedNode.lastVertID;
 
             Vector3 srcc = new Vector3(0, 0, 0);
-
-            Vector3 targc = nodeIndexToXYZ((int)NodesDisplayData.LastAnimatedNode.lastVertID);
+            Vector3 targc = nodeIndexToXYZ((int)lastAnimNodeIdx);
 
             HighlightsDisplayData.Clear();
             DrawHighlightLine(srcc, targc);

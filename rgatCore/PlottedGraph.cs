@@ -172,19 +172,7 @@ namespace rgatCore
         //TODO: in animation mode don't show text for inactive nodes
         void DrawInstructionsText(int zdist)//, PROJECTDATA* pd, graphGLWidget &gltarget)
         {
-
-            Vector3 screenCoord;
             string displayText = "?";
-
-            /*
-            SCREEN_QUERY_PTRS screenInfo;
-            screenInfo.mainverts = get_mainnodes();
-            screenInfo.pd = pd;
-            */
-
-            //QPainter painter(&gltarget);
-            //painter.setPen(clientState->config.mainColours.instructionText);
-            //painter.setFont(clientState->instructionFont);
 
             uint numVerts = internalProtoGraph.get_num_nodes();
             for (uint i = 0; i < numVerts; ++i)
@@ -257,8 +245,6 @@ namespace rgatCore
                     else
                         string2 += $"+0x{n.ins.address:X}: {displayText}";
                 }
-
-                //painter.drawText(screenCoord.x + INS_X_OFF, gltarget.height() - screenCoord.y + INS_Y_OFF, ss.str().c_str());
             }
 
         }
