@@ -30,7 +30,7 @@ namespace rgatCore.Threads
 			if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
 				return;
 
-			if (graph.replayState == PlottedGraph.REPLAY_STATE.eEnded)
+			if (graph.replayState == PlottedGraph.REPLAY_STATE.eEnded && protoGraph.Terminated)
 			{
 				graph.ResetAnimation();
 			}
@@ -45,20 +45,21 @@ namespace rgatCore.Threads
 			}
 
 
-			if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
+			if (!protoGraph.Terminated)
 			{
-				graph.render_replay_animation(GlobalConfig.animationFadeRate);
+				if (graph.IsAnimated)
+					graph.render_live_animation(GlobalConfig.animationFadeRate);
+				else
+					graph.highlight_last_active_node();
 			}
 			else
 			{
-				if (!protoGraph.Terminated)
+				if (graph.replayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
 				{
-					if (graph.IsAnimated)
-						graph.render_live_animation(GlobalConfig.animationFadeRate);
-					else
-						graph.highlight_last_active_node();
+					graph.render_replay_animation(GlobalConfig.animationFadeRate);
 				}
 			}
+
 
 	
 

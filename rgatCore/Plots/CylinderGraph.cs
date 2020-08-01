@@ -231,7 +231,6 @@ namespace rgatCore
                 return false;
 
 
-
             EdgeData e = internalProtoGraph.edgeDict[ePair];
 
             Vector3 srcc = nodeIndexToXYZ((int)ePair.Item1);
@@ -247,6 +246,7 @@ namespace rgatCore
             {
                 e.DrawIndex = LinesDisplayData.CountRenderedEdges;
                 LinesDisplayData.Edges_VertSizes_ArrayPositions.Add(new Tuple<int, int>(vertsDrawn, arraypos));
+                e.IsDrawn = true;
             }
             else
             {

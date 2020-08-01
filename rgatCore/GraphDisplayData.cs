@@ -123,6 +123,7 @@ namespace rgatCore
         {
             lock (ListLock) //todo, should be a read lock
             {
+                if (index >= VertList.Count) return false;
                 VertexPositionColor vpc = VertList[(int)index];
                 vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
                 VertList[(int)index] = vpc;

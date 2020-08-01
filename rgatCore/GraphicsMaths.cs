@@ -81,7 +81,7 @@ namespace rgatCore
             float a = (((source.X * matrix.M14) + (source.Y * matrix.M24)) + (source.Z * matrix.M34)) + matrix.M44;
             if (!WithinEpsilon(a, 1f))
             {
-                vector = (Vector3)(vector / a);
+                vector = vector / a;
             }
             vector.X = (((vector.X + 1f) * 0.5f) * box.Width) + box.X;
             vector.Y = (((-vector.Y + 1f) * 0.5f) * box.Height) + box.Y;

@@ -289,7 +289,7 @@ namespace rgatCore
         {
             if (userSelectedAnimPosition != -1)
             {
-                replotScheduled = true;
+                //NeedReplotting = true;
 
                 SetAnimated(true);
 
@@ -454,13 +454,13 @@ namespace rgatCore
         Tuple<ulong, ulong> condCounts;
 
         public ulong vertResizeIndex = 0;
-        public int userSelectedAnimPosition = 0;
+        public int userSelectedAnimPosition = -1;
 
         public double cameraZoomlevel = -1;
         public float view_shift_x = 0, view_shift_y = 0;
         public float graph_pan_x = 0, graph_pan_y = 0;
 
-        public REPLAY_STATE replayState = REPLAY_STATE.eStopped;
+        public REPLAY_STATE replayState = REPLAY_STATE.eEnded;
         int updateProcessingIndex = 0;
         protected float maxA = 0, maxB = 0, maxC = 0;
 
@@ -605,7 +605,7 @@ namespace rgatCore
                 }
                 edgesDrawn++;
 
-                if (replotScheduled || clientState.rgatIsExiting) break;
+                if (NeedReplotting || clientState.rgatIsExiting) break;
             }
         }
 
@@ -712,8 +712,6 @@ namespace rgatCore
 
         bool previewNeedsResize = false;
         bool freeMe = false;
-        public bool replotScheduled = false;
-
 
         //protected List<Tuple<ulong, uint>> MainCallStack = new List<Tuple<ulong, uint>>();
         //protected List<Tuple<ulong, uint>> PreviewCallStack = new List<Tuple<ulong, uint>>();
@@ -947,14 +945,14 @@ namespace rgatCore
             int updateLimit = AnimationUpdatesPerFrame;
             while (updateProcessingIndex < internalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
-                process_live_update();
+                if (!process_live_update()) break;
             }
         }
 
-        void process_live_update()
+        bool process_live_update()
         {
-            Console.WriteLine("todo process_live_update");
-            /*
+        
+
 			//todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
 			//internalProtoGraph.animationListsRWLOCK_.lock_shared();
 			ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
@@ -963,51 +961,51 @@ namespace rgatCore
 			if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
 			{
 				++updateProcessingIndex;
-				return;
-			}
+                return true;
+            }
 
 			if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
 			{
 				remove_unchained_from_animation();
 
 				++updateProcessingIndex;
-				return;
-			}
+                return true;
+            }
 
 			if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
 			{
-				end_unchained(&entry);
+				end_unchained(entry);
 				++updateProcessingIndex;
-				return;
-			}
+                return true;
+            }
 
 			int brightTime;
 			if (entry.entryType == eTraceUpdateType.eAnimUnchained)
 			{
-				currentUnchainedBlocks.push_back(entry);
-				brightTime = KEEP_BRIGHT;
+				currentUnchainedBlocks.Add(entry);
+				brightTime = Anim_Constants.KEEP_BRIGHT;
 			}
 			else
 				brightTime = 0;
 
 			//break if block not rendered yet
-			List<uint> nodeIDList;
-			if (!get_block_nodelist(entry.blockAddr, entry.blockID, &nodeIDList))
+			if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDList))
 			{
 				//expect to get an incomplete block with exception or animation attempt before static rendering
-				if ((entry.entryType != eAnimExecException) || (nodeIDList.size() < entry.count))
-					return;
+				if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (nodeIDList.Count > (int)entry.count))
+					return true;
+                return false;
 			}
 
 			//add all the nodes+edges in the block to the brightening list
-			brighten_node_list(&entry, brightTime, &nodeIDList);
+			brighten_node_list(entry, brightTime, nodeIDList);
 
 			//also add brighten edge to next unchained block
-			if (entry.entryType == eAnimUnchained)
-				brighten_next_block_edge(&entry, brightTime);
+			if (entry.entryType == eTraceUpdateType.eAnimUnchained)
+				brighten_next_block_edge(entry.blockID, entry.blockAddr, brightTime);
 
 			++updateProcessingIndex;
-			*/
+            return true;
         }
 
 
@@ -1495,6 +1493,7 @@ namespace rgatCore
         public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
+            if (edge.IsDrawn) return false;
             LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
 
             if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
@@ -1507,6 +1506,8 @@ namespace rgatCore
         public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
+            if (edge.IsDrawn) return false;
+
             LinesDisplayData.GetEdgeDrawData((int)edge.DrawIndex, out int vertcount, out int arraypos);
             if (LinesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 

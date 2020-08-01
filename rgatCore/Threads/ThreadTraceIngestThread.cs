@@ -86,13 +86,14 @@ namespace rgatCore
 
                 nextMessage = ReadingQueue[readIndex++];
 
+                QueueSize -= 1;
+                PendingDataSize -= (ulong)nextMessage.Length;
+                ProcessedDataSize += (ulong)nextMessage.Length;
+                TotalProcessedData += (ulong)nextMessage.Length;
+                return nextMessage;
             }
 
-            QueueSize -= 1;
-            PendingDataSize -= (ulong)nextMessage.Length;
-            ProcessedDataSize += (ulong)nextMessage.Length;
-            TotalProcessedData += (ulong)nextMessage.Length;
-            return nextMessage;
+
         }
 
         void EnqueueData(byte[] datamsg)
@@ -204,6 +205,7 @@ namespace rgatCore
                     if (bytesread == 0 || threadpipe.IsConnected == false)
                     {
                         PipeBroke = true;
+                        protograph.Terminated = true;
                     }
                     else
                     { 
