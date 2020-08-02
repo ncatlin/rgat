@@ -52,10 +52,7 @@ namespace rgatCore.Threads
 			if (!protoGraph.Terminated)
 			{
 				if (graph.IsAnimated)
-					graph.render_live_animation(GlobalConfig.animationFadeRate);
-				else
-					graph.highlight_last_active_node();
-				
+					graph.render_live_animation(GlobalConfig.animationFadeRate);				
 			}
 			else
 			{
@@ -63,10 +60,11 @@ namespace rgatCore.Threads
 				{
 					graph.render_replay_animation(GlobalConfig.animationFadeRate);
 				}
+				
 			}
 
+			graph.draw_highlight_lines();
 
-	
 
 			//graph.setGraphBusy(false, 2);
 		}

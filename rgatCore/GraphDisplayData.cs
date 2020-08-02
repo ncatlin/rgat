@@ -350,7 +350,19 @@ namespace rgatCore
 
         public struct PLOT_TRACK
         {
-            public uint lastVertID;
+            uint _lastVertID;
+            public uint lastVertID
+            {
+                get => _lastVertID;
+                set
+                {
+                    _lastVertID = value;
+                    Console.WriteLine($"Changed to {value}");
+                    changed = true;
+                }
+            }
+            public bool changed { get; private set; }
+            public void ResetChanged() => changed = false;
             public eEdgeNodeType lastVertType;
         };
 

@@ -192,7 +192,6 @@ namespace rgatCore
             }
 
             _IllustrationLineVertices = vertslist.ToArray();
-            Console.WriteLine($"Initing illustration with {_IllustrationLineVertices.Length} illustration verts");
 
             ResourceFactory factory = _gd.ResourceFactory;
             BufferDescription vbDescription = new BufferDescription(
@@ -210,7 +209,7 @@ namespace rgatCore
             List<ushort> wfIndices = Enumerable.Range(0, _IllustrationLineVertices.Length)
                 .Select(i => (ushort)i)
                 .ToList();
-
+            
             BufferDescription ibDescription = new BufferDescription((uint)wfIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
             _IllustrationLineIndexBuffer = factory.CreateBuffer(ibDescription);
             _gd.UpdateBuffer(_IllustrationLineIndexBuffer, 0, wfIndices.ToArray());

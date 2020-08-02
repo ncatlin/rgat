@@ -41,6 +41,7 @@ namespace rgatCore.Widgets
         Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
         PlottedGraph ActiveGraph = null;
         ThreadHighlightSettings settings = null;
+        public static Vector2 InitialSize = new Vector2(600, 400);
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
@@ -83,123 +84,125 @@ namespace rgatCore.Widgets
             settings.LastExternNodeCount = externNodes.Length;
         }
 
-
-        private void DrawSymbolsSelectBox()
+        private void HandleSelectedSym(moduleEntry module_modentry, symbolInfo syminfo)
         {
-            if (ActiveGraph == null) return;
-            ProtoGraph protog = ActiveGraph.internalProtoGraph;
-            ProcessRecord processrec = protog.ProcessData;
-
-            
-
-
-            if (settings.LastExternNodeCount < protog.ExternalNodesCount)
-            { 
-                RefreshExternHighlightData(protog.copyExternalNodeList());
-            }
-
-            ImGui.Text("Filter");
-            ImGui.SameLine();
-            if(ImGui.InputText("##SymFilter", ref settings.SymFilterText, 255))
+            syminfo.selected = !syminfo.selected;
+            module_modentry.symbols[syminfo.address] = syminfo;
+            if (syminfo.selected)
             {
-                
+                ActiveGraph.AddHighlightedSymbolNodes(syminfo.threadNodes);
+                settings.SelectedSymbols.Add(syminfo);
             }
-            ImGui.SameLine();
-            if (ImGui.Button("x"))
+            else
             {
-                settings.SymFilterText = "";
+                ActiveGraph.RemoveHighlightedSymbolNodes(syminfo.threadNodes);
+                settings.SelectedSymbols = settings.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
             }
-            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFFFFFFF);
-            if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsFrame"), new Vector2(ImGui.GetContentRegionAvail().X, 260)))
+        }
+
+        private void DrawModSymTreeNodes()
+        {
+            string LowerFilterText = settings.SymFilterText.ToLower();
+            foreach (moduleEntry module_modentry in settings.displayedModules.Values)
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
-                if (ImGui.BeginChild(ImGui.GetID("highlightSymsFrame2"), new Vector2(ImGui.GetContentRegionAvail().X, 20)))
+                var keyslist = module_modentry.symbols.Keys.ToArray();
+                bool hasFilterMatches = false;
+                bool moduleMatchesFilter = false;
+                if (settings.SymFilterText.Length == 0)
                 {
-                    ImGui.SameLine(100);
-                    ImGui.Text("Symbol");
-                    ImGui.SameLine(300);
-                    ImGui.Text("Address");
-                    ImGui.SameLine(450);
-                    ImGui.Text("Unique Nodes");
-                    ImGui.EndChild();
+                    hasFilterMatches = true;
                 }
-                ImGui.PopStyleColor();
-                string LowerFilterText = settings.SymFilterText.ToLower();
-                foreach (moduleEntry module_modentry in settings.displayedModules.Values)
+                else if (module_modentry.path.ToLower().Contains(LowerFilterText))
                 {
-                    var keyslist = module_modentry.symbols.Keys.ToArray();
-                    bool hasFilterMatches = false;
-                    bool moduleMatchesFilter = false;
-                    if (settings.SymFilterText.Length == 0)
+                    moduleMatchesFilter = true;
+                    hasFilterMatches = true;
+                }
+                else
+                {
+                    foreach (ulong symaddr in keyslist)
                     {
-                        hasFilterMatches = true;
-                    }
-                    else if (module_modentry.path.ToLower().Contains(LowerFilterText))
-                    {
-                        moduleMatchesFilter = true;
-                        hasFilterMatches = true;
-                    }
-                    else
-                    {
-                        foreach (ulong symaddr in keyslist)
+                        symbolInfo syminfo = module_modentry.symbols[symaddr];
+                        if (syminfo.name.ToLower().Contains(LowerFilterText))
                         {
-                            symbolInfo syminfo = module_modentry.symbols[symaddr];
-                            if (syminfo.name.ToLower().Contains(LowerFilterText))
-                            { 
-                                hasFilterMatches = true;
-                                break;
-                            }
+                            hasFilterMatches = true;
+                            break;
                         }
                     }
-                    
+                }
 
-                    if (hasFilterMatches && ImGui.TreeNode($"{module_modentry.path}"))
+                if (hasFilterMatches)
+                {
+                    if (ImGui.TreeNode($"{module_modentry.path}"))
                     {
                         foreach (ulong symaddr in keyslist)
                         {
                             symbolInfo syminfo = module_modentry.symbols[symaddr];
 
-                            if (settings.SymFilterText.Length > 0 && 
+                            if (settings.SymFilterText.Length > 0 &&
                                 !moduleMatchesFilter &&
-                                !syminfo.name.ToLower().Contains(settings.SymFilterText.ToLower()) 
+                                !syminfo.name.ToLower().Contains(settings.SymFilterText.ToLower())
                                 )
                                 continue;
 
                             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 75);
                             if (ImGui.Selectable($"{syminfo.name}", syminfo.selected))
                             {
-                                syminfo.selected = !syminfo.selected;
-                                module_modentry.symbols[symaddr] = syminfo;
-                                if (syminfo.selected)
-                                {
-                                    List<uint> SelectedSymbolNodes = ActiveGraph.HighlightedSymbolNodes.ToList();
-                                    SelectedSymbolNodes.AddRange(syminfo.threadNodes.Where(n => !SelectedSymbolNodes.Contains(n)));
-                                    settings.SelectedSymbols.Add(syminfo);
-                                    ActiveGraph.HighlightedSymbolNodes = SelectedSymbolNodes;
-                                }
-                                else
-                                {
-                                    List<uint> SelectedSymbolNodes = ActiveGraph.HighlightedSymbolNodes.ToList();
-                                    SelectedSymbolNodes = SelectedSymbolNodes.Where(n => !syminfo.threadNodes.Contains(n)).ToList();
-                                    settings.SelectedSymbols = settings.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
-                                    ActiveGraph.HighlightedSymbolNodes = SelectedSymbolNodes;
-                                }
-
+                                HandleSelectedSym(module_modentry, syminfo);
                             }
                             ImGui.SameLine(300);
                             ImGui.Text($"0x{syminfo.address:X}");
                             ImGui.SameLine(450);
                             ImGui.Text($"{syminfo.threadNodes.Count}");
+
                         }
+
                         ImGui.TreePop();
                     }
-                    //NodeData n = protog.safe_get_node(nodeIdx);
-                    //DisplayModuleHighlightTreeNode(processrec, n.GlobalModuleID);
                 }
-                ImGui.EndChildFrame();
+            }
+        }
+
+        private void DrawSymbolsSelectBox(float height)
+        {
+            if (ActiveGraph == null) return;
+            if (settings.LastExternNodeCount < ActiveGraph.internalProtoGraph.ExternalNodesCount)
+            { 
+                RefreshExternHighlightData(ActiveGraph.internalProtoGraph.copyExternalNodeList());
+            }
+
+            ImGui.Text("Filter");
+            ImGui.SameLine();
+            ImGui.InputText("##SymFilter", ref settings.SymFilterText, 255);
+
+            ImGui.SameLine();
+            if (ImGui.Button("X")) //todo: icon
+            {
+                settings.SymFilterText = "";
+            }
+
+            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
+            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X, 20)))
+            {
+                ImGui.SameLine(100);
+                ImGui.Text("Symbol");
+                ImGui.SameLine(300);
+                ImGui.Text("Address");
+                ImGui.SameLine(450);
+                ImGui.Text("Unique Nodes");
+                ImGui.EndChild();
             }
             ImGui.PopStyleColor();
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
+            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X, height - 20)))
+            {
+                DrawModSymTreeNodes();
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+
             ImGui.PopStyleColor();
         }
 
@@ -258,7 +261,7 @@ namespace rgatCore.Widgets
                 }
             }
 
-            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(600, 360)))
+            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), InitialSize))
             {
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
                 if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
@@ -266,7 +269,7 @@ namespace rgatCore.Widgets
                     if (ImGui.BeginTabItem("Externals/Symbols"))
                     {
                         settings.selectedHighlightTab = 0;
-                        DrawSymbolsSelectBox();
+                        DrawSymbolsSelectBox(ImGui.GetContentRegionAvail().Y - 80); //todo: unbadify this height choice
                         DrawSymbolsSelectControls();
                         ImGui.EndTabItem();
                     }

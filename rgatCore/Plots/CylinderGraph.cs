@@ -920,25 +920,40 @@ namespace rgatCore
             newPosition.diamMod = diamMod;
         }
 
-        private void DrawHighlightLine(Vector3 start, Vector3 end)
+        private void DrawHighlightLine(Vector3 start, Vector3 end, WritableRgbaFloat colour)
         {
-            HighlightsDisplayData.drawShortLinePoints(start, end, new WritableRgbaFloat(Color.Red),1f, out int arraypos);
+            HighlightsDisplayData.drawShortLinePoints(start, end, colour ,1f, out int arraypos);
 
         }
 
-        public override void highlight_last_active_node()
+        public override void draw_highlight_lines()
         {
+            if (!HighlightsChanged && !NodesDisplayData.LastAnimatedNode.changed) return;
             uint lastAnimNodeIdx = NodesDisplayData.LastAnimatedNode.lastVertID;
+            NodesDisplayData.LastAnimatedNode.ResetChanged();
             int vertscount = NodesDisplayData.CountVerts();
             if (vertscount == 0) return;
             if (lastAnimNodeIdx >= vertscount)
                 lastAnimNodeIdx = NodesDisplayData.LastRenderedNode.lastVertID;
 
+
             Vector3 srcc = new Vector3(0, 0, 0);
             Vector3 targc = nodeIndexToXYZ((int)lastAnimNodeIdx);
 
             HighlightsDisplayData.Clear();
-            DrawHighlightLine(srcc, targc);
+            DrawHighlightLine(srcc, targc, new WritableRgbaFloat(Color.Red));
+
+            List<uint> highlightSyms = null;
+            lock (textLock)
+            {
+                HighlightsChanged = false;
+                highlightSyms = HighlightedSymbolNodes.ToList();
+            }
+            foreach (uint srcnode in highlightSyms)
+            {
+                targc = nodeIndexToXYZ((int)srcnode);
+                DrawHighlightLine(srcc, targc, new WritableRgbaFloat(Color.Cyan));
+            }
         }
 
 

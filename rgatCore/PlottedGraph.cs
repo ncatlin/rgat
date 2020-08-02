@@ -7,6 +7,7 @@ using System.Diagnostics.Tracing;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Veldrid;
@@ -319,7 +320,6 @@ namespace rgatCore
 
             ReplayState = REPLAY_STATE.eStopped;
             NodesDisplayData.LastAnimatedNode.lastVertID = 0;
-            highlight_last_active_node();
             Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
 
@@ -339,7 +339,7 @@ namespace rgatCore
         }
 
 
-        public abstract void highlight_last_active_node();
+        public abstract void draw_highlight_lines();
 
 
 
@@ -775,7 +775,6 @@ namespace rgatCore
                 if (!FadingAnimNodesSet.Contains(lastNodeID)) 
                     FadingAnimNodesSet.Add(lastNodeID);
             }
-            highlight_last_active_node();
         }
 
 
@@ -1561,6 +1560,25 @@ namespace rgatCore
             _previewFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture));
 
 
+        }
+
+        protected bool HighlightsChanged = false;
+        public void AddHighlightedSymbolNodes(List<uint> newnodeidxs)
+        {
+            lock(textLock)
+            {
+                HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                HighlightsChanged = true;
+            }
+        }
+
+        public void RemoveHighlightedSymbolNodes(List<uint> nodeidxs)
+        {
+            lock (textLock)
+            {
+                HighlightedSymbolNodes = HighlightedSymbolNodes.Except(nodeidxs).ToList();
+                HighlightsChanged = true;
+            }
         }
 
         //private:
