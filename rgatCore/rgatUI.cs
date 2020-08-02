@@ -412,8 +412,8 @@ namespace rgatCore
                     PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController, _rgatstate._GraphicsDevice);
                     if (PreviewGraphWidget.clickedGraph != null)
                     {
-
                         SetActiveGraph(PreviewGraphWidget.clickedGraph);
+                        PreviewGraphWidget.ResetClickedGraph();
                     }
                     ImGui.EndChild();
                 }
@@ -513,7 +513,7 @@ namespace rgatCore
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
             if (ActiveGraph == null) return;
 
-            if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(200, 200)))
+            if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(235, 200)))
             {
                 ImGui.DragFloat("Field Of View", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f%%");
                 ImGui.DragFloat("Far Clipping", ref ActiveGraph.CameraClippingFar, 1.0f, 0.1f, 200000f, "%f%%");
@@ -584,6 +584,8 @@ namespace rgatCore
                 ImGui.PopItemWidth();
                 ImGui.SameLine();
 
+                //todo: this should show a drowndown if some highlights are active
+                //with choice of pick more or reset
                 if (ImGui.Button("Highlight"))
                 {
                     _show_highlight_window = true;
@@ -770,6 +772,11 @@ namespace rgatCore
 
         private void SetActiveGraph(PlottedGraph graph)
         {
+            if (graph.pid != _rgatstate.ActiveGraph.pid)
+            {
+                Console.WriteLine("Warning: Graph selected in non-viewed trace");
+                return;
+            }
             _rgatstate.SwitchToGraph(graph);
             MainGraphWidget.SetActiveGraph(graph, _rgatstate._GraphicsDevice);
             PreviewGraphWidget.SetSelectedGraph(graph);

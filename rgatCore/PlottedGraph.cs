@@ -1622,6 +1622,9 @@ namespace rgatCore
         Dictionary<Tuple<uint, uint>, int> activeAnimEdgeTimes = new Dictionary<Tuple<uint, uint>, int>();
         List<Tuple<uint, uint>> fadingAnimEdgesSet = new List<Tuple<uint, uint>>();
 
+        public List<uint> HighlightedSymbolNodes = new List<uint>();
+        public List<uint> HighlightedAddressNodes = new List<uint>();
+        public List<uint> HighlightedExceptionNodes = new List<uint>();
 
         bool animBuildingLoop = false;
         bool Stopping = false;

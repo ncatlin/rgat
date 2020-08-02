@@ -53,24 +53,8 @@ namespace rgatCore
         public void SetSelectedGraph(PlottedGraph graph) => selectedGraphTID = graph.tid;
 
         private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
+        public void ResetClickedGraph() => clickedGraph = null;
 
-        private Vector2? HandleInput(Vector2 widgetSize)
-        {
-            if (ImGui.IsMouseClicked(0))
-            {
-                Vector2 MousePos = ImGui.GetMousePos();
-                Vector2 WidgetPos = ImGui.GetCursorScreenPos();
-
-                if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + widgetSize.X))
-                {
-                    if (MousePos.Y >= (WidgetPos.Y + ImGui.GetScrollY()) && MousePos.Y < (WidgetPos.Y + widgetSize.Y + ImGui.GetScrollY()))
-                    {
-                        return new Vector2(MousePos.X, MousePos.Y);
-                    }
-                }
-            }
-            return null;
-        }
 
         //we do it via Draw so events are handled by the same thread
         public void HandleFrameTimerFired()
@@ -84,14 +68,11 @@ namespace rgatCore
             if (ActiveTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
-            Vector2? ClickedPos = HandleInput(widgetSize);
-
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
             subGraphPosition.X += MarginWidth;
 
-            float captionHeight = ImGui.CalcTextSize("123456789").Y;
-            int cursorGap = (int)(EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING - captionHeight + 4f); //ideally want to draw the text in the texture itself
+            float captionHeight = ImGui.CalcTextSize("123456789").Y + 3; //dunno where the 3 comes from but it works
 
             DrawnPreviewGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.ePreview);
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
@@ -99,23 +80,23 @@ namespace rgatCore
                 PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
                 if (graph.NodesDisplayData.CountVerts() == 0 || graph._previewTexture == null) continue;
 
-                ImGui.Text($"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts");
-                if (graph.tid == selectedGraphTID)
-                    ImGui.Text("[Selected]");
+                string Caption = $"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
 
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
+                ImGui.Text(Caption);
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 8);
+
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     subGraphPosition,
                     new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
-
-                if (ClickedPos.HasValue && ClickedPos.Value.Y > subGraphPosition.Y &&
-                    ClickedPos.Value.Y < (subGraphPosition.Y + EachGraphHeight))
+                if(ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
                 {
                     var MainGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                     HandleClickedGraph(MainGraphs[graphIdx]);
                 }
 
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + cursorGap);
                 subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
             }
         }

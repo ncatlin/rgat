@@ -19,7 +19,9 @@ namespace rgatCore
 		public PlottedGraph ActiveGraph { get; private set; } = null;
 		public Veldrid.GraphicsDevice _GraphicsDevice;
 		public Veldrid.CommandList _CommandList;
-		
+
+		private readonly object statelock = new object();
+
 		public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl) {
 			_GraphicsDevice = _gd;
 			_CommandList = _cl;
@@ -49,8 +51,9 @@ namespace rgatCore
         {
 			BinaryTarget targ = targets.AddTargetByPath(path, arch);
 			if (selectIt) {
-				ClearActiveGraph();
-				SetActiveTarget(targ);
+					ClearActiveGraph();
+					SetActiveTarget(targ);
+				
 			}
 			return targ;
         }
@@ -61,6 +64,7 @@ namespace rgatCore
             if (newTarget != null && newTarget != ActiveTarget)
             {
                 ActiveTarget = newTarget;
+				ActiveTrace = null;
 				ClearActiveGraph();
             };
         }
@@ -74,16 +78,7 @@ namespace rgatCore
 
 		public void ClearActiveGraph()
 		{
-			//activeGraphLock.lock () ;
-			if (ActiveGraph == null)
-			{
-				//activeGraphLock.unlock();
-				return;
-			}
-
-			//ActiveGraph.decrease_thread_references(50);
 			ActiveGraph = null;
-			//activeGraphLock.unlock();
 		}
 
 
@@ -131,7 +126,8 @@ namespace rgatCore
 
 			TraceRecord trace = ActiveTrace;
 			if (trace == null) return;
-
+			if (ActiveTrace?.PID != graph.pid) return;
+		
 			if (SetActiveGraph(graph))
 			{
 				Debug.Assert(trace.PID == graph.pid);
@@ -226,14 +222,15 @@ namespace rgatCore
 
 			if (ActiveGraph != null && !ActiveGraph.beingDeleted)
 				return false;
-
 			ClearActiveGraph();
+			if (graph.pid != ActiveTrace.PID) ActiveTrace = null;
 
 			Debug.Assert(ActiveGraph == null);
 
 			//activeGraphLock.lock () ;
 			//if (((plotted_graph*)graph)->increase_thread_references(50))
 			//{
+			
 				ActiveGraph = graph;
 			//}
 			//activeGraphLock.unlock();
