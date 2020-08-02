@@ -192,7 +192,6 @@ namespace rgatCore
                 txtitm2.screenXY.Y -= ImGui.CalcTextSize(txtitm.contents).Y / 2 ;
                 imdp.AddText(_ImGuiController._unicodeFont, txtitm2.fontSize, txtitm2.screenXY, (uint)txtitm2.color.ToArgb(), txtitm2.contents);
             }
-            
 
             //drawHUD();
         }

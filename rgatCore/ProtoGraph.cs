@@ -3,6 +3,7 @@ using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -1175,6 +1176,14 @@ namespace rgatCore
         bool updated = true;
 
         List<uint> exceptionSet = new List<uint>();
+
+        public uint[] GetExceptionNodes()
+        {
+            lock (highlightsLock)
+            {
+                return exceptionSet.ToArray();
+            }
+        }
 
         //void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
         //void stop_edgeL_iteration();

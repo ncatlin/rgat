@@ -38,6 +38,8 @@ namespace rgatCore.Widgets
 
             public List<ulong> SelectedAddresses = new List<ulong>();
             public string AddrEntryText = "";
+
+            public List<uint> SelectedExceptionNodes = new List<uint>();
         }
 
         Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
@@ -73,13 +75,13 @@ namespace rgatCore.Widgets
                     {
                         symentry.name = "[No Symbol Name]";
                     }
-                    symentry.threadNodes = new List<uint>() { n.index}; 
+                    symentry.threadNodes = new List<uint>() { n.index };
 
                     modentry.symbols.Add(n.address, symentry);
                 }
                 else
                 {
-                    if(!symentry.threadNodes.Contains(n.index)) symentry.threadNodes.Add(n.index);
+                    if (!symentry.threadNodes.Contains(n.index)) symentry.threadNodes.Add(n.index);
                 }
 
             }
@@ -168,7 +170,7 @@ namespace rgatCore.Widgets
         {
             if (ActiveGraph == null) return;
             if (settings.LastExternNodeCount < ActiveGraph.internalProtoGraph.ExternalNodesCount)
-            { 
+            {
                 RefreshExternHighlightData(ActiveGraph.internalProtoGraph.copyExternalNodeList());
             }
 
@@ -252,14 +254,19 @@ namespace rgatCore.Widgets
         public void DrawAddressSelectBox(float height)
         {
 
-            ImGui.ListBox("AddrListbox", ref selitem, settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(), settings.SelectedAddresses.Count);
-           
+            ImGui.ListBox("##AddrListbox", ref selitem, settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(), settings.SelectedAddresses.Count);
+
         }
 
         public void DrawAddressSelectControls()
         {
-            ImGui.InputText("AddrInput", ref settings.AddrEntryText, 255);
-            if (ImGui.Button("Add"))
+            ImGui.Text("Address");
+            ImGui.InputText("##AddressInput", ref settings.AddrEntryText, 255);
+            ImGui.SameLine();
+
+            if (ImGui.Button("Add") ||
+                ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)) ||
+                ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.KeyPadEnter)))
             {
                 string addrstring = settings.AddrEntryText;
                 if (addrstring.ToLower().StartsWith("0x")) addrstring = addrstring.Substring(2);
@@ -271,12 +278,44 @@ namespace rgatCore.Widgets
                     settings.AddrEntryText = "";
                     if (!settings.SelectedAddresses.Contains(hexAddr))
                     {
-                       
+
                         ActiveGraph.AddHighlightedAddress(hexAddr);
-                        settings.SelectedAddresses.Add(hexAddr); 
+                        settings.SelectedAddresses.Add(hexAddr);
                     }
                 }
             }
+        }
+
+
+        public void DrawExceptionSelectBox(float height)
+        {
+            uint[] exceptionNodes = ActiveGraph.internalProtoGraph.GetExceptionNodes();
+            if (ImGui.ListBoxHeader("##ExceptionsListbox"))
+            {
+                foreach (uint nodeidx in exceptionNodes)
+                {
+                    if (ImGui.Selectable($"{nodeidx}", settings.SelectedExceptionNodes.Contains(nodeidx)))
+                    {
+                        if (settings.SelectedExceptionNodes.Contains(nodeidx))
+                        {
+                            settings.SelectedExceptionNodes.Remove(nodeidx);
+                            ActiveGraph.RemoveHighlightedNodes(new List<uint> { nodeidx }, eHighlightType.eExceptions);
+                        }
+                        else
+                        {
+                            settings.SelectedExceptionNodes.Add(nodeidx);
+                            ActiveGraph.AddHighlightedNodes(new List<uint> { nodeidx }, eHighlightType.eExceptions);
+                        }
+
+                    }
+                }
+            }
+            ImGui.ListBoxFooter();
+        }
+
+        public void DrawExceptionSelectControls()
+        {
+
         }
 
         public void Draw()
@@ -315,8 +354,8 @@ namespace rgatCore.Widgets
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
                         settings.selectedHighlightTab = 2;
-                        ImGui.Text("s");
-
+                        DrawExceptionSelectBox(ImGui.GetContentRegionAvail().Y - 80);
+                        DrawExceptionSelectControls();
                         ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
