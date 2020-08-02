@@ -155,7 +155,7 @@ namespace rgatCore
                 if (TimeSinceLastResize > 150)
                 {
                     graphWidgetSize = graphSize;
-                    ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
+                    ActiveGraph.InitGraphTexture(graphWidgetSize, _gd);
                     scheduledGraphResize = false;
                 }
             }
@@ -202,7 +202,7 @@ namespace rgatCore
         {
             if (ActiveGraph == null) return;
 
-            ActiveGraph.InitMainGraphTexture(graphWidgetSize, _gd);
+            ActiveGraph.InitGraphTexture(graphWidgetSize, _gd);
 
             _cl.SetFramebuffer(ActiveGraph._outputFramebuffer);
             _cl.ClearColorTarget(0, RgbaFloat.Black);

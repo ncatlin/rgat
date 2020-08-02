@@ -1500,21 +1500,21 @@ namespace rgatCore
         {
             if (_outputFramebuffer == null)
             {
-                InitMainGraphTexture(size, _gd);
+                InitGraphTexture(size, _gd);
             }
 
         }
 
         public void UpdatePreviewBuffers(GraphicsDevice _gd)
         {
-            if (_previewTexture == null)
+            if (_outputTexture == null)
             {
-                InitPreviewGraphTexture(new Vector2(UI_Constants.PREVIEW_PANE_WIDTH - (UI_Constants.PREVIEW_PANE_PADDING * 2), UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
+                InitGraphTexture(new Vector2(UI_Constants.PREVIEW_PANE_WIDTH - (UI_Constants.PREVIEW_PANE_PADDING * 2), UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
         }
 
 
-        public void InitMainGraphTexture(Vector2 size, GraphicsDevice _gd)
+        public void InitGraphTexture(Vector2 size, GraphicsDevice _gd)
         {
             if (_outputTexture != null)
             {
@@ -1535,30 +1535,6 @@ namespace rgatCore
                                 PixelFormat.R32_G32_B32_A32_Float,
                                 TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
-
-        }
-
-        public void InitPreviewGraphTexture(Vector2 size, GraphicsDevice _gd)
-        {
-            if (_previewTexture != null)
-            {
-                if (_previewTexture.Width == size.X && _previewTexture.Height == size.Y) return;
-                else
-                {
-                    _previewFramebuffer.Dispose();
-                    _previewTexture.Dispose();
-                }
-            }
-
-            _previewTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                                (uint)size.X,
-                                (uint)size.Y,
-                                1,
-                                1,
-                                PixelFormat.R32_G32_B32_A32_Float,
-                                TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _previewFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture));
-
 
         }
 
@@ -1617,7 +1593,7 @@ namespace rgatCore
             for (int i = 0; i < HighlightedAddresses.Count; i++)
             {
                 ulong address = HighlightedAddresses[i];
-                List<uint> nodes = internalProtoGraph.ProcessData.GetNodesForInstruction(address, this.tid);
+                List<uint> nodes = internalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
                 lock (textLock)
                 {
                    AddHighlightedNodes(nodes, eHighlightType.eAddresses);
@@ -1625,12 +1601,8 @@ namespace rgatCore
             }
         }
 
-
-        //private:
         public Veldrid.Texture _outputTexture = null;
-        public Veldrid.Texture _previewTexture = null;
         public Veldrid.Framebuffer _outputFramebuffer = null;
-        public Veldrid.Framebuffer _previewFramebuffer = null;
 
         public float CameraZoom = 1000f;
         public float CameraFieldOfView = 1.0f;

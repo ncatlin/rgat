@@ -78,7 +78,7 @@ namespace rgatCore
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
                 PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
-                if (graph.NodesDisplayData.CountVerts() == 0 || graph._previewTexture == null) continue;
+                if (graph.NodesDisplayData.CountVerts() == 0 || graph._outputTexture == null) continue;
 
                 string Caption = $"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
 
@@ -87,7 +87,7 @@ namespace rgatCore
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 8);
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._outputTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     subGraphPosition,
                     new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
@@ -137,7 +137,7 @@ namespace rgatCore
                 if (graph == null) continue;
                 if (graph.EdgesDisplayData.CountRenderedEdges == 0 || graph.NodesDisplayData.CountVerts() == 0) continue;
 
-                if (graph._previewTexture == null)
+                if (graph._outputTexture == null)
                 {
                     graph.UpdatePreviewBuffers(_gd);
                 }
@@ -148,11 +148,11 @@ namespace rgatCore
                     graphicInfos.Add(graph.tid, new VeldridGraphBuffers());
                     graphRenderInfo = graphicInfos[graph.tid];
 
-                    graphRenderInfo.InitPipelines(_gd, CreateGraphShaders(_gd.ResourceFactory), graph._previewFramebuffer);
+                    graphRenderInfo.InitPipelines(_gd, CreateGraphShaders(_gd.ResourceFactory), graph._outputFramebuffer);
                 }
 
 
-                _cl.SetFramebuffer(graph._previewFramebuffer);
+                _cl.SetFramebuffer(graph._outputFramebuffer);
                 RgbaFloat graphBackground = graph.internalProtoGraph.Terminated ?
                     new RgbaFloat(0.5f, 0, 0, 0.2f) :
                     new RgbaFloat(0, 0.5f, 0, 0.2f);

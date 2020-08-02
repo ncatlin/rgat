@@ -345,7 +345,7 @@ namespace rgatCore
             }
         }
 
-        public List<uint> GetNodesForInstruction(ulong addr, uint TID)
+        public List<uint> GetNodesAtAddress(ulong addr, uint TID)
         {
             lock (InstructionsLock)
             {
