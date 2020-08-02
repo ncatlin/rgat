@@ -27,6 +27,7 @@ namespace rgatCore
         //rgat ui state
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
+        private bool _show_highlight_window = false;
         private bool _show_load_trace_window = false;
         private ImGuiController _ImGuiController = null;
 
@@ -508,6 +509,8 @@ namespace rgatCore
             public string name;
             public List<uint> threadNodes;
             public ulong address;
+            public bool selected;
+            public int moduleID;
         };
 
         struct moduleEntry
@@ -518,34 +521,12 @@ namespace rgatCore
 
         Dictionary<int, moduleEntry> displayedModules = new Dictionary<int, moduleEntry>();
         int LastExternNodeCount = 0;
-
-        //returns the data for [module moduleNumber] in the item tree, adding a new one if non existant
-        void DisplayModuleHighlightTreeNode(ProcessRecord processrec, int moduleNumber)
-        {
-
-            if (!displayedModules.TryGetValue(moduleNumber, out moduleEntry modEntry))
-            {
-                string modulepath = processrec.GetModulePath(moduleNumber);
-
-                /*
-                QTreeWidgetItem* moduleItem = new QTreeWidgetItem;
-                moduleItem->setText(0, QString::fromStdWString(modpath.filename().wstring()));
-                moduleItem->setText(1, "(" + QString::fromStdWString(modpath.wstring()) + ")");
-                moduleItem->setText(2, NULL);
-                moduleItem->setData(3, Qt::UserRole, qVariantFromValue(moduleNumber));
-                */
-
-                if (ImGui.TreeNode($"{modulepath}"))
-                {
-                    ImGui.Text("item1");
-                    ImGui.Text("item2");
-                    ImGui.Text("item3");
-                    ImGui.TreePop();
-                }
-
-               //return &displayedModules.at(moduleNumber);
-            }
-        }
+        List<uint> SelectedSymbolNodes = new List<uint>();
+        List<symbolInfo> SelectedSymbols = new List<symbolInfo>();
+        List<uint> SelectedAddressNodes = new List<uint>();
+        List<uint> SelectedExceptionNodes = new List<uint>();
+        int selectedHighlightTab = 0;
+        string SymFilterText = "";
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
@@ -554,8 +535,6 @@ namespace rgatCore
             ProcessRecord processrec = protog?.ProcessData;
 
             if (processrec == null) return;
-            displayedModules.Clear();
-            LastExternNodeCount = 0;
 
             foreach (uint nodeIdx in externNodes)
             {
@@ -572,19 +551,27 @@ namespace rgatCore
                 {
                     symentry = new symbolInfo();
                     symentry.address = n.address;
+                    symentry.selected = false;
+                    symentry.moduleID = n.GlobalModuleID;
                     if (!processrec.GetSymbol(n.GlobalModuleID, n.address, out symentry.name))
                     {
                         symentry.name = "[No Symbol Name]";
                     }
-                    symentry.threadNodes = new List<uint>();
+                    symentry.threadNodes = new List<uint>();    //todo: set thread nodes
+
                     modentry.symbols.Add(n.address, symentry);
+                }
+                else
+                {
+                    //todo: update thread nodes
                 }
 
             }
+            LastExternNodeCount = externNodes.Length;
         }
 
 
-        private void DrawSymbolsFrame()
+        private void DrawSymbolsSelectBox()
         {
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph; 
             ProtoGraph protog = ActiveGraph?.internalProtoGraph;
@@ -598,22 +585,57 @@ namespace rgatCore
                 RefreshExternHighlightData(externNodes);
             }
 
+            ImGui.Text("Filter");
+            ImGui.SameLine();
+            ImGui.InputText("##SymFilter", ref SymFilterText, 255);
+            ImGui.SameLine();
+            if (ImGui.Button("x"))
+            {
+                SymFilterText = "";
+            }
             ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFFFFFFF);
-            if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsFrame"), ImGui.GetContentRegionAvail()))
+            if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsFrame"), new Vector2(ImGui.GetContentRegionAvail().X, 260)))
             {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
+                if (ImGui.BeginChild(ImGui.GetID("highlightSymsFrame2"), new Vector2(ImGui.GetContentRegionAvail().X, 20)))
+                {
+                    ImGui.SameLine(100);
+                    ImGui.Text("Symbol");
+                    ImGui.SameLine(300);
+                    ImGui.Text("Address");
+                    ImGui.EndChild();
+                }
+                ImGui.PopStyleColor();
 
                 foreach (moduleEntry module_modentry in displayedModules.Values)
                 {
                     if (ImGui.TreeNode($"{module_modentry.path}"))
                     {
-                        foreach (symbolInfo syminfo in module_modentry.symbols.Values)
+                        var keyslist = module_modentry.symbols.Keys.ToArray();
+                        foreach (ulong symaddr in keyslist)
                         {
-                            if (ImGui.TreeNode($"{syminfo.name}"))
+                            symbolInfo syminfo = module_modentry.symbols[symaddr];
+                            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 75);
+                            if(ImGui.Selectable($"{syminfo.name}", syminfo.selected))
                             {
-
-                                ImGui.TreePop();
+                                syminfo.selected = !syminfo.selected;
+                                module_modentry.symbols[symaddr] = syminfo;
+                                if (syminfo.selected)
+                                {
+                                    if (!SelectedSymbolNodes.Contains(22))
+                                    {
+                                        SelectedSymbolNodes.Add(44); //todo symbol nodes
+                                    }
+                                    SelectedSymbols.Add(syminfo);
+                                }
+                                else
+                                {
+                                    SelectedSymbols = SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
+                                }
                             }
+                            ImGui.SameLine(300);
+                            ImGui.Text($"0x{syminfo.address:X}");
                         }
                         ImGui.TreePop();
                     }
@@ -626,26 +648,69 @@ namespace rgatCore
             ImGui.PopStyleColor();
         }
 
+        private void DrawSymbolsSelectControls()
+        {
+            if (selectedHighlightTab == 0)
+            {
+                if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, 40)))
+                {
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text($"{SelectedSymbols.Count} highlighted symbols ({SelectedSymbolNodes.Count}) nodes");
+                    ImGui.SameLine();
+                    ImGui.Dummy(new Vector2(6, 10));
+                    ImGui.SameLine();
+                    if (ImGui.Button("Clear"))
+                    {
+                        foreach (var sym in SelectedSymbols)
+                        {
+                            symbolInfo symdat = displayedModules[sym.moduleID].symbols[sym.address];
+                            symdat.selected = false;
+                            displayedModules[sym.moduleID].symbols[sym.address] = symdat;
+                        }
+                        SelectedSymbolNodes.Clear();
+                        SelectedSymbols.Clear();
+                    }
+
+                    ImGui.SameLine(ImGui.GetContentRegionAvail().X - 95);
+                    ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000);
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000ff);
+                    if (ImGui.Button("Highlight Color"))
+                    {
+
+                    }
+                    ImGui.PopStyleColor();
+                    ImGui.PopStyleColor();
+
+
+                    ImGui.EndChildFrame();
+                }
+            }
+        }
+
+
         private void DrawHighlightsPopup()
         {
-            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(600, 300)))
+            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), new Vector2(600, 360)))
             {
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
                 if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
                 {
-                    if (ImGui.BeginTabItem("Symbols"))
+                    if (ImGui.BeginTabItem("Externals/Symbols"))
                     {
-                        DrawSymbolsFrame();
+                        selectedHighlightTab = 0;
+                        DrawSymbolsSelectBox();
+                        DrawSymbolsSelectControls();
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Addresses"))
                     {
-
+                        selectedHighlightTab = 1;
                         ImGui.Text("s");
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
+                        selectedHighlightTab = 2;
                         ImGui.Text("s");
 
                         ImGui.EndTabItem();
@@ -735,12 +800,14 @@ namespace rgatCore
 
                 if (ImGui.Button("Highlight"))
                 {
-                    ImGui.OpenPopup("##HighlightsDialog");
+                    _show_highlight_window = true;
+                    ImGui.OpenPopup("Code Highlighting");
                 }
 
                 ImGui.SameLine();
 
-                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##HighlightsDialog", ImGuiWindowFlags.AlwaysAutoResize))
+                if (this._rgatstate.ActiveGraph != null && 
+                    ImGui.BeginPopupModal("Code Highlighting", ref _show_highlight_window, ImGuiWindowFlags.AlwaysAutoResize))
                 {
                     DrawHighlightsPopup();
                     ImGui.EndPopup();
