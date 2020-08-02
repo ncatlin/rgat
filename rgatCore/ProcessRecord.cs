@@ -534,7 +534,7 @@ namespace rgatCore
             return instructions.Length;
         }
 
-        private bool UnpackOpcodes(JArray mutationData, CapstoneX86Disassembler disassembler, ADDRESS_DATA addressData, out List<InstructionData> opcodeVariants)
+        private static bool UnpackOpcodes(JArray mutationData, CapstoneX86Disassembler disassembler, ADDRESS_DATA addressData, out List<InstructionData> opcodeVariants)
         {
             opcodeVariants = new List<InstructionData>();
             foreach (JArray mutation in mutationData)

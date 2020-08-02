@@ -200,7 +200,7 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
-            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X, height - 20)))
+            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X,  height - 80)))
             {
                 DrawModSymTreeNodes();
                 ImGui.EndChild();
@@ -210,14 +210,14 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
         }
 
-        private void DrawSymbolsSelectControls()
+        private void DrawSymbolsSelectControls(float height)
         {
             if (settings.selectedHighlightTab == 0)
             {
-                if (ImGui.BeginChildFrame(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, 40)))
+                if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height-10)))
                 {
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{settings.SelectedSymbols.Count} highlighted symbols ({ActiveGraph.HighlightedSymbolNodes.Count}) nodes");
+                    ImGui.Text($"{settings.SelectedSymbols.Count} highlighted symbols ({ActiveGraph.HighlightedSymbolNodes.Count} nodes)");
                     ImGui.SameLine();
                     ImGui.Dummy(new Vector2(6, 10));
                     ImGui.SameLine();
@@ -245,7 +245,7 @@ namespace rgatCore.Widgets
                     ImGui.PopStyleColor();
 
 
-                    ImGui.EndChildFrame();
+                    ImGui.EndChild();
                 }
             }
         }
@@ -253,8 +253,9 @@ namespace rgatCore.Widgets
         static int selitem = 0;
         public void DrawAddressSelectBox(float height)
         {
-
-            ImGui.ListBox("##AddrListbox", ref selitem, settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(), settings.SelectedAddresses.Count);
+            ImGui.ListBox("##AddrListbox", ref selitem, 
+                settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(),
+                settings.SelectedAddresses.Count);
 
         }
 
@@ -290,6 +291,15 @@ namespace rgatCore.Widgets
         public void DrawExceptionSelectBox(float height)
         {
             uint[] exceptionNodes = ActiveGraph.internalProtoGraph.GetExceptionNodes();
+            if (exceptionNodes.Length == 0)
+            {
+                string caption = $"No exceptions recorded in thread ID {ActiveGraph.tid}";
+                ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - ImGui.CalcTextSize(caption).X / 2);
+                ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - ImGui.CalcTextSize(caption).Y / 2);
+                ImGui.Text(caption);
+                return;
+            }
+
             if (ImGui.ListBoxHeader("##ExceptionsListbox"))
             {
                 foreach (uint nodeidx in exceptionNodes)
@@ -320,6 +330,7 @@ namespace rgatCore.Widgets
 
         public void Draw()
         {
+
             PlottedGraph LatestActiveGraph = _rgatstate.ActiveGraph;
             if (LatestActiveGraph == null) return;
             if (ActiveGraph != LatestActiveGraph)
@@ -332,7 +343,11 @@ namespace rgatCore.Widgets
                 }
             }
 
-            if (ImGui.BeginChild(ImGui.GetID("highlightControls"), InitialSize))
+            Vector2 Size = ImGui.GetContentRegionAvail();
+            if (Size.X < InitialSize.X) Size.X = InitialSize.X;
+            if (Size.Y < InitialSize.Y) Size.Y = InitialSize.Y;
+                
+            if (ImGui.BeginChildFrame(ImGui.GetID("highlightControls"), Size, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
                 if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
@@ -340,28 +355,28 @@ namespace rgatCore.Widgets
                     if (ImGui.BeginTabItem("Externals/Symbols"))
                     {
                         settings.selectedHighlightTab = 0;
-                        DrawSymbolsSelectBox(ImGui.GetContentRegionAvail().Y - 80); //todo: unbadify this height choice
-                        DrawSymbolsSelectControls();
+                        DrawSymbolsSelectBox(Size.Y - 40); //todo: unbadify this height choice
+                        DrawSymbolsSelectControls(40);
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Addresses"))
                     {
                         settings.selectedHighlightTab = 1;
-                        DrawAddressSelectBox(ImGui.GetContentRegionAvail().Y - 80);
+                        DrawAddressSelectBox(Size.Y - 80);
                         DrawAddressSelectControls();
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
                         settings.selectedHighlightTab = 2;
-                        DrawExceptionSelectBox(ImGui.GetContentRegionAvail().Y - 80);
+                        DrawExceptionSelectBox(Size.Y - 80);
                         DrawExceptionSelectControls();
                         ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
                 }
 
-                ImGui.EndChild();
+                ImGui.EndChildFrame();
             }
         }
     }

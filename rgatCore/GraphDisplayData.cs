@@ -104,9 +104,6 @@ namespace rgatCore
 
         public List<Tuple<int, int>> Edges_VertSizes_ArrayPositions = new List<Tuple<int, int>>();
 
-
-
-
         public GraphDisplayData(bool preview = false)
         {
             LastRenderedNode.lastVertID = 0;
@@ -189,9 +186,6 @@ namespace rgatCore
             }
         }
 
-
-
-
         public int safe_add_vert(VertexPositionColor input)
         {
             int newsize = 0;
@@ -246,17 +240,9 @@ namespace rgatCore
             return VertList;
         }
 
-
-        List<VertexPositionColor> readonly_col() { if (VertList.Count > 0) return VertList; return null; }
-
-        public void release_vert_write()
+        public void MarkDataChanged()
         {
             DataChanged = true;
-            //poslock_.unlock();
-        }
-        public void release_vert_read()
-        {
-            //poslock_.unlock_shared();
         }
 
         public void inc_edgesRendered() { ++CountRenderedEdges; }
@@ -346,8 +332,6 @@ namespace rgatCore
             Edges_VertSizes_ArrayPositions.Clear();
         }
 
-        //bool get_coord(NODEINDEX index, FCOORD* result);
-
         public struct PLOT_TRACK
         {
             uint _lastVertID;
@@ -357,7 +341,6 @@ namespace rgatCore
                 set
                 {
                     _lastVertID = value;
-                    Console.WriteLine($"Changed to {value}");
                     changed = true;
                 }
             }
@@ -372,9 +355,6 @@ namespace rgatCore
             vertcount = Edges_VertSizes_ArrayPositions[EdgeIndex].Item1;
             arraypos = Edges_VertSizes_ArrayPositions[EdgeIndex].Item2;
         }
-
-        //mutable std::shared_mutex poslock_;
-        //mutable std::shared_mutex collock_;
 
         public void SignalDataRead() { DataChanged = false; } //todo race condition possible here
         public bool DataChanged { get; private set; } = false;

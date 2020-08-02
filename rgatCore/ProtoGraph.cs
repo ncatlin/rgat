@@ -768,7 +768,6 @@ namespace rgatCore
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
-            uint lastVert;
             //Console.WriteLine($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {

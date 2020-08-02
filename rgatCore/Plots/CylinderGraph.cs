@@ -486,9 +486,11 @@ namespace rgatCore
 
             float Loop_vert_sep = (maxB * scalefactors.pix_per_B) / (wireframe_loop_count - 2);
 
-            VertexPositionColor wfVert = new VertexPositionColor();
-            wfVert.Color = GlobalConfig.mainColours.wireframe;
-            wfVert.ActiveAnimAlpha = GlobalConfig.WireframeAnimatedAlpha;
+            VertexPositionColor wfVert = new VertexPositionColor
+            {
+                Color = GlobalConfig.mainColours.wireframe,
+                ActiveAnimAlpha = GlobalConfig.WireframeAnimatedAlpha
+            };
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 float rowYcoord = -rowY * Loop_vert_sep;// (CYLINDER_SEP_PER_ROW + Math.Max(0, main_scalefactors.pix_per_B));
@@ -504,7 +506,7 @@ namespace rgatCore
                 }
             }
             Console.WriteLine($"Drew {vertsList.Count} wireframe verts");
-            wireframelines.release_vert_write();
+            wireframelines.MarkDataChanged();
         }
 
 
@@ -592,7 +594,7 @@ namespace rgatCore
 
             float eLen = GraphicsMaths.linedist(startC, endC);
 
-            Vector3 bezierC;
+            Vector3 bezierC = middleC;
             int curvePoints;
 
             switch (edgeType)
@@ -609,18 +611,13 @@ namespace rgatCore
                 case eEdgeNodeType.eEdgeReturn:
                     {
                         curvePoints = GL_Constants.LONGCURVEPTS;
-
-                        if (eLen < 2)
-                            bezierC = middleC;
-                        else
+                        if (eLen > 2)
                         {
-                            bezierC = middleC;
                             //calculate the AB coords of the midpoint of the cylinder
                             getCylinderCoordAB(middleC, scalefactors, out float oldMidA, out float oldMidB);
                             float curveMagnitude = Math.Min(eLen / 2, (float)(scalefactors.plotSize / 2));
                             //recalculate the midpoint coord as if it was inside the cylinder
-                            cylinderCoord(oldMidA, oldMidB, -curveMagnitude, out Vector3 bezierC2, scalefactors);
-                            bezierC = bezierC2;
+                            cylinderCoord(oldMidA, oldMidB, -curveMagnitude, out bezierC, scalefactors);
 
                             //i dont know why this problem happens or why this fixes it
                             //todo: is this still an issue?

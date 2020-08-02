@@ -37,7 +37,6 @@ namespace ImGuiNET
         private bool _shiftDown;
         private bool _altDown;
         private bool _winKeyDown;
-
         public int _windowWidth;
         public int _windowHeight;
         private Vector2 _scaleFactor = Vector2.One;

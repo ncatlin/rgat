@@ -93,45 +93,53 @@ namespace rgatCore.Threads
             const int EXTERN_VISIBLE_ZOOM_FACTOR = 40;
             const int INSTEXT_VISIBLE_ZOOMFACTOR = 5;
 
-            externalSymbolVisibility = new SYMS_VISIBILITY();
-            externalSymbolVisibility.enabled = true;
-            externalSymbolVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
-            externalSymbolVisibility.offsets = true;
-            externalSymbolVisibility.addresses = false;
-            externalSymbolVisibility.fullPaths = false;
-            externalSymbolVisibility.extraDetail = true;
-            externalSymbolVisibility.duringAnimationFaded = false;
-            externalSymbolVisibility.duringAnimationHighlighted = true;
-            externalSymbolVisibility.notAnimated = true;
+            externalSymbolVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                offsets = true,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
 
-            internalSymbolVisibility = new SYMS_VISIBILITY();
-            internalSymbolVisibility.enabled = true;
-            internalSymbolVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
-            internalSymbolVisibility.addresses = false;
-            internalSymbolVisibility.fullPaths = false;
-            internalSymbolVisibility.extraDetail = true;
-            internalSymbolVisibility.duringAnimationFaded = false;
-            internalSymbolVisibility.duringAnimationHighlighted = true;
-            internalSymbolVisibility.notAnimated = true;
+            internalSymbolVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
 
-            placeholderLabelVisibility = new SYMS_VISIBILITY();
-            placeholderLabelVisibility.enabled = true;
-            placeholderLabelVisibility.autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR;
-            placeholderLabelVisibility.addresses = false;
-            placeholderLabelVisibility.fullPaths = false;
-            placeholderLabelVisibility.extraDetail = true;
-            placeholderLabelVisibility.duringAnimationFaded = false;
-            placeholderLabelVisibility.duringAnimationHighlighted = true;
-            placeholderLabelVisibility.notAnimated = true;
+            placeholderLabelVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
 
 
-            instructionTextVisibility = new SYMS_VISIBILITY();
-            instructionTextVisibility.enabled = true;
-            instructionTextVisibility.autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR;
-            instructionTextVisibility.addresses = true;
-            instructionTextVisibility.offsets = true;
-            instructionTextVisibility.fullPaths = true; //label for targets of calls/jmps
-            instructionTextVisibility.extraDetail = true; //only show control flow
+            instructionTextVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR,
+                addresses = true,
+                offsets = true,
+                fullPaths = true, //label for targets of calls/jmps
+                extraDetail = true //only show control flow
+            };
         }
     }
 }

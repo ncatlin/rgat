@@ -98,7 +98,7 @@ namespace rgatCore
 			selectGraphInActiveTrace();
 		}
 
-		bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
+		static bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
 		{
 			BinaryTarget target = null;
 			targetResult = null;
@@ -310,7 +310,7 @@ namespace rgatCore
 
 		//return true if a new trace was created, false if failed or duplicate
 		//todo should have 3 returns
-		bool initialiseTrace(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
+		static bool initialiseTrace(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
 		{
 
 			bool valid = true;

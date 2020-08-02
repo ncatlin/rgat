@@ -227,11 +227,6 @@ namespace rgatCore
         public uint PID { get; private set; }
         public long randID { get; private set; } //to distinguish between processes with identical PIDs
 
-
-
-        int loadedModuleCount = 0;
-
-
         bool LoadProcessGraphs(JObject processJSON)
         {
             if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)

@@ -380,28 +380,13 @@ namespace rgatCore
 
         public void SetAnimated(bool newState)
         {
-            if (IsAnimated)
-            {
-                animation_needs_reset = true;
-            }
-
             IsAnimated = newState;
         }
-        //void copy_node_data(GraphDisplayData* nodes);
 
         //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
         /*
-
 		bool isWireframeSupported() { return wireframeSupported; }
 		bool isWireframeActive() { return wireframeActive; }
-
-		GraphDisplayData* get_mainlines() { return mainlinedata; }
-		GraphDisplayData* get_mainnodes() { return mainnodesdata; }
-
-		bool increase_thread_references(int caller);
-		void decrease_thread_references(int caller);
-		void display_highlight_lines(List<uint>* nodeList, QColor &colour, int lengthModifier, graphGLWidget &gltarget);
-		void setHighlightData(List<uint>* nodeList, egraphHighlightModes highlightType);
 		*/
 
         public static rgatState clientState;
@@ -412,8 +397,6 @@ namespace rgatCore
         public GraphDisplayData NodesDisplayData = null;
         public GraphDisplayData EdgesDisplayData = null;
         public GraphDisplayData HighlightsDisplayData = null;
-        //public GraphDisplayData conditionallines = null;
-        //public GraphDisplayData conditionalnodes = null;
         //public GraphDisplayData blocklines = null;
         public GraphDisplayData wireframelines = null;
 
@@ -724,43 +707,6 @@ namespace rgatCore
 
                 void set_max_wait_frames(uint frames) { maxWaitFrames = frames; }
         */
-
-
-
-        void extend_faded_edges()
-        {
-
-            Console.WriteLine("todo extend_faded_edges");
-            /*
-            int drawnVerts = mainlinedata.CountVerts();
-            int animatedVerts = animlinedata.CountVerts();
-
-            Debug.Assert(drawnVerts >= animatedVerts);
-            int pendingVerts = drawnVerts - animatedVerts;
-            if (pendingVerts == 0) return;
-            */
-            //List<VertexPositionColor> animEdgeColours = animlinedata.acquire_vert_read();
-            //List<VertexPositionColor> staticEdgeColours = mainlinedata.acquire_vert_read();
-
-            //copy the colours over
-            //Console.WriteLine("Todo all of this extend_faded_edges");
-            //int fadedIndex = animatedVerts * GL_Constants.COLELEMS;
-            //vector<float>::iterator mainEIt = staticEdgeColours.begin();
-            //advance(mainEIt, fadedIndex);
-            //animEdgeColours.insert(animEdgeColours.end(), mainEIt, staticEdgeColours.end());
-            //mainlinedata.release_col_read();
-
-            //fade alpha of new colours
-            //int index2 = animatedVerts * GL_Constants.COLELEMS;
-            //int end = drawnVerts * GL_Constants.COLELEMS;
-            //for (; index2 < end; index2 += GL_Constants.COLELEMS)
-            //	animEdgeColours[index2 + GL_Constants.AOFF] = (float)0.01; //TODO: config entry for anim inactive
-
-            //animlinedata.set_numVerts(drawnVerts);
-            //animlinedata.release_col_write();
-        }
-
-        //void reset_mainlines();
 
         void render_animation(float fadeRate)
         {
@@ -1663,10 +1609,8 @@ namespace rgatCore
         public List<uint> HighlightedExceptionNodes = new List<uint>();
 
         bool animBuildingLoop = false;
-        bool Stopping = false;
-        //int threadReferences = 0;
+
         public bool IsAnimated { get; private set; } = false;
-        bool animation_needs_reset = false;
         public bool NeedReplotting = false; //all verts need re-plotting from scratch
                                             //bool performSymbolResolve = false;
     }

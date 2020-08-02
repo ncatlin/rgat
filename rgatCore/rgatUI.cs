@@ -59,7 +59,7 @@ namespace rgatCore
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller);
             PreviewGraphWidget = new PreviewGraphsWidget();
-
+            HighlightDialogWidget = new HighlightDialog(_rgatstate);
         }
 
         public void Exit()
@@ -166,7 +166,7 @@ namespace rgatCore
             ImGui.EndChildFrame();
         }
 
-        private void DrawTraceTab_DiagnosticSettings(float width)
+        private static void DrawTraceTab_DiagnosticSettings(float width)
         {
             ImGui.BeginGroup();
             {
@@ -589,18 +589,19 @@ namespace rgatCore
                 if (ImGui.Button("Highlight"))
                 {
                     _show_highlight_window = true;
-                    if (HighlightDialogWidget == null) HighlightDialogWidget = new HighlightDialog(_rgatstate);
-
-                    ImGui.OpenPopup("Code Highlighting");
                 }
 
                 ImGui.SameLine();
 
-                if (this._rgatstate.ActiveGraph != null && 
-                    ImGui.BeginPopupModal("Code Highlighting", ref _show_highlight_window))
+                if (_show_highlight_window)
                 {
-                    HighlightDialogWidget.Draw();
-                    ImGui.EndPopup();
+                    ImGui.SetNextWindowSizeConstraints(HighlightDialog.InitialSize, new Vector2(HighlightDialog.InitialSize.X + 400, HighlightDialog.InitialSize.Y + 500));
+                    if (this._rgatstate.ActiveGraph != null &&
+                        ImGui.Begin("Code Highlighting", ref _show_highlight_window))
+                    {
+                        HighlightDialogWidget.Draw();
+                        ImGui.End();
+                    }
                 }
 
 
