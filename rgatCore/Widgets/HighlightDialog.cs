@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -31,11 +32,12 @@ namespace rgatCore.Widgets
         {
             public Dictionary<int, moduleEntry> displayedModules = new Dictionary<int, moduleEntry>();
             public int LastExternNodeCount = 0;
-
             public List<symbolInfo> SelectedSymbols = new List<symbolInfo>();
-
             public int selectedHighlightTab = 0;
             public string SymFilterText = "";
+
+            public List<ulong> SelectedAddresses = new List<ulong>();
+            public string AddrEntryText = "";
         }
 
         Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
@@ -90,12 +92,12 @@ namespace rgatCore.Widgets
             module_modentry.symbols[syminfo.address] = syminfo;
             if (syminfo.selected)
             {
-                ActiveGraph.AddHighlightedSymbolNodes(syminfo.threadNodes);
+                ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
                 settings.SelectedSymbols.Add(syminfo);
             }
             else
             {
-                ActiveGraph.RemoveHighlightedSymbolNodes(syminfo.threadNodes);
+                ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
                 settings.SelectedSymbols = settings.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
             }
         }
@@ -246,6 +248,36 @@ namespace rgatCore.Widgets
             }
         }
 
+        static int selitem = 0;
+        public void DrawAddressSelectBox(float height)
+        {
+
+            ImGui.ListBox("AddrListbox", ref selitem, settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(), settings.SelectedAddresses.Count);
+           
+        }
+
+        public void DrawAddressSelectControls()
+        {
+            ImGui.InputText("AddrInput", ref settings.AddrEntryText, 255);
+            if (ImGui.Button("Add"))
+            {
+                string addrstring = settings.AddrEntryText;
+                if (addrstring.ToLower().StartsWith("0x")) addrstring = addrstring.Substring(2);
+                bool success = ulong.TryParse(addrstring, NumberStyles.AllowHexSpecifier, CultureInfo.CurrentCulture, out ulong hexAddr);
+                if (!success)
+                    success = ulong.TryParse(addrstring, NumberStyles.Integer, CultureInfo.CurrentCulture, out hexAddr);
+                if (success)
+                {
+                    settings.AddrEntryText = "";
+                    if (!settings.SelectedAddresses.Contains(hexAddr))
+                    {
+                       
+                        ActiveGraph.AddHighlightedAddress(hexAddr);
+                        settings.SelectedAddresses.Add(hexAddr); 
+                    }
+                }
+            }
+        }
 
         public void Draw()
         {
@@ -276,7 +308,8 @@ namespace rgatCore.Widgets
                     if (ImGui.BeginTabItem("Addresses"))
                     {
                         settings.selectedHighlightTab = 1;
-                        ImGui.Text("s");
+                        DrawAddressSelectBox(ImGui.GetContentRegionAvail().Y - 80);
+                        DrawAddressSelectControls();
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))

@@ -1563,23 +1563,68 @@ namespace rgatCore
         }
 
         protected bool HighlightsChanged = false;
-        public void AddHighlightedSymbolNodes(List<uint> newnodeidxs)
+        public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
             lock(textLock)
             {
-                HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                switch (highlightType)
+                {
+                    case eHighlightType.eExternals:
+                        HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        break;
+                    case eHighlightType.eAddresses:
+                        HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        break;
+                    case eHighlightType.eExceptions:
+                        HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        break;
+                }
                 HighlightsChanged = true;
             }
         }
 
-        public void RemoveHighlightedSymbolNodes(List<uint> nodeidxs)
+        public void RemoveHighlightedNodes(List<uint> nodeidxs, eHighlightType highlightType)
         {
             lock (textLock)
             {
-                HighlightedSymbolNodes = HighlightedSymbolNodes.Except(nodeidxs).ToList();
+                switch (highlightType)
+                {
+                    case eHighlightType.eExternals:
+                        HighlightedSymbolNodes = HighlightedSymbolNodes.Except(nodeidxs).ToList();
+                        break;
+                    case eHighlightType.eAddresses:
+                        HighlightedAddressNodes = HighlightedAddressNodes.Except(nodeidxs).ToList();
+                        break;
+                    case eHighlightType.eExceptions:
+                        HighlightedExceptionNodes = HighlightedExceptionNodes.Except(nodeidxs).ToList();
+                        break;
+                }
+
                 HighlightsChanged = true;
             }
         }
+
+        public void AddHighlightedAddress(ulong address)
+        {
+            lock (textLock)
+            {
+                if(!HighlightedAddresses.Contains(address)) HighlightedAddresses.Add(address);
+            }
+        }
+
+        public void DoHighlightAddresses()
+        {
+            for (int i = 0; i < HighlightedAddresses.Count; i++)
+            {
+                ulong address = HighlightedAddresses[i];
+                List<uint> nodes = internalProtoGraph.ProcessData.GetNodesForInstruction(address, this.tid);
+                lock (textLock)
+                {
+                   AddHighlightedNodes(nodes, eHighlightType.eAddresses);
+                }
+            }
+        }
+
 
         //private:
         public Veldrid.Texture _outputTexture = null;
@@ -1642,6 +1687,7 @@ namespace rgatCore
 
         public List<uint> HighlightedSymbolNodes = new List<uint>();
         public List<uint> HighlightedAddressNodes = new List<uint>();
+        public List<ulong> HighlightedAddresses = new List<ulong>();
         public List<uint> HighlightedExceptionNodes = new List<uint>();
 
         bool animBuildingLoop = false;

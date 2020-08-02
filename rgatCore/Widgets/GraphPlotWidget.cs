@@ -377,6 +377,9 @@ void main()
             if (ActiveGraph == null)
                 return;
 
+            //highlight new nodes with highlighted address
+            ActiveGraph.DoHighlightAddresses();
+
             if (ActiveGraph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying)
             {
                 //ui->replaySlider->setValue(1000 * ActiveGraph.getAnimationPercent());

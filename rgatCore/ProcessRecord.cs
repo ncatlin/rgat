@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -287,6 +288,8 @@ namespace rgatCore
             }
         }
 
+
+
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
@@ -342,15 +345,14 @@ namespace rgatCore
             }
         }
 
-
-        /*
-            public Tuple<ulong, BLOCK_DESCRIPTOR*> blockDetails(BLOCK_IDENTIFIER blockid);
-            public ulong numBlocksSeen() { return blockList.size(); }
-            //must already have disassembly write lock
-            public void addBlock_HaveLock(ulong addr, BLOCK_DESCRIPTOR* blk) { blockList.push_back(make_pair(addr, blk)); }
-            */
-
-
+        public List<uint> GetNodesForInstruction(ulong addr, uint TID)
+        {
+            lock (InstructionsLock)
+            {
+                if (!disassembly.TryGetValue(addr, out List<InstructionData> ins)) return new List<uint>();
+                return ins.Where(i => i.threadvertIdx.ContainsKey(TID)).Select(i => i.threadvertIdx[TID]).ToList();
+            }
+        }
 
         public readonly object InstructionsLock = new object();
 

@@ -943,13 +943,13 @@ namespace rgatCore
             HighlightsDisplayData.Clear();
             DrawHighlightLine(srcc, targc, new WritableRgbaFloat(Color.Red));
 
-            List<uint> highlightSyms = null;
+            uint[] highlightNodes = null;
             lock (textLock)
             {
                 HighlightsChanged = false;
-                highlightSyms = HighlightedSymbolNodes.ToList();
+                highlightNodes = HighlightedSymbolNodes.Concat(HighlightedAddressNodes).Concat(HighlightedExceptionNodes).ToArray();
             }
-            foreach (uint srcnode in highlightSyms)
+            foreach (uint srcnode in highlightNodes)
             {
                 targc = nodeIndexToXYZ((int)srcnode);
                 DrawHighlightLine(srcc, targc, new WritableRgbaFloat(Color.Cyan));

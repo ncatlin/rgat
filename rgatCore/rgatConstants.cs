@@ -12,6 +12,7 @@ namespace rgatCore
     };
 
     enum eRenderingMode { eStandardControlFlow, ePreview, eHeatmap, eConditionals }
+    enum eHighlightType { eExternals, eAddresses, eExceptions};
 
     enum eConditionalType
     {
