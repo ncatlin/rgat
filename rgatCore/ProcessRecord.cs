@@ -99,9 +99,9 @@ namespace rgatCore
 
                 lock (InstructionsLock)
                 {
-                    if (blockList.Count > blockID && blockList[(int)blockID] != null)
+                    if (BasicBlocksList.Count > blockID && BasicBlocksList[(int)blockID] != null)
                     {
-                        return blockList[(int)blockID].Item1;
+                        return BasicBlocksList[(int)blockID].Item1;
                     }
                 }
                 if (dieFlag) return 0;
@@ -130,19 +130,23 @@ namespace rgatCore
                 if (externBlockaddr != 0 || blockID == uint.MaxValue)
                 {
                     int moduleNo = FindContainingModule(externBlockaddr);
+                    if (ModuleTraceStates.Count <= moduleNo)
+                    {
+                        Console.WriteLine($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                        return null;
+                    }
                     if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
                     {
-                        ROUTINE_STRUCT tmpexternBlock;
-                        get_extern_at_address(externBlockaddr, moduleNo, out tmpexternBlock);
+                        get_extern_at_address(externBlockaddr, moduleNo, out ROUTINE_STRUCT tmpexternBlock);
                         externBlock = tmpexternBlock;
                         return null;
                     }
                 }
 
 
-                if (blockID < blockList.Count)
+                if (blockID < BasicBlocksList.Count)
                 {
-                    var result = blockList[(int)blockID];
+                    var result = BasicBlocksList[(int)blockID];
                     if (result != null)
                     {
                         externBlock = null;
@@ -274,17 +278,17 @@ namespace rgatCore
             //these arrive out of order so have to add some dummy entries
             lock (InstructionsLock)
             {
-                if (blockList.Count > blockID)
-                { 
-                    blockList[(int)blockID] = new Tuple<ulong, List<InstructionData>>(address, instructions);
+                if (BasicBlocksList.Count > blockID)
+                {
+                    BasicBlocksList[(int)blockID] = new Tuple<ulong, List<InstructionData>>(address, instructions);
                     return;
                 }
 
-                while (blockList.Count < blockID)
+                while (BasicBlocksList.Count < blockID)
                 {
-                    blockList.Add(null);
+                    BasicBlocksList.Add(null);
                 }
-                blockList.Add(new Tuple<ulong, List<InstructionData>>(address, instructions));
+                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(address, instructions));
             }
         }
 
@@ -364,7 +368,7 @@ namespace rgatCore
 
         //list of basic blocks - guarded by instructionslock
         //              address
-        public List<Tuple<ulong, List<InstructionData>>> blockList = new List<Tuple<ulong, List<InstructionData>>>();
+        public List<Tuple<ulong, List<InstructionData>>> BasicBlocksList = new List<Tuple<ulong, List<InstructionData>>>();
         //private Dictionary<uint, List<InstructionData>> blockDict = new Dictionary<uint, List<InstructionData>>();
 
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
@@ -682,7 +686,7 @@ namespace rgatCore
 
                 List<InstructionData> blkInstructions = new List<InstructionData>();
                 ulong blockaddress = blockEntry[0].ToObject<ulong>();
-                blockList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
+                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
 
                 for (var i = 0; i < insAddresses.Count; i+=2)
                 {

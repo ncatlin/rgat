@@ -213,9 +213,10 @@ namespace rgatCore
 
         }
 
-        public override void render_static_graph()
+        public override void render_graph()
         {
             render_new_edges();
+            //render_new_blocks();
             regenerate_wireframe_if_needed();
         }
 
@@ -293,6 +294,7 @@ namespace rgatCore
             CameraZoom = 2000f;
             CameraXOffset = 0;
             CameraYOffset = 0;
+            PlotRotation = -1.55f;
         }
 
         override public void initialiseCustomDimensions(GRAPH_SCALE scale)
@@ -389,14 +391,14 @@ namespace rgatCore
                 switch (n.ins.itype)
                 {
                     case eNodeType.eInsUndefined:
-                        if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
+                        //if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
                         NodesDisplayData.LastRenderedNode.lastVertType = n.IsConditional() ?
                             eEdgeNodeType.eNodeJump :
                             eEdgeNodeType.eNodeNonFlow;
                         break;
 
                     case eNodeType.eInsJump:
-                        Console.WriteLine($"render_node jump because n {n.index} is jump");
+                        //Console.WriteLine($"render_node jump because n {n.index} is jump");
 
                         NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeJump;
                         break;
@@ -1003,10 +1005,7 @@ namespace rgatCore
             bOut = (float)(tb / (-1 * dimensions.pix_per_B));
         }
 
-        void Add_to_callstack(ulong address, uint idx)
-        {
-            ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
-        }
+
 
         int wireframe_loop_count = 0;
 

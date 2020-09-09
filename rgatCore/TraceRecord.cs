@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using rgatCore.Plots;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -37,6 +38,8 @@ namespace rgatCore
         public Dictionary<uint, uint> threadvertIdx; //was an unordered dictionary in the C++ version
         public int globalmodnum;
         public int mutationIndex;
+
+        public bool BlockBoundary;
 
         //this was added later, might be worth ditching other stuff in exchange
         public byte[] opcodes;
@@ -273,7 +276,8 @@ namespace rgatCore
             if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
                 return false;
 
-            CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
+            //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
+            ForceDirected3DGraph standardRenderedGraph = new ForceDirected3DGraph(protograph, GlobalConfig.defaultGraphColours);
             standardRenderedGraph.InitialiseDefaultDimensions();
             standardRenderedGraph.SetAnimated(false);
 
@@ -284,6 +288,7 @@ namespace rgatCore
 
             lock (GraphListLock)
             {
+                PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
                     PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
                     PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
             }

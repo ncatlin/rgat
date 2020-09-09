@@ -86,7 +86,7 @@ namespace rgatCore.Threads
                         continue;
                     }
 
-                    brep.blockInslist = protograph.ProcessData.blockList[(int)brep.blockID].Item2;
+                    brep.blockInslist = protograph.ProcessData.BasicBlocksList[(int)brep.blockID].Item2;
                 }
 
                 //first record execution of each instruction
@@ -122,7 +122,7 @@ namespace rgatCore.Threads
                             continue;
                     }
 
-                    List<InstructionData> targetBlock = protograph.ProcessData.blockList[(int)targetblockidx].Item2;
+                    List<InstructionData> targetBlock = protograph.ProcessData.BasicBlocksList[(int)targetblockidx].Item2;
                     InstructionData firstIns = targetBlock[0];
                     if (firstIns.threadvertIdx.ContainsKey(protograph.ThreadID))
                     {
@@ -200,7 +200,7 @@ namespace rgatCore.Threads
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
             thistag.blockaddr = protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID);
-            Debug.Assert(thistag.blockID < protograph.ProcessData.blockList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
+            Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
             int addrstart = ++tokenpos;
             nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, entry.Length - addrstart), NumberStyles.HexNumber);

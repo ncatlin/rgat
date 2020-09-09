@@ -17,10 +17,10 @@ namespace rgatCore
     {
         public WritableRgbaFloat(Color col)
         {
-            R = (float)col.R/255f;
-            G = (float)col.G/255f;
-            B = (float)col.B/255f;
-            A = (float)col.A/255f;
+            R = (float)col.R / 255f;
+            G = (float)col.G / 255f;
+            B = (float)col.B / 255f;
+            A = (float)col.A / 255f;
         }
 
         public Vector4 ToVec4()
@@ -154,7 +154,7 @@ namespace rgatCore
             lock (ListLock) //todo, should be a read lock
             {
                 Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
-                for (int index = arraystart; index < arraystart+vertcount; index++)
+                for (int index = arraystart; index < arraystart + vertcount; index++)
                 {
                     VertexPositionColor vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
@@ -261,7 +261,7 @@ namespace rgatCore
             arraypos = safe_add_vert(vert);
             vert.Position = endC;
             arraypos = safe_add_vert(vert);
-            
+
 
         }
 
@@ -273,7 +273,8 @@ namespace rgatCore
             List<VertexPositionColor> newVerts = new List<VertexPositionColor>();
 
 
-            VertexPositionColor startVert = new VertexPositionColor() {
+            VertexPositionColor startVert = new VertexPositionColor()
+            {
                 Position = startC,
                 Color = colour,
                 ActiveAnimAlpha = GlobalConfig.AnimatedFadeMinimumAlpha
@@ -289,7 +290,7 @@ namespace rgatCore
             int segments = curvePoints / 2;
             for (dt = 1; dt < segments + 1; ++dt)
             {
-                fadeA = fadeArray[dt - 1]*255.0f;
+                fadeA = fadeArray[dt - 1] * 255.0f;
                 if (fadeA > 1) fadeA = 1;
 
 
@@ -383,6 +384,19 @@ namespace rgatCore
             {
                 node_coords.Add(coord);
                 NodeCount = node_coords.Count;
+            }
+        }
+
+        public void SetNodeCoord<T>(uint nodeIdx, T plotCoord, Vector3 XYZCoord)
+        {
+            lock (coordLock)
+            {
+                Debug.Assert(nodeIdx < node_coords.Count);
+                node_coords[(int)nodeIdx] = plotCoord;
+                VertexPositionColor oldvpc = VertList[(int)nodeIdx];
+                oldvpc.Position = XYZCoord;
+                VertList[(int)nodeIdx] = oldvpc;
+                DataChanged = true;
             }
         }
 

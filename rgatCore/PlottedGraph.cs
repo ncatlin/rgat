@@ -89,7 +89,7 @@ namespace rgatCore
 			cerr << "Warning: Virtual gvnp called" << endl; return false;
 		};
 		*/
-        public abstract void render_static_graph();
+        public abstract void render_graph();
         /*
 		virtual void performMainGraphDrawing(graphGLWidget &gltarget) { cout << "virtual pmgd called" << endl; };
 		virtual void performDiffGraphDrawing(graphGLWidget &gltarget, void* divergeNodePosition);
@@ -151,7 +151,7 @@ namespace rgatCore
 
         public void UpdateMainRender()
         {
-            render_static_graph();
+            render_graph();
         }
 
         public void SeekToAnimationPosition(float position)
@@ -326,16 +326,17 @@ namespace rgatCore
 
         }
 
-        public float GetAnimationPercent() {
+        public float GetAnimationPercent()
+        {
             if (internalProtoGraph.SavedAnimationData.Count == 0) return 0;
-            return (float)((float)animationIndex / (float)internalProtoGraph.SavedAnimationData.Count); 
+            return (float)((float)animationIndex / (float)internalProtoGraph.SavedAnimationData.Count);
         }
-        
+
         public void render_live_animation(float fadeRate)
         {
             process_live_animation_updates();
             render_animation(fadeRate);
-            
+
         }
 
 
@@ -395,6 +396,7 @@ namespace rgatCore
 
 
         public GraphDisplayData NodesDisplayData = null;
+        //public GraphDisplayData BlocksDisplayData = null;
         public GraphDisplayData EdgesDisplayData = null;
         public GraphDisplayData HighlightsDisplayData = null;
         //public GraphDisplayData blocklines = null;
@@ -402,12 +404,7 @@ namespace rgatCore
 
 
         public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
-        //GLuint previewVBOs[4] = { 0, 0, 0, 0 };
 
-        //HIGHLIGHT_DATA highlightData;
-
-        //GLuint heatmapEdgeVBO[1] = { 0 };
-        GraphDisplayData heatmaplines = null;
         //lowest/highest numbers of edge iterations
         Tuple<ulong, ulong> heatExtremes;
         Tuple<ulong, ulong> condCounts;
@@ -431,79 +428,6 @@ namespace rgatCore
         public abstract List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn);
 
         int wireframeMode; //used to query the current mode
-
-        //protected:
-
-        /*
-		protected void display_active(graphGLWidget &gltarget)
-        {
-			//reload buffers if needed and not being written
-			if (needVBOReload_active)
-			{
-				int mainlinevertsQty = mainlinedata.CountVerts;
-				if (mainlinevertsQty == 0) return;
-
-				int animnodesverts = animnodesdata.CountVerts;
-				int staticnodesverts = mainnodesdata.CountVerts;
-				int nodeLoadQty = Math.Min(animnodesverts, staticnodesverts);
-				int animlinevertsQty = animlinedata.CountVerts;
-				int edgeVertLoadQty = Math.Min(animlinevertsQty, mainlinevertsQty);
-
-				//mainnodesdata.acquire_pos_read();
-				//animnodesdata.acquire_col_read();
-
-				gltarget.load_VBO(GL_Constants.VBO_NODE_POS, activeVBOs, POSITION_VERTS_SIZE(nodeLoadQty), mainnodesdata.readonly_pos());
-				gltarget.load_VBO(GL_Constants.VBO_NODE_COL, activeVBOs, COLOUR_VERTS_SIZE(nodeLoadQty), animnodesdata.readonly_col());
-
-				animnodesdata.CountLoadedVerts = nodeLoadQty;
-
-				mainnodesdata.release_pos_read();
-				animnodesdata.release_col_read();
-
-
-				List<float> vecPtr = mainlinedata.acquire_pos_read();
-				if (vecPtr.Count == 0)
-				{
-					mainlinedata.release_pos_read();
-					return;
-				}
-				GLfloat* buf = &vecPtr.at(0);
-				gltarget.load_VBO(GL_Constants.VBO_LINE_POS, activeVBOs, POSITION_VERTS_SIZE(edgeVertLoadQty), buf);
-				mainlinedata.release_pos_read();
-
-				buf = &animlinedata.acquire_col_read().at(0);
-				gltarget.load_VBO(GL_Constants.VBO_LINE_COL, activeVBOs, COLOUR_VERTS_SIZE(edgeVertLoadQty), buf);
-				animlinedata.release_col_read();
-
-				GLenum result = gltarget.glGetError();
-				if (result)	{ Console.WriteLine("error :" + result); 	}
-				animlinedata.CountLoadedVerts = edgeVertLoadQty;
-
-				needVBOReload_active = false;
-			}
-
-
-			if (clientState.showNodes && animnodesdata.CountLoadedVerts > 0)
-			{
-				gltarget.array_render_points(GL_Constants.VBO_NODE_POS, GL_Constants.VBO_NODE_COL, activeVBOs, animnodesdata.CountLoadedVerts);
-				int err = glGetError();
-				if (err != 0)
-					Console.WriteLine("GL error " + err + " in arr_r_pts (display active) loading " + animnodesdata.CountLoadedVerts);
-			}
-
-			if (clientState.showEdges && animlinedata.CountLoadedVerts > 0)
-			{
-				gltarget.array_render_lines(GL_Constants.VBO_LINE_POS, GL_Constants.VBO_LINE_COL, activeVBOs, animlinedata.CountLoadedVerts);
-				int err = glGetError();
-				if (err != 0) Console.WriteLine("GL error " +err+ " in arr_r_edges (display active)");
-			}
-		}
-
-
-		*/
-
-        //protected void display_big_conditional(graphGLWidget &gltarget);
-        //protected void display_big_heatmap(graphGLWidget &gltarget);
 
         public void PlayPauseClicked()
         {
@@ -531,10 +455,17 @@ namespace rgatCore
 
         public void ResetClicked()
         {
-                    ReplayState = REPLAY_STATE.eEnded;
+            ReplayState = REPLAY_STATE.eEnded;
 
         }
 
+        protected void render_new_blocks()
+        {
+
+        }
+
+
+        
 
         protected void render_new_edges()
         {
@@ -544,6 +475,7 @@ namespace rgatCore
             for (uint edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
             {
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
+                Console.WriteLine($"Edge {edgeNodes.Item1}->{edgeNodes.Item2}");
                 if (edgeNodes.Item1 >= NodesDisplayData.CountVerts())
                 {
                     NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
@@ -570,118 +502,15 @@ namespace rgatCore
                 if (NeedReplotting || clientState.rgatIsExiting) break;
             }
         }
+        
 
 
-        //protected int render_new_blocks();
-        protected void redraw_anim_edges()
-        {
-            Console.WriteLine("todo redraw_anim_edges");
-            /*
-            List<VertexPositionColor> ecol = animlinedata.acquire_vert_write();
-            foreach (var edgeIDIt in activeAnimEdgeTimes)
-            {
-                Tuple<uint, uint> nodePair = edgeIDIt.Key;
-
-
-                if (internalProtoGraph.edgeDict.TryGetValue(nodePair, out EdgeData e))
-                {
-                    int numEdgeVerts = e.vertSize;
-                    int colArrIndex = e.arraypos + GL_Constants.AOFF;
-                    for (int i = 0; i < numEdgeVerts; ++i)
-                        ecol[colArrIndex].SetAlpha(1);
-                }
-            }
-            animlinedata.release_vert_write();
-            */
-        }
-        /*
-		protected void acquire_nodecoord_read();
-		protected void acquire_nodecoord_write();
-		protected void release_nodecoord_read();
-		protected void release_nodecoord_write();
-		*/
-
-        /*
-        PLOT_TRACK setLastNode(uint nodeIdx)
-        {
-            PLOT_TRACK lastnode;
-
-            NodeData n;
-            n = internalProtoGraph.safe_get_node(nodeIdx);
-            lastnode.lastVertID = nodeIdx;
-
-            if (n.IsExternal)
-                lastnode.lastVertType = eEdgeNodeType.eNodeExternal;
-            else
-            {
-                switch (n.ins.itype)
-                {
-                    case eNodeType.eInsUndefined:
-                        {
-                            lastnode.lastVertType = n.IsConditional() ?
-                                eEdgeNodeType.eNodeJump :
-                                eEdgeNodeType.eNodeNonFlow;
-                            break;
-                        }
-                    case eNodeType.eInsJump:
-                        {
-                            if (n.IsConditional()) Console.WriteLine($"render_node jump because n {n.index} is conditional undef");
-                            Console.WriteLine($"setLastNode jump because n {n.index} is jump");
-                            lastnode.lastVertType = eEdgeNodeType.eNodeJump;
-                            break;
-                        }
-                    case eNodeType.eInsReturn:
-                        {
-                            lastnode.lastVertType = eEdgeNodeType.eNodeReturn;
-                            break;
-                        }
-                    case eNodeType.eInsCall:
-                        {
-                            lastnode.lastVertType = eEdgeNodeType.eNodeCall;
-
-                            //let returns find their caller if they have one
-                            ulong nextAddress = n.ins.address + (ulong)n.ins.numbytes;
-
-                            //callStackLock.lock () ;
-                            if (mainnodesdata.IsPreview)
-                                PreviewCallStack.Add(new Tuple<ulong, uint>(nextAddress, n.index));
-                            else
-                                MainCallStack.Add(new Tuple<ulong, uint>(nextAddress, n.index));
-                            //callStackLock.unlock();
-
-                            break;
-                        }
-                    //case ISYS: //todo: never used - intended for syscalls
-                    //	active_col = &al_col_grey;
-                    //	break;
-                    default:
-                        lastnode.lastVertType = eEdgeNodeType.eENLAST;
-                        Console.WriteLine("[rgat]Error: render_node unknown itype " + n.ins.itype);
-                        Debug.Assert(false);
-                        break;
-                }
-            }
-            return lastnode;
-        }
-        */
-
-        //protected:
-
-        //mutable std::shared_mutex nodeCoordLock_;
-        //mutable std::shared_mutex threadReferenceLock_;
-
-        //rgatlocks::UntestableLock callStackLock;
-
-        bool previewNeedsResize = false;
         bool freeMe = false;
 
-        //protected List<Tuple<ulong, uint>> MainCallStack = new List<Tuple<ulong, uint>>();
-        //protected List<Tuple<ulong, uint>> PreviewCallStack = new List<Tuple<ulong, uint>>();
         protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
 
         public ProtoGraph internalProtoGraph { get; protected set; } = null;
-        //PLOT_TRACK lastPlottedNode;
-        //protected uint lastAnimatedNode = 0;
+
         Dictionary<uint, EXTTEXT> activeExternTimes = new Dictionary<uint, EXTTEXT>();
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
@@ -708,6 +537,12 @@ namespace rgatCore
                 void set_max_wait_frames(uint frames) { maxWaitFrames = frames; }
         */
 
+       protected void Add_to_callstack(ulong address, uint idx)
+        {
+            ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
+        }
+
+        
         void render_animation(float fadeRate)
         {
             brighten_new_active();
@@ -718,10 +553,11 @@ namespace rgatCore
             if (!activeAnimNodeTimes.ContainsKey(lastNodeID))
             {
                 NodesDisplayData.SetNodeAnimAlpha(lastNodeID, GraphicsMaths.getPulseAlpha());
-                if (!FadingAnimNodesSet.Contains(lastNodeID)) 
+                if (!FadingAnimNodesSet.Contains(lastNodeID))
                     FadingAnimNodesSet.Add(lastNodeID);
             }
         }
+        
 
 
 
@@ -759,11 +595,18 @@ namespace rgatCore
                 {
                     lock (piddata.ExternCallerLock)
                     {
-                        found = externBlock.Value.thread_callers.TryGetValue(tid, out calls);
+                        if (externBlock.Value.thread_callers == null)
+                        {
+                            Console.WriteLine($"Error: Extern block thread_callers was null [block 0x{blockAddr:x}]");
+                        }
+                        else
+                        {
+                            found = externBlock.Value.thread_callers.TryGetValue(tid, out calls);
+                        }
                     }
                     if (found) break;
                     Thread.Sleep(10);
-                    Console.WriteLine("[rgat]Fail to find edge for thread " + tid + " calling extern " + blockAddr);
+                    Console.WriteLine($"[rgat]Fail to find edge for thread {tid} calling extern 0x{blockAddr:x}");
                 }
 
 
@@ -801,7 +644,7 @@ namespace rgatCore
                 var callers = externStr.Value.thread_callers[internalProtoGraph.ThreadID];
                 uint callerIdx = callers.Find(n => n.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID).Item2;
                 LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, callerIdx);
-                
+
             }
             else
             {
@@ -842,7 +685,7 @@ namespace rgatCore
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained && instructionCount == 0))
                 {
-                    Tuple<uint,uint> edge =  new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
+                    Tuple<uint, uint> edge = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
                     if (internalProtoGraph.EdgeExists(edge))
                     {
                         newAnimEdgeTimes[edge] = brightTime;
@@ -872,65 +715,65 @@ namespace rgatCore
             {
                 if (!process_live_update()) break;
             }
-            
+
         }
 
         bool process_live_update()
         {
-        
 
-			//todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
-			//internalProtoGraph.animationListsRWLOCK_.lock_shared();
-			ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
-			//internalProtoGraph.animationListsRWLOCK_.unlock_shared();
 
-			if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
-			{
-				++updateProcessingIndex;
+            //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
+            //internalProtoGraph.animationListsRWLOCK_.lock_shared();
+            ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
+            //internalProtoGraph.animationListsRWLOCK_.unlock_shared();
+
+            if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
+            {
+                ++updateProcessingIndex;
                 return true;
             }
 
-			if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
-			{
-				remove_unchained_from_animation();
+            if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
+            {
+                remove_unchained_from_animation();
 
-				++updateProcessingIndex;
+                ++updateProcessingIndex;
                 return true;
             }
 
-			if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
-			{
-				end_unchained(entry);
-				++updateProcessingIndex;
+            if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
+            {
+                end_unchained(entry);
+                ++updateProcessingIndex;
                 return true;
             }
 
-			int brightTime;
-			if (entry.entryType == eTraceUpdateType.eAnimUnchained)
-			{
-				currentUnchainedBlocks.Add(entry);
-				brightTime = Anim_Constants.KEEP_BRIGHT;
-			}
-			else
-				brightTime = 0;
+            int brightTime;
+            if (entry.entryType == eTraceUpdateType.eAnimUnchained)
+            {
+                currentUnchainedBlocks.Add(entry);
+                brightTime = Anim_Constants.KEEP_BRIGHT;
+            }
+            else
+                brightTime = 0;
 
-			//break if block not rendered yet
-			if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDList))
-			{
-				//expect to get an incomplete block with exception or animation attempt before static rendering
-				if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (nodeIDList.Count > (int)entry.count))
-					return true;
+            //break if block not rendered yet
+            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDList))
+            {
+                //expect to get an incomplete block with exception or animation attempt before static rendering
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (nodeIDList.Count > (int)entry.count))
+                    return true;
                 return false;
-			}
+            }
 
-			//add all the nodes+edges in the block to the brightening list
-			brighten_node_list(entry, brightTime, nodeIDList);
+            //add all the nodes+edges in the block to the brightening list
+            brighten_node_list(entry, brightTime, nodeIDList);
 
-			//also add brighten edge to next unchained block
-			if (entry.entryType == eTraceUpdateType.eAnimUnchained)
-				brighten_next_block_edge(entry.blockID, entry.blockAddr, brightTime);
+            //also add brighten edge to next unchained block
+            if (entry.entryType == eTraceUpdateType.eAnimUnchained)
+                brighten_next_block_edge(entry.blockID, entry.blockAddr, brightTime);
 
-			++updateProcessingIndex;
+            ++updateProcessingIndex;
             return true;
         }
 
@@ -940,7 +783,7 @@ namespace rgatCore
 
             currentUnchainedBlocks.Clear();
             List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+           NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
 
@@ -991,12 +834,12 @@ namespace rgatCore
             //brighten edge between last block and this
             //todo - probably other situations we want to do this apart from a parent exec tag
             if (animationIndex > 0)
-            { 
-                ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[animationIndex - 1]; 
+            {
+                ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[animationIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     brighten_next_block_edge(entry.blockID, entry.blockAddr, GlobalConfig.animationLingerFrames);
-                }    
+                }
             }
 
             //unchained area finished, stop highlighting it
@@ -1088,14 +931,15 @@ namespace rgatCore
         void brighten_new_active_nodes()
         {
             int actioned = 0;
-            foreach (KeyValuePair<uint,int> node_time in newAnimNodeTimes)
+            foreach (KeyValuePair<uint, int> node_time in newAnimNodeTimes)
             {
                 uint nodeIdx = node_time.Key;
                 int animTime = node_time.Value;
 
+
                 if (nodeIdx >= NodesDisplayData.CountVerts()) break;
 
-                NodesDisplayData.SetNodeAnimAlpha(nodeIdx,1);//set animation brightness to full 
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, 1);//set animation brightness to full 
 
                 //want to delay fading if in loop/unchained area, 
                 if (animTime != 0)
@@ -1107,7 +951,7 @@ namespace rgatCore
                 else
                 {
                     //Console.WriteLine($"Set node {nodeIdx} to bright for instant fade");
-                    if (!FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Add(nodeIdx); 
+                    if (!FadingAnimNodesSet.Contains(nodeIdx)) FadingAnimNodesSet.Add(nodeIdx);
                 }
                 actioned += 1;
             }
@@ -1206,7 +1050,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    if (!fadingAnimEdgesSet.Contains(nodePair)) fadingAnimEdgesSet.Add(nodePair);              
+                    if (!fadingAnimEdgesSet.Contains(nodePair)) fadingAnimEdgesSet.Add(nodePair);
                 }
                 actioned++;
             }
@@ -1214,7 +1058,7 @@ namespace rgatCore
                 newAnimEdgeTimes.Clear();
             else
             {
-               if (actioned > 0) Console.WriteLine("Warn, janky realpha of edges, need to erase the ones that worked");
+                if (actioned > 0) Console.WriteLine("Warn, janky realpha of edges, need to erase the ones that worked");
             }
         }
 
@@ -1234,13 +1078,13 @@ namespace rgatCore
          */
         void maintain_active()
         {
-
             float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
             Console.WriteLine(currentPulseAlpha);
             List<uint> expiredNodes = new List<uint>();
             List<uint> activeNodes = activeAnimNodeTimes.Keys.ToList();
             foreach (uint nodeIdx in activeNodes)
             {
+
                 NodesDisplayData.SetNodeAnimAlpha(nodeIdx, currentPulseAlpha);
 
                 int brightTime = activeAnimNodeTimes[nodeIdx];
@@ -1260,9 +1104,9 @@ namespace rgatCore
                 }
             }
 
-            foreach(uint expiredNodeIdx in expiredNodes)
+            foreach (uint expiredNodeIdx in expiredNodes)
             {
-                if (!FadingAnimNodesSet.Contains(expiredNodeIdx)) 
+                if (!FadingAnimNodesSet.Contains(expiredNodeIdx))
                     FadingAnimNodesSet.Add(expiredNodeIdx);
                 activeAnimNodeTimes.Remove(expiredNodeIdx);
             }
@@ -1311,112 +1155,118 @@ namespace rgatCore
             foreach (uint nodeIdx in FadingAnimNodesSet)
             {
                 //Console.WriteLine($"\tdarken_nodes: Darkening node {nodeIdx}");
-                if (NodesDisplayData.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
-                {
-                    //Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
-                    expiredNodes.Add(nodeIdx); 
-                }
 
+                    if (NodesDisplayData.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
+                    {
+                        //Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
+                        expiredNodes.Add(nodeIdx);
+                    }
+                
+                
             }
-
             foreach (uint expiredNode in expiredNodes) FadingAnimNodesSet.Remove(expiredNode);
-            
 
-        }
-        void darken_edges(float fadeRate)
-        {
-            List<Tuple<uint,uint>> expiredEdges = new List<Tuple<uint, uint>>();
-            foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
-            {
-                if (ReduceEdgeAnimAlpha(edge, fadeRate))
-                    expiredEdges.Add(edge);
 
-                //Console.WriteLine($"Darkening edge {edge}");
             }
-
-            foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
-            { 
-                fadingAnimEdgesSet.Remove(expiredEdge); 
-            }
-        }
-
-        void remove_unchained_from_animation()
-        {
-            //get rid of any KEEP_BRIGHT nodes/edges waiting to be activated
-            newAnimNodeTimes = newAnimNodeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
-            newAnimEdgeTimes = newAnimEdgeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
-
-            //allow any nodes/externals/edges that have already been activated to fade
-            List<uint> activeKeys = activeAnimNodeTimes.Keys.ToList();
-            foreach (uint nodeIdx in activeKeys)
+            void darken_edges(float fadeRate)
             {
-                if (activeAnimNodeTimes[nodeIdx] == Anim_Constants.KEEP_BRIGHT)
+                List<Tuple<uint, uint>> expiredEdges = new List<Tuple<uint, uint>>();
+                foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
                 {
-                    Console.WriteLine($"remove_unchained_from_animation allowing active node {nodeIdx} to fade");
-                    activeAnimNodeTimes[nodeIdx] = 0; 
+                    if (ReduceEdgeAnimAlpha(edge, fadeRate))
+                        expiredEdges.Add(edge);
+
+                    //Console.WriteLine($"Darkening edge {edge}");
+                }
+
+                foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
+                {
+                    fadingAnimEdgesSet.Remove(expiredEdge);
                 }
             }
 
-            //internalProtoGraph.externCallsLock.lock () ;
-            activeKeys = activeExternTimes.Keys.ToList();
-            foreach (uint nodeIdx in activeKeys)
+            void remove_unchained_from_animation()
             {
-                EXTTEXT externEntry = activeExternTimes[nodeIdx];
-                if (externEntry.framesRemaining == Anim_Constants.KEEP_BRIGHT)
+                //get rid of any KEEP_BRIGHT nodes/edges waiting to be activated
+                newAnimNodeTimes = newAnimNodeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
+                newAnimEdgeTimes = newAnimEdgeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
+
+                //allow any nodes/externals/edges that have already been activated to fade
+                List<uint> activeKeys = activeAnimNodeTimes.Keys.ToList();
+                foreach (uint nodeIdx in activeKeys)
                 {
-                    externEntry.framesRemaining = GlobalConfig.ExternAnimDisplayFrames / 2;
-                    activeExternTimes[nodeIdx] = externEntry;
+                    if (activeAnimNodeTimes[nodeIdx] == Anim_Constants.KEEP_BRIGHT)
+                    {
+                        Console.WriteLine($"remove_unchained_from_animation allowing active node {nodeIdx} to fade");
+                        activeAnimNodeTimes[nodeIdx] = 0;
+                    }
                 }
+
+                //internalProtoGraph.externCallsLock.lock () ;
+                activeKeys = activeExternTimes.Keys.ToList();
+                foreach (uint nodeIdx in activeKeys)
+                {
+                    EXTTEXT externEntry = activeExternTimes[nodeIdx];
+                    if (externEntry.framesRemaining == Anim_Constants.KEEP_BRIGHT)
+                    {
+                        externEntry.framesRemaining = GlobalConfig.ExternAnimDisplayFrames / 2;
+                        activeExternTimes[nodeIdx] = externEntry;
+                    }
+                }
+                //internalProtoGraph.externCallsLock.unlock();
+                var activeEdges = activeAnimEdgeTimes.Keys.ToList();
+                foreach (var edgeTuple in activeEdges)
+                {
+                    if (activeAnimEdgeTimes[edgeTuple] == Anim_Constants.KEEP_BRIGHT) activeAnimEdgeTimes[edgeTuple] = 0;
+                }
+
             }
-            //internalProtoGraph.externCallsLock.unlock();
-            var activeEdges = activeAnimEdgeTimes.Keys.ToList();
-            foreach (var edgeTuple in activeEdges)
+
+            ulong calculate_wait_frames(ulong executions)
             {
-                if (activeAnimEdgeTimes[edgeTuple] == Anim_Constants.KEEP_BRIGHT) activeAnimEdgeTimes[edgeTuple] = 0;
+                //assume 10 instructions per step/frame
+                ulong stepSize = (ulong)clientState.AnimationStepRate;
+                if (stepSize == 0) stepSize = 1;
+                ulong frames = (internalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
+
+                float proportion = (float)executions / internalProtoGraph.TotalInstructions;
+                ulong waitFrames = (ulong)Math.Floor(proportion * frames);
+                return waitFrames;
             }
 
-        }
 
-        ulong calculate_wait_frames(ulong executions)
-        {
-            //assume 10 instructions per step/frame
-            ulong stepSize = (ulong)clientState.AnimationStepRate;
-            if (stepSize == 0) stepSize = 1;
-            ulong frames = (internalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
-
-            float proportion = (float)executions / internalProtoGraph.TotalInstructions;
-            ulong waitFrames = (ulong)Math.Floor(proportion * frames);
-            return waitFrames;
-        }
-
-        void ResetAllActiveAnimatedAlphas()
-        {
-            foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
+            void ResetAllActiveAnimatedAlphas()
             {
-                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
-            }
-            activeAnimNodeTimes.Clear();
 
-            foreach (uint nodeIdx in FadingAnimNodesSet)
-            {
-                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
-            }
-            FadingAnimNodesSet.Clear();
+                foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
+                {
+                    NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                }
+                activeAnimNodeTimes.Clear();
 
-            foreach (Tuple<uint,uint> edge in activeAnimEdgeTimes.Keys)
-            {
-                if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear an active edge");
-            }
-            activeAnimEdgeTimes.Clear();
+                foreach (uint nodeIdx in FadingAnimNodesSet)
+                {
+                    NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+                }
+                FadingAnimNodesSet.Clear();
 
-            foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
-            {
-                if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear a fading edge");
-            }
-            fadingAnimEdgesSet.Clear();
-        }
+                foreach (Tuple<uint, uint> edge in activeAnimEdgeTimes.Keys)
+                {
+                    if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear an active edge");
+                }
+                activeAnimEdgeTimes.Clear();
 
-        public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
+                foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
+                {
+                    if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear a fading edge");
+                }
+                fadingAnimEdgesSet.Clear();
+
+            }
+
+
+
+            public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
             if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
@@ -1487,7 +1337,7 @@ namespace rgatCore
         protected bool HighlightsChanged = false;
         public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
-            lock(textLock)
+            lock (textLock)
             {
                 switch (highlightType)
                 {
@@ -1530,7 +1380,7 @@ namespace rgatCore
         {
             lock (textLock)
             {
-                if(!HighlightedAddresses.Contains(address)) HighlightedAddresses.Add(address);
+                if (!HighlightedAddresses.Contains(address)) HighlightedAddresses.Add(address);
             }
         }
 
@@ -1542,7 +1392,7 @@ namespace rgatCore
                 List<uint> nodes = internalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
                 lock (textLock)
                 {
-                   AddHighlightedNodes(nodes, eHighlightType.eAddresses);
+                    AddHighlightedNodes(nodes, eHighlightType.eAddresses);
                 }
             }
         }
@@ -1556,7 +1406,7 @@ namespace rgatCore
         public float CameraClippingNear => CameraZoom - 6; //extern jut
         public float CameraXOffset = 0f;
         public float CameraYOffset = 0f;
-        public float PlotRotation = -1.55f;
+        public float PlotRotation = 0f;
 
 
         public readonly Object RenderingLock = new Object();

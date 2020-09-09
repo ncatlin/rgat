@@ -236,7 +236,8 @@ namespace rgatCore
             Matrix4x4 combined = rotation;
             combined = Matrix4x4.Multiply(combined, view);
 
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(ActiveGraph.CameraFieldOfView, (float)graphWidgetSize.X / graphWidgetSize.Y, nearClip, farClip);
+            if (ActiveGraph.CameraFieldOfView >= Math.PI) ActiveGraph.CameraFieldOfView = (float)Math.PI - 0.01f;
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(ActiveGraph.CameraFieldOfView, (float)graphWidgetSize.X / graphWidgetSize.Y, 1, farClip);
             combined = Matrix4x4.Multiply(combined, projection);
             _cl.UpdateBuffer(graphBuffers._viewBuffer, 0, combined);
 

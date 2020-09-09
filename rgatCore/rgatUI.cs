@@ -52,9 +52,7 @@ namespace rgatCore
 
             _ImGuiController = imguicontroller;
 
-
-            mainRenderThreadObj = new Threads.MainGraphRenderThread(_rgatstate);
-
+            mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller);
@@ -111,6 +109,102 @@ namespace rgatCore
 
         }
 
+        void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour)
+        {
+
+            ImGui.InvisibleButton(id, barSize);
+
+            const float vertPadding = 2;
+            Vector2 start = new Vector2(ImGui.GetCursorScreenPos().X, ImGui.GetCursorScreenPos().Y - barSize.Y - vertPadding*2);
+            Vector2 end = new Vector2(start.X + barSize.X, start.Y + barSize.Y);
+            ImGui.GetWindowDrawList().AddRectFilled(start, end, BGColour);
+
+            Vector2 startInner = new Vector2(start.X, start.Y + vertPadding);
+            Vector2 endInner = new Vector2(startInner.X + (barSize.X*progress), startInner.Y + (barSize.Y - 2 * vertPadding));
+            ImGui.GetWindowDrawList().AddRectFilled(startInner, endInner, barColour);
+
+
+            Vector2 textSize = ImGui.CalcTextSize(caption);
+            float halfCaptionWidth = textSize.X / 2;
+
+            Vector2 textpos = new Vector2(startInner.X + barSize.X / 2 - halfCaptionWidth, startInner.Y);
+            ImGui.GetWindowDrawList().AddText(textpos, 0xffffffff, caption);
+        }
+
+
+        private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
+        {
+            DiELibDotNet.DieScript.SCANPROGRESS progress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
+            ImGui.BeginGroup();
+            {
+
+                if (progress.loading)
+                {
+
+                    ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
+                }
+                else if (progress.running)
+                {
+                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
+                    ProgressBar("DieProgBar", $"{progress.scriptsFinished}/{progress.scriptCount} scripts complete", dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else if (progress.errored)
+                {
+                    float dieProgress =  progress.scriptCount == 0 ? 0f : (float)progress.scriptsFinished / (float)progress.scriptCount;
+                    ProgressBar("DieProgBar", $"Scan Failed after {progress.scriptsFinished} scripts", dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else if (progress.StopRequestFlag)
+                {
+                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
+                    ProgressBar("DieProgBar", $"Cancelled after {progress.scriptsFinished}/{progress.scriptCount} scripts", dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else
+                {
+                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
+                    ProgressBar("DieProgBar", $"Scan complete ({progress.scriptsFinished} scripts)", dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+
+                ImGui.SameLine();
+
+                if ((progress.running || progress.loading))
+                {
+                    if (ImGui.Button("X")) _rgatstate.DIELib.CancelDIEScan(activeTarget);
+                }
+                else if (!progress.running && !progress.loading)
+                {
+                    //if (ImGui.Button("RL")) _rgatstate.DIELib.ReloadDIEScripts();  //add a button to reload scripts somewhere
+                    // ImGui.SameLine(); 
+                    if (ImGui.Button("RS")) _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                }
+            }
+            ImGui.EndGroup();
+        }
+
+
+
+        private void DrawSignaturesBox(BinaryTarget activeTarget)
+        {
+            ImGui.Text("Signature Hits");
+            ImGui.NextColumn();
+            ImGui.BeginGroup();
+            {
+                string formatNotes = activeTarget.FormatSignatureHits(out bool gotYARA, out bool gotDIE);
+                ImGui.InputTextMultiline("##fmtnote", ref formatNotes, 400, new Vector2(0, 160), ImGuiInputTextFlags.ReadOnly);
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+                DrawDetectItEasyProgress(activeTarget, new Vector2(250, 25));
+
+
+
+                //ImGui.ProgressBar(0.4f, new Vector2(250, 20), "YARA Scan Progress");
+                ImGui.EndGroup();
+            }
+            ImGui.EndGroup();
+
+        }
+
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginChildFrame(22, new Vector2(width, 300), ImGuiWindowFlags.AlwaysAutoResize);
@@ -156,9 +250,10 @@ namespace rgatCore
                     ImGui.PopFont();
                 }
 
-                ImGui.Text("Format"); ImGui.NextColumn();
-                string formatNotes = activeTarget.FormatNotes;
-                ImGui.InputTextMultiline("##fmtnote", ref formatNotes, 400, new Vector2(0, 80), ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                DrawSignaturesBox(activeTarget);
+
+
+                ImGui.NextColumn();
             }
 
             ImGui.Columns(1);
@@ -278,8 +373,9 @@ namespace rgatCore
                 }
                 ImGui.PopStyleColor();
                 ImGui.EndChildFrame();
-                ImGui.PopStyleColor();
             }
+            ImGui.PopStyleColor();
+
             if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiMouseButton.Right))
             {
                 ImGui.Selectable("Add files/directories");
@@ -506,7 +602,7 @@ namespace rgatCore
             }
         }
 
-       
+
 
         private void DrawCameraPopup()
         {
@@ -891,10 +987,13 @@ namespace rgatCore
                     ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
                     ImGui.Text($"Nodes: {graph.internalProtoGraph.NodeList.Count}");
                     ImGui.Text($"Updates: {graph.internalProtoGraph.SavedAnimationData.Count}");
-                    if (graph.internalProtoGraph.TraceReader.QueueSize > 0)
-                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
-                    else
-                        ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                    if (graph.internalProtoGraph.TraceReader != null)
+                    {
+                        if (graph.internalProtoGraph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                        else
+                            ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                    }
 
                     ImGui.EndChild();
                 }

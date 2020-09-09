@@ -139,6 +139,8 @@ namespace rgatCore
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
+            Console.WriteLine($"Ingesting block ID {blockID} address 0x{insaddr:X}");
+
             int dbginscount = -1;
             while (buf[bufPos] == '@')
             {
@@ -153,8 +155,13 @@ namespace rgatCore
                 lock (trace.DisassemblyData.InstructionsLock)
                 {
                     dbginscount++;
+
+
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
+
+                        Console.WriteLine($"\t Block {blockID} existing ins {dbginscount}-0x{insaddr:X}: {foundList[0].ins_text}");
+
                         InstructionData possibleInstruction = foundList[^1];
                         //if address has been seen but opcodes are not same as most recent, disassemble again
                         //might be a better to check all mutations instead of most recent
@@ -166,7 +173,6 @@ namespace rgatCore
                             continue;
                         }
                     }
-
                     //Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
                     InstructionData instruction = new InstructionData();
@@ -180,6 +186,15 @@ namespace rgatCore
                     instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
                     instruction.threadvertIdx = new Dictionary<uint, uint>();
 
+                    if (dbginscount == 0 || buf[bufPos] != '@')
+                    {
+                        instruction.BlockBoundary = true;
+                        Console.WriteLine("--Boundary--");
+                    }
+                    else
+                        instruction.BlockBoundary = false;
+
+
                     //need to move this out of the lock
                     if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
                     {
@@ -187,10 +202,10 @@ namespace rgatCore
                         return;
                     }
 
-                    //Console.WriteLine($"\t Block {blockID} ins {dbginscount}: {instruction.ins_text}");
+                    Console.WriteLine($"\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
-                    {
+                    { 
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                     instruction.mutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;

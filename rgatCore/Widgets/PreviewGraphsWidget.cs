@@ -78,6 +78,7 @@ namespace rgatCore
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
                 PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
+                if (graph == null) continue;
                 if (graph.NodesDisplayData.CountVerts() == 0 || graph._outputTexture == null) continue;
 
                 string Caption = $"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";

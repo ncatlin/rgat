@@ -21,7 +21,10 @@ namespace rgatCore
         CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
     }
 
-    enum graphLayouts { eCylinderLayout = 0, eTreeLayout = 1, eLayoutInvalid };
+    enum graphLayouts { eCylinderLayout, eTreeLayout, eForceDirected3D, eLayoutInvalid };
+
+    enum eSignatureType { eYARA, eDetectItEasy};
+
     static class UI_Constants
     {
         public const int MAX_DIFF_PATH_LENGTH = 50;

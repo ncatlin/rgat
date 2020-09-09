@@ -44,8 +44,7 @@ namespace rgatCore.Threads
 				(graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
 				graph.vertResizeIndex != 0)
 			{
-				Console.WriteLine("Doing updatemainrender");
-				graph.UpdateMainRender();
+				 graph.UpdateMainRender();
 			}
 
 

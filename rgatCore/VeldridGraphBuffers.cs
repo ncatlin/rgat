@@ -29,6 +29,14 @@ namespace rgatCore
         DeviceBuffer _PointVertexBuffer;
         DeviceBuffer _PointIndexBuffer;
 
+
+        //Triangles
+        Pipeline _trianglesPipeline;
+        VertexPositionColor[] _TriangleVertices;
+        DeviceBuffer _TriangleVertexBuffer;
+        DeviceBuffer _TriangleIndexBuffer;
+        
+
         ResourceSet _projViewSet;
         public DeviceBuffer _viewBuffer { get; private set; }
 
@@ -93,6 +101,9 @@ namespace rgatCore
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
             _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+
+            pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            _trianglesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
         }
 
 
@@ -173,13 +184,16 @@ namespace rgatCore
         {
             List<VertexPositionColor> vertslist = null;
 
-            GraphDisplayData wireframeLines = graph.wireframelines;
-            if (!wireframeLines.safe_get_vert_list(out vertslist))
+            if (graph.wireframelines != null)
             {
-                Console.WriteLine("Unhandled error 1 InitWireframeVertexData wireframeLines.safe_get_vert_array");
-                vertslist = new List<VertexPositionColor>();
-            }
+                GraphDisplayData wireframeLines = graph.wireframelines;
+                if (!wireframeLines.safe_get_vert_list(out vertslist))
+                {
+                    Console.WriteLine("Unhandled error 1 InitWireframeVertexData wireframeLines.safe_get_vert_array");
 
+                }
+            }
+            if (vertslist == null) vertslist = new List<VertexPositionColor>();
 
             GraphDisplayData higlightlines = graph.HighlightsDisplayData;
             if (higlightlines.safe_get_vert_list(out List<VertexPositionColor> highlightvertslist))
@@ -215,15 +229,52 @@ namespace rgatCore
             _gd.UpdateBuffer(_IllustrationLineIndexBuffer, 0, wfIndices.ToArray());
         }
 
+        void InitTriangleVertexData(GraphicsDevice _gd, PlottedGraph graph)
+        {
+            List<VertexPositionColor> vertslist = null;
+            if (vertslist == null) vertslist = new List<VertexPositionColor>();
+
+            GraphDisplayData blockTris = graph.NodesDisplayData;
+            if (blockTris.safe_get_vert_list(out List<VertexPositionColor> blockvertslist))
+            {
+                vertslist.AddRange(blockvertslist);
+            }
+            else
+            {
+                Console.WriteLine("Unhandled error 2 InitTriangleVertexData blockTris.safe_get_vert_array");
+            }
+
+            _TriangleVertices = vertslist.ToArray();
+
+            ResourceFactory factory = _gd.ResourceFactory;
+            BufferDescription vbDescription = new BufferDescription(
+                (uint)_TriangleVertices.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+
+            if (_TriangleVertexBuffer != null)
+            {
+                _TriangleVertexBuffer.Dispose();
+            }
+
+            _TriangleVertexBuffer = factory.CreateBuffer(vbDescription);
+            _gd.UpdateBuffer(_TriangleVertexBuffer, 0, _TriangleVertices);
+
+            List<ushort> triIndices = Enumerable.Range(0, _TriangleVertices.Length)
+                .Select(i => (ushort)i)
+                .ToList();
+
+            BufferDescription ibDescription = new BufferDescription((uint)triIndices.Count * sizeof(ushort), BufferUsage.IndexBuffer);
+            _TriangleVertexBuffer = factory.CreateBuffer(ibDescription);
+            _gd.UpdateBuffer(_TriangleVertexBuffer, 0, triIndices.ToArray());
+        }
 
         public void DrawIllustrationLines(CommandList _cl, GraphicsDevice _gd, PlottedGraph graph)
         {
             if (_IllustrationLineVertexBuffer == null 
-                || graph.wireframelines.DataChanged
+                || (graph.wireframelines != null && graph.wireframelines.DataChanged)
                 || graph.HighlightsDisplayData.DataChanged)
             {
                 InitIllustrationLineVertexData(_gd, graph);
-                graph.wireframelines.SignalDataRead();
+                graph.wireframelines?.SignalDataRead();
                 graph.HighlightsDisplayData.SignalDataRead();
             }
 

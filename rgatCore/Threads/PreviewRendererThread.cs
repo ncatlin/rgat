@@ -18,6 +18,8 @@ namespace rgatCore.Threads
 		}
         public void ThreadProc()
         {
+			return;
+
 			running = true;
 			List<PlottedGraph> graphlist;
 			int StopTimer = -1;
@@ -41,7 +43,7 @@ namespace rgatCore.Threads
 						{
 							//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 							moreRenderingNeeded = true;
-							graph.render_static_graph();
+							graph.render_graph();
 						}
 					}
 

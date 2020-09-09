@@ -9,7 +9,7 @@ using System.Text;
 
 namespace rgatCore
 {
-    enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1};
+    enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1 };
     class TraceChoiceSettings
     {
         public eModuleTracingMode TracingMode
@@ -41,7 +41,6 @@ namespace rgatCore
         HashSet<string> ignoreFiles = new HashSet<string>();
         public int ignoreFilesCount => ignoreFiles.Count;
 
-
         public List<string> GetIgnoredDirs() => ignoreDirs.ToList<string>();
         public List<string> GetIgnoredFiles() => ignoreFiles.ToList<string>();
         public List<string> GetTracedDirs() => traceDirs.ToList<string>();
@@ -71,11 +70,77 @@ namespace rgatCore
         public string FileName { get; private set; } = "";
         public string HexPreview { get; private set; } = "";
         public string ASCIIPreview { get; private set; } = "";
-        public string FormatNotes { get; private set; } = "Not Analysed";
+
+        List<string> signatureHitsDIE = null;
+        List<string> signatureHitsYARA = null;
+        public string FormatSignatureHits(out bool sigHitsYARA, out bool sigHitsDie)
+        {
+            sigHitsYARA = (signatureHitsYARA != null);
+            sigHitsDie = (signatureHitsDIE != null);
+            string result = "";
+            if (sigHitsYARA)
+            {
+                lock (signaturesLock)
+                {
+                    foreach (string hit in signatureHitsYARA) result += $"{hit} (YARA)\n";
+                }
+            }
+            if (sigHitsDie)
+            {
+                lock (signaturesLock)
+                {
+                    foreach (string hit in signatureHitsDIE) result += $"{hit} (Detect It Easy)\n";
+                }
+            }
+            return result;
+        }
+
+        private readonly Object signaturesLock = new Object();
+        public void ClearSignatureHits(eSignatureType sigType)
+        {
+            
+            switch (sigType)
+            {
+                case eSignatureType.eDetectItEasy:
+                    lock (signaturesLock) { signatureHitsDIE?.Clear(); }
+                    break;
+                case eSignatureType.eYARA:
+                    lock (signaturesLock) { signatureHitsYARA?.Clear(); }
+                    break;
+                default:
+                    Console.WriteLine("ClearSignatureHits: Bad signature type " + sigType);
+                    break;
+            }
+        }
+
+        //todo, json format, seperate lists for scan types, signature display
+        public void AddSignatureHits(string hits, eSignatureType sigType)
+        {
+            switch (sigType)
+            {
+                case eSignatureType.eDetectItEasy:
+                    if (signatureHitsDIE == null) signatureHitsDIE = new List<string>();
+                    signatureHitsDIE.Add(hits);
+                    break;
+                case eSignatureType.eYARA:
+                    if (signatureHitsYARA == null) signatureHitsDIE = new List<string>();
+                    signatureHitsYARA.Add(hits);
+                    break;
+                default:
+                    Console.WriteLine("AddSignatureHits: Bad signature type " + sigType);
+                    break;
+
+            }
+        }
+
 
         private readonly Object tracesLock = new Object();
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
+
+
+
+
 
         public List<Tuple<DateTime, TraceRecord>> GetTracesUIList()
         {
@@ -148,7 +213,9 @@ namespace rgatCore
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
-            } catch {
+            }
+            catch
+            {
                 Console.WriteLine("Error: Exception reading binary data");
                 _sha1hash = "Error";
                 _sha256hash = "Error";
