@@ -140,6 +140,9 @@ namespace rgatCore
 
         //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
 
+        protected abstract void PlotRerender();
+
+
         public void ReRender()
         {
             EdgesDisplayData = new GraphDisplayData();
@@ -147,6 +150,7 @@ namespace rgatCore
             HighlightsDisplayData = new GraphDisplayData();
             wireframelines = new GraphDisplayData();
             NeedReplotting = false;
+            PlotRerender();
         }
 
         public void UpdateMainRender()
@@ -460,14 +464,6 @@ namespace rgatCore
         }
 
         protected void render_new_blocks()
-        {
-
-        }
-
-
-        
-
-        protected void render_new_edges()
         {
             int edgesDrawn = 0;
             uint startIndex = EdgesDisplayData.CountRenderedEdges;

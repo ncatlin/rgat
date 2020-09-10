@@ -332,9 +332,14 @@ namespace rgatCore.Plots
 
         }
 
+        protected override void PlotRerender()
+        {
+            _GraphShapeGraph.Clear();
+        }
+
         public override void render_graph()
         {
-            render_new_edges();
+            render_new_blocks();
 
             Dictionary<NodeData, GraphShape.Size> vertSzies = new Dictionary<NodeData, GraphShape.Size>();
             Dictionary<NodeData, Thickness> vertBordThicks = new Dictionary<NodeData, Thickness>();
@@ -344,7 +349,7 @@ namespace rgatCore.Plots
             Random rnd = new Random(DateTime.Now.Millisecond);
             foreach (NodeData n in _GraphShapeGraph.Vertices)
             {
-                GraphShape.Size sz = new GraphShape.Size(20, 20);
+                GraphShape.Size sz = new GraphShape.Size(20, 80);
                 vertSzies.Add(n, sz);
                 vertBordThicks.Add(n, new Thickness(1, 1, 1, 1));
                 cvilt.Add(n, CompoundVertexInnerLayoutType.Fixed);
@@ -449,7 +454,8 @@ namespace rgatCore.Plots
             parms.MinimizeEdgeLength = true;
             parms.OptimizeWidth = true;
 
-            var algo = new GraphShape.Algorithms.Layout.SugiyamaLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph);
+            var algo = new GraphShape.Algorithms.Layout.SugiyamaLayoutAlgorithm<
+                NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, parms);
 
 
             //SIMPLE TREE
@@ -489,21 +495,22 @@ namespace rgatCore.Plots
             Debug.Assert(!double.IsNaN(algo.VerticesPositions[_GraphShapeGraph.Vertices.First()].X));
             foreach (NodeData n in _GraphShapeGraph.Vertices)
             {
+                if (n.index >= NodesDisplayData.NodeCount) break;
                 GraphShape.Point nodepos = algo.VerticesPositions[n];
                 Vector3 pos = new Vector3((float)nodepos.X * 10, -1 * (float)nodepos.Y * 10, 0);
                 NodesDisplayData.SetNodeCoord(n.index, pos, pos);
-                //Console.WriteLine($"Node {n.index} at {nodepos.X},{nodepos.Y}");
+                Console.WriteLine($"\tNode {n.index} at {nodepos.X},{nodepos.Y}");
             }
             
 
 
-
+            
             int edgesDrawn = 0;
             uint endIndex = EdgesDisplayData.CountRenderedEdges;
             EdgesDisplayData.Clear();
             for (uint edgeIdx = 0; edgeIdx < endIndex; edgeIdx++)
             {
-                if (edgeIdx <= internalProtoGraph.edgeList.Count)
+                if (edgeIdx >= internalProtoGraph.edgeList.Count)
                 {
                     Console.WriteLine("Possible error: trying to render more edges than in protograph"); //error or just catching up?
                     break;
@@ -512,9 +519,11 @@ namespace rgatCore.Plots
                 if (!render_edge(edgeNodes, null))
                 {
                     Console.WriteLine("Error: rendering edge");
+                    break;
                 }
                 edgesDrawn++;
             }
+            
 
         }
 
@@ -607,18 +616,16 @@ namespace rgatCore.Plots
 
         protected override bool render_edge(Tuple<uint, uint> nodePair, WritableRgbaFloat? forceColour)
         {
-
-            NodeData n1 = internalProtoGraph.safe_get_node(nodePair.Item1);
-            NodeData n2 = internalProtoGraph.safe_get_node(nodePair.Item2);
-            var edge1 = new TypedEdge<NodeData>(n1, n2, EdgeTypes.General);
-            if (!_GraphShapeGraph.AddVerticesAndEdge(new TypedEdge<NodeData>(n1, n2, EdgeTypes.General)))
-                Console.WriteLine("Edge add failed");
-
-
             ulong nodeCoordQty = (ulong)NodesDisplayData.NodeCount;
             if (nodePair.Item1 >= nodeCoordQty || nodePair.Item2 >= nodeCoordQty)
                 return false;
 
+
+            NodeData n1 = internalProtoGraph.safe_get_node(nodePair.Item1);
+            NodeData n2 = internalProtoGraph.safe_get_node(nodePair.Item2);
+
+            if (!_GraphShapeGraph.AddVerticesAndEdge(new TypedEdge<NodeData>(n1, n2, EdgeTypes.General)))
+                Console.WriteLine("Edge add failed");
 
             EdgeData e = internalProtoGraph.edgeDict[nodePair];
 

@@ -215,8 +215,7 @@ namespace rgatCore
 
         public override void render_graph()
         {
-            render_new_edges();
-            //render_new_blocks();
+            render_new_blocks();
             regenerate_wireframe_if_needed();
         }
 
@@ -262,6 +261,10 @@ namespace rgatCore
 
 		void orient_to_user_view();
 		*/
+
+        protected override void PlotRerender()
+        {
+        }
 
         override public void InitialisePreviewDimensions()
         {

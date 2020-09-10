@@ -193,11 +193,11 @@ namespace rgatCore
         }
 
 
-        private void BB_addNewEdge(bool alreadyExecuted, int instructionIndex, ulong repeats)
+        private void AddEdge_LastToTargetVert(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
-            //Console.WriteLine($"\tBB_addNewEdge {lastVertID} -> {targVertID}");
+            //Console.WriteLine($"\AddEdge_LastToTargetVert {lastVertID} -> {targVertID}");
             if (EdgeExists(edgeIDPair))
             {
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
@@ -267,7 +267,7 @@ namespace rgatCore
                     targVertID = handle_new_instruction(instruction, tag.blockID, 1);
                 else
                     safe_get_node(targVertID).executionCount += 1;
-                BB_addNewEdge(alreadyExecuted, instructionIndex, 1);
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
 
@@ -665,13 +665,9 @@ namespace rgatCore
 
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
-
                 //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
 
-                //addBlockNodesToGraph(thistag, repeats);
-                addBlockLineToGraph(thistag, repeats);
-
-                //TotalInstructions += thistag.insCount * repeats;
+                addBlockToGraph(thistag, repeats);
                 set_active_node(ProtoLastVertID);
             }
 
@@ -761,7 +757,7 @@ namespace rgatCore
         }
 
 
-        public void addBlockLineToGraph(TAG tag, ulong repeats)
+        public void addBlockToGraph(TAG tag, ulong repeats)
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
             int numInstructions = block.Count;
@@ -807,7 +803,7 @@ namespace rgatCore
                 }
 
 
-                BB_addNewEdge(alreadyExecuted, instructionIndex, repeats);
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, repeats);
 
                 //setup conditions for next instruction
                 switch (instruction.itype)
@@ -844,6 +840,7 @@ namespace rgatCore
             //Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
+        /*
         public void addBlockNodesToGraph(TAG tag, ulong repeats)
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
@@ -876,7 +873,7 @@ namespace rgatCore
                     loopState = eLoopState.eLoopProgress;
                 }
 
-                BB_addNewEdge(alreadyExecuted, instructionIndex, repeats);
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, repeats);
 
                 //setup conditions for next instruction
                 switch (instruction.itype)
@@ -900,6 +897,7 @@ namespace rgatCore
                 ProtoLastVertID = targVertID;
             }
         }
+        */
 
         public void set_active_node(uint idx)
         {

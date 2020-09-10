@@ -330,6 +330,7 @@ namespace rgatCore
         {
             VertList.Clear();
             NodeCount = 0;
+            CountRenderedEdges = 0;
             Edges_VertSizes_ArrayPositions.Clear();
         }
 
@@ -382,6 +383,7 @@ namespace rgatCore
         {
             lock (coordLock)
             {
+                Console.WriteLine($"Adding node coord {node_coords.Count}");
                 node_coords.Add(coord);
                 NodeCount = node_coords.Count;
             }
