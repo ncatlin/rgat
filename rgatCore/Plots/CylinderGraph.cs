@@ -1008,6 +1008,22 @@ namespace rgatCore
             bOut = (float)(tb / (-1 * dimensions.pix_per_B));
         }
 
+        //how much to move the camera on the y axis per mouse movement
+        static private float CamBoomFactor()
+        {
+            return 30f; //todo adjust to zoom, plot size
+        }
+
+        //how much to rotate our cylinder per mouse movent
+        private float RotationFactor()
+        {
+            return 0.002f;//todo adjust to zoom, plot size
+        }
+        public override void ApplyMouseDelta(Vector2 mousedelta)
+        {
+            CameraYOffset -= mousedelta.Y * CamBoomFactor();
+            PlotRotation += mousedelta.X * RotationFactor();
+        }
 
 
         int wireframe_loop_count = 0;

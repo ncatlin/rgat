@@ -1008,7 +1008,7 @@ namespace rgatCore
 
 
             if (ModulePath.Length > UI_Constants.MAX_DIFF_PATH_LENGTH)
-                ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI_Constants.MAX_DIFF_PATH_LENGTH, ModulePath.Length);
+                ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI_Constants.MAX_DIFF_PATH_LENGTH, UI_Constants.MAX_DIFF_PATH_LENGTH);
         }
         /*
 		public ulong BacklogOutgoing = 0;
@@ -1067,7 +1067,88 @@ namespace rgatCore
 
 
 
-        //bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+        public JObject Serialise()
+        {
+            JObject result = new JObject();
+            result.Add("ThreadID", ThreadID);
+
+            lock(nodeLock)
+            {
+                JArray nodesArray = new JArray();
+                foreach(NodeData node in NodeList)
+                {
+                    nodesArray.Add(node.Serialise());
+                }
+
+                result.Add("Nodes", nodesArray);
+            }
+
+            lock (edgeLock)
+            {
+                JArray edgeArray = new JArray();
+                foreach (var edgetuple in edgeList)
+                {
+                    edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2));
+                }
+
+                result.Add("Edges", edgeArray);
+            }
+
+            lock (highlightsLock)
+            {
+                JArray exceptNodeArray = new JArray();
+                foreach (var exc_node_idx in exceptionSet)
+                {
+                    exceptNodeArray.Add(exc_node_idx);
+                }
+
+                result.Add("Exceptions", exceptNodeArray);
+            }
+
+            result.Add("Module", exeModuleID);
+
+            //todo - lock?
+            JArray externCalls = new JArray();
+            foreach( EXTERNCALLDATA ecd in ExternCallRecords)
+            {
+                JArray ecdEntry = new JArray();
+                ecdEntry.Add(ecd.edgeIdx.Item1);
+                ecdEntry.Add(ecd.edgeIdx.Item2);
+
+                JArray ecdEntryArgs = new JArray();
+                foreach (var arg in ecd.argList)
+                {
+                    ecdEntryArgs.Add(arg);
+                }
+                ecdEntry.Add(ecdEntryArgs);
+                externCalls.Add(ecdEntry);
+            }
+            result.Add("ExternCalls", externCalls);
+
+            result.Add("TotalInstructions", TotalInstructions);
+
+            JArray replayDataArr = new JArray();
+            lock (AnimDataLock)
+            {
+                foreach (ANIMATIONENTRY repentry in SavedAnimationData)
+                {
+                    JArray replayItem = new JArray();
+                    replayItem.Add(repentry.entryType);
+                    replayItem.Add(repentry.blockAddr);
+                    replayItem.Add(repentry.blockID);
+                    replayItem.Add(repentry.count);
+                    replayItem.Add(repentry.targetAddr);
+                    replayItem.Add(repentry.targetID);
+                    replayItem.Add(repentry.callCount);
+                    replayDataArr.Add(replayItem);
+                }
+            }
+            result.Add("ReplayData", replayDataArr);
+
+
+
+            return result;
+        }
 
         public bool Deserialise(JObject graphData, Dictionary<ulong, List<InstructionData>> disassembly)
         {
@@ -1143,7 +1224,7 @@ namespace rgatCore
 		*/
         List<EXTERNCALLDATA> ExternCallRecords = new List<EXTERNCALLDATA>();
         public ulong TotalInstructions { get; set; } = 0;
-        int exeModuleID = -1;
+        public int exeModuleID = -1;
         public ulong moduleBase = 0;
         public string modulePath;
         public Dictionary<ulong, uint> InternalPlaceholderFuncNames = new Dictionary<ulong, uint>();

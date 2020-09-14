@@ -3,6 +3,7 @@ using Gee.External.Capstone.X86;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,19 +15,20 @@ namespace rgatCore
     class ProcessRecord
     {
 
-        public ProcessRecord(int binaryBitWidth) {
-            BitWidth = binaryBitWidth; 
+        public ProcessRecord(int binaryBitWidth)
+        {
+            BitWidth = binaryBitWidth;
             for (int i = 0; i < 150; i++)
             {
                 modIDTranslationVec.Add(-1);
             }
         }
 
-    		//public bool get_modpath(uint modNum, boost::filesystem::path* path);
-		//bool get_modbase(uint modNum, ulong &moduleBase);
-        
+        //public bool get_modpath(uint modNum, boost::filesystem::path* path);
+        //bool get_modbase(uint modNum, ulong &moduleBase);
 
-		public void get_extern_at_address(ulong address, int moduleNum, out ROUTINE_STRUCT BB)
+
+        public void get_extern_at_address(ulong address, int moduleNum, out ROUTINE_STRUCT BB)
         {
             lock (ExternCallerLock)
             {
@@ -35,9 +37,9 @@ namespace rgatCore
                     BB = new ROUTINE_STRUCT();
                     BB.globalmodnum = moduleNum;
                     BB.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
- 
+
                     externdict.Add(address, BB);
-                    
+
                 }
             }
         }
@@ -71,19 +73,19 @@ namespace rgatCore
                 Console.WriteLine("[rgat]ERROR: Disassembly reconstruction failed");
                 return false;
             }
-            
-			if (!LoadBlockData((JObject)processDataJSON))
-			{
+
+            if (!LoadBlockData((JObject)processDataJSON))
+            {
                 Console.WriteLine("[rgat]ERROR: Basic block reconstruction failed");
-				return false;
-			}
-            
-			if (!loadExterns((JObject)processDataJSON))
-			{
-				Console.WriteLine("[rgat]ERROR: Extern call loading failed");
-				return false;
-			}
-			
+                return false;
+            }
+
+            if (!loadExterns((JObject)processDataJSON))
+            {
+                Console.WriteLine("[rgat]ERROR: Extern call loading failed");
+                return false;
+            }
+
             return true;
 
         }
@@ -107,9 +109,9 @@ namespace rgatCore
                 if (dieFlag) return 0;
                 Thread.Sleep(2);
                 timewaited += 2;
-                if (timewaited > 2500 && (timewaited % 1000)  == 0)
+                if (timewaited > 2500 && (timewaited % 1000) == 0)
                 {
-                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited/1000}s");
+                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
                 }
 
             }
@@ -162,7 +164,7 @@ namespace rgatCore
                     Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block ID {blockID}");
 
                 if (iterations++ > 200)
-                { 
+                {
                     Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block ID {blockID}");
                     return null;
                 }
@@ -170,7 +172,7 @@ namespace rgatCore
                 if (dieFlag) return null;
             }
         }
-        
+
         public int FindContainingModule(ulong address)
         {
             int numModules = LoadedModuleBounds.Count;
@@ -207,11 +209,11 @@ namespace rgatCore
                 //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
                 if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
-                modIDTranslationVec[localmodID] = globalModID; 
+                modIDTranslationVec[localmodID] = globalModID;
 
                 ModuleTraceStates.Add(isInstrumented == '1' ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode);
                 LoadedModuleBounds.Add(new Tuple<ulong, ulong>(start, end));
-                
+
                 LoadedModuleCount += 1;
             }
         }
@@ -234,7 +236,8 @@ namespace rgatCore
                     modsymsPlain.Add(modnum, new Dictionary<ulong, string>());
                 }
 
-                if (modsymsPlain[modnum].ContainsKey(offset)){
+                if (modsymsPlain[modnum].ContainsKey(offset))
+                {
                     modsymsPlain[modnum][offset] += "/" + name;
                 }
                 else
@@ -301,18 +304,18 @@ namespace rgatCore
 
         public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
         public int LoadedModuleCount = 0;
-        
+
         //todo review these
         private readonly object ModulesLock = new object();
         public readonly object ExternCallerLock = new object(); //todo stop this being public
 
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
-        
-            public bool instruction_before(ulong addr, out ulong result)
+
+        public bool instruction_before(ulong addr, out ulong result)
         {
             const int LARGEST_X86_INSTRUCTION = 15;
-{
+            {
                 //first lookup in cache
                 if (previousInstructionsCache.TryGetValue(addr, out result))
                 {
@@ -374,14 +377,7 @@ namespace rgatCore
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
         public int BitWidth;
 
-        /*
-	private void saveDisassembly(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		private void saveExternDict(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		private void saveBlockData(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		private void saveMetaData(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		private void saveModules(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-		private void saveSymbols(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-        */
+
 
         private bool LoadSymbols(JObject processJSON)
         {
@@ -437,18 +433,12 @@ namespace rgatCore
                 return false;
             }
 
-            var modulesArray = moduleslist.ToObject<List<Dictionary<string, string>>>();
+            var modulesArray = moduleslist.ToObject<List<string>>();
 
             Console.WriteLine("Loading " + modulesArray.Count + " modules");
-            foreach (Dictionary<string, string> entry in modulesArray)
+            foreach (string b64entry in modulesArray)
             {
-                if (!entry.TryGetValue("B64", out string b64Value))
-                {
-                    Console.WriteLine("[rgat]ERROR: Module Paths load failed: No path string");
-                    return false;
-                }
-
-                string plainpath = System.Convert.FromBase64String(b64Value).ToString();
+                string plainpath = Encoding.Unicode.GetString(Convert.FromBase64String(b64entry));
                 LoadedModulePaths.Add(plainpath);
             }
 
@@ -472,6 +462,7 @@ namespace rgatCore
             public ulong address;
             public int moduleID;
             public bool hasSym;
+            public bool blockBoundary;
         };
 
 
@@ -556,6 +547,7 @@ namespace rgatCore
                 ins.opcodes = System.Convert.FromBase64String(mutation[0].ToObject<string>());
                 ins.numbytes = ins.opcodes.Length;
                 ins.address = addressData.address;
+                ins.BlockBoundary = addressData.blockBoundary;
 
                 if (ins.numbytes == 0)
                 {
@@ -581,7 +573,7 @@ namespace rgatCore
                     uint GraphVertID = entry[1].ToObject<uint>();
                     ins.threadvertIdx.Add(excutingThread, GraphVertID);
                 }
-                
+
                 opcodeVariants.Add(ins);
             }
             return true;
@@ -589,10 +581,11 @@ namespace rgatCore
 
         bool UnpackAddress(JArray entry, CapstoneX86Disassembler disassembler)
         {
-            if (entry.Type != JTokenType.Array || entry.Count != 3 ||
+            if (entry.Type != JTokenType.Array || entry.Count != 4 ||
                        entry[0].Type != JTokenType.Integer ||
                        entry[1].Type != JTokenType.Integer ||
-                       entry[2].Type != JTokenType.Array
+                       entry[2].Type != JTokenType.Integer ||
+                       entry[3].Type != JTokenType.Array
                        )
             {
                 Console.WriteLine("[rgat] Invalid disassembly entry in trace");
@@ -602,13 +595,14 @@ namespace rgatCore
             ADDRESS_DATA addrData = new ADDRESS_DATA
             {
                 address = entry[0].ToObject<ulong>(),
-                moduleID = entry[1].ToObject<int>()
+                moduleID = entry[1].ToObject<int>(),
+                blockBoundary = entry[2].ToObject<int>() == 1 ? true : false
             };
 
             addrData.hasSym = (modsymsPlain.ContainsKey(addrData.moduleID) &&
                                 modsymsPlain[addrData.moduleID].ContainsKey(addrData.address));
 
-            JArray mutationData = (JArray)entry[2];
+            JArray mutationData = (JArray)entry[3];
 
             if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData> opcodeVariants))
             {
@@ -656,7 +650,7 @@ namespace rgatCore
         }
 
 
-        
+
         private bool LoadBlockData(JObject processJSON)
         {
             if (!processJSON.TryGetValue("BasicBlocks", out JToken tBBLocks) || tBBLocks.Type != JTokenType.Array)
@@ -666,9 +660,9 @@ namespace rgatCore
             }
             JArray BBlocksArray = (JArray)tBBLocks;
 
-            Console.WriteLine("Loading "+ BBlocksArray.Count + " basic blocks");
+            Console.WriteLine("Loading " + BBlocksArray.Count + " basic blocks");
             //display_only_status_message(BBLoadMsg.str(), clientState);
-
+            uint blockID = 0;
             foreach (JArray blockEntry in BBlocksArray)
             {
                 if (blockEntry.Count != 2 || blockEntry[0].Type != JTokenType.Integer || blockEntry[1].Type != JTokenType.Array)
@@ -677,29 +671,30 @@ namespace rgatCore
                     return false;
                 }
                 JArray insAddresses = (JArray)blockEntry[1];
-                if (insAddresses.Count % 2 != 0)
-                {
-                    Console.WriteLine("Error: Bad basic block descriptor");
-                    return false;
-                }
-
-
                 List<InstructionData> blkInstructions = new List<InstructionData>();
                 ulong blockaddress = blockEntry[0].ToObject<ulong>();
-                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
 
-                for (var i = 0; i < insAddresses.Count; i+=2)
+                for (var i = 0; i < insAddresses.Count; i++)
                 {
-                    ulong insAddress = insAddresses[i].ToObject<ulong>();
-                    int mutationIndex = insAddresses[i+1].ToObject<int>();
-                    blkInstructions.Add(disassembly[insAddress][mutationIndex]);
+                    ulong insAddress = insAddresses[i][0].ToObject<ulong>();
+                    int mutationIndex = insAddresses[i][1].ToObject<int>();
+                    InstructionData ins = disassembly[insAddress][mutationIndex];
+                    blkInstructions.Add(ins);
+                    if (ins.ContainingBlockIDs == null) ins.ContainingBlockIDs = new List<uint>();
+                    ins.ContainingBlockIDs.Add(blockID);
+                    disassembly[insAddress][mutationIndex] = ins;
+
                 }
+                blockID += 1;
+
+
+                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
             }
 
             return true;
         }
-        
-        
+
+
         bool UnpackExtern(JObject externEntry)
         {
             if (!externEntry.TryGetValue("A", out JToken Addr) || Addr.Type != JTokenType.Integer)
@@ -736,20 +731,20 @@ namespace rgatCore
 
                     List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
                     uint threadID = caller[0].ToObject<uint>();
-                    JArray edges = (JArray) caller[1];
+                    JArray edges = (JArray)caller[1];
 
                     foreach (JArray edge in edges)
                     {
-                            uint source = edge[0].ToObject<uint>();
-                            uint target = edge[0].ToObject<uint>();
-                            ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
+                        uint source = edge[0].ToObject<uint>();
+                        uint target = edge[0].ToObject<uint>();
+                        ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
                     }
                     BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
-                  
+
                 }
             }
 
-            externdict.Add(externAddr,BBEntry);
+            externdict.Add(externAddr, BBEntry);
             return true;
         }
 
@@ -775,7 +770,186 @@ namespace rgatCore
             return true;
         }
 
-       
+        public JObject Serialise()
+        {
+            JObject result = new JObject();
+            SerialiseMetaData(ref result);
+            lock (InstructionsLock)
+            {
+                SerialiseDisassembly(ref result);
+                SerialiseBlockData(ref result);
+            }
+            SerialiseModules(ref result);
+            SerialiseSymbols(ref result);
+            SerialiseExternDict(ref result);
+
+            return result;
+        }
+
+
+        private void SerialiseMetaData(ref JObject saveObject)
+        {
+            if (BitWidth == 32 || BitWidth == 64)
+            {
+                saveObject.Add("BitWidth", BitWidth);
+            }
+            else
+            {
+                Console.WriteLine($"Error: Serialise() - Invalid bitwidth {BitWidth}");
+                return;
+            }
+
+            saveObject.Add("RGATVersionMaj", Version_Constants.RGAT_VERSION_MAJOR);
+            saveObject.Add("RGATVersionMin", Version_Constants.RGAT_VERSION_MINOR);
+            saveObject.Add("RGATVersionFeature", Version_Constants.RGAT_VERSION_FEATURE);
+        }
+
+        private void SerialiseDisassembly(ref JObject saveObject) 
+        {
+            JArray disasarray = new JArray();
+            foreach (KeyValuePair< ulong, List < InstructionData >> addr_inslist in disassembly)
+            {
+                JArray insentry = new JArray();
+                insentry.Add(addr_inslist.Key);
+                insentry.Add(addr_inslist.Value[0].globalmodnum);
+                insentry.Add(addr_inslist.Value[0].BlockBoundary ? 1 : 0);
+
+                JArray opcodesMutationsList = new JArray();
+                foreach (var mutation in addr_inslist.Value)
+                { 
+                    JArray mutationData = new JArray();
+                    string opcodestring = System.Convert.ToBase64String(mutation.opcodes);
+                    mutationData.Add(opcodestring);
+
+                    JArray threadsUsingInstruction = new JArray();
+                    foreach (KeyValuePair<uint,uint> thread_node in mutation.threadvertIdx)
+                    {
+                        JArray threadNodeMappings = new JArray();
+                        threadNodeMappings.Add(thread_node.Key);
+                        threadNodeMappings.Add(thread_node.Value);
+                        threadsUsingInstruction.Add(threadNodeMappings);
+                    }
+                    mutationData.Add(threadsUsingInstruction);
+                    opcodesMutationsList.Add(mutationData);
+                }
+                insentry.Add(opcodesMutationsList);
+                disasarray.Add(insentry);
+            }
+            saveObject.Add("Disassembly", disasarray);
+        }
+
+
+        private void SerialiseModules(ref JObject saveObject)
+        {
+            JArray ModulePaths = new JArray();
+            foreach (string path in LoadedModulePaths)
+            {
+                ModulePaths.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(path)));
+            }
+            saveObject.Add("ModulePaths", ModulePaths);
+
+            JArray ModuleBounds = new JArray();
+            foreach (Tuple<ulong,ulong> start_end in LoadedModuleBounds)
+            {
+                JArray BoundsTuple = new JArray();
+                BoundsTuple.Add(start_end.Item1);
+                BoundsTuple.Add(start_end.Item2);
+                ModuleBounds.Add(BoundsTuple);
+            }
+            saveObject.Add("ModuleBounds", ModuleBounds);
+        }
+
+
+        private void SerialiseSymbols(ref JObject saveObject)
+        {
+            JArray ModuleSymbols = new JArray();
+
+            foreach (var modID_symsdict in modsymsPlain)
+            {
+                JObject modSymsObj = new JObject();
+                modSymsObj.Add("ModuleID", modID_symsdict.Key);
+
+                JArray modSymsArr = new JArray();
+                foreach (var address_symstring in modID_symsdict.Value)
+                {
+                    JArray modSymEntry = new JArray();
+                    modSymEntry.Add(address_symstring.Key);
+                    modSymEntry.Add(address_symstring.Value);
+                    modSymsArr.Add(modSymEntry);
+                }
+                modSymsObj.Add("Symbols", modSymsArr);
+                ModuleSymbols.Add(modSymsObj);
+            }
+
+            saveObject.Add("ModuleSymbols", ModuleSymbols);
+        }
+
+
+        private void SerialiseBlockData(ref JObject saveObject) 
+        {
+            JArray BasicBlocksArray = new JArray();
+
+            foreach (var addr_inslist in BasicBlocksList)
+            {
+                JArray blockArray = new JArray();
+                blockArray.Add(addr_inslist.Item1);
+
+                JArray inslist = new JArray();
+                foreach ( InstructionData i in addr_inslist.Item2)
+                { 
+                    JArray insentry = new JArray();
+                    insentry.Add(i.address);
+                    insentry.Add(i.mutationIndex);
+                    inslist.Add(insentry);
+                }
+                blockArray.Add(inslist);
+                BasicBlocksArray.Add(blockArray);
+            }
+            saveObject.Add("BasicBlocks", BasicBlocksArray);
+        }
+
+
+        private void SerialiseExternDict(ref JObject saveObject)
+        {
+            JArray externsArray = new JArray();
+
+            foreach (var addr_rtnstruct in externdict)
+            {
+                JObject externObj = new JObject();
+                externObj.Add("A", addr_rtnstruct.Key);
+
+                ROUTINE_STRUCT externStruc = addr_rtnstruct.Value;
+                externObj.Add("M", externStruc.globalmodnum);
+                externObj.Add("S", externStruc.hasSymbol);
+
+                if (externStruc.thread_callers.Count > 0)
+                {
+                    JArray callersArr = new JArray();
+
+                    foreach (var thread_edgelist in externStruc.thread_callers)
+                    {
+                        callersArr.Add(thread_edgelist.Key);
+
+                        JArray edgeList = new JArray();
+                        foreach (var edge in thread_edgelist.Value)
+                        {
+                            JArray threadEdge = new JArray();
+                            threadEdge.Add(edge.Item1);
+                            threadEdge.Add(edge.Item2);
+                            edgeList.Add(threadEdge);
+                        }
+
+                        callersArr.Add(edgeList);
+                    }
+
+                    externObj.Add("C", callersArr);
+                }
+                externsArray.Add(externObj);
+            }
+            saveObject.Add("Externs", externsArray);
+        }
+
+
         public bool dieFlag = false;
     }
 }

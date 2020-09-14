@@ -139,7 +139,15 @@ namespace rgatCore.Plots
                     //itm.contents = $"N<{node.index}>  X:{cylcoord.a} Y:{cylcoord.b}";
                     //itm.contents = $"N<{node.index}>  X:{pos.X} Y:{pos.Y} z:{pos.Z} Dist:{dist}";
                     itm.contents = $"{node.index} 0x{node.address:X}: {node.ins.ins_text}";
-                    itm.color = Color.White;
+                    if (node.ins.BlockBoundary)
+                    {
+                        itm.contents += " <BBTOP>";
+                        itm.color = Color.Blue;
+                    }
+                    else
+                    {
+                        itm.color = Color.White;
+                    }
                 }
 
 
@@ -208,6 +216,13 @@ namespace rgatCore.Plots
             newPosition.X = oldPosition.X;
             newPosition.Y = oldPosition.Y - 50;
             newPosition.Z = 0;// oldPosition.Z - 200;
+
+            while (NodesDisplayData.usedCoords.ContainsKey(new Tuple<float, float>(newPosition.X, newPosition.Y)))
+            {
+                newPosition.X += 5;
+                newPosition.Y += 5;
+                newPosition.Z -= 50;
+            }
         }
 
 
@@ -235,7 +250,7 @@ namespace rgatCore.Plots
                     positionVert(n, out Vector3 newPos);
                     coord = newPos;
                     NodesDisplayData.add_node_coord(newPos);
-                    //Console.WriteLine($"Thread {internalProtoGraph.ThreadID} added vert {n.index}");
+                    Console.WriteLine($"Thread {internalProtoGraph.ThreadID} added vert {n.index}");
                     Debug.Assert(NodesDisplayData.NodeCount == n.index + 1);
 
                 }
@@ -341,14 +356,19 @@ namespace rgatCore.Plots
         {
             render_new_blocks();
 
+
+
             Dictionary<NodeData, GraphShape.Size> vertSzies = new Dictionary<NodeData, GraphShape.Size>();
             Dictionary<NodeData, Thickness> vertBordThicks = new Dictionary<NodeData, Thickness>();
             Dictionary<NodeData, CompoundVertexInnerLayoutType> cvilt = new Dictionary<NodeData, CompoundVertexInnerLayoutType>();
             Dictionary<NodeData, GraphShape.Point> positions = new Dictionary<NodeData, GraphShape.Point>();
             int szd = 1000;
+
             Random rnd = new Random(DateTime.Now.Millisecond);
             foreach (NodeData n in _GraphShapeGraph.Vertices)
             {
+                if (!_GraphShapeGraph.ContainsVertex(n)) continue;
+
                 GraphShape.Size sz = new GraphShape.Size(20, 80);
                 vertSzies.Add(n, sz);
                 vertBordThicks.Add(n, new Thickness(1, 1, 1, 1));
@@ -356,8 +376,10 @@ namespace rgatCore.Plots
                 NodesDisplayData.get_node_coord((int)n.index, out Vector3 npos);
                 positions.Add(n, new GraphShape.Point(Math.Max(double.Epsilon, rnd.NextDouble() * szd), Math.Max(double.Epsilon, rnd.NextDouble() * szd)));
                 szd += 1000;
-            }
+            
+        }
 
+            
 
             Stopwatch st = new Stopwatch(); st.Start();
 
@@ -377,14 +399,14 @@ namespace rgatCore.Plots
 
 
             //horrendous slow mess
-            /*
-            KKLayoutParameters parms = new KKLayoutParameters();
-            parms.Width = 180000;
-            parms.ExchangeVertices = true;
-            parms.Height = 180000;
-            var algo = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<NodeData, TypedEdge<NodeData>,
-            BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, parms);
-            */
+            
+            KKLayoutParameters parmsk = new KKLayoutParameters();
+            parmsk.Width = 18000;
+            parmsk.ExchangeVertices = true;
+            parmsk.Height = 18000;
+            //var algo = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<NodeData, TypedEdge<NodeData>,
+            //BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, parmsk);
+            
 
 
             //CompoundFDP
@@ -450,12 +472,11 @@ namespace rgatCore.Plots
             //SUGIYAMA
             //nice looking but quite slow
             SugiyamaLayoutParameters parms = new SugiyamaLayoutParameters();
-            parms.EdgeRouting = SugiyamaEdgeRouting.Traditional;
-            parms.MinimizeEdgeLength = true;
+            parms.EdgeRouting = SugiyamaEdgeRouting.Orthogonal;
+            parms.MinimizeEdgeLength = false;
             parms.OptimizeWidth = true;
 
-            var algo = new GraphShape.Algorithms.Layout.SugiyamaLayoutAlgorithm<
-                NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, parms);
+            var algo = new GraphShape.Algorithms.Layout.SugiyamaLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, parms);
 
 
             //SIMPLE TREE
@@ -464,7 +485,7 @@ namespace rgatCore.Plots
 
             //CIRCULAR
             //super fast and iconic, has to go in
-            // var algo = new GraphShape.Algorithms.Layout.CircularLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, vertSzies);
+            //var algo = new GraphShape.Algorithms.Layout.CircularLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>(_GraphShapeGraph, vertSzies);
 
 
 
@@ -476,8 +497,8 @@ namespace rgatCore.Plots
             
             algo.IterationEnded += (sender, smush) => {
                 //FRLayoutAlgorithm<string, TypedEdge<string>, BidirectionalGraph<string, TypedEdge<string>>> alg = (FRLayoutAlgorithm<string, TypedEdge<string>, BidirectionalGraph<string, TypedEdge<string>>>) sender;
-                FRLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>> alg = (FRLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>)sender;
-                Console.WriteLine($"iter done {alg.VerticesPositions[_GraphShapeGraph.Vertices.First()].X}, {alg.VerticesPositions[_GraphShapeGraph.Vertices.First()].Y}");
+                //FRLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>> alg = (FRLayoutAlgorithm<NodeData, TypedEdge<NodeData>, BidirectionalGraph<NodeData, TypedEdge<NodeData>>>)sender;
+                //Console.WriteLine($"iter done {alg.VerticesPositions[_GraphShapeGraph.Vertices.First()].X}, {alg.VerticesPositions[_GraphShapeGraph.Vertices.First()].Y}");
             };
             
 
@@ -490,6 +511,11 @@ namespace rgatCore.Plots
             double rate = (double)(_GraphShapeGraph.VertexCount / (double)st.Elapsed.TotalMilliseconds);
             Console.WriteLine($"Graph computed {_GraphShapeGraph.VertexCount} nodes in {st.Elapsed.TotalSeconds} seconds ({rate * 1000.0} nodes/second)");
 
+            if (algo.VerticesPositions.Count == 0)
+            {
+                Console.WriteLine("Warning - render_graph(): No positions generated");
+                return;
+            }
 
 
             Debug.Assert(!double.IsNaN(algo.VerticesPositions[_GraphShapeGraph.Vertices.First()].X));
@@ -499,7 +525,40 @@ namespace rgatCore.Plots
                 GraphShape.Point nodepos = algo.VerticesPositions[n];
                 Vector3 pos = new Vector3((float)nodepos.X * 10, -1 * (float)nodepos.Y * 10, 0);
                 NodesDisplayData.SetNodeCoord(n.index, pos, pos);
-                Console.WriteLine($"\tNode {n.index} at {nodepos.X},{nodepos.Y}");
+                if (n.ins.BlockBoundary)
+                    Console.WriteLine($"\tNode {n.index} at {pos.X},{pos.Y} <<--- BlockTop");
+                else
+                    Console.WriteLine($"\tNode {n.index} at {pos.X},{pos.Y}");
+
+                if (n.ins.ContainingBlockIDs != null)
+                {
+                    bool working = false;
+                    uint bid = n.ins.ContainingBlockIDs[^1];
+                    List<InstructionData> blk = internalProtoGraph.ProcessData.getDisassemblyBlock(bid);
+                    foreach (InstructionData ins in blk)
+                    {
+
+                        if (!working)
+                        {
+                            if (ins.address == n.ins.address)
+                                working = true;
+                            continue;
+                        }
+                        if (ins.BlockBoundary) break;
+                        pos.Y -= 15;
+
+                        if (ins.threadvertIdx.ContainsKey(internalProtoGraph.ThreadID))
+                        {
+                            uint nidx = ins.threadvertIdx[internalProtoGraph.ThreadID];
+                            if (NodesDisplayData.NodeCount > nidx)
+                            { 
+                                NodesDisplayData.SetNodeCoord(nidx, pos, pos);
+                                Console.WriteLine($"\t\tNode {nidx} at {pos.X},{pos.Y}");
+                            }
+                        }
+                    }
+                    
+                }
             }
             
 
@@ -620,12 +679,15 @@ namespace rgatCore.Plots
             if (nodePair.Item1 >= nodeCoordQty || nodePair.Item2 >= nodeCoordQty)
                 return false;
 
-
+            
             NodeData n1 = internalProtoGraph.safe_get_node(nodePair.Item1);
             NodeData n2 = internalProtoGraph.safe_get_node(nodePair.Item2);
 
-            if (!_GraphShapeGraph.AddVerticesAndEdge(new TypedEdge<NodeData>(n1, n2, EdgeTypes.General)))
-                Console.WriteLine("Edge add failed");
+            if (n1.ins.BlockBoundary) //plot only the top of basic blocks
+            {
+                if (!_GraphShapeGraph.AddVerticesAndEdge(new TypedEdge<NodeData>(n1, n2, EdgeTypes.General)))
+                    Console.WriteLine("Edge add failed");
+            }
 
             EdgeData e = internalProtoGraph.edgeDict[nodePair];
 
@@ -663,6 +725,19 @@ namespace rgatCore.Plots
 
 
             return true;
+        }
+
+        //how much to move the camera on the y axis per mouse movement
+        static private float CamBoomFactor()
+        {
+            return 30f; //todo adjust to zoom, plot size
+        }
+
+
+        public override void ApplyMouseDelta(Vector2 mousedelta)
+        {
+            CameraYOffset -= mousedelta.Y * CamBoomFactor();
+            CameraXOffset += mousedelta.X * CamBoomFactor();
         }
     }
 }

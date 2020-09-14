@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using rgatCore.Plots;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,7 +26,7 @@ namespace rgatCore
 		2.construct at disassemble time and improve render speed
 		*/
         //store all the basic blocks this instruction is a member of
-        public List<Tuple<ulong, uint>> ContainingBlockIDs;
+        public List<uint> ContainingBlockIDs;
 
         public string ins_text;
         public eNodeType itype;
@@ -289,8 +291,8 @@ namespace rgatCore
             lock (GraphListLock)
             {
                 PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
-                    PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
-                    PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
+                PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
+                PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
             }
             protograph.Terminated = true;
             protograph.AssignModulePath();
@@ -299,7 +301,114 @@ namespace rgatCore
         }
 
 
+        /// <summary>
+        /// Save all the data needed to reconstruct a process run and all its thread graphs
+        /// Recursively saves child processes
+        /// </summary>
+        /// <param name="traceStartedTime">The time the run was started</param>
+        /// <returns>The path the trace was saved to</returns>
+        public string Save(DateTime traceStartedTime)
+        {
+            Console.WriteLine($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
+            if (TraceType != eTracePurpose.eVisualiser)
+            {
+                Console.WriteLine("\tSkipping non visualiser trace");
+                return "";
+            }
 
+            JsonTextWriter wr = CreateSaveFile(traceStartedTime);
+            if (wr == null)
+            {
+                Console.WriteLine("\tSaving Failed: Unable to create filestream");
+                return "";
+            }
+
+            JObject traceSaveObject = new JObject();
+            traceSaveObject.Add("PID", PID);
+            traceSaveObject.Add("PID_ID", randID);
+            traceSaveObject.Add("ProcessData", DisassemblyData.Serialise());
+            traceSaveObject.Add("BinaryPath", binaryTarg.FilePath);
+            traceSaveObject.Add("StartTime", traceStartedTime);
+            traceSaveObject.Add("Threads", SerialiseGraphs());
+            traceSaveObject.Add("Timeline", SerialiseTimeline() );
+
+            JArray childPathsArray = new JArray();
+            foreach (TraceRecord trace in children)
+            {
+                string childpath = trace.Save(trace.launchedTime);
+                if (childpath.Length > 0)
+                    childPathsArray.Add(childpath);
+            }
+            traceSaveObject.Add("Children", childPathsArray);
+
+            traceSaveObject.WriteTo(wr);
+            wr.Close();
+
+            Console.WriteLine("Trace Save Complete");
+            return wr.Path;
+        }
+
+        JArray SerialiseGraphs()
+        {
+            JArray graphsList = new JArray();
+
+            lock(GraphListLock)
+            {
+                foreach (var tid__mode_graph in PlottedGraphs)
+                {
+                    if (tid__mode_graph.Value.Count == 0) continue;
+                    ProtoGraph protograph = tid__mode_graph.Value[0].internalProtoGraph;
+                    if (protograph.NodeList.Count == 0) continue;
+
+                    graphsList.Add(protograph.Serialise());
+                }
+            }
+
+            return graphsList;
+        }
+
+
+        JObject SerialiseTimeline()
+        {
+
+            JObject timeline = new JObject();
+            return timeline;
+        }
+
+
+        JsonTextWriter CreateSaveFile(DateTime startedTime)
+        {
+            string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
+            if (!Directory.Exists(GlobalConfig.SaveDirectory))
+            {
+                GlobalConfig.SaveDirectory = Path.Join(Directory.GetCurrentDirectory(), "saves");
+            }
+            if (!Directory.Exists(GlobalConfig.SaveDirectory))
+            {
+                Console.WriteLine("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist");
+                return null;
+            }
+
+            string path = Path.Join(GlobalConfig.SaveDirectory, saveFilename);
+            try
+            {
+                StreamWriter sw = File.CreateText(path);
+
+                return (new JsonTextWriter(sw));
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine($"\tWarning: Unauthorized to open {path} for writing");
+                return null;
+            }
+            catch
+            {
+                Console.WriteLine($"\tWarning: Failed to open {path} for writing");
+                return null;
+            }
+
+            return null;
+        }
 
         //private bool loadTimeline(const rapidjson::Value& saveJSON);
 
@@ -311,7 +420,7 @@ namespace rgatCore
         public ProcessRecord DisassemblyData { private set; get; } = null; //the first disassembly of each address
 
         //private timeline runtimeline;
-        private DateTime launchedTime; //the time the user pressed start, not when the first process was seen
+        public DateTime launchedTime { private set; get; } //the time the user pressed start, not when the first process was seen
 
         public BinaryTarget binaryTarg { private set; get; } = null;
         public bool IsRunning { private set; get; } = false;

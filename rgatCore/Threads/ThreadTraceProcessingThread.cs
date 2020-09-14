@@ -229,7 +229,13 @@ namespace rgatCore.Threads
             if (nextBlockAddress == 0) return;
 
             eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
-            if (modType == eCodeInstrumentation.eInstrumentedCode) return;
+            if (modType == eCodeInstrumentation.eInstrumentedCode)
+            {
+                if (protograph.exeModuleID == -1 && protograph.NodeList.Count != 0)
+                    protograph.AssignModulePath();
+                
+                return; 
+            }
 
             //modType could be known unknown here
             //in case of unknown, this waits until we know. hopefully rare.
@@ -552,8 +558,8 @@ namespace rgatCore.Threads
             //problem here: no way of knowing which mutation of the faulting block was executed
             //going to have to assume it's the most recent mutation
             InstructionData exceptingins = faultingBlock[^1];
-            var faultingBBAddrID = exceptingins.ContainingBlockIDs[^1];
-            List<InstructionData> faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBBAddrID.Item2);
+            uint faultingBasicBlock_ID = exceptingins.ContainingBlockIDs[^1];
+            List<InstructionData> faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBasicBlock_ID);
 
             //todo: Lock, linq
             int instructionsUntilFault = 0;
@@ -564,9 +570,9 @@ namespace rgatCore.Threads
             }
 
             TAG interruptedBlockTag;
-            interruptedBlockTag.blockaddr = faultingBBAddrID.Item1;
+            interruptedBlockTag.blockaddr = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID].Item2[0].address;
             interruptedBlockTag.insCount = (ulong)instructionsUntilFault;
-            interruptedBlockTag.blockID = faultingBBAddrID.Item2;
+            interruptedBlockTag.blockID = faultingBasicBlock_ID;
             interruptedBlockTag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
             interruptedBlockTag.foundExtern = null;
             interruptedBlockTag.insCount = 0;

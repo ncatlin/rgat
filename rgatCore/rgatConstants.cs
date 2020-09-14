@@ -66,4 +66,11 @@ namespace rgatCore
         public const int KEEP_BRIGHT = -1;
 
     }
+
+    static class Version_Constants
+    {
+        public const int RGAT_VERSION_MAJOR = 0;
+        public const int RGAT_VERSION_MINOR = 6;
+        public const int RGAT_VERSION_FEATURE = 0;
+    }
 }

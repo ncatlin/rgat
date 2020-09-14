@@ -646,9 +646,11 @@ namespace rgatCore
             {
                 //find vert in internal code
                 InstructionData nextIns = nextBlock[0];
-                uint caller = nextIns.threadvertIdx[internalProtoGraph.ThreadID];
-
-                LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, caller);
+                if (nextIns.threadvertIdx.TryGetValue(internalProtoGraph.ThreadID, out uint caller))
+                {
+                    LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, caller);
+                }
+                else return;
             }
 
             /*
@@ -1230,8 +1232,9 @@ namespace rgatCore
                 return waitFrames;
             }
 
+            public abstract void ApplyMouseDelta(Vector2 mousedelta);
 
-            void ResetAllActiveAnimatedAlphas()
+        void ResetAllActiveAnimatedAlphas()
             {
 
                 foreach (uint nodeIdx in activeAnimNodeTimes.Keys)

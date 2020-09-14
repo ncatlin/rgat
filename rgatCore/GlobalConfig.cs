@@ -83,6 +83,8 @@ namespace rgatCore.Threads
 
         public static List<WritableRgbaFloat> defaultGraphColours = new List<WritableRgbaFloat>();
 
+        public static string SaveDirectory = @"C:\Users\nia\Source\Repos\rgatCore\rgatCore\bin\Debug\netcoreapp3.1\testsaves";// "[not set]";
+
         public static void InitDefaultConfig()
         {
             defaultGraphColours = new List<WritableRgbaFloat> { 

@@ -1121,7 +1121,7 @@ namespace rgatCore
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { }
                     if (ImGui.MenuItem("Save Process Traces")) { }
-                    if (ImGui.MenuItem("Save All Traces")) { }
+                    if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets();  }
                     ImGui.Separator();
                     if (ImGui.MenuItem("Exit")) { }
                     ImGui.EndMenu();

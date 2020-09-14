@@ -10,7 +10,48 @@ namespace rgatCore
 
         public NodeData() { }
 
-        //bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, PROTOGRAPH_CASTPTR graphPtr);
+        public JArray Serialise()
+        {
+            JArray nodearr = new JArray();
+
+            nodearr.Add(index);
+            nodearr.Add(conditional);
+            nodearr.Add(GlobalModuleID);
+            nodearr.Add(address);
+            nodearr.Add(executionCount);
+
+            JArray incoming = new JArray();
+            foreach (var nidx in IncomingNeighboursSet) incoming.Add(nidx);
+            nodearr.Add(incoming);
+
+            JArray outgoing = new JArray();
+            foreach (var nidx in OutgoingNeighboursSet) outgoing.Add(nidx);
+            nodearr.Add(outgoing);
+
+            nodearr.Add(IsExternal);
+
+            if (!IsExternal)
+            { 
+                nodearr.Add(ins.mutationIndex); 
+            }
+            else
+            {
+                JArray callRecIdxArr = new JArray();
+                foreach (var idx in callRecordsIndexs) callRecIdxArr.Add(idx);
+                nodearr.Add(callRecIdxArr);
+            }
+
+            nodearr.Add(unreliableCount);
+
+            if (label?.Length > 0)
+            {
+                nodearr.Add(label);
+                nodearr.Add(placeholder);
+            }
+
+            return nodearr;
+        }
+
         //takes a file with a pointer next to a node entry, loads it into the node
 
         public bool Deserialise(JArray nodeData, Dictionary<ulong, List<InstructionData>> disassembly)

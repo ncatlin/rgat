@@ -361,13 +361,8 @@ namespace rgatCore
 
             //temporary loading of unix ts in old save files. TODO: move to new format
             DateTime StartTime;
-            if (jTime.Type == JTokenType.Integer)
-                StartTime = UnixTimeStampToDateTime((ulong)jTime);
-            else if (jTime.Type == JTokenType.String)
-            {
-                StartTime = DateTime.MinValue;
-                Console.WriteLine("TODO DESERIALISE DATETIME");
-            }
+            if (jTime.Type == JTokenType.Date)
+                StartTime = jTime.ToObject<DateTime>();
             else
             {
                 Console.WriteLine("BAD DATETIME");
@@ -430,8 +425,10 @@ namespace rgatCore
             }
 
             if (!trace.load(saveJSON))//, config.graphColours))
+            {
+                target.DeleteTrace(trace.launchedTime);
                 return false;
-
+            }
             //updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
             ExtractChildTraceFilenames(saveJSON, out List<string> childrenFiles);
             if (childrenFiles.Count > 0)
@@ -476,6 +473,25 @@ namespace rgatCore
                 childTrace.ParentTrace = trace;
             }
 
+        }
+
+        public void SaveAllTargets()
+        {
+            List<BinaryTarget> targslist = targets.GetBinaryTargets();
+            foreach (BinaryTarget targ in targslist)
+            {
+                SaveTarget(targ);
+            }
+            Console.WriteLine($"Finished saving {targslist.Count} targets");
+        }
+
+        public void SaveTarget(BinaryTarget targ)
+        {
+            var traceslist = targ.GetTracesUIList();
+            foreach (Tuple<DateTime, TraceRecord> time_trace in traceslist)
+            {
+                time_trace.Item2.Save(time_trace.Item1);
+            }
         }
     }
 }

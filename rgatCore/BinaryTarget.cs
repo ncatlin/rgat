@@ -139,6 +139,16 @@ namespace rgatCore
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
 
+        public void DeleteTrace(DateTime timestarted)
+        {
+            lock(tracesLock)
+            {
+                if (RecordedTraces.ContainsKey(timestarted))
+                {
+                    RecordedTraces.Remove(timestarted);
+                }
+            }
+        }
 
 
 

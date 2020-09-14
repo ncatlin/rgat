@@ -181,15 +181,14 @@ namespace rgatCore
                     instruction.opcodes = opcodes;
                     instruction.globalmodnum = globalModNum;
                     instruction.dataEx = dataExecution;
-                    instruction.ContainingBlockIDs = new List<Tuple<ulong, uint>>();
-                    instruction.ContainingBlockIDs.Add(new Tuple<ulong, uint>(insaddr, blockID));
+                    instruction.ContainingBlockIDs = new List<uint>();
+                    instruction.ContainingBlockIDs.Add(blockID);
                     instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
                     instruction.threadvertIdx = new Dictionary<uint, uint>();
 
                     if (dbginscount == 0 || buf[bufPos] != '@')
                     {
                         instruction.BlockBoundary = true;
-                        Console.WriteLine("--Boundary--");
                     }
                     else
                         instruction.BlockBoundary = false;

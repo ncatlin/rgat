@@ -118,25 +118,14 @@ namespace rgatCore
 
                 if (ActiveGraph != null && ImGui.GetIO().MouseDown[0])
                 {
-                    ActiveGraph.CameraYOffset -= ImGui.GetIO().MouseDelta.Y * CamBoomFactor();
-                    ActiveGraph.PlotRotation += ImGui.GetIO().MouseDelta.X * RotationFactor();
+                    ActiveGraph.ApplyMouseDelta(ImGui.GetIO().MouseDelta);
                 }
             }
 
 
         }
 
-        //how much to move the camera on the y axis per mouse movement
-       static private float CamBoomFactor()
-        {
-            return 30f; //todo adjust to zoom, plot size
-        }
 
-        //how much to rotate our cylinder per mouse movent
-        private float RotationFactor()
-        {
-            return 0.002f;//todo adjust to zoom, plot size
-        }
 
         public void Draw(Vector2 graphSize, ImGuiController _ImGuiController, GraphicsDevice _gd)
         {

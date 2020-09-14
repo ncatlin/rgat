@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,7 +11,14 @@ namespace rgatCore
 
 		//write to provided file. This class doesn't actually contain the source
 		//and the target of the edge, so pass those along too
-		//bool serialise(rapidjson::Writer<rapidjson::FileWriteStream>& writer, int source, int target);
+		public JArray Serialise(uint src, uint targ)
+        {
+			JArray edgearr = new JArray();
+			edgearr.Add(src);
+			edgearr.Add(targ);
+			edgearr.Add(edgeClass);
+			return edgearr;
+        }
 
 		//type of edge (call,extern,etc)
 		public eEdgeNodeType edgeClass;
