@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using rgatCore.Plots;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -279,12 +278,12 @@ namespace rgatCore
                 return false;
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            ForceDirected3DGraph standardRenderedGraph = new ForceDirected3DGraph(protograph, GlobalConfig.defaultGraphColours);
+            PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
             standardRenderedGraph.InitialiseDefaultDimensions();
             standardRenderedGraph.SetAnimated(false);
 
 
-            CylinderGraph previewgraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
+            PlottedGraph previewgraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
             previewgraph.InitialisePreviewDimensions();
             previewgraph.SetAnimated(false);
 
@@ -413,7 +412,31 @@ namespace rgatCore
         //private bool loadTimeline(const rapidjson::Value& saveJSON);
 
 
+        public  void ExportPajek(uint TID)
+        {
+            ProtoGraph pgraph = this.ProtoGraphs[TID];
 
+            FileStream outfile = File.OpenWrite(Path.Combine(GlobalConfig.SaveDirectory, "pajeksave" + TID.ToString() + ".net"));
+            outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
+            outfile.Write(Encoding.ASCII.GetBytes("*Vertices "+pgraph.NodeList.Count+"\n"));
+
+            foreach (NodeData n in pgraph.NodeList)
+            {
+                outfile.Write(Encoding.ASCII.GetBytes(n.index+" \""+n.ins.ins_text+"\"\n"));
+            }
+
+            outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
+            foreach (NodeData n in pgraph.NodeList)
+            {
+                outfile.Write(Encoding.ASCII.GetBytes(n.index + " "));
+                foreach (int nodeidx in n.OutgoingNeighboursSet)
+                {
+                    outfile.Write(Encoding.ASCII.GetBytes(nodeidx.ToString() + " "));
+                }
+                outfile.Write(Encoding.ASCII.GetBytes("\n"));
+            }
+            outfile.Close();
+        }
 
 
 

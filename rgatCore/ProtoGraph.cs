@@ -133,8 +133,10 @@ namespace rgatCore
 
         private bool LoadAnimationData(JArray animationArray)
         {
+            Console.WriteLine($"Loading {animationArray.Count} items");
             foreach (JArray animFields in animationArray)
             {
+                break;
                 if (animFields.Count != 7) return false;
                 ANIMATIONENTRY entry = new ANIMATIONENTRY();
                 entry.entryType = (eTraceUpdateType)animFields[0].ToObject<uint>();
@@ -301,7 +303,12 @@ namespace rgatCore
 
 
             int modnum = ProcessData.FindContainingModule(targaddr);
-            Debug.Assert(modnum != -1);
+            if (modnum == -1)
+            {
+              //this happens in test binary: -mems-
+              Console.WriteLine("Warning: Code executed which is not in image or an external module");
+              resultPair = null; return false; 
+            }
 
             ProcessData.get_extern_at_address(targaddr, modnum, out ROUTINE_STRUCT thisbb);
 
@@ -560,8 +567,13 @@ namespace rgatCore
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
             //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
+            //todo needs nodelock?
+            if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
+            { 
+                source.OutgoingNeighboursSet.Add(edgePair.Item2);
+                source.UpdateDegree();
+            }
 
-            source.OutgoingNeighboursSet.Add(edgePair.Item2);
             if (source.conditional != eConditionalType.NOTCONDITIONAL &&
                 source.conditional != eConditionalType.CONDCOMPLETE)
             {
@@ -574,6 +586,7 @@ namespace rgatCore
             lock (nodeLock)
             {
                 target.IncomingNeighboursSet.Add(edgePair.Item1);
+                target.UpdateDegree();
             }
 
             lock (edgeLock)

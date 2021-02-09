@@ -186,7 +186,7 @@ namespace rgatCore
                     instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
                     instruction.threadvertIdx = new Dictionary<uint, uint>();
 
-                    if (dbginscount == 0 || buf[bufPos] != '@')
+                    if (dbginscount == 0)// || buf[bufPos] != '@')
                     {
                         instruction.BlockBoundary = true;
                     }

@@ -55,7 +55,7 @@ namespace rgatCore
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
-            MainGraphWidget = new GraphPlotWidget(imguicontroller);
+            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
             PreviewGraphWidget = new PreviewGraphsWidget();
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
         }
@@ -376,7 +376,7 @@ namespace rgatCore
             }
             ImGui.PopStyleColor();
 
-            if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiMouseButton.Right))
+            if (ImGui.BeginPopupContextItem("exclusionlist_contents",ImGuiPopupFlags.MouseButtonRight))
             {
                 ImGui.Selectable("Add files/directories");
                 ImGui.EndPopup();
@@ -427,7 +427,7 @@ namespace rgatCore
         public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
         {
             if (_rgatstate.ActiveGraph == null) return;
-            MainGraphWidget.AddGraphicsCommands(_cl, _gd);
+            //MainGraphWidget.AddGraphicsCommands(_cl);
             PreviewGraphWidget.AddGraphicsCommands(_cl, _gd);
         }
 
@@ -491,12 +491,15 @@ namespace rgatCore
                 Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - tracesGLFrameWidth, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
                 {
-                    MainGraphWidget.Draw(graphSize, _ImGuiController, _rgatstate._GraphicsDevice);
+                    MainGraphWidget.Draw(graphSize, _ImGuiController);
                     if (_rgatstate.ActiveGraph != null)
                         ImGui.Text($"Displaying thread {_rgatstate.ActiveGraph.tid}");
                     else
+                    { 
                         ImGui.Text($"No active graph to display");
+                    }
                     ImGui.EndChild();
+
 
                 }
                 ImGui.PopStyleColor();
@@ -603,6 +606,27 @@ namespace rgatCore
         }
 
 
+        void DrawRankingLayoutSettings()
+        {
+
+
+        }
+
+        void DrawMDSLayoutSettings()
+        {
+        
+
+        }
+
+
+    private void DrawLayoutSettingsPopup()
+        {
+           
+        }
+
+
+
+
 
         private void DrawCameraPopup()
         {
@@ -612,12 +636,13 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(235, 200)))
             {
                 ImGui.DragFloat("Field Of View", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f");
+                ImGui.DragFloat("Near Clipping", ref ActiveGraph.CameraClippingNear, 50.0f, 0.1f, 200000f, "%f");
                 ImGui.DragFloat("Far Clipping", ref ActiveGraph.CameraClippingFar, 50.0f, 0.1f, 200000f, "%f");
                 ImGui.DragFloat("X Shift", ref ActiveGraph.CameraXOffset, 1f, -400, 40000, "%f");
                 ImGui.DragFloat("Y Position", ref ActiveGraph.CameraYOffset, 1, -400, 200000, "%f");
 
                 ImGui.DragFloat("Zoom", ref ActiveGraph.CameraZoom, 5, 100, 100000, "%f");
-                ImGui.DragFloat("Rotation", ref ActiveGraph.PlotRotation, 0.01f, -10, 10, "%f");
+                ImGui.DragFloat("Rotation", ref ActiveGraph.PlotZRotation, 0.01f, -10, 10, "%f");
                 ImGui.EndChild();
             }
         }
@@ -631,18 +656,21 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3);
-                ImGui.PushItemWidth(100);
-                if (ImGui.BeginCombo("##GraphTypeSelectCombo", "Cylinder"))
+                ImGui.PushItemWidth(150);
+
+
+                string? activeLayout = _rgatstate.ActiveGraph.LayoutName() ?? "Cylinder";
+                if (ImGui.BeginCombo("##GraphTypeSelectCombo", activeLayout))
                 {
-                    if (ImGui.Selectable("Cylinder", true))
+                    if (ImGui.Selectable("Cylinder[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eCylinderLayout))
                     {
-                        Console.WriteLine("Cylinder selected");
+                        Console.WriteLine("Cylinder selected (todo: change)");
                     }
-                    if (ImGui.Selectable("Tree", false))
+                    if (ImGui.Selectable("Tree[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eTreeLayout))
                     {
                         Console.WriteLine("Tree selected");
                     }
-                    if (ImGui.Selectable("Bars", false))
+                    if (ImGui.Selectable("Bars[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eBarsLayout))
                     { //sections, events, heat, conditionals?
                         Console.WriteLine("Bars selected");
                     }
@@ -711,6 +739,21 @@ namespace rgatCore
                     DrawScalePopup();
                     ImGui.EndPopup();
                 }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Layout"))
+                {
+                    ImGui.OpenPopup("##LayoutSettingsDialog");
+                }
+
+                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##LayoutSettingsDialog", ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    DrawLayoutSettingsPopup();
+                    ImGui.EndPopup();
+                }
+
+
+                
 
                 ImGui.SameLine();
                 if (ImGui.Button("Camera"))
@@ -875,7 +918,7 @@ namespace rgatCore
                 return;
             }
             _rgatstate.SwitchToGraph(graph);
-            MainGraphWidget.SetActiveGraph(graph, _rgatstate._GraphicsDevice);
+            MainGraphWidget.SetActiveGraph(graph);
             PreviewGraphWidget.SetSelectedGraph(graph);
         }
 
@@ -1037,6 +1080,7 @@ namespace rgatCore
                     ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - captionsize.X / 2);
                     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - captionsize.Y / 2);
                     ImGui.Text(caption);
+                    ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature} delta: {MainGraphWidget._delta}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -1078,14 +1122,14 @@ namespace rgatCore
                 }
                 if (_rgatstate.ChooseActiveGraph())
                 {
-                    MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
+                    MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
             }
             else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
-                MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph, _rgatstate._GraphicsDevice);
+                MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                 PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                 PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
             }
@@ -1121,7 +1165,8 @@ namespace rgatCore
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { }
                     if (ImGui.MenuItem("Save Process Traces")) { }
-                    if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets();  }
+                    if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets(); }
+                    if (ImGui.MenuItem("Export Pajek")) { _rgatstate.ExportTraceAsPajek(_rgatstate.ActiveTrace, _rgatstate.ActiveGraph.tid); }
                     ImGui.Separator();
                     if (ImGui.MenuItem("Exit")) { }
                     ImGui.EndMenu();
@@ -1262,8 +1307,9 @@ namespace rgatCore
 
             if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.None))
             {
-
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                string savedir = GlobalConfig.SaveDirectory;
+                if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, savedir);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {

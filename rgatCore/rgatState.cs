@@ -2,7 +2,6 @@
 using ImGuiNET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using rgatCore.Plots;
 using rgatCore.Threads;
 using SharpDX;
 using System;
@@ -36,7 +35,11 @@ namespace rgatCore
             PlottedGraph.clientState = this;
             DIELib = new DetectItEasy(@"C:\Users\nia\Downloads\Detect-It-Easy-master\db");
             YARALib = new YARAScan();
+
+            
         }
+
+
 
         public PlottedGraph SwitchGraph = null;
 
@@ -298,15 +301,15 @@ namespace rgatCore
             {
                 case graphLayouts.eCylinderLayout:
                     {
-                        MainGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
+                        MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
                         MainGraph.InitialiseDefaultDimensions();
-                        PreviewGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
+                        PreviewGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
                         PreviewGraph.InitialisePreviewDimensions();
                         return true;
                     }
                 case graphLayouts.eForceDirected3D:
                     {
-                        MainGraph = new ForceDirected3DGraph(protoGraph, GlobalConfig.defaultGraphColours);
+                        MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
                         MainGraph.InitialiseDefaultDimensions();
                         PreviewGraph = null;
                         //PreviewGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
@@ -387,7 +390,7 @@ namespace rgatCore
         {
             //display_only_status_message("Loading save file...", clientState);
             //updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
-
+            trace = null;
             Newtonsoft.Json.Linq.JObject saveJSON = null;
             using (StreamReader file = File.OpenText(path))
             {
@@ -400,13 +403,11 @@ namespace rgatCore
                 {
                     Console.WriteLine("Failed to parse trace file - invalid JSON.");
                     Console.WriteLine("\t->\t" + e.Message);
-                    trace = null;
                     return false;
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine("Failed to parse trace file: " + e.Message);
-                    trace = null;
                     return false;
                 }
             }
@@ -415,7 +416,7 @@ namespace rgatCore
             if (!initialiseTarget(saveJSON, targets, out target))
             {
                 //updateActivityStatus("Process data load failed - possibly corrupt trace file", 15000);
-                trace = null;
+
                 return false;
             }
 
@@ -426,6 +427,7 @@ namespace rgatCore
 
             if (!trace.load(saveJSON))//, config.graphColours))
             {
+                trace = null;
                 target.DeleteTrace(trace.launchedTime);
                 return false;
             }
@@ -493,5 +495,11 @@ namespace rgatCore
                 time_trace.Item2.Save(time_trace.Item1);
             }
         }
+
+        public void ExportTraceAsPajek(TraceRecord trace, uint TID)
+        {
+            trace.ExportPajek(TID);
+        }
+        
     }
 }

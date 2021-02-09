@@ -22,6 +22,15 @@ namespace rgatCore
             B = (float)col.B / 255f;
             A = (float)col.A / 255f;
         }
+        public WritableRgbaFloat(float r, float g, float b, float a)
+        {
+            R = (float)r;
+            G = (float)g;
+            B = (float)b;
+            A = (float)a;
+        }
+
+
 
         public Vector4 ToVec4()
         {
@@ -153,7 +162,7 @@ namespace rgatCore
         {
             lock (ListLock) //todo, should be a read lock
             {
-                Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
+                //Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
                 for (int index = arraystart; index < arraystart + vertcount; index++)
                 {
                     VertexPositionColor vpc = VertList[(int)index];
@@ -172,7 +181,7 @@ namespace rgatCore
             {
                 bool done = false;
                 float highestAlpha = -1;
-                Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
+                //Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
                 for (int index = arraystart; index < arraystart + vertcount; index++)
                 {
                     VertexPositionColor vpc = VertList[(int)index];

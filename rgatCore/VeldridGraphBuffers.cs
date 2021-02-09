@@ -156,6 +156,12 @@ namespace rgatCore
                 Console.WriteLine("Unhandled error 1");
             }
 
+            if (_EdgeLineVertices.Length > 0x200000)
+            {
+                Console.WriteLine("Skipping line draw due to size");
+                return;
+            }
+
             //Console.WriteLine($"Initing graph with {_LineVertices.Length} line verts");
 
             ResourceFactory factory = _gd.ResourceFactory;
@@ -168,6 +174,7 @@ namespace rgatCore
             BufferDescription vbDescription = new BufferDescription((uint)_EdgeLineVertices.Length * VertexPositionColor.SizeInBytes, 
                 BufferUsage.VertexBuffer);
             _EdgeLineVertexBuffer = factory.CreateBuffer(vbDescription);
+
             _gd.UpdateBuffer(_EdgeLineVertexBuffer, 0, _EdgeLineVertices);
 
             List<ushort> lineIndices = Enumerable.Range(0, _EdgeLineVertices.Length)

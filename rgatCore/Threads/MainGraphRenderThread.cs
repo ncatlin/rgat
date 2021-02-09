@@ -150,8 +150,8 @@ namespace rgatCore.Threads
 				if (true)
 				{
 					
-					bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
-					if (layoutChanged || activeGraph.NeedReplotting)
+					//bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
+					if (activeGraph.NeedReplotting)
 					{
 						activeGraph.ReRender();
 						continue;

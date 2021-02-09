@@ -63,27 +63,29 @@ namespace rgatCore.Threads
             IrregularActionTimer.Start();
         }
 
-        //peforms non-sequence critical graph updates
+        //peforms non-sequence-critical graph updates
         //update nodes with cached execution counts and new edges from unchained runs
         //also updates graph with delayed edge notifications
         bool AssignBlockRepeats()
         {
+            return true;
 
             int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
-            List<BLOCKREPEAT> doneRepeats = new List<BLOCKREPEAT>();
+            List<BLOCKREPEAT> remainingRepeats = new List<BLOCKREPEAT>();
             for (var i = 0; i < blockRepeatQueue.Count; i++)
             {
                 BLOCKREPEAT brep = blockRepeatQueue[i];
                 //first find the blocks instruction list
-                if (brep.blockID >= RecordedBlocksQty) continue;
+                if (brep.blockID >= RecordedBlocksQty) { remainingRepeats.Add(brep); continue; }
                 NodeData n = null;
 
                 if (brep.blockInslist == null)
                 {
                     if (brep.blockID >= protograph.BlocksFirstLastNodeList.Count ||
                         protograph.BlocksFirstLastNodeList[(int)brep.blockID] == null)
-                    {
-                        continue;
+                    { 
+                        remainingRepeats.Add(brep);
+                        continue; 
                     }
 
                     brep.blockInslist = protograph.ProcessData.BasicBlocksList[(int)brep.blockID].Item2;
@@ -107,13 +109,12 @@ namespace rgatCore.Threads
                     if (targetblockidx < RecordedBlocksQty)
                     {
                         //external libraries will not be found by find_block_disassembly, but will be handled by run_external
-                        //this notices it has been handled and drops it from pending list
+                        //this notices it has been handled and ignores it
                         bool alreadyHandled = false;
                         foreach (uint targnidx in n.OutgoingNeighboursSet)
                         {
                             if (protograph.safe_get_node(targnidx).BlockID == targetblockidx)
                             {
-                                donelist.Add(targetblockidx);
                                 alreadyHandled = true;
                                 break;
                             }
@@ -137,21 +138,31 @@ namespace rgatCore.Threads
 
                         //cout << "assign block repeats. block id " <<dec << blockid << " / addr 0x" << hex << 
                         //	firstIns->address << " not on graph in thread " << dec << TID << endl;
-
-                        donelist.Add(targetblockidx);
                         continue;
                     }
                     
                 }
 
-                brep.targBlocks = brep.targBlocks.Except(donelist).ToList();
-                if (brep.targBlocks.Count == 0)
+                //rapidly handle the common cases without using linq
+                if (donelist.Count == 0)
                 {
-                    doneRepeats.Add(brep);
+                    remainingRepeats.Add(brep);
+                    continue;
+                }
+                if (brep.targBlocks.Count == 1 && donelist.Count == 1 && brep.targBlocks[0] == donelist[0])
+                {
+                    continue;
+                }
+
+
+                brep.targBlocks = brep.targBlocks.Except(donelist).ToList();
+                if (brep.targBlocks.Count != 0)
+                {
+                    remainingRepeats.Add(brep);
                 }
             }
 
-            blockRepeatQueue = blockRepeatQueue.Except(doneRepeats).ToList();
+            blockRepeatQueue = remainingRepeats;
             return blockRepeatQueue.Count == 0;
         }
 
@@ -181,12 +192,12 @@ namespace rgatCore.Threads
             if (entry[1] == 'S')//LOOP START MARKER
             {
                 ulong loopIterations = BitConverter.ToUInt32(entry, 2);
-                Console.WriteLine($"Processing loop started marker {loopIterations} iterations");
+                //Console.WriteLine($"Processing loop started marker {loopIterations} iterations");
                 protograph.SetLoopState(eLoopState.eBuildingLoop, loopIterations);
             }
             else if (entry[1] == 'E')//LOOP END MARKER
             {
-                Console.WriteLine($"Processing loop ended marker");
+                //Console.WriteLine($"Processing loop ended marker");
                 protograph.DumpLoop();
             }
         }
@@ -346,7 +357,7 @@ namespace rgatCore.Threads
             Debug.Assert(protograph.BlocksFirstLastNodeList.Count > src_blockID, "Bad src block id in unlinking update");
 
 
-            Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
+            //Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
 
 
 
@@ -458,7 +469,7 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
 
 
-            Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
+            //Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
             protograph.PerformingUnchainedExecution = true;
         }
 
@@ -475,7 +486,7 @@ namespace rgatCore.Threads
             newRepeat.totalExecs = ulong.Parse(entries[2], NumberStyles.HexNumber);
             newRepeat.targBlocks = new List<uint>();
 
-            Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID } ");
+            //Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID } ");
 
             string[] rptblocks = entries[3].Split(',');
             
@@ -484,7 +495,7 @@ namespace rgatCore.Threads
                 uint targblockID = uint.Parse(bid_s, NumberStyles.HexNumber);
                 newRepeat.targBlocks.Add(targblockID);
 
-                Console.WriteLine($"\t +targ {targblockID} ");
+                //Console.WriteLine($"\t +targ {targblockID} ");
             }
 
             newRepeat.blockInslist = null;

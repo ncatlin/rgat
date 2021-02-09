@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -42,22 +42,26 @@
     <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-position.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-velocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeAttrib.spv" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
-    <PackageReference Include="GraphShape" Version="1.1.0" />
     <PackageReference Include="HexMate" Version="0.0.3" />
-    <PackageReference Include="ImGui.NET" Version="1.75.0" />
+    <PackageReference Include="ImGui.NET" Version="1.78.0" />
     <PackageReference Include="ImGui.NET.Docking" Version="1.75.0" />
-    <PackageReference Include="Jint" Version="3.0.0-beta-1828" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
+    <PackageReference Include="Jint" Version="3.0.0-beta-1914" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="PeNet" Version="2.4.0" />
+    <PackageReference Include="PeNet" Version="2.6.0" />
+    <PackageReference Include="QuikGraph" Version="2.2.0" />
     <PackageReference Include="Veldrid" Version="4.5.0" />
+    <PackageReference Include="Veldrid.ImageSharp" Version="4.5.0" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.9" />
     <PackageReference Include="Veldrid.StartupUtilities" Version="4.5.0" />
   </ItemGroup>
@@ -69,6 +73,10 @@
     <Reference Include="dnYara">
       <HintPath>..\..\dnYara\dnYara\bin\Debug\netcoreapp3.1\dnYara.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Plots\" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace rgatCore
@@ -139,6 +140,13 @@ namespace rgatCore
             Console.WriteLine("Error deserialising node at index " + index);
             return false;
         }
+
+        public void UpdateDegree()
+        {
+            degree = IncomingNeighboursSet.Count + OutgoingNeighboursSet.Where(outIdx => !IncomingNeighboursSet.Any(inIdx => inIdx != outIdx)).Count();
+        }
+
+
         /*
 		void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
         {
@@ -196,6 +204,7 @@ namespace rgatCore
 
         public List<uint> IncomingNeighboursSet = new List<uint>();
         public List<uint> OutgoingNeighboursSet = new List<uint>();
+        public int degree = 0;
 
         public string label;
         public bool placeholder = false;

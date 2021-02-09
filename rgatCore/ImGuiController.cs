@@ -65,9 +65,10 @@ namespace ImGuiNET
             //TODO - see if they can be loaded on the side after start
             var fonts = ImGui.GetIO().Fonts;
             builder.AddRanges(fonts.GetGlyphRangesDefault());
-            builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
+            //builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
             //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid
-            builder.AddRanges(fonts.GetGlyphRangesCyrillic());
+            //builder.AddRanges(fonts.GetGlyphRangesCyrillic());
+            
 
             //builder.AddRanges(fonts.GetGlyphRangesJapanese());
             //builder.AddRanges(fonts.GetGlyphRangesKorean());
@@ -87,6 +88,7 @@ namespace ImGuiNET
             }
 
             _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
+
             _unicodeFontLoaded = true;
         }
 
@@ -142,6 +144,7 @@ namespace ImGuiNET
         {
             _gd = gd;
             ResourceFactory factory = gd.ResourceFactory;
+            //can fail if we run out of graphics memory
             _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             _vertexBuffer.Name = "ImGui.NET Vertex Buffer";
             _indexBuffer = factory.CreateBuffer(new BufferDescription(2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
@@ -150,7 +153,7 @@ namespace ImGuiNET
 
             _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
-
+            
             byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
             byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
             _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, "VS"));
@@ -184,8 +187,14 @@ namespace ImGuiNET
                 _projMatrixBuffer,
                 gd.PointSampler));
 
-            _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
+           ResourceLayout _fontLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+    new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+            _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_fontLayout, _fontTextureView));
         }
+
+
+
+
 
         /// <summary>
         /// Gets or creates a handle for a texture to be drawn with ImGui.
@@ -543,6 +552,7 @@ namespace ImGuiNET
         // Render command lists
         private void DrawCommands(ImDrawDataPtr draw_data, CommandList cl)
         {
+
 
             int vtx_offset = 0;
             int idx_offset = 0;

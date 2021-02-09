@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyModel;
+//using Microsoft.Msagl.Core.Layout;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace rgatCore
     };
 
 
-    abstract class PlottedGraph
+    class PlottedGraph
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
 
@@ -49,8 +50,68 @@ namespace rgatCore
             uint index;
         };
 
+
+
+
+
+        public static string GetTestNodesAndEdgesArray()
+        {
+            //string ijson = "[[1,2,5,8,12,13,19,57,60,61,62,63,65,66,67,99,100,101,102,108,111,9,119,122,125,130,131,132,133,91,134,143,144,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,109,194,195,196,197,7,202,203,204,152,205,231,232,236,237,238,251,289,307,308,309,311,321,324],[0,10,15,17,21,30,47,81,7,120,247],[0],[4,310],[3,9,14,20,23,24,25,26,27,28,29,31,35,36,37,43,44,45,46,55,56,58,59,64,69,63,73,74,75,76,78,79,80,91,93,88,97,98,104,99,105,106,107,112,113,114,116,117,118,124,127,128,135,136,137,145,146,147,148,150,159,160,161,162,163,164,165,166,167,168,173,174,199,201,207,208,209,211,212,215,216,219,220,221,222,223,224,225,226,227,230,231,233,234,235,239,240,155,158,245,249,250,252,253,254,256,257,258,259,260,242,262,263,264,265,299,300,305,71,313],[0],[7,312],[6,30,1,0,81,10],[0],[4,0],[1,11,52,53,19,54,68,72,109,110,126,129,139,140,141,142,198,206,143,144,246,261,242,266,94,267,268,269,270,271,272,99,273,274,275,276,277,278,279,280,281,282,283,284,285,286,7,287,288,289,290,291,292,293,294,295,296,297,298,299,301,302,303,304,85,306,316,317,318,319,320,322,323],[10],[0,15],[0,15],[4],[1,16,13,77,68,123,200,12,217,218,255,54],[15],[1,18,70,138,210,248],[17],[0,10],[4],[1,22,115,213,214,130],[21],[4],[4],[4],[4],[4],[4],[4],[1,32,33,34,38,39,40,41,42,7,171,172,315],[4],[30],[30],[30],[4],[4],[4],[30],[30],[30],[30],[30],[4],[4],[4],[4],[1,48,49,50,51,103,169,170,228,229],[47],[47],[47],[47],[10],[10],[10,15],[4],[4],[0],[4],[4],[0],[0],[0],[0,4],[4],[0],[0],[0],[10,15],[4],[17],[72,4],[71,10],[4],[4],[4],[4],[15],[4],[4],[4],[82,83,1,84,85,86,87,88,89,90,91,92,93,94,95,96,97,149,150,151,152,153,154,155,156,157,158,241,242,243,7,244,314],[81],[81],[81],[81,10],[81],[81],[81,4],[81],[81],[4,81,0],[81],[4,81],[81,10],[81],[81],[81,4],[4],[0,4,10],[0],[0],[0],[47],[4],[4],[4],[4],[0],[10,0],[10],[0],[4],[4],[4],[21],[4],[4],[4],[0],[121,1,206],[120],[0],[15],[4],[0],[10],[4],[4],[10],[0,21],[0],[0],[0],[0],[4],[4],[4],[17],[10],[10],[10],[10],[0,10],[0,10],[4],[4],[4],[4],[81],[4,81],[81],[81,0],[81],[81],[81,4],[81],[81],[81,4],[4],[4],[4],[4],[4],[4],[4],[4],[4],[4],[47],[47],[30],[30],[4],[4],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[10],[4],[15],[4],[0],[0],[0],[0],[10,247,120],[4],[4],[4],[17],[4],[4],[21],[21],[4],[4],[15],[15],[4],[4],[4],[4],[4],[4],[4],[4],[4],[47],[47],[4],[0,4],[0],[4],[4],[4],[0],[0],[0],[4],[4],[81],[81,4,10],[81],[81],[4],[10],[1,206],[17],[4],[4],[0],[4],[4],[4],[15],[4],[4],[4],[4],[4],[10],[4],[4],[4],[4],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10,0],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10,4],[4],[10],[10],[10],[10],[4],[10],[0],[0],[0],[3],[0],[6],[4],[81],[30],[10],[10],[10],[10],[10],[0],[10],[10],[0]]";
+            //string ijson = "[[1,2,3,4],[0],[0],[0],[0,5,6,7,8],[4],[4],[4],[4]]";
+
+            /*
+            0 Color.Red;
+            1 Color.SandyBrown;
+            2 Color.White;
+            3 Color.Green;
+            4 Color.Blue;
+            5 Color.Yellow;
+            6 Color.Purple;
+            7 Color.Gray;
+            8 Color.Orange;
+             */
+            //string ijson = "[[1],[0,2,3],[1],[1]]";
+            string ijson = "[[1],[0],[1],[1],[0],[0],[0],[0],[1],[1]]";
+            //string ijson = "[[1],[0],[1],[1],[0],[0]]";
+            //string ijson = "[[1],[0],[1],[2]]";
+            return ijson;
+        }
+
+
+
+        /*
+ * The drawing graph has one way edges. 
+ * This makes them 2 way for the purpose of attraction during velocity computation 
+    before "[[1],        [0],        [1],[1],[0],[0],[0],[0],[1],[1]]";
+    after  "[[1,4,5,6,7],[0,2,3,8,9],[1],[1],[0],[0],[0],[0],[1],[1]]";
+*/
+        static List<List<int>> DoubleEdgeify(List<List<int>> ingraph)
+        {
+            List<List<int>> outgraph = new List<List<int>>(ingraph);
+            for (var srcNodeIdx = 0; srcNodeIdx < ingraph.Count; srcNodeIdx++)
+            {
+                List<int> outEdges = ingraph[srcNodeIdx];
+                for (var outEdgeIdx = 0; outEdgeIdx < outEdges.Count; outEdgeIdx++)
+                {
+                    int outNodeIdx = outEdges[outEdgeIdx];
+                    if (!outgraph[outNodeIdx].Contains(srcNodeIdx))
+                    {
+                        outgraph[outNodeIdx].Add(srcNodeIdx);
+                    }
+                }
+
+            }
+            return outgraph;
+        }
+
+
         public PlottedGraph(ProtoGraph protoGraph, List<WritableRgbaFloat> graphColourslist)
         {
+
+            //List<List<int>> initialTestNodes = Newtonsoft.Json.JsonConvert.DeserializeObject<List<List<int>>>(GetTestNodesAndEdgesArray());
+            //AddInitialNodes(initialTestNodes);
+
+
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
 
@@ -74,12 +135,53 @@ namespace rgatCore
             IsAnimated = !internalProtoGraph.Terminated;
             graphColours = graphColourslist;
 
+            //TestLayoutSettings = new GRAPH_LAYOUT_SETTINGS();
+            scalefactors.plotSize = 300;
+            scalefactors.basePlotSize = 300f;
+            scalefactors.userSizeModifier = 1;
+            CameraClippingFar = 60000f;
+            CameraZoom = -6000f;
+            CameraXOffset = -400;
+            CameraYOffset = 0;
+            PlotZRotation = 0f;
         }
 
 
-        public abstract void InitialiseDefaultDimensions();
-        public abstract void InitialisePreviewDimensions();
-        public abstract void initialiseCustomDimensions(GRAPH_SCALE scale);
+        void AddInitialNodes(List<List<int>> nodesList)
+        {
+
+            for (uint i = 0; i < nodesList.Count; i++)
+            {
+                AddNode(i, new List<int>(), true);
+            }
+            for (var srcI = 0; srcI < nodesList.Count; srcI++)
+            {
+                var nodeNeighbours = nodesList[srcI];
+                for (var destI = 0; destI < nodeNeighbours.Count; destI++)
+                {
+                    AddEdge(srcI, nodeNeighbours[destI]);
+                }
+            }
+        }
+
+
+        //public GRAPH_LAYOUT_SETTINGS TestLayoutSettings;
+
+        public void InitialiseDefaultDimensions()
+        {
+
+            //todo
+        }
+        public void InitialisePreviewDimensions()
+        {
+
+            //todo
+        }
+        public void initialiseCustomDimensions(GRAPH_SCALE scale)
+        {
+
+            //todo
+        }
         /*
 		virtual void plot_wireframe(graphGLWidget &gltarget) { };
 		virtual void maintain_draw_wireframe(graphGLWidget &gltarget) { };
@@ -89,14 +191,21 @@ namespace rgatCore
 			cerr << "Warning: Virtual gvnp called" << endl; return false;
 		};
 		*/
-        public abstract void render_graph();
+        public void render_graph()
+        {
+            render_new_blocks();
+        }
         /*
 		virtual void performMainGraphDrawing(graphGLWidget &gltarget) { cout << "virtual pmgd called" << endl; };
 		virtual void performDiffGraphDrawing(graphGLWidget &gltarget, void* divergeNodePosition);
 
 		virtual void orient_to_user_view() { };
 		*/
-        protected abstract bool render_edge(Tuple<uint, uint> nodePair, WritableRgbaFloat? forceColour);
+        protected bool render_edge(Tuple<uint, uint> nodePair, WritableRgbaFloat? forceColour)
+        {
+            //todo
+            return true;
+        }
         /*
 		virtual uint get_graph_size() { return 0; };
 		virtual void* get_node_coord_ptr(uint idx) { return 0; }
@@ -140,7 +249,10 @@ namespace rgatCore
 
         //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
 
-        protected abstract void PlotRerender();
+        protected void PlotRerender()
+        {
+          // ReRender();
+        }
 
 
         public void ReRender()
@@ -344,7 +456,11 @@ namespace rgatCore
         }
 
 
-        public abstract void draw_highlight_lines();
+        public  void draw_highlight_lines()
+        {
+            //todo
+            return;
+        }
 
 
 
@@ -429,7 +545,11 @@ namespace rgatCore
         protected List<TEXTITEM> texts = new List<TEXTITEM>();
 
 
-        public abstract List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn);
+        public List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn)
+        {
+            //todo
+            return null;
+        }
 
         int wireframeMode; //used to query the current mode
 
@@ -471,11 +591,11 @@ namespace rgatCore
             for (uint edgeIdx = startIndex; edgeIdx < endIndex; edgeIdx++)
             {
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
-                Console.WriteLine($"Edge {edgeNodes.Item1}->{edgeNodes.Item2}");
                 if (edgeNodes.Item1 >= NodesDisplayData.CountVerts())
                 {
                     NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
-                    render_node(n1);
+                    //render_node(n1);
+                    AddNode(edgeNodes.Item1);
                 }
 
                 if (edgeNodes.Item2 >= NodesDisplayData.CountVerts())
@@ -483,22 +603,17 @@ namespace rgatCore
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
                     if (e.edgeClass == eEdgeNodeType.eEdgeException)
                         NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
-
-                    NodeData n2 = internalProtoGraph.safe_get_node(edgeNodes.Item2);
-                    render_node(n2);
+                    AddNode(edgeNodes.Item2);
 
                 }
 
-                if (!render_edge(edgeNodes, null))
-                {
-                    Console.WriteLine("Error: rendering edge");
-                }
+                AddEdge((int)edgeNodes.Item1, (int)edgeNodes.Item2);
                 edgesDrawn++;
 
                 if (NeedReplotting || clientState.rgatIsExiting) break;
             }
         }
-        
+
 
 
         bool freeMe = false;
@@ -511,11 +626,504 @@ namespace rgatCore
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
-        protected bool wireframeSupported = false;
-        protected bool wireframeActive = false;
+        protected bool wireframeSupported;
+        protected bool wireframeActive;
         //Tuple<long, long> defaultViewShift;
         long defaultZoom;
         public graphLayouts layout { get; protected set; }
+
+        public float[] positionsArray1 = Array.Empty<float>();
+        public float[] positionsArray2 = Array.Empty<float>();
+        public float[] velocityArray1 = Array.Empty<float>();
+        public float[] velocityArray2 = Array.Empty<float>();
+        public float[] nodeAttribArray1 = Array.Empty<float>();
+        public float[] nodeAttribArray2 = Array.Empty<float>();
+        public float[] presetPositionsArray = Array.Empty<float>();
+
+
+        /// <summary>
+        /// The raw list of nodes with a one way edge they connect to
+        /// This is used for drawing nodes and edges
+        /// </summary>
+        List<List<int>> _graphStructureLinear = new List<List<int>>();
+        public int NodeCount() { return _graphStructureLinear.Count; }
+
+        /// <summary>
+        /// The list of nodes and edges where each node connects to its partner and that node connects back
+        /// This is used for the attraction velocity computation
+        /// </summary>
+        List<List<int>> _graphStructureBalanced = new List<List<int>>();
+        public float temperature = 0;
+
+        public unsafe int[] GetEdgeDataInts()
+        {
+            //var textureSize = indexTextureSize(_graphStructureLinear.Count);
+            List<List<int>> targetArray = _graphStructureBalanced;
+            var textureSize = indexTextureSize(targetArray.Count);
+            int[] textureArray = new int[textureSize * textureSize * 4];
+
+            var currentIndex = 0;
+            for (var i = 0; i < targetArray.Count; i++)
+            {
+                for (var j = 0; j < targetArray[i].Count; j++)
+                {
+                    textureArray[currentIndex] = targetArray[i][j];
+                    currentIndex++;
+                }
+            }
+
+            for (var i = currentIndex; i < textureArray.Length; i++)
+            {
+                //fill unused RGBA slots with -1
+                textureArray[i] = -1;
+            }
+
+            return textureArray;
+        }
+
+        public void UpdateNodePositions(MappedResourceView<float> newPositions, uint count)
+        {
+            Debug.Assert(positionsArray1.Length <= count);  //This is assumed to never shrink
+            if (positionsArray1.Length < count)
+                positionsArray1 = new float[count];
+            for (var i = 0; i < count; i++)
+                positionsArray1[i] = newPositions[i];
+            
+        }
+
+        //This is assumed to never shrink
+        public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, uint count)
+        {
+            Debug.Assert(velocityArray1.Length <= count); //This is assumed to never shrink
+            if (velocityArray1.Length < count)
+                velocityArray1 = new float[count];
+            for (var i = 0; i < count; i++)
+                velocityArray1[i] = newVelocities[i];
+        }
+
+
+        public float[] GetVelocityFloats()
+        {
+            return velocityArray1;
+        }
+        public float[] GetPositionFloats()
+        {
+            return positionsArray1;
+        }
+        public float[] GetNodeAttribFloats()
+        {
+            return nodeAttribArray1;
+        }
+        public float[] GetPresetPositionFloats()
+        {
+            return presetPositionsArray;
+        }
+
+        public void IncreaseTemperature()
+        {
+            temperature += _graphStructureLinear.Count / 2;
+        }
+
+
+        void EnlargeRAMDataBuffers(uint size)
+        {
+            float[] newVelocityArr1 = new float[size];
+            float[] newVelocityArr2 = new float[size];
+            float[] newPositionsArr1 = new float[size];
+            float[] newPositionsArr2 = new float[size];
+            float[] newAttsArr1 = new float[size];
+            float[] newAttsArr2 = new float[size];
+            float[] newPresetsArray = new float[size];
+
+            int endLength = 0;
+            if (velocityArray1 != null)
+            {
+                endLength = velocityArray1.Length;
+                for (var i = 0; i < endLength; i++)
+                {
+                    newVelocityArr1[i] = velocityArray1[i];
+                    newVelocityArr2[i] = velocityArray2[i];
+                    newPositionsArr1[i] = positionsArray1[i];
+                    newPositionsArr2[i] = positionsArray2[i];
+                    newAttsArr1[i] = nodeAttribArray1[i];
+                    newAttsArr2[i] = nodeAttribArray2[i];
+                    newPresetsArray[i] = presetPositionsArray[i];
+                }
+            }
+
+            for (var i = endLength; i < size; i++)
+            {
+                newVelocityArr1[i] = -1;
+                newVelocityArr2[i] = -1;
+                newPositionsArr1[i] = -1;
+                newPositionsArr2[i] = -1;
+                newAttsArr1[i] = -1;
+                newAttsArr2[i] = -1;
+                newPresetsArray[i] = 0;
+            }
+
+
+            positionsArray1 = newPositionsArr1;
+            positionsArray2 = newPositionsArr2;
+            velocityArray1 = newVelocityArr1;
+            velocityArray2 = newVelocityArr2;
+            nodeAttribArray1 = newAttsArr1;
+            nodeAttribArray2 = newAttsArr2;
+            presetPositionsArray = newPresetsArray;
+        }
+
+
+        void AddNode(uint nodeIdx)
+        {
+            if (nodeIdx < _graphStructureLinear.Count) return;
+            AddNode(nodeIdx, new List<int>(), false);
+        }
+        
+        unsafe void AddNode(uint nodeIdx, List<int> destNodes, bool doubleEdge)
+        {
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count);
+
+            var bounds = 1000;
+            var bounds_half = bounds / 2;
+
+            _graphStructureLinear.Add(destNodes);
+            _graphStructureBalanced.Add(destNodes);
+
+            if (doubleEdge)
+            {
+                var srcNodeIdx = _graphStructureBalanced.Count - 1;
+                foreach (int dstNodeIdx in destNodes)
+                {
+                    if (!_graphStructureBalanced[dstNodeIdx].Contains(srcNodeIdx))
+                    {
+                        _graphStructureBalanced[dstNodeIdx].Add(srcNodeIdx);
+                    }
+                }
+            }
+
+
+            int oldVelocityArraySize = (velocityArray1 != null) ? velocityArray1.Length * sizeof(float) : 0;
+
+            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            var bufferFloatCount = bufferWidth * bufferWidth * 4;
+            var bufferSize = bufferFloatCount * sizeof(float);
+
+            if (bufferSize > oldVelocityArraySize)
+            {
+                Console.WriteLine($"Recreating graph RAM buffers as {bufferSize} > {oldVelocityArraySize}");
+                EnlargeRAMDataBuffers(bufferFloatCount);
+            }
+
+            Random rnd = new Random();
+            float[] nodePositionEntry = {
+                ((float)rnd.NextDouble() * bounds) - bounds_half,
+                ((float)rnd.NextDouble() * bounds) - bounds_half,
+                ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
+
+            uint offset = ((uint)(_graphStructureLinear.Count - 1)) * 4;
+            positionsArray1[offset] = nodePositionEntry[0];
+            positionsArray1[offset + 1] = nodePositionEntry[1];
+            positionsArray1[offset + 2] = nodePositionEntry[2];
+            positionsArray1[offset + 3] = nodePositionEntry[3];
+            positionsArray2[offset] = nodePositionEntry[0];
+            positionsArray2[offset + 1] = nodePositionEntry[1];
+            positionsArray2[offset + 2] = nodePositionEntry[2];
+            positionsArray2[offset + 3] = nodePositionEntry[3];
+
+            presetPositionsArray[offset] = 0;
+            presetPositionsArray[offset + 1] = 0;
+            presetPositionsArray[offset + 2] = 0;
+            presetPositionsArray[offset + 3] = 0;
+
+            velocityArray1[offset] = 0;
+            velocityArray1[offset + 1] = 0;
+            velocityArray1[offset + 2] = 0;
+            velocityArray1[offset + 3] = 0;
+            velocityArray2[offset] = 0;
+            velocityArray2[offset + 1] = 0;
+            velocityArray2[offset + 2] = 0;
+            velocityArray2[offset + 3] = 0;
+
+
+            nodeAttribArray1[offset] = 200f;
+            nodeAttribArray1[offset + 1] = 1f;// 0.5f;
+            nodeAttribArray1[offset + 2] = 0;
+            nodeAttribArray1[offset + 3] = 0;
+            nodeAttribArray2[offset] = 200f;
+            nodeAttribArray2[offset + 1] = 1f;// 0.5f;
+            nodeAttribArray2[offset + 2] = 0;
+            nodeAttribArray2[offset + 3] = 0;
+
+        }
+
+
+        public unsafe int[] GetEdgeIndicesInts()
+        {
+            List<List<int>> targetArray = _graphStructureBalanced;
+            var textureSize = indexTextureSize(targetArray.Count);
+
+            int[] sourceData = new int[textureSize * textureSize * 4];
+            int currentPixel = 0;
+            int currentCoord = 0;
+
+            for (var i = 0; i < targetArray.Count; i++)
+            {
+
+                //keep track of the beginning of the array for this node
+
+                int startPixel = currentPixel;
+                int startCoord = currentCoord;
+
+                for (var j = 0; j < targetArray[i].Count; j++)
+                {
+
+                    // look inside each node array and see how many things it links to
+
+                    currentCoord++;
+
+                    if (currentCoord == 4)
+                    {
+
+                        // remainder is only 0-3.  If you hit 4, increment pixel and reset coord
+
+                        currentPixel++;
+                        currentCoord = 0;
+
+                    }
+
+                }
+
+                //write the two sets of texture indices out.  We'll fill up an entire pixel on each pass
+                sourceData[i * 4] = startPixel;
+                sourceData[i * 4 + 1] = startCoord;
+                sourceData[i * 4 + 2] = currentPixel;
+                sourceData[i * 4 + 3] = currentCoord;
+
+            }
+
+            for (var i = targetArray.Count * 4; i < sourceData.Length; i++)
+            {
+
+                // fill unused RGBA slots with -1
+                sourceData[i] = -1;
+            }
+            return sourceData;
+        }
+
+        //todo: convert to uint
+        void AddEdge(int srcNodeIdx, int destNodeIdx)
+        {
+            Debug.Assert(srcNodeIdx >= 0 && destNodeIdx >= 0);
+            Debug.Assert(srcNodeIdx < _graphStructureLinear.Count && destNodeIdx < _graphStructureLinear.Count);
+
+            if (!_graphStructureBalanced[destNodeIdx].Contains(srcNodeIdx))
+            {
+                _graphStructureBalanced[destNodeIdx].Add(srcNodeIdx);
+            }
+            if (!_graphStructureBalanced[srcNodeIdx].Contains(destNodeIdx))
+            {
+                _graphStructureBalanced[srcNodeIdx].Add(destNodeIdx);
+            }
+
+
+        }
+
+        public void AddRandomEdge()
+        {
+            Random rnd = new Random();
+            int src = rnd.Next(0, _graphStructureLinear.Count - 1);
+            int dst = src;
+            while (dst == src)
+                dst = rnd.Next(0, _graphStructureLinear.Count - 1);
+            Console.WriteLine($"Adding edge between {src} and {dst}");
+            AddEdge(src, dst);
+            //RegenerateEdgeDataBuffers();
+            temperature += 3 * 10.0f;
+        }
+
+        public unsafe void AddTestNodes()
+        {
+            Random rnd = new Random();
+
+            int nodesToAdd = rnd.Next(1, 5);
+            for (var i = 0; i < nodesToAdd; i++)
+            {
+                var linksList = new List<int>();
+                int linksToAdd = rnd.Next(1, 3);
+                for (var vl = 0; vl < linksToAdd; vl++)
+                {
+                    int val = rnd.Next(Math.Max(0,_graphStructureLinear.Count - 8), _graphStructureLinear.Count);
+                    if(!linksList.Contains(val))
+                        linksList.Add(val);
+                }
+
+                AddNode((uint)_graphStructureLinear.Count, linksList, true);
+            }
+
+            temperature += nodesToAdd * 10.0f;
+        }
+
+        void InitBlankPresetLayout()
+        {
+            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            var bufferFloatCount = bufferWidth * bufferWidth * 4;
+            float[] presetPositionsArray = new float[bufferFloatCount];
+            
+            for (var i = 0; i < presetPositionsArray.Length; i += 4)
+            {
+                if (i < _graphStructureLinear.Count * 4)
+                {
+                    presetPositionsArray[i] = 0.0f;
+                    presetPositionsArray[i + 1] = 0.0f;
+                    presetPositionsArray[i + 2] = 0.0f;
+                    presetPositionsArray[i + 3] = 0.0f;
+                }
+                else
+                {
+                    // fill the remaining pixels with -1
+                    presetPositionsArray[i] = -1.0f;
+                    presetPositionsArray[i + 1] = -1.0f;
+                    presetPositionsArray[i + 2] = -1.0f;
+                    presetPositionsArray[i + 3] = -1.0f;
+                }
+
+            }
+            
+        }
+
+        public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
+        public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureLinear)); }
+
+        public static Color Getcolor(uint index)
+        {
+            //return Color.White;
+            if (index == 0) return Color.Red;
+            if (index == 1) return Color.SandyBrown;
+            if (index == 2) return Color.White;
+            if (index == 3) return Color.Green;
+            if (index == 4) return Color.Blue;
+            if (index == 5) return Color.Yellow;
+            if (index == 6) return Color.Purple;
+            if (index == 7) return Color.Gray;
+            if (index == 8) return Color.Orange;
+            return Color.Aquamarine;
+        }
+
+        public GraphPlotWidget.TestVertexPositionColor[] GetNodeVerts(
+            out List<uint> nodeIndices,
+            out GraphPlotWidget.TestVertexPositionColor[] nodePickingColors)
+
+        {
+
+            uint textureSize = LinearIndexTextureSize();
+            GraphPlotWidget.TestVertexPositionColor[] TestNodeVerts = new GraphPlotWidget.TestVertexPositionColor[textureSize * textureSize];
+            nodePickingColors = new GraphPlotWidget.TestVertexPositionColor[textureSize * textureSize];
+
+            nodeIndices = new List<uint>();
+            for (uint y = 0; y < textureSize; y++)
+            {
+                for (uint x = 0; x < textureSize; x++)
+                {
+                    var index = y * textureSize + x;
+                    if (index >= NodeCount()) return TestNodeVerts;
+                    TestNodeVerts[index] =
+                        new GraphPlotWidget.TestVertexPositionColor { TexPosition = new Vector2(x, y), Color = new WritableRgbaFloat(Getcolor(index)) };
+                    nodeIndices.Add(index);
+                    nodePickingColors[index] = new GraphPlotWidget.TestVertexPositionColor { TexPosition = new Vector2(x, y), Color = new WritableRgbaFloat(index, 0, 0, 1) };
+                }
+            }
+            return TestNodeVerts;
+        }
+
+        public GraphPlotWidget.TestVertexPositionColor[] GetEdgeLineVerts(out List<uint> edgeIndices)
+        {
+            uint telvTextSize = EdgeTextureWidth();
+            GraphPlotWidget.TestVertexPositionColor[] TestEdgeLineVerts =
+                    new GraphPlotWidget.TestVertexPositionColor[telvTextSize * telvTextSize * 16];
+
+            uint txIdx = 0;
+            edgeIndices = new List<uint>();
+            uint textureSize = LinearIndexTextureSize();
+            for (var srcNodeIdx = 0; srcNodeIdx < NodeCount(); srcNodeIdx++)
+            {
+                List<int> destNodes = _graphStructureLinear[srcNodeIdx];
+                for (var dstNodeIdx = 0; dstNodeIdx < destNodes.Count; dstNodeIdx++)
+                {
+                    TestEdgeLineVerts[txIdx] =
+                        new GraphPlotWidget.TestVertexPositionColor
+                        {
+                            TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
+                            Color = new WritableRgbaFloat(Getcolor((uint)srcNodeIdx))
+                        };
+                    edgeIndices.Add(txIdx);
+                    txIdx++;
+
+                    var dstNodeID = destNodes[dstNodeIdx];
+                    TestEdgeLineVerts[txIdx] =
+                        new GraphPlotWidget.TestVertexPositionColor
+                        {
+                            TexPosition = new Vector2(dstNodeID % textureSize,
+                                        (float)Math.Floor((float)(dstNodeID / textureSize))),
+                            Color = new WritableRgbaFloat(Getcolor((uint)dstNodeID))
+                        };
+                    edgeIndices.Add(txIdx);
+                    txIdx++;
+                }
+            }
+            return TestEdgeLineVerts;
+        }
+
+
+
+        public static uint dataTextureSize(int num)
+        {
+            return indexTextureSize((int)Math.Ceiling((double)num / 4.0));
+        }
+
+        public static uint indexTextureSize(int nodesEdgesLength)
+        {
+            var power = 1;
+            while (power * power < nodesEdgesLength)
+            {
+                power *= 2;
+            }
+            return power / 2 > 1 ? (uint)power : 2;
+        }
+
+        //todo: linq
+        static int countDataArrayItems(List<List<int>> dataArray)
+        {
+            int counter = 0;
+            for (var i = 0; i < dataArray.Count; i++)
+            {
+                counter += dataArray[i].Count;
+            }
+            return counter;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         //private:
         /*
@@ -523,7 +1131,10 @@ namespace rgatCore
 		virtual void display_graph(PROJECTDATA* pd) { };
 		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
 		*/
-        abstract public void render_node(NodeData n);
+        public void render_node(NodeData n)
+        {
+            //todo
+        }
         /*
                 virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
                 {
@@ -533,12 +1144,12 @@ namespace rgatCore
                 void set_max_wait_frames(uint frames) { maxWaitFrames = frames; }
         */
 
-       protected void Add_to_callstack(ulong address, uint idx)
+        protected void Add_to_callstack(ulong address, uint idx)
         {
             ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
         }
 
-        
+
         void render_animation(float fadeRate)
         {
             brighten_new_active();
@@ -553,7 +1164,7 @@ namespace rgatCore
                     FadingAnimNodesSet.Add(lastNodeID);
             }
         }
-        
+
 
 
 
@@ -601,7 +1212,7 @@ namespace rgatCore
                         }
                     }
                     if (found) break;
-                    Thread.Sleep(10);
+                    Thread.Sleep(200);
                     Console.WriteLine($"[rgat]Fail to find edge for thread {tid} calling extern 0x{blockAddr:x}");
                 }
 
@@ -781,7 +1392,7 @@ namespace rgatCore
 
             currentUnchainedBlocks.Clear();
             List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-           NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
 
@@ -1154,118 +1765,121 @@ namespace rgatCore
             {
                 //Console.WriteLine($"\tdarken_nodes: Darkening node {nodeIdx}");
 
-                    if (NodesDisplayData.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
-                    {
-                        //Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
-                        expiredNodes.Add(nodeIdx);
-                    }
-                
-                
+                if (NodesDisplayData.ReduceNodeAnimAlpha(nodeIdx, fadeRate))
+                {
+                    //Console.WriteLine($"\t\t node {nodeIdx} expired - removing from fading");
+                    expiredNodes.Add(nodeIdx);
+                }
+
+
             }
             foreach (uint expiredNode in expiredNodes) FadingAnimNodesSet.Remove(expiredNode);
 
 
-            }
-            void darken_edges(float fadeRate)
+        }
+        void darken_edges(float fadeRate)
+        {
+            List<Tuple<uint, uint>> expiredEdges = new List<Tuple<uint, uint>>();
+            foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
             {
-                List<Tuple<uint, uint>> expiredEdges = new List<Tuple<uint, uint>>();
-                foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
-                {
-                    if (ReduceEdgeAnimAlpha(edge, fadeRate))
-                        expiredEdges.Add(edge);
+                if (ReduceEdgeAnimAlpha(edge, fadeRate))
+                    expiredEdges.Add(edge);
 
-                    //Console.WriteLine($"Darkening edge {edge}");
-                }
-
-                foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
-                {
-                    fadingAnimEdgesSet.Remove(expiredEdge);
-                }
+                //Console.WriteLine($"Darkening edge {edge}");
             }
 
-            void remove_unchained_from_animation()
+            foreach (Tuple<uint, uint> expiredEdge in expiredEdges)
             {
-                //get rid of any KEEP_BRIGHT nodes/edges waiting to be activated
-                newAnimNodeTimes = newAnimNodeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
-                newAnimEdgeTimes = newAnimEdgeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
-
-                //allow any nodes/externals/edges that have already been activated to fade
-                List<uint> activeKeys = activeAnimNodeTimes.Keys.ToList();
-                foreach (uint nodeIdx in activeKeys)
-                {
-                    if (activeAnimNodeTimes[nodeIdx] == Anim_Constants.KEEP_BRIGHT)
-                    {
-                        Console.WriteLine($"remove_unchained_from_animation allowing active node {nodeIdx} to fade");
-                        activeAnimNodeTimes[nodeIdx] = 0;
-                    }
-                }
-
-                //internalProtoGraph.externCallsLock.lock () ;
-                activeKeys = activeExternTimes.Keys.ToList();
-                foreach (uint nodeIdx in activeKeys)
-                {
-                    EXTTEXT externEntry = activeExternTimes[nodeIdx];
-                    if (externEntry.framesRemaining == Anim_Constants.KEEP_BRIGHT)
-                    {
-                        externEntry.framesRemaining = GlobalConfig.ExternAnimDisplayFrames / 2;
-                        activeExternTimes[nodeIdx] = externEntry;
-                    }
-                }
-                //internalProtoGraph.externCallsLock.unlock();
-                var activeEdges = activeAnimEdgeTimes.Keys.ToList();
-                foreach (var edgeTuple in activeEdges)
-                {
-                    if (activeAnimEdgeTimes[edgeTuple] == Anim_Constants.KEEP_BRIGHT) activeAnimEdgeTimes[edgeTuple] = 0;
-                }
-
+                fadingAnimEdgesSet.Remove(expiredEdge);
             }
+        }
 
-            ulong calculate_wait_frames(ulong executions)
+        void remove_unchained_from_animation()
+        {
+            //get rid of any KEEP_BRIGHT nodes/edges waiting to be activated
+            newAnimNodeTimes = newAnimNodeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
+            newAnimEdgeTimes = newAnimEdgeTimes.Where(e => e.Value != Anim_Constants.KEEP_BRIGHT).ToDictionary(e => e.Key, e => e.Value);
+
+            //allow any nodes/externals/edges that have already been activated to fade
+            List<uint> activeKeys = activeAnimNodeTimes.Keys.ToList();
+            foreach (uint nodeIdx in activeKeys)
             {
-                //assume 10 instructions per step/frame
-                ulong stepSize = (ulong)clientState.AnimationStepRate;
-                if (stepSize == 0) stepSize = 1;
-                ulong frames = (internalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
-
-                float proportion = (float)executions / internalProtoGraph.TotalInstructions;
-                ulong waitFrames = (ulong)Math.Floor(proportion * frames);
-                return waitFrames;
+                if (activeAnimNodeTimes[nodeIdx] == Anim_Constants.KEEP_BRIGHT)
+                {
+                    Console.WriteLine($"remove_unchained_from_animation allowing active node {nodeIdx} to fade");
+                    activeAnimNodeTimes[nodeIdx] = 0;
+                }
             }
 
-            public abstract void ApplyMouseDelta(Vector2 mousedelta);
+            //internalProtoGraph.externCallsLock.lock () ;
+            activeKeys = activeExternTimes.Keys.ToList();
+            foreach (uint nodeIdx in activeKeys)
+            {
+                EXTTEXT externEntry = activeExternTimes[nodeIdx];
+                if (externEntry.framesRemaining == Anim_Constants.KEEP_BRIGHT)
+                {
+                    externEntry.framesRemaining = GlobalConfig.ExternAnimDisplayFrames / 2;
+                    activeExternTimes[nodeIdx] = externEntry;
+                }
+            }
+            //internalProtoGraph.externCallsLock.unlock();
+            var activeEdges = activeAnimEdgeTimes.Keys.ToList();
+            foreach (var edgeTuple in activeEdges)
+            {
+                if (activeAnimEdgeTimes[edgeTuple] == Anim_Constants.KEEP_BRIGHT) activeAnimEdgeTimes[edgeTuple] = 0;
+            }
+
+        }
+
+        ulong calculate_wait_frames(ulong executions)
+        {
+            //assume 10 instructions per step/frame
+            ulong stepSize = (ulong)clientState.AnimationStepRate;
+            if (stepSize == 0) stepSize = 1;
+            ulong frames = (internalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
+
+            float proportion = (float)executions / internalProtoGraph.TotalInstructions;
+            ulong waitFrames = (ulong)Math.Floor(proportion * frames);
+            return waitFrames;
+        }
+
+        public  void ApplyMouseDelta(Vector2 mousedelta)
+        {
+            //todo
+        }
 
         void ResetAllActiveAnimatedAlphas()
+        {
+
+            foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
             {
-
-                foreach (uint nodeIdx in activeAnimNodeTimes.Keys)
-                {
-                    NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
-                }
-                activeAnimNodeTimes.Clear();
-
-                foreach (uint nodeIdx in FadingAnimNodesSet)
-                {
-                    NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
-                }
-                FadingAnimNodesSet.Clear();
-
-                foreach (Tuple<uint, uint> edge in activeAnimEdgeTimes.Keys)
-                {
-                    if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear an active edge");
-                }
-                activeAnimEdgeTimes.Clear();
-
-                foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
-                {
-                    if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear a fading edge");
-                }
-                fadingAnimEdgesSet.Clear();
-
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
             }
+            activeAnimNodeTimes.Clear();
+
+            foreach (uint nodeIdx in FadingAnimNodesSet)
+            {
+                NodesDisplayData.SetNodeAnimAlpha(nodeIdx, GlobalConfig.AnimatedFadeMinimumAlpha);
+            }
+            FadingAnimNodesSet.Clear();
+
+            foreach (Tuple<uint, uint> edge in activeAnimEdgeTimes.Keys)
+            {
+                if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear an active edge");
+            }
+            activeAnimEdgeTimes.Clear();
+
+            foreach (Tuple<uint, uint> edge in fadingAnimEdgesSet)
+            {
+                if (!SetEdgeAnimAlpha(edge, GlobalConfig.AnimatedFadeMinimumAlpha)) Console.WriteLine("Warning: Failed to clear a fading edge");
+            }
+            fadingAnimEdgesSet.Clear();
+
+        }
 
 
 
-            public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
+        public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
         {
             EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
             if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
@@ -1273,7 +1887,7 @@ namespace rgatCore
 
             if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
-            Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
+            //Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
             EdgesDisplayData.SetEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
@@ -1286,7 +1900,7 @@ namespace rgatCore
             EdgesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
             if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
 
-            Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
+            //Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
             EdgesDisplayData.ReduceEdgeAnimAlpha(arraypos, vertcount, alpha);
             return true;
         }
@@ -1399,13 +2013,14 @@ namespace rgatCore
         public Veldrid.Texture _outputTexture = null;
         public Veldrid.Framebuffer _outputFramebuffer = null;
 
-        public float CameraZoom = 1000f;
-        public float CameraFieldOfView = 1.0f;
-        public float CameraClippingFar = 0f;
-        public float CameraClippingNear => CameraZoom - 6; //extern jut
+
+        public float CameraZoom = -5000;
+        public float CameraFieldOfView = 0.6f;
+        public float CameraClippingFar = 60000;
+        public float CameraClippingNear = 1; //extern jut
         public float CameraXOffset = 0f;
         public float CameraYOffset = 0f;
-        public float PlotRotation = 0f;
+        public float PlotZRotation = 0f;
 
 
         public readonly Object RenderingLock = new Object();
@@ -1462,5 +2077,22 @@ namespace rgatCore
         public bool IsAnimated { get; private set; } = false;
         public bool NeedReplotting = false; //all verts need re-plotting from scratch
                                             //bool performSymbolResolve = false;
+
+        public string LayoutName()
+        {
+            switch (layout)
+            {
+                case graphLayouts.eTreeLayout:
+                    return "Tree";
+                case graphLayouts.eBarsLayout:
+                    return "Bars";
+                case graphLayouts.eCylinderLayout:
+                    return "Cylinder";
+                case graphLayouts.eForceDirected3D:
+                    return "ForceDirected3D";
+                default:
+                    return "UnknownPlotType" + layout.ToString();
+            }
+        }
     }
 }
