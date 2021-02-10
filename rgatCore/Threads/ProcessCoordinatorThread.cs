@@ -144,6 +144,14 @@ namespace rgatCore.Threads
             {
 				target = _clientState.AddTargetByPath(programName, arch, true);
 			}
+			if (target.BitWidth != arch)
+            {
+				if (target.BitWidth != 0) 
+                {
+					Console.WriteLine($"Warning: Incoming process reports different arch {arch} to binary {target.BitWidth}");
+                }
+				target.BitWidth = arch;
+			}
 			int ret = 0;
 
 			//TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);

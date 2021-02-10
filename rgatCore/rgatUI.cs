@@ -298,17 +298,8 @@ namespace rgatCore
         {
             ImGui.BeginGroup();
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
-            ImGui.BeginChildFrame(18, new Vector2(width, 200));
-            ImGui.Text("Instrumentation Settings");
 
 
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("Instrumentation Engine");
-            ImGui.SameLine();
-            ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
-            ImGui.SameLine();
-            ImGui.RadioButton("DynamoRIO", ref _selectedInstrumentationEngine, 1);
-            ImGui.EndChildFrame();
 
             ImGui.BeginChildFrame(18, new Vector2(width, 200));
             ImGui.AlignTextToFramePadding();
@@ -397,6 +388,13 @@ namespace rgatCore
                 ImGui.BeginChildFrame(10, new Vector2(width, 200));
                 ImGui.Text("Execution Settings");
 
+                ImGui.BeginChildFrame(18, new Vector2(width, 100));
+                ImGui.AlignTextToFramePadding();
+                ImGui.Text("Instrumentation Engine");
+                ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
+                ImGui.RadioButton("Qiling", ref _selectedInstrumentationEngine, 1);
+                ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
+                ImGui.EndChildFrame();
 
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998880);
                 ImGui.AlignTextToFramePadding();
@@ -409,7 +407,12 @@ namespace rgatCore
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
-                ImGui.Button("Start Trace");
+                if(ImGui.Button("Start Trace")){
+                    Console.WriteLine("Hit it!");
+                    string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
+                    System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+                    Console.WriteLine($"Started process id {p.Id}");
+                }
                 ImGui.EndChildFrame();
                 ImGui.PopStyleColor();
             }

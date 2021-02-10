@@ -64,6 +64,7 @@ namespace rgatCore
         private long fileSize = 0;
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
         private Byte[] startbytes = null;
+        public PeNet.PeFile PEFileObj;
 
         public int BitWidth = 0;
         public string FilePath { get; private set; } = "";
@@ -169,7 +170,7 @@ namespace rgatCore
         public BinaryTarget(string filepath, int bitWidth_ = 0)
         {
             FilePath = filepath;
-            BitWidth = bitWidth_;
+            BitWidth = bitWidth_; //overwritten by PE parser if PE
             FileName = Path.GetFileName(FilePath);
             if (File.Exists(filepath))
             {
@@ -178,6 +179,10 @@ namespace rgatCore
                     FileInfo fileinfo = new FileInfo(filepath);
                     fileSize = fileinfo.Length;
                     ParseFile();
+                    if (bitWidth_ != 0 && bitWidth_ != BitWidth)
+                    {
+                        Console.WriteLine($"Warning: bitwidth changed from provided value {bitWidth_} to {BitWidth}");
+                    }
                 }
                 catch { }
             }
@@ -223,6 +228,18 @@ namespace rgatCore
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
+
+                if(PeNet.PeFile.TryParse(FilePath, out PEFileObj))
+                {
+                    this.BitWidth = PEFileObj.Is32Bit ? 32 : 
+                        (PEFileObj.Is64Bit ? 64 : 0);
+                }
+                else
+                {
+                    PEFileObj = null;
+                }
+
+
             }
             catch
             {

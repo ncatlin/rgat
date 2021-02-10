@@ -633,11 +633,8 @@ namespace rgatCore
         public graphLayouts layout { get; protected set; }
 
         public float[] positionsArray1 = Array.Empty<float>();
-        public float[] positionsArray2 = Array.Empty<float>();
         public float[] velocityArray1 = Array.Empty<float>();
-        public float[] velocityArray2 = Array.Empty<float>();
         public float[] nodeAttribArray1 = Array.Empty<float>();
-        public float[] nodeAttribArray2 = Array.Empty<float>();
         public float[] presetPositionsArray = Array.Empty<float>();
 
 
@@ -742,11 +739,8 @@ namespace rgatCore
                 for (var i = 0; i < endLength; i++)
                 {
                     newVelocityArr1[i] = velocityArray1[i];
-                    newVelocityArr2[i] = velocityArray2[i];
                     newPositionsArr1[i] = positionsArray1[i];
-                    newPositionsArr2[i] = positionsArray2[i];
                     newAttsArr1[i] = nodeAttribArray1[i];
-                    newAttsArr2[i] = nodeAttribArray2[i];
                     newPresetsArray[i] = presetPositionsArray[i];
                 }
             }
@@ -754,21 +748,15 @@ namespace rgatCore
             for (var i = endLength; i < size; i++)
             {
                 newVelocityArr1[i] = -1;
-                newVelocityArr2[i] = -1;
                 newPositionsArr1[i] = -1;
-                newPositionsArr2[i] = -1;
                 newAttsArr1[i] = -1;
-                newAttsArr2[i] = -1;
                 newPresetsArray[i] = 0;
             }
 
 
             positionsArray1 = newPositionsArr1;
-            positionsArray2 = newPositionsArr2;
             velocityArray1 = newVelocityArr1;
-            velocityArray2 = newVelocityArr2;
             nodeAttribArray1 = newAttsArr1;
-            nodeAttribArray2 = newAttsArr2;
             presetPositionsArray = newPresetsArray;
         }
 
@@ -825,10 +813,6 @@ namespace rgatCore
             positionsArray1[offset + 1] = nodePositionEntry[1];
             positionsArray1[offset + 2] = nodePositionEntry[2];
             positionsArray1[offset + 3] = nodePositionEntry[3];
-            positionsArray2[offset] = nodePositionEntry[0];
-            positionsArray2[offset + 1] = nodePositionEntry[1];
-            positionsArray2[offset + 2] = nodePositionEntry[2];
-            positionsArray2[offset + 3] = nodePositionEntry[3];
 
             presetPositionsArray[offset] = 0;
             presetPositionsArray[offset + 1] = 0;
@@ -839,20 +823,12 @@ namespace rgatCore
             velocityArray1[offset + 1] = 0;
             velocityArray1[offset + 2] = 0;
             velocityArray1[offset + 3] = 0;
-            velocityArray2[offset] = 0;
-            velocityArray2[offset + 1] = 0;
-            velocityArray2[offset + 2] = 0;
-            velocityArray2[offset + 3] = 0;
 
 
             nodeAttribArray1[offset] = 200f;
             nodeAttribArray1[offset + 1] = 1f;// 0.5f;
             nodeAttribArray1[offset + 2] = 0;
             nodeAttribArray1[offset + 3] = 0;
-            nodeAttribArray2[offset] = 200f;
-            nodeAttribArray2[offset + 1] = 1f;// 0.5f;
-            nodeAttribArray2[offset + 2] = 0;
-            nodeAttribArray2[offset + 3] = 0;
 
         }
 
