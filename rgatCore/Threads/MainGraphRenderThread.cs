@@ -159,7 +159,8 @@ namespace rgatCore.Threads
 			
 					update_rendering(activeGraph);
 				}
-				Thread.Sleep(GlobalConfig.renderFrequency);
+				//todo get rid of this 1000 after testing
+				Thread.Sleep(GlobalConfig.renderFrequency + 100);
 			}
 
 			running = false;

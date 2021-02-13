@@ -13,6 +13,7 @@ layout(set = 0, binding = 3) uniform ViewBuffer
 {
     mat4 modelViewMatrix;
     mat4 projectionMatrix;
+    bool isAnimated;
 };
 
 //varying vec3 vColor;

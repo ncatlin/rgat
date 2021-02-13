@@ -827,15 +827,39 @@ namespace rgatCore
 
                     if (activeGraph != null)
                     {
-                        string BtnText = activeGraph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
+                        PlottedGraph.REPLAY_STATE replaystate = activeGraph.ReplayState;
+                        string BtnText = replaystate == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
                         ImGui.BeginGroup();
                         if (ImGui.Button(BtnText, new Vector2(36, 36)))
                         {
-                            _rgatstate.ActiveGraph?.PlayPauseClicked();
+                            activeGraph.PlayPauseClicked();
                         }
+
+                        if (replaystate == PlottedGraph.REPLAY_STATE.ePaused)
+                        {
+                            ImGui.SameLine();
+                            if (ImGui.Button("Step", new Vector2(36, 36)))
+                            {
+                                activeGraph.StepPausedAnimation(1);
+                            }
+                        }
+
                         if (ImGui.Button("Reset", new Vector2(36, 36)))
                         {
-                            _rgatstate.ActiveGraph?.ResetClicked();
+                            activeGraph.ResetClicked();
+                        }
+
+                        bool isanimed = false;
+                        string bt = "Set Animated";
+                        if (activeGraph.IsAnimated)
+                        {
+                            bt = "Set NonAnimated";
+                            isanimed = true; 
+                        }
+                        
+                        if (ImGui.Button(bt, new Vector2(36, 36)))
+                        {
+                            activeGraph.SetAnimated(!isanimed);
                         }
                         ImGui.EndGroup();
                     }

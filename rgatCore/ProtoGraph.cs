@@ -136,7 +136,6 @@ namespace rgatCore
             Console.WriteLine($"Loading {animationArray.Count} items");
             foreach (JArray animFields in animationArray)
             {
-                break;
                 if (animFields.Count != 7) return false;
                 ANIMATIONENTRY entry = new ANIMATIONENTRY();
                 entry.entryType = (eTraceUpdateType)animFields[0].ToObject<uint>();
@@ -306,8 +305,9 @@ namespace rgatCore
             if (modnum == -1)
             {
               //this happens in test binary: -mems-
-              Console.WriteLine("Warning: Code executed which is not in image or an external module");
-              resultPair = null; return false; 
+              Console.WriteLine("Warning: Code executed which is not in image or an external module. Possibly a buffer.");
+              resultPair = null; 
+              return false; 
             }
 
             ProcessData.get_extern_at_address(targaddr, modnum, out ROUTINE_STRUCT thisbb);

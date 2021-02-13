@@ -426,6 +426,7 @@ namespace rgatCore
         private bool LoadModules(JObject processJSON)
         {
             //display_only_status_message("Loading Modules", clientState);
+
             Console.WriteLine("[rgat]Loading Module Paths");
             if (!processJSON.TryGetValue("ModulePaths", out JToken moduleslist))
             {
@@ -454,6 +455,17 @@ namespace rgatCore
             {
                 LoadedModuleBounds.Add(new Tuple<ulong, ulong>(entry[0], entry[1]));
             }
+
+
+            if (!processJSON.TryGetValue("ModuleTraceStates", out Newtonsoft.Json.Linq.JToken modtracestatesTkn))
+            {
+                Console.WriteLine("[rgat] Failed to find ModuleTraceStates in trace");
+                return false;
+            }
+            
+            ModuleTraceStates.Clear();
+            int[] intstates = modtracestatesTkn.ToObject<List<int>>().ToArray();
+            ModuleTraceStates = Array.ConvertAll(intstates, value => (eCodeInstrumentation)value).ToList();
             return true;
         }
 
@@ -857,6 +869,13 @@ namespace rgatCore
                 ModuleBounds.Add(BoundsTuple);
             }
             saveObject.Add("ModuleBounds", ModuleBounds);
+
+            JArray ModuleTraceStatesArr = new JArray();
+            foreach (eCodeInstrumentation tState in ModuleTraceStates)
+            {
+                ModuleTraceStatesArr.Add(tState);
+            }
+            saveObject.Add("ModuleTraceStates", ModuleTraceStatesArr);
         }
 
 

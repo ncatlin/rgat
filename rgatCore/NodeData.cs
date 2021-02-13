@@ -32,8 +32,8 @@ namespace rgatCore
             nodearr.Add(IsExternal);
 
             if (!IsExternal)
-            { 
-                nodearr.Add(ins.mutationIndex); 
+            {
+                nodearr.Add(ins.mutationIndex);
             }
             else
             {
@@ -62,7 +62,7 @@ namespace rgatCore
             index = nodeData[0].ToObject<uint>();
 
             if (nodeData[1].Type != JTokenType.Integer) return ErrorAtIndex(1);
-            conditional = (eConditionalType) nodeData[1].ToObject<int>();
+            conditional = (eConditionalType)nodeData[1].ToObject<int>();
 
             if (nodeData[2].Type != JTokenType.Integer) return ErrorAtIndex(2);
             GlobalModuleID = nodeData[2].ToObject<int>();
@@ -147,66 +147,95 @@ namespace rgatCore
         }
 
 
-        /*
-		void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
+        public eEdgeNodeType VertType()
         {
-			traceRecord* runRecord = (traceRecord*)traceRecPtr;
-			PROCESS_DATA* piddata = runRecord.get_piddata();
+            if (_nodeType != eEdgeNodeType.eENLAST) return _nodeType;
+            switch (ins.itype)
+            {
+                case eNodeType.eInsUndefined:
+                {                 
+                     
+                   if (ins.conditional) _nodeType = eEdgeNodeType.eNodeJump;
+                    else _nodeType = eEdgeNodeType.eNodeNonFlow;
+                        break;
+                }
+                case eNodeType.eInsJump:
+                    _nodeType = eEdgeNodeType.eNodeJump;
+                    break;
+                case eNodeType.eInsReturn:
+                    _nodeType = eEdgeNodeType.eNodeReturn;
+                    break;
+                case eNodeType.eInsCall:
+                    _nodeType = eEdgeNodeType.eNodeCall;
+                    break;
+                default:
+                    Console.WriteLine("[rgat]Error: render_node unknown itype " + ins.itype);
+                    System.Diagnostics.Debug.Assert(false);
+                    break;
+            }
+            return _nodeType;
+        }
 
-			ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
-			string sym;
-			//i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
-			bool foundsym = false;
-			int symOffset;
-			for (symOffset = 0; symOffset < 4096; symOffset++)
-			{
-				if (piddata.get_sym(globalModID, offset - symOffset, sym))
-				{
-					foundsym = true;
-					break;
-				}
-			}
+    /*
+    void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
+    {
+        traceRecord* runRecord = (traceRecord*)traceRecPtr;
+        PROCESS_DATA* piddata = runRecord.get_piddata();
 
-			if (foundsym)
-				label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
-			else
-				label = "[Unknown Symbol]";
-		}
-		*/
+        ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
+        string sym;
+        //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+        bool foundsym = false;
+        int symOffset;
+        for (symOffset = 0; symOffset < 4096; symOffset++)
+        {
+            if (piddata.get_sym(globalModID, offset - symOffset, sym))
+            {
+                foundsym = true;
+                break;
+            }
+        }
 
-
-
-        public uint index = 0;
-
-        public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
-        public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
-        public InstructionData ins;
-        public bool IsExternal { get; set; } = false;
-        bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
-        public int GlobalModuleID;
-
-        public uint BlockID;
-
-        //an index used to lookup the caller/arguments of each instance of this being called
-        public List<ulong> callRecordsIndexs = new List<ulong>();
-        public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
-
-        //number of external functions called
-        public uint childexterns = 0;
-        public ulong address = 0;
-        public uint parentIdx = 0;
-
-        public ulong executionCount = 0;
-        ulong chain_remaining_in = 0;
-        ulong chain_remaining_out = 0;
-
-        ulong heat_run_marker;
-
-        public List<uint> IncomingNeighboursSet = new List<uint>();
-        public List<uint> OutgoingNeighboursSet = new List<uint>();
-        public int degree = 0;
-
-        public string label;
-        public bool placeholder = false;
+        if (foundsym)
+            label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
+        else
+            label = "[Unknown Symbol]";
     }
+    */
+
+
+
+    public uint index = 0;
+
+    public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
+    public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
+    public InstructionData ins;
+    public bool IsExternal { get; set; } = false;
+    bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
+    public int GlobalModuleID;
+
+    public uint BlockID;
+
+    //an index used to lookup the caller/arguments of each instance of this being called
+    public List<ulong> callRecordsIndexs = new List<ulong>();
+    public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
+
+    //number of external functions called
+    public uint childexterns = 0;
+    public ulong address = 0;
+    public uint parentIdx = 0;
+
+    public ulong executionCount = 0;
+    ulong chain_remaining_in = 0;
+    ulong chain_remaining_out = 0;
+
+    ulong heat_run_marker;
+
+    public List<uint> IncomingNeighboursSet = new List<uint>();
+    public List<uint> OutgoingNeighboursSet = new List<uint>();
+    public int degree = 0;
+    eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
+    public string label;
+    public bool placeholder = false;
+}
 }
