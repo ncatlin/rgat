@@ -54,6 +54,7 @@ namespace rgatCore
             SetupComputeResources();
         }
 
+
         public void SetActiveGraph(PlottedGraph graph)
         {
             if (graph == ActiveGraph) return;
@@ -71,6 +72,7 @@ namespace rgatCore
             {
                 if (ActiveGraph != null)
                 {
+                    _processedEdgeCount = 0;
                     uint textureSize = ActiveGraph.LinearIndexTextureSize();
                     DeviceBuffer destinationReadback = GetReadback(_positionsBuffer1);
                     MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
@@ -120,10 +122,6 @@ namespace rgatCore
             _EdgeVertBuffer = _factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
             _EdgeIndexBuffer?.Dispose();
             _EdgeIndexBuffer = _factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
-            _edgeDataBuffer?.Dispose();
-            _edgeDataBuffer = CreateEdgeDataBuffer();
-            _edgeIndicesBuffer?.Dispose();
-            _edgeIndicesBuffer = CreateTestEdgeIndicesBuffer();
 
             BufferDescription vbDescription = new BufferDescription(1, BufferUsage.VertexBuffer);
             _NodeVertexBuffer?.Dispose();
@@ -384,9 +382,9 @@ namespace rgatCore
 
 
         //Texture describes how many nodes each node is linked to
-        public unsafe DeviceBuffer CreateTestEdgeIndicesBuffer()
+        public unsafe DeviceBuffer _CreateEdgesConnectionDataOffsetsBuffer()
         {
-            int[] targetArray = ActiveGraph.GetEdgeIndicesInts();
+            int[] targetArray = ActiveGraph.GetNodeNeighbourDataOffsets();
             uint textureSize = PlottedGraph.indexTextureSize(targetArray.Length);
             uint intCount = textureSize * textureSize;
             BufferDescription bd = new BufferDescription(intCount * sizeof(int), BufferUsage.StructuredBufferReadWrite, 1);
@@ -444,7 +442,7 @@ namespace rgatCore
         }
 
 
-        public unsafe DeviceBuffer CreateEdgeDataBuffer()
+        public unsafe DeviceBuffer CreateEdgesConnectionDataBuffer()
         {
             var textureSize = ActiveGraph != null ? ActiveGraph.LinearIndexTextureSize() : 0;
             BufferDescription bd = new BufferDescription(textureSize * textureSize * 4 * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4);
@@ -483,7 +481,7 @@ namespace rgatCore
             _gd.WaitForIdle();
 
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(new ResourceSetDescription(_velocityComputeLayout,
-                _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgeIndicesBuffer, _edgeDataBuffer, destinationBuffer));
+                _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgesConnectionDataOffsetsBuffer, _edgesConnectionDataBuffer, destinationBuffer));
 
 
 
@@ -569,6 +567,8 @@ namespace rgatCore
         }
 
 
+
+        List<uint> _delme_oldlingerNodes = new List<uint>();
         public unsafe void RenderNodeAttribs(DeviceBuffer attribBufIn, DeviceBuffer attribBufOut, float delta)
         {
             uint textureSize = ActiveGraph.LinearIndexTextureSize();
@@ -599,12 +599,12 @@ namespace rgatCore
                 if (idx >= ActiveGraph.NodeCount()) break;
                 if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
                 pr += $"{idx},";
-                valArray[0] = 200f; //start big
-                valArray[1] = 1.0f;
-                valArray[2] = 1.0f;
+                valArray[0] = 300f; //start big
+                valArray[1] = 1.0f; //full alpha
+                valArray[2] = 1.0f; //pulse
                 fixed (float* dataPtr = valArray)
                 {
-                    cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float), (IntPtr)dataPtr, sizeof(float));
+                    cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float), (IntPtr)dataPtr, (uint)valArray.Length*sizeof(float));
                 }
             }
 
@@ -621,7 +621,12 @@ namespace rgatCore
                     cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
                 }
             }
-            if (pr.Length > 0) Console.WriteLine($"Linger Nodes: {pr}");
+            if (pr.Length > 0 && !lingerNodes.SequenceEqual(_delme_oldlingerNodes))
+            {
+                _delme_oldlingerNodes.Clear();
+                _delme_oldlingerNodes = lingerNodes;
+                Console.WriteLine($"Linger Nodes: {pr}"); 
+            }
             pr = "";
             foreach (uint idx in deactivatedNodes)
             {
@@ -640,7 +645,7 @@ namespace rgatCore
 
 
             ResourceSet attribComputeResourceSet = _factory.CreateResourceSet(new ResourceSetDescription(_nodeAttribComputeLayout,
-                _attribsParamsBuffer, attribBufIn, _edgeIndicesBuffer, _edgeDataBuffer, attribBufOut));
+                _attribsParamsBuffer, attribBufIn, _edgesConnectionDataOffsetsBuffer, _edgesConnectionDataBuffer, attribBufOut));
 
             cl.Begin();
             cl.SetPipeline(_nodeAttribComputePipeline);
@@ -650,7 +655,7 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            /*
+            
             
             float[] outputArray = new float[textureSize * textureSize * 4];
             DeviceBuffer destinationReadback = GetReadback(attribBufOut);
@@ -661,8 +666,8 @@ namespace rgatCore
                 outputArray[index] = destinationReadView[index];
             }
             destinationReadback.Dispose();
-            PrintBufferArray(outputArray, "attrib Computation Done. Result: ", 32);
-            */
+           // PrintBufferArray(outputArray, "attrib Computation Done. Result: ", 32);
+            
 
 
             cl.Dispose();
@@ -676,7 +681,7 @@ namespace rgatCore
 
 
 
-        DeviceBuffer _PresetLayoutFinalPositionsBuffer, _edgeDataBuffer;
+        DeviceBuffer _PresetLayoutFinalPositionsBuffer, _edgesConnectionDataBuffer;
         DeviceBuffer _positionsBuffer1, _positionsBuffer2;
         DeviceBuffer _rtNodeAttribBuffer1, _rtNodeAttribBuffer2;
         DeviceBuffer _velocityBuffer1, _velocityBuffer2;
@@ -707,7 +712,7 @@ namespace rgatCore
 
         //vert/frag rendering buffers
         ResourceSet _crs_core, _crs_nodesEdges, _crs_font;
-        DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer, _edgeIndicesBuffer;
+        DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer, _edgesConnectionDataOffsetsBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
         DeviceBuffer _FontVertBuffer, _FontIndexBuffer;
         DeviceBuffer _paramsBuffer;
@@ -877,8 +882,8 @@ namespace rgatCore
                 _rtNodeAttribBuffer1.Dispose();
                 _rtNodeAttribBuffer2.Dispose();
                 _PresetLayoutFinalPositionsBuffer.Dispose();
-                _edgeIndicesBuffer.Dispose();
-                _edgeDataBuffer.Dispose();
+                _edgesConnectionDataOffsetsBuffer.Dispose();
+                _edgesConnectionDataBuffer.Dispose();
             }
 
             _velocityBuffer1 = CreateFloatsDeviceBuffer(ActiveGraph.GetVelocityFloats());
@@ -896,8 +901,8 @@ namespace rgatCore
 
 
             _PresetLayoutFinalPositionsBuffer = CreateFloatsDeviceBuffer(ActiveGraph.GetPresetPositionFloats()); //todo: actually empty
-            _edgeIndicesBuffer = CreateTestEdgeIndicesBuffer();
-            _edgeDataBuffer = CreateEdgeDataBuffer();
+            _edgesConnectionDataOffsetsBuffer = _CreateEdgesConnectionDataOffsetsBuffer();
+            _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
 
 
             CommandList cl = _factory.CreateCommandList();
@@ -1080,18 +1085,18 @@ namespace rgatCore
             _EdgeVertBuffer.Dispose();
             BufferDescription tvbDescription = new BufferDescription((uint)TestEdgeLineVerts.Length * TestVertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
             _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
+            _gd.UpdateBuffer(_EdgeVertBuffer, 0, TestEdgeLineVerts);
 
             _EdgeIndexBuffer.Dispose();
             BufferDescription eibDescription = new BufferDescription((uint)edgeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer);
             _EdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
-
-            _gd.UpdateBuffer(_EdgeVertBuffer, 0, TestEdgeLineVerts);
             _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeIndices.ToArray());
 
-            _edgeDataBuffer.Dispose();
-            _edgeDataBuffer = CreateEdgeDataBuffer();
-            _edgeIndicesBuffer.Dispose();
-            _edgeIndicesBuffer = CreateTestEdgeIndicesBuffer();
+            _edgesConnectionDataBuffer.Dispose();
+            _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
+
+            _edgesConnectionDataOffsetsBuffer.Dispose();
+            _edgesConnectionDataOffsetsBuffer = _CreateEdgesConnectionDataOffsetsBuffer();
         }
         int _processedEdgeCount = 0;
 
@@ -1200,11 +1205,13 @@ namespace rgatCore
 
 
             uint telvTextSize = ActiveGraph.EdgeTextureWidth();
-            int drawnEdgeCount = ActiveGraph.GetEdgeLineVerts(out List<uint> edgeIndices, out TestVertexPositionColor[] EdgeLineVerts);
+            int drawnEdgeCount = ActiveGraph.GetEdgeLineVerts(out List<uint> edgeDrawIndexes, out int edgeVertCount, out TestVertexPositionColor[] EdgeLineVerts);
+
             if (drawnEdgeCount == 0) return;
-            if (drawnEdgeCount > _processedEdgeCount)
+            if (drawnEdgeCount > _processedEdgeCount ||
+                ((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
-                RegenerateEdgeDataBuffers(EdgeLineVerts, edgeIndices);
+                RegenerateEdgeDataBuffers(EdgeLineVerts, edgeDrawIndexes);
                 _processedEdgeCount = drawnEdgeCount;
             }
 
@@ -1242,6 +1249,9 @@ namespace rgatCore
                 _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
             }
 
+            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
+            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
+
             //draw nodes and edges
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
@@ -1259,7 +1269,7 @@ namespace rgatCore
             _cl.SetPipeline(_edgesPipeline);
             _cl.SetVertexBuffer(0, _EdgeVertBuffer);
             _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)edgeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             _cl.End();
             _gd.SubmitCommands(_cl);

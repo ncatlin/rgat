@@ -40,7 +40,7 @@ layout(set = 0, binding=3) buffer bufvelocities {
     vec4 velocities[];
 };
 layout(set = 0, binding=4) buffer bufedgeIndices {   
-    ivec4 edgeIndices[];
+    ivec2 edgeIndices[];
 };
 layout(set = 0, binding=5) buffer bufedgeData {   
     ivec4 edgeData[];
@@ -125,12 +125,10 @@ void main()	{
         // force-directed n-body simulation
         if( selfPosition.w > 0.0 )
         {
-            int rc = 0;
             for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
             {
                 for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
                 {
-                    rc += 1;
                     compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
                     // note: double ifs work.  using continues do not work for all GPUs.
                     if (compareNodePosition.w != -1.0) 
@@ -138,28 +136,20 @@ void main()	{
                         //if distance below threshold, repel every node from every single node
                         if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                         {
-                        
                             vec3 repuls = addRepulsion(selfPosition.xyz, compareNodePosition.xyz);
                             velocity += repuls;
-                            //field_Destination[y*fieldParams.nodesTexWidth + x] = vec4(selfPosition.xy, compareNodePosition.xy);
-                            //field_Destination[y*fieldParams.nodesTexWidth + x] = vec4(repuls, y*fieldParams.nodesTexWidth + x);
                         }
                     }
                 }
 		    }
             
 
-            vec4 selfEdgeIndices = edgeIndices[index];
-            float idx = selfEdgeIndices.x;
-            float idy = selfEdgeIndices.y;
-            float idz = selfEdgeIndices.z;
-            float idw = selfEdgeIndices.w;
-           
-            float start = idx * 4.0 + idy;
-            float end = idz * 4.0 + idw;
+            vec2 selfEdgeIndices = edgeIndices[index];
+            
+            float start = selfEdgeIndices.x;
+            float end = selfEdgeIndices.y;
 
-
-            if(! ( idx == idz && idy == idw ) ){
+            if(start != -1){
 
                 int edgeIndex = 0;
                 //iterate over every edge

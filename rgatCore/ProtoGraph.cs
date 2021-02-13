@@ -539,7 +539,14 @@ namespace rgatCore
                 return edgeDict.TryGetValue(edge, out edged);
             }
         }
-
+        public List<Tuple<uint, uint>> GetEdgelistCopy()
+        {
+            
+            lock (edgeLock)
+            {
+                return edgeList.ToList();
+            }
+        }
 
         public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx)
         {
@@ -717,6 +724,7 @@ namespace rgatCore
         //node id pairs to edge data
         public Dictionary<Tuple<uint, uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
+        //todo - make this private, hide from view for thread safety
         public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
         //light-touch list of blocks for filling in edges without locking disassembly data
         public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint,uint>>(); 

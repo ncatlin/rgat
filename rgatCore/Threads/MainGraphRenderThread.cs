@@ -25,7 +25,10 @@ namespace rgatCore.Threads
 		private rgatState rgatState = null;
 		public bool running = true;
 
-		static void update_rendering(PlottedGraph graph)
+		int _nextReplayStep = 0;
+		int _FramesBetweenAnimationUpdates = 2;
+
+		void update_rendering(PlottedGraph graph)
 		{
 			ProtoGraph protoGraph = graph.internalProtoGraph;
 			if (protoGraph == null || protoGraph.edgeList.Count == 0) return;
@@ -57,7 +60,11 @@ namespace rgatCore.Threads
 			{
 				if (graph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
 				{
-					graph.render_replay_animation(GlobalConfig.animationFadeRate);
+					if (--_nextReplayStep <= 0)
+					{ 
+						graph.render_replay_animation(GlobalConfig.animationFadeRate);
+						_nextReplayStep = _FramesBetweenAnimationUpdates;
+					}
 				}
 				
 			}
@@ -147,18 +154,9 @@ namespace rgatCore.Threads
 					continue;
 				}
 
-				if (true)
-				{
-					
-					//bool layoutChanged = activeGraph.layout != rgatState.newGraphLayout;
-					if (activeGraph.NeedReplotting)
-					{
-						activeGraph.ReRender();
-						continue;
-					}
-			
-					update_rendering(activeGraph);
-				}
+
+				update_rendering(activeGraph);
+				
 				//todo get rid of this 1000 after testing
 				Thread.Sleep(GlobalConfig.renderFrequency + 100);
 			}

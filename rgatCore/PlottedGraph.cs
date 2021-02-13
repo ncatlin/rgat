@@ -231,22 +231,6 @@ namespace rgatCore
 
         //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
 
-        protected void PlotRerender()
-        {
-          // ReRender();
-        }
-
-
-        public void ReRender()
-        {
-            EdgesDisplayData = new GraphDisplayData();
-            NodesDisplayData = new GraphDisplayData();
-            HighlightsDisplayData = new GraphDisplayData();
-            wireframelines = new GraphDisplayData();
-            NeedReplotting = false;
-            PlotRerender();
-        }
-
         public void UpdateMainRender()
         {
             render_graph();
@@ -380,8 +364,6 @@ namespace rgatCore
             else
                 process_replay_animation_updates();
 
-            render_animation(fadeRate);
-
             if (userSelectedAnimPosition != -1)
                 userSelectedAnimPosition = -1;
         }
@@ -397,7 +379,6 @@ namespace rgatCore
             if (internalProtoGraph.NodeList.Count > 0)
             {
                 internalProtoGraph.set_active_node(0);
-                darken_fading(1.0f); //this is pointless?
             }
 
             animInstructionIndex = 0;
@@ -426,7 +407,6 @@ namespace rgatCore
         public void render_live_animation(float fadeRate)
         {
             process_live_animation_updates();
-            render_animation(fadeRate);
 
         }
 
@@ -819,55 +799,46 @@ namespace rgatCore
         }
 
 
-        public unsafe int[] GetEdgeIndicesInts()
+        public unsafe int[] GetNodeNeighbourDataOffsets()
         {
             List<List<int>> targetArray = null;
             lock (animationLock)
             {
-                targetArray = _graphStructureBalanced.ToList<List<int>>();
+                targetArray = _graphStructureBalanced.ToList(); //eg: [[1,3],[0,2],[1],[0]]
             }
             var textureSize = indexTextureSize(targetArray.Count);
 
-            int[] sourceData = new int[textureSize * textureSize * 4];
-            int currentPixel = 0;
-            int currentCoord = 0;
+            int[] sourceData = new int[textureSize * textureSize * 2];
+            int current = 0;
 
-            for (var i = 0; i < targetArray.Count; i++)
+            for (var srcNodeIndex = 0; srcNodeIndex < targetArray.Count; srcNodeIndex++)
             {
 
                 //keep track of the beginning of the array for this node
+                int start = current;
 
-                int startPixel = currentPixel;
-                int startCoord = currentCoord;
-
-                for (var j = 0; j < targetArray[i].Count; j++)
+                foreach (int destNodeID in targetArray[srcNodeIndex])
                 {
-
-                    // look inside each node array and see how many things it links to
-
-                    currentCoord++;
-
-                    if (currentCoord == 4)
-                    {
-
-                        // remainder is only 0-3.  If you hit 4, increment pixel and reset coord
-
-                        currentPixel++;
-                        currentCoord = 0;
-
-                    }
-
+                    current++;
                 }
 
                 //write the two sets of texture indices out.  We'll fill up an entire pixel on each pass
-                sourceData[i * 4] = startPixel;
-                sourceData[i * 4 + 1] = startCoord;
-                sourceData[i * 4 + 2] = currentPixel;
-                sourceData[i * 4 + 3] = currentCoord;
+
+                if (start != current)
+                {
+                    sourceData[srcNodeIndex * 2] = start;
+                    sourceData[srcNodeIndex * 2 + 1] = current;
+                }
+                else
+                {
+
+                    sourceData[srcNodeIndex * 2] = -1;
+                    sourceData[srcNodeIndex * 2 + 1] = -1;
+                }
 
             }
 
-            for (var i = targetArray.Count * 4; i < sourceData.Length; i++)
+            for (var i = targetArray.Count * 2; i < sourceData.Length; i++)
             {
 
                 // fill unused RGBA slots with -1
@@ -1004,70 +975,44 @@ namespace rgatCore
             return TestNodeVerts;
         }
 
-        public int GetEdgeLineVerts(out List<uint> edgeIndices, out GraphPlotWidget.TestVertexPositionColor[] EdgeLineVerts)
+        public int GetEdgeLineVerts(out List<uint> edgeIndices, out int vertCount, out GraphPlotWidget.TestVertexPositionColor[] EdgeLineVerts)
         {
             uint telvTextSize = EdgeVertsTextureWidth();
             EdgeLineVerts = new GraphPlotWidget.TestVertexPositionColor[telvTextSize * telvTextSize * 16];
 
-            uint txIdx = 0;
+            vertCount = 0;
             edgeIndices = new List<uint>();
             uint textureSize = LinearIndexTextureSize();
-            foreach (Tuple<uint,uint> edge in internalProtoGraph.edgeList)
+
+            var edgeList = internalProtoGraph.GetEdgelistCopy();
+            
+            foreach (Tuple<uint,uint> edge in edgeList)
             {
                 int srcNodeIdx = (int) edge.Item1;
                 int destNodeIdx = (int) edge.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edge);
 
-                EdgeLineVerts[txIdx] =
+                EdgeLineVerts[vertCount] =
                         new GraphPlotWidget.TestVertexPositionColor
                         {
                             TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
-                edgeIndices.Add(txIdx);
-                txIdx++;
+                edgeIndices.Add((uint)vertCount);
+                vertCount++;
 
-                EdgeLineVerts[txIdx] =
+                EdgeLineVerts[vertCount] =
                     new GraphPlotWidget.TestVertexPositionColor
                     {
                         TexPosition = new Vector2(destNodeIdx % textureSize,
                                     (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
-                edgeIndices.Add(txIdx);
-                txIdx++;
+                edgeIndices.Add((uint)vertCount);
+                vertCount++;
 
             }
             return _drawnEdgesCount;
-
-            /*
-            for (var srcNodeIdx = 0; srcNodeIdx < NodeCount(); srcNodeIdx++)
-            {
-                List<int> destNodes = _graphStructureLinear[srcNodeIdx];
-                for (var dstNodeIdx = 0; dstNodeIdx < destNodes.Count; dstNodeIdx++)
-                {
-                    TestEdgeLineVerts[txIdx] =
-                        new GraphPlotWidget.TestVertexPositionColor
-                        {
-                            TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
-                            Color = Getcolor(srcNodeIdx)
-                        };
-                    edgeIndices.Add(txIdx);
-                    txIdx++;
-
-                    var dstNodeID = destNodes[dstNodeIdx];
-                    TestEdgeLineVerts[txIdx] =
-                        new GraphPlotWidget.TestVertexPositionColor
-                        {
-                            TexPosition = new Vector2(dstNodeID % textureSize,
-                                        (float)Math.Floor((float)(dstNodeID / textureSize))),
-                            Color = Getcolor(dstNodeID)
-                        };
-                    edgeIndices.Add(txIdx);
-                    txIdx++;
-                }
-            }
-            */
         }
 
 
@@ -1145,14 +1090,6 @@ namespace rgatCore
         {
             ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
         }
-
-
-        void render_animation(float fadeRate)
-        {
-            brighten_new_active();
-            darken_fading(fadeRate);
-        }
-
 
 
 
@@ -1272,7 +1209,7 @@ namespace rgatCore
 
             foreach (uint nodeIdx in nodeIDList)
             {
-
+                /*
                 if (internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
@@ -1280,18 +1217,22 @@ namespace rgatCore
                     else
                         newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = GlobalConfig.ExternAnimDisplayFrames;
                 }
+                */
 
-                if (!(entry.entryType == eTraceUpdateType.eAnimUnchained && instructionCount == 0))
+                if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && instructionCount == 0)
                 {
                     Tuple<uint, uint> edge = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
                     if (internalProtoGraph.EdgeExists(edge))
                     {
-                        AddContinuousActiveNode(edge.Item1);
-                        AddContinuousActiveNode(edge.Item2);
+                        AddPulseActiveNode(edge.Item1);
                     }
                     //if it doesn't exist it may be because user is skipping code with animation slider
                 }
 
+                if (brightTime == Anim_Constants.KEEP_BRIGHT)
+                    AddContinuousActiveNode(nodeIdx);
+                else
+                    AddPulseActiveNode(nodeIdx);
                 NodesDisplayData.LastAnimatedNode.lastVertID = nodeIdx;
 
                 ++instructionCount;
@@ -1304,6 +1245,19 @@ namespace rgatCore
         //void draw_condition_ins_text(float zdist, PROJECTDATA* pd, GraphDisplayData* vertsdata, graphGLWidget &gltarget);
         //void draw_edge_heat_text(int zdist, PROJECTDATA* pd, graphGLWidget &gltarget);
         //void set_edge_alpha(NODEPAIR eIdx, GraphDisplayData* edgesdata, float alpha);
+
+
+
+
+        void end_unchained(ANIMATIONENTRY entry)
+        {
+
+            currentUnchainedBlocks.Clear();
+            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
+            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+
+        }
+
 
         void process_live_animation_updates()
         {
@@ -1328,12 +1282,14 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
             {
+                Console.WriteLine("Live update: eAnimLoopLast");
                 ++updateProcessingIndex;
                 return true;
             }
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
+                Console.WriteLine($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times");
                 remove_unchained_from_animation();
 
                 ++updateProcessingIndex;
@@ -1342,6 +1298,7 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
             {
+                Console.WriteLine("Live update: eAnimUnchainedDone");
                 end_unchained(entry);
                 ++updateProcessingIndex;
                 return true;
@@ -1350,7 +1307,14 @@ namespace rgatCore
             int brightTime;
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
-                currentUnchainedBlocks.Add(entry);
+                string s = "";
+                if (get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDListFFF))
+                { 
+                    foreach (int x in nodeIDListFFF) s += $"{x},";
+                }
+
+                Console.WriteLine($"Live update: eAnimUnchained block {entry.blockID}: "+s);
+                currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
@@ -1377,14 +1341,7 @@ namespace rgatCore
         }
 
 
-        void end_unchained(ANIMATIONENTRY entry)
-        {
 
-            currentUnchainedBlocks.Clear();
-            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
-
-        }
 
         void process_replay_animation_updates(int optionalStepSize = 0)
         {
@@ -1426,6 +1383,7 @@ namespace rgatCore
 
         void process_replay_update()
         {
+            bool verbose = true;
             ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[animationIndex];
 
             int stepSize = clientState.AnimationStepRate;
@@ -1438,6 +1396,7 @@ namespace rgatCore
                 ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[animationIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
+                    if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
                     brighten_next_block_edge(entry.blockID, entry.blockAddr, GlobalConfig.animationLingerFrames);
                 }
             }
@@ -1453,12 +1412,14 @@ namespace rgatCore
                 if (unchainedWaitFrames > maxWait)
                     unchainedWaitFrames = maxWait;
 
+                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
                 return;
             }
 
             //all consecutive unchained areas finished, wait until animation paused appropriate frames
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
             {
+                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchainedDone");
                 if (unchainedWaitFrames-- > 1) return;
 
                 remove_unchained_from_animation();
@@ -1468,6 +1429,7 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
             {
+                if (verbose) Console.WriteLine($"\tUpdate eAnimLoopLast");
                 if (unchainedWaitFrames-- > 1) return;
 
                 remove_unchained_from_animation();
@@ -1476,9 +1438,12 @@ namespace rgatCore
                 return;
             }
 
+
+
             int brightTime;
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
+                if (verbose) Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
                 currentUnchainedBlocks.Add(entry);
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
@@ -1487,6 +1452,7 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
             {
+                if (verbose) Console.WriteLine($"\tUpdate eAnimLoop");
                 ProcessRecord piddata = internalProtoGraph.ProcessData;
                 List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
 
@@ -1510,34 +1476,39 @@ namespace rgatCore
                 while (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out nodeIDList))
                 {
                     Thread.Sleep(15);
-                    Console.WriteLine("[rgat] ANst block 0x" + entry.blockAddr); //todo hex
+                    Console.WriteLine($"[rgat] ANst block 0x{entry.blockAddr:x}");
                     if (clientState.rgatIsExiting) return;
                 }
             }
 
+            string s = "";
+            foreach (int x in nodeIDList) s += $"{x},";
+            
+            if (entry.entryType == eTraceUpdateType.eAnimUnchained)
+                Console.WriteLine($"Replay update: eAnimUnchained block {entry.blockID}: " + s);
+            if (entry.entryType == eTraceUpdateType.eAnimExecTag)
+                Console.WriteLine($"Replay update: eAnimExecTag block {entry.blockID}: " + s);
+            if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
+                Console.WriteLine($"Replay update: eAnimUnchainedDone block {entry.blockID}: " + s);
+
             //add all the nodes+edges in the block to the brightening list
+            Console.WriteLine($"Brightening nodelist with {nodeIDList.Count} for time {brightTime}");
             brighten_node_list(entry, brightTime, nodeIDList);
 
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
+                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchained");
                 brighten_next_block_edge(entry.targetID, entry.targetAddr, brightTime);
             }
 
         }
 
 
-        void brighten_new_active_nodes()
-        {
-
-
-        }
-
-
         void brighten_new_active_extern_nodes()
         {
-            Console.WriteLine("todo brighten_new_active_extern_nodes");
+           // Console.WriteLine("todo brighten_new_active_extern_nodes");
             /*
 			PROCESS_DATA* piddata = internalProtoGraph.get_piddata();
 			Dictionary<uint, EXTTEXT> newEntries;
@@ -1597,14 +1568,7 @@ namespace rgatCore
 			*/
         }
 
-        void brighten_new_active()
-        {
-
-            brighten_new_active_nodes();
-            brighten_new_active_extern_nodes();
-
-        }
-
+   
         /*
          Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
          These pulse
@@ -1614,34 +1578,6 @@ namespace rgatCore
             float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
         }
 
-        void darken_fading(float fadeRate)
-        {
-            /* when switching graph layouts of a big graph it can take
-		   a long time for rerendering of all the edges in the protograph.
-		   we can end up with a protograph with far more edges than the rendered edges
-		   so have to check that we are operating within bounds */
-
-
-            darken_nodes(fadeRate);
-
-            darken_edges(fadeRate);
-        }
-
-        void darken_nodes(float fadeRate)
-        {
-        }
-        void darken_edges(float fadeRate)
-        {
-        }
-
-        void remove_unchained_from_animation()
-        {
-            lock (animationLock)
-            {
-                _DeactivatedNodes = _LingeringActiveNodes.ToArray();
-                _LingeringActiveNodes.Clear();
-            }
-        }
 
         ulong calculate_wait_frames(ulong executions)
         {
@@ -1660,15 +1596,6 @@ namespace rgatCore
             //todo
         }
 
-        void ResetAllActiveAnimatedAlphas()
-        {
-            lock(animationLock)
-            {
-                _PulseActiveNodes.Clear();
-                _LingeringActiveNodes.Clear();
-                _DeactivatedNodes = Array.Empty<uint>();
-            }
-        }
 
 
 
@@ -1846,7 +1773,7 @@ namespace rgatCore
 
         ulong animLoopCounter = 0;
         ulong unchainedWaitFrames = 0;
-        uint maxWaitFrames = 0;
+        uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
         //which BB we are pointing to in the sequence list
         int animationIndex = 0;
@@ -1891,22 +1818,41 @@ namespace rgatCore
         {
             lock (animationLock)
             {
-                if (!_LingeringActiveNodes.Contains(nodeIdx)) 
-                    _LingeringActiveNodes.Add(nodeIdx);
+                Console.WriteLine($"Making node {nodeIdx} lingering");
+                if (!_LingeringActiveNodes.Contains(nodeIdx))
+                {
+                    _LingeringActiveNodes.Add(nodeIdx); 
+                }
             }
         }
 
-        void RemoveLingeringActiveNode(uint nodeIdx)
+        void RemoveContinuousActiveNode(uint nodeIdx)
         {
+            Console.WriteLine($"Purgin node {nodeIdx} from lingering");
             lock (animationLock)
             {
                 _LingeringActiveNodes.RemoveAll(n => n == nodeIdx);
             }
         }
 
-        public void AnimationStep(int count)
+        void remove_unchained_from_animation()
         {
+            Console.WriteLine("Removing all lingering");
+            lock (animationLock)
+            {
+                _DeactivatedNodes = _LingeringActiveNodes.ToArray();
+                _LingeringActiveNodes.Clear();
+            }
+        }
 
+        void ResetAllActiveAnimatedAlphas()
+        {
+            lock (animationLock)
+            {
+                _PulseActiveNodes.Clear();
+                _LingeringActiveNodes.Clear();
+                _DeactivatedNodes = Array.Empty<uint>();
+            }
         }
 
 

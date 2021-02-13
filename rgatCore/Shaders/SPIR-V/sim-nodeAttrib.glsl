@@ -72,7 +72,7 @@ void main()	{
         
         if (selfAttrib.z > 0)
         {
-            selfAttrib.y = 1;//selfAttrib.z;
+            selfAttrib.y = selfAttrib.z;
             if (selfAttrib.z < 2) //2+ are blocked/high cpu usage nodes 
               {  
                 selfAttrib.z -= params.delta;// * 7.0;
