@@ -72,15 +72,20 @@ void main()	{
         
         if (selfAttrib.z > 0)
         {
-            selfAttrib.y = selfAttrib.z;
-            if (selfAttrib.z < 2) //2+ are blocked/high cpu usage nodes 
-              {  
+            if (selfAttrib.z >= 2) //2+ are blocked/high cpu usage nodes 
+            {
+                selfAttrib.y = selfAttrib.z - 2.0; //remaining is expected to be pulse alpha
+            }
+            else
+            {  
+                selfAttrib.y = selfAttrib.z;
                 selfAttrib.z -= params.delta;// * 7.0;
                 if (selfAttrib.x > 200.0)
                     selfAttrib.x -= (selfAttrib.z * 7.0); //make animated nodes larger
                 if (selfAttrib.z < 0.05) 
                     selfAttrib.z = 0;
-              }
+            }
+              
             
 
         }

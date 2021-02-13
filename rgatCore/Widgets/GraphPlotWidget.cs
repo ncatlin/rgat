@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Bson;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -610,23 +611,28 @@ namespace rgatCore
 
             if (pr.Length > 0) Console.WriteLine($"Pulsed Nodes: {pr}");
             pr = "";
+
+            float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
             foreach (uint idx in lingerNodes)
             {
                 if (idx >= ActiveGraph.NodeCount()) break;
                 if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
                 pr += $"{idx},";
-                valArray[0] = 2.0f;
+                valArray[0] = 2.0f + currentPulseAlpha;
                 fixed (float* dataPtr = valArray)
                 {
                     cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
                 }
             }
+
             if (pr.Length > 0 && !lingerNodes.SequenceEqual(_delme_oldlingerNodes))
             {
                 _delme_oldlingerNodes.Clear();
                 _delme_oldlingerNodes = lingerNodes;
                 Console.WriteLine($"Linger Nodes: {pr}"); 
             }
+
+
             pr = "";
             foreach (uint idx in deactivatedNodes)
             {
