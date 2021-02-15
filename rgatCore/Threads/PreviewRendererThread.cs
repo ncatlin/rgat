@@ -16,6 +16,7 @@ namespace rgatCore.Threads
 			RenderedTrace = _renderedTrace;
 			rgatState = _clientState;
 		}
+
         public void ThreadProc()
         {
 			return;

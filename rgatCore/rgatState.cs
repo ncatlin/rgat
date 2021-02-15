@@ -299,14 +299,6 @@ namespace rgatCore
         {
             switch (newGraphLayout)
             {
-                case graphLayouts.eCylinderLayout:
-                    {
-                        MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
-                        MainGraph.InitialiseDefaultDimensions();
-                        PreviewGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
-                        PreviewGraph.InitialisePreviewDimensions();
-                        return true;
-                    }
                 case graphLayouts.eForceDirected3D:
                     {
                         MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);

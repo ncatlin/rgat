@@ -17,6 +17,7 @@ using System.Timers;
 using Veldrid;
 using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
+using rgatCore.Shaders.SPIR_V;
 
 namespace rgatCore
 {
@@ -929,8 +930,10 @@ namespace rgatCore
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(vsnodeglsl), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(fsnodeglsl), "main");
+            byte[] nodeVertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.vsnodeglsl);
+            byte[] nodeFragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.fsnodeglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, nodeVertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, nodeFragShaderBytes, "main");
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
@@ -948,8 +951,10 @@ namespace rgatCore
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(vspickingglsl), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(fspickingglsl), "main");
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.vspickingglsl);
+            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.fspickingglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
@@ -966,7 +971,9 @@ namespace rgatCore
             public uint nodeIdx;
             public Vector3 screenCoord;
             public Vector2 fontCoord;
-            public const uint SizeInBytes = 24;
+            public float yOffset;
+            public WritableRgbaFloat fontColour;
+            public const uint SizeInBytes = 44;
         }
 
         ShaderSetDescription CreateFontShaders()
@@ -974,10 +981,15 @@ namespace rgatCore
             VertexElementDescription nodeIdx = new VertexElementDescription("nodeIdx", VertexElementSemantic.TextureCoordinate, VertexElementFormat.UInt1);
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
             VertexElementDescription Charpos = new VertexElementDescription("CharCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(nodeIdx, VEDpos, Charpos);
+            VertexElementDescription yoff = new VertexElementDescription("YOffset", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float1);
+            VertexElementDescription fcol = new VertexElementDescription("FontColour", VertexElementSemantic.Color, VertexElementFormat.Float4);
 
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(vsfontglsl), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(fsfontglsl), "main");
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(nodeIdx, VEDpos, Charpos, yoff, fcol);
+
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.vsfontglsl);
+            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.fsfontglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
@@ -995,8 +1007,10 @@ namespace rgatCore
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(vsedgeglsl), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(fsedgeglsl), "main");
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.vsedgeglsl);
+            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.fsedgeglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
@@ -1007,6 +1021,7 @@ namespace rgatCore
 
             return shaderSetDesc;
         }
+
 
         public struct TestVertexPositionColor
         {
@@ -1045,8 +1060,6 @@ namespace rgatCore
             float[] newPositions = ActiveGraph.GetPositionFloats();
             float[] newVelocities = ActiveGraph.GetVelocityFloats();
             float[] newAttribs = ActiveGraph.GetNodeAttribFloats();
-
-
 
             uint newNodeCount = ((uint)ActiveGraph.NodeCount()) - currentGraphNodeCount;
             uint offset = currentGraphNodeCount * 4 * sizeof(float);
@@ -1128,27 +1141,28 @@ namespace rgatCore
 
 
 
-        void RenderString(string inputString, uint nodeIdx, float fontScale, ref List<fontStruc> stringVerts)
+        void RenderString(string inputString, uint nodeIdx, float fontScale,  ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
         {
-            float yPos = 50;
-            float yOff = 10;
+                      
             float xPos = 0;
-
+            float yPos = 50;
+            float glyphYClip = 10;
+            WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
             for (var i = 0; i < inputString.Length; i++)
             {
                 ImFontGlyphPtr glyph = _controller._unicodeFont.FindGlyph(inputString[i]);
                 float charWidth = glyph.AdvanceX * fontScale;
                 float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
                 float xEnd = xPos + charWidth;
-                float yBase = yPos + (yOff - glyph.Y1) * fontScale;
+                float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
                 float yTop = yBase + charHeight;
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0) }); ;
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1) });
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1) });
 
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0) });
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1) });
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0) });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour= fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour });
                 xPos += charWidth;
             }
         }
@@ -1179,6 +1193,122 @@ namespace rgatCore
         }
 
 
+        class RISINGEXTTXT
+        {
+            public int nodeIdx;
+            public float currentY;
+            public string text;
+            public int remainingFrames;
+        }
+
+        List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
+
+
+        List<fontStruc> renderGraphText(List<Tuple<string,Color>> captions)
+        {
+            const float fontScale = 13.0f;
+            List<fontStruc> stringVerts = new List<fontStruc>();
+
+            for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
+            {
+                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, ref stringVerts, captions[nodeIdx].Item2);
+            }
+
+
+            _activeRisings.RemoveAll(x => x.remainingFrames == 0);
+
+            ActiveGraph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
+                out List<Tuple<uint, string>> currentLingeringExternLabels);
+
+            //remove any lingering (ie - no expiry time) rising labvels which are no longer current
+            List<int> latestLingeringApiCaptionNodes = currentLingeringExternLabels.Select(x => (int)x.Item1).ToList();
+            if (_activeRisings.Count > 0)
+            {
+                var expiredCaptions = _activeRisings
+                    .Where(x => (x.remainingFrames == -1) && !latestLingeringApiCaptionNodes.Contains(x.nodeIdx))
+                    .Select(x => x.nodeIdx);
+
+                if (expiredCaptions.Any())
+                {
+                    _activeRisings.RemoveAll(x => x.remainingFrames == -1 && expiredCaptions.Contains(x.nodeIdx));
+                }
+            }
+
+            //find any lingering labels in the new list which are not in the current list, render them
+            if (currentLingeringExternLabels.Count > 0)
+            {
+                var currentLingeringCaptionNodes = _activeRisings
+                    .Where(x => x.remainingFrames == -1)
+                    .Select(x => x.nodeIdx);
+
+                var newLingeringCaptions = currentLingeringExternLabels
+                    .Where(x => !currentLingeringCaptionNodes.Contains((int)x.Item1));
+
+                foreach (var nodeString in newLingeringCaptions)
+                {
+                    RISINGEXTTXT newriser = new RISINGEXTTXT()
+                    {
+                        currentY = 25.0f,
+                        nodeIdx = (int)nodeString.Item1,
+                        text = nodeString.Item2,
+                        remainingFrames = -1
+                    };
+                    _activeRisings.Add(newriser);
+                }
+            }
+
+            //add any new rising extern labels
+            if (newRisingExterns.Count > 0)
+            {
+                foreach (var f in newRisingExterns)
+                {
+                    RISINGEXTTXT newriser = new RISINGEXTTXT()
+                    {
+                        currentY = 25.0f,
+                        nodeIdx = (int)f.Item1,
+                        text = f.Item2,
+                        remainingFrames = GlobalConfig.ExternAnimDisplayFrames
+                    };
+                    _activeRisings.Add(newriser);
+                }
+            }
+
+
+            //maintain each label by counting them down, raising them and rendering them
+            for (int idx = 0; idx < _activeRisings.Count; idx++)
+            {
+                var ar = _activeRisings[idx];
+                if (ar.remainingFrames != -1)
+                {
+                    ar.currentY += GlobalConfig.ExternAnimRisePerFrame;
+                    ar.remainingFrames -= 1;
+                }
+                Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
+                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
+            }
+
+            ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
+
+            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
+            {
+                _FontVertBuffer.Dispose();
+                BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
+                _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
+
+                _FontIndexBuffer.Dispose();
+                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
+                _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
+            }
+            _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
+            _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+
+            return stringVerts;
+        }
+
+
+
+
+
         public void renderTestGraph(ImGuiController _ImGuiController)
         {
 
@@ -1188,7 +1318,7 @@ namespace rgatCore
             updateShaderParams(textureSize);
 
             TestVertexPositionColor[] NodeVerts = ActiveGraph.GetNodeVerts(out List<uint> nodeIndices, 
-                out TestVertexPositionColor[] nodePickingColors, out List<string> captions);
+                out TestVertexPositionColor[] nodePickingColors, out List<Tuple<string,Color>> captions);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * TestVertexPositionColor.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
@@ -1231,28 +1361,7 @@ namespace rgatCore
             System.Diagnostics.Debug.Assert(_controller._unicodeFont.GetCharAdvance('4') == _controller._unicodeFont.FindGlyph('4').AdvanceX);
 
 
-            const float fontScale = 13.0f;
-            List<fontStruc> stringVerts = new List<fontStruc>();
-
-            for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
-            {
-                RenderString(captions[nodeIdx], (uint)nodeIdx, fontScale, ref stringVerts);
-            }
-
-            ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
-
-            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
-            {
-                _FontVertBuffer.Dispose();
-                BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
-                _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
-                _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
-
-                _FontIndexBuffer.Dispose();
-                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
-                _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
-                _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
-            }
+            List<fontStruc> stringVerts = renderGraphText(captions);
 
             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
@@ -1330,241 +1439,6 @@ namespace rgatCore
             ImGui.GetWindowDrawList().AddText(_ImGuiController._unicodeFont, 16, mp, 0xffffffff, $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
 
         }
-
-
-        private const string vsfontglsl = @"
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
-
-layout(location = 0) in uint nodeIdx;
-layout(location = 1) in vec3 vertex;
-layout(location = 2) in vec2 fontCrd;
-layout(location = 0) out vec2 texCoords;
-
-
-layout(set = 0, binding=0) uniform ParamsBuf
-{
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
-    uint TexWidth;
-    int pickingNodeID;
-};
-layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
-layout(set = 0, binding=2) buffer bufpositionTexture{
-    vec4 positionTexture[];
-};
-
-void main()
-{
-    //uint index = uint(vertex.y * TexWidth + vertex.x);
-    vec3 nodePosition = positionTexture[nodeIdx].xyz;
-
-    gl_Position = modelViewMatrix * (vec4(nodePosition.xyz, 1.0)) +  projectionMatrix * vec4(vertex.xy,0,0);
-
-
-    //gl_Position =  vec4(vertex.xy, 0.0, 1.0);
-    texCoords = fontCrd;
-}  
-";
-
-        private const string fsfontglsl = @"
-#version 450
-layout(location = 0) in vec2 TexCoords;
-layout(location = 0) out vec4 color;
-
-layout(set = 0, binding=1) uniform sampler pointSampler; //point sampler
-layout(set = 1, binding=0) uniform texture2D fontTexture;   //font graphic
-
-void main()
-{   
-    vec4 sampled =  texture(sampler2D(fontTexture, pointSampler), TexCoords);
-    color = vec4(1.0, 0.3, 1.0, 1.0) * sampled;
-}  
-";
-
-
-
-        private const string vsnodeglsl = @"
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 0) out vec4 vColor;
-layout(location = 1) out vec2 vPosition;
-
-layout(set = 0, binding=0) uniform ParamsBuf
-{
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
-    uint TexWidth;
-    int pickingNodeID;
-    bool isAnimated;
-};
-layout(set = 0, binding=2) buffer bufpositionTexture{
-    vec4 positionTexture[];
-};
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{
-    vec4 nodeAttribTexture[];
-};
-
-
-void main() {
-    uint index = uint(Position.y * TexWidth + Position.x);
-
-    if (index == pickingNodeID){
-        vColor = vec4(1.0,0.0,1.0,1.0);
-    } else {
-        vColor = vec4(Color.xyz, nodeAttribTexture[index].y) ;
-    }
-
-    vec3 nodePosition = positionTexture[index].xyz;
-    vPosition = Position;
-
-    float nodeSize = 150.0;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
-    float mush = nodeSize / length(gl_Position.xyz);
-    gl_PointSize = nodeAttribTexture[index].x * mush;
-}
-
-";
-
-        private const string fsnodeglsl = @"
-#version 430
-
-layout(location = 0) in vec4 fsin_Color;
-layout(location = 1) in vec2 fsin_Position;
-layout(location = 0) out vec4 fsout_Color;
-
-layout(set = 0, binding=0) uniform ParamsBuf
-{
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
-    uint TexWidth;
-    int pickingNodeID;
-    bool isAnimated;
-};
-layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
-layout(set = 1, binding=1) uniform texture2D nodeTex;   //sphere graphic
-
-
-void main() 
-{
-
-        //draw the sphere texture over the node point
-        vec4 node = texture(sampler2D(nodeTex, nodeTexView), gl_PointCoord);
-        fsout_Color = vec4( fsin_Color.xyzw ) * node;
-}
-";
-
-
-        private const string vspickingglsl = @"
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 0) out vec4 vColor;
-layout(location = 1) out vec2 vPosition;
-
-layout(set = 0, binding=0) uniform ParamsBuf
-{
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
-    uint TexWidth;
-    int pickingNodeID;
-    bool isAnimated;
-};
-layout(set = 0, binding=2) buffer bufpositionTexture{
-    vec4 positionTexture[];
-};
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{
-    vec4 nodeAttribTexture[];
-};
-
-
-void main() {
-    vColor = Color;
-    vPosition = Position;
-
-    uint index = uint(Position.y * TexWidth + Position.x);
-    vec3 nodePosition = positionTexture[index].xyz;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
-    gl_PointSize = 10;
-}";
-
-
-        private const string fspickingglsl = @"
-    #version 430
-
-    layout(location = 0) in vec4 fsin_Color;
-    layout(location = 1) in vec2 fsin_Position;
-    layout(location = 0) out vec4 fsout_Color;
-
-    void main() 
-    {
-        fsout_Color = fsin_Color;
-    }";
-
-
-
-        private const string vsedgeglsl = @"
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 0) out vec4 vColor;
-
-layout(set = 0, binding=0) uniform ViewBuffer
-{
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
-    uint TexWidth;
-    int pickingNodeID;
-    bool isAnimated;
-};
-layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
-
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
-
-
-
-void main() {
-
-    uint index = uint(Position.y * TexWidth + Position.x);
-    //if (nodeAttribTexture[index].z > 0 )
-
-    /*
-        each edge has two verts, one for each node
-    */    
-    vColor = vec4(Color.xyz, nodeAttribTexture[index].y);
-
-    vec3 nodePosition = positionTexture[index].xyz;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
-    
-}
-
-";
-
-        private const string fsedgeglsl = @"
-#version 430
-
-layout(location = 0) in vec4 fsin_Color;
-layout(location = 0) out vec4 fsout_Color;
-
-void main() {
-    fsout_Color = fsin_Color;
-}
-";
 
 
 

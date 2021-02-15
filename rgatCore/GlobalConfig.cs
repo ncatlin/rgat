@@ -50,8 +50,8 @@ namespace rgatCore.Threads
         public static float AnimatedFadeMinimumAlpha = 0.3f;
         public static float WireframeAnimatedAlpha = 0.7f;
 
-        public static int ExternAnimDisplayFrames = 40;
-        public static float ExternAnimFloatSpeed = 0.3f;
+        public static int ExternAnimDisplayFrames = 60;
+        public static float ExternAnimRisePerFrame = 1.4f;
 
         public static class mainColours
         {

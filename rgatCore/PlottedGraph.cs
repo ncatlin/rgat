@@ -606,7 +606,7 @@ namespace rgatCore
         /// This is used for the attraction velocity computation
         /// </summary>
         List<List<int>> _graphStructureBalanced = new List<List<int>>();
-        public float temperature = 0;
+        public float temperature = 100f;
 
         public unsafe int[] GetEdgeDataInts()
         {
@@ -917,6 +917,7 @@ namespace rgatCore
         public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureLinear)); }
         public uint EdgeVertsTextureWidth() { return dataTextureSize(internalProtoGraph.edgeList.Count); }
 
+
         public WritableRgbaFloat GetNodeColor(int nodeIndex)
         {
             NodeData n = internalProtoGraph.NodeList[nodeIndex];
@@ -925,6 +926,7 @@ namespace rgatCore
             { A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
             return nodeColor;
         }
+
 
         public WritableRgbaFloat GetEdgeColor(Tuple<uint,uint> edge)
         {
@@ -936,34 +938,39 @@ namespace rgatCore
             return nodeColor;
         }
 
+
         //important todo - cacheing!  once the result is good
         public GraphPlotWidget.TestVertexPositionColor[] GetNodeVerts(
             out List<uint> nodeIndices,
             out GraphPlotWidget.TestVertexPositionColor[] nodePickingColors,
-            out List<string> captions)
-
+            out List<Tuple<string, Color>> captions)
         {
 
             uint textureSize = LinearIndexTextureSize();
             GraphPlotWidget.TestVertexPositionColor[] TestNodeVerts = new GraphPlotWidget.TestVertexPositionColor[textureSize * textureSize];
-            nodePickingColors = new GraphPlotWidget.TestVertexPositionColor[textureSize * textureSize];
-            captions = new List<string>();
 
+            nodePickingColors = new GraphPlotWidget.TestVertexPositionColor[textureSize * textureSize];
+            captions = new List<Tuple<string, Color>>();
             nodeIndices = new List<uint>();
+            int nodeCount = NodeCount();
             for (uint y = 0; y < textureSize; y++)
             {
                 for (uint x = 0; x < textureSize; x++)
                 {
                     var index = y * textureSize + x;
-                    if (index >= NodeCount()) return TestNodeVerts;
-                    TestNodeVerts[index] = new GraphPlotWidget.TestVertexPositionColor { 
-                        TexPosition = new Vector2(x, y), Color = GetNodeColor((int)index) };
+                    if (index >= nodeCount) return TestNodeVerts;
+
                     nodeIndices.Add(index);
+
+                    TestNodeVerts[index] = new GraphPlotWidget.TestVertexPositionColor { 
+                        TexPosition = new Vector2(x, y), 
+                        Color = GetNodeColor((int)index) };
+
                     nodePickingColors[index] = new GraphPlotWidget.TestVertexPositionColor { 
-                        TexPosition = new Vector2(x, y), Color = new WritableRgbaFloat(index, 0, 0, 1) };
+                        TexPosition = new Vector2(x, y), 
+                        Color = new WritableRgbaFloat(index, 0, 0, 1) };
 
                     NodeData n = internalProtoGraph.NodeList[(int)index];
-
                     if (n.label == null || n.newArgsRecorded)
                     {
                         if (n.IsExternal)
@@ -974,21 +981,29 @@ namespace rgatCore
                         else
                         {
                             n.label = $"{index}: {n.ins.ins_text}";
+                            if (n.ins.hasSymbol)
+                            {
+                                internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
+                                n.label += $" [{sym}]";
+                            }
                         }
                     }
-                    captions.Add(n.label);
+
+                    Color color = n.IsExternal ? Color.SpringGreen : Color.White;
+                    captions.Add(new Tuple<string, Color>(n.label, color));
                 }
             }
             return TestNodeVerts;
         }
 
-        string GenerateSymbolLabel(NodeData n)
+
+        string GenerateSymbolLabel(NodeData n, int specificCallIndex = -1)
         {
             string symbolText = "";
-            bool foundsym = false;
+            bool found = false;
             if(internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
             {
-                foundsym = true;
+                found = true;
             }
             else
             {
@@ -998,13 +1013,14 @@ namespace rgatCore
                 {
                     if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address - symOffset, out symbolText))
                     {
-                        foundsym = true;
+                        symbolText += $"+0x{symOffset}";
+                        found = true;
                         break;
                     }
                 }
             }
 
-            if (!foundsym) return symbolText;
+            if (!found) return $"[No Symbol]0x{n.address:x}";
 
 
             if (n.callRecordsIndexs.Count == 0)
@@ -1012,7 +1028,17 @@ namespace rgatCore
                 return $"{symbolText}()"; 
             }
 
-            EXTERNCALLDATA lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
+            EXTERNCALLDATA lastCall;
+            if (specificCallIndex == -1)
+            { 
+                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]]; 
+            }
+            else
+            {
+                Debug.Assert(n.callRecordsIndexs.Count > specificCallIndex);
+                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[specificCallIndex]];
+            }
+
             string argstring = "";
             for (var i = 0; i < lastCall.argList.Count; i++)
             {
@@ -1020,6 +1046,7 @@ namespace rgatCore
                 argstring += $"{arg.Item1}:{arg.Item2}";
                 if (i < (lastCall.argList.Count - 1)) argstring += ", ";
             }
+
             if (n.callRecordsIndexs.Count == 1)
             {
                 return $"{symbolText}({argstring})";
@@ -1028,10 +1055,6 @@ namespace rgatCore
             {
                 return $"{symbolText}({argstring}) +{n.callRecordsIndexs.Count -1} saved";
             }
-            //todo arguments
-            //todo nearby symbols + offset into them
-
-            return symbolText;
         }
 
 
@@ -1082,6 +1105,7 @@ namespace rgatCore
             return indexTextureSize((int)Math.Ceiling((double)num / 4.0));
         }
 
+
         public static uint indexTextureSize(int nodesEdgesLength)
         {
             var power = 1;
@@ -1091,6 +1115,7 @@ namespace rgatCore
             }
             return power / 2 > 1 ? (uint)power : 2;
         }
+
 
         //todo: linq
         static int countDataArrayItems(List<List<int>> dataArray)
@@ -1104,47 +1129,6 @@ namespace rgatCore
         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        //private:
-        /*
-		virtual void positionVert(void* positionStruct, MEM_ADDRESS address) { };
-		virtual void display_graph(PROJECTDATA* pd) { };
-		virtual FCOORD uintToXYZ(uint index, GRAPH_SCALE* dimensions, float diamModifier) { cerr << "Warning: Virtual uintToXYZ called\n" << endl; FCOORD x; return x; };
-		*/
-        public void render_node(NodeData n)
-        {
-            //todo
-        }
-        /*
-                virtual void render_block(block_data &b, GRAPH_SCALE* dimensions)
-                {
-                    cerr << "Warning: Virtual render_block called\n" << endl;
-                };
-
-                void set_max_wait_frames(uint frames) { maxWaitFrames = frames; }
-        */
 
         protected void Add_to_callstack(ulong address, uint idx)
         {
@@ -1265,21 +1249,21 @@ namespace rgatCore
 
         void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
         {
-            ulong instructionCount = 0;
+            ulong listOffset = 0;
 
             foreach (uint nodeIdx in nodeIDList)
             {
-                /*
-                if (internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
+                
+                if (listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = Anim_Constants.KEEP_BRIGHT;
+                        AddRisingExtern(nodeIdx, entry.callCount-1, Anim_Constants.KEEP_BRIGHT);
                     else
-                        newExternTimes[new Tuple<uint, ulong>(nodeIdx, entry.callCount)] = GlobalConfig.ExternAnimDisplayFrames;
+                        AddRisingExtern(nodeIdx, entry.callCount-1, GlobalConfig.ExternAnimDisplayFrames);
                 }
-                */
+                
 
-                if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && instructionCount == 0)
+                if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
                     Tuple<uint, uint> edge = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
                     if (internalProtoGraph.EdgeExists(edge))
@@ -1295,8 +1279,8 @@ namespace rgatCore
                     AddPulseActiveNode(nodeIdx);
                 NodesDisplayData.LastAnimatedNode.lastVertID = nodeIdx;
 
-                ++instructionCount;
-                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (instructionCount == (entry.count + 1))) break;
+                ++listOffset;
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1))) break;
 
             }
         }
@@ -1541,20 +1525,10 @@ namespace rgatCore
                 }
             }
 
-            string s = "";
-            foreach (int x in nodeIDList) s += $"{x},";
-            
-            if (entry.entryType == eTraceUpdateType.eAnimUnchained)
-                Console.WriteLine($"Replay update: eAnimUnchained block {entry.blockID}: " + s);
-            if (entry.entryType == eTraceUpdateType.eAnimExecTag)
-                Console.WriteLine($"Replay update: eAnimExecTag block {entry.blockID}: " + s);
-            if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
-                Console.WriteLine($"Replay update: eAnimUnchainedDone block {entry.blockID}: " + s);
 
             //add all the nodes+edges in the block to the brightening list
             Console.WriteLine($"Brightening nodelist with {nodeIDList.Count} for time {brightTime}");
             brighten_node_list(entry, brightTime, nodeIDList);
-
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
@@ -1633,10 +1607,7 @@ namespace rgatCore
          Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
          These pulse
          */
-        void maintain_active()
-        {
-            float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
-        }
+  
 
 
         ulong calculate_wait_frames(ulong executions)
@@ -1658,41 +1629,6 @@ namespace rgatCore
 
 
 
-
-        public bool SetEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
-        {
-            EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
-            EdgesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
-
-            if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
-
-            //Console.WriteLine($"Setting edge {edgeTuple.Item1}->{edgeTuple.Item2} alpha to {alpha}");
-            EdgesDisplayData.SetEdgeAnimAlpha(arraypos, vertcount, alpha);
-            return true;
-        }
-
-        public bool ReduceEdgeAnimAlpha(Tuple<uint, uint> edgeTuple, float alpha)
-        {
-            EdgeData edge = internalProtoGraph.edgeDict[edgeTuple];
-            if (edge.EdgeIndex >= EdgesDisplayData.Edges_VertSizes_ArrayPositions.Count) return false;
-
-            EdgesDisplayData.GetEdgeDrawData((int)edge.EdgeIndex, out int vertcount, out int arraypos);
-            if (EdgesDisplayData.CountVerts() <= (arraypos + vertcount)) return false;
-
-            //Console.WriteLine($"Reducing edge {edgeTuple.Item1}{edgeTuple.Item2} alpha by {alpha}");
-            EdgesDisplayData.ReduceEdgeAnimAlpha(arraypos, vertcount, alpha);
-            return true;
-        }
-
-        public void UpdateGraphicBuffers(Vector2 size, GraphicsDevice _gd)
-        {
-            if (_outputFramebuffer == null)
-            {
-                InitGraphTexture(size, _gd);
-            }
-
-        }
 
         public void UpdatePreviewBuffers(GraphicsDevice _gd)
         {
@@ -1840,6 +1776,9 @@ namespace rgatCore
 
         List<uint> _PulseActiveNodes = new List<uint>();
         List<uint> _LingeringActiveNodes = new List<uint>();
+        List<Tuple<uint, string>> _RisingExterns = new List<Tuple<uint, string>>();
+        List<Tuple<uint, string>> _RisingExternsLingering = new List<Tuple<uint, string>>();
+
         uint[] _DeactivatedNodes = Array.Empty<uint>();
         private readonly object animationLock = new object();
         
@@ -1861,6 +1800,36 @@ namespace rgatCore
         }
 
 
+        public void GetActiveExternRisings(out List<Tuple<uint, string>> risingExterns, out List<Tuple<uint, string>> risingLingering)
+        {
+            lock (animationLock)
+            {
+                risingExterns = _RisingExterns.ToList();
+                _RisingExterns.Clear();
+                risingLingering = _RisingExternsLingering.ToList();
+            }
+        }
+
+
+
+
+        public void AddRisingExtern(uint nodeIdx, ulong callIndex, int lingerFrames)
+        {
+            NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
+            string label = GenerateSymbolLabel(n, (int)callIndex);
+            lock (animationLock)
+            {
+                if (lingerFrames == Anim_Constants.KEEP_BRIGHT)
+                {
+                    _RisingExternsLingering.Add(new Tuple<uint, string>(nodeIdx, label));
+                }
+                else
+                {
+                    Console.WriteLine($"Adding new rising: node {nodeIdx}:'{label}'");
+                    _RisingExterns.Add(new Tuple<uint, string>(nodeIdx, label));
+                }
+            }
+        }
 
 
         //this node was executed once, make it pulse on the animation

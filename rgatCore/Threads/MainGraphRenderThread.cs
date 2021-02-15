@@ -117,7 +117,7 @@ namespace rgatCore.Threads
 			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid
 			Debug.Assert(setactive);
 			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.eStandardControlFlow] = renderGraph;
-			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.ePreview] = previewgraph; //do we want to rerender this?
+			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.ePreview] = previewgraph; //do we want to rerender this? good question
 
 			//activeTrace.graphListLock.unlock();
 			//if they dont exist, create threads to rebuild alternate renderings

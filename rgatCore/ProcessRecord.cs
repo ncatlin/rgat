@@ -615,6 +615,7 @@ namespace rgatCore
             addrData.hasSym = (modsymsPlain.ContainsKey(addrData.moduleID) &&
                                 modsymsPlain[addrData.moduleID].ContainsKey(addrData.address));
 
+
             JArray mutationData = (JArray)entry[3];
 
             if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData> opcodeVariants))

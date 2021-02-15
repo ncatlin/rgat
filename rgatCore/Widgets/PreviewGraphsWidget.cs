@@ -91,7 +91,9 @@ namespace rgatCore
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._outputTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     subGraphPosition,
-                    new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), new Vector2(0, 1), new Vector2(1, 0));
+                    new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), 
+                    new Vector2(0, 1), 
+                    new Vector2(1, 0));
                 if(ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
                 {
                     var MainGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
@@ -168,7 +170,6 @@ namespace rgatCore
 
 
 
-
         private static ShaderSetDescription CreateGraphShaders(ResourceFactory factory)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
@@ -176,8 +177,10 @@ namespace rgatCore
             VertexElementDescription AnimAlpha = new VertexElementDescription("ActiveAnimAlpha", VertexElementSemantic.Color, VertexElementFormat.Float1);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol, AnimAlpha);
 
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main");
+            byte[] nodeVertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.vsnodeglsl);
+            byte[] nodeFragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.ShaderStrings.fsnodeglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, nodeVertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, nodeFragShaderBytes, "main");
 
             _shaders = factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
@@ -187,37 +190,9 @@ namespace rgatCore
             return shaderSetDesc;
         }
 
-        private const string VertexCode = @"
-#version 450
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec4 Color;
-
-layout(set = 0, binding = 0) uniform ViewBuffer
-{
-    mat4 View;
-};
 
 
-layout(location = 0) out vec4 fsin_Color;
 
-void main()
-{
-    gl_PointSize = 3.0f;
-    gl_Position = View * vec4(Position,1);
-    fsin_Color = Color;
-}";
-
-        private const string FragmentCode = @"
-#version 450
-
-layout(location = 0) in vec4 fsin_Color;
-layout(location = 0) out vec4 fsout_Color;
-
-void main()
-{
-    fsout_Color = fsin_Color;
-}";
 
     }
 }

@@ -299,28 +299,9 @@ namespace rgatCore.Threads
             bool callDone = moreArgsFlag == 'E';
             string argstring = entries[5];
 
-
-
-
             Console.WriteLine($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
 
             protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argIdx, argstring, callDone);
-            /*
-            if (!protograph.hasPendingCalledFunc())
-            {
-                protograph.notify_pending_func(funcpc);
-                while (!protograph.setPendingFuncCaller(returnpc))
-                {
-                    //wait for disassembly to catch up
-                    Thread.Sleep(5);
-                    Console.WriteLine("Waiting for disassembly");
-                }
-            }
-            */
-
-            //contents = string("<NULLARG>");
-
-
 
         }
 
@@ -335,10 +316,6 @@ namespace rgatCore.Threads
             ulong sourceAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
             uint src_blockID = (uint)ulong.Parse(entries[2], NumberStyles.HexNumber);
             uint src_numins = (uint)ulong.Parse(entries[3], NumberStyles.HexNumber);
-
-
-
-
             ulong targetAddr = ulong.Parse(entries[7], NumberStyles.HexNumber);
 
 
