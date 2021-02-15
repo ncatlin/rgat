@@ -60,6 +60,7 @@ namespace rgatCore.Threads
         {
             if (PendingEdges.Count > 0)     SatisfyPendingEdges();
             if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
+            if (protograph.hasPendingArguments()) protograph.ProcessIncomingCallArguments();
             IrregularActionTimer.Start();
         }
 
@@ -132,7 +133,7 @@ namespace rgatCore.Threads
                         uint targNode = firstIns.threadvertIdx[protograph.ThreadID];
                         if (!protograph.edgeDict.ContainsKey(new Tuple<uint, uint>(srcNode, targNode)))
                         {
-                            Console.WriteLine($"Assigned new edge from node {srcNode} to {targNode}");
+                            Console.WriteLine($"AssignBlockRepeats() Assigned new edge from node {srcNode} to {targNode}");
                             protograph.AddEdge(srcNode, targNode);
                         }
 
@@ -291,24 +292,35 @@ namespace rgatCore.Threads
 
             int argIdx = int.Parse(entries[1], NumberStyles.Integer);
             ulong funcpc = ulong.Parse(entries[2], NumberStyles.HexNumber);
-            ulong returnpc = ulong.Parse(entries[3], NumberStyles.HexNumber);
+            ulong sourceBlockID = ulong.Parse(entries[3], NumberStyles.HexNumber);
+
             char moreArgsFlag = entries[4][0];
 
-            bool callDone = moreArgsFlag == 'E' ? true : false;
+            bool callDone = moreArgsFlag == 'E';
             string argstring = entries[5];
 
 
+
+
+            Console.WriteLine($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
+
+            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argIdx, argstring, callDone);
+            /*
             if (!protograph.hasPendingCalledFunc())
             {
-                bool hasPendingFuncCaller = protograph.notify_pending_func(funcpc, returnpc);
-                if (!hasPendingFuncCaller)
-                    return;
+                protograph.notify_pending_func(funcpc);
+                while (!protograph.setPendingFuncCaller(returnpc))
+                {
+                    //wait for disassembly to catch up
+                    Thread.Sleep(5);
+                    Console.WriteLine("Waiting for disassembly");
+                }
             }
+            */
 
             //contents = string("<NULLARG>");
 
 
-            protograph.add_pending_arguments(argIdx, argstring, callDone);
 
         }
 
@@ -342,6 +354,7 @@ namespace rgatCore.Threads
                 return false;
             }
 
+            protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
             protograph.ProtoLastVertID = srcidx;
 
 
@@ -615,7 +628,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                //Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 lock (debug_tag_lock)
                 {
                     switch (msg[0])
@@ -657,6 +670,8 @@ namespace rgatCore.Threads
                 }
             }
 
+            IrregularActionTimer.Stop();
+            PerformIrregularActions();
 
             Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
         }

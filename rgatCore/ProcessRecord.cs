@@ -37,7 +37,7 @@ namespace rgatCore
                     BB = new ROUTINE_STRUCT();
                     BB.globalmodnum = moduleNum;
                     BB.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
-
+                    Console.WriteLine($"Extendict adding 0x{address:x}");
                     externdict.Add(address, BB);
 
                 }
@@ -312,7 +312,7 @@ namespace rgatCore
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
 
-        public bool instruction_before(ulong addr, out ulong result)
+        public bool GetInstructionBefore(ulong addr, out ulong result)
         {
             const int LARGEST_X86_INSTRUCTION = 15;
             {
@@ -322,6 +322,7 @@ namespace rgatCore
                     return true;
                 }
 
+                //the code that is executing has not been disassembled yet
                 if (disassembly.Count == 0) return false;
 
                 //x86 has variable length instructions so we have to 

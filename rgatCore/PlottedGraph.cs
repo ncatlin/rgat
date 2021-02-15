@@ -500,12 +500,6 @@ namespace rgatCore
         protected List<TEXTITEM> texts = new List<TEXTITEM>();
 
 
-        public List<TEXTITEM> GetOnScreenTexts(GraphicsMaths.SCREENINFO scrn)
-        {
-            //todo
-            return null;
-        }
-
         int wireframeMode; //used to query the current mode
 
         public void StepPausedAnimation(int steps)
@@ -968,12 +962,78 @@ namespace rgatCore
                     nodePickingColors[index] = new GraphPlotWidget.TestVertexPositionColor { 
                         TexPosition = new Vector2(x, y), Color = new WritableRgbaFloat(index, 0, 0, 1) };
 
-                    string label = $"{index}: {internalProtoGraph.NodeList[(int)index].ins.ins_text}";
-                    captions.Add(label);
+                    NodeData n = internalProtoGraph.NodeList[(int)index];
+
+                    if (n.label == null || n.newArgsRecorded)
+                    {
+                        if (n.IsExternal)
+                        {
+                            n.newArgsRecorded = false;
+                            n.label = GenerateSymbolLabel(n);
+                        }
+                        else
+                        {
+                            n.label = $"{index}: {n.ins.ins_text}";
+                        }
+                    }
+                    captions.Add(n.label);
                 }
             }
             return TestNodeVerts;
         }
+
+        string GenerateSymbolLabel(NodeData n)
+        {
+            string symbolText = "";
+            bool foundsym = false;
+            if(internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
+            {
+                foundsym = true;
+            }
+            else
+            {
+                //search back from the instruction to try and find symbol of a function it may (or may not) be part of
+                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, n.address);
+                for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
+                {
+                    if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address - symOffset, out symbolText))
+                    {
+                        foundsym = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundsym) return symbolText;
+
+
+            if (n.callRecordsIndexs.Count == 0)
+            {
+                return $"{symbolText}()"; 
+            }
+
+            EXTERNCALLDATA lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
+            string argstring = "";
+            for (var i = 0; i < lastCall.argList.Count; i++)
+            {
+                Tuple<int, string> arg = lastCall.argList[i];
+                argstring += $"{arg.Item1}:{arg.Item2}";
+                if (i < (lastCall.argList.Count - 1)) argstring += ", ";
+            }
+            if (n.callRecordsIndexs.Count == 1)
+            {
+                return $"{symbolText}({argstring})";
+            }
+            else
+            {
+                return $"{symbolText}({argstring}) +{n.callRecordsIndexs.Count -1} saved";
+            }
+            //todo arguments
+            //todo nearby symbols + offset into them
+
+            return symbolText;
+        }
+
 
         public int GetEdgeLineVerts(out List<uint> edgeIndices, out int vertCount, out GraphPlotWidget.TestVertexPositionColor[] EdgeLineVerts)
         {

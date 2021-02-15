@@ -150,13 +150,14 @@ namespace rgatCore
         public eEdgeNodeType VertType()
         {
             if (_nodeType != eEdgeNodeType.eENLAST) return _nodeType;
+            if (IsExternal) return eEdgeNodeType.eNodeExternal;
             switch (ins.itype)
             {
                 case eNodeType.eInsUndefined:
                 {                 
                      
                    if (ins.conditional) _nodeType = eEdgeNodeType.eNodeJump;
-                    else _nodeType = eEdgeNodeType.eNodeNonFlow;
+                   else _nodeType = eEdgeNodeType.eNodeNonFlow;
                         break;
                 }
                 case eNodeType.eInsJump:
@@ -219,6 +220,7 @@ namespace rgatCore
     //an index used to lookup the caller/arguments of each instance of this being called
     public List<ulong> callRecordsIndexs = new List<ulong>();
     public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
+    public bool newArgsRecorded; 
 
     //number of external functions called
     public uint childexterns = 0;

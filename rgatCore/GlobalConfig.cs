@@ -23,6 +23,9 @@ namespace rgatCore.Threads
             public bool extraDetail;
         };
 
+        /* 
+         * Rendering config 
+         */
         public static uint Preview_PerProcessLoopSleepMS = 100;
         public static uint Preview_PerThreadLoopSleepMS = 20;
         public static uint Preview_EdgesPerRender = 60;
@@ -31,9 +34,6 @@ namespace rgatCore.Threads
         public static int animationLingerFrames = 0; //number of frames before fade begins
         public static int renderFrequency = 25;
         public static int LiveAnimationUpdatesPerFrame = 500;
-        public static uint TraceBufferSize = 400000;
-
-        public static int ArgStorageMax = 100;
 
         public static bool showRisingAnimated = true;
 
@@ -77,16 +77,30 @@ namespace rgatCore.Threads
             public static WritableRgbaFloat nodeJump = new WritableRgbaFloat(Color.Red);
             public static WritableRgbaFloat nodeCall = new WritableRgbaFloat(Color.Purple);
             public static WritableRgbaFloat nodeRet = new WritableRgbaFloat(Color.Orange);
-            public static WritableRgbaFloat nodeExtern = new WritableRgbaFloat(Color.Green);
+            public static WritableRgbaFloat nodeExtern = new WritableRgbaFloat(Color.FromArgb(255, 40, 255, 0));
             public static WritableRgbaFloat nodeExcept = new WritableRgbaFloat(Color.Cyan);
         }
 
         public static List<WritableRgbaFloat> defaultGraphColours = new List<WritableRgbaFloat>();
 
+        /*
+         * UI/App related config
+         */
+
         public static string SaveDirectory = @"C:\Users\nia\Source\Repos\rgatCore\rgatCore\bin\Debug\netcoreapp3.1\testsaves";// "[not set]";
         public static string PinPath = @"C:\devel\libs\pin-3.14-98223-gb010a12c6-msvc-windows\pin.exe";
         public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
+
+
+        /*
+         * Trace related config
+         */
+
+        public static uint TraceBufferSize = 400000;
+        //how many bytes back from an instruction to search for a symbol
+        public static ulong SymbolSearchDistance = 4096;
+        public static int ArgStorageMax = 100;
 
         public static void InitDefaultConfig()
         {

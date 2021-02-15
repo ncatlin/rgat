@@ -1114,15 +1114,15 @@ namespace rgatCore
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50; kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50; kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 50; kp = true; }
+            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100; kp = true; }
+            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100; kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f; kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f; kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature(); kp = true; }
             if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X))) { ActiveGraph.AddTestNodes(); }
             //if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C))) { ActiveGraph.AnimationStep(1); }
 
-            if (kp) Console.WriteLine($"xZoom: { ActiveGraph.CameraXOffset}, yZoom: { ActiveGraph.CameraYOffset} zzoom: {ActiveGraph.CameraZoom}");
+            //if (kp) Console.WriteLine($"xZoom: { ActiveGraph.CameraXOffset}, yZoom: { ActiveGraph.CameraYOffset} zzoom: {ActiveGraph.CameraZoom}");
 
         }
 
@@ -1210,7 +1210,6 @@ namespace rgatCore
 
 
 
-            uint telvTextSize = ActiveGraph.EdgeTextureWidth();
             int drawnEdgeCount = ActiveGraph.GetEdgeLineVerts(out List<uint> edgeDrawIndexes, out int edgeVertCount, out TestVertexPositionColor[] EdgeLineVerts);
 
             if (drawnEdgeCount == 0) return;
