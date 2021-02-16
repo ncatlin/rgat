@@ -56,7 +56,7 @@ namespace rgatCore
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
-            PreviewGraphWidget = new PreviewGraphsWidget();
+            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd);
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
         }
 
@@ -418,32 +418,6 @@ namespace rgatCore
             }
             ImGui.EndGroup();
         }
-
-
-
-
-
-
-
-
-
-        public void AddGraphicsCommands(CommandList _cl, GraphicsDevice _gd)
-        {
-            if (_rgatstate.ActiveGraph == null) return;
-            //MainGraphWidget.AddGraphicsCommands(_cl);
-            PreviewGraphWidget.AddGraphicsCommands(_cl, _gd);
-        }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

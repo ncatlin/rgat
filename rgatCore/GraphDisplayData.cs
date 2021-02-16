@@ -61,14 +61,16 @@ namespace rgatCore
         public float A { get; set; }
 
     }
-    struct VertexPositionColor
+
+    
+    struct VertexPositionColorOld
     {
         public Vector3 Position;
         public WritableRgbaFloat Color;
         public float ActiveAnimAlpha;
         public const uint SizeInBytes = 32;
 
-        public VertexPositionColor(Vector3 position, WritableRgbaFloat color, float AnimDarkAlpha)
+        public VertexPositionColorOld(Vector3 position, WritableRgbaFloat color, float AnimDarkAlpha)
         {
             Position = position;
             Color = color;
@@ -80,7 +82,7 @@ namespace rgatCore
             ActiveAnimAlpha = alpha;
         }
 
-        public VertexPositionColor(Vector3 position, Veldrid.RgbaFloat color, float AnimDarkAlpha)
+        public VertexPositionColorOld(Vector3 position, Veldrid.RgbaFloat color, float AnimDarkAlpha)
         {
             Position = position;
             Color = new WritableRgbaFloat()
@@ -99,7 +101,7 @@ namespace rgatCore
 
         private readonly object ListLock = new object();
 
-        public List<VertexPositionColor> VertList = new List<VertexPositionColor>();
+        public List<VertexPositionColorOld> VertList = new List<VertexPositionColorOld>();
         public int CountVerts() => VertList.Count;
 
         private List<object> node_coords = new List<object>();
@@ -133,7 +135,7 @@ namespace rgatCore
             {
                 if (index < VertList.Count)
                 {
-                    VertexPositionColor vpc = VertList[(int)index];
+                    VertexPositionColorOld vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
                     VertList[(int)index] = vpc;
                     //Console.WriteLine($"SetNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
@@ -148,7 +150,7 @@ namespace rgatCore
             lock (ListLock) //todo, should be a read lock
             {
                 if (index >= VertList.Count) return false;
-                VertexPositionColor vpc = VertList[(int)index];
+                VertexPositionColorOld vpc = VertList[(int)index];
                 vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
                 VertList[(int)index] = vpc;
                 //Console.WriteLine($"ReduceNodeAnimAlpha node {index} now {vpc.ActiveAnimAlpha}");
@@ -165,7 +167,7 @@ namespace rgatCore
                 //Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
                 for (int index = arraystart; index < arraystart + vertcount; index++)
                 {
-                    VertexPositionColor vpc = VertList[(int)index];
+                    VertexPositionColorOld vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = alpha;
                     VertList[(int)index] = vpc;
 
@@ -184,7 +186,7 @@ namespace rgatCore
                 //Console.WriteLine($"Setting alpha of edge verts {arraystart}->{arraystart + vertcount} to {alpha}");
                 for (int index = arraystart; index < arraystart + vertcount; index++)
                 {
-                    VertexPositionColor vpc = VertList[(int)index];
+                    VertexPositionColorOld vpc = VertList[(int)index];
                     vpc.ActiveAnimAlpha = Math.Max(vpc.ActiveAnimAlpha - alpha, GlobalConfig.AnimatedFadeMinimumAlpha);
                     VertList[(int)index] = vpc;
                     if (vpc.ActiveAnimAlpha > highestAlpha) highestAlpha = vpc.ActiveAnimAlpha;
@@ -195,7 +197,7 @@ namespace rgatCore
             }
         }
 
-        public int safe_add_vert(VertexPositionColor input)
+        public int safe_add_vert(VertexPositionColorOld input)
         {
             int newsize = 0;
             lock (ListLock) //todo, should be a read lock
@@ -208,7 +210,7 @@ namespace rgatCore
             return newsize;
         }
 
-        public int safe_add_verts(List<VertexPositionColor> input)
+        public int safe_add_verts(List<VertexPositionColorOld> input)
         {
             int oldSize = VertList.Count;
             lock (ListLock) //todo, should be a read lock
@@ -220,8 +222,8 @@ namespace rgatCore
             return oldSize;
         }
 
-
-        public bool safe_get_vert_array(out VertexPositionColor[] result)
+        /*
+        public bool safe_get_vert_array(out VertexPositionColorOld[] result)
         {
             lock (ListLock) //todo, should be a read lock
             {
@@ -232,7 +234,7 @@ namespace rgatCore
         }
 
 
-        public bool safe_get_vert_list(out List<VertexPositionColor> result)
+        public bool safe_get_vert_list(out List<VertexPositionColorOld> result)
         {
             lock (ListLock) //todo, should be a read lock
             {
@@ -243,12 +245,12 @@ namespace rgatCore
         }
 
 
-        public List<VertexPositionColor> acquire_vert_write(int holder = 0)
+        public List<VertexPositionColorOld> acquire_vert_write(int holder = 0)
         {
             //poslock_.lock () ;
             return VertList;
         }
-
+        */
         public void MarkDataChanged()
         {
             DataChanged = true;
@@ -259,7 +261,7 @@ namespace rgatCore
         public void drawShortLinePoints(Vector3 startC, Vector3 endC, WritableRgbaFloat colour, float alpha, out int arraypos)
         {
 
-            VertexPositionColor vert = new VertexPositionColor()
+            VertexPositionColorOld vert = new VertexPositionColorOld()
             {
                 Position = startC,
                 Color = colour,
@@ -279,10 +281,10 @@ namespace rgatCore
             float[] fadeArray = { 0.4f, 0.4f, 0.5f, 0.5f, 0.7f, 0.7f, 0.6f, 0.8f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, 0.7f, 1, 1, 1 };
 
             int curvePoints = GL_Constants.LONGCURVEPTS + 2;
-            List<VertexPositionColor> newVerts = new List<VertexPositionColor>();
+            List<VertexPositionColorOld> newVerts = new List<VertexPositionColorOld>();
 
 
-            VertexPositionColor startVert = new VertexPositionColor()
+            VertexPositionColorOld startVert = new VertexPositionColorOld()
             {
                 Position = startC,
                 Color = colour,
@@ -304,7 +306,7 @@ namespace rgatCore
 
 
                 colour.A = fadeA;
-                VertexPositionColor nextVert = new VertexPositionColor()
+                VertexPositionColorOld nextVert = new VertexPositionColorOld()
                 {
                     Position = GraphicsMaths.bezierPT(startC, bezierC, endC, dt, segments),
                     Color = colour,
@@ -320,7 +322,7 @@ namespace rgatCore
             }
 
             colour.A = (float)255;
-            VertexPositionColor lastVert = new VertexPositionColor()
+            VertexPositionColorOld lastVert = new VertexPositionColorOld()
             {
                 Position = endC,
                 Color = colour,
@@ -404,7 +406,7 @@ namespace rgatCore
             {
                 Debug.Assert(nodeIdx < node_coords.Count);
                 node_coords[(int)nodeIdx] = plotCoord;
-                VertexPositionColor oldvpc = VertList[(int)nodeIdx];
+                VertexPositionColorOld oldvpc = VertList[(int)nodeIdx];
                 oldvpc.Position = XYZCoord;
                 VertList[(int)nodeIdx] = oldvpc;
                 DataChanged = true;

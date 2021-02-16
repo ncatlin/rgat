@@ -93,16 +93,14 @@ namespace ImGuiNET
         {
             InputSnapshot snapshot = _window.PumpEvents();
             if (!_window.Exists) { return; }
-            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
 
+            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
             SubmitUI();
 
             _cl.Begin();
-
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
             _controller.Render(_gd, _cl);
-            _rgatui.AddGraphicsCommands(_cl, _gd);
             _cl.End();
 
             _gd.SubmitCommands(_cl);

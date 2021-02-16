@@ -14,6 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Plots\**" />
+    <EmbeddedResource Remove="Plots\**" />
+    <None Remove="Plots\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="cimgui.dll" />
     <None Remove="Shaders\GLSL\imgui-frag.glsl" />
     <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
@@ -73,10 +79,6 @@
     <Reference Include="dnYara">
       <HintPath>..\..\dnYara\dnYara\bin\Debug\netcoreapp3.1\dnYara.dll</HintPath>
     </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Plots\" />
   </ItemGroup>
 
 </Project>

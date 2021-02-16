@@ -283,15 +283,10 @@ namespace rgatCore
             standardRenderedGraph.SetAnimated(false);
 
 
-            PlottedGraph previewgraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
-            previewgraph.InitialisePreviewDimensions();
-            previewgraph.SetAnimated(false);
-
             lock (GraphListLock)
             {
                 PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
-                PlottedGraphs[GraphThreadID].Add(eRenderingMode.ePreview, previewgraph);
             }
             protograph.Terminated = true;
             protograph.AssignModulePath();

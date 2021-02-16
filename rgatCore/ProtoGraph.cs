@@ -430,7 +430,7 @@ namespace rgatCore
                 Debug.Assert(arg.calledAddress == currentTarget, "ProcessIncomingCallArguments() unexpected change of target");
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
                 Debug.Assert(arg.argIndex > currentIndex, "ProcessIncomingCallArguments() unexpected change of source");
-                if (BlocksFirstLastNodeList.Count < (int)currentSourceBlock) 
+                if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock) 
                     break;
                 uint callerNodeIdx = BlocksFirstLastNodeList[(int)currentSourceBlock].Item2;
                 currentIndex = arg.argIndex;

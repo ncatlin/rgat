@@ -53,6 +53,8 @@ namespace rgatCore.Threads
         public static int ExternAnimDisplayFrames = 60;
         public static float ExternAnimRisePerFrame = 1.4f;
 
+        public static uint MaximumLoadedGraphs = 1; //todo for dev - change to something like 20 later
+
         public static class mainColours
         {
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);

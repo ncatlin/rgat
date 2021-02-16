@@ -736,23 +736,25 @@ namespace rgatCore
             BBEntry.hasSymbol = ModID.ToObject<bool>();
 
 
-            if (externEntry.TryGetValue("C", out JToken callers) && callers.Type != JTokenType.Array)
+            if (externEntry.TryGetValue("C", out JToken callers) && callers.Type == JTokenType.Array)
             {
                 BBEntry.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
                 JArray CallersArray = (JArray)callers;
+
                 foreach (JArray caller in CallersArray)
                 {
-
                     List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
+
                     uint threadID = caller[0].ToObject<uint>();
                     JArray edges = (JArray)caller[1];
 
                     foreach (JArray edge in edges)
                     {
                         uint source = edge[0].ToObject<uint>();
-                        uint target = edge[0].ToObject<uint>();
+                        uint target = edge[1].ToObject<uint>();
                         ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
                     }
+
                     BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
 
                 }
@@ -949,7 +951,8 @@ namespace rgatCore
 
                     foreach (var thread_edgelist in externStruc.thread_callers)
                     {
-                        callersArr.Add(thread_edgelist.Key);
+                        JArray callerCalls = new JArray();
+                        callerCalls.Add(thread_edgelist.Key);
 
                         JArray edgeList = new JArray();
                         foreach (var edge in thread_edgelist.Value)
@@ -960,7 +963,8 @@ namespace rgatCore
                             edgeList.Add(threadEdge);
                         }
 
-                        callersArr.Add(edgeList);
+                        callerCalls.Add(edgeList);
+                        callersArr.Add(callerCalls);
                     }
 
                     externObj.Add("C", callersArr);
