@@ -53,26 +53,12 @@ namespace rgatCore
             {
                 if (_activeGraph != null)
                 {
-                    uint textureSize = _activeGraph.LinearIndexTextureSize();
 
-
-
-                    DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _positionsBuffer1);
-                    MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-                    uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
-                    _activeGraph.UpdateNodePositions(destinationReadView, floatCount);
-                    _gd.Unmap(destinationReadback);
-                    destinationReadback.Dispose();
-
+                    StoreNodePositions(_activeGraph);
 
                     if (_activeGraph.temperature > 0.1)
                     {
-                        destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _velocityBuffer1);
-                        destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-                        floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
-                        _activeGraph.UpdateNodeVelocities(destinationReadView, floatCount);
-                        _gd.Unmap(destinationReadback);
-                        destinationReadback.Dispose();
+                        StoreNodeVelocity(_activeGraph);
                     }
                 }
             }
@@ -95,6 +81,34 @@ namespace rgatCore
             _activeGraph = graph;
             InitComputeBuffersFrom_activeGraph();
             _computeLock.ReleaseWriterLock();
+        }
+
+        public void StoreNodePositions(PlottedGraph graph)
+        {
+            if (!graph.UpdatedNodePositions) return;
+            uint textureSize = graph.LinearIndexTextureSize();
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _positionsBuffer1);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
+            if (floatCount > 0)
+            { 
+                graph.UpdateNodePositions(destinationReadView, floatCount); 
+            }
+            _gd.Unmap(destinationReadback);
+            destinationReadback.Dispose();
+
+            graph.UpdatedNodePositions = false;
+        }
+
+        public void StoreNodeVelocity(PlottedGraph graph)
+        {
+            uint textureSize = graph.LinearIndexTextureSize();
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _velocityBuffer1);
+            MappedResourceView<float>  destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
+            _activeGraph.UpdateNodeVelocities(destinationReadView, floatCount);
+            _gd.Unmap(destinationReadback);
+            destinationReadback.Dispose();
         }
 
 
@@ -635,6 +649,7 @@ namespace rgatCore
                 {
                     RenderVelocity(_positionsBuffer1, _velocityBuffer1, _velocityBuffer2, delta, _activeGraphTemperature);
                     RenderPosition(_positionsBuffer1, _velocityBuffer2, _positionsBuffer2, delta);
+                    _activeGraph.UpdatedNodePositions = true;
                 }
 
                 RenderNodeAttribs(_rtNodeAttribBuffer1, _rtNodeAttribBuffer2, delta, mouseoverNodeID);
@@ -646,6 +661,7 @@ namespace rgatCore
                 {
                     RenderVelocity(_positionsBuffer2, _velocityBuffer2, _velocityBuffer1, delta, _activeGraphTemperature);
                     RenderPosition(_positionsBuffer2, _velocityBuffer1, _positionsBuffer1, delta);
+                    _activeGraph.UpdatedNodePositions = true;
                 }
                 RenderNodeAttribs(_rtNodeAttribBuffer2, _rtNodeAttribBuffer1, delta, mouseoverNodeID);
             }

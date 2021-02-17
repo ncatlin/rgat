@@ -495,6 +495,7 @@ namespace rgatCore
         int threadReferences = 0;
         bool schedule_performSymbolResolve = false;
 
+        public bool UpdatedNodePositions = false;
         protected List<TEXTRECT> labelPositions = new List<TEXTRECT>();
 
         protected readonly Object textLock = new Object();

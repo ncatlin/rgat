@@ -176,7 +176,8 @@ namespace rgatCore
 
             HandleInput(graphSize);
 
-            //if (IrregularActionTimerFired) PerformIrregularActions();
+            if (IrregularActionTimerFired)
+                PerformIrregularActions();
 
             if (ActiveGraph != null)
             {
@@ -819,9 +820,11 @@ namespace rgatCore
 
         private void PerformIrregularActions()
         {
-            //bool haveDisplayGraph = chooseGraphToDisplay();
             if (ActiveGraph == null)
                 return;
+
+            //store latest positions for the preview graph
+            _layoutEngine.StoreNodePositions(ActiveGraph);
 
             //highlight new nodes with highlighted address
             ActiveGraph.DoHighlightAddresses();
