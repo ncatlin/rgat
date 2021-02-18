@@ -586,7 +586,7 @@ namespace rgatCore
                     ar.currentY += GlobalConfig.ExternAnimRisePerFrame;
                     ar.remainingFrames -= 1;
                 }
-                Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
+                //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
                 RenderString(ar.text, (uint)ar.nodeIdx, fontScale, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
             }
 

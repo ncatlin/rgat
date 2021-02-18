@@ -38,11 +38,11 @@ namespace rgatCore
 
         ReaderWriterLock _computeLock = new ReaderWriterLock();
 
-        public void Set_activeGraph(PlottedGraph graph)
+        public void Set_activeGraph(PlottedGraph newgraph)
         {
-            if (graph == _activeGraph) return;
+            if (newgraph == _activeGraph) return;
 
-            if (graph == null)
+            if (newgraph == null)
             {
                 _computeLock.AcquireWriterLock(0);
                 _activeGraph = null;
@@ -53,7 +53,6 @@ namespace rgatCore
             {
                 if (_activeGraph != null)
                 {
-
                     StoreNodePositions(_activeGraph);
 
                     if (_activeGraph.temperature > 0.1)
@@ -63,26 +62,13 @@ namespace rgatCore
                 }
             }
 
-
-            //todo - is this still needed? do we need to store multiple graphs in GPU ram at once? 
-            //i think not since rendering is so fast now
-            //store old positions/verts floats in graph when switching
-            /*
-            if (!graphBufferDict.TryGetValue(graph, out graphBuffers))
-            {
-                graphBuffers = new VeldridGraphBuffers();
-                graphBufferDict.Add(graph, graphBuffers);
-                //graph.UpdateGraphicBuffers(graphWidgetSize, _gd);
-                //graphBuffers.InitPipelines(_gd, CreateGraphShaders(), graph._outputFramebuffer, true);
-            }
-            */
-
             _computeLock.AcquireWriterLock(0);
-            _activeGraph = graph;
+            _activeGraph = newgraph;
             InitComputeBuffersFrom_activeGraph();
             _computeLock.ReleaseWriterLock();
         }
 
+        //read node positions from the GPU and store in provided plottedgraph
         public void StoreNodePositions(PlottedGraph graph)
         {
             if (!graph.UpdatedNodePositions) return;
@@ -100,6 +86,7 @@ namespace rgatCore
             graph.UpdatedNodePositions = false;
         }
 
+        //read node velocities from the GPU and store in provided plottedgraph
         public void StoreNodeVelocity(PlottedGraph graph)
         {
             uint textureSize = graph.LinearIndexTextureSize();
@@ -168,7 +155,7 @@ namespace rgatCore
             _nodeAttribComputePipeline = _factory.CreateComputePipeline(attribCPL);
         }
 
-
+        //todo - only dispose and recreate if too small
         void InitComputeBuffersFrom_activeGraph()
         {
             if (_velocityBuffer1 != null)
@@ -257,7 +244,6 @@ namespace rgatCore
         void RegenerateEdgeDataBuffers()
         {
             Console.WriteLine("===RegenerateEdgeDataBuffers===");
-
 
             _edgesConnectionDataBuffer.Dispose();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();

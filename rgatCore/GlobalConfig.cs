@@ -90,7 +90,7 @@ namespace rgatCore.Threads
          */
 
         public static string SaveDirectory = @"C:\Users\nia\Source\Repos\rgatCore\rgatCore\bin\Debug\netcoreapp3.1\testsaves";// "[not set]";
-        public static string PinPath = @"C:\devel\libs\pin-3.14-98223-gb010a12c6-msvc-windows\pin.exe";
+        public static string PinPath = @"C:\devel\libs\pin-3.17\pin.exe";
         public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
 

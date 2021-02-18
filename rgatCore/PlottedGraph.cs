@@ -639,7 +639,6 @@ namespace rgatCore
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions, uint count)
         {
-            Debug.Assert(positionsArray1.Length <= count);  //This is assumed to never shrink
             if (positionsArray1.Length < count)
                 positionsArray1 = new float[count];
             for (var i = 0; i < count; i++)
@@ -660,12 +659,12 @@ namespace rgatCore
 
         public float[] GetVelocityFloats()
         {
-            Console.WriteLine($"Getvelocity floats returning {velocityArray1.Length} floats");
+            //Console.WriteLine($"Getvelocity floats returning {velocityArray1.Length} floats");
             return velocityArray1;
         }
         public float[] GetPositionFloats()
         {
-            Console.WriteLine($"GetPositionFloats floats returning {positionsArray1.Length} floats");
+            //Console.WriteLine($"GetPositionFloats floats returning {positionsArray1.Length} floats");
             return positionsArray1;
         }
         public float[] GetNodeAttribFloats()
@@ -736,25 +735,12 @@ namespace rgatCore
             var bounds = 1000;
             var bounds_half = bounds / 2;
 
-            _graphStructureLinear.Add(destNodes);
-            _graphStructureBalanced.Add(destNodes);
 
-            if (doubleEdge)
-            {
-                var srcNodeIdx = _graphStructureBalanced.Count - 1;
-                foreach (int dstNodeIdx in destNodes)
-                {
-                    if (!_graphStructureBalanced[dstNodeIdx].Contains(srcNodeIdx))
-                    {
-                        _graphStructureBalanced[dstNodeIdx].Add(srcNodeIdx);
-                    }
-                }
-            }
 
 
             int oldVelocityArraySize = (velocityArray1 != null) ? velocityArray1.Length * sizeof(float) : 0;
-
-            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            uint futureCount = (uint)_graphStructureLinear.Count + 1;
+            var bufferWidth = indexTextureSize((int)futureCount);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
             var bufferSize = bufferFloatCount * sizeof(float);
 
@@ -770,28 +756,44 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
 
-            uint offset = ((uint)(_graphStructureLinear.Count - 1)) * 4;
-            positionsArray1[offset] = nodePositionEntry[0];
-            positionsArray1[offset + 1] = nodePositionEntry[1];
-            positionsArray1[offset + 2] = nodePositionEntry[2];
-            positionsArray1[offset + 3] = nodePositionEntry[3];
+            uint currentOffset = (futureCount-1) * 4;
+            positionsArray1[currentOffset] = nodePositionEntry[0];
+            positionsArray1[currentOffset + 1] = nodePositionEntry[1];
+            positionsArray1[currentOffset + 2] = nodePositionEntry[2];
+            positionsArray1[currentOffset + 3] = nodePositionEntry[3];
 
-            presetPositionsArray[offset] = 0;
-            presetPositionsArray[offset + 1] = 0;
-            presetPositionsArray[offset + 2] = 0;
-            presetPositionsArray[offset + 3] = 0;
+            presetPositionsArray[currentOffset] = 0;
+            presetPositionsArray[currentOffset + 1] = 0;
+            presetPositionsArray[currentOffset + 2] = 0;
+            presetPositionsArray[currentOffset + 3] = 0;
 
-            velocityArray1[offset] = 0;
-            velocityArray1[offset + 1] = 0;
-            velocityArray1[offset + 2] = 0;
-            velocityArray1[offset + 3] = 0;
+            velocityArray1[currentOffset] = 0;
+            velocityArray1[currentOffset + 1] = 0;
+            velocityArray1[currentOffset + 2] = 0;
+            velocityArray1[currentOffset + 3] = 0;
 
 
-            nodeAttribArray1[offset] = 200f;
-            nodeAttribArray1[offset + 1] = 1f;// 0.5f;
-            nodeAttribArray1[offset + 2] = 0;
-            nodeAttribArray1[offset + 3] = 0;
+            nodeAttribArray1[currentOffset] = 200f;
+            nodeAttribArray1[currentOffset + 1] = 1f;// 0.5f;
+            nodeAttribArray1[currentOffset + 2] = 0;
+            nodeAttribArray1[currentOffset + 3] = 0;
 
+            lock (animationLock)
+            {
+                _graphStructureLinear.Add(destNodes);
+                _graphStructureBalanced.Add(destNodes);
+            }
+            if (doubleEdge)
+            {
+                var srcNodeIdx = _graphStructureBalanced.Count - 1;
+                foreach (int dstNodeIdx in destNodes)
+                {
+                    if (!_graphStructureBalanced[dstNodeIdx].Contains(srcNodeIdx))
+                    {
+                        _graphStructureBalanced[dstNodeIdx].Add(srcNodeIdx);
+                    }
+                }
+            }
         }
 
 
@@ -1274,7 +1276,7 @@ namespace rgatCore
 
             foreach (uint nodeIdx in nodeIDList)
             {
-                Console.WriteLine($"BNL node {nodeIdx}");
+                //Console.WriteLine($"BNL node {nodeIdx}");
                 
                 if (listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {

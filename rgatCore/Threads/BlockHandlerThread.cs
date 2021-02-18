@@ -139,7 +139,7 @@ namespace rgatCore
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
-            Console.WriteLine($"Ingesting block ID {blockID} address 0x{insaddr:X}");
+            //Console.WriteLine($"Ingesting block ID {blockID} address 0x{insaddr:X}");
 
             int dbginscount = -1;
             while (buf[bufPos] == '@')
@@ -160,7 +160,7 @@ namespace rgatCore
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
 
-                        Console.WriteLine($"\t Block {blockID} existing ins {dbginscount}-0x{insaddr:X}: {foundList[0].ins_text}");
+                        //Console.WriteLine($"\t Block {blockID} existing ins {dbginscount}-0x{insaddr:X}: {foundList[0].ins_text}");
 
                         InstructionData possibleInstruction = foundList[^1];
                         //if address has been seen but opcodes are not same as most recent, disassemble again

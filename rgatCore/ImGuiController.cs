@@ -103,11 +103,13 @@ namespace ImGuiNET
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
+            Console.WriteLine("Loading fonts");
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
             _unicodeFont = fonts.Fonts[0];
             fonts.AddFontDefault();
             _originalFont = fonts.Fonts[1];
+            Console.WriteLine("Done Loading fonts");
 
 
             CreateDeviceResources(gd, outputDescription);

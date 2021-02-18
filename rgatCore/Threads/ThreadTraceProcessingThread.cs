@@ -605,7 +605,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                //Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 lock (debug_tag_lock)
                 {
                     switch (msg[0])

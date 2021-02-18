@@ -223,12 +223,18 @@ namespace rgatCore
                     }
             }
 
+
             NodeData sourcenode = safe_get_node(ProtoLastVertID);
             //make API calls leaf nodes, rather than part of the chain
             if (sourcenode.IsExternal)
                 sourcenode = safe_get_node(ProtoLastLastVertID);
 
-            AddEdge(newEdge, sourcenode, safe_get_node(targVertID));
+            if (!EdgeExists(new Tuple<uint, uint>(sourcenode.index, targVertID)))
+            {
+                AddEdge(newEdge, sourcenode, safe_get_node(targVertID));
+            }
+
+
         }
 
         private void run_faulting_BB(TAG tag)
@@ -417,8 +423,9 @@ namespace rgatCore
         {
             if (_unprocessedCallArguments.Count == 0) return;
 
-            ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
+            if ((int)currentSourceBlock == -1) return; //API called before instrumented code was reached
+            ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
 
             uint completecount = 0;
             int currentIndex = -1;
@@ -657,7 +664,7 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                edgeDict.Add(edgePair, e);
+                edgeDict.Add(edgePair, e); 
                 edgeList.Add(edgePair);
             }
 

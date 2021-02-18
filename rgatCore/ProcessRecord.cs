@@ -37,7 +37,6 @@ namespace rgatCore
                     BB = new ROUTINE_STRUCT();
                     BB.globalmodnum = moduleNum;
                     BB.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
-                    Console.WriteLine($"Extendict adding 0x{address:x}");
                     externdict.Add(address, BB);
 
                 }

@@ -47,6 +47,7 @@ namespace rgatCore
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
+            Console.WriteLine("Constructing rgatUI");
             _rgatstate = new rgatState(_gd, _cl);
             GlobalConfig.InitDefaultConfig();
 
@@ -58,6 +59,7 @@ namespace rgatCore
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd);
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
+            Console.WriteLine("rgatUI created");
         }
 
         public void Exit()
