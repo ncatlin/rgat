@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using rgatCore.Shaders.SPIR_V;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -188,10 +189,15 @@ namespace rgatCore
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y + 3; //dunno where the 3 comes from but it works
 
-            DrawnPreviewGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-            for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
+            DrawnPreviewGraphs = ActiveTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
+            uint backgroundcolor = GlobalConfig.mainColours.background.ToUint(customAlpha: 180);
+            for (var graphIdx = 0; graphIdx < 5; graphIdx++)
             {
-                PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
+                PlottedGraph graph = DrawnPreviewGraphs[0];
+
+                //for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
+                //{
+                //PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
                 if (graph == null) continue;
 
                 FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
@@ -199,26 +205,32 @@ namespace rgatCore
                 renderPreview(graph, positionBuf, attribBuf);
                 if (graph._previewTexture == null) continue;
 
-                string Caption = $"TID:{graph.tid} {graph.NodesDisplayData.CountVerts()}vts {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
-
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
-                ImGui.Text(Caption);
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 8);
-
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY());
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
                 imdp.AddImage(CPUframeBufferTextureId,
                     subGraphPosition,
                     new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), 
                     new Vector2(0, 1), 
                     new Vector2(1, 0));
-                if(ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
+
+                string Caption = $"TID:{graph.tid} {graph.GraphNodeCount()}vts {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
+                float captionWidth = ImGui.CalcTextSize(Caption).X + 3.0f; //dunno where the 3 comes from but it works
+
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
+                imdp.AddRectFilled(ImGui.GetCursorScreenPos(),
+                    new Vector2(ImGui.GetCursorScreenPos().X + captionWidth, ImGui.GetCursorScreenPos().Y + 20), backgroundcolor);
+                ImGui.Text(Caption);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 8);
+
+                if (ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
                 {
                     var MainGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                     HandleClickedGraph(MainGraphs[graphIdx]);
                 }
 
                 subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
+                //subGraphPosition.Y -= captionHeight;// * graphIdx;
             }
         }
 
@@ -390,7 +402,7 @@ namespace rgatCore
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(graph._previewFramebuffer);
-            _cl.ClearColorTarget(0, new RgbaFloat(0.2f, 0.2f, 0.2f, 1));
+            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
             _cl.SetPipeline(_pointsPipeline);

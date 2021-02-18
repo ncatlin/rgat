@@ -30,7 +30,12 @@ namespace rgatCore
             A = (float)a;
         }
 
-
+        public uint ToUint(uint? customAlpha = null)
+        {
+            if (customAlpha != null)
+                return (customAlpha.Value << 24) + ((uint)(R * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(B * 255));
+            return ((uint)(A * 255) << 24) + ((uint)(R * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(B * 255));
+        }
 
         public Vector4 ToVec4()
         {
@@ -54,6 +59,11 @@ namespace rgatCore
             float A = (float)col.A / 255f;
             return new RgbaFloat(R, G, B, A);
         }
+        public RgbaFloat ToRgbaFloat()
+        {
+            return new RgbaFloat(R, G, B, A);
+        }
+
 
         public float R { get; set; }
         public float G { get; set; }

@@ -681,7 +681,7 @@ namespace rgatCore
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, new RgbaFloat(0.2f, 0.2f, 0.2f, 1));
+            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, -2200, 1000));
 
             _cl.SetPipeline(_pointsPipeline);

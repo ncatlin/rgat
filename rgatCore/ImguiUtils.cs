@@ -7,8 +7,10 @@ using ImGuiNET;
 using SharpDX.D3DCompiler;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Text;
+using Veldrid;
 
 namespace rgatCore
 {
@@ -82,6 +84,11 @@ namespace rgatCore
 
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y - 1), half_sz, ImGuiDir.Up, OuterColor);
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y),     half_sz, ImGuiDir.Up, InnerColor);
+        }
+
+        public static RgbaFloat ColToRgbaF(Color inColour)
+        {
+            return new RgbaFloat(inColour.R, inColour.G, inColour.G, inColour.A);
         }
 
     }

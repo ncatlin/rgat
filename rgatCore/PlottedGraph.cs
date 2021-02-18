@@ -551,7 +551,7 @@ namespace rgatCore
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
                 if (edgeNodes.Item1 >= NodesDisplayData.CountVerts())
                 {
-                    NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
+                    //NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
                     //render_node(n1);
                     AddNode(edgeNodes.Item1);
                 }
@@ -601,7 +601,8 @@ namespace rgatCore
         /// This is used for drawing nodes and edges
         /// </summary>
         List<List<int>> _graphStructureLinear = new List<List<int>>();
-        public int NodeCount() { return _graphStructureLinear.Count; }
+        public int GraphNodeCount() { return internalProtoGraph.NodeList.Count; }
+        public int RenderedNodeCount() { return _graphStructureLinear.Count; }
 
         /// <summary>
         /// The list of nodes and edges where each node connects to its partner and that node connects back
@@ -686,11 +687,8 @@ namespace rgatCore
         {
             Console.WriteLine($"Enlarging ram data buffers to size {size}");
             float[] newVelocityArr1 = new float[size];
-            float[] newVelocityArr2 = new float[size];
             float[] newPositionsArr1 = new float[size];
-            float[] newPositionsArr2 = new float[size];
             float[] newAttsArr1 = new float[size];
-            float[] newAttsArr2 = new float[size];
             float[] newPresetsArray = new float[size];
 
             int endLength = 0;
@@ -750,6 +748,7 @@ namespace rgatCore
                 EnlargeRAMDataBuffers(bufferFloatCount);
             }
 
+            //possible todo here - shift Y down as the index increases
             Random rnd = new Random();
             float[] nodePositionEntry = {
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
@@ -783,7 +782,9 @@ namespace rgatCore
                 _graphStructureLinear.Add(destNodes);
                 _graphStructureBalanced.Add(destNodes);
             }
-            if (doubleEdge)
+            //todo - see if this needs to be locked
+            //don't care about distortion for a frame but a crash is no good
+            if (doubleEdge) 
             {
                 var srcNodeIdx = _graphStructureBalanced.Count - 1;
                 foreach (int dstNodeIdx in destNodes)
@@ -966,7 +967,7 @@ namespace rgatCore
             }
 
             nodeIndices = new List<uint>();
-            int nodeCount = NodeCount();
+            int nodeCount = RenderedNodeCount();
             for (uint y = 0; y < textureSize; y++)
             {
                 for (uint x = 0; x < textureSize; x++)
@@ -1705,7 +1706,7 @@ namespace rgatCore
         public long lastRenderTime;
         public bool flipflop;
         public uint RenderedEdgeCount; //todo - this is really all we need
-        public uint RenderedNodeCount;
+        public uint ComputeBufferNodeCount; //this is gross and temporary
 
         public void RemoveHighlightedNodes(List<uint> nodeidxs, eHighlightType highlightType)
         {

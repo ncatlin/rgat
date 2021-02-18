@@ -198,14 +198,14 @@ namespace rgatCore
         unsafe void AddNewNodesToComputeBuffers(int finalCount)
         {
 
-            uint newNodeCount = (uint)finalCount - _activeGraph.RenderedNodeCount;
+            uint newNodeCount = (uint)finalCount - _activeGraph.ComputeBufferNodeCount;
             if (newNodeCount == 0) return;
 
             float[] newPositions = _activeGraph.GetPositionFloats();
             float[] newVelocities = _activeGraph.GetVelocityFloats();
             float[] newAttribs = _activeGraph.GetNodeAttribFloats();
 
-            uint offset = _activeGraph.RenderedNodeCount * 4 * sizeof(float);
+            uint offset = _activeGraph.ComputeBufferNodeCount * 4 * sizeof(float);
             uint updateSize = 4 * sizeof(float) * newNodeCount;
 
             if ((offset + updateSize) > _velocityBuffer1.SizeInBytes)
@@ -220,7 +220,7 @@ namespace rgatCore
             }
 
 
-            uint floatOffset = _activeGraph.RenderedNodeCount * 4;
+            uint floatOffset = _activeGraph.ComputeBufferNodeCount * 4;
             fixed (float* dataPtr = newPositions)
             {
                 _gd.UpdateBuffer(_positionsBuffer1, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
@@ -507,7 +507,7 @@ namespace rgatCore
             float[] valArray = new float[3];
             foreach (uint idx in pulseNodes)
             {
-                if (idx >= _activeGraph.NodeCount()) break;
+                if (idx >= _activeGraph.RenderedNodeCount()) break;
                 if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
 
                 valArray[0] = 300f; //start big
@@ -522,7 +522,7 @@ namespace rgatCore
             float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
             foreach (uint idx in lingerNodes)
             {
-                if (idx >= _activeGraph.NodeCount()) break;
+                if (idx >= _activeGraph.RenderedNodeCount()) break;
                 if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
 
                 valArray[0] = 2.0f + currentPulseAlpha;
@@ -534,7 +534,7 @@ namespace rgatCore
 
             foreach (uint idx in deactivatedNodes)
             {
-                if (idx >= _activeGraph.NodeCount()) break;
+                if (idx >= _activeGraph.RenderedNodeCount()) break;
                 if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
                 valArray[0] = 0.8f;
                 fixed (float* dataPtr = valArray)
@@ -614,11 +614,11 @@ namespace rgatCore
                 _activeGraph.RenderedEdgeCount = drawnEdgeCount;
             }
 
-            int graphNodeCount = _activeGraph.NodeCount();
-            if (_activeGraph.RenderedNodeCount < graphNodeCount)
+            int graphNodeCount = _activeGraph.RenderedNodeCount();
+            if (_activeGraph.ComputeBufferNodeCount < graphNodeCount)
             {
                 AddNewNodesToComputeBuffers(graphNodeCount);
-                _activeGraph.RenderedNodeCount = (uint)graphNodeCount;
+                _activeGraph.ComputeBufferNodeCount = (uint)graphNodeCount;
             }
 
 
