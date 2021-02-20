@@ -304,7 +304,7 @@ namespace rgatCore
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize);
 
-            VertexPositionColor[] NodeVerts = graph.GetNodeVerts(out List<uint> nodeIndices);
+            VertexPositionColor[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * VertexPositionColor.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
@@ -323,7 +323,7 @@ namespace rgatCore
 
 
 
-            int drawnEdgeCount = graph.GetEdgeLineVerts(out List<uint> edgeDrawIndexes, out int edgeVertCount, out VertexPositionColor[] EdgeLineVerts);
+            VertexPositionColor[] EdgeLineVerts  = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))

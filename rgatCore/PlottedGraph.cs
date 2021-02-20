@@ -412,7 +412,7 @@ namespace rgatCore
         }
 
 
-        public  void draw_highlight_lines()
+        public void draw_highlight_lines()
         {
             //todo
             return;
@@ -591,7 +591,7 @@ namespace rgatCore
 
         public float[] positionsArray1 = Array.Empty<float>();
         public float[] velocityArray1 = Array.Empty<float>();
-        public float[] nodeAttribArray1 = Array.Empty<float>(); 
+        public float[] nodeAttribArray1 = Array.Empty<float>();
         public float[] presetPositionsArray = Array.Empty<float>();
         public ulong renderFrameVersion;
 
@@ -649,7 +649,7 @@ namespace rgatCore
                 positionsArray1 = new float[count];
             for (var i = 0; i < count; i++)
                 positionsArray1[i] = newPositions[i];
-            
+
         }
 
         //This is assumed to never shrink
@@ -729,7 +729,7 @@ namespace rgatCore
             if (nodeIdx < _graphStructureLinear.Count) return;
             AddNode(nodeIdx, new List<int>(), false);
         }
-        
+
         unsafe void AddNode(uint nodeIdx, List<int> destNodes, bool doubleEdge)
         {
             Debug.Assert(nodeIdx == _graphStructureLinear.Count);
@@ -759,7 +759,7 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
 
-            uint currentOffset = (futureCount-1) * 4;
+            uint currentOffset = (futureCount - 1) * 4;
             positionsArray1[currentOffset] = nodePositionEntry[0];
             positionsArray1[currentOffset + 1] = nodePositionEntry[1];
             positionsArray1[currentOffset + 2] = nodePositionEntry[2];
@@ -788,7 +788,7 @@ namespace rgatCore
             }
             //todo - see if this needs to be locked
             //don't care about distortion for a frame but a crash is no good
-            if (doubleEdge) 
+            if (doubleEdge)
             {
                 var srcNodeIdx = _graphStructureBalanced.Count - 1;
                 foreach (int dstNodeIdx in destNodes)
@@ -881,8 +881,8 @@ namespace rgatCore
                 int linksToAdd = rnd.Next(1, 3);
                 for (var vl = 0; vl < linksToAdd; vl++)
                 {
-                    int val = rnd.Next(Math.Max(0,_graphStructureLinear.Count - 8), _graphStructureLinear.Count);
-                    if(!linksList.Contains(val))
+                    int val = rnd.Next(Math.Max(0, _graphStructureLinear.Count - 8), _graphStructureLinear.Count);
+                    if (!linksList.Contains(val))
                         linksList.Add(val);
                 }
 
@@ -897,7 +897,7 @@ namespace rgatCore
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
             float[] presetPositionsArray = new float[bufferFloatCount];
-            
+
             for (var i = 0; i < presetPositionsArray.Length; i += 4)
             {
                 if (i < _graphStructureLinear.Count * 4)
@@ -917,58 +917,89 @@ namespace rgatCore
                 }
 
             }
-            
+
         }
 
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
-        
+
         public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureLinear)); }
         public uint EdgeVertsTextureWidth() { return dataTextureSize(internalProtoGraph.edgeList.Count); }
 
 
-        public WritableRgbaFloat GetNodeColor(int nodeIndex)
+        public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode)
         {
             NodeData n = internalProtoGraph.NodeList[nodeIndex];
-            WritableRgbaFloat active_col = graphColours[(int)n.VertType()];
-            WritableRgbaFloat nodeColor = new WritableRgbaFloat()
-            { A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
-            return nodeColor;
+            switch (renderingMode)
+            {
+                case eRenderingMode.eStandardControlFlow:
+                    return graphColours[(int)n.VertType()];
+                case eRenderingMode.eHeatmap:
+                    return new WritableRgbaFloat(1, 0, 0, 1);
+                case eRenderingMode.eConditionals:
+                    return new WritableRgbaFloat(0, 1, 0, 1);
+                default:
+                    return graphColours[(int)n.VertType()];
+            }
         }
 
 
-        public WritableRgbaFloat GetEdgeColor(Tuple<uint,uint> edge)
+        public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
         {
 
             EdgeData e = internalProtoGraph.edgeDict[edge]; //todo - thread safe dict access or caching
-            WritableRgbaFloat active_col = graphColours[(int)e.edgeClass];
-            WritableRgbaFloat nodeColor = new WritableRgbaFloat()
-            { A = 255f, G = active_col.G, B = active_col.B, R = active_col.R };
-            return nodeColor;
+            switch (renderingMode)
+            {
+                case eRenderingMode.eStandardControlFlow:
+                    return graphColours[(int)e.edgeClass];
+                case eRenderingMode.eHeatmap:
+                    return new WritableRgbaFloat(1, 0, 0, 1);
+                case eRenderingMode.eConditionals:
+                    return new WritableRgbaFloat(0, 1, 0, 1);
+                default:
+                    return graphColours[(int)e.edgeClass];
+            }
+        }
+
+        Tuple<string, Color> createNodeLabel(int index)
+        {
+            NodeData n = internalProtoGraph.NodeList[index];
+            if (n.label == null || n.newArgsRecorded)
+            {
+                if (n.IsExternal)
+                {
+                    n.newArgsRecorded = false;
+                    n.label = GenerateSymbolLabel(n);
+                }
+                else
+                {
+                    n.label = $"{index}: {n.ins.ins_text}";
+                    if (n.ins.hasSymbol)
+                    {
+                        internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
+                        n.label += $" [{sym}]";
+                    }
+                }
+            }
+
+            Color color = n.IsExternal ? Color.SpringGreen : Color.White;
+            return new Tuple<string, Color>(n.label, color);
         }
 
 
         //important todo - cacheing!  once the result is good
-        public VertexPositionColor[] GetNodeVerts(
+        public VertexPositionColor[] GetMaingraphNodeVerts(
             out List<uint> nodeIndices,
             out VertexPositionColor[] nodePickingColors,
             out List<Tuple<string, Color>> captions,
-            bool preview = false)
+            eRenderingMode renderingMode)
         {
 
             uint textureSize = LinearIndexTextureSize();
-            VertexPositionColor[] TestNodeVerts = new VertexPositionColor[textureSize * textureSize];
+            VertexPositionColor[] NodeVerts = new VertexPositionColor[textureSize * textureSize];
 
-            if (preview)
-            {
-                nodePickingColors = null;
-                captions = null;
-            }
-            else
-            {
-                nodePickingColors = new VertexPositionColor[textureSize * textureSize];
-                captions = new List<Tuple<string, Color>>();
-            }
+            nodePickingColors = new VertexPositionColor[textureSize * textureSize];
+            captions = new List<Tuple<string, Color>>();
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
@@ -977,59 +1008,61 @@ namespace rgatCore
                 for (uint x = 0; x < textureSize; x++)
                 {
                     var index = y * textureSize + x;
-                    if (index >= nodeCount) return TestNodeVerts;
+                    if (index >= nodeCount) return NodeVerts;
 
                     nodeIndices.Add(index);
 
-                    TestNodeVerts[index] = new VertexPositionColor { 
-                        TexPosition = new Vector2(x, y), 
-                        Color = GetNodeColor((int)index) };
-
-                    if (preview) continue;
-                    
-                    nodePickingColors[index] = new VertexPositionColor { 
-                    TexPosition = new Vector2(x, y), 
-                    Color = new WritableRgbaFloat(index, 0, 0, 1) };
-
-                
-                    NodeData n = internalProtoGraph.NodeList[(int)index];
-                    if (n.label == null || n.newArgsRecorded)
+                    NodeVerts[index] = new VertexPositionColor
                     {
-                        if (n.IsExternal)
-                        {
-                            n.newArgsRecorded = false;
-                            n.label = GenerateSymbolLabel(n);
-                        }
-                        else
-                        {
-                            n.label = $"{index}: {n.ins.ins_text}";
-                            if (n.ins.hasSymbol)
-                            {
-                                internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
-                                n.label += $" [{sym}]";
-                            }
-                        }
-                    }
+                        TexPosition = new Vector2(x, y),
+                        Color = GetNodeColor((int)index, renderingMode)
+                    };
 
-                    Color color = n.IsExternal ? Color.SpringGreen : Color.White;
-                    captions.Add(new Tuple<string, Color>(n.label, color));
-                    
+                    nodePickingColors[index] = new VertexPositionColor
+                    {
+                        TexPosition = new Vector2(x, y),
+                        Color = new WritableRgbaFloat(index, 0, 0, 1)
+                    };
+                    captions.Add(createNodeLabel((int)index));
+
                 }
             }
-            return TestNodeVerts;
+            return NodeVerts;
         }
 
-        public VertexPositionColor[] GetNodeVerts(out List<uint> nodeIndices)
+
+        public VertexPositionColor[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
         {
-            return GetNodeVerts(out nodeIndices, out VertexPositionColor[] ignore, out List<Tuple<string, Color>> ignore2, true);
+            uint textureSize = LinearIndexTextureSize();
+            VertexPositionColor[] NodeVerts = new VertexPositionColor[textureSize * textureSize];
+
+            nodeIndices = new List<uint>();
+            int nodeCount = RenderedNodeCount();
+            for (uint y = 0; y < textureSize; y++)
+            {
+                for (uint x = 0; x < textureSize; x++)
+                {
+                    var index = y * textureSize + x;
+                    if (index >= nodeCount) return NodeVerts;
+
+                    nodeIndices.Add(index);
+
+                    NodeVerts[index] = new VertexPositionColor
+                    {
+                        TexPosition = new Vector2(x, y),
+                        Color = GetNodeColor((int)index, renderingMode)
+                    };
+                }
+            }
+            return NodeVerts;
         }
 
 
-       string GenerateSymbolLabel(NodeData n, int specificCallIndex = -1)
+        string GenerateSymbolLabel(NodeData n, int specificCallIndex = -1)
         {
             string symbolText = "";
             bool found = false;
-            if(internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
+            if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
             {
                 found = true;
             }
@@ -1053,13 +1086,13 @@ namespace rgatCore
 
             if (n.callRecordsIndexs.Count == 0)
             {
-                return $"{symbolText}()"; 
+                return $"{symbolText}()";
             }
 
             EXTERNCALLDATA lastCall;
             if (specificCallIndex == -1)
-            { 
-                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]]; 
+            {
+                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
             }
             else
             {
@@ -1081,27 +1114,28 @@ namespace rgatCore
             }
             else
             {
-                return $"{symbolText}({argstring}) +{n.callRecordsIndexs.Count -1} saved";
+                return $"{symbolText}({argstring}) +{n.callRecordsIndexs.Count - 1} saved";
             }
         }
 
 
-        public int GetEdgeLineVerts(out List<uint> edgeIndices, out int vertCount, out VertexPositionColor[] EdgeLineVerts)
+        public VertexPositionColor[] GetEdgeLineVerts(eRenderingMode renderingMode,
+            out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {
             uint telvTextSize = EdgeVertsTextureWidth();
-            EdgeLineVerts = new VertexPositionColor[telvTextSize * telvTextSize * 16];
+            VertexPositionColor[] EdgeLineVerts = new VertexPositionColor[telvTextSize * telvTextSize * 16];
 
             vertCount = 0;
             edgeIndices = new List<uint>();
             uint textureSize = LinearIndexTextureSize();
 
             var edgeList = internalProtoGraph.GetEdgelistCopy();
-            
-            foreach (Tuple<uint,uint> edge in edgeList)
+
+            foreach (Tuple<uint, uint> edge in edgeList)
             {
-                int srcNodeIdx = (int) edge.Item1;
-                int destNodeIdx = (int) edge.Item2;
-                WritableRgbaFloat ecol = GetEdgeColor(edge);
+                int srcNodeIdx = (int)edge.Item1;
+                int destNodeIdx = (int)edge.Item2;
+                WritableRgbaFloat ecol = GetEdgeColor(edge, renderingMode);
 
                 EdgeLineVerts[vertCount] =
                         new VertexPositionColor
@@ -1123,7 +1157,8 @@ namespace rgatCore
                 vertCount++;
 
             }
-            return DrawnEdgesCount;
+            graphDrawnEdgeCount = DrawnEdgesCount;
+            return EdgeLineVerts;
         }
 
 
@@ -1184,15 +1219,15 @@ namespace rgatCore
                 //assume it's an external block, find node in extern call list
                 //piddata.getExternCallerReadLock();
                 /*
-				auto callvsEdgeIt = externBlock.thread_callers.find(tid);
-				if (callvsEdgeIt == externBlock.thread_callers.end())
-				{
-					piddata.dropExternCallerReadLock();
-					std::this_thread::sleep_for(10ms);
-					cerr << "[rgat]Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
-					return false;
-				}
-				*/
+                auto callvsEdgeIt = externBlock.thread_callers.find(tid);
+                if (callvsEdgeIt == externBlock.thread_callers.end())
+                {
+                    piddata.dropExternCallerReadLock();
+                    std::this_thread::sleep_for(10ms);
+                    cerr << "[rgat]Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
+                    return false;
+                }
+                */
                 bool found = false;
                 List<Tuple<uint, uint>> calls = null;
                 while (!found)
@@ -1282,15 +1317,15 @@ namespace rgatCore
             foreach (uint nodeIdx in nodeIDList)
             {
                 //Console.WriteLine($"BNL node {nodeIdx}");
-                
+
                 if (listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                        AddRisingExtern(nodeIdx, entry.callCount-1, Anim_Constants.KEEP_BRIGHT);
+                        AddRisingExtern(nodeIdx, entry.callCount - 1, Anim_Constants.KEEP_BRIGHT);
                     else
-                        AddRisingExtern(nodeIdx, entry.callCount-1, GlobalConfig.ExternAnimDisplayFrames);
+                        AddRisingExtern(nodeIdx, entry.callCount - 1, GlobalConfig.ExternAnimDisplayFrames);
                 }
-                
+
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
@@ -1382,11 +1417,11 @@ namespace rgatCore
             {
                 string s = "";
                 if (get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDListFFF))
-                { 
+                {
                     foreach (int x in nodeIDListFFF) s += $"{x},";
                 }
 
-                Console.WriteLine($"Live update: eAnimUnchained block {entry.blockID}: "+s);
+                Console.WriteLine($"Live update: eAnimUnchained block {entry.blockID}: " + s);
                 currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
@@ -1521,8 +1556,8 @@ namespace rgatCore
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
-            { 
-                brightTime = GlobalConfig.animationLingerFrames; 
+            {
+                brightTime = GlobalConfig.animationLingerFrames;
             }
 
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
@@ -1573,72 +1608,72 @@ namespace rgatCore
 
         void brighten_new_active_extern_nodes()
         {
-           // Console.WriteLine("todo brighten_new_active_extern_nodes");
+            // Console.WriteLine("todo brighten_new_active_extern_nodes");
             /*
-			PROCESS_DATA* piddata = internalProtoGraph.get_piddata();
-			Dictionary<uint, EXTTEXT> newEntries;
-			map < pair < NODEINDEX, unsigned long>, int>::iterator externTimeIt = newExternTimes.begin();
-			while (externTimeIt != newExternTimes.end())
-			{
-				NODEINDEX externNodeIdx = externTimeIt.first.first;
-				unsigned long callsSoFar = externTimeIt.first.second;
+            PROCESS_DATA* piddata = internalProtoGraph.get_piddata();
+            Dictionary<uint, EXTTEXT> newEntries;
+            map < pair < NODEINDEX, unsigned long>, int>::iterator externTimeIt = newExternTimes.begin();
+            while (externTimeIt != newExternTimes.end())
+            {
+                NODEINDEX externNodeIdx = externTimeIt.first.first;
+                unsigned long callsSoFar = externTimeIt.first.second;
 
-				internalProtoGraph.getNodeReadLock();
+                internalProtoGraph.getNodeReadLock();
 
-				node_data* externNode = internalProtoGraph.unsafe_get_node(externNodeIdx);
-				ARGLIST* args = NULL;
-				unsigned long callRecordIndex = NULL;
+                node_data* externNode = internalProtoGraph.unsafe_get_node(externNodeIdx);
+                ARGLIST* args = NULL;
+                unsigned long callRecordIndex = NULL;
 
-				internalProtoGraph.externCallsLock.lock () ;
-				if (callsSoFar < externNode.callRecordsIndexs.size())
-				{
-					callRecordIndex = externNode.callRecordsIndexs.at(callsSoFar);
-					//todo: maybe make a local copy instead of holding the mutex
-					if (callRecordIndex < internalProtoGraph.externCallRecords.size())
-						args = &internalProtoGraph.externCallRecords.at(callRecordIndex).argList;
-				}
+                internalProtoGraph.externCallsLock.lock () ;
+                if (callsSoFar < externNode.callRecordsIndexs.size())
+                {
+                    callRecordIndex = externNode.callRecordsIndexs.at(callsSoFar);
+                    //todo: maybe make a local copy instead of holding the mutex
+                    if (callRecordIndex < internalProtoGraph.externCallRecords.size())
+                        args = &internalProtoGraph.externCallRecords.at(callRecordIndex).argList;
+                }
 
-				MEM_ADDRESS insaddr = externNode.address;
-				int globalModIDule = externNode.globalModID;
+                MEM_ADDRESS insaddr = externNode.address;
+                int globalModIDule = externNode.globalModID;
 
-				internalProtoGraph.dropNodeReadLock();
+                internalProtoGraph.dropNodeReadLock();
 
-				string externString = generate_funcArg_string(internalProtoGraph.get_node_sym(externNodeIdx), args);
-				internalProtoGraph.externCallsLock.unlock();
+                string externString = generate_funcArg_string(internalProtoGraph.get_node_sym(externNodeIdx), args);
+                internalProtoGraph.externCallsLock.unlock();
 
-				boost::filesystem::path modulePath;
-				piddata.get_modpath(globalModIDule, &modulePath);
+                boost::filesystem::path modulePath;
+                piddata.get_modpath(globalModIDule, &modulePath);
 
-				stringstream callLogEntry;
-				callLogEntry << "0x" << std::hex << insaddr << ": ";
-				callLogEntry << modulePath << " . ";
-				callLogEntry << externString << "\n";
-				internalProtoGraph.loggedCalls.push_back(callLogEntry.str());
+                stringstream callLogEntry;
+                callLogEntry << "0x" << std::hex << insaddr << ": ";
+                callLogEntry << modulePath << " . ";
+                callLogEntry << externString << "\n";
+                internalProtoGraph.loggedCalls.push_back(callLogEntry.str());
 
-				EXTTEXT extEntry;
-				extEntry.framesRemaining = externTimeIt.second;
-				extEntry.displayString = externString;
-				extEntry.yOffset = 10;
+                EXTTEXT extEntry;
+                extEntry.framesRemaining = externTimeIt.second;
+                extEntry.displayString = externString;
+                extEntry.yOffset = 10;
 
-				newEntries[externNodeIdx] = extEntry;
+                newEntries[externNodeIdx] = extEntry;
 
-				externTimeIt = newExternTimes.erase(externTimeIt);
-			}
+                externTimeIt = newExternTimes.erase(externTimeIt);
+            }
 
-			internalProtoGraph.externCallsLock.lock () ;
-			Dictionary<uint, EXTTEXT>::iterator entryIt = newEntries.begin();
-			for (; entryIt != newEntries.end(); ++entryIt)
-				activeExternTimes[entryIt.first] = entryIt.second;
-			internalProtoGraph.externCallsLock.unlock();
-			*/
+            internalProtoGraph.externCallsLock.lock () ;
+            Dictionary<uint, EXTTEXT>::iterator entryIt = newEntries.begin();
+            for (; entryIt != newEntries.end(); ++entryIt)
+                activeExternTimes[entryIt.first] = entryIt.second;
+            internalProtoGraph.externCallsLock.unlock();
+            */
         }
 
-   
+
         /*
          Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
          These pulse
          */
-  
+
 
 
         ulong calculate_wait_frames(ulong executions)
@@ -1653,7 +1688,7 @@ namespace rgatCore
             return waitFrames;
         }
 
-        public  void ApplyMouseDelta(Vector2 mousedelta)
+        public void ApplyMouseDelta(Vector2 mousedelta)
         {
             //todo
         }
@@ -1813,8 +1848,8 @@ namespace rgatCore
 
         uint[] _DeactivatedNodes = Array.Empty<uint>();
         private readonly object animationLock = new object();
-        
-        
+
+
         public List<uint> GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes)
         {
             List<uint> res = new List<uint>();
@@ -1826,7 +1861,7 @@ namespace rgatCore
                 lingerNodes = _LingeringActiveNodes.ToList();
                 deactivatedNodes = _DeactivatedNodes.ToArray();
                 _DeactivatedNodes = Array.Empty<uint>();
-                
+
             }
             return res;
         }
@@ -1882,7 +1917,7 @@ namespace rgatCore
                 Console.WriteLine($"Making node {nodeIdx} lingering");
                 if (!_LingeringActiveNodes.Contains(nodeIdx))
                 {
-                    _LingeringActiveNodes.Add(nodeIdx); 
+                    _LingeringActiveNodes.Add(nodeIdx);
                 }
             }
         }

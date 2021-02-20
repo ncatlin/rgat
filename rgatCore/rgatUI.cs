@@ -1,11 +1,8 @@
 ﻿using ImGuiNET;
-using SharpDX.DXGI;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
@@ -17,7 +14,6 @@ using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
 using System.Linq;
 using rgatCore.Threads;
-using Microsoft.VisualBasic;
 using System.Drawing;
 using rgatCore.Widgets;
 
@@ -96,9 +92,7 @@ namespace rgatCore
             ImGui.Begin("rgat Primary Window", window_flags);
 
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
-
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Escape))) CloseDialogs();
-
+            HandleKeyPresses();
             DrawMainMenu();
             DrawTargetBar();
             DrawTabs();
@@ -107,6 +101,28 @@ namespace rgatCore
             if (_show_load_trace_window) DrawTraceLoadBox();
             ImGui.End();
 
+        }
+
+        void HandleKeyPresses()
+        {
+
+            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Escape))) CloseDialogs();
+            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
+            if (ActiveGraph != null)
+            {
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X))) { 
+                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eHeatmap); 
+                }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f;}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature();}
+            }
         }
 
         private void CloseDialogs()
@@ -1298,6 +1314,7 @@ namespace rgatCore
             launch_all_trace_threads(trace, _rgatstate);
 
             _rgatstate.ActiveTarget = trace.binaryTarg;
+            _rgatstate.SelectActiveTrace(trace.binaryTarg.GetFirstTrace());
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);

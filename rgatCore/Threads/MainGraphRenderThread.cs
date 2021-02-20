@@ -17,10 +17,6 @@ namespace rgatCore.Threads
 			runningThread.Start();
 		}
 
-		public void SetRenderingMode(eRenderingMode newMode)
-        {
-
-        }
 
 		private rgatState rgatState = null;
 		public bool running = true;
@@ -70,72 +66,8 @@ namespace rgatCore.Threads
 			}
 
 			graph.draw_highlight_lines();
-
-
-			//graph.setGraphBusy(false, 2);
 		}
 
-		void perform_full_render(PlottedGraph renderGraph, bool replot_existing)
-		{
-
-			//_rgatstate.ActiveGraph?.InitMainGraphTexture(graphWidgetSize, _gd);
-
-
-			//save current rotation/scaling
-			GRAPH_SCALE newScaleFactors = renderGraph.scalefactors;
-
-			//schedule purge of the current rendering
-			//renderGraph.setBeingDeleted();
-			//renderGraph.decrease_thread_references(1);
-
-			rgatState.ClearActiveGraph();
-
-			TraceRecord activeTrace = renderGraph.internalProtoGraph.TraceData;
-
-			while (rgatState.getActiveGraph(false) == renderGraph)
-				Thread.Sleep(25);
-			//activeTrace.graphListLock.lock () ;
-
-			ProtoGraph protoGraph = renderGraph.internalProtoGraph;
-
-			//renderGraph.setGraphBusy(true, 101);
-			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.eStandardControlFlow] = null;
-
-			//now everything has finished with the old rendering, do the actual deletion
-			//delete activeGraph;
-
-
-			Console.WriteLine("Deleted graph " + renderGraph);
-
-			//create a new rendering
-			rgatState.CreateNewPlottedGraph(protoGraph, out PlottedGraph maingraph, out PlottedGraph previewgraph);
-			if (replot_existing)
-			{
-				maingraph.initialiseCustomDimensions(newScaleFactors);
-			}
-
-			bool setactive = rgatState.SetActiveGraph(renderGraph); //todo can we get rid
-			Debug.Assert(setactive);
-			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.eStandardControlFlow] = renderGraph;
-			activeTrace.PlottedGraphs[protoGraph.ThreadID][eRenderingMode.ePreview] = previewgraph; //do we want to rerender this? good question
-
-			//activeTrace.graphListLock.unlock();
-			//if they dont exist, create threads to rebuild alternate renderings
-			/*
-
-			if (!activeTrace.ProcessThreads.conditionalThread.is_alive())
-			{
-				std::thread condthread(&conditional_renderer::ThreadEntry, activeTrace.ProcessThreads.conditionalThread);
-				condthread.detach();
-			}
-
-			if (!activeTrace.ProcessThreads.heatmapThread.is_alive())
-			{
-				std::thread heatthread(&heatmap_renderer::ThreadEntry, activeTrace.ProcessThreads.heatmapThread);
-				heatthread.detach();
-			}
-			*/
-		}
 
 		public void ThreadProc()
 		{

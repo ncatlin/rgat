@@ -422,29 +422,42 @@ namespace rgatCore
         }
 
 
-
-        void processKeyPresses()
+        eRenderingMode _renderingMode = eRenderingMode.eStandardControlFlow;
+        //Sets rendering mode to the specified mode
+        //If already using that mode, returns the mode to standard
+        public void ToggleRenderingMode(eRenderingMode newMode)
         {
-            bool kp = false;
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f; kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature(); kp = true; }
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X))) { ActiveGraph.AddTestNodes(); }
-            //if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C))) { ActiveGraph.AnimationStep(1); }
-
-            //if (kp) Console.WriteLine($"xZoom: { ActiveGraph.CameraXOffset}, yZoom: { ActiveGraph.CameraYOffset} zzoom: {ActiveGraph.CameraZoom}");
-
+            if (newMode == _renderingMode && _renderingMode != eRenderingMode.eStandardControlFlow)
+            {
+                SetRenderingMode(eRenderingMode.eStandardControlFlow);
+            }
+            else
+            {
+                SetRenderingMode(newMode);
+            }
         }
 
+        void SetRenderingMode(eRenderingMode newMode)
+        {
+            switch(newMode)
+            {
+                case eRenderingMode.eStandardControlFlow:
+                    Console.WriteLine("Setting mainwidget rendering mode to eStandardControlFlow");
+                    break;
+                case eRenderingMode.eConditionals:
+                    Console.WriteLine("Setting mainwidget rendering mode to eConditionals");
+                    break;
+                case eRenderingMode.eHeatmap:
+                    Console.WriteLine("Setting mainwidget rendering mode to eHeatmap");
+                    break;
+                default:
+                    Console.WriteLine("unknown rendering mode");
+                    break;
+            }
+            _renderingMode = newMode;
+        }
 
-
-        void RenderString(string inputString, uint nodeIdx, float fontScale,  ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
+       static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
         {
                       
             float xPos = 0;
@@ -453,7 +466,7 @@ namespace rgatCore
             WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
             for (var i = 0; i < inputString.Length; i++)
             {
-                ImFontGlyphPtr glyph = _controller._unicodeFont.FindGlyph(inputString[i]);
+                ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
                 float charWidth = glyph.AdvanceX * fontScale;
                 float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
                 float xEnd = xPos + charWidth;
@@ -514,7 +527,7 @@ namespace rgatCore
 
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
-                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, ref stringVerts, captions[nodeIdx].Item2);
+                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
             }
 
 
@@ -587,7 +600,7 @@ namespace rgatCore
                     ar.remainingFrames -= 1;
                 }
                 //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
-                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
+                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
             }
 
             ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
@@ -609,9 +622,6 @@ namespace rgatCore
         }
 
 
-
-
-
         public void renderGraph(ImGuiController _ImGuiController, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
 
@@ -620,8 +630,11 @@ namespace rgatCore
             var textureSize = ActiveGraph.LinearIndexTextureSize();
             updateShaderParams(textureSize);
 
-            VertexPositionColor[] NodeVerts = ActiveGraph.GetNodeVerts(out List<uint> nodeIndices, 
-                out VertexPositionColor[] nodePickingColors, out List<Tuple<string,Color>> captions);
+            VertexPositionColor[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(
+                out List<uint> nodeIndices, 
+                out VertexPositionColor[] nodePickingColors, 
+                out List<Tuple<string,Color>> captions, 
+                _renderingMode);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * VertexPositionColor.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
@@ -636,14 +649,13 @@ namespace rgatCore
                 _NodeIndexBuffer.Dispose();
                 _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
             }
-
-            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
+            //todo - only do this on changes
+            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts); 
             _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
             _gd.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-
-
-            int drawnEdgeCount = ActiveGraph.GetEdgeLineVerts(out List<uint> edgeDrawIndexes, out int edgeVertCount, out VertexPositionColor[] EdgeLineVerts);
+            VertexPositionColor[] EdgeLineVerts = ActiveGraph.GetEdgeLineVerts(_renderingMode,
+                out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
@@ -651,13 +663,14 @@ namespace rgatCore
                 _EdgeVertBuffer.Dispose();
                 BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
-                _gd.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
 
                 _EdgeIndexBuffer.Dispose();
                 BufferDescription eibDescription = new BufferDescription((uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer);
                 _EdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
-                _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
             }
+            //todo - only do this on changes
+            _gd.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
+            _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
             //have hacked in a solution here but the codepoint and visible attribs (which we don't use) wont work. 
             //https://github.com/mellinoe/ImGui.NET/issues/206
@@ -740,22 +753,17 @@ namespace rgatCore
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture);
-            imdp.AddImage(CPUframeBufferTextureId, pos,
-            new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
-            new Vector2(0, 1), new Vector2(1, 0));
+            imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
+                p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
+                uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
             _cl.Dispose();
 
             Vector2 mp = new Vector2(ImGui.GetMousePos().X + 8, ImGui.GetMousePos().Y - 12);
-            ImGui.GetWindowDrawList().AddText(_ImGuiController._unicodeFont, 16, mp, 0xffffffff, $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
+            ImGui.GetWindowDrawList().AddText(font: _ImGuiController._unicodeFont, font_size: 16, 
+                pos: mp, col: 0xffffffff, text_begin: $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
 
         }
-
-
-
-
-
-
 
 
         public unsafe void doTestRender(ImGuiController _ImGuiController)
@@ -770,8 +778,6 @@ namespace rgatCore
             {
                 processingAnimatedGraph = true;
             }
-
-            processKeyPresses();
 
             _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID, ActiveGraph.IsAnimated);
 
@@ -807,7 +813,10 @@ namespace rgatCore
             }
         }
 
+
         int _mouseoverNodeID = -1;
+        //Check if the mouse position corresponds to a node ID in the picking texture
+        //If so - the mouse is over that nod
         void doPicking(GraphicsDevice _gd)
         {
             Vector2 WidgetPos = ImGui.GetCursorScreenPos();
@@ -855,17 +864,6 @@ namespace rgatCore
 
             //highlight new nodes with highlighted address
             ActiveGraph.DoHighlightAddresses();
-
-            if (ActiveGraph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying)
-            {
-                //ui->replaySlider->setValue(1000 * ActiveGraph.getAnimationPercent());
-            }
-
-            if (ActiveGraph.ReplayState == PlottedGraph.REPLAY_STATE.eEnded)
-            {
-                //ui->dynamicAnalysisContentsTab->stopAnimation();
-            }
-
         }
 
 

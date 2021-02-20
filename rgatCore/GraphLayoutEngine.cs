@@ -47,6 +47,7 @@ namespace rgatCore
         {
             if (newgraph == _activeGraph) return;
 
+            //make sure the graph has the latest version of the data in case a different widget wants it
             if (_activeGraph != null)
             {
                 StoreCurrentGraphData();
@@ -65,6 +66,7 @@ namespace rgatCore
             LoadCurrentGraphData();
             _computeLock.ReleaseWriterLock();
         }
+
 
         //If graph buffers already stored in VRAM, load the reference
         //Otherwise, fill GPU buffers from stored data in the plottedgraph
@@ -137,6 +139,7 @@ namespace rgatCore
             _gd.Unmap(destinationReadback);
             destinationReadback.Dispose();
         }
+
 
         //read node velocities from the GPU and store in provided plottedgraph
         public void StoreNodeVelocity(PlottedGraph graph)
@@ -325,13 +328,7 @@ namespace rgatCore
             _activeNodeAttribBuffer1.Dispose(); _activeNodeAttribBuffer1 = attribsBuffer1B;
             _activeNodeAttribBuffer2.Dispose(); _activeNodeAttribBuffer2 = attribsBuffer2B;
             _cachedNodeAttribBuffers[_activeGraph] = new Tuple<DeviceBuffer, DeviceBuffer>(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2);
-
-
         }
-
-
-
-
 
 
         //Texture describes how many nodes each node is linked to
@@ -353,8 +350,6 @@ namespace rgatCore
         }
 
 
-
-
         public unsafe DeviceBuffer CreateEdgesConnectionDataBuffer()
         {
             var textureSize = _activeGraph != null ? _activeGraph.LinearIndexTextureSize() : 0;
@@ -374,12 +369,6 @@ namespace rgatCore
             //PrintBufferArray(textureArray, "Created data texture:");
             return newBuffer;
         }
-
-
-
-
-
-
 
 
 
@@ -437,14 +426,10 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-
             //DebugPrintOutputFloatBuffer((int)textureSize, destinationBuffer, "Velocity Computation Done. Result: ", 32);
-
-
             velocityComputeResourceSet.Dispose();
             cl.Dispose();
         }
-
 
 
         /*
@@ -452,7 +437,6 @@ namespace rgatCore
          * Position computation shader moves each node according to its velocity
          * 
          */
-
         [StructLayout(LayoutKind.Sequential)]
         struct PositionShaderParams
         {
@@ -462,6 +446,7 @@ namespace rgatCore
             private uint _padding1; //must be multiple of 16
             private uint _padding2;
         }
+
 
         //todo : everything in here should be class variables defined once
         public unsafe void RenderPosition(DeviceBuffer positions, DeviceBuffer velocities, DeviceBuffer output, float delta)
@@ -501,14 +486,11 @@ namespace rgatCore
         }
 
 
-
         /*
          * 
          * Node attribute shader does a few cosmetic things to nodes (alpha, size) for highlighting and animation
          * 
          */
-
-
         [StructLayout(LayoutKind.Sequential)]
         struct AttribShaderParams
         {
@@ -603,6 +585,8 @@ namespace rgatCore
             cl.Dispose();
             attribComputeResourceSet.Dispose();
         }
+
+
         //recreate node attributes with default state
         //useful for ending an animation sequence
         public void ResetNodeAttributes(PlottedGraph argGraph)
@@ -648,6 +632,7 @@ namespace rgatCore
             return false;
         }
 
+
         public bool GetNodeAttribsBuffer(PlottedGraph argGraph, out DeviceBuffer attribBuf)
         {
             Tuple<DeviceBuffer, DeviceBuffer> result; 
@@ -664,10 +649,6 @@ namespace rgatCore
             attribBuf = null;
             return false;
         }
-
-
-
-
 
 
         public ulong Compute(uint drawnEdgeCount, int mouseoverNodeID, bool useAnimAttribs)
@@ -689,8 +670,6 @@ namespace rgatCore
                 AddNewNodesToComputeBuffers(graphNodeCount);
                 _activeGraph.ComputeBufferNodeCount = (uint)graphNodeCount;
             }
-
-
 
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
@@ -729,8 +708,6 @@ namespace rgatCore
 
             return _cachedVersions[_activeGraph];
         }
-
-
 
 
         void DebugPrintOutputFloatBuffer(int textureSize, DeviceBuffer buf, string message, int printCount)
