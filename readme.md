@@ -1,6 +1,8 @@
 # rgat
 An instruction trace visualisation tool intended to help reverse engineers make the link between target behaviour and code
 
+Feb 2021 note: A full re-write is in progress and should be ready for release in the next few months
+
 ## What is rgat?
 
 rgat uses dynamic binary instrumentation (courtesy of DynamoRIO) to produce graphs from running executables. 
