@@ -9,7 +9,7 @@ struct nodeAttribParams
      float hoverMode;     // selectedNode
     int nodesTexWidth;     // will be the same for epoch and neighbors
     int edgesTexWidth;     // neighbor data
-    uint isAnimated;
+    bool isAnimated;
 };
 
 layout(set = 0, binding=0) buffer bufParams{
@@ -41,7 +41,6 @@ int hasSelectedNeighbor(int neighbor){
 
 
 void main()	{
-
     uvec3 id = gl_GlobalInvocationID;
     uint index = id.y * params.nodesTexWidth + id.x;
     vec4 selfAttrib = nodeAttrib[index];  // just using x and y right now
@@ -66,7 +65,7 @@ void main()	{
     }
         
     //if live trace or active replay
-    if (params.isAnimated != 0)
+    if (params.isAnimated == true)
     {        
         //alpha is based on how long since last active
         
@@ -146,7 +145,7 @@ void main()	{
 
     }
 
-    float alphaTarget = (params.isAnimated > 0) ? 0.2 : 1.0;
+    float alphaTarget = (params.isAnimated) ? 0.2 : 1.0;
 
     /*
     This section deals with mouseover hover/selection

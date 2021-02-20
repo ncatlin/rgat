@@ -773,12 +773,39 @@ namespace rgatCore
 
             processKeyPresses();
 
-            _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID);
+            _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID, ActiveGraph.IsAnimated);
 
             doPicking(_gd);
-            renderGraph(_ImGuiController, _layoutEngine.GetPositionsBuffer(ActiveGraph), _layoutEngine.GetNodeAttribsBuffer(ActiveGraph));
+
+            bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
+            renderGraph(_ImGuiController, positionBuf, nodeAttributesBuffer: attribBuf); 
+            if (doDispose)
+            {
+                positionBuf?.Dispose();
+                attribBuf?.Dispose();
+            }
+            
         }
 
+        /*
+         * Fetched pre-prepared device buffer from layout engine if it is in the working set
+         * Otherwise creates a new one from the stored data in the plottedgraph
+         * 
+         * Returns True if the devicebuffer can be destroyed, or False if the Layoutengine is using it
+         */
+        public bool FetchNodeBuffers(PlottedGraph graph, out DeviceBuffer posBuffer, out DeviceBuffer attribBuffer)
+        {
+            if (_layoutEngine.GetPositionsBuffer(graph, out posBuffer) && _layoutEngine.GetNodeAttribsBuffer(graph, out attribBuffer))
+            {
+                return false;
+            }
+            else
+            {
+                posBuffer = CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
+                attribBuffer = CreateFloatsDeviceBuffer(graph.GetNodeAttribFloats(), _gd);
+                return true;
+            }
+        }
 
         int _mouseoverNodeID = -1;
         void doPicking(GraphicsDevice _gd)
@@ -824,7 +851,7 @@ namespace rgatCore
                 return;
 
             //store latest positions for the preview graph
-            _layoutEngine.StoreNodePositions(ActiveGraph);
+            _layoutEngine.StoreCurrentGraphData();
 
             //highlight new nodes with highlighted address
             ActiveGraph.DoHighlightAddresses();

@@ -495,7 +495,6 @@ namespace rgatCore
         int threadReferences = 0;
         bool schedule_performSymbolResolve = false;
 
-        public bool UpdatedNodePositions = false;
         protected List<TEXTRECT> labelPositions = new List<TEXTRECT>();
 
         protected readonly Object textLock = new Object();
@@ -592,9 +591,16 @@ namespace rgatCore
 
         public float[] positionsArray1 = Array.Empty<float>();
         public float[] velocityArray1 = Array.Empty<float>();
-        public float[] nodeAttribArray1 = Array.Empty<float>();
+        public float[] nodeAttribArray1 = Array.Empty<float>(); 
         public float[] presetPositionsArray = Array.Empty<float>();
+        public ulong renderFrameVersion;
 
+        public void UpdateRenderFrameVersion(ulong newVersion)
+        {
+            Debug.Assert(newVersion > renderFrameVersion);
+            Debug.Assert(newVersion != ulong.MaxValue);
+            renderFrameVersion = newVersion;
+        }
 
         /// <summary>
         /// The raw list of nodes with a one way edge they connect to
@@ -634,7 +640,6 @@ namespace rgatCore
                 textureArray[i] = -1;
             }
 
-            Console.WriteLine($"GetEdgeDataInts returning {targetArray.Count} filled, {textureArray.Length - targetArray.Count} empty");
             return textureArray;
         }
 
@@ -650,7 +655,6 @@ namespace rgatCore
         //This is assumed to never shrink
         public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, uint count)
         {
-            Debug.Assert(velocityArray1.Length <= count); //This is assumed to never shrink
             if (velocityArray1.Length < count)
                 velocityArray1 = new float[count];
             for (var i = 0; i < count; i++)
@@ -843,7 +847,7 @@ namespace rgatCore
                 // fill unused RGBA slots with -1
                 sourceData[i] = -1;
             }
-            Console.WriteLine($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
+            //Console.WriteLine($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
             return sourceData;
         }
 

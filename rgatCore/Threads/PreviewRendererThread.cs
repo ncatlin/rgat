@@ -19,8 +19,6 @@ namespace rgatCore.Threads
 
         public void ThreadProc()
         {
-			return;
-
 			running = true;
 			List<PlottedGraph> graphlist;
 			int StopTimer = -1;
@@ -30,17 +28,18 @@ namespace rgatCore.Threads
 			{
 				//only write we are protecting against happens while creating new threads
 				//so not important to release this quickly
-				graphlist = RenderedTrace.GetPlottedGraphsList(eRenderingMode.ePreview);
+				graphlist = RenderedTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
 
 				moreRenderingNeeded = false;
 				foreach (PlottedGraph graph in graphlist)
 				{
+					if (graph == null || graph == rgatState.ActiveGraph) continue;
+
 					//check for trace data that hasn't been rendered yet
 					ProtoGraph protoGraph = graph.internalProtoGraph;
 					lock (graph.RenderingLock)
 					{
-						if ((graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
-							(graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
+						if ((graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
 						{
 							//Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
 							moreRenderingNeeded = true;

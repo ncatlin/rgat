@@ -49,15 +49,21 @@ namespace rgatCore
         {
             Console.WriteLine("Constructing rgatUI");
             _rgatstate = new rgatState(_gd, _cl);
+            Console.WriteLine("State created");
             GlobalConfig.InitDefaultConfig();
+            Console.WriteLine("Config Inited");
 
             _ImGuiController = imguicontroller;
 
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
+            Console.WriteLine("MainGraphRenderThread Inited");
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
+            Console.WriteLine("ProcessCoordinatorThread Inited");
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
-            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd);
+            Console.WriteLine("GraphPlotWidget Inited");
+            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
+            Console.WriteLine("PreviewGraphsWidget Inited");
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
             Console.WriteLine("rgatUI created");
         }
@@ -464,10 +470,9 @@ namespace rgatCore
 
         private void DrawVisualiserGraphs(float height)
         {
-            float tracesGLFrameWidth = 300;
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
-                Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - tracesGLFrameWidth, height);
+                Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
                 {
                     MainGraphWidget.Draw(graphSize, _ImGuiController);
@@ -484,10 +489,10 @@ namespace rgatCore
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x10253880);
-                Vector2 previewPaneSize = new Vector2(tracesGLFrameWidth, height);
+                Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
                 {
-                    PreviewGraphWidget.Draw(previewPaneSize, _ImGuiController, _rgatstate._GraphicsDevice);
+                    PreviewGraphWidget.DrawWidget(_ImGuiController, _rgatstate._GraphicsDevice);
                     if (PreviewGraphWidget.clickedGraph != null)
                     {
                         SetActiveGraph(PreviewGraphWidget.clickedGraph);
@@ -920,9 +925,10 @@ namespace rgatCore
                 Console.WriteLine("Warning: Graph selected in non-viewed trace");
                 return;
             }
+
             _rgatstate.SwitchToGraph(graph);
-            MainGraphWidget.SetActiveGraph(graph);
             PreviewGraphWidget.SetSelectedGraph(graph);
+            MainGraphWidget.SetActiveGraph(graph);
         }
 
 
@@ -997,7 +1003,11 @@ namespace rgatCore
                             {
                                 foreach (PlottedGraph selectablegraph in graphs)
                                 {
-                                    if (ImGui.Selectable("TID " + selectablegraph.tid, activeTID == selectablegraph.tid))
+                                    string caption = "TID " + selectablegraph.tid;
+                                    int nodeCount = selectablegraph.GraphNodeCount();
+                                    if (nodeCount == 0) caption += " [No Data]";
+                                    else caption += $" [{nodeCount} nodes]";
+                                    if (ImGui.Selectable(caption, activeTID == selectablegraph.tid))
                                     {
                                         SetActiveGraph(selectablegraph);
                                     }
