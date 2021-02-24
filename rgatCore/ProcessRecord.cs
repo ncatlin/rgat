@@ -274,6 +274,22 @@ namespace rgatCore
             }
         }
 
+        public ulong GetBlockAtAddress(ulong address)
+        {
+            bool hasBlock = false;
+            while (!hasBlock)
+            {
+                lock (InstructionsLock)
+                {
+                    hasBlock = blockIDDict.ContainsKey(address);
+                }
+                if (hasBlock) break;
+                Console.WriteLine($"Waiting for block at 0x{address:x}");
+                Thread.Sleep(15);
+                
+            }
+            return blockIDDict[address][^1];
+        }
 
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)
         {
@@ -283,14 +299,23 @@ namespace rgatCore
                 if (BasicBlocksList.Count > blockID)
                 {
                     BasicBlocksList[(int)blockID] = new Tuple<ulong, List<InstructionData>>(address, instructions);
-                    return;
                 }
-
-                while (BasicBlocksList.Count < blockID)
+                else
                 {
-                    BasicBlocksList.Add(null);
+                    while (BasicBlocksList.Count < blockID)
+                    {
+                        BasicBlocksList.Add(null);
+                    }
+                    BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(address, instructions));
                 }
-                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(address, instructions));
+                if (blockIDDict.ContainsKey(address))
+                {
+                    blockIDDict[address].Add(blockID);
+                }
+                else
+                {
+                    blockIDDict[address] = new List<ulong>() { blockID };
+                }
             }
         }
 
@@ -372,7 +397,7 @@ namespace rgatCore
         //list of basic blocks - guarded by instructionslock
         //              address
         public List<Tuple<ulong, List<InstructionData>>> BasicBlocksList = new List<Tuple<ulong, List<InstructionData>>>();
-        //private Dictionary<uint, List<InstructionData>> blockDict = new Dictionary<uint, List<InstructionData>>();
+        private Dictionary<ulong, List<ulong>> blockIDDict = new Dictionary<ulong, List<ulong>>();
 
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
         public int BitWidth;

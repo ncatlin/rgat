@@ -248,6 +248,7 @@ namespace rgatCore
                     try { threadpipe.EndRead(res); }
                     catch (Exception e)
                     {
+                        //todo: Exception on threadreader read : Adding the specified count to the semaphore would cause it to exceed its maximum count.
                         Console.WriteLine("Exception on threadreader read : " + e.Message);
                     };
                 }

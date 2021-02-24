@@ -23,13 +23,14 @@ namespace rgatCore
 		//type of edge (call,extern,etc)
 		public eEdgeNodeType edgeClass;
 
-		//number of times executed, temporary variable used by heatmap solver
-		public ulong chainedWeight = 0;
+		public ulong executionCount { get; private set; } = 0;
+		public void SetExecutionCount(ulong value) { executionCount = value; }
 
-		//number of verticies taken up in OpenGL data
-		//public int vertSize = 0;
-		//position in rendering data structure
-		//public int arraypos = 0;
+		public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
+
+		public bool heatComplete = false;
+
 		public uint EdgeIndex = 0;
+		public float heatRank = 0; //0-1 least to most busy
 	}
 }

@@ -33,10 +33,12 @@ namespace rgatCore
             _GraphicsDevice = _gd;
             _CommandList = _cl;
             PlottedGraph.clientState = this;
+            Console.WriteLine("Loading dielib");
             DIELib = new DetectItEasy(@"C:\Users\nia\Downloads\Detect-It-Easy-master\db");
+            Console.WriteLine("dielib loaded. loading yara");
             YARALib = new YARAScan();
 
-            
+            Console.WriteLine("yara loaded");
         }
 
 
@@ -148,7 +150,7 @@ namespace rgatCore
             //valid target or not, we assume current graph is no longer fashionable
             ClearActiveGraph();
 
-            if (graph == null || graph.NeedReplotting || graph.beingDeleted) return;
+            if (graph == null || graph.beingDeleted) return;
 
             TraceRecord trace = ActiveTrace;
             if (trace == null) return;

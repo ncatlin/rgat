@@ -230,7 +230,7 @@ namespace rgatCore
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception '{e.Message}' while sending tracedDir data");
+                        Console.WriteLine($"[rgat]Exception '{e.Message}' while sending tracedDir data");
                         return;
                     }
                 }
@@ -261,7 +261,7 @@ namespace rgatCore
                     try { controlPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception '{e.Message}' while sending ignored dir data");
+                        Console.WriteLine($"[rgat]Exception '{e.Message}' while sending ignored dir data");
                         return;
                     }
                 }

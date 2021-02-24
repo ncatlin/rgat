@@ -176,19 +176,14 @@ namespace rgatCore
 		*/
         public void render_graph()
         {
-            render_new_blocks();
+            lock (RenderingLock)
+            {
+                render_new_blocks();
+            }
         }
         /*
-		virtual void performMainGraphDrawing(graphGLWidget &gltarget) { cout << "virtual pmgd called" << endl; };
-		virtual void performDiffGraphDrawing(graphGLWidget &gltarget, void* divergeNodePosition);
-
 		virtual void orient_to_user_view() { };
 		*/
-        protected bool render_edge(Tuple<uint, uint> nodePair, WritableRgbaFloat? forceColour)
-        {
-            //todo
-            return true;
-        }
         /*
 		virtual uint get_graph_size() { return 0; };
 		virtual void* get_node_coord_ptr(uint idx) { return 0; }
@@ -234,7 +229,9 @@ namespace rgatCore
 
         public void UpdateMainRender()
         {
-            render_graph();
+
+                render_graph();
+            
         }
 
         public void SeekToAnimationPosition(float position)
@@ -543,19 +540,18 @@ namespace rgatCore
         {
             int endIndex = internalProtoGraph.edgeList.Count;
             int drawCount = endIndex - (int)DrawnEdgesCount;
-            if (drawCount < 1) return;
-            Console.WriteLine($"Rendering {drawCount} new blocks from index {DrawnEdgesCount}");
+            if (drawCount <= 0) return;
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
-                if (edgeNodes.Item1 >= NodesDisplayData.CountVerts())
+                if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
                     //NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
                     //render_node(n1);
                     AddNode(edgeNodes.Item1);
                 }
 
-                if (edgeNodes.Item2 >= NodesDisplayData.CountVerts())
+                if (edgeNodes.Item2 >= _graphStructureLinear.Count)
                 {
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
                     if (e.edgeClass == eEdgeNodeType.eEdgeException)
@@ -645,10 +641,20 @@ namespace rgatCore
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions, uint count)
         {
+
             if (positionsArray1.Length < count)
                 positionsArray1 = new float[count];
             for (var i = 0; i < count; i++)
+            {
+                if (positionsArray1[i] > 0 && newPositions[i] == 0)
+                {
+                    Console.WriteLine("bad");
+                }
                 positionsArray1[i] = newPositions[i];
+                if (positionsArray1[i] == 0)
+                    Console.WriteLine($"!----UpdateNodePositions {i} -> {newPositions[i]} ");
+            }
+
 
         }
 
@@ -665,12 +671,19 @@ namespace rgatCore
         public float[] GetVelocityFloats()
         {
             //Console.WriteLine($"Getvelocity floats returning {velocityArray1.Length} floats");
-            return velocityArray1;
+            lock (RenderingLock)
+            {
+                return velocityArray1.ToArray();
+            }
         }
         public float[] GetPositionFloats()
         {
             //Console.WriteLine($"GetPositionFloats floats returning {positionsArray1.Length} floats");
-            return positionsArray1;
+            lock (RenderingLock)
+            {
+                return positionsArray1.ToArray();
+            }
+
         }
         public float[] GetNodeAttribFloats()
         {
@@ -689,7 +702,6 @@ namespace rgatCore
 
         void EnlargeRAMDataBuffers(uint size)
         {
-            Console.WriteLine($"Enlarging ram data buffers to size {size}");
             float[] newVelocityArr1 = new float[size];
             float[] newPositionsArr1 = new float[size];
             float[] newAttsArr1 = new float[size];
@@ -721,24 +733,17 @@ namespace rgatCore
             velocityArray1 = newVelocityArr1;
             nodeAttribArray1 = newAttsArr1;
             presetPositionsArray = newPresetsArray;
+
         }
 
 
-        void AddNode(uint nodeIdx)
-        {
-            if (nodeIdx < _graphStructureLinear.Count) return;
-            AddNode(nodeIdx, new List<int>(), false);
-        }
 
-        unsafe void AddNode(uint nodeIdx, List<int> destNodes, bool doubleEdge)
+        unsafe void AddNode(uint nodeIdx)
         {
             Debug.Assert(nodeIdx == _graphStructureLinear.Count);
 
             var bounds = 1000;
             var bounds_half = bounds / 2;
-
-
-
 
             int oldVelocityArraySize = (velocityArray1 != null) ? velocityArray1.Length * sizeof(float) : 0;
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
@@ -760,6 +765,7 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
 
             uint currentOffset = (futureCount - 1) * 4;
+
             positionsArray1[currentOffset] = nodePositionEntry[0];
             positionsArray1[currentOffset + 1] = nodePositionEntry[1];
             positionsArray1[currentOffset + 2] = nodePositionEntry[2];
@@ -781,23 +787,12 @@ namespace rgatCore
             nodeAttribArray1[currentOffset + 2] = 0;
             nodeAttribArray1[currentOffset + 3] = 0;
 
+
+            List<int> connectedNodeIDs = new List<int>();
             lock (animationLock)
             {
-                _graphStructureLinear.Add(destNodes);
-                _graphStructureBalanced.Add(destNodes);
-            }
-            //todo - see if this needs to be locked
-            //don't care about distortion for a frame but a crash is no good
-            if (doubleEdge)
-            {
-                var srcNodeIdx = _graphStructureBalanced.Count - 1;
-                foreach (int dstNodeIdx in destNodes)
-                {
-                    if (!_graphStructureBalanced[dstNodeIdx].Contains(srcNodeIdx))
-                    {
-                        _graphStructureBalanced[dstNodeIdx].Add(srcNodeIdx);
-                    }
-                }
+                _graphStructureLinear.Add(connectedNodeIDs);
+                _graphStructureBalanced.Add(connectedNodeIDs);
             }
         }
 
@@ -870,28 +865,6 @@ namespace rgatCore
         }
 
 
-        public unsafe void AddTestNodes()
-        {
-            Random rnd = new Random();
-
-            int nodesToAdd = rnd.Next(1, 5);
-            for (var i = 0; i < nodesToAdd; i++)
-            {
-                var linksList = new List<int>();
-                int linksToAdd = rnd.Next(1, 3);
-                for (var vl = 0; vl < linksToAdd; vl++)
-                {
-                    int val = rnd.Next(Math.Max(0, _graphStructureLinear.Count - 8), _graphStructureLinear.Count);
-                    if (!linksList.Contains(val))
-                        linksList.Add(val);
-                }
-
-                AddNode((uint)_graphStructureLinear.Count, linksList, true);
-            }
-
-            temperature += nodesToAdd * 10.0f;
-        }
-
         void InitBlankPresetLayout()
         {
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
@@ -923,12 +896,16 @@ namespace rgatCore
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
 
-        public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureLinear)); }
+        public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureBalanced)); }
         public uint EdgeVertsTextureWidth() { return dataTextureSize(internalProtoGraph.edgeList.Count); }
 
 
         public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode)
         {
+            if (nodeIndex >= internalProtoGraph.NodeList.Count)
+            {
+                return new WritableRgbaFloat(0, 0, 0, 0);
+            }
             NodeData n = internalProtoGraph.NodeList[nodeIndex];
             switch (renderingMode)
             {
@@ -955,16 +932,17 @@ namespace rgatCore
                 case eRenderingMode.eHeatmap:
                     return new WritableRgbaFloat(1, 0, 0, 1);
                 case eRenderingMode.eConditionals:
-                    return new WritableRgbaFloat(0, 1, 0, 1);
+                    return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
                 default:
                     return graphColours[(int)e.edgeClass];
             }
         }
 
-        Tuple<string, Color> createNodeLabel(int index)
+
+        Tuple<string, Color> createNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = internalProtoGraph.NodeList[index];
-            if (n.label == null || n.newArgsRecorded)
+            if (n.label == null || n.newArgsRecorded || forceNew)
             {
                 if (n.IsExternal)
                 {
@@ -974,6 +952,18 @@ namespace rgatCore
                 else
                 {
                     n.label = $"{index}: {n.ins.ins_text}";
+                    if (renderingMode == eRenderingMode.eHeatmap)
+                    {
+                        n.label += $" [{n.executionCount}/{internalProtoGraph.TotalInstructions}] ";
+                        n.label += "<";
+                        foreach (int nidx in n.OutgoingNeighboursSet)
+                        {
+                            EdgeData e = internalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
+                            n.label += $" {nidx}:{e.executionCount}, ";
+                        }
+                        n.label += ">";
+
+                    }
                     if (n.ins.hasSymbol)
                     {
                         internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
@@ -986,7 +976,7 @@ namespace rgatCore
             return new Tuple<string, Color>(n.label, color);
         }
 
-
+        eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
         public VertexPositionColor[] GetMaingraphNodeVerts(
             out List<uint> nodeIndices,
@@ -994,6 +984,12 @@ namespace rgatCore
             out List<Tuple<string, Color>> captions,
             eRenderingMode renderingMode)
         {
+            bool createNewLabels = false;
+            if (renderingMode != lastRenderingMode)
+            {
+                createNewLabels = true;
+                lastRenderingMode = renderingMode;
+            }
 
             uint textureSize = LinearIndexTextureSize();
             VertexPositionColor[] NodeVerts = new VertexPositionColor[textureSize * textureSize];
@@ -1023,7 +1019,10 @@ namespace rgatCore
                         TexPosition = new Vector2(x, y),
                         Color = new WritableRgbaFloat(index, 0, 0, 1)
                     };
-                    captions.Add(createNodeLabel((int)index));
+                    //if (index == 120)
+                    captions.Add(createNodeLabel((int)index, renderingMode, createNewLabels));
+                    //else
+                    //    captions.Add(new Tuple<string, Color>("", Color.Black));
 
                 }
             }
@@ -1321,9 +1320,9 @@ namespace rgatCore
                 if (listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                        AddRisingExtern(nodeIdx, entry.callCount - 1, Anim_Constants.KEEP_BRIGHT);
+                        AddRisingExtern(nodeIdx, entry.count - 1, Anim_Constants.KEEP_BRIGHT);
                     else
-                        AddRisingExtern(nodeIdx, entry.callCount - 1, GlobalConfig.ExternAnimDisplayFrames);
+                        AddRisingExtern(nodeIdx, entry.count - 1, GlobalConfig.ExternAnimDisplayFrames);
                 }
 
 
@@ -1416,7 +1415,7 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
                 string s = "";
-                if (get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDListFFF))
+                if (get_block_nodelist(0, entry.blockID, out List<uint> nodeIDListFFF))
                 {
                     foreach (int x in nodeIDListFFF) s += $"{x},";
                 }

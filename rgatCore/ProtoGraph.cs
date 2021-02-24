@@ -46,10 +46,10 @@ namespace rgatCore
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
+        public List<Tuple<ulong,ulong>> edgeCounts;
         public ulong count;
         public ulong targetAddr;
         public uint targetID;
-        public ulong callCount;
     };
 
 
@@ -72,6 +72,8 @@ namespace rgatCore
         //used to keep a blocking extern highlighted - may not be useful with new method TODO
         private uint latest_active_node_idx = 0;
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
+
+        public bool HeatSolvingComplete = false;
 
         private bool LoadNodes(JArray NodesArray, Dictionary<ulong, List<InstructionData>> disassembly)
         {
@@ -133,8 +135,19 @@ namespace rgatCore
                 entry.count = animFields[3].ToObject<ulong>();
                 entry.targetAddr = animFields[4].ToObject<ulong>();
                 entry.targetID = animFields[5].ToObject<uint>();
-                entry.callCount = animFields[6].ToObject<ulong>();
-
+                JArray edgecounts = (JArray)animFields[6];
+                if (edgecounts.Count > 0)
+                {
+                    entry.edgeCounts = new List<Tuple<ulong, ulong>>();
+                    for (int i = 0; i < edgecounts.Count; i += 2)
+                    {
+                        entry.edgeCounts.Add(new Tuple<ulong, ulong>(edgecounts[i].ToObject<ulong>(), edgecounts[i + 1].ToObject<ulong>()));
+                    }
+                }
+                else
+                {
+                    entry.edgeCounts = null;
+                }
                 SavedAnimationData.Add(entry);
             }
 
@@ -183,6 +196,8 @@ namespace rgatCore
         }
 
 
+
+        ///todo is this needed
         private void AddEdge_LastToTargetVert(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
@@ -197,7 +212,7 @@ namespace rgatCore
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
             EdgeData newEdge = new EdgeData(edgeList.Count);
-            newEdge.chainedWeight = 0;
+            //newEdge.executionCount = repeats;
 
             if (instructionIndex > 0)
                 newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
@@ -266,7 +281,7 @@ namespace rgatCore
                 if (!alreadyExecuted)
                     targVertID = handle_new_instruction(instruction, tag.blockID, 1);
                 else
-                    safe_get_node(targVertID).executionCount += 1;
+                    safe_get_node(targVertID).IncreaseExecutionCount(1);
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
@@ -330,7 +345,7 @@ namespace rgatCore
                     targVertID = caller.Item2;
 
                     NodeData targNode = safe_get_node(targVertID);
-                    targNode.executionCount += repeats;
+                    targNode.IncreaseExecutionCount(repeats);
                     targNode.currentCallIndex += repeats;
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
@@ -371,7 +386,7 @@ namespace rgatCore
             newTargNode.address = targaddr;
             newTargNode.index = targVertID;
             newTargNode.parentIdx = ProtoLastVertID;
-            newTargNode.executionCount = 1;
+            newTargNode.SetExecutionCount(1);
 
 
             InsertNode(targVertID, newTargNode); //this invalidates all node_data* pointers
@@ -379,7 +394,6 @@ namespace rgatCore
 
 
             EdgeData newEdge = new EdgeData(edgeList.Count);
-            newEdge.chainedWeight = 0;
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
@@ -421,6 +435,10 @@ namespace rgatCore
          */
         public void ProcessIncomingCallArguments()
         {
+            //todo
+            //Console.WriteLine("todo reenable incoming areguments after crashes stop");
+            return;
+
             if (_unprocessedCallArguments.Count == 0) return;
 
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
@@ -608,13 +626,22 @@ namespace rgatCore
                 return edgeList.ToList();
             }
         }
+        public EdgeData GetEdge(uint src, uint targ)
+        {
 
-        public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx)
+            lock (edgeLock)
+            {
+                return edgeDict[new Tuple<uint, uint>(src, targ)];
+            }
+        }
+
+        public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx, ulong execCount)
         {
             NodeData sourceNode = safe_get_node(SrcNodeIdx);
             NodeData targNode = safe_get_node(TargNodeIdx);
 
             EdgeData newEdge = new EdgeData(edgeList.Count);
+            newEdge.SetExecutionCount(execCount);
 
             if (targNode.IsExternal)
             {
@@ -637,10 +664,7 @@ namespace rgatCore
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
             //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
-            if (source.IsExternal)
-                Console.WriteLine("f");
-
-            //todo needs nodelock?
+ 
             if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
             {
                 source.OutgoingNeighboursSet.Add(edgePair.Item2);
@@ -658,14 +682,18 @@ namespace rgatCore
 
             lock (nodeLock)
             {
-                target.IncomingNeighboursSet.Add(edgePair.Item1);
-                target.UpdateDegree();
+                if (!target.IncomingNeighboursSet.Contains(edgePair.Item1))
+                {
+                    target.IncomingNeighboursSet.Add(edgePair.Item1);
+                    target.UpdateDegree();
+                }
             }
 
             lock (edgeLock)
             {
                 edgeDict.Add(edgePair, e); 
                 edgeList.Add(edgePair);
+                edgePtrList.Add(e);
             }
 
         }
@@ -745,6 +773,7 @@ namespace rgatCore
         //order of edge execution
         //todo - make this private, hide from view for thread safety
         public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
+        public List<EdgeData> edgePtrList = new List<EdgeData>();
         //light-touch list of blocks for filling in edges without locking disassembly data
         public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
 
@@ -773,7 +802,7 @@ namespace rgatCore
             thisnode.conditional = thisnode.ins.conditional ? eConditionalType.ISCONDITIONAL : eConditionalType.NOTCONDITIONAL;
             thisnode.address = instruction.address;
             thisnode.BlockID = blockID;
-            thisnode.executionCount = repeats;
+            thisnode.SetExecutionCount(repeats);
             thisnode.GlobalModuleID = instruction.globalmodnum;
 
             Debug.Assert(!node_exists(targVertID));
@@ -791,9 +820,7 @@ namespace rgatCore
 
         public void handle_previous_instruction(uint targVertID, ulong repeats)
         {
-
-            safe_get_node(targVertID).executionCount += repeats;
-            //lastVertID = targVertID;
+            safe_get_node(targVertID).IncreaseExecutionCount(repeats);
         }
 
 
@@ -1004,6 +1031,7 @@ namespace rgatCore
 
         }
 
+        /*
         public void DumpLoop()
         {
             Debug.Assert(loopState == eLoopState.eBuildingLoop);
@@ -1044,7 +1072,7 @@ namespace rgatCore
             loopState = eLoopState.eNoLoop;
 
         }
-
+        */
 
 
         public JObject Serialise()
@@ -1122,7 +1150,15 @@ namespace rgatCore
                     replayItem.Add(repentry.count);
                     replayItem.Add(repentry.targetAddr);
                     replayItem.Add(repentry.targetID);
-                    replayItem.Add(repentry.callCount);
+
+                    JArray edgeCounts = new JArray();
+                    foreach(var targCount in repentry.edgeCounts) //todo actually use blockID
+                    {
+                        edgeCounts.Add(targCount.Item1);
+                        edgeCounts.Add(targCount.Item2);
+                    }
+                    replayItem.Add(edgeCounts);
+
                     replayDataArr.Add(replayItem);
                 }
             }

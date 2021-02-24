@@ -101,12 +101,15 @@ namespace rgatCore
 
         public void StoreCurrentGraphData()
         {
-            ulong currentRenderVersion = _cachedVersions[_activeGraph];
-            if (currentRenderVersion > _activeGraph.renderFrameVersion)
+            lock (_activeGraph.RenderingLock)
             {
-                StoreNodePositions(_activeGraph);
-                StoreNodeVelocity(_activeGraph);
-                _activeGraph.UpdateRenderFrameVersion(currentRenderVersion);
+                ulong currentRenderVersion = _cachedVersions[_activeGraph];
+                if (currentRenderVersion > _activeGraph.renderFrameVersion)
+                {
+                    StoreNodePositions(_activeGraph);
+                    StoreNodeVelocity(_activeGraph);
+                    _activeGraph.UpdateRenderFrameVersion(currentRenderVersion);
+                }
             }
         }
 
@@ -128,10 +131,9 @@ namespace rgatCore
         //read node positions from the GPU and store in provided plottedgraph
         public void StoreNodePositions(PlottedGraph graph)
         {
-            uint textureSize = graph.LinearIndexTextureSize();
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _activePositionsBuffer1);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-            uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
+            uint floatCount = graph.ComputeBufferNodeCount*sizeof(float);
             if (floatCount > 0)
             { 
                 graph.UpdateNodePositions(destinationReadView, floatCount); 
@@ -258,7 +260,7 @@ namespace rgatCore
                 Debug.Assert(bufferSize >= updateSize);
 
                 Console.WriteLine($"Recreating buffers as {bufferSize} > {_activeVelocityBuffer1.SizeInBytes}");
-                recreateComputeBuffers(bufferSize);
+                resizeComputeBuffers(bufferSize);
             }
 
 
@@ -285,17 +287,14 @@ namespace rgatCore
 
         void RegenerateEdgeDataBuffers()
         {
-            Console.WriteLine("===RegenerateEdgeDataBuffers===");
-
-            _edgesConnectionDataBuffer.Dispose();
+            _edgesConnectionDataBuffer?.Dispose();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
-
-            _edgesConnectionDataOffsetsBuffer.Dispose();
+            _edgesConnectionDataOffsetsBuffer?.Dispose();
             _edgesConnectionDataOffsetsBuffer = _CreateEdgesConnectionDataOffsetsBuffer();
         }
 
 
-        void recreateComputeBuffers(uint bufferSize)
+        void resizeComputeBuffers(uint bufferSize)
         {
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
             DeviceBuffer velocityBuffer1B = _factory.CreateBuffer(bd);
@@ -308,6 +307,7 @@ namespace rgatCore
 
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();
+
             cl.CopyBuffer(_activeVelocityBuffer1, 0, velocityBuffer1B, 0, _activeVelocityBuffer1.SizeInBytes);
             cl.CopyBuffer(_activeVelocityBuffer2, 0, velocityBuffer2B, 0, _activeVelocityBuffer1.SizeInBytes);
             cl.CopyBuffer(_activePositionsBuffer1, 0, positionsBuffer1B, 0, _activePositionsBuffer1.SizeInBytes);
@@ -658,6 +658,7 @@ namespace rgatCore
             {
                 SetupComputeResources();
             }
+
             if (drawnEdgeCount > _activeGraph.RenderedEdgeCount)
             {
                 RegenerateEdgeDataBuffers();
@@ -683,7 +684,7 @@ namespace rgatCore
                 {
                     RenderVelocity(_activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, _activeGraphTemperature);
                     RenderPosition(_activePositionsBuffer1, _activeVelocityBuffer1, _activePositionsBuffer2, delta);
-                    _cachedVersions[_activeGraph]++;
+                    //_cachedVersions[_activeGraph]++;
                 }
 
                 RenderNodeAttribs(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2, delta, mouseoverNodeID, useAnimAttribs);

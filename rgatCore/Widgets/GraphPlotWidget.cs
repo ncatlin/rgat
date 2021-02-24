@@ -448,6 +448,7 @@ namespace rgatCore
                     Console.WriteLine("Setting mainwidget rendering mode to eConditionals");
                     break;
                 case eRenderingMode.eHeatmap:
+                    ActiveGraph.internalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
                     Console.WriteLine("Setting mainwidget rendering mode to eHeatmap");
                     break;
                 default:
@@ -624,7 +625,6 @@ namespace rgatCore
 
         public void renderGraph(ImGuiController _ImGuiController, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
-
             //rotval += 0.01f; //autorotate
             if (ActiveGraph.PlotZRotation >= 360) ActiveGraph.PlotZRotation = 0;
             var textureSize = ActiveGraph.LinearIndexTextureSize();
@@ -853,13 +853,13 @@ namespace rgatCore
         }
 
 
-
         private void PerformIrregularActions()
         {
             if (ActiveGraph == null)
                 return;
 
             //store latest positions for the preview graph
+
             _layoutEngine.StoreCurrentGraphData();
 
             //highlight new nodes with highlighted address

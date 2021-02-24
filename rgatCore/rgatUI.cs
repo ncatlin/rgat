@@ -33,6 +33,7 @@ namespace rgatCore
         private int _selectedInstrumentationEngine = 0;
 
         Threads.MainGraphRenderThread mainRenderThreadObj = null;
+        Threads.HeatRankingThread heatRankThreadObj = null;
         ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         GraphPlotWidget MainGraphWidget = null;
@@ -52,6 +53,8 @@ namespace rgatCore
             _ImGuiController = imguicontroller;
 
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
+            heatRankThreadObj = new HeatRankingThread(_rgatstate);
+
             Console.WriteLine("MainGraphRenderThread Inited");
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
             Console.WriteLine("ProcessCoordinatorThread Inited");
@@ -111,7 +114,10 @@ namespace rgatCore
             if (ActiveGraph != null)
             {
                 if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X))) { 
-                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eHeatmap); 
+                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eHeatmap);
+                }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C))) {
+                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eConditionals);
                 }
                 if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50;}
                 if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50;}
@@ -580,7 +586,7 @@ namespace rgatCore
 
         private void InitGraphReplot()
         {
-            _rgatstate.ActiveGraph.NeedReplotting = true;
+            Console.WriteLine("init graph replot called");
         }
 
         private void DrawScalePopup()

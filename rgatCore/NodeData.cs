@@ -43,13 +43,6 @@ namespace rgatCore
             }
 
             nodearr.Add(unreliableCount);
-
-            if (label?.Length > 0)
-            {
-                nodearr.Add(label);
-                nodearr.Add(placeholder);
-            }
-
             return nodearr;
         }
 
@@ -124,14 +117,6 @@ namespace rgatCore
             if (nodeData[9].Type != JTokenType.Boolean) return ErrorAtIndex(7);
             unreliableCount = nodeData[9].ToObject<bool>();
 
-            if (nodeData.Count > 10)
-            {
-                label = nodeData[10].ToString();
-                placeholder = nodeData[11].ToObject<bool>();
-                if (!placeholder && !IsExternal)
-                    ins.hasSymbol = true;
-            }
-
             return true;
         }
 
@@ -141,6 +126,7 @@ namespace rgatCore
             return false;
         }
 
+        //todo this is worthless
         public void UpdateDegree()
         {
             degree = IncomingNeighboursSet.Count + OutgoingNeighboursSet.Where(outIdx => !IncomingNeighboursSet.Any(inIdx => inIdx != outIdx)).Count();
@@ -227,11 +213,25 @@ namespace rgatCore
     public ulong address = 0;
     public uint parentIdx = 0;
 
-    public ulong executionCount = 0;
-    ulong chain_remaining_in = 0;
-    ulong chain_remaining_out = 0;
+    public ulong executionCount { get; private set; } = 0;
+    public void SetExecutionCount(ulong value) {
+            if (index == 4 && value > 33)
+            {
+                Console.WriteLine($"Node 4 exec count set to {value}");
+            }
+            executionCount = value;
+        }
+    public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
 
-    ulong heat_run_marker;
+        public ulong heat_ExecutionsRemainingIn = 0;
+    public ulong heat_ExecutionsRemainingOut = 0;
+
+    public List<uint> UnsolvedOutNeighbours = new List<uint>();
+    public List<uint> UnsolvedInNeighbours = new List<uint>();
+
+        ulong heat_run_marker;
+    //todo serialise
+    float heatRank = 0; //0-1 least to most busy 
 
     public List<uint> IncomingNeighboursSet = new List<uint>();
     public List<uint> OutgoingNeighboursSet = new List<uint>();
