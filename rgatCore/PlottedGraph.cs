@@ -121,15 +121,6 @@ namespace rgatCore
             EdgesDisplayData = new GraphDisplayData();
             HighlightsDisplayData = new GraphDisplayData();
 
-            //conditionallines = new GraphDisplayData();
-            //conditionalnodes = new GraphDisplayData();
-            //heatmaplines = new GraphDisplayData();
-
-            //blocklines = new GraphDisplayData();
-
-
-            //main_scalefactors = new GRAPH_SCALE;
-            //preview_scalefactors = new GRAPH_SCALE;
 
             internalProtoGraph = protoGraph;
 
@@ -930,7 +921,33 @@ namespace rgatCore
                 case eRenderingMode.eStandardControlFlow:
                     return graphColours[(int)e.edgeClass];
                 case eRenderingMode.eHeatmap:
-                    return new WritableRgbaFloat(1, 0, 0, 1);
+                    {
+                        switch (e.heatRank)
+                        {
+                            case 0:
+                                return new WritableRgbaFloat(0, 0, 1, 0.7f);
+                            case 1:
+                                return new WritableRgbaFloat(0.1f, 0, 0.9f, 1);
+                            case 2:
+                                return new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
+                            case 3:
+                                return new WritableRgbaFloat(0.5f, 0, 0.5f, 1);
+                            case 4:
+                                return new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
+                            case 5:
+                                return new WritableRgbaFloat(0.9f, 0, 0.1f, 1);
+                            case 6:
+                                return new WritableRgbaFloat(1, 0, 1, 1);
+                            case 7:
+                                return new WritableRgbaFloat(1, 0.3f, 1, 1);
+                            case 8:
+                                return new WritableRgbaFloat(1, 0.7f, 1, 1);
+                            case 9:
+                                return new WritableRgbaFloat(1, 1, 1, 1);
+                            default:
+                                return new WritableRgbaFloat(Color.Green);
+                        }
+                    }
                 case eRenderingMode.eConditionals:
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
                 default:

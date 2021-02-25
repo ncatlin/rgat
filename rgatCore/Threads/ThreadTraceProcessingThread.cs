@@ -88,11 +88,19 @@ namespace rgatCore.Threads
                 }
 
                 //first record execution of each instruction
+                InstructionData lastIns = brep.blockInslist[^1];
                 foreach (InstructionData ins in brep.blockInslist)
                 {
                     n = protograph.safe_get_node(ins.threadvertIdx[protograph.ThreadID]);
                     n.IncreaseExecutionCount(brep.repeatCount);
                     protograph.TotalInstructions += brep.repeatCount;
+
+                    if (ins.address != lastIns.address)
+                    {
+                        uint targID = n.OutgoingNeighboursSet[0];
+                        EdgeData targEdge = protograph.GetEdge(n.index, targID);
+                        targEdge.IncreaseExecutionCount(brep.repeatCount);
+                    }
                 }
 
                 NodeData lastNode = n;

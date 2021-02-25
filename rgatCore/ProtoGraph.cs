@@ -203,8 +203,9 @@ namespace rgatCore
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
             //Console.WriteLine($"\AddEdge_LastToTargetVert {lastVertID} -> {targVertID}");
-            if (EdgeExists(edgeIDPair))
+            if (EdgeExists(edgeIDPair, out EdgeData edgeD))
             {
+                edgeD.IncreaseExecutionCount(repeats);
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
                 return;
             }
@@ -212,7 +213,7 @@ namespace rgatCore
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
             EdgeData newEdge = new EdgeData(edgeList.Count);
-            //newEdge.executionCount = repeats;
+            newEdge.SetExecutionCount(repeats);
 
             if (instructionIndex > 0)
                 newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
@@ -344,6 +345,9 @@ namespace rgatCore
 
                     targVertID = caller.Item2;
 
+                    EdgeData e = GetEdge(caller.Item1, caller.Item2);
+                    e.IncreaseExecutionCount(repeats);
+
                     NodeData targNode = safe_get_node(targVertID);
                     targNode.IncreaseExecutionCount(repeats);
                     targNode.currentCallIndex += repeats;
@@ -386,20 +390,24 @@ namespace rgatCore
             newTargNode.address = targaddr;
             newTargNode.index = targVertID;
             newTargNode.parentIdx = ProtoLastVertID;
-            newTargNode.SetExecutionCount(1);
+            newTargNode.SetExecutionCount(repeats);
 
 
             InsertNode(targVertID, newTargNode); //this invalidates all node_data* pointers
-            lastNode = newTargNode;
+
+
 
 
             EdgeData newEdge = new EdgeData(edgeList.Count);
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
+            newEdge.SetExecutionCount(repeats);
             AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
             ProtoLastLastVertID = ProtoLastVertID;
-            ProtoLastVertID = targVertID;
+            ProtoLastVertID = newTargNode.index;
+            // ProtoLastLastVertID = ProtoLastVertID;
+            //ProtoLastVertID = targVertID;
             return true;
         }
 
@@ -618,6 +626,7 @@ namespace rgatCore
                 return edgeDict.TryGetValue(edge, out edged);
             }
         }
+
         public List<Tuple<uint, uint>> GetEdgelistCopy()
         {
 
@@ -626,6 +635,16 @@ namespace rgatCore
                 return edgeList.ToList();
             }
         }
+
+        public List<EdgeData> GetEdgePtrlistCopy()
+        {
+
+            lock (edgeLock)
+            {
+                return edgePtrList.ToList();
+            }
+        }
+
         public EdgeData GetEdge(uint src, uint targ)
         {
 
@@ -863,13 +882,6 @@ namespace rgatCore
 
                 if (instructionIndex == 0) firstVert = targVertID;
 
-                if (loopState == eLoopState.eBuildingLoop)
-                {
-                    firstLoopVert = targVertID;
-                    loopState = eLoopState.eLoopProgress;
-                }
-
-
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, repeats);
 
                 //setup conditions for next instruction
@@ -1022,56 +1034,6 @@ namespace rgatCore
 		public ulong BacklogIncoming = 0;
 
 		ulong get_backlog_total();
-        */
-        public void SetLoopState(eLoopState loopState_, ulong loopIterations_)
-        {
-
-            loopState = loopState_;
-            loopIterations = loopIterations_;
-
-        }
-
-        /*
-        public void DumpLoop()
-        {
-            Debug.Assert(loopState == eLoopState.eBuildingLoop);
-
-            if (loopCache.Count == 0)
-            {
-                loopState = eLoopState.eNoLoop;
-                return;
-            }
-
-            //put the verts/edges on the graph
-            for (int cacheIdx = 0; cacheIdx < loopCache.Count; ++cacheIdx)
-            {
-                TAG thistag = loopCache[cacheIdx];
-                handle_tag(thistag, loopIterations);
-
-                ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-                animUpdate.blockAddr = thistag.blockaddr;
-                animUpdate.blockID = thistag.blockID;
-                animUpdate.count = loopIterations;
-                animUpdate.entryType = eTraceUpdateType.eAnimLoop;
-
-                if (TraceData.FindContainingModule(animUpdate.blockAddr, out int containingmodule) == eCodeInstrumentation.eUninstrumentedCode)
-                {
-                    Tuple<ulong, uint> uniqueExternID = new Tuple<ulong, uint>(thistag.blockaddr, thistag.blockID);
-                    animUpdate.callCount = externFuncCallCounter[uniqueExternID]++;
-                }
-
-                PushAnimUpdate(animUpdate);
-            }
-
-            ANIMATIONENTRY lastanimUpdate = new ANIMATIONENTRY();
-            lastanimUpdate.entryType = eTraceUpdateType.eAnimLoopLast;
-            PushAnimUpdate(lastanimUpdate);
-
-            loopCache.Clear();
-            loopIterations = 0;
-            loopState = eLoopState.eNoLoop;
-
-        }
         */
 
 
@@ -1259,13 +1221,12 @@ namespace rgatCore
 
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
-        ulong loopIterations = 0;
-        uint firstLoopVert = 0;
+        public List<ulong> heatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
+
+
         public eLoopState loopState = eLoopState.eNoLoop;
         //tag address, mod type
         public List<TAG> loopCache = new List<TAG>();
-        Tuple<uint, uint> repeatStart;
-        Tuple<uint, uint> repeatEnd;
 
         List<string> loggedCalls = new List<string>();
 

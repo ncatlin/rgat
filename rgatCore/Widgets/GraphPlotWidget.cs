@@ -452,6 +452,7 @@ namespace rgatCore
             _renderingMode = newMode;
         }
 
+
         static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
         {
 
@@ -820,6 +821,7 @@ namespace rgatCore
             }
 
         }
+
 
         /*
          * Fetched pre-prepared device buffer from layout engine if it is in the working set
