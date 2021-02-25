@@ -440,7 +440,7 @@ namespace rgatCore.Threads
             newRepeat.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
             newRepeat.targEdges = new List<Tuple<ulong, ulong>>();
 
-            Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID }");
+            //Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID }");
 
             string[] edgeCounts = entries[2].Split(',');
 

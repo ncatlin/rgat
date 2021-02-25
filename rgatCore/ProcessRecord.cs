@@ -291,6 +291,7 @@ namespace rgatCore
             return blockIDDict[address][^1];
         }
 
+
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)
         {
             //these arrive out of order so have to add some dummy entries
@@ -557,7 +558,9 @@ namespace rgatCore
                 if (insdata.mnemonic[0] == 'j')
                 {
                     insdata.conditional = true;
-                    try { insdata.branchAddress = ulong.Parse(insdata.op_str); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+                    try {
+                        insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); 
+                    } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
                     insdata.condDropAddress = insdata.address + (ulong)insdata.numbytes;
                 }

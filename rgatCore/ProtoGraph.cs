@@ -690,13 +690,25 @@ namespace rgatCore
                 source.UpdateDegree();
             }
 
+
             if (source.conditional != eConditionalType.NOTCONDITIONAL &&
                 source.conditional != eConditionalType.CONDCOMPLETE)
             {
                 if (source.ins.condDropAddress == target.address)
-                    source.conditional |= eConditionalType.CONDFELLTHROUGH;
+                {
+                    if (source.ins.branchAddress == target.address)
+                    {
+                        source.conditional = eConditionalType.CONDCOMPLETE; //opaque predicate
+                    }
+                    else
+                    {
+                        source.conditional |= eConditionalType.CONDFELLTHROUGH;
+                    }
+                }
                 else if (source.ins.branchAddress == target.address)
-                    source.conditional |= eConditionalType.CONDTAKEN;
+                { 
+                    source.conditional |= eConditionalType.CONDTAKEN; 
+                }
             }
 
             lock (nodeLock)

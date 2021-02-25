@@ -242,6 +242,7 @@ namespace rgatCore
 
         //iterate through all the nodes, draw instruction text for the ones in view
         //TODO: in animation mode don't show text for inactive nodes
+        //todo use this
         void DrawInstructionsText(int zdist)//, PROJECTDATA* pd, graphGLWidget &gltarget)
         {
             string displayText = "?";
@@ -905,7 +906,17 @@ namespace rgatCore
                 case eRenderingMode.eHeatmap:
                     return new WritableRgbaFloat(1, 0, 0, 1);
                 case eRenderingMode.eConditionals:
-                    return new WritableRgbaFloat(0, 1, 0, 1);
+                    {
+                        if (n.conditional == eConditionalType.NOTCONDITIONAL)
+                                return new WritableRgbaFloat(0, 0, 0, 0.7f);
+                    if (n.conditional == eConditionalType.CONDCOMPLETE)
+                        return new WritableRgbaFloat(1, 1, 1, .7f);
+                    if (((int)n.conditional & (int)eConditionalType.CONDTAKEN) != 0)
+                        return new WritableRgbaFloat(0, 1, 0, 0.7f);
+                    if (((int)n.conditional & (int)eConditionalType.CONDFELLTHROUGH) != 0)
+                        return new WritableRgbaFloat(1, 0, 0, 0.7f);
+                        return new WritableRgbaFloat(Color.Yellow);
+                    }
                 default:
                     return graphColours[(int)n.VertType()];
             }
