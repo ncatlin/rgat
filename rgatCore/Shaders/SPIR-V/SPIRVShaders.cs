@@ -302,6 +302,9 @@ void main() {
         }
 
 
+
+
+
         public const string vsfontglsl = @"
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
@@ -332,11 +335,13 @@ layout(set = 0, binding=2) buffer bufpositionTexture{
 
 void main()
 {
-    vec3 nodePosition = positionTexture[nodeIdx].xyz;
-    gl_Position = modelViewMatrix * (vec4(nodePosition.x,nodePosition.y + yOffset,nodePosition.z, 1.0)) +  projectionMatrix * vec4(vertex.x,vertex.y,0,0);
 
-    texCoords = fontCrd;
-    _outColour = fontColour;
+        vec3 nodePosition = positionTexture[nodeIdx].xyz;
+        gl_Position = modelViewMatrix * (vec4(nodePosition.x,nodePosition.y + yOffset,nodePosition.z, 1.0)) +  projectionMatrix * vec4(vertex.x,vertex.y,0,0);
+
+        texCoords = fontCrd;
+        _outColour = fontColour;
+    
 }  
 ";
 

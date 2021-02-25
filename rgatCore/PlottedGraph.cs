@@ -954,15 +954,17 @@ namespace rgatCore
                     n.label = $"{index}: {n.ins.ins_text}";
                     if (renderingMode == eRenderingMode.eHeatmap)
                     {
-                        n.label += $" [{n.executionCount}/{internalProtoGraph.TotalInstructions}] ";
-                        n.label += "<";
-                        foreach (int nidx in n.OutgoingNeighboursSet)
+                        n.label += $" [x{n.executionCount}] ";
+                        if (n.OutgoingNeighboursSet.Count > 1)
                         {
-                            EdgeData e = internalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
-                            n.label += $" {nidx}:{e.executionCount}, ";
+                            n.label += "<";
+                            foreach (int nidx in n.OutgoingNeighboursSet)
+                            {
+                                EdgeData e = internalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
+                                n.label += $" {nidx}:{e.executionCount}, ";
+                            }
+                            n.label += ">";
                         }
-                        n.label += ">";
-
                     }
                     if (n.ins.hasSymbol)
                     {

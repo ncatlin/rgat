@@ -232,10 +232,10 @@ namespace rgatCore
 
 
 
-      
 
 
-        
+
+
 
 
 
@@ -372,7 +372,7 @@ namespace rgatCore
                 BlendStateDescription.SingleAlphaBlend,
                 new DepthStencilStateDescription(false, false, ComparisonKind.Always),
                 new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
-                PrimitiveTopology.TriangleList, fontshader, 
+                PrimitiveTopology.TriangleList, fontshader,
                 new ResourceLayout[] { _coreRsrcLayout, _fontRsrcLayout },
                 _outputFramebuffer.OutputDescription);
             _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
@@ -397,12 +397,6 @@ namespace rgatCore
             public WritableRgbaFloat fontColour;
             public const uint SizeInBytes = 44;
         }
-
-
-
-
-
-
 
 
         [StructLayout(LayoutKind.Sequential)]
@@ -439,7 +433,7 @@ namespace rgatCore
 
         void SetRenderingMode(eRenderingMode newMode)
         {
-            switch(newMode)
+            switch (newMode)
             {
                 case eRenderingMode.eStandardControlFlow:
                     Console.WriteLine("Setting mainwidget rendering mode to eStandardControlFlow");
@@ -458,9 +452,9 @@ namespace rgatCore
             _renderingMode = newMode;
         }
 
-       static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
+        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
         {
-                      
+
             float xPos = 0;
             float yPos = 50;
             float glyphYClip = 10;
@@ -475,7 +469,7 @@ namespace rgatCore
                 float yTop = yBase + charHeight;
 
                 stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
-                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour= fcolour });
+                stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour });
                 stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
                 stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
                 stringVerts.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
@@ -520,18 +514,42 @@ namespace rgatCore
 
         List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 
-
-        List<fontStruc> renderGraphText(List<Tuple<string,Color>> captions)
+        void uploadFontVerts(List<fontStruc> stringVerts)
         {
-            const float fontScale = 13.0f;
+            ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
+
+            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
+            {
+                _FontVertBuffer.Dispose();
+                BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
+                _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
+
+                _FontIndexBuffer.Dispose();
+                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
+                _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
+            }
+            _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
+            _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+        }
+
+        List<fontStruc> renderNodeText(List<Tuple<string, Color>> captions, int nodeIdx = -1)
+        {
+            const float fontScale = 16.0f;
             List<fontStruc> stringVerts = new List<fontStruc>();
 
-            for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
-            {
-                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
-            }
+
+            RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
+
+            maintainRisingTexts(fontScale, ref stringVerts);
+
+            uploadFontVerts(stringVerts);
 
 
+            return stringVerts;
+        }
+
+        void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
+        {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
 
             ActiveGraph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
@@ -603,21 +621,23 @@ namespace rgatCore
                 //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
                 RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
             }
+        }
 
-            ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
 
-            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
+        List<fontStruc> renderGraphText(List<Tuple<string, Color>> captions)
+        {
+            const float fontScale = 13.0f;
+            List<fontStruc> stringVerts = new List<fontStruc>();
+
+            for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
-                _FontVertBuffer.Dispose();
-                BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
-                _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
-
-                _FontIndexBuffer.Dispose();
-                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
-                _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
+                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
             }
-            _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
-            _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+
+
+            maintainRisingTexts(fontScale, ref stringVerts);
+
+            uploadFontVerts(stringVerts);
 
             return stringVerts;
         }
@@ -631,9 +651,9 @@ namespace rgatCore
             updateShaderParams(textureSize);
 
             VertexPositionColor[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(
-                out List<uint> nodeIndices, 
-                out VertexPositionColor[] nodePickingColors, 
-                out List<Tuple<string,Color>> captions, 
+                out List<uint> nodeIndices,
+                out VertexPositionColor[] nodePickingColors,
+                out List<Tuple<string, Color>> captions,
                 _renderingMode);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * VertexPositionColor.SizeInBytes ||
@@ -650,7 +670,7 @@ namespace rgatCore
                 _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
             }
             //todo - only do this on changes
-            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts); 
+            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
             _gd.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
@@ -685,7 +705,15 @@ namespace rgatCore
             _crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
 
-            List<fontStruc> stringVerts = renderGraphText(captions);
+            List<fontStruc> stringVerts;
+            if (_mouseoverNodeID == -1)
+            {
+                stringVerts = renderGraphText(captions); 
+            }
+            else
+            {
+                stringVerts = renderNodeText(captions, _mouseoverNodeID);
+            }
 
             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
@@ -760,7 +788,7 @@ namespace rgatCore
             _cl.Dispose();
 
             Vector2 mp = new Vector2(ImGui.GetMousePos().X + 8, ImGui.GetMousePos().Y - 12);
-            ImGui.GetWindowDrawList().AddText(font: _ImGuiController._unicodeFont, font_size: 16, 
+            ImGui.GetWindowDrawList().AddText(font: _ImGuiController._unicodeFont, font_size: 16,
                 pos: mp, col: 0xffffffff, text_begin: $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
 
         }
@@ -784,13 +812,13 @@ namespace rgatCore
             doPicking(_gd);
 
             bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
-            renderGraph(_ImGuiController, positionBuf, nodeAttributesBuffer: attribBuf); 
+            renderGraph(_ImGuiController, positionBuf, nodeAttributesBuffer: attribBuf);
             if (doDispose)
             {
                 positionBuf?.Dispose();
                 attribBuf?.Dispose();
             }
-            
+
         }
 
         /*
