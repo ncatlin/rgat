@@ -772,7 +772,7 @@ namespace rgatCore
             {
                 //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
 
-                addBlockToGraph(thistag, repeats);
+                addBlockToGraph(thistag.blockID, repeats);
                 set_active_node(ProtoLastVertID);
             }
 
@@ -854,10 +854,9 @@ namespace rgatCore
             safe_get_node(targVertID).IncreaseExecutionCount(repeats);
         }
 
-
-        public void addBlockToGraph(TAG tag, ulong repeats)
+        public void addBlockToGraph(uint blockID, ulong repeats)
         {
-            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(tag.blockID);
+            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
             TotalInstructions += ((ulong)numInstructions * repeats);
 
@@ -884,7 +883,7 @@ namespace rgatCore
                 if (!alreadyExecuted)
                 {
                     //Console.WriteLine($"\tins addr 0x{instruction.address:X} is new, handling as new");
-                    targVertID = handle_new_instruction(instruction, tag.blockID, repeats);
+                    targVertID = handle_new_instruction(instruction, blockID, repeats);
                 }
                 else
                 {
@@ -922,10 +921,10 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                while (BlocksFirstLastNodeList.Count <= tag.blockID) BlocksFirstLastNodeList.Add(null);
-                if (BlocksFirstLastNodeList[(int)tag.blockID] == null)
+                while (BlocksFirstLastNodeList.Count <= (int)blockID) BlocksFirstLastNodeList.Add(null);
+                if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
-                    BlocksFirstLastNodeList[(int)tag.blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
+                    BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
                 }
             }
 
@@ -1243,7 +1242,7 @@ namespace rgatCore
         List<string> loggedCalls = new List<string>();
 
         //number of times an external function has been called. used to Dictionary arguments to calls
-        public Dictionary<Tuple<ulong, uint>, ulong> externFuncCallCounter = new Dictionary<Tuple<ulong, uint>, ulong>();
+        public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
 
         bool updated = true;
 

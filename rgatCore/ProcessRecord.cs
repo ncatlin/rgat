@@ -284,9 +284,20 @@ namespace rgatCore
                     hasBlock = blockIDDict.ContainsKey(address);
                 }
                 if (hasBlock) break;
+                int moduleNo = FindContainingModule(address);
+                if (ModuleTraceStates.Count <= moduleNo)
+                {
+                    Console.WriteLine($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                    Thread.Sleep(15);
+                    continue;
+                }
+                if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
+                {
+                    return ulong.MaxValue;
+                }
                 Console.WriteLine($"Waiting for block at 0x{address:x}");
                 Thread.Sleep(15);
-                
+
             }
             return blockIDDict[address][^1];
         }

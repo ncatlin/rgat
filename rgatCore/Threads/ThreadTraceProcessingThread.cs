@@ -24,7 +24,7 @@ namespace rgatCore.Threads
             //public ulong blockaddr;
             public uint blockID;
             public ulong repeatCount;
-            public List<Tuple<ulong, ulong>> targEdges;
+            public List<Tuple<ulong, ulong>> targEdges; //BlockID_Count
             public List<InstructionData> blockInslist;
         };
 
@@ -108,17 +108,22 @@ namespace rgatCore.Threads
                 foreach (var targblockID_Count in brep.targEdges)
                 {
                     int targetBlockID = (int)targblockID_Count.Item1;
- 
-                    if (!n.OutgoingNeighboursSet.Contains((uint)targetBlockID))
+                    ulong execCount = targblockID_Count.Item2;
+                    if (targetBlockID >= protograph.BlocksFirstLastNodeList.Count || protograph.BlocksFirstLastNodeList[targetBlockID] == null)
                     {
-                        protograph.AddEdge(n.index, (uint)targetBlockID, targblockID_Count.Item2);
-                        
+                        protograph.addBlockToGraph((uint)targetBlockID, execCount);
                     }
                     else
                     {
-                        EdgeData targEdge = protograph.GetEdge(n.index, (uint)targetBlockID);
-                        targEdge.IncreaseExecutionCount(targblockID_Count.Item2);
-  
+                        uint targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
+                        if (!n.OutgoingNeighboursSet.Contains(targNodeID))
+                        {
+                            protograph.AddEdge(n.index, targNodeID, execCount);
+                        }
+                        else
+                        {
+                            protograph.GetEdge(n.index, targNodeID).IncreaseExecutionCount(execCount);
+                        }
                     }
                 }
                 blockRepeatQueue.RemoveAt(i);
@@ -208,13 +213,18 @@ namespace rgatCore.Threads
                 return; 
             }
 
+            ProcessExtern(nextBlockAddress, thistag.blockID);
+        }
+
+        void ProcessExtern(ulong externAddr, uint callerBlock)
+        {
             //modType could be known unknown here
             //in case of unknown, this waits until we know. hopefully rare.
             int attempts = 1;
 
             TAG externTag = new TAG();
             externTag.jumpModifier = eCodeInstrumentation.eUninstrumentedCode;
-            externTag.blockaddr = nextBlockAddress;
+            externTag.blockaddr = externAddr;
 
             if (protograph.loopState == eLoopState.eBuildingLoop)
                 protograph.loopCache.Add(externTag);
@@ -223,24 +233,22 @@ namespace rgatCore.Threads
                 protograph.handle_tag(externTag);
 
                 ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-                animUpdate.blockAddr = nextBlockAddress;
+                animUpdate.blockAddr = externAddr;
                 animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
                 animUpdate.blockID = uint.MaxValue;
-                Tuple<ulong, uint> callkey = new Tuple<ulong, uint>(thistag.blockaddr, thistag.blockID);
-                if (protograph.externFuncCallCounter.TryGetValue(callkey, out ulong prevCount))
+                if (protograph.externFuncCallCounter.TryGetValue(callerBlock, out ulong prevCount))
                 {
-                    protograph.externFuncCallCounter[callkey] = prevCount + 1;
+                    protograph.externFuncCallCounter[callerBlock] = prevCount + 1;
                     animUpdate.count = prevCount + 1;
                 }
                 else
                 {
-                    protograph.externFuncCallCounter.Add(callkey, 1);
+                    protograph.externFuncCallCounter.Add(callerBlock, 1);
                     animUpdate.count = 1;
                 }
                 protograph.PushAnimUpdate(animUpdate);
             }
         }
-
 
 
         //decodes argument and places in processing queue, processes if all decoded for that call
@@ -448,9 +456,20 @@ namespace rgatCore.Threads
             for (int i = 0; i < edgeCounts.Count(); i+=2)
             {
                 ulong targAddr = ulong.Parse(edgeCounts[i], NumberStyles.HexNumber);
+                
                 ulong targBlock = protograph.ProcessData.GetBlockAtAddress(targAddr);
-                ulong edgeExecCount = ulong.Parse(edgeCounts[i+1], NumberStyles.HexNumber);
-                newRepeat.targEdges.Add(new Tuple<ulong, ulong>(targBlock, edgeExecCount));
+                ulong edgeExecCount = ulong.Parse(edgeCounts[i + 1], NumberStyles.HexNumber);
+
+                if (targBlock == ulong.MaxValue)
+                {
+
+                    ProcessExtern(targAddr, newRepeat.blockID);
+
+                }
+                else
+                {
+                    newRepeat.targEdges.Add(new Tuple<ulong, ulong>(targBlock, edgeExecCount));
+                }
                 blockExecs += edgeExecCount;
                 //Console.WriteLine($"\t +targ {targblockID} ");
             }
