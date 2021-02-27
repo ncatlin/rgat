@@ -1125,10 +1125,13 @@ namespace rgatCore
                     replayItem.Add(repentry.targetID);
 
                     JArray edgeCounts = new JArray();
-                    foreach(var targCount in repentry.edgeCounts) //todo actually use blockID
+                    if (repentry.edgeCounts != null)
                     {
-                        edgeCounts.Add(targCount.Item1);
-                        edgeCounts.Add(targCount.Item2);
+                        foreach (var targCount in repentry.edgeCounts) //todo actually use blockID
+                        {
+                            edgeCounts.Add(targCount.Item1);
+                            edgeCounts.Add(targCount.Item2);
+                        }
                     }
                     replayItem.Add(edgeCounts);
 

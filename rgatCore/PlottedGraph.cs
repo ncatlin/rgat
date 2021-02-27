@@ -457,9 +457,6 @@ namespace rgatCore
 
         public static rgatState clientState;
 
-        //GLuint graphVBOs[6] = { 0, 0, 0, 0, 0, 0 };
-
-
         public GraphDisplayData NodesDisplayData = null;
         //public GraphDisplayData BlocksDisplayData = null;
         public GraphDisplayData EdgesDisplayData = null;
@@ -471,7 +468,6 @@ namespace rgatCore
         public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
 
         //lowest/highest numbers of edge iterations
-        Tuple<ulong, ulong> heatExtremes;
         Tuple<ulong, ulong> condCounts;
 
         public ulong vertResizeIndex = 0;
@@ -1992,14 +1988,16 @@ namespace rgatCore
         public bool NeedReplotting = false; //all verts need re-plotting from scratch
                                             //bool performSymbolResolve = false;
 
+        public bool NodesVisible = true;
+        public bool EdgesVisible = true;
+
+
         public string LayoutName()
         {
             switch (layout)
             {
-                case graphLayouts.eTreeLayout:
-                    return "Tree";
-                case graphLayouts.eBarsLayout:
-                    return "Bars";
+                case graphLayouts.eCircle:
+                    return "Circle";
                 case graphLayouts.eCylinderLayout:
                     return "Cylinder";
                 case graphLayouts.eForceDirected3D:

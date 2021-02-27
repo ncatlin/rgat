@@ -26,38 +26,44 @@ namespace rgatCore
     {
         public PlottedGraph ActiveGraph { get; private set; } = null;
 
-        private bool inited1 = false;
+        System.Timers.Timer _IrregularActionTimer;
+        bool _IrregularActionTimerFired = false;
 
-
-        System.Timers.Timer IrregularActionTimer;
-        bool IrregularActionTimerFired = false;
-
-        Dictionary<PlottedGraph, VeldridGraphBuffers> graphBufferDict = new Dictionary<PlottedGraph, VeldridGraphBuffers>();
-        VeldridGraphBuffers graphBuffers = null;
         ImGuiController _controller;
         ReaderWriterLock renderLock = new ReaderWriterLock();
         GraphLayoutEngine _layoutEngine;
-
-        private Vector2 graphWidgetSize;
-
-
         GraphicsDevice _gd;
         ResourceFactory _factory;
+        Vector2 _graphWidgetSize;
+        Dictionary<string, Texture> _iconTextures = new Dictionary<string, Texture>();
 
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, Vector2? initialSize = null)
         {
             _controller = controller;
             _gd = gdev;
             _factory = _gd.ResourceFactory;
-            graphWidgetSize = initialSize ?? new Vector2(400, 400);
-            IrregularActionTimer = new System.Timers.Timer(600);
-            IrregularActionTimer.Elapsed += FireIrregularTimer;
-            IrregularActionTimer.AutoReset = true;
-            IrregularActionTimer.Start();
+            _graphWidgetSize = initialSize ?? new Vector2(400, 400);
+            _IrregularActionTimer = new System.Timers.Timer(600);
+            _IrregularActionTimer.Elapsed += FireIrregularTimer;
+            _IrregularActionTimer.AutoReset = true;
+            _IrregularActionTimer.Start();
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller);
 
             SetupRenderingResources();
+
+
+            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
+            _iconTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\spring.png";
+            _iconTextures["Cylinder"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\circle.png";
+            _iconTextures["Circle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
+            _iconTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
         }
 
 
@@ -82,7 +88,7 @@ namespace rgatCore
             {
                 graphBuffers = new VeldridGraphBuffers();
                 graphBufferDict.Add(graph, graphBuffers);
-                //graph.UpdateGraphicBuffers(graphWidgetSize, _gd);
+                //graph.UpdateGraphicBuffers(_graphWidgetSize, _gd);
                 //graphBuffers.InitPipelines(_gd, CreateGraphShaders(), graph._outputFramebuffer, true);
             }
             */
@@ -109,7 +115,7 @@ namespace rgatCore
             _NodePickingBuffer = _factory.CreateBuffer(vbDescription);
         }
 
-        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { IrregularActionTimerFired = true; }
+        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
         /* 
 	 * Triggered automatically when main window is resized
@@ -171,50 +177,36 @@ namespace rgatCore
         }
 
 
-        public void Draw(Vector2 graphSize, ImGuiController _ImGuiController)
+        public void Draw(Vector2 graphSize)
         {
-
             HandleInput(graphSize);
 
-            if (IrregularActionTimerFired)
+            if (_IrregularActionTimerFired)
                 PerformIrregularActions();
 
             if (ActiveGraph != null)
             {
                 renderLock.AcquireReaderLock(10); //todo handle timeout
-                doTestRender(_ImGuiController);
+                DrawGraph();
                 renderLock.ReleaseReaderLock();
             }
-            /*
-            
 
+            drawHUD(graphSize);
+            /*
             if (scheduledGraphResize)
             {
                 double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
                 if (TimeSinceLastResize > 150)
                 {
-                    graphWidgetSize = graphSize;
-                    ActiveGraph.InitGraphTexture(graphWidgetSize, _gd);
+                    _graphWidgetSize = graphSize;
+                    ActiveGraph.InitGraphTexture(_graphWidgetSize, _gd);
                     scheduledGraphResize = false;
                 }
             }
             //Can't find an event for in-imgui resize of childwindows so have to check on every render
-            if (graphSize != graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
-
-            ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-            Vector2 pos = ImGui.GetCursorScreenPos();
-            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, ActiveGraph._outputTexture);
-            imdp.AddImage(CPUframeBufferTextureId,
-                pos,
-                new Vector2(pos.X + ActiveGraph._outputTexture.Width, pos.Y + ActiveGraph._outputTexture.Height), new Vector2(0, 1), new Vector2(1, 0));
-
-            //drawHUD();
+            if (graphSize != _graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
             */
         }
-
-
-
-
 
 
 
@@ -322,19 +314,19 @@ namespace rgatCore
             Debug.Assert(_outputTexture == null);
             Debug.Assert(_outputFramebuffer == null);
             _outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                    (uint)graphWidgetSize.X, (uint)graphWidgetSize.Y, 1, 1,
+                    (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
             Debug.Assert(_testPickingTexture == null);
             _testPickingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                   (uint)graphWidgetSize.X, (uint)graphWidgetSize.Y, 1, 1,
+                   (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.RenderTarget | TextureUsage.Sampled));
             _pickingFrameBuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
             _pickingStagingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                    (uint)graphWidgetSize.X, (uint)graphWidgetSize.Y, 1, 1,
+                    (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
 
@@ -483,7 +475,7 @@ namespace rgatCore
         {
             graphShaderParams shaderParams = new graphShaderParams { TexWidth = textureSize, pickingNode = _mouseoverNodeID, isAnimated = ActiveGraph.IsAnimated };
 
-            float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
+            float aspectRatio = _graphWidgetSize.X / _graphWidgetSize.Y;
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(ActiveGraph.CameraFieldOfView,
                 aspectRatio, ActiveGraph.CameraClippingNear, ActiveGraph.CameraClippingFar);
             Vector3 translation = new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom);
@@ -538,13 +530,9 @@ namespace rgatCore
             const float fontScale = 16.0f;
             List<fontStruc> stringVerts = new List<fontStruc>();
 
-
             RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
-
             maintainRisingTexts(fontScale, ref stringVerts);
-
             uploadFontVerts(stringVerts);
-
 
             return stringVerts;
         }
@@ -644,7 +632,7 @@ namespace rgatCore
         }
 
 
-        public void renderGraph(ImGuiController _ImGuiController, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
+        public void renderGraph(DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
             //rotval += 0.01f; //autorotate
             if (ActiveGraph.PlotZRotation >= 360) ActiveGraph.PlotZRotation = 0;
@@ -709,7 +697,7 @@ namespace rgatCore
             List<fontStruc> stringVerts;
             if (_mouseoverNodeID == -1)
             {
-                stringVerts = renderGraphText(captions); 
+                stringVerts = renderGraphText(captions);
             }
             else
             {
@@ -724,19 +712,28 @@ namespace rgatCore
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
             _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
-            _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, -2200, 1000));
+            _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
-            _cl.SetPipeline(_pointsPipeline);
-            _cl.SetVertexBuffer(0, _NodeVertexBuffer);
-            _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            _cl.SetGraphicsResourceSet(0, _crs_core);
-            _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
-            _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
-            _cl.SetPipeline(_edgesPipeline);
-            _cl.SetVertexBuffer(0, _EdgeVertBuffer);
-            _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            if (ActiveGraph.NodesVisible)
+            {
+                _cl.SetPipeline(_pointsPipeline);
+                _cl.SetGraphicsResourceSet(0, _crs_core);
+                _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+                _cl.SetVertexBuffer(0, _NodeVertexBuffer);
+                _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
+                _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            }
+
+            if (ActiveGraph.EdgesVisible)
+            {
+                _cl.SetPipeline(_edgesPipeline);
+                _cl.SetGraphicsResourceSet(0, _crs_core);
+                _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+                _cl.SetVertexBuffer(0, _EdgeVertBuffer);
+                _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
+                _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            }
 
             _cl.End();
             _gd.SubmitCommands(_cl);
@@ -746,7 +743,7 @@ namespace rgatCore
             //draw text
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, -2200, 1000));
+            _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
             _cl.SetPipeline(_fontPipeline);
             _cl.SetVertexBuffer(0, _FontVertBuffer);
@@ -770,7 +767,7 @@ namespace rgatCore
             _cl.SetFramebuffer(_pickingFrameBuffer);
 
             _cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
-            _cl.SetViewport(0, new Viewport(0, 0, graphWidgetSize.X, graphWidgetSize.Y, -2200, 1000));
+            _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
             _cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             _cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
             _cl.End();
@@ -781,7 +778,7 @@ namespace rgatCore
             //now draw the output to the screen
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture);
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
                 p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
@@ -789,13 +786,284 @@ namespace rgatCore
             _cl.Dispose();
 
             Vector2 mp = new Vector2(ImGui.GetMousePos().X + 8, ImGui.GetMousePos().Y - 12);
-            ImGui.GetWindowDrawList().AddText(font: _ImGuiController._unicodeFont, font_size: 16,
+            ImGui.GetWindowDrawList().AddText(font: _controller._unicodeFont, font_size: 16,
                 pos: mp, col: 0xffffffff, text_begin: $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
 
         }
 
 
-        public unsafe void doTestRender(ImGuiController _ImGuiController)
+
+        void drawHUD(Vector2 widgetSize)
+        {
+            string msg;
+            Vector2 topLeft = ImGui.GetCursorScreenPos();
+            Vector2 bottomLeft = new Vector2(topLeft.X, topLeft.Y + widgetSize.Y);
+            Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y);
+            DrawLayoutSelector(bottomRight, 0.25f);
+
+            PlottedGraph activeGraph = ActiveGraph;
+            if (activeGraph == null)
+            {
+                msg = "No active graph to display";
+                Vector2 screenMiddle = new Vector2(bottomLeft.X + ((widgetSize.X / 2) - (ImGui.CalcTextSize(msg).X / 2)), bottomLeft.Y - (widgetSize.Y / 2));
+                ImGui.SetCursorScreenPos(screenMiddle);
+                ImGui.Text(msg);
+                return;
+            }
+
+
+            msg = $"Displaying thread {activeGraph.tid}";
+            Vector2 currentPos = ImGui.GetCursorPos();
+            ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, topLeft.Y + 4));
+            ImGui.Text(msg);
+            ImGui.SetCursorPos(currentPos);
+
+            DrawVisibilitySelector(bottomLeft, 0.25f);
+
+        }
+
+
+
+
+        bool ImageCaptionButton(Texture iconTex, Vector2 iconsize, float width, string caption, bool isSelected)
+        {
+
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex);
+            bool isMouseHover = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(width, iconsize.Y));
+            if (isSelected)
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x45d5d5d5);
+            else
+            {
+                if (isMouseHover)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff989898);
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
+                }
+            }
+
+            bool clicked = false;
+            Vector2 widgetSize = new Vector2(width, iconsize.Y + 4);
+            if (ImGui.BeginChild(ImGui.GetID(caption + "ICB"), widgetSize, false, ImGuiWindowFlags.NoScrollbar))
+            {
+
+                Vector2 a = ImGui.GetCursorScreenPos() + new Vector2(5, 2);
+
+                if (ImGui.InvisibleButton(caption + "IVB", widgetSize))
+                {
+                    clicked = true;
+                }
+
+                ImGui.SetCursorScreenPos(a);
+                ImGui.Image(CPUframeBufferTextureId, iconsize);
+                ImGui.SameLine(iconsize.X + 14);
+                Vector2 iconPos = ImGui.GetCursorScreenPos();
+                ImGui.SetCursorScreenPos(new Vector2(iconPos.X, iconPos.Y + 7));
+                ImGui.Text(caption);
+                ImGui.SetCursorScreenPos(iconPos);
+
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+            return clicked;
+        }
+
+        uint _lastActiveID;
+        DateTime _LastActiveIdTimer;
+        bool _tmpNodesIsToggled;
+        bool _tmpEdgesIsToggled;
+        static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
+
+        void ToggleButton(string str_id, ref bool isToggled)
+        {
+            Vector2 p = ImGui.GetCursorScreenPos();
+            ImDrawListPtr draw_list = ImGui.GetWindowDrawList();
+
+            float height = ImGui.GetFrameHeight();
+            float width = height * 1.55f;
+            float radius = height * 0.50f;
+
+            ImGui.InvisibleButton(str_id, new Vector2(width, height));
+            if (ImGui.IsItemClicked())
+            {
+                isToggled = !isToggled;
+                _lastActiveID = ImGui.GetID(str_id);
+                _LastActiveIdTimer = DateTime.UtcNow;
+            }
+
+            float t = isToggled ? 1.0f : 0.0f;
+
+            float ANIM_SPEED = 0.08f;
+            if (_lastActiveID == ImGui.GetID(str_id))
+            {
+                float t_anim = ImSaturate((float)(DateTime.UtcNow - _LastActiveIdTimer).TotalSeconds / ANIM_SPEED);
+                t = isToggled ? (t_anim) : (1.0f - t_anim);
+                if (t == 0f || t == 1.0f) { _lastActiveID = 0; }
+            }
+
+            uint col_bg;
+            if (ImGui.IsItemHovered())
+                col_bg = isToggled ? 0xff223344 : 0xff554433;
+            else
+                col_bg = isToggled ? 0xff773744 : 0xff994413;
+
+            draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
+            draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
+        }
+
+
+        bool _showLayoutSelectorPopup;
+        bool _showVisibilitySelector;
+        graphLayouts _tmpActiveGraphLayout = graphLayouts.eForceDirected3D;
+
+        Texture getLayoutIcon(graphLayouts layout)
+        {
+            switch (layout)
+            {
+                case graphLayouts.eForceDirected3D:
+                    return _iconTextures["Force3D"];
+                case graphLayouts.eCircle:
+                    return _iconTextures["Circle"];
+                case graphLayouts.eCylinderLayout:
+                    return _iconTextures["Cylinder"];
+                default:
+                    Console.WriteLine($"ERROR: no icond for layout {layout}");
+                    return _iconTextures["Force3D"];
+            }
+        }
+
+
+        void DrawLayoutSelector(Vector2 position, float scale)
+        {
+            Texture btnIcon = getLayoutIcon(_tmpActiveGraphLayout);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
+            Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
+            float padding = 6f;
+            Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y)- 4 ) - padding);
+            float buttonWidth = 150f;
+
+            ImGui.SetCursorScreenPos(pmin);
+
+            bool buttonHover = false;
+
+
+            ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
+            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+
+            buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
+
+            if (!_showLayoutSelectorPopup && buttonHover)
+            {
+                _showLayoutSelectorPopup = true;
+
+            }
+
+            int buttonCount = 3;
+            float offsetFromBase = 0.0f;
+
+            if (_showLayoutSelectorPopup)
+            {
+                ImGui.SetNextWindowPos(new Vector2(pmin.X - 4, pmin.Y - iconSize.Y * (buttonCount + offsetFromBase)));
+                ImGui.OpenPopup("layout select popup");
+            }
+            if (ImGui.BeginPopup("layout select popup"))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, 0xff100010);
+                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", _tmpActiveGraphLayout == graphLayouts.eForceDirected3D))
+                {
+                    _tmpActiveGraphLayout = graphLayouts.eForceDirected3D;
+                    Console.WriteLine("Force Directed 3D");
+                }
+                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eCylinderLayout), iconSize, buttonWidth, "Cylinder", _tmpActiveGraphLayout == graphLayouts.eCylinderLayout))
+                {
+                    _tmpActiveGraphLayout = graphLayouts.eCylinderLayout;
+                    Console.WriteLine("Cylinder");
+                }
+                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eCircle), iconSize, buttonWidth, "Circle", _tmpActiveGraphLayout == graphLayouts.eCircle))
+                {
+                    _tmpActiveGraphLayout = graphLayouts.eCircle;
+                    Console.WriteLine("Circle");
+                }
+                ImGui.PopStyleColor();
+
+                if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
+                        | ImGuiHoveredFlags.AllowWhenBlockedByPopup
+                        | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && !buttonHover)
+                {
+                    _showLayoutSelectorPopup = false;
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGui.EndPopup();
+            }
+
+
+        }
+
+        void DrawVisibilitySelector(Vector2 position, float scale)
+        {
+            Texture btnIcon = _iconTextures["Eye"];
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
+            float padding = 6f;
+            Vector2 iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
+            Vector2 pmin = new Vector2((position.X) + padding, ((position.Y - iconSize.Y) - 4) - padding);
+
+            ImGui.SetCursorScreenPos(pmin);
+
+
+            ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
+            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+
+            bool buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
+            if (!_showVisibilitySelector && buttonHover)
+            {
+                _showVisibilitySelector = true;
+            }
+
+            if (_showVisibilitySelector)
+            {
+                ImGui.SetNextWindowPos(new Vector2(pmin.X, pmin.Y - iconSize.Y * 3));
+                ImGui.OpenPopup("visibility select popup");
+            }
+            //ImGui.SetTooltip("I am a tooltip over a popup");
+            if (ImGui.BeginPopup("visibility select popup"))
+            {
+                if (ImGui.BeginChildFrame(ImGui.GetID("VisibilityPopupMenu"), new Vector2(300, 300)))
+                {
+
+                    ImGui.Text("Show Edges");
+                    ImGui.SameLine();
+                    ToggleButton("edgesToggle", ref ActiveGraph.EdgesVisible);
+                    ImGui.Text("Show Nodes");
+                    ImGui.SameLine();
+                    ToggleButton("nodes", ref ActiveGraph.NodesVisible);
+                    ImGui.Text("Instruction Text");
+                    ImGui.Text("Symbol Text");
+
+                    ImGui.EndChildFrame();
+                }
+
+                if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
+                        | ImGuiHoveredFlags.AllowWhenBlockedByPopup
+                        | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && !buttonHover)
+                {
+                    _showVisibilitySelector = false;
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGui.EndPopup();
+            }
+
+        }
+
+
+        public unsafe void DrawGraph()
         {
 
             if (processingAnimatedGraph && !ActiveGraph.IsAnimated)
@@ -813,7 +1081,7 @@ namespace rgatCore
             doPicking(_gd);
 
             bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
-            renderGraph(_ImGuiController, positionBuf, nodeAttributesBuffer: attribBuf);
+            renderGraph(positionBuf, nodeAttributesBuffer: attribBuf);
             if (doDispose)
             {
                 positionBuf?.Dispose();

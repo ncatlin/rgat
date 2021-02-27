@@ -113,21 +113,23 @@ namespace rgatCore
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
             if (ActiveGraph != null)
             {
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X))) { 
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X)))
+                {
                     MainGraphWidget.ToggleRenderingMode(eRenderingMode.eHeatmap);
                 }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C))) {
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C)))
+                {
                     MainGraphWidget.ToggleRenderingMode(eRenderingMode.eConditionals);
                 }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f;}
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature();}
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f; }
+                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature(); }
             }
         }
 
@@ -145,12 +147,12 @@ namespace rgatCore
             ImGui.InvisibleButton(id, barSize);
 
             const float vertPadding = 2;
-            Vector2 start = new Vector2(ImGui.GetCursorScreenPos().X, ImGui.GetCursorScreenPos().Y - barSize.Y - vertPadding*2);
+            Vector2 start = new Vector2(ImGui.GetCursorScreenPos().X, ImGui.GetCursorScreenPos().Y - barSize.Y - vertPadding * 2);
             Vector2 end = new Vector2(start.X + barSize.X, start.Y + barSize.Y);
             ImGui.GetWindowDrawList().AddRectFilled(start, end, BGColour);
 
             Vector2 startInner = new Vector2(start.X, start.Y + vertPadding);
-            Vector2 endInner = new Vector2(startInner.X + (barSize.X*progress), startInner.Y + (barSize.Y - 2 * vertPadding));
+            Vector2 endInner = new Vector2(startInner.X + (barSize.X * progress), startInner.Y + (barSize.Y - 2 * vertPadding));
             ImGui.GetWindowDrawList().AddRectFilled(startInner, endInner, barColour);
 
 
@@ -180,7 +182,7 @@ namespace rgatCore
                 }
                 else if (progress.errored)
                 {
-                    float dieProgress =  progress.scriptCount == 0 ? 0f : (float)progress.scriptsFinished / (float)progress.scriptCount;
+                    float dieProgress = progress.scriptCount == 0 ? 0f : (float)progress.scriptsFinished / (float)progress.scriptCount;
                     ProgressBar("DieProgBar", $"Scan Failed after {progress.scriptsFinished} scripts", dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (progress.StopRequestFlag)
@@ -397,7 +399,7 @@ namespace rgatCore
             }
             ImGui.PopStyleColor();
 
-            if (ImGui.BeginPopupContextItem("exclusionlist_contents",ImGuiPopupFlags.MouseButtonRight))
+            if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiPopupFlags.MouseButtonRight))
             {
                 ImGui.Selectable("Add files/directories");
                 ImGui.EndPopup();
@@ -437,7 +439,8 @@ namespace rgatCore
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
-                if(ImGui.Button("Start Trace")){
+                if (ImGui.Button("Start Trace"))
+                {
                     Console.WriteLine("Hit it!");
                     string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
                     System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
@@ -476,37 +479,31 @@ namespace rgatCore
             }
 
             ImGui.BeginGroup();
-            DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X - 200);
-            ImGui.SameLine();
-            DrawTraceTab_DiagnosticSettings(200);
-            ImGui.EndGroup();
+            {
+                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X - 200);
+                ImGui.SameLine();
+                DrawTraceTab_DiagnosticSettings(200);
+                ImGui.EndGroup();
+            }
 
             ImGui.BeginGroup();
-            DrawTraceTab_InstrumentationSettings(activeTarget, 400);
-            ImGui.SameLine();
-            DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X - 400);
-            ImGui.EndGroup();
-
-            return;
+            {
+                DrawTraceTab_InstrumentationSettings(activeTarget, 400);
+                ImGui.SameLine();
+                DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X - 400);
+                ImGui.EndGroup();
+            }
         }
 
         private void DrawVisualiserGraphs(float height)
         {
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF303030);
                 Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
-                if (ImGui.BeginChild(ImGui.GetID("GLVisMain"), graphSize))
+                if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
                 {
-                    MainGraphWidget.Draw(graphSize, _ImGuiController);
-                    if (_rgatstate.ActiveGraph != null)
-                        ImGui.Text($"Displaying thread {_rgatstate.ActiveGraph.tid}");
-                    else
-                    { 
-                        ImGui.Text($"No active graph to display");
-                    }
+                    MainGraphWidget.Draw(graphSize);
                     ImGui.EndChild();
-
-
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
@@ -556,7 +553,6 @@ namespace rgatCore
                     sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
                 }
             }
-
 
             Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + sliderPosX, AnimationProgressBarPos.Y);
             if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
@@ -612,22 +608,10 @@ namespace rgatCore
         }
 
 
-        void DrawRankingLayoutSettings()
+
+        private void DrawLayoutSettingsPopup()
         {
 
-
-        }
-
-        void DrawMDSLayoutSettings()
-        {
-        
-
-        }
-
-
-    private void DrawLayoutSettingsPopup()
-        {
-           
         }
 
 
@@ -657,7 +641,7 @@ namespace rgatCore
 
         private void drawVisToolBar(float height)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF0000ff);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 3);
             if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
@@ -672,13 +656,9 @@ namespace rgatCore
                     {
                         Console.WriteLine("Cylinder selected (todo: change)");
                     }
-                    if (ImGui.Selectable("Tree[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eTreeLayout))
+                    if (ImGui.Selectable("Force Directed", _rgatstate.ActiveGraph.layout == graphLayouts.eForceDirected3D))
                     {
                         Console.WriteLine("Tree selected");
-                    }
-                    if (ImGui.Selectable("Bars[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eBarsLayout))
-                    { //sections, events, heat, conditionals?
-                        Console.WriteLine("Bars selected");
                     }
                     ImGui.EndCombo();
                 }
@@ -759,7 +739,7 @@ namespace rgatCore
                 }
 
 
-                
+
 
                 ImGui.SameLine();
                 if (ImGui.Button("Camera"))
@@ -857,9 +837,9 @@ namespace rgatCore
                         if (activeGraph.IsAnimated)
                         {
                             bt = "Set NonAnimated";
-                            isanimed = true; 
+                            isanimed = true;
                         }
-                        
+
                         if (ImGui.Button(bt, new Vector2(36, 36)))
                         {
                             activeGraph.SetAnimated(!isanimed);

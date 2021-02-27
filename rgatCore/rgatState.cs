@@ -421,8 +421,8 @@ namespace rgatCore
 
             if (!trace.load(saveJSON))//, config.graphColours))
             {
-                trace = null;
                 target.DeleteTrace(trace.launchedTime);
+                trace = null;
                 return false;
             }
             //updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);

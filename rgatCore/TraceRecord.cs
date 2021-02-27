@@ -274,8 +274,16 @@ namespace rgatCore
                 ProtoGraphs.Add(GraphThreadID, protograph);
             }
 
-            if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
+            try
+            {
+                if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
+                    return false;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Deserialising trace file failed: "+e.Message);
                 return false;
+            }
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
             PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
