@@ -48,7 +48,7 @@ namespace rgatCore
         public bool rgatIsExiting { private set; get; } = false;
         public bool WaitingForNewTrace = false;
         public int AnimationStepRate = 1;
-        public graphLayouts newGraphLayout = graphLayouts.eForceDirected3D;
+        public eGraphLayout newGraphLayout = eGraphLayout.eForceDirected3D;
 
         public bool showNodes = true;
         public bool showEdges = true;
@@ -301,10 +301,9 @@ namespace rgatCore
         {
             switch (newGraphLayout)
             {
-                case graphLayouts.eForceDirected3D:
+                case eGraphLayout.eForceDirected3D:
                     {
                         MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
-                        MainGraph.InitialiseDefaultDimensions();
                         PreviewGraph = null;
                         //PreviewGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
                         //PreviewGraph.InitialisePreviewDimensions();

@@ -30,56 +30,6 @@ namespace rgatCore
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
 
-        protected struct EXTTEXT
-        {
-            public int framesRemaining;
-            public float yOffset;
-            public string displayString;
-        };
-
-        public struct TEXTITEM
-        {
-            public Vector2 screenXY;
-            public Color color;
-            public string contents;
-            public int fontSize;
-        }
-
-        protected struct TEXTRECT
-        {
-            System.Drawing.Rectangle rect;
-            uint index;
-        };
-
-
-
-
-
-        public static string GetTestNodesAndEdgesArray()
-        {
-            //string ijson = "[[1,2,5,8,12,13,19,57,60,61,62,63,65,66,67,99,100,101,102,108,111,9,119,122,125,130,131,132,133,91,134,143,144,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,109,194,195,196,197,7,202,203,204,152,205,231,232,236,237,238,251,289,307,308,309,311,321,324],[0,10,15,17,21,30,47,81,7,120,247],[0],[4,310],[3,9,14,20,23,24,25,26,27,28,29,31,35,36,37,43,44,45,46,55,56,58,59,64,69,63,73,74,75,76,78,79,80,91,93,88,97,98,104,99,105,106,107,112,113,114,116,117,118,124,127,128,135,136,137,145,146,147,148,150,159,160,161,162,163,164,165,166,167,168,173,174,199,201,207,208,209,211,212,215,216,219,220,221,222,223,224,225,226,227,230,231,233,234,235,239,240,155,158,245,249,250,252,253,254,256,257,258,259,260,242,262,263,264,265,299,300,305,71,313],[0],[7,312],[6,30,1,0,81,10],[0],[4,0],[1,11,52,53,19,54,68,72,109,110,126,129,139,140,141,142,198,206,143,144,246,261,242,266,94,267,268,269,270,271,272,99,273,274,275,276,277,278,279,280,281,282,283,284,285,286,7,287,288,289,290,291,292,293,294,295,296,297,298,299,301,302,303,304,85,306,316,317,318,319,320,322,323],[10],[0,15],[0,15],[4],[1,16,13,77,68,123,200,12,217,218,255,54],[15],[1,18,70,138,210,248],[17],[0,10],[4],[1,22,115,213,214,130],[21],[4],[4],[4],[4],[4],[4],[4],[1,32,33,34,38,39,40,41,42,7,171,172,315],[4],[30],[30],[30],[4],[4],[4],[30],[30],[30],[30],[30],[4],[4],[4],[4],[1,48,49,50,51,103,169,170,228,229],[47],[47],[47],[47],[10],[10],[10,15],[4],[4],[0],[4],[4],[0],[0],[0],[0,4],[4],[0],[0],[0],[10,15],[4],[17],[72,4],[71,10],[4],[4],[4],[4],[15],[4],[4],[4],[82,83,1,84,85,86,87,88,89,90,91,92,93,94,95,96,97,149,150,151,152,153,154,155,156,157,158,241,242,243,7,244,314],[81],[81],[81],[81,10],[81],[81],[81,4],[81],[81],[4,81,0],[81],[4,81],[81,10],[81],[81],[81,4],[4],[0,4,10],[0],[0],[0],[47],[4],[4],[4],[4],[0],[10,0],[10],[0],[4],[4],[4],[21],[4],[4],[4],[0],[121,1,206],[120],[0],[15],[4],[0],[10],[4],[4],[10],[0,21],[0],[0],[0],[0],[4],[4],[4],[17],[10],[10],[10],[10],[0,10],[0,10],[4],[4],[4],[4],[81],[4,81],[81],[81,0],[81],[81],[81,4],[81],[81],[81,4],[4],[4],[4],[4],[4],[4],[4],[4],[4],[4],[47],[47],[30],[30],[4],[4],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[10],[4],[15],[4],[0],[0],[0],[0],[10,247,120],[4],[4],[4],[17],[4],[4],[21],[21],[4],[4],[15],[15],[4],[4],[4],[4],[4],[4],[4],[4],[4],[47],[47],[4],[0,4],[0],[4],[4],[4],[0],[0],[0],[4],[4],[81],[81,4,10],[81],[81],[4],[10],[1,206],[17],[4],[4],[0],[4],[4],[4],[15],[4],[4],[4],[4],[4],[10],[4],[4],[4],[4],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10,0],[10],[10],[10],[10],[10],[10],[10],[10],[10],[10,4],[4],[10],[10],[10],[10],[4],[10],[0],[0],[0],[3],[0],[6],[4],[81],[30],[10],[10],[10],[10],[10],[0],[10],[10],[0]]";
-            //string ijson = "[[1,2,3,4],[0],[0],[0],[0,5,6,7,8],[4],[4],[4],[4]]";
-
-            /*
-            0 Color.Red;
-            1 Color.SandyBrown;
-            2 Color.White;
-            3 Color.Green;
-            4 Color.Blue;
-            5 Color.Yellow;
-            6 Color.Purple;
-            7 Color.Gray;
-            8 Color.Orange;
-             */
-            //string ijson = "[[1],[0,2,3],[1],[1]]";
-            string ijson = "[[1],[0],[1],[1],[0],[0],[0],[0],[1],[1]]";
-            //string ijson = "[[1],[0],[1],[1],[0],[0]]";
-            //string ijson = "[[1],[0],[1],[2]]";
-            return ijson;
-        }
-
-
-
         /*
  * The drawing graph has one way edges. 
  * This makes them 2 way for the purpose of attraction during velocity computation 
@@ -108,11 +58,6 @@ namespace rgatCore
 
         public PlottedGraph(ProtoGraph protoGraph, List<WritableRgbaFloat> graphColourslist)
         {
-
-            //List<List<int>> initialTestNodes = Newtonsoft.Json.JsonConvert.DeserializeObject<List<List<int>>>(GetTestNodesAndEdgesArray());
-            //AddInitialNodes(initialTestNodes);
-
-
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
 
@@ -139,32 +84,6 @@ namespace rgatCore
         }
 
 
-        //public GRAPH_LAYOUT_SETTINGS TestLayoutSettings;
-
-        public void InitialiseDefaultDimensions()
-        {
-
-            //todo
-        }
-        public void InitialisePreviewDimensions()
-        {
-
-            //todo
-        }
-        public void initialiseCustomDimensions(GRAPH_SCALE scale)
-        {
-
-            //todo
-        }
-        /*
-		virtual void plot_wireframe(graphGLWidget &gltarget) { };
-		virtual void maintain_draw_wireframe(graphGLWidget &gltarget) { };
-
-		virtual bool get_visible_node_pos(uint nidx, DCOORD* screenPos, SCREEN_QUERY_PTRS* screenInfo, graphGLWidget &gltarget)
-		{
-			cerr << "Warning: Virtual gvnp called" << endl; return false;
-		};
-		*/
         public void render_graph()
         {
             lock (RenderingLock)
@@ -172,39 +91,6 @@ namespace rgatCore
                 render_new_blocks();
             }
         }
-        /*
-		virtual void orient_to_user_view() { };
-		*/
-        /*
-		virtual uint get_graph_size() { return 0; };
-		virtual void* get_node_coord_ptr(uint idx) { return 0; }
-
-		virtual void adjust_A_edgeSep(float delta) { };
-		virtual void adjust_B_edgeSep(float delta) { };
-		virtual void reset_edgeSep() { };
-		virtual void adjust_size(float delta) { };
-
-		virtual void drawHighlight(GENERIC_COORD& graphCoord, GRAPH_SCALE* scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
-		{
-			cerr << "Warning: Virtual drawHighlight (void *) called\n" << endl;
-		};
-		virtual void drawHighlight(uint uint, GRAPH_SCALE* scale, QColor &colour, int lengthModifier, graphGLWidget &gltarget)
-		{ cerr << "Warning: Virtual drawHighlight (uint) called\n" << endl; };
-
-
-		*/
-        /*
-		virtual void previewYScroll() { }
-		virtual int prevScrollYPosition() { return -255; }
-		virtual float previewZoom() { return -550; }
-		virtual void pan(int keyPressed) { };
-		virtual Tuple<void*, float> get_diffgraph_nodes() { return make_pair((void*)0, (float)0.0); }
-		virtual void set_diffgraph_nodes(Tuple<void*, float> diffData) { }
-		virtual void gl_frame_setup(graphGLWidget &gltarget);
-		virtual void regenerate_wireframe_if_needed() { };
-		virtual void setWireframeActive(int mode) { };
-
-		*/
 
         //for tracking how big the graph gets
         protected void updateStats(float a, float b, float c)
@@ -449,44 +335,6 @@ namespace rgatCore
             IsAnimated = newState;
         }
 
-        //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
-        /*
-		bool isWireframeSupported() { return wireframeSupported; }
-		bool isWireframeActive() { return wireframeActive; }
-		*/
-
-        public static rgatState clientState;
-
-        public GraphDisplayData NodesDisplayData = null;
-        //public GraphDisplayData BlocksDisplayData = null;
-        public GraphDisplayData EdgesDisplayData = null;
-        public GraphDisplayData HighlightsDisplayData = null;
-        //public GraphDisplayData blocklines = null;
-        public GraphDisplayData wireframelines = null;
-
-
-        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
-
-        //lowest/highest numbers of edge iterations
-        Tuple<ulong, ulong> condCounts;
-
-        public ulong vertResizeIndex = 0;
-        public int userSelectedAnimPosition = -1;
-
-        public REPLAY_STATE ReplayState = REPLAY_STATE.eEnded;
-        int updateProcessingIndex = 0;
-        protected float maxA = 0, maxB = 0, maxC = 0;
-
-        int threadReferences = 0;
-        bool schedule_performSymbolResolve = false;
-
-        protected List<TEXTRECT> labelPositions = new List<TEXTRECT>();
-
-        protected readonly Object textLock = new Object();
-        protected List<TEXTITEM> texts = new List<TEXTITEM>();
-
-
-        int wireframeMode; //used to query the current mode
 
         public void StepPausedAnimation(int steps)
         {
@@ -556,34 +404,15 @@ namespace rgatCore
         }
 
 
-
-        bool freeMe = false;
-
-        protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
-
-        public ProtoGraph internalProtoGraph { get; protected set; } = null;
-
-        Dictionary<uint, EXTTEXT> activeExternTimes = new Dictionary<uint, EXTTEXT>();
-        protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
-        protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
-
-        protected bool wireframeSupported;
-        protected bool wireframeActive;
-        //Tuple<long, long> defaultViewShift;
-        long defaultZoom;
-        public graphLayouts layout { get; protected set; }
-
-        public float[] positionsArray1 = Array.Empty<float>();
-        public float[] velocityArray1 = Array.Empty<float>();
-        public float[] nodeAttribArray1 = Array.Empty<float>();
-        public float[] presetPositionsArray = Array.Empty<float>();
-        public ulong renderFrameVersion;
-
         public void UpdateRenderFrameVersion(ulong newVersion)
         {
             Debug.Assert(newVersion > renderFrameVersion);
             Debug.Assert(newVersion != ulong.MaxValue);
             renderFrameVersion = newVersion;
+        }
+        public void UpdateRenderFrameVersion()
+        {
+            renderFrameVersion++;
         }
 
         /// <summary>
@@ -677,14 +506,97 @@ namespace rgatCore
         {
             return nodeAttribArray1;
         }
+
+        eGraphLayout _presetLayoutStyle = eGraphLayout.eLayoutInvalid;
+        uint _presetEdgeCount;
+
         public float[] GetPresetPositionFloats()
         {
+            if (_presetLayoutStyle != LayoutStyle || _presetEdgeCount != internalProtoGraph.get_num_edges())
+                GeneratePresetPositions();
             return presetPositionsArray;
         }
+
+        void GeneratePresetPositions()
+        {
+            _presetLayoutStyle = LayoutStyle;
+            _presetEdgeCount = internalProtoGraph.get_num_edges();
+            switch (LayoutStyle)
+            {
+                case eGraphLayout.eCylinderLayout:
+                    GenerateCylinderLayout();
+                    break;
+                case eGraphLayout.eCircle:
+                    GenerateCircleLayout();
+                    break;
+                case eGraphLayout.eForceDirected3D:
+                    InitBlankPresetLayout();
+                    RandomisePositionTextures();
+                    break;
+                default:
+                    Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
+                    break;
+            }
+        }
+
+        void GenerateCylinderLayout()
+        {
+
+        }
+
+
+        void GenerateCircleLayout()
+        {
+            float increase = ((float)Math.PI * 2.0f) / (float)_graphStructureLinear.Count;
+            float angle = 0;
+            float radius = _graphStructureLinear.Count * 4f * 2f;
+
+            uint textureSize = LinearIndexTextureSize();
+            var textureArray = new float[textureSize * textureSize * 4];
+
+            for (var i = 0; i < textureArray.Length; i += 4)
+            {
+
+                if (i < _graphStructureLinear.Count * 4)
+                {
+
+
+                    // modify to change the radius and position of a circle
+                    float x = radius * (float)Math.Cos(angle);
+                    float y = radius * (float)Math.Sin(angle);
+                    float z = 0;
+                    float w = 1.0f;
+
+                    textureArray[i] = x;
+                    textureArray[i + 1] = y;
+                    textureArray[i + 2] = z;
+                    textureArray[i + 3] = w;
+
+                    angle += increase;
+
+                }
+                else
+                {
+
+                    textureArray[i] = -1.0f;
+                    textureArray[i + 1] = -1.0f;
+                    textureArray[i + 2] = -1.0f;
+                    textureArray[i + 3] = -1.0f;
+
+                }
+
+            }
+            presetPositionsArray = textureArray;
+        }
+
 
         public void IncreaseTemperature()
         {
             temperature += _graphStructureLinear.Count / 2;
+        }
+        public void IncreaseTemperature(float temp)
+        {
+            temperature = temp;
         }
 
 
@@ -857,7 +769,7 @@ namespace rgatCore
         {
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
-            float[] presetPositionsArray = new float[bufferFloatCount];
+            presetPositionsArray = new float[bufferFloatCount];
 
             for (var i = 0; i < presetPositionsArray.Length; i += 4)
             {
@@ -867,6 +779,33 @@ namespace rgatCore
                     presetPositionsArray[i + 1] = 0.0f;
                     presetPositionsArray[i + 2] = 0.0f;
                     presetPositionsArray[i + 3] = 0.0f;
+                }
+                else
+                {
+                    // fill the remaining pixels with -1
+                    presetPositionsArray[i] = -1.0f;
+                    presetPositionsArray[i + 1] = -1.0f;
+                    presetPositionsArray[i + 2] = -1.0f;
+                    presetPositionsArray[i + 3] = -1.0f;
+                }
+
+            }
+
+        }
+
+        void RandomisePositionTextures()
+        {
+            var bounds = 1000;
+            var bounds_half = bounds / 2;
+            Random rnd = new Random();
+            for (var i = 0; i < presetPositionsArray.Length; i += 4)
+            {
+                if (i < _graphStructureLinear.Count * 4)
+                {
+                    positionsArray1[i] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positionsArray1[i + 1] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positionsArray1[i + 2] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positionsArray1[i + 3] = 1;
                 }
                 else
                 {
@@ -1147,8 +1086,8 @@ namespace rgatCore
         public VertexPositionColor[] GetEdgeLineVerts(eRenderingMode renderingMode,
             out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {
-            uint telvTextSize = EdgeVertsTextureWidth();
-            VertexPositionColor[] EdgeLineVerts = new VertexPositionColor[telvTextSize * telvTextSize * 16];
+            uint evTexWidth = EdgeVertsTextureWidth();
+            VertexPositionColor[] EdgeLineVerts = new VertexPositionColor[evTexWidth * evTexWidth * 16];
 
             vertCount = 0;
             edgeIndices = new List<uint>();
@@ -1168,18 +1107,15 @@ namespace rgatCore
                             TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
-                edgeIndices.Add((uint)vertCount);
-                vertCount++;
+                edgeIndices.Add((uint)vertCount); vertCount++;
 
                 EdgeLineVerts[vertCount] =
                     new VertexPositionColor
                     {
-                        TexPosition = new Vector2(destNodeIdx % textureSize,
-                                    (float)Math.Floor((float)(destNodeIdx / textureSize))),
+                        TexPosition = new Vector2(destNodeIdx % textureSize,  (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
-                edgeIndices.Add((uint)vertCount);
-                vertCount++;
+                edgeIndices.Add((uint)vertCount); vertCount++;
 
             }
             graphDrawnEdgeCount = DrawnEdgesCount;
@@ -1240,19 +1176,6 @@ namespace rgatCore
 
             if (externBlock != null)
             {
-                //cout << "fill block nodelist with extern addr " << std::hex << blockAddr << " mod " << std::dec << externBlock.globalmodnum << endl;
-                //assume it's an external block, find node in extern call list
-                //piddata.getExternCallerReadLock();
-                /*
-                auto callvsEdgeIt = externBlock.thread_callers.find(tid);
-                if (callvsEdgeIt == externBlock.thread_callers.end())
-                {
-                    piddata.dropExternCallerReadLock();
-                    std::this_thread::sleep_for(10ms);
-                    cerr << "[rgat]Fail to find edge for thread " << tid << " calling extern " << blockAddr << endl;
-                    return false;
-                }
-                */
                 bool found = false;
                 List<Tuple<uint, uint>> calls = null;
                 while (!found)
@@ -1329,7 +1252,6 @@ namespace rgatCore
             {
                 AddPulseActiveNode(LinkingPair.Item1);
                 AddPulseActiveNode(LinkingPair.Item2);
-                //newAnimEdgeTimes[LinkingPair] = brightTime;
             }
 
 
@@ -1631,76 +1553,10 @@ namespace rgatCore
         }
 
 
-        void brighten_new_active_extern_nodes()
-        {
-            // Console.WriteLine("todo brighten_new_active_extern_nodes");
-            /*
-            PROCESS_DATA* piddata = internalProtoGraph.get_piddata();
-            Dictionary<uint, EXTTEXT> newEntries;
-            map < pair < NODEINDEX, unsigned long>, int>::iterator externTimeIt = newExternTimes.begin();
-            while (externTimeIt != newExternTimes.end())
-            {
-                NODEINDEX externNodeIdx = externTimeIt.first.first;
-                unsigned long callsSoFar = externTimeIt.first.second;
-
-                internalProtoGraph.getNodeReadLock();
-
-                node_data* externNode = internalProtoGraph.unsafe_get_node(externNodeIdx);
-                ARGLIST* args = NULL;
-                unsigned long callRecordIndex = NULL;
-
-                internalProtoGraph.externCallsLock.lock () ;
-                if (callsSoFar < externNode.callRecordsIndexs.size())
-                {
-                    callRecordIndex = externNode.callRecordsIndexs.at(callsSoFar);
-                    //todo: maybe make a local copy instead of holding the mutex
-                    if (callRecordIndex < internalProtoGraph.externCallRecords.size())
-                        args = &internalProtoGraph.externCallRecords.at(callRecordIndex).argList;
-                }
-
-                MEM_ADDRESS insaddr = externNode.address;
-                int globalModIDule = externNode.globalModID;
-
-                internalProtoGraph.dropNodeReadLock();
-
-                string externString = generate_funcArg_string(internalProtoGraph.get_node_sym(externNodeIdx), args);
-                internalProtoGraph.externCallsLock.unlock();
-
-                boost::filesystem::path modulePath;
-                piddata.get_modpath(globalModIDule, &modulePath);
-
-                stringstream callLogEntry;
-                callLogEntry << "0x" << std::hex << insaddr << ": ";
-                callLogEntry << modulePath << " . ";
-                callLogEntry << externString << "\n";
-                internalProtoGraph.loggedCalls.push_back(callLogEntry.str());
-
-                EXTTEXT extEntry;
-                extEntry.framesRemaining = externTimeIt.second;
-                extEntry.displayString = externString;
-                extEntry.yOffset = 10;
-
-                newEntries[externNodeIdx] = extEntry;
-
-                externTimeIt = newExternTimes.erase(externTimeIt);
-            }
-
-            internalProtoGraph.externCallsLock.lock () ;
-            Dictionary<uint, EXTTEXT>::iterator entryIt = newEntries.begin();
-            for (; entryIt != newEntries.end(); ++entryIt)
-                activeExternTimes[entryIt.first] = entryIt.second;
-            internalProtoGraph.externCallsLock.unlock();
-            */
-        }
-
-
         /*
          Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
          These pulse
          */
-
-
-
         ulong calculate_wait_frames(ulong executions)
         {
             //assume 10 instructions per step/frame
@@ -1746,7 +1602,7 @@ namespace rgatCore
 
         }
 
-        protected bool HighlightsChanged = false;
+        protected bool HighlightsChanged;
         public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
             lock (textLock)
@@ -1828,51 +1684,6 @@ namespace rgatCore
         }
 
 
-        public Veldrid.Texture _previewTexture = null;
-        public Veldrid.Framebuffer _previewFramebuffer;
-
-        //public Veldrid.Texture _outputTexture = null;
-        //public Veldrid.Framebuffer _outputFramebuffer = null;
-
-
-        public float CameraZoom = -5000;
-        public float CameraFieldOfView = 0.6f;
-        public float CameraClippingFar = 60000;
-        public float CameraClippingNear = 1; //extern jut
-        public float CameraXOffset = 0f;
-        public float CameraYOffset = 0f;
-        public float PlotZRotation = 0f;
-
-
-        public readonly Object RenderingLock = new Object();
-
-
-        public uint pid { get; private set; }
-        public uint tid { get; private set; }
-        //PLOT_TRACK lastPreviewNode;
-
-        Dictionary<Tuple<uint, ulong>, int> newExternTimes = new Dictionary<Tuple<uint, ulong>, int>();
-
-
-
-        public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
-
-        bool _isLoadedInVRAM = true;
-        public bool MemoryResident { get { return _isLoadedInVRAM; } set { MakeMemoryResident(value); _isLoadedInVRAM = true; } }
-
-        ulong unchainedWaitFrames = 0;
-        uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
-
-        //which BB we are pointing to in the sequence list
-        int animationIndex = 0;
-
-        List<uint> _PulseActiveNodes = new List<uint>();
-        List<uint> _LingeringActiveNodes = new List<uint>();
-        List<Tuple<uint, string>> _RisingExterns = new List<Tuple<uint, string>>();
-        List<Tuple<uint, string>> _RisingExternsLingering = new List<Tuple<uint, string>>();
-
-        uint[] _DeactivatedNodes = Array.Empty<uint>();
-        private readonly object animationLock = new object();
 
 
         public List<uint> GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes)
@@ -1976,6 +1787,26 @@ namespace rgatCore
             }
         }
 
+        public string LayoutName()
+        {
+            switch (LayoutStyle)
+            {
+                case eGraphLayout.eCircle:
+                    return "Circle";
+                case eGraphLayout.eCylinderLayout:
+                    return "Cylinder";
+                case eGraphLayout.eForceDirected3D:
+                    return "ForceDirected3D";
+                default:
+                    return "UnknownPlotType_" + LayoutStyle.ToString();
+            }
+        }
+
+        public void SetLayout(eGraphLayout newStyle)
+        {
+            LayoutStyle = newStyle;
+        }
+
 
         public List<uint> HighlightedSymbolNodes = new List<uint>();
         public List<uint> HighlightedAddressNodes = new List<uint>();
@@ -1992,19 +1823,101 @@ namespace rgatCore
         public bool EdgesVisible = true;
 
 
-        public string LayoutName()
-        {
-            switch (layout)
-            {
-                case graphLayouts.eCircle:
-                    return "Circle";
-                case graphLayouts.eCylinderLayout:
-                    return "Cylinder";
-                case graphLayouts.eForceDirected3D:
-                    return "ForceDirected3D";
-                default:
-                    return "UnknownPlotType" + layout.ToString();
-            }
-        }
+
+
+
+        bool freeMe = false;
+
+        protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
+
+        public ProtoGraph internalProtoGraph { get; protected set; } = null;
+
+        protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
+        protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
+
+        protected bool wireframeSupported;
+        protected bool wireframeActive;
+        long defaultZoom;
+        public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3D;
+
+        public float[] positionsArray1 = Array.Empty<float>();
+        public float[] velocityArray1 = Array.Empty<float>();
+        public float[] nodeAttribArray1 = Array.Empty<float>();
+        public float[] presetPositionsArray = Array.Empty<float>();
+        public ulong renderFrameVersion;
+
+
+        public Veldrid.Texture _previewTexture;
+        public Veldrid.Framebuffer _previewFramebuffer;
+
+
+        public float CameraZoom = -5000;
+        public float CameraFieldOfView = 0.6f;
+        public float CameraClippingFar = 60000;
+        public float CameraClippingNear = 1; //extern jut
+        public float CameraXOffset = 0f;
+        public float CameraYOffset = 0f;
+        public float PlotZRotation = 0f;
+
+
+        public readonly Object RenderingLock = new Object();
+
+        public uint pid { get; private set; }
+        public uint tid { get; private set; }
+
+        public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
+
+        bool _isLoadedInVRAM = true;
+        public bool MemoryResident { get { return _isLoadedInVRAM; } set { MakeMemoryResident(value); _isLoadedInVRAM = true; } }
+
+        ulong unchainedWaitFrames = 0;
+        uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
+
+        //which BB we are pointing to in the sequence list
+        int animationIndex = 0;
+
+        List<uint> _PulseActiveNodes = new List<uint>();
+        List<uint> _LingeringActiveNodes = new List<uint>();
+        List<Tuple<uint, string>> _RisingExterns = new List<Tuple<uint, string>>();
+        List<Tuple<uint, string>> _RisingExternsLingering = new List<Tuple<uint, string>>();
+
+        uint[] _DeactivatedNodes = Array.Empty<uint>();
+        private readonly object animationLock = new object();
+
+
+        //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
+        /*
+		bool isWireframeSupported() { return wireframeSupported; }
+		bool isWireframeActive() { return wireframeActive; }
+		*/
+
+        public static rgatState clientState;
+
+        public GraphDisplayData NodesDisplayData = null;
+        //public GraphDisplayData BlocksDisplayData = null;
+        public GraphDisplayData EdgesDisplayData = null;
+        public GraphDisplayData HighlightsDisplayData = null;
+        //public GraphDisplayData blocklines = null;
+        public GraphDisplayData wireframelines = null;
+
+
+        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
+
+        //lowest/highest numbers of edge iterations
+        Tuple<ulong, ulong> condCounts;
+
+        public ulong vertResizeIndex = 0;
+        public int userSelectedAnimPosition = -1;
+
+        public REPLAY_STATE ReplayState = REPLAY_STATE.eEnded;
+        int updateProcessingIndex = 0;
+        protected float maxA = 0, maxB = 0, maxC = 0;
+
+        int threadReferences = 0;
+        bool schedule_performSymbolResolve = false;
+
+        protected readonly Object textLock = new Object();
+
+        int wireframeMode; //used to query the current mode
     }
 }

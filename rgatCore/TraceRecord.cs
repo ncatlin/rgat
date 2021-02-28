@@ -287,7 +287,6 @@ namespace rgatCore
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
             PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
-            standardRenderedGraph.InitialiseDefaultDimensions();
             standardRenderedGraph.SetAnimated(false);
 
 

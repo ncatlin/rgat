@@ -646,28 +646,6 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3);
-                ImGui.PushItemWidth(150);
-
-
-                string? activeLayout = _rgatstate.ActiveGraph.LayoutName() ?? "Cylinder";
-                if (ImGui.BeginCombo("##GraphTypeSelectCombo", activeLayout))
-                {
-                    if (ImGui.Selectable("Cylinder[todo]", _rgatstate.ActiveGraph.layout == graphLayouts.eCylinderLayout))
-                    {
-                        Console.WriteLine("Cylinder selected (todo: change)");
-                    }
-                    if (ImGui.Selectable("Force Directed", _rgatstate.ActiveGraph.layout == graphLayouts.eForceDirected3D))
-                    {
-                        Console.WriteLine("Tree selected");
-                    }
-                    ImGui.EndCombo();
-                }
-                ImGui.PopItemWidth();
-                ImGui.SameLine();
-                ImGui.Button("Lines");
-                ImGui.SameLine();
-                ImGui.Button("Nodes");
-                ImGui.SameLine();
                 ImGui.Button("Wireframe");
                 ImGui.SameLine();
                 ImGui.Button("Symbols");

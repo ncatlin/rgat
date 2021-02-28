@@ -93,11 +93,29 @@ namespace rgatCore
 
             //data which is always more uptodate in the graph
             //not sure it's worth cacheing
-            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd); //todo: actually empty
+            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
             _edgesConnectionDataOffsetsBuffer = _CreateEdgesConnectionDataOffsetsBuffer();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
         }
 
+
+        public void ChangePreset()
+        {
+
+            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
+            {
+                _cachedVersions[_activeGraph] = 0;
+                _activeGraph.GetPresetPositionFloats();
+                LoadCurrentGraphData();
+                _activeGraph.IncreaseTemperature();
+            }
+            else
+            {
+               
+                _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
+
+            }
+        }
 
         public void StoreCurrentGraphData()
         {

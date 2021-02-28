@@ -916,17 +916,15 @@ namespace rgatCore
 
         bool _showLayoutSelectorPopup;
         bool _showVisibilitySelector;
-        graphLayouts _tmpActiveGraphLayout = graphLayouts.eForceDirected3D;
-
-        Texture getLayoutIcon(graphLayouts layout)
+        Texture getLayoutIcon(eGraphLayout layout)
         {
             switch (layout)
             {
-                case graphLayouts.eForceDirected3D:
+                case eGraphLayout.eForceDirected3D:
                     return _iconTextures["Force3D"];
-                case graphLayouts.eCircle:
+                case eGraphLayout.eCircle:
                     return _iconTextures["Circle"];
-                case graphLayouts.eCylinderLayout:
+                case eGraphLayout.eCylinderLayout:
                     return _iconTextures["Cylinder"];
                 default:
                     Console.WriteLine($"ERROR: no icond for layout {layout}");
@@ -937,7 +935,7 @@ namespace rgatCore
 
         void DrawLayoutSelector(Vector2 position, float scale)
         {
-            Texture btnIcon = getLayoutIcon(_tmpActiveGraphLayout);
+            Texture btnIcon = getLayoutIcon(ActiveGraph.LayoutStyle);
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
@@ -974,20 +972,21 @@ namespace rgatCore
             if (ImGui.BeginPopup("layout select popup"))
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, 0xff100010);
-                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", _tmpActiveGraphLayout == graphLayouts.eForceDirected3D))
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
                 {
-                    _tmpActiveGraphLayout = graphLayouts.eForceDirected3D;
-                    Console.WriteLine("Force Directed 3D");
+                    ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D);
+                    _layoutEngine.ChangePreset();
+                  
                 }
-                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eCylinderLayout), iconSize, buttonWidth, "Cylinder", _tmpActiveGraphLayout == graphLayouts.eCylinderLayout))
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {
-                    _tmpActiveGraphLayout = graphLayouts.eCylinderLayout;
-                    Console.WriteLine("Cylinder");
+                    ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout);
+                    _layoutEngine.ChangePreset();
                 }
-                if (ImageCaptionButton(getLayoutIcon(graphLayouts.eCircle), iconSize, buttonWidth, "Circle", _tmpActiveGraphLayout == graphLayouts.eCircle))
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle), iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
                 {
-                    _tmpActiveGraphLayout = graphLayouts.eCircle;
-                    Console.WriteLine("Circle");
+                    ActiveGraph.SetLayout(eGraphLayout.eCircle);
+                    _layoutEngine.ChangePreset();
                 }
                 ImGui.PopStyleColor();
 
@@ -1017,7 +1016,7 @@ namespace rgatCore
 
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+                ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
@@ -1030,12 +1029,12 @@ namespace rgatCore
             if (_showVisibilitySelector)
             {
                 ImGui.SetNextWindowPos(new Vector2(pmin.X, pmin.Y - iconSize.Y * 3));
-                ImGui.OpenPopup("visibility select popup");
+                ImGui.OpenPopup("VisibilityPopup");
             }
             //ImGui.SetTooltip("I am a tooltip over a popup");
-            if (ImGui.BeginPopup("visibility select popup"))
+            if (ImGui.BeginPopup("VisibilityPopup"))
             {
-                if (ImGui.BeginChildFrame(ImGui.GetID("VisibilityPopupMenu"), new Vector2(300, 300)))
+                if (ImGui.BeginChildFrame(ImGui.GetID("VisibilityPopupFrame"), new Vector2(300, 300)))
                 {
 
                     ImGui.Text("Show Edges");

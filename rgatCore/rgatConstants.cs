@@ -21,7 +21,7 @@ namespace rgatCore
         CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
     }
 
-    enum graphLayouts { eCylinderLayout, eForceDirected3D, eCircle, eLayoutInvalid };
+    enum eGraphLayout { eCylinderLayout, eForceDirected3D, eCircle, eLayoutInvalid };
 
     enum eSignatureType { eYARA, eDetectItEasy};
 

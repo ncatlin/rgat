@@ -33,8 +33,8 @@ layout(set = 0, binding=0) uniform Params
 layout(set = 0, binding=1) buffer bufPositions{
     vec4 positions[];
 };
-layout(set = 0, binding=2) buffer buflayoutPositions{   
-    vec4 layoutPositions[];
+layout(set = 0, binding=2) buffer bufPresetPositions{   
+    vec4 presetPositions[];
 };
 layout(set = 0, binding=3) buffer bufvelocities {   
     vec4 velocities[];
@@ -88,7 +88,7 @@ void main()	{
     uint index = id.y * fieldParams.nodesTexWidth + id.x;
 
     vec4 selfPosition = positions[index];
-    vec4 selfLayoutPosition = layoutPositions[index];
+    vec4 presetLayoutPosition = presetPositions[index];
     vec3 selfVelocity = velocities[index].xyz;
     vec3 velocity = selfVelocity;
 
@@ -103,13 +103,13 @@ void main()	{
   
   
     //move towards preset layout position
-    if ( selfLayoutPosition.w > 0.0 ) {
+    if ( presetLayoutPosition.w > 0.0 ) {
      
         // node needs to move towards destination.
         
         if ( selfPosition.w > 0.0 ) {
             
-            compareNodePosition = selfLayoutPosition;
+            compareNodePosition = presetLayoutPosition;
 
             if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) {
 
