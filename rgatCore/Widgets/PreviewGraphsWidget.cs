@@ -152,7 +152,7 @@ namespace rgatCore
              * this can probably be a linestrip, but for now lets see if linelist lets us do something more
              * like multiple graphs
              */
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeShaders(_factory, out _EdgeVertBuffer, out _EdgeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_factory, out _EdgeVertBuffer, out _EdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
             _edgesPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
 
@@ -304,12 +304,12 @@ namespace rgatCore
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize);
 
-            VertexPositionColor[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
+            TextureOffsetColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
 
-            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * VertexPositionColor.SizeInBytes ||
+            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * TextureOffsetColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _NodeVertexBuffer.Dispose();
                 _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
 
@@ -323,13 +323,13 @@ namespace rgatCore
 
 
 
-            VertexPositionColor[] EdgeLineVerts  = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
+            TextureOffsetColour[] EdgeLineVerts  = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
                 _EdgeVertBuffer.Dispose();
-                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * VertexPositionColor.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
                 _EdgeIndexBuffer.Dispose();

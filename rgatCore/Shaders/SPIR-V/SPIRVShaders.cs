@@ -195,13 +195,13 @@ void main() {
         * Edge line lists between nodes
         * 
         */
-        public static ShaderSetDescription CreateEdgeShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateEdgeRelativeShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
-            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vsedgeglsl);
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vsedge_relative_glsl);
             byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.fsedgeglsl);
             ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
             ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
@@ -216,7 +216,28 @@ void main() {
             return shaderSetDesc;
         }
 
-        public const string vsedgeglsl = @"
+        public static ShaderSetDescription CreateEdgeRawShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        {
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
+
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vsedge_raw_glsl);
+            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.fsedgeglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
+
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+                vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+
+            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
+            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+
+            return shaderSetDesc;
+        }
+
+        public const string vsedge_relative_glsl = @"
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
@@ -255,6 +276,33 @@ void main() {
     
 }
 
+";
+
+
+        public const string vsedge_raw_glsl = @"
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 0) out vec4 vColor;
+
+layout(set = 0, binding=0) uniform ViewBuffer
+{
+    mat4 modelViewMatrix;
+    mat4 projectionMatrix;
+    uint TexWidth;
+    int pickingNodeID;
+    bool isAnimated;
+};
+
+void main() {
+
+    vColor = Color;
+    gl_Position =  modelViewMatrix * vec4(Position,1);
+}
 ";
 
         public const string fsedgeglsl = @"

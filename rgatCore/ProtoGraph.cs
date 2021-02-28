@@ -393,7 +393,7 @@ namespace rgatCore
             newTargNode.SetExecutionCount(repeats);
 
 
-            InsertNode(targVertID, newTargNode); //this invalidates all node_data* pointers
+            InsertNode(targVertID, newTargNode);
 
 
 
@@ -833,6 +833,7 @@ namespace rgatCore
             thisnode.conditional = thisnode.ins.conditional ? eConditionalType.ISCONDITIONAL : eConditionalType.NOTCONDITIONAL;
             thisnode.address = instruction.address;
             thisnode.BlockID = blockID;
+            thisnode.parentIdx = ProtoLastVertID;
             thisnode.SetExecutionCount(repeats);
             thisnode.GlobalModuleID = instruction.globalmodnum;
 

@@ -107,8 +107,8 @@ namespace rgatCore
         public void UpdateMainRender()
         {
 
-                render_graph();
-            
+            render_graph();
+
         }
 
         public void SeekToAnimationPosition(float position)
@@ -415,21 +415,6 @@ namespace rgatCore
             renderFrameVersion++;
         }
 
-        /// <summary>
-        /// The raw list of nodes with a one way edge they connect to
-        /// This is used for drawing nodes and edges
-        /// </summary>
-        List<List<int>> _graphStructureLinear = new List<List<int>>();
-        public int GraphNodeCount() { return internalProtoGraph.NodeList.Count; }
-        public int RenderedNodeCount() { return _graphStructureLinear.Count; }
-
-        /// <summary>
-        /// The list of nodes and edges where each node connects to its partner and that node connects back
-        /// This is used for the attraction velocity computation
-        /// </summary>
-        List<List<int>> _graphStructureBalanced = new List<List<int>>();
-        public float temperature = 100f;
-
         public unsafe int[] GetEdgeDataInts()
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
@@ -539,28 +524,228 @@ namespace rgatCore
             }
         }
 
+
+        void GenerateSimpleCylinderLayout()
+        {
+
+            int nodeCount = _graphStructureLinear.Count;
+            uint textureSize = LinearIndexTextureSize();
+            var textureArray = new float[textureSize * textureSize * 4];
+            for (var i = 0; i < nodeCount; i++)
+            {
+
+                var phi = i * 0.125 + Math.PI;
+
+
+                // modify to change the radius and position of a circle
+                float y = i * -15;
+                float z = 500 * (float)Math.Sin(phi);
+                float x = 500 * (float)Math.Cos(phi);
+
+                textureArray[i * 4] = x;
+                textureArray[i * 4 + 1] = y;
+                textureArray[i * 4 + 2] = z;
+                textureArray[i * 4 + 3] = 1f;
+
+            }
+
+            for (var i = nodeCount * 4; i < textureArray.Length; i++)
+            {
+
+                // fill unused RGBA slots with -1
+                textureArray[i] = -1;
+
+            }
+            presetPositionsArray = textureArray;
+        }
+
         void GenerateCylinderLayout()
         {
 
+            int nodeCount = _graphStructureLinear.Count;
+            uint textureSize = LinearIndexTextureSize();
+            var textureArray = new float[textureSize * textureSize * 4];
+            float a = 0;
+            float b = 0;
+            float radius = 500f;
+
+            textureArray[0] = radius;
+            textureArray[1] = 0;
+            textureArray[2] = 0;
+            textureArray[3] = 1;
+
+            float B_BETWEEN_BLOCKNODES = 5f;
+            float JUMPA = 3f;
+            float JUMPB = 10f;
+            float JUMPA_CLASH = 1.5f;
+            float CALLA = 5f;
+            float CALLB = 10f;
+            float CALLB_CLASH = 12;
+
+            Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
+
+            for (uint i = 1; i < nodeCount; i++)
+            {
+                if (i == 9)
+                    Console.WriteLine("s");
+                NodeData n = internalProtoGraph.safe_get_node(i);
+                NodeData firstParent = internalProtoGraph.safe_get_node(n.parentIdx);
+
+                if (n.IsExternal)
+                {
+                    a = a + (-0.5f) - 1f * firstParent.childexterns;
+                    b = b + (0.5f) + 0.7f * firstParent.childexterns;
+                }
+                else
+                {
+                    switch (firstParent.VertType())
+                    {
+                        case eEdgeNodeType.eNodeNonFlow:
+                            b += B_BETWEEN_BLOCKNODES;
+                            break;
+
+                        case eEdgeNodeType.eNodeJump:
+
+                            if (firstParent.conditional != eConditionalType.NOTCONDITIONAL && n.address == firstParent.ins.condDropAddress)
+                            {
+                                b += B_BETWEEN_BLOCKNODES;
+                                break;
+                            }
+                            a += JUMPA;
+                            b += JUMPB;
+                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b))) { a += JUMPA_CLASH; }
+                            break;
+
+
+                        case eEdgeNodeType.eNodeException:
+                            a += JUMPA;
+                            b += JUMPB;
+                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b))) { a += JUMPA_CLASH; }
+                            break;
+
+                        case eEdgeNodeType.eNodeCall:
+                            a += CALLA;
+                            b += CALLB;
+                            bool clash = false;
+                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
+                            {
+                                b += CALLB_CLASH;
+                            }
+                            break;
+
+                        case eEdgeNodeType.eNodeReturn:
+                        case eEdgeNodeType.eNodeExternal:
+
+                            a += 4;
+                            b += 4;
+                            break;
+
+                    }
+                }
+
+
+                float x = radius * (float)Math.Cos(a * Math.PI);
+                float y = -1 * CYLINDER_PIXELS_PER_B * b;
+                float z = radius * (float)Math.Sin(a * Math.PI);
+
+                textureArray[i * 4] = x;
+                textureArray[i * 4 + 1] = y;
+                textureArray[i * 4 + 2] = z;
+                textureArray[i * 4 + 3] = 1f;
+
+                if (b > _cylinderMaxB) _cylinderMaxB = b;
+
+            }
+
+            for (var i = nodeCount * 4; i < textureArray.Length; i++)
+            {
+
+                // fill unused RGBA slots with -1
+                textureArray[i] = -1;
+
+            }
+            presetPositionsArray = textureArray;
+        }
+
+        float CYLINDER_PIXELS_PER_B = 10f;
+        GeomPositionColour[] GenerateCylinderWireframe(out List<uint> edgeIndices)
+        {
+            int CYLINDER_PIXELS_PER_ROW = 500;
+            float WF_POINTSPERLINE = 50f;
+            int wireframe_loop_count = (int)Math.Ceiling((_cylinderMaxB* CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
+            float radius = 500f;
+
+            List<GeomPositionColour> verts = new List<GeomPositionColour>();
+            edgeIndices = new List<uint>();
+            for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
+            {
+                int rowYcoord = -rowY * CYLINDER_PIXELS_PER_ROW;
+                for (float circlePoint = 0; circlePoint < WF_POINTSPERLINE + 1; ++circlePoint)
+                {
+                    float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
+
+                    if (circlePoint > 1)
+                        edgeIndices.Add((uint)verts.Count - 1);
+
+                    edgeIndices.Add((uint)verts.Count);
+                    GeomPositionColour gpc = new GeomPositionColour
+                    {
+                        Color = new WritableRgbaFloat(Color.White),
+                        Position = new Vector3(radius * (float)Math.Cos(angle), (float)rowYcoord, radius * (float)Math.Sin(angle))
+                    };
+                    verts.Add(gpc);
+                }
+
+            }
+            return verts.ToArray();
         }
 
 
+        eGraphLayout _wireframeLayout = eGraphLayout.eLayoutInvalid;
+        uint _wireframeEdgeCount;
+        float _cylinderMaxB;
+
+        //todo cache
+      public  GeomPositionColour[] GetWireframeVerts(out List<uint> edgeIndices)
+        {
+
+            _presetLayoutStyle = LayoutStyle;
+            _presetEdgeCount = internalProtoGraph.get_num_edges();
+            switch (LayoutStyle)
+            {
+                case eGraphLayout.eCylinderLayout:
+                    return GenerateCylinderWireframe(out edgeIndices);
+                default:
+                    Console.WriteLine("Error: Tried to layout invalid wireframe style: " + LayoutName());
+                    edgeIndices = null;
+                    return null;
+            }
+
+
+        }
+
+        public bool WireframeEnabled => LayoutStyle == eGraphLayout.eCylinderLayout;
+
+
+
+
+        //Adapted from analytics textureGenerator.js 
         void GenerateCircleLayout()
         {
+            int nodeCount = _graphStructureLinear.Count;
+            uint textureSize = LinearIndexTextureSize();
+
             float increase = ((float)Math.PI * 2.0f) / (float)_graphStructureLinear.Count;
             float angle = 0;
-            float radius = _graphStructureLinear.Count * 4f * 2f;
+            float radius = nodeCount * 4f * 2f;
 
-            uint textureSize = LinearIndexTextureSize();
             var textureArray = new float[textureSize * textureSize * 4];
 
             for (var i = 0; i < textureArray.Length; i += 4)
             {
 
-                if (i < _graphStructureLinear.Count * 4)
+                if (i < nodeCount * 4)
                 {
-
-
                     // modify to change the radius and position of a circle
                     float x = radius * (float)Math.Cos(angle);
                     float y = radius * (float)Math.Sin(angle);
@@ -843,13 +1028,13 @@ namespace rgatCore
                 case eRenderingMode.eConditionals:
                     {
                         if (n.conditional == eConditionalType.NOTCONDITIONAL)
-                                return new WritableRgbaFloat(0, 0, 0, 0.7f);
-                    if (n.conditional == eConditionalType.CONDCOMPLETE)
-                        return new WritableRgbaFloat(1, 1, 1, .7f);
-                    if (((int)n.conditional & (int)eConditionalType.CONDTAKEN) != 0)
-                        return new WritableRgbaFloat(0, 1, 0, 0.7f);
-                    if (((int)n.conditional & (int)eConditionalType.CONDFELLTHROUGH) != 0)
-                        return new WritableRgbaFloat(1, 0, 0, 0.7f);
+                            return new WritableRgbaFloat(0, 0, 0, 0.7f);
+                        if (n.conditional == eConditionalType.CONDCOMPLETE)
+                            return new WritableRgbaFloat(1, 1, 1, .7f);
+                        if (((int)n.conditional & (int)eConditionalType.CONDTAKEN) != 0)
+                            return new WritableRgbaFloat(0, 1, 0, 0.7f);
+                        if (((int)n.conditional & (int)eConditionalType.CONDFELLTHROUGH) != 0)
+                            return new WritableRgbaFloat(1, 0, 0, 0.7f);
                         return new WritableRgbaFloat(Color.Yellow);
                     }
                 default:
@@ -943,9 +1128,9 @@ namespace rgatCore
 
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
-        public VertexPositionColor[] GetMaingraphNodeVerts(
+        public TextureOffsetColour[] GetMaingraphNodeVerts(
             out List<uint> nodeIndices,
-            out VertexPositionColor[] nodePickingColors,
+            out TextureOffsetColour[] nodePickingColors,
             out List<Tuple<string, Color>> captions,
             eRenderingMode renderingMode)
         {
@@ -957,9 +1142,9 @@ namespace rgatCore
             }
 
             uint textureSize = LinearIndexTextureSize();
-            VertexPositionColor[] NodeVerts = new VertexPositionColor[textureSize * textureSize];
+            TextureOffsetColour[] NodeVerts = new TextureOffsetColour[textureSize * textureSize];
 
-            nodePickingColors = new VertexPositionColor[textureSize * textureSize];
+            nodePickingColors = new TextureOffsetColour[textureSize * textureSize];
             captions = new List<Tuple<string, Color>>();
 
             nodeIndices = new List<uint>();
@@ -973,13 +1158,13 @@ namespace rgatCore
 
                     nodeIndices.Add(index);
 
-                    NodeVerts[index] = new VertexPositionColor
+                    NodeVerts[index] = new TextureOffsetColour
                     {
                         TexPosition = new Vector2(x, y),
                         Color = GetNodeColor((int)index, renderingMode)
                     };
 
-                    nodePickingColors[index] = new VertexPositionColor
+                    nodePickingColors[index] = new TextureOffsetColour
                     {
                         TexPosition = new Vector2(x, y),
                         Color = new WritableRgbaFloat(index, 0, 0, 1)
@@ -995,10 +1180,10 @@ namespace rgatCore
         }
 
 
-        public VertexPositionColor[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
+        public TextureOffsetColour[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
         {
             uint textureSize = LinearIndexTextureSize();
-            VertexPositionColor[] NodeVerts = new VertexPositionColor[textureSize * textureSize];
+            TextureOffsetColour[] NodeVerts = new TextureOffsetColour[textureSize * textureSize];
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
@@ -1011,7 +1196,7 @@ namespace rgatCore
 
                     nodeIndices.Add(index);
 
-                    NodeVerts[index] = new VertexPositionColor
+                    NodeVerts[index] = new TextureOffsetColour
                     {
                         TexPosition = new Vector2(x, y),
                         Color = GetNodeColor((int)index, renderingMode)
@@ -1083,11 +1268,11 @@ namespace rgatCore
         }
 
 
-        public VertexPositionColor[] GetEdgeLineVerts(eRenderingMode renderingMode,
+        public TextureOffsetColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
             out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {
             uint evTexWidth = EdgeVertsTextureWidth();
-            VertexPositionColor[] EdgeLineVerts = new VertexPositionColor[evTexWidth * evTexWidth * 16];
+            TextureOffsetColour[] EdgeLineVerts = new TextureOffsetColour[evTexWidth * evTexWidth * 16];
 
             vertCount = 0;
             edgeIndices = new List<uint>();
@@ -1102,7 +1287,7 @@ namespace rgatCore
                 WritableRgbaFloat ecol = GetEdgeColor(edge, renderingMode);
 
                 EdgeLineVerts[vertCount] =
-                        new VertexPositionColor
+                        new TextureOffsetColour
                         {
                             TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
@@ -1110,9 +1295,9 @@ namespace rgatCore
                 edgeIndices.Add((uint)vertCount); vertCount++;
 
                 EdgeLineVerts[vertCount] =
-                    new VertexPositionColor
+                    new TextureOffsetColour
                     {
-                        TexPosition = new Vector2(destNodeIdx % textureSize,  (float)Math.Floor((float)(destNodeIdx / textureSize))),
+                        TexPosition = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
                 edgeIndices.Add((uint)vertCount); vertCount++;
@@ -1821,6 +2006,7 @@ namespace rgatCore
 
         public bool NodesVisible = true;
         public bool EdgesVisible = true;
+        public bool TextEnabled = true;
 
 
 
@@ -1919,5 +2105,23 @@ namespace rgatCore
         protected readonly Object textLock = new Object();
 
         int wireframeMode; //used to query the current mode
+
+
+
+        /// <summary>
+        /// The raw list of nodes with a one way edge they connect to
+        /// This is used for drawing nodes and edges
+        /// </summary>
+        List<List<int>> _graphStructureLinear = new List<List<int>>();
+        public int GraphNodeCount() { return internalProtoGraph.NodeList.Count; }
+        public int RenderedNodeCount() { return _graphStructureLinear.Count; }
+
+        /// <summary>
+        /// The list of nodes and edges where each node connects to its partner and that node connects back
+        /// This is used for the attraction velocity computation
+        /// </summary>
+        List<List<int>> _graphStructureBalanced = new List<List<int>>();
+        public float temperature = 100f;
+
     }
 }

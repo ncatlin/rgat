@@ -140,12 +140,12 @@ namespace rgatCore
             switch (ins.itype)
             {
                 case eNodeType.eInsUndefined:
-                {                 
-                     
-                   if (ins.conditional) _nodeType = eEdgeNodeType.eNodeJump;
-                   else _nodeType = eEdgeNodeType.eNodeNonFlow;
+                    {
+
+                        if (ins.conditional) _nodeType = eEdgeNodeType.eNodeJump;
+                        else _nodeType = eEdgeNodeType.eNodeNonFlow;
                         break;
-                }
+                    }
                 case eNodeType.eInsJump:
                     _nodeType = eEdgeNodeType.eNodeJump;
                     break;
@@ -163,81 +163,78 @@ namespace rgatCore
             return _nodeType;
         }
 
-    /*
-    void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
-    {
-        traceRecord* runRecord = (traceRecord*)traceRecPtr;
-        PROCESS_DATA* piddata = runRecord.get_piddata();
-
-        ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
-        string sym;
-        //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
-        bool foundsym = false;
-        int symOffset;
-        for (symOffset = 0; symOffset < 4096; symOffset++)
+        /*
+        void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
         {
-            if (piddata.get_sym(globalModID, offset - symOffset, sym))
+            traceRecord* runRecord = (traceRecord*)traceRecPtr;
+            PROCESS_DATA* piddata = runRecord.get_piddata();
+
+            ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
+            string sym;
+            //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
+            bool foundsym = false;
+            int symOffset;
+            for (symOffset = 0; symOffset < 4096; symOffset++)
             {
-                foundsym = true;
-                break;
+                if (piddata.get_sym(globalModID, offset - symOffset, sym))
+                {
+                    foundsym = true;
+                    break;
+                }
             }
+
+            if (foundsym)
+                label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
+            else
+                label = "[Unknown Symbol]";
         }
-
-        if (foundsym)
-            label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
-        else
-            label = "[Unknown Symbol]";
-    }
-    */
+        */
 
 
 
-    public uint index = 0;
+        public uint index = 0;
 
-    public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
-    public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
-    public InstructionData ins;
-    public bool IsExternal { get; set; } = false;
-    bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
-    public int GlobalModuleID;
+        public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
+        public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
+        public InstructionData ins;
+        public bool IsExternal { get; set; } = false;
+        bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
+        public int GlobalModuleID;
 
-    public uint BlockID;
+        public uint BlockID;
 
-    //an index used to lookup the caller/arguments of each instance of this being called
-    public List<ulong> callRecordsIndexs = new List<ulong>();
-    public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
-    public bool newArgsRecorded; 
+        //an index used to lookup the caller/arguments of each instance of this being called
+        public List<ulong> callRecordsIndexs = new List<ulong>();
+        public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
+        public bool newArgsRecorded;
 
-    //number of external functions called
-    public uint childexterns = 0;
-    public ulong address = 0;
-    public uint parentIdx = 0;
+        //number of external functions called
+        public uint childexterns = 0;
+        public ulong address = 0;
+        public uint parentIdx = 0;
 
-    public ulong executionCount { get; private set; } = 0;
-    public void SetExecutionCount(ulong value) {
+        public ulong executionCount { get; private set; } = 0;
+        public void SetExecutionCount(ulong value)
+        {
             if (index == 4 && value > 33)
             {
                 Console.WriteLine($"Node 4 exec count set to {value}");
             }
             executionCount = value;
         }
-    public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
+        public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
 
         public ulong heat_ExecutionsRemainingIn = 0;
-    public ulong heat_ExecutionsRemainingOut = 0;
+        public ulong heat_ExecutionsRemainingOut = 0;
 
-    public List<uint> UnsolvedOutNeighbours = new List<uint>();
-    public List<uint> UnsolvedInNeighbours = new List<uint>();
+        public List<uint> UnsolvedOutNeighbours = new List<uint>();
+        public List<uint> UnsolvedInNeighbours = new List<uint>();
 
-        ulong heat_run_marker;
-    //todo serialise
-    float heatRank = 0; //0-1 least to most busy 
-
-    public List<uint> IncomingNeighboursSet = new List<uint>();
-    public List<uint> OutgoingNeighboursSet = new List<uint>();
-    public int degree = 0;
-    eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
-    public string label;
-    public bool placeholder = false;
-}
+        public List<uint> IncomingNeighboursSet = new List<uint>();
+        public List<uint> OutgoingNeighboursSet = new List<uint>();
+        public int degree = 0;
+        eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
+        public string label;
+        public bool placeholder = false;
+    }
 }

@@ -14,26 +14,26 @@ namespace rgatCore
 
         //LineStrip
         Pipeline _linesPipeline;
-        VertexPositionColor[] _EdgeLineVertices;
+        TextureOffsetColour[] _EdgeLineVertices;
         DeviceBuffer _EdgeLineVertexBuffer;
         DeviceBuffer _EdgeLineIndexBuffer;
 
         //LineList
         Pipeline _IllustrationLinePipeline;
-        VertexPositionColor[] _IllustrationLineVertices;
+        TextureOffsetColour[] _IllustrationLineVertices;
         DeviceBuffer _IllustrationLineVertexBuffer;
         DeviceBuffer _IllustrationLineIndexBuffer;
 
         //Nodes
         Pipeline _pointsPipeline;
-        VertexPositionColor[] _PointVertices;
+        TextureOffsetColour[] _PointVertices;
         DeviceBuffer _PointVertexBuffer;
         DeviceBuffer _PointIndexBuffer;
 
 
         //Triangles
         Pipeline _trianglesPipeline;
-        VertexPositionColor[] _TriangleVertices;
+        TextureOffsetColour[] _TriangleVertices;
         DeviceBuffer _TriangleVertexBuffer;
         DeviceBuffer _TriangleIndexBuffer;
         
@@ -108,21 +108,41 @@ namespace rgatCore
         }
 
 
-
-        public struct VertexPositionColor
+        /// <summary>
+        /// This is used for shaders where the coordinate being referenced is contained in a texture. 
+        /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
+        /// </summary>
+        public struct TextureOffsetColour
         {
             public Vector2 TexPosition;
             public WritableRgbaFloat Color;
             public const uint SizeInBytes = 24;
 
-            public VertexPositionColor(Vector2 position, WritableRgbaFloat color)
+            public TextureOffsetColour(Vector2 position, WritableRgbaFloat color)
             {
                 TexPosition = position;
                 Color = color;
             }
         }
 
-        
+
+        /// <summary>
+        /// This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
+        /// </summary>
+        public struct GeomPositionColour
+        {
+            public Vector3 Position;
+            public WritableRgbaFloat Color;
+            public const uint SizeInBytes = 28;
+
+            public GeomPositionColour(Vector3 position, WritableRgbaFloat color)
+            {
+                Position = position;
+                Color = color;
+            }
+        }
+
+
 
         public static DeviceBuffer GetReadback(GraphicsDevice gd, DeviceBuffer buffer)
         {
@@ -146,6 +166,7 @@ namespace rgatCore
 
             return readback;
         }
+
 
         public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev)
         {
