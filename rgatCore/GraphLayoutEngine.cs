@@ -105,16 +105,15 @@ namespace rgatCore
             if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
             {
                 _cachedVersions[_activeGraph] = 0;
-                _activeGraph.GetPresetPositionFloats();
+                //_activeGraph.GetPresetPositionFloats();
                 LoadCurrentGraphData();
-                _activeGraph.IncreaseTemperature();
             }
             else
             {
-               
                 _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
-
             }
+            _activeGraph.IncreaseTemperature(100f);
+            _activatingPreset = true;
         }
 
         public void StoreCurrentGraphData()
@@ -444,9 +443,42 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            //DebugPrintOutputFloatBuffer((int)textureSize, destinationBuffer, "Velocity Computation Done. Result: ", 32);
+            if ( _activatingPreset)
+            {
+                //DebugPrintOutputFloatBuffer((int)textureSize, destinationBuffer, "Velocity Computation Done. Result: ", 150);
+                float highest = FindHighXYZ(textureSize, destinationBuffer, 0.005f);
+                Console.WriteLine($"Highest velocity: {highest} .. {_activeGraph.flipflop}");
+                if (highest < 0.05)
+                { 
+                    _activatingPreset = false;
+
+                    _activeGraph.InitBlankPresetLayout();
+                }
+            }
+            
+
+
             velocityComputeResourceSet.Dispose();
             cl.Dispose();
+        }
+
+        public bool ActivatingPreset => _activatingPreset == true;
+
+        float FindHighXYZ(uint textureSize, DeviceBuffer buf, float maxLimit)
+        {
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            float highest = 0f;
+            for (uint index = 0; index < textureSize * textureSize * 4; index += 4)
+            {
+                if (index >= destinationReadView.Count) break;
+                if (destinationReadView[index + 3] != 1.0f) break; //past end of nodes
+                if (Math.Abs(destinationReadView[index]) > maxLimit) highest = Math.Abs(destinationReadView[index]);
+                if (Math.Abs(destinationReadView[index+1]) > maxLimit) highest = Math.Abs(destinationReadView[index+1]);
+                if (Math.Abs(destinationReadView[index+2]) > maxLimit) highest = Math.Abs(destinationReadView[index+2]);
+            }
+            destinationReadback.Dispose();
+            return highest;
         }
 
 
@@ -668,7 +700,7 @@ namespace rgatCore
             return false;
         }
 
-
+        bool _activatingPreset = false;
         public ulong Compute(uint drawnEdgeCount, int mouseoverNodeID, bool useAnimAttribs)
         {
             Debug.Assert(_activeGraph != null, "Layout engine called to compute without active graph");
@@ -693,16 +725,21 @@ namespace rgatCore
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             float delta = Math.Min((now - _activeGraph.lastRenderTime) / 1000f, 1.0f);// safety cap on large deltas
+
+            if (_activatingPreset)
+            {
+                delta *= 7.5f;
+            }
+
             _activeGraph.lastRenderTime = now;
             float _activeGraphTemperature = _activeGraph.temperature;
-            //Console.WriteLine($"Temp: {temperature} Delta: {_delta}");
             if (_activeGraph.flipflop)
             {
                 if (_activeGraphTemperature > 0.1)
                 {
-                    RenderVelocity(_activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, _activeGraphTemperature);
+                    RenderVelocity(_activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, false ? 250.0f : _activeGraphTemperature);
                     RenderPosition(_activePositionsBuffer1, _activeVelocityBuffer1, _activePositionsBuffer2, delta);
-                    //_cachedVersions[_activeGraph]++;
+                    _cachedVersions[_activeGraph]++;
                 }
 
                 RenderNodeAttribs(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2, delta, mouseoverNodeID, useAnimAttribs);
@@ -712,7 +749,7 @@ namespace rgatCore
 
                 if (_activeGraphTemperature > 0.1)
                 {
-                    RenderVelocity(_activePositionsBuffer2, _activeVelocityBuffer2, _activeVelocityBuffer1, delta, _activeGraphTemperature);
+                    RenderVelocity(_activePositionsBuffer2, _activeVelocityBuffer2, _activeVelocityBuffer1, delta, false ? 250.0f : _activeGraphTemperature);
                     RenderPosition(_activePositionsBuffer2, _activeVelocityBuffer1, _activePositionsBuffer1, delta);
                     _cachedVersions[_activeGraph]++;
                 }

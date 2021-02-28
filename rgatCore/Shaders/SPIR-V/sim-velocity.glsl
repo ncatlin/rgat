@@ -110,12 +110,14 @@ void main()	{
         if ( selfPosition.w > 0.0 ) {
             
             compareNodePosition = presetLayoutPosition;
-
-            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) {
-
+            float distFromDest = distance(compareNodePosition.xyz, selfPosition.xyz);
+            if (distFromDest > 0.001) {
                 velocity -= addAttraction(selfPosition.xyz, compareNodePosition);
-
             }
+            if (length(velocity) > distFromDest) {
+                 velocity = normalize( velocity ) * distFromDest/2;
+            }
+
 
         }
         velocity *= 0.75;
@@ -212,7 +214,7 @@ void main()	{
     // add friction
     velocity *= 0.25;
 
-    field_Destination[index] = vec4(velocity, 1.0);
+    field_Destination[index] = vec4(velocity, velocities[index].w);
     
     //field_Destination[index] = vec4(hitcount,hitcoord);
 

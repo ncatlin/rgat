@@ -502,6 +502,11 @@ namespace rgatCore
             return presetPositionsArray;
         }
 
+        void ZeroisePreset()
+        {
+
+        }
+
         void GeneratePresetPositions()
         {
             _presetLayoutStyle = LayoutStyle;
@@ -515,8 +520,15 @@ namespace rgatCore
                     GenerateCircleLayout();
                     break;
                 case eGraphLayout.eForceDirected3D:
-                    InitBlankPresetLayout();
-                    RandomisePositionTextures();
+                    if (savedForcePositionsArray1.Length == 0)
+                    {
+                        InitBlankPresetLayout();
+                        RandomisePositionTextures();
+                    }
+                    else
+                    {
+                        presetPositionsArray = savedForcePositionsArray1.ToArray();
+                    }
                     break;
                 default:
                     Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
@@ -586,8 +598,6 @@ namespace rgatCore
 
             for (uint i = 1; i < nodeCount; i++)
             {
-                if (i == 9)
-                    Console.WriteLine("s");
                 NodeData n = internalProtoGraph.safe_get_node(i);
                 NodeData firstParent = internalProtoGraph.safe_get_node(n.parentIdx);
 
@@ -864,7 +874,7 @@ namespace rgatCore
             velocityArray1[currentOffset] = 0;
             velocityArray1[currentOffset + 1] = 0;
             velocityArray1[currentOffset + 2] = 0;
-            velocityArray1[currentOffset + 3] = 0;
+            velocityArray1[currentOffset + 3] = 1;
 
 
             nodeAttribArray1[currentOffset] = 200f;
@@ -950,7 +960,7 @@ namespace rgatCore
         }
 
 
-        void InitBlankPresetLayout()
+        public void InitBlankPresetLayout()
         {
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
@@ -1989,6 +1999,15 @@ namespace rgatCore
 
         public void SetLayout(eGraphLayout newStyle)
         {
+            if (LayoutStyle == eGraphLayout.eForceDirected3D && newStyle != eGraphLayout.eForceDirected3D)
+            {
+                savedForcePositionsArray1 = positionsArray1.ToArray();
+            }    
+            else if (LayoutStyle != eGraphLayout.eForceDirected3D && newStyle == eGraphLayout.eForceDirected3D)
+            {
+                if (savedForcePositionsArray1.Length > 0)
+                    presetPositionsArray = savedForcePositionsArray1;
+            }
             LayoutStyle = newStyle;
         }
 
@@ -2027,6 +2046,7 @@ namespace rgatCore
         public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3D;
 
         public float[] positionsArray1 = Array.Empty<float>();
+        public float[] savedForcePositionsArray1 = Array.Empty<float>();
         public float[] velocityArray1 = Array.Empty<float>();
         public float[] nodeAttribArray1 = Array.Empty<float>();
         public float[] presetPositionsArray = Array.Empty<float>();

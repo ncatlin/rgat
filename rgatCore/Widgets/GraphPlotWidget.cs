@@ -1016,19 +1016,28 @@ namespace rgatCore
                 ImGui.PushStyleColor(ImGuiCol.Button, 0xff100010);
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
                 {
-                    ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D);
-                    _layoutEngine.ChangePreset();
+                    if (!_layoutEngine.ActivatingPreset)
+                    {
+                        ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D);
+                        _layoutEngine.ChangePreset();
+                    }
 
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {
-                    ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout);
-                    _layoutEngine.ChangePreset();
+                    if (!_layoutEngine.ActivatingPreset)
+                    {
+                        ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout);
+                        _layoutEngine.ChangePreset();
+                    }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle), iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
-                {
-                    ActiveGraph.SetLayout(eGraphLayout.eCircle);
-                    _layoutEngine.ChangePreset();
+                    {
+                        if (!_layoutEngine.ActivatingPreset)
+                        {
+                            ActiveGraph.SetLayout(eGraphLayout.eCircle);
+                            _layoutEngine.ChangePreset();
+                        }
                 }
                 ImGui.PopStyleColor();
 
