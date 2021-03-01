@@ -447,12 +447,14 @@ namespace rgatCore
             {
                 //DebugPrintOutputFloatBuffer((int)textureSize, destinationBuffer, "Velocity Computation Done. Result: ", 150);
                 float highest = FindHighXYZ(textureSize, destinationBuffer, 0.005f);
-                Console.WriteLine($"Highest velocity: {highest} .. {_activeGraph.flipflop}");
                 if (highest < 0.05)
                 { 
+                    if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
+                    {
+                        _activeGraph.InitBlankPresetLayout();
+                        _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
+                    }
                     _activatingPreset = false;
-
-                    _activeGraph.InitBlankPresetLayout();
                 }
             }
             
@@ -464,6 +466,13 @@ namespace rgatCore
 
         public bool ActivatingPreset => _activatingPreset == true;
 
+        /// <summary>
+        /// See if any velocities in a velocity texture are below maxLimit
+        /// </summary>
+        /// <param name="textureSize"></param>
+        /// <param name="buf"></param>
+        /// <param name="maxLimit"></param>
+        /// <returns></returns>
         float FindHighXYZ(uint textureSize, DeviceBuffer buf, float maxLimit)
         {
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
@@ -473,9 +482,9 @@ namespace rgatCore
             {
                 if (index >= destinationReadView.Count) break;
                 if (destinationReadView[index + 3] != 1.0f) break; //past end of nodes
-                if (Math.Abs(destinationReadView[index]) > maxLimit) highest = Math.Abs(destinationReadView[index]);
-                if (Math.Abs(destinationReadView[index+1]) > maxLimit) highest = Math.Abs(destinationReadView[index+1]);
-                if (Math.Abs(destinationReadView[index+2]) > maxLimit) highest = Math.Abs(destinationReadView[index+2]);
+                if (Math.Abs(destinationReadView[index]) > highest) highest = Math.Abs(destinationReadView[index]);
+                if (Math.Abs(destinationReadView[index+1]) > highest) highest = Math.Abs(destinationReadView[index+1]);
+                if (Math.Abs(destinationReadView[index+2]) > highest) highest = Math.Abs(destinationReadView[index+2]);
             }
             destinationReadback.Dispose();
             return highest;
@@ -741,7 +750,6 @@ namespace rgatCore
                     RenderPosition(_activePositionsBuffer1, _activeVelocityBuffer1, _activePositionsBuffer2, delta);
                     _cachedVersions[_activeGraph]++;
                 }
-
                 RenderNodeAttribs(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2, delta, mouseoverNodeID, useAnimAttribs);
             }
             else

@@ -1997,8 +1997,9 @@ namespace rgatCore
             }
         }
 
-        public void SetLayout(eGraphLayout newStyle)
+        public bool SetLayout(eGraphLayout newStyle)
         {
+            if (newStyle == LayoutStyle) return false;
             if (LayoutStyle == eGraphLayout.eForceDirected3D && newStyle != eGraphLayout.eForceDirected3D)
             {
                 savedForcePositionsArray1 = positionsArray1.ToArray();
@@ -2009,6 +2010,7 @@ namespace rgatCore
                     presetPositionsArray = savedForcePositionsArray1;
             }
             LayoutStyle = newStyle;
+            return true;
         }
 
 

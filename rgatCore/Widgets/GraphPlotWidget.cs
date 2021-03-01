@@ -50,9 +50,15 @@ namespace rgatCore
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller);
 
+            LoadImages();
+
             SetupRenderingResources();
 
+        }
 
+
+        void LoadImages()
+        {
             string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
             _iconTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
 
@@ -64,8 +70,14 @@ namespace rgatCore
 
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
             _iconTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-        }
 
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
+            _iconTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
+            _iconTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+
+        }
 
         public void SetActiveGraph(PlottedGraph graph)
         {
@@ -284,9 +296,7 @@ namespace rgatCore
 
 
 
-            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\js\analytics-master\textures\new_circle.png";
-            _NodeCircleSprite = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-            _NodeCircleSpritetview = _factory.CreateTextureView(_NodeCircleSprite);
+            _NodeCircleSpritetview = _factory.CreateTextureView(_iconTextures["VertCircle"]);
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -978,7 +988,6 @@ namespace rgatCore
         void DrawLayoutSelector(Vector2 position, float scale)
         {
             Texture btnIcon = getLayoutIcon(ActiveGraph.LayoutStyle);
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
@@ -986,21 +995,17 @@ namespace rgatCore
 
             ImGui.SetCursorScreenPos(pmin);
 
-            bool buttonHover = false;
-
-
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+            ImGui.ImageButton(_controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon), iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
-            buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
+            bool buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
 
             if (!_showLayoutSelectorPopup && buttonHover)
             {
                 _showLayoutSelectorPopup = true;
-
             }
 
             int buttonCount = 3;
@@ -1016,26 +1021,23 @@ namespace rgatCore
                 ImGui.PushStyleColor(ImGuiCol.Button, 0xff100010);
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
                 {
-                    if (!_layoutEngine.ActivatingPreset)
+                    if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D))
                     {
-                        ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D);
                         _layoutEngine.ChangePreset();
                     }
 
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {
-                    if (!_layoutEngine.ActivatingPreset)
+                    if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout))
                     {
-                        ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout);
                         _layoutEngine.ChangePreset();
                     }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle), iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
                     {
-                        if (!_layoutEngine.ActivatingPreset)
+                        if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle))
                         {
-                            ActiveGraph.SetLayout(eGraphLayout.eCircle);
                             _layoutEngine.ChangePreset();
                         }
                 }
@@ -1064,10 +1066,9 @@ namespace rgatCore
 
             ImGui.SetCursorScreenPos(pmin);
 
-
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+                ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
