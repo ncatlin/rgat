@@ -900,7 +900,6 @@ namespace rgatCore
             Vector2 widgetSize = new Vector2(width, iconsize.Y + 4);
             if (ImGui.BeginChild(ImGui.GetID(caption + "ICB"), widgetSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-
                 Vector2 a = ImGui.GetCursorScreenPos() + new Vector2(5, 2);
 
                 if (ImGui.InvisibleButton(caption + "IVB", widgetSize))
@@ -1016,32 +1015,24 @@ namespace rgatCore
                 ImGui.SetNextWindowPos(new Vector2(pmin.X - 4, pmin.Y - iconSize.Y * (buttonCount + offsetFromBase)));
                 ImGui.OpenPopup("layout select popup");
             }
+
+            bool snappingToPreset = _layoutEngine.ActivatingPreset;
+            if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
+
             if (ImGui.BeginPopup("layout select popup"))
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, 0xff100010);
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
                 {
-                    if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D))
-                    {
-                        _layoutEngine.ChangePreset();
-                    }
-
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D)) { _layoutEngine.ChangePreset(); }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {
-                    if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout))
-                    {
-                        _layoutEngine.ChangePreset();
-                    }
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout)) { _layoutEngine.ChangePreset(); }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle), iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
-                    {
-                        if (!_layoutEngine.ActivatingPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle))
-                        {
-                            _layoutEngine.ChangePreset();
-                        }
+                {
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle)) { _layoutEngine.ChangePreset(); }
                 }
-                ImGui.PopStyleColor();
 
                 if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
                         | ImGuiHoveredFlags.AllowWhenBlockedByPopup
@@ -1052,6 +1043,8 @@ namespace rgatCore
                 }
                 ImGui.EndPopup();
             }
+            if (snappingToPreset) { ImGui.PopStyleColor(); }
+
 
 
         }
@@ -1068,7 +1061,7 @@ namespace rgatCore
 
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-                ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
+            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 

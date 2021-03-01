@@ -80,6 +80,12 @@ vec3 addAttraction(vec3 self, vec4 neighbor){
     return normalize(diff) * f;
 }
 
+vec3 addProportionalAttraction(vec3 self, vec4 neighbor, float speed){
+    if (neighbor.w == -1) return vec3(0,0,0); 
+    vec3 diff = self - neighbor.xyz;    
+    return normalize(diff) * speed;
+}
+
 
 void main()	{
 
@@ -98,8 +104,8 @@ void main()	{
     float speedLimit = 250.0;
     float attct = 0;
     
-                int hitcount = 0;
-                vec3 hitcoord = vec3(0,0,0);
+    int hitcount = 0;
+    vec3 hitcoord = vec3(0,0,0);
   
   
     //move towards preset layout position
@@ -112,13 +118,10 @@ void main()	{
             compareNodePosition = presetLayoutPosition;
             float distFromDest = distance(compareNodePosition.xyz, selfPosition.xyz);
             if (distFromDest > 0.001) {
-                velocity -= addAttraction(selfPosition.xyz, compareNodePosition);
+                float speed = distFromDest/10;
+                if (speed < 10) speed = distFromDest;
+                velocity -= addProportionalAttraction(selfPosition.xyz, compareNodePosition, distFromDest/10);
             }
-            if (length(velocity) > distFromDest) {
-                 velocity = normalize( velocity ) * distFromDest/2;
-            }
-
-
         }
         velocity *= 0.75;
 
@@ -204,19 +207,18 @@ void main()	{
         // temperature gradually cools down to zero
 
        velocity = normalize(velocity) * fieldParams.temperature;
+
+        // Speed Limits
+        if ( length( velocity ) > speedLimit ) {
+            velocity = normalize( velocity ) * speedLimit;
+        }
+        
     }
 
-    // Speed Limits
-    if ( length( velocity ) > speedLimit ) {
-        velocity = normalize( velocity ) * speedLimit;
-    }
     
     // add friction
     velocity *= 0.25;
 
     field_Destination[index] = vec4(velocity, velocities[index].w);
-    
-    //field_Destination[index] = vec4(hitcount,hitcoord);
-
 }
 

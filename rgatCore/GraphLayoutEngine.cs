@@ -734,11 +734,8 @@ namespace rgatCore
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             float delta = Math.Min((now - _activeGraph.lastRenderTime) / 1000f, 1.0f);// safety cap on large deltas
-
-            if (_activatingPreset)
-            {
-                delta *= 7.5f;
-            }
+            delta *= (_activatingPreset ? 7.5f : 1.0f); //without this the preset animation will 'bounce'
+            
 
             _activeGraph.lastRenderTime = now;
             float _activeGraphTemperature = _activeGraph.temperature;
@@ -746,7 +743,7 @@ namespace rgatCore
             {
                 if (_activeGraphTemperature > 0.1)
                 {
-                    RenderVelocity(_activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, false ? 250.0f : _activeGraphTemperature);
+                    RenderVelocity(_activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, _activeGraphTemperature);
                     RenderPosition(_activePositionsBuffer1, _activeVelocityBuffer1, _activePositionsBuffer2, delta);
                     _cachedVersions[_activeGraph]++;
                 }
@@ -757,7 +754,7 @@ namespace rgatCore
 
                 if (_activeGraphTemperature > 0.1)
                 {
-                    RenderVelocity(_activePositionsBuffer2, _activeVelocityBuffer2, _activeVelocityBuffer1, delta, false ? 250.0f : _activeGraphTemperature);
+                    RenderVelocity(_activePositionsBuffer2, _activeVelocityBuffer2, _activeVelocityBuffer1, delta, _activeGraphTemperature);
                     RenderPosition(_activePositionsBuffer2, _activeVelocityBuffer1, _activePositionsBuffer1, delta);
                     _cachedVersions[_activeGraph]++;
                 }
