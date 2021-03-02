@@ -2094,10 +2094,7 @@ namespace rgatCore
 
 
         //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
-        /*
-		bool isWireframeSupported() { return wireframeSupported; }
-		bool isWireframeActive() { return wireframeActive; }
-		*/
+
 
         public static rgatState clientState;
 
@@ -2111,9 +2108,6 @@ namespace rgatCore
 
         public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
 
-        //lowest/highest numbers of edge iterations
-        Tuple<ulong, ulong> condCounts;
-
         public ulong vertResizeIndex = 0;
         public int userSelectedAnimPosition = -1;
 
@@ -2125,9 +2119,6 @@ namespace rgatCore
         bool schedule_performSymbolResolve = false;
 
         protected readonly Object textLock = new Object();
-
-        int wireframeMode; //used to query the current mode
-
 
 
         /// <summary>

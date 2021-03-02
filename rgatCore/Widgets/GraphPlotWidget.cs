@@ -36,6 +36,7 @@ namespace rgatCore
         ResourceFactory _factory;
         Vector2 _graphWidgetSize;
         Dictionary<string, Texture> _iconTextures = new Dictionary<string, Texture>();
+        Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
 
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, Vector2? initialSize = null)
         {
@@ -73,11 +74,31 @@ namespace rgatCore
 
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
             _iconTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+            _textureViews["Crosshair"] = _factory.CreateTextureView(_iconTextures["Crosshair"]);
 
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
             _iconTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
+            _textureViews["VertCircle"] = _factory.CreateTextureView(_iconTextures["VertCircle"]);
 
+            //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
+            //instead make a simple 2D texture atlas
+            uint textureCount = 2;
+            TextureDescription td = new TextureDescription(64*textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
+            
+            _nodesTexArray = _factory.CreateTexture(td);
+
+            CommandList cl = _factory.CreateCommandList();
+            cl.Begin();
+            cl.CopyTexture(_iconTextures["VertCircle"], 0, 0, 0, 0, 0, _nodesTexArray, 0,  0, 0, 0, 0, 64, 64, 1, 1);
+            cl.CopyTexture(_iconTextures["Crosshair"] , 0, 0, 0, 0, 0, _nodesTexArray, 64, 0, 0, 0, 0, 64, 64, 1, 1);
+            cl.End();
+            _gd.SubmitCommands(cl);
+            cl.Dispose();
+            _nodeTexArrayView = _factory.CreateTextureView(_nodesTexArray);
         }
+
+        TextureView _nodeTexArrayView;
+        Texture _nodesTexArray;
 
         public void SetActiveGraph(PlottedGraph graph)
         {
@@ -296,12 +317,9 @@ namespace rgatCore
 
 
 
-            _NodeCircleSpritetview = _factory.CreateTextureView(_iconTextures["VertCircle"]);
-
-
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
-                new ResourceLayoutElementDescription("NodeTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
+                new ResourceLayoutElementDescription("NodeTextures", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
 
 
@@ -703,8 +721,9 @@ namespace rgatCore
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
             _crs_core?.Dispose();
             _crs_core = _factory.CreateResourceSet(crs_core_rsd);
+            
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _nodeTexArrayView);
 
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _NodeCircleSpritetview);
             _crs_nodesEdges?.Dispose();
             _crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 

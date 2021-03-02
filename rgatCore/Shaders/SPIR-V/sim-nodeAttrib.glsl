@@ -165,8 +165,8 @@ void main()	{
             selfAttrib.y += params.delta * 2.5;
         }
 
-        //quickly shrink geometry that has been inflated, unless very recently animated
-        if ( selfAttrib.x > 200.0 && selfAttrib.z <= AnimNodeDeflateThreshold){
+        //quickly shrink geometry that has been inflated, unless highlighted or very recently animated
+        if ( selfAttrib.x > 200.0 && selfAttrib.w == 0 && selfAttrib.z <= AnimNodeDeflateThreshold){
             selfAttrib.x -= 4000.0 * params.delta;
         }
 
@@ -210,6 +210,7 @@ void main()	{
     //x = diameter
     //y = default alpha
     //z = counter since last animation activity
+    //w = highlight info
 
-    resultData[index] = vec4( selfAttrib.xyz , params.delta );
+    resultData[index] = selfAttrib;
 }

@@ -87,6 +87,8 @@ void main() {
         public const string fsnodeglsl = @"
 #version 430
 
+#extension GL_EXT_nonuniform_qualifier : enable
+
 layout(location = 0) in vec4 fsin_Color;
 layout(location = 1) in vec2 fsin_Position;
 layout(location = 0) out vec4 fsout_Color;
@@ -100,17 +102,28 @@ layout(set = 0, binding=0) uniform ParamsBuf
     bool isAnimated;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
-layout(set = 1, binding=1) uniform texture2D nodeTex;   //sphere graphic
+
+layout(set = 1, binding=0) buffer bufnodeAttribTexture{
+    vec4 nodeAttribTexture[];
+};
+layout(set = 1, binding=1) uniform texture2D nodeTextures; 
 
 
 void main() 
 {
+    uint index = uint(fsin_Position.y * TexWidth + fsin_Position.x);
+    float textureIdx = nodeAttribTexture[index].w;    
 
-        //draw the sphere texture over the node point
-        vec4 node = texture(sampler2D(nodeTex, nodeTexView), gl_PointCoord);
-        fsout_Color = vec4( fsin_Color.xyzw ) * node;
-}
-";
+    //draw the sphere texture over the node point
+
+    vec4 node = texture(sampler2D(nodeTextures, nodeTexView), vec2((gl_PointCoord.x/2)+(0.5*textureIdx), gl_PointCoord.y)); //
+    fsout_Color = vec4( fsin_Color.xyzw ) * node;
+}";
+
+
+
+
+
 
         /*
         * 
