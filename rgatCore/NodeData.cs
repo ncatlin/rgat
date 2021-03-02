@@ -191,7 +191,8 @@ namespace rgatCore
         */
 
 
-
+        public bool Highlighted { get; private set; } = false;
+        public bool SetHighlighted(bool state) => Highlighted = state;
         public uint index = 0;
 
         public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;

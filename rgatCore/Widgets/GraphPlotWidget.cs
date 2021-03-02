@@ -1128,19 +1128,31 @@ namespace rgatCore
 
         }
 
-
-        public unsafe void DrawGraph()
+        void HandleGraphUpdates()
         {
-
+            bool newAttribs = false;
             if (processingAnimatedGraph && !ActiveGraph.IsAnimated)
             {
-                _layoutEngine.ResetNodeAttributes(ActiveGraph);
+                newAttribs = true;
                 processingAnimatedGraph = false;
             }
             else if (!processingAnimatedGraph && ActiveGraph.IsAnimated)
             {
                 processingAnimatedGraph = true;
             }
+            if (ActiveGraph.HighlightsChanged)
+            {
+                newAttribs = true;
+            }
+
+            if (newAttribs)
+                _layoutEngine.ResetNodeAttributes(ActiveGraph);
+        }
+
+        public unsafe void DrawGraph()
+        {
+
+            HandleGraphUpdates();
 
             _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID, ActiveGraph.IsAnimated);
 

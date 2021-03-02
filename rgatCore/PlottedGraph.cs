@@ -1028,7 +1028,13 @@ namespace rgatCore
             {
                 return new WritableRgbaFloat(0, 0, 0, 0);
             }
+
             NodeData n = internalProtoGraph.NodeList[nodeIndex];
+
+            if (n.Highlighted)
+            {
+                return new WritableRgbaFloat(0, 1, 1, 1f);
+            }
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1797,7 +1803,7 @@ namespace rgatCore
 
         }
 
-        protected bool HighlightsChanged;
+        public bool HighlightsChanged;
         public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
             lock (textLock)
@@ -1806,13 +1812,25 @@ namespace rgatCore
                 {
                     case eHighlightType.eExternals:
                         HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
                         break;
                     case eHighlightType.eAddresses:
                         HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
                         break;
                     case eHighlightType.eExceptions:
                         HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
                         break;
+                    default:
+                        Console.WriteLine($"Error: Unknown highlight type: {highlightType}");
+                        break;
+                }
+                foreach (uint nidx in newnodeidxs)
+                {
+                    nodeAttribArray1[nidx * 4 + 0] = 400f;
+                    nodeAttribArray1[nidx * 4 + 3] = 1.0f;
+                    internalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
                 }
                 HighlightsChanged = true;
             }
@@ -1825,6 +1843,8 @@ namespace rgatCore
 
         public void RemoveHighlightedNodes(List<uint> nodeidxs, eHighlightType highlightType)
         {
+            List<uint> removedNodes = new List<uint>();
+            List<uint> remainingNodes = new List<uint>();
             lock (textLock)
             {
                 switch (highlightType)
@@ -1839,9 +1859,25 @@ namespace rgatCore
                         HighlightedExceptionNodes = HighlightedExceptionNodes.Except(nodeidxs).ToList();
                         break;
                 }
-
-                HighlightsChanged = true;
+                AllHighlightedNodes.Clear();
+                AllHighlightedNodes.AddRange(HighlightedSymbolNodes);
+                AllHighlightedNodes.AddRange(HighlightedAddressNodes.Where(n => !AllHighlightedNodes.Contains(n)));
+                AllHighlightedNodes.AddRange(HighlightedExceptionNodes.Where(n => !AllHighlightedNodes.Contains(n)));
+                foreach (uint nidx in nodeidxs)
+                {
+                    if (!AllHighlightedNodes.Contains(nidx))
+                    {
+                        nodeAttribArray1[nidx * 4 + 0] = 200f;
+                        nodeAttribArray1[nidx * 4 + 3] = 0.0f;
+                    }
+                    internalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
+                }
             }
+
+
+
+            HighlightsChanged = true;
+
         }
 
         public void AddHighlightedAddress(ulong address)
@@ -2018,6 +2054,7 @@ namespace rgatCore
         public List<uint> HighlightedAddressNodes = new List<uint>();
         public List<ulong> HighlightedAddresses = new List<ulong>();
         public List<uint> HighlightedExceptionNodes = new List<uint>();
+        public List<uint> AllHighlightedNodes = new List<uint>();
 
         bool animBuildingLoop = false;
 
