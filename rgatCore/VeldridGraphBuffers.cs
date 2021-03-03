@@ -128,16 +128,17 @@ namespace rgatCore
 
         /// <summary>
         /// This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
+        /// If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
         /// </summary>
         public struct GeomPositionColour
         {
-            public Vector3 Position;
+            public Vector4 Position;
             public WritableRgbaFloat Color;
-            public const uint SizeInBytes = 28;
+            public const uint SizeInBytes = 32;
 
-            public GeomPositionColour(Vector3 position, WritableRgbaFloat color)
+            public GeomPositionColour(Vector3 position, WritableRgbaFloat color, float posIsNodeRef = 0f)
             {
-                Position = position;
+                Position = new Vector4(position, posIsNodeRef);
                 Color = color;
             }
         }

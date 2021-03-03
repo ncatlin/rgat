@@ -83,14 +83,14 @@ namespace rgatCore
             //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
             //instead make a simple 2D texture atlas
             uint textureCount = 2;
-            TextureDescription td = new TextureDescription(64*textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
-            
+            TextureDescription td = new TextureDescription(64 * textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
+
             _nodesTexArray = _factory.CreateTexture(td);
 
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();
-            cl.CopyTexture(_iconTextures["VertCircle"], 0, 0, 0, 0, 0, _nodesTexArray, 0,  0, 0, 0, 0, 64, 64, 1, 1);
-            cl.CopyTexture(_iconTextures["Crosshair"] , 0, 0, 0, 0, 0, _nodesTexArray, 64, 0, 0, 0, 0, 64, 64, 1, 1);
+            cl.CopyTexture(_iconTextures["VertCircle"], 0, 0, 0, 0, 0, _nodesTexArray, 0, 0, 0, 0, 0, 64, 64, 1, 1);
+            cl.CopyTexture(_iconTextures["Crosshair"], 0, 0, 0, 0, 0, _nodesTexArray, 64, 0, 0, 0, 0, 64, 64, 1, 1);
             cl.End();
             _gd.SubmitCommands(cl);
             cl.Dispose();
@@ -298,15 +298,10 @@ namespace rgatCore
         DeviceBuffer _FontVertBuffer, _FontIndexBuffer;
         DeviceBuffer _paramsBuffer;
 
-        Texture _NodeCircleSprite;
-        TextureView _NodeCircleSpritetview;
-
         public DeviceBuffer _animBuffer { get; private set; }
 
         public unsafe void SetupRenderingResources()
         {
-
-
             _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<graphShaderParams>(), BufferUsage.UniformBuffer));
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -314,8 +309,6 @@ namespace rgatCore
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
                new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
-
-
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
@@ -406,10 +399,6 @@ namespace rgatCore
 
 
         }
-
-
-
-
 
 
         [StructLayout(LayoutKind.Sequential)]
@@ -656,9 +645,7 @@ namespace rgatCore
                 RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
             }
 
-
             maintainRisingTexts(fontScale, ref stringVerts);
-
             uploadFontVerts(stringVerts);
 
             return stringVerts;
@@ -721,7 +708,7 @@ namespace rgatCore
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
             _crs_core?.Dispose();
             _crs_core = _factory.CreateResourceSet(crs_core_rsd);
-            
+
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _nodeTexArrayView);
 
             _crs_nodesEdges?.Dispose();
@@ -769,35 +756,33 @@ namespace rgatCore
                 _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
-            if (ActiveGraph.WireframeEnabled)
+
+            GeomPositionColour[] IllustrationEdges = ActiveGraph.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
+
+            if (IllustrationEdges.Length > 0)
             {
-                GeomPositionColour[] WireframeLineVerts = ActiveGraph.GetWireframeVerts(out edgeDrawIndexes);
 
-                if (WireframeLineVerts.Length > 0)
+                if (_RawEdgeIndexBuffer == null || ((IllustrationEdges.Length * GeomPositionColour.SizeInBytes) > _RawEdgeIndexBuffer.SizeInBytes))
                 {
-                    if (_RawEdgeIndexBuffer == null || ((WireframeLineVerts.Length * 4) > _RawEdgeIndexBuffer.SizeInBytes))
-                    {
-                        _RawEdgeVertBuffer?.Dispose();
-                        BufferDescription tvbDescription = new BufferDescription((uint)WireframeLineVerts.Length * GeomPositionColour.SizeInBytes, BufferUsage.VertexBuffer);
-                        _RawEdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
+                    _RawEdgeVertBuffer?.Dispose();
+                    BufferDescription tvbDescription = new BufferDescription((uint)IllustrationEdges.Length * GeomPositionColour.SizeInBytes * 4, BufferUsage.VertexBuffer);
+                    _RawEdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
-                        _RawEdgeIndexBuffer?.Dispose();
-                        BufferDescription eibDescription = new BufferDescription((uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer);
-                        _RawEdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
-                    }
-
-                    //todo - only do this on changes
-                    _gd.UpdateBuffer(_RawEdgeVertBuffer, 0, WireframeLineVerts);
-                    _gd.UpdateBuffer(_RawEdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
-
-
-
-                    _cl.SetPipeline(_edgesPipelineRaw);
-                    _cl.SetGraphicsResourceSet(0, _crs_core);
-                    _cl.SetVertexBuffer(0, _RawEdgeVertBuffer);
-                    _cl.SetIndexBuffer(_RawEdgeIndexBuffer, IndexFormat.UInt32);
-                    _cl.DrawIndexed(indexCount: (uint)edgeDrawIndexes.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                    _RawEdgeIndexBuffer?.Dispose();
+                    BufferDescription eibDescription = new BufferDescription((uint)illusEdgeDrawIndexes.Count * sizeof(uint) * 4, BufferUsage.IndexBuffer);
+                    _RawEdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
                 }
+
+                //todo - only do this on changes
+                _gd.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
+                _gd.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
+
+                _cl.SetPipeline(_edgesPipelineRaw);
+                _cl.SetGraphicsResourceSet(0, _crs_core);
+                _cl.SetVertexBuffer(0, _RawEdgeVertBuffer);
+                _cl.SetIndexBuffer(_RawEdgeIndexBuffer, IndexFormat.UInt32);
+                _cl.DrawIndexed(indexCount: (uint)illusEdgeDrawIndexes.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
             }
 
             _cl.End();
@@ -1146,7 +1131,10 @@ namespace rgatCore
             }
 
             if (newAttribs)
+            {
                 _layoutEngine.ResetNodeAttributes(ActiveGraph);
+                ActiveGraph.HighlightsChanged = false;
+            }
         }
 
         public unsafe void DrawGraph()

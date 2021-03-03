@@ -678,15 +678,13 @@ namespace rgatCore
         }
 
         float CYLINDER_PIXELS_PER_B = 10f;
-        GeomPositionColour[] GenerateCylinderWireframe(out List<uint> edgeIndices)
+        void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
-            int wireframe_loop_count = (int)Math.Ceiling((_cylinderMaxB* CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
+            int wireframe_loop_count = (int)Math.Ceiling((_cylinderMaxB * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
             float radius = 500f;
 
-            List<GeomPositionColour> verts = new List<GeomPositionColour>();
-            edgeIndices = new List<uint>();
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 int rowYcoord = -rowY * CYLINDER_PIXELS_PER_ROW;
@@ -701,13 +699,12 @@ namespace rgatCore
                     GeomPositionColour gpc = new GeomPositionColour
                     {
                         Color = new WritableRgbaFloat(Color.White),
-                        Position = new Vector3(radius * (float)Math.Cos(angle), (float)rowYcoord, radius * (float)Math.Sin(angle))
+                        Position = new Vector4(radius * (float)Math.Cos(angle), (float)rowYcoord, radius * (float)Math.Sin(angle), 0)
                     };
                     verts.Add(gpc);
                 }
 
             }
-            return verts.ToArray();
         }
 
 
@@ -716,23 +713,60 @@ namespace rgatCore
         float _cylinderMaxB;
 
         //todo cache
-      public  GeomPositionColour[] GetWireframeVerts(out List<uint> edgeIndices)
+
+        public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)
         {
 
-            _presetLayoutStyle = LayoutStyle;
-            _presetEdgeCount = internalProtoGraph.get_num_edges();
-            switch (LayoutStyle)
+            List<GeomPositionColour> resultList = new List<GeomPositionColour>();
+            edgeIndices = new List<uint>();
+            if (WireframeEnabled)
             {
-                case eGraphLayout.eCylinderLayout:
-                    return GenerateCylinderWireframe(out edgeIndices);
-                default:
-                    Console.WriteLine("Error: Tried to layout invalid wireframe style: " + LayoutName());
-                    edgeIndices = null;
-                    return null;
+                _presetLayoutStyle = LayoutStyle;
+                _presetEdgeCount = internalProtoGraph.get_num_edges();
+                switch (LayoutStyle)
+                {
+                    case eGraphLayout.eCylinderLayout:
+                        GenerateCylinderWireframe(ref resultList, ref edgeIndices);
+                        break;
+                    default:
+                        Console.WriteLine("Error: Tried to layout invalid wireframe style: " + LayoutName());
+                        break;
+                }
+
             }
 
+            if (AllHighlightedNodes.Count > 0)
+            {
+                uint textureSize = LinearIndexTextureSize();
+                List<uint> hilightnodes;
+                lock (textLock)
+                {
+                    hilightnodes = AllHighlightedNodes.ToList();
+                }
+                foreach (uint node in hilightnodes)
+                {
+                    WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
 
+                    edgeIndices.Add((uint)resultList.Count);
+                    resultList.Add(new GeomPositionColour{
+                        Position = new Vector4(0, 0, 0, 0),
+                        Color = ecol
+                    });
+
+                    edgeIndices.Add((uint)resultList.Count);
+                    resultList.Add(new GeomPositionColour
+                    {   
+                        //w = 1 => this is a position texture coord, not a space coord
+                        Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0,   1),
+                        Color = ecol
+                    });
+
+                }
+            }
+
+            return resultList.ToArray();
         }
+
 
         public bool WireframeEnabled => LayoutStyle == eGraphLayout.eCylinderLayout;
 
@@ -1323,6 +1357,40 @@ namespace rgatCore
             return EdgeLineVerts;
         }
 
+        public TextureOffsetColour[] getHighlightLineVerts(out List<uint> edgeIndices, out int vertCount)
+        {
+            List<TextureOffsetColour> HighlightLineVerts = new List<TextureOffsetColour>();
+
+            vertCount = 0;
+            edgeIndices = new List<uint>();
+            uint textureSize = LinearIndexTextureSize();
+            List<uint> hilightnodes;
+            lock (textLock)
+            {
+                hilightnodes = AllHighlightedNodes.ToList();
+            }
+            foreach (uint node in hilightnodes)
+            {
+                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
+
+                HighlightLineVerts.Add(new TextureOffsetColour
+                {
+                    TexPosition = new Vector2(0, 0),
+                    Color = ecol
+                });
+                edgeIndices.Add((uint)HighlightLineVerts.Count); ;
+
+                HighlightLineVerts.Add(new TextureOffsetColour
+                {
+                    TexPosition = new Vector2(node % textureSize, (float)Math.Floor((float)(node / textureSize))),
+                    Color = ecol
+                });
+                edgeIndices.Add((uint)HighlightLineVerts.Count);
+
+            }
+            vertCount = HighlightLineVerts.Count;
+            return HighlightLineVerts.ToArray();
+        }
 
 
         public static uint dataTextureSize(int num)
@@ -1812,15 +1880,15 @@ namespace rgatCore
                 {
                     case eHighlightType.eExternals:
                         HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
-                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     case eHighlightType.eAddresses:
                         HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
-                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     case eHighlightType.eExceptions:
                         HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
-                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     default:
                         Console.WriteLine($"Error: Unknown highlight type: {highlightType}");
@@ -2039,7 +2107,7 @@ namespace rgatCore
             if (LayoutStyle == eGraphLayout.eForceDirected3D && newStyle != eGraphLayout.eForceDirected3D)
             {
                 savedForcePositionsArray1 = positionsArray1.ToArray();
-            }    
+            }
             else if (LayoutStyle != eGraphLayout.eForceDirected3D && newStyle == eGraphLayout.eForceDirected3D)
             {
                 if (savedForcePositionsArray1.Length > 0)

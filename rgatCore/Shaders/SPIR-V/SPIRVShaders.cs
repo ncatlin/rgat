@@ -229,26 +229,6 @@ void main() {
             return shaderSetDesc;
         }
 
-        public static ShaderSetDescription CreateEdgeRawShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
-        {
-            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
-            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
-            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
-
-            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vsedge_raw_glsl);
-            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.fsedgeglsl);
-            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
-            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
-
-            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
-                vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
-
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
-
-            return shaderSetDesc;
-        }
 
         public const string vsedge_relative_glsl = @"
 #version 450
@@ -291,6 +271,26 @@ void main() {
 
 ";
 
+        public static ShaderSetDescription CreateEdgeRawShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        {
+            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
+
+            byte[] vertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vsedge_raw_glsl);
+            byte[] fragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.fsedgeglsl);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, vertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, fragShaderBytes, "main");
+
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+                vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+
+            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
+            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+
+            return shaderSetDesc;
+        }
 
         public const string vsedge_raw_glsl = @"
 #version 450
@@ -298,7 +298,7 @@ void main() {
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(location = 0) in vec3 Position;
+layout(location = 0) in vec4 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
@@ -310,11 +310,21 @@ layout(set = 0, binding=0) uniform ViewBuffer
     int pickingNodeID;
     bool isAnimated;
 };
+layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
 
 void main() {
 
     vColor = Color;
-    gl_Position =  modelViewMatrix * vec4(Position,1);
+    vec3 nodePosition;
+
+    if (Position.w == 0){
+        nodePosition = vec3(Position.xyz);
+    } else {
+       uint index = uint(Position.y * TexWidth + Position.x);
+       nodePosition = positionTexture[index].xyz;
+    }
+
+       gl_Position =  modelViewMatrix * vec4(nodePosition,1);
 }
 ";
 
