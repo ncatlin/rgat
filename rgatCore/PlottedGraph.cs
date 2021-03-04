@@ -767,8 +767,23 @@ namespace rgatCore
 
             if (IsAnimated)
             {
-
                 uint node = NodesDisplayData.LastAnimatedNode.lastVertID;
+                lock (animationLock)
+                {
+                    if (_LingeringActiveNodes.Count > 0)
+                    {
+                        node = _LingeringActiveNodes[new Random().Next(0, _LingeringActiveNodes.Count)];
+                    }
+                    else
+                    {
+                        if (_PulseActiveNodes.Count > 0)
+                        {
+                            node = _PulseActiveNodes[new Random().Next(0, _PulseActiveNodes.Count)];
+                        } 
+                    }
+               
+                }
+
                 WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Red);
 
                 edgeIndices.Add((uint)resultList.Count);
