@@ -735,9 +735,9 @@ namespace rgatCore
 
             }
 
+            uint textureSize = LinearIndexTextureSize();
             if (AllHighlightedNodes.Count > 0)
             {
-                uint textureSize = LinearIndexTextureSize();
                 List<uint> hilightnodes;
                 lock (textLock)
                 {
@@ -748,20 +748,43 @@ namespace rgatCore
                     WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
 
                     edgeIndices.Add((uint)resultList.Count);
-                    resultList.Add(new GeomPositionColour{
+                    resultList.Add(new GeomPositionColour
+                    {
                         Position = new Vector4(0, 0, 0, 0),
                         Color = ecol
                     });
 
                     edgeIndices.Add((uint)resultList.Count);
                     resultList.Add(new GeomPositionColour
-                    {   
+                    {
                         //w = 1 => this is a position texture coord, not a space coord
-                        Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0,   1),
+                        Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
                         Color = ecol
                     });
 
                 }
+            }
+
+            if (IsAnimated)
+            {
+
+                uint node = NodesDisplayData.LastAnimatedNode.lastVertID;
+                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Red);
+
+                edgeIndices.Add((uint)resultList.Count);
+                resultList.Add(new GeomPositionColour
+                {
+                    Position = new Vector4(0, 0, 0, 0),
+                    Color = ecol
+                });
+
+                edgeIndices.Add((uint)resultList.Count);
+                resultList.Add(new GeomPositionColour
+                {
+                    //w = 1 => this is a position texture coord, not a space coord
+                    Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
+                    Color = ecol
+                });
             }
 
             return resultList.ToArray();
@@ -1355,41 +1378,6 @@ namespace rgatCore
             }
             graphDrawnEdgeCount = DrawnEdgesCount;
             return EdgeLineVerts;
-        }
-
-        public TextureOffsetColour[] getHighlightLineVerts(out List<uint> edgeIndices, out int vertCount)
-        {
-            List<TextureOffsetColour> HighlightLineVerts = new List<TextureOffsetColour>();
-
-            vertCount = 0;
-            edgeIndices = new List<uint>();
-            uint textureSize = LinearIndexTextureSize();
-            List<uint> hilightnodes;
-            lock (textLock)
-            {
-                hilightnodes = AllHighlightedNodes.ToList();
-            }
-            foreach (uint node in hilightnodes)
-            {
-                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
-
-                HighlightLineVerts.Add(new TextureOffsetColour
-                {
-                    TexPosition = new Vector2(0, 0),
-                    Color = ecol
-                });
-                edgeIndices.Add((uint)HighlightLineVerts.Count); ;
-
-                HighlightLineVerts.Add(new TextureOffsetColour
-                {
-                    TexPosition = new Vector2(node % textureSize, (float)Math.Floor((float)(node / textureSize))),
-                    Color = ecol
-                });
-                edgeIndices.Add((uint)HighlightLineVerts.Count);
-
-            }
-            vertCount = HighlightLineVerts.Count;
-            return HighlightLineVerts.ToArray();
         }
 
 
