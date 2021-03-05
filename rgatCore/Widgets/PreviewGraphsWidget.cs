@@ -99,8 +99,6 @@ namespace rgatCore
 
         public void SetupRenderingResources()
         {
-
-
             _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<graphShaderParams>(), BufferUsage.UniformBuffer));
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -179,9 +177,8 @@ namespace rgatCore
             }
         }
 
-
         
-        public void DrawWidget(ImGuiController _ImGuiController, GraphicsDevice _gd)
+        public void DrawWidget()
         {
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
@@ -245,9 +242,6 @@ namespace rgatCore
                 subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
             }
         }
-
-
-        private static long _startTime = System.DateTime.Now.Ticks;
 
 
         [StructLayout(LayoutKind.Sequential)]

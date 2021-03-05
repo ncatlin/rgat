@@ -67,6 +67,7 @@ namespace rgatCore.Threads
                     Thread.Sleep(200);
                     continue;
                 }
+
                 if (!graph.internalProtoGraph.HeatSolvingComplete)
                 { 
                     PerformHeatRanking(graph.internalProtoGraph); 

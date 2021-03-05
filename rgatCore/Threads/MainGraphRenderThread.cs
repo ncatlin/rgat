@@ -80,7 +80,7 @@ namespace rgatCore.Threads
 			while (!rgatState.rgatIsExiting)
 			{
 
-				activeGraph = (PlottedGraph)rgatState.getActiveGraph(false);
+				activeGraph = rgatState.getActiveGraph(false);
 				while (activeGraph == null || activeGraph.EdgesDisplayData == null)
 				{
 					Thread.Sleep(50);
@@ -88,7 +88,6 @@ namespace rgatCore.Threads
 					activeGraph = rgatState.getActiveGraph(false);
 					continue;
 				}
-
 
 				update_rendering(activeGraph);
 				

@@ -74,7 +74,7 @@ namespace rgatCore
 
         public void AlertResized(Vector2 size)
         {
-            MainGraphWidget?.AlertResized(size);
+
         }
 
         public void DrawUI()
@@ -497,31 +497,28 @@ namespace rgatCore
 
         private void DrawVisualiserGraphs(float height)
         {
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF303030);
+            Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
+            if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff008811);// 0xFF303030);
-                Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
-                if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
-                {
-                    MainGraphWidget.Draw(graphSize);
-                    ImGui.EndChild();
-                }
-                ImGui.PopStyleColor();
-                ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff998877);// 0x10253880);
-                Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
-                if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
-                {
-                    PreviewGraphWidget.DrawWidget(_ImGuiController, _rgatstate._GraphicsDevice);
-                    if (PreviewGraphWidget.clickedGraph != null)
-                    {
-                        SetActiveGraph(PreviewGraphWidget.clickedGraph);
-                        PreviewGraphWidget.ResetClickedGraph();
-                    }
-                    ImGui.EndChild();
-                }
-                ImGui.PopStyleColor();
+                MainGraphWidget.Draw(graphSize);
+                ImGui.EndChild();
             }
-
+            ImGui.PopStyleColor();
+            ImGui.SameLine();
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x10253880);
+            Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
+            if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
+            {
+                PreviewGraphWidget.DrawWidget();
+                if (PreviewGraphWidget.clickedGraph != null)
+                {
+                    SetActiveGraph(PreviewGraphWidget.clickedGraph);
+                    PreviewGraphWidget.ResetClickedGraph();
+                }
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
 
         }
 
@@ -1073,7 +1070,7 @@ namespace rgatCore
                     ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - captionsize.X / 2);
                     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - captionsize.Y / 2);
                     ImGui.Text(caption);
-                    ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature} delta: {MainGraphWidget._delta}");
+                    ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -1101,11 +1098,7 @@ namespace rgatCore
         }
 
 
-
-
-
-
-        private void DrawVisTab()
+        void ManageActiveGraph()
         {
             if (_rgatstate.ActiveGraph == null)
             {
@@ -1135,13 +1128,20 @@ namespace rgatCore
                 PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                 PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
             }
+        }
+
+
+
+        private void DrawVisTab()
+        {
+            ManageActiveGraph();
 
             float controlsHeight = 230;
 
             DrawVisualiserGraphs(ImGui.GetContentRegionAvail().Y - controlsHeight);
             DrawVisualiserControls(controlsHeight);
-
         }
+
         private void DrawAnalysisTab()
         {
             ImGui.Text("Trace start stuff here");

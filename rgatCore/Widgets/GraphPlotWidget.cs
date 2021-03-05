@@ -113,19 +113,6 @@ namespace rgatCore
                 return;
             }
 
-            //todo - is this still needed? do we need to store multiple graphs in GPU ram at once? 
-            //i think not since rendering is so fast now
-            //store old positions/verts floats in graph when switching
-            /*
-            if (!graphBufferDict.TryGetValue(graph, out graphBuffers))
-            {
-                graphBuffers = new VeldridGraphBuffers();
-                graphBufferDict.Add(graph, graphBuffers);
-                //graph.UpdateGraphicBuffers(_graphWidgetSize, _gd);
-                //graphBuffers.InitPipelines(_gd, CreateGraphShaders(), graph._outputFramebuffer, true);
-            }
-            */
-
             renderLock.AcquireWriterLock(0);
             ActiveGraph = graph;
             _layoutEngine.Set_activeGraph(ActiveGraph);
@@ -133,9 +120,9 @@ namespace rgatCore
             renderLock.ReleaseWriterLock();
         }
 
+
         private void RecreateGraphicsBuffers()
         {
-            currentGraphNodeCount = 0;
             _EdgeVertBuffer?.Dispose();
             _EdgeVertBuffer = _factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
             _EdgeIndexBuffer?.Dispose();
@@ -148,22 +135,9 @@ namespace rgatCore
             _NodePickingBuffer = _factory.CreateBuffer(vbDescription);
         }
 
+
         private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
-        /* 
-	 * Triggered automatically when main window is resized
-	 * Manually called when we detect window changes size otherwise
-	 */
-        public void AlertResized(Vector2 size)
-        {
-            lastResizeSize = size;
-            lastResize = DateTime.Now;
-            scheduledGraphResize = true;
-        }
-
-        private DateTime lastResize = DateTime.Now;
-        private bool scheduledGraphResize = true;
-        private Vector2 lastResizeSize = new Vector2(0, 0);
 
         public void ApplyZoom(float direction)
         {
@@ -227,56 +201,10 @@ namespace rgatCore
 
             drawHUD(graphSize);
             renderLock.ReleaseReaderLock();
-            /*
-            if (scheduledGraphResize)
-            {
-                double TimeSinceLastResize = (DateTime.Now - lastResize).TotalMilliseconds;
-                if (TimeSinceLastResize > 150)
-                {
-                    _graphWidgetSize = graphSize;
-                    ActiveGraph.InitGraphTexture(_graphWidgetSize, _gd);
-                    scheduledGraphResize = false;
-                }
-            }
-            //Can't find an event for in-imgui resize of childwindows so have to check on every render
-            if (graphSize != _graphWidgetSize && graphSize != lastResizeSize) AlertResized(graphSize);
-            */
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        public float _delta;
-
-        bool flipflop = true;
         public DeviceBuffer _viewBuffer { get; private set; }
         Framebuffer _outputFramebuffer, _pickingFrameBuffer;
-
-        uint currentGraphNodeCount = 0;
         bool processingAnimatedGraph;
 
         /// <summary>
@@ -286,9 +214,6 @@ namespace rgatCore
         /// Font pipeline = triangles
         /// </summary>
         Pipeline _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
-
-
-
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
         Texture _outputTexture, _testPickingTexture, _pickingStagingTexture;
 
@@ -337,22 +262,8 @@ namespace rgatCore
 
             Debug.Assert(_outputTexture == null);
             Debug.Assert(_outputFramebuffer == null);
-            _outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                    (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                    PixelFormat.R32_G32_B32_A32_Float,
-                    TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
-            Debug.Assert(_testPickingTexture == null);
-            _testPickingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                   (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                    PixelFormat.R32_G32_B32_A32_Float,
-                    TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _pickingFrameBuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
-            _pickingStagingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                    (uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                    PixelFormat.R32_G32_B32_A32_Float,
-                    TextureUsage.Staging));
+            RecreateOutputTextures();
 
             pipelineDescription.Outputs = _outputFramebuffer.OutputDescription;
 
@@ -396,10 +307,28 @@ namespace rgatCore
                 new ResourceLayout[] { _coreRsrcLayout, _fontRsrcLayout },
                 _outputFramebuffer.OutputDescription);
             _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
+        }
 
+        void RecreateOutputTextures()
+        {
+            _outputTexture?.Dispose();
+            _outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
+            _outputFramebuffer?.Dispose();
+            _outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
+            _testPickingTexture?.Dispose();
+            _testPickingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+                    PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
+            _pickingFrameBuffer?.Dispose();
+            _pickingFrameBuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
+
+            _pickingStagingTexture?.Dispose();
+            _pickingStagingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+                    PixelFormat.R32_G32_B32_A32_Float,
+                    TextureUsage.Staging));
         }
 
 
@@ -452,14 +381,11 @@ namespace rgatCore
             switch (newMode)
             {
                 case eRenderingMode.eStandardControlFlow:
-                    Console.WriteLine("Setting mainwidget rendering mode to eStandardControlFlow");
                     break;
                 case eRenderingMode.eConditionals:
-                    Console.WriteLine("Setting mainwidget rendering mode to eConditionals");
                     break;
                 case eRenderingMode.eHeatmap:
                     ActiveGraph.internalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
-                    Console.WriteLine("Setting mainwidget rendering mode to eHeatmap");
                     break;
                 default:
                     Console.WriteLine("unknown rendering mode");
@@ -1117,6 +1043,13 @@ namespace rgatCore
 
         void HandleGraphUpdates()
         {
+            Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
+            if (currentRegionSize != _graphWidgetSize)
+            {
+                _graphWidgetSize = currentRegionSize;
+                RecreateOutputTextures();
+            }
+
             bool newAttribs = false;
             if (processingAnimatedGraph && !ActiveGraph.IsAnimated)
             {
