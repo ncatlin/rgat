@@ -589,12 +589,14 @@ namespace rgatCore
             float B_BETWEEN_BLOCKNODES = 5f;
             float JUMPA = 3f;
             float JUMPB = 10f;
-            float JUMPA_CLASH = 1.5f;
-            float CALLA = 5f;
-            float CALLB = 10f;
-            float CALLB_CLASH = 12;
+            float A_CLASH = 1.5f;
+            float CALLA = 8f;
+            float CALLB = 3f;
+            float B_CLASH = 12;
 
+            List<Tuple<Tuple<float, float>, ulong>> callStack = new List<Tuple<Tuple<float, float>, ulong>>();
             Dictionary<Tuple<float, float>, bool> usedCoords = new Dictionary<Tuple<float, float>, bool>();
+            float callCeiling = 0f;
 
             for (uint i = 1; i < nodeCount; i++)
             {
@@ -603,6 +605,7 @@ namespace rgatCore
 
                 if (n.IsExternal)
                 {
+                    //todo - test multiple extern calls from same node
                     a = a + (-0.5f) - 1f * firstParent.childexterns;
                     b = b + (0.5f) + 0.7f * firstParent.childexterns;
                 }
@@ -623,57 +626,84 @@ namespace rgatCore
                             }
                             a += JUMPA;
                             b += JUMPB;
-                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b))) { a += JUMPA_CLASH; }
                             break;
 
 
                         case eEdgeNodeType.eNodeException:
                             a += JUMPA;
                             b += JUMPB;
-                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b))) { a += JUMPA_CLASH; }
                             break;
 
                         case eEdgeNodeType.eNodeCall:
                             a += CALLA;
+                            if (b < callCeiling) b = callCeiling;
                             b += CALLB;
-                            bool clash = false;
-                            while (usedCoords.ContainsKey(new Tuple<float, float>(a, b)))
-                            {
-                                b += CALLB_CLASH;
-                            }
                             break;
 
                         case eEdgeNodeType.eNodeReturn:
-                        case eEdgeNodeType.eNodeExternal:
+                        case eEdgeNodeType.eNodeExternal: //treat all externs as if they end in a return
 
-                            a += 4;
-                            b += 4;
+                            Tuple<float, float> callerPos = null;
+                            for (var stackI = callStack.Count - 1; stackI >= 0; stackI--)
+                            {
+                                if (callStack[stackI].Item2 == n.address)
+                                {
+                                    callerPos = callStack[stackI].Item1;
+                                    callStack.RemoveRange(stackI, callStack.Count - stackI);
+                                    break;
+                                }
+                            }
+                            if (callerPos != null)
+                            {
+                                a = callerPos.Item1;
+                                b = callerPos.Item2 + 10f;
+                            }
+                            else
+                            { 
+                                a += 4;
+                                b += 4;
+                            }
                             break;
 
                     }
                 }
 
+                //not great overlap prevention, looks for exact coord clashes
+                while (usedCoords.ContainsKey(new Tuple<float, float>(a, b))) { a += A_CLASH; b += B_CLASH; }
+                usedCoords.Add(new Tuple<float, float>(a, b), true);
 
-                double apix = -1* a * CYLINDER_PIXELS_PER_A;
-                float x = (float)(radius * Math.Cos((apix * Math.PI)/radius));
+                //record return address
+                if (n.VertType() == eEdgeNodeType.eNodeCall)
+                {
+                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins.numbytes));
+                }
+
+                //if returning from a function, limit drawing any new functions to below this one
+                if (n.VertType() == eEdgeNodeType.eNodeReturn)
+                {
+                    callCeiling = b + 8;
+                }
+
+                //used to work out how far down to draw the wireframe
+                if (b > _lowestWireframeLoop) _lowestWireframeLoop = b;
+
+                double aPix = -1 * a * CYLINDER_PIXELS_PER_A;
+                float x = (float)(radius * Math.Cos((aPix * Math.PI)/radius));
                 float y = -1 * CYLINDER_PIXELS_PER_B * b;
-                float z = (float)(radius * Math.Sin((apix * Math.PI)/radius));
+                float z = (float)(radius * Math.Sin((aPix * Math.PI)/radius));
 
                 textureArray[i * 4] = x;
                 textureArray[i * 4 + 1] = y;
                 textureArray[i * 4 + 2] = z;
                 textureArray[i * 4 + 3] = 1f;
 
-                if (b > _cylinderMaxB) _cylinderMaxB = b;
 
             }
 
             for (var i = nodeCount * 4; i < textureArray.Length; i++)
             {
-
                 // fill unused RGBA slots with -1
                 textureArray[i] = -1;
-
             }
             presetPositionsArray = textureArray;
         }
@@ -685,7 +715,7 @@ namespace rgatCore
         {
             int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
-            int wireframe_loop_count = (int)Math.Ceiling((_cylinderMaxB * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
+            int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
             float radius = CYLINDER_RADIUS;
 
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
@@ -712,7 +742,7 @@ namespace rgatCore
 
 
 
-        float _cylinderMaxB;
+        float _lowestWireframeLoop;
         //todo cache
 
         public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)

@@ -687,7 +687,6 @@ namespace rgatCore
             if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
             {
                 source.OutgoingNeighboursSet.Add(edgePair.Item2);
-                source.UpdateDegree();
             }
 
 
@@ -716,7 +715,6 @@ namespace rgatCore
                 if (!target.IncomingNeighboursSet.Contains(edgePair.Item1))
                 {
                     target.IncomingNeighboursSet.Add(edgePair.Item1);
-                    target.UpdateDegree();
                 }
             }
 

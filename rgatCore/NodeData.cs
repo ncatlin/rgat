@@ -135,16 +135,10 @@ namespace rgatCore
             return true;
         }
 
-        private bool ErrorAtIndex(int index)
+        static bool ErrorAtIndex(int index)
         {
             Console.WriteLine("Error deserialising node at index " + index);
             return false;
-        }
-
-        //todo this is worthless
-        public void UpdateDegree()
-        {
-            degree = IncomingNeighboursSet.Count + OutgoingNeighboursSet.Where(outIdx => !IncomingNeighboursSet.Any(inIdx => inIdx != outIdx)).Count();
         }
 
 
@@ -248,7 +242,6 @@ namespace rgatCore
 
         public List<uint> IncomingNeighboursSet = new List<uint>();
         public List<uint> OutgoingNeighboursSet = new List<uint>();
-        public int degree = 0;
         eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
         public string label;
         public bool placeholder = false;
