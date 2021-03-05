@@ -20,6 +20,7 @@ namespace rgatCore
             nodearr.Add(GlobalModuleID);
             nodearr.Add(address);
             nodearr.Add(executionCount);
+            nodearr.Add(parentIdx);
 
             JArray incoming = new JArray();
             foreach (var nidx in IncomingNeighboursSet) incoming.Add(nidx);
@@ -50,72 +51,86 @@ namespace rgatCore
 
         public bool Deserialise(JArray nodeData, Dictionary<ulong, List<InstructionData>> disassembly)
         {
+            int jsnArrIdx = 0;
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            index = nodeData[jsnArrIdx].ToObject<uint>();
+            jsnArrIdx++;
 
-            if (nodeData[0].Type != JTokenType.Integer) return ErrorAtIndex(0);
-            index = nodeData[0].ToObject<uint>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            conditional = (eConditionalType)nodeData[jsnArrIdx].ToObject<int>();
+            jsnArrIdx++;
 
-            if (nodeData[1].Type != JTokenType.Integer) return ErrorAtIndex(1);
-            conditional = (eConditionalType)nodeData[1].ToObject<int>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            GlobalModuleID = nodeData[jsnArrIdx].ToObject<int>();
+            jsnArrIdx++;
 
-            if (nodeData[2].Type != JTokenType.Integer) return ErrorAtIndex(2);
-            GlobalModuleID = nodeData[2].ToObject<int>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            address = nodeData[jsnArrIdx].ToObject<ulong>();
+            jsnArrIdx++;
 
-            if (nodeData[3].Type != JTokenType.Integer) return ErrorAtIndex(3);
-            address = nodeData[3].ToObject<ulong>();
-
-            if (nodeData[4].Type != JTokenType.Integer) return ErrorAtIndex(4);
-            executionCount = nodeData[4].ToObject<ulong>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            executionCount = nodeData[jsnArrIdx].ToObject<ulong>();
+            jsnArrIdx++;
 
             //execution comes from these nodes to this node
-            if (nodeData[5].Type != JTokenType.Array) return ErrorAtIndex(5);
-            JArray incomingEdges = (JArray)nodeData[5];
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            parentIdx = nodeData[jsnArrIdx].ToObject<uint>();
+            jsnArrIdx++;
+
+            //execution comes from these nodes to this node
+            if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+            JArray incomingEdges = (JArray)nodeData[jsnArrIdx];
 
             foreach (JToken incomingIdx in incomingEdges)
             {
-                if (incomingIdx.Type != JTokenType.Integer) return ErrorAtIndex(5);
+                if (incomingIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
                 IncomingNeighboursSet.Add(incomingIdx.ToObject<uint>());
             }
+            jsnArrIdx++;
 
             //execution goes from this node to these nodes
-            if (nodeData[6].Type != JTokenType.Array) return ErrorAtIndex(6);
-            JArray outgoingEdges = (JArray)nodeData[6];
+            if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+            JArray outgoingEdges = (JArray)nodeData[jsnArrIdx];
 
             foreach (JToken outgoingIdx in outgoingEdges)
             {
-                if (outgoingIdx.Type != JTokenType.Integer) return ErrorAtIndex(6);
+                if (outgoingIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
                 OutgoingNeighboursSet.Add(outgoingIdx.ToObject<uint>());
             }
+            jsnArrIdx++;
 
 
-            if (nodeData[7].Type != JTokenType.Boolean) return ErrorAtIndex(7);
-            IsExternal = nodeData[7].ToObject<bool>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean) return ErrorAtIndex(jsnArrIdx);
+            IsExternal = nodeData[jsnArrIdx].ToObject<bool>();
+            jsnArrIdx++;
 
             if (!IsExternal)
             {
-                if (nodeData[8].Type != JTokenType.Integer) return ErrorAtIndex(8);
-                int mutationIndex = nodeData[8].ToObject<int>();
+                if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
 
                 if (!disassembly.TryGetValue(address, out List<InstructionData> addrInstructions))
                 {
-                    Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + index);
-                    return ErrorAtIndex(8);
+                    Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
+                    return ErrorAtIndex(jsnArrIdx);
                 }
                 ins = addrInstructions[mutationIndex];
             }
             else
             {
-                if (nodeData[8].Type != JTokenType.Array) return ErrorAtIndex(8);
-                JArray functionCalls = (JArray)nodeData[8];
+                if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+                JArray functionCalls = (JArray)nodeData[jsnArrIdx];
 
                 foreach (JToken callIdx in functionCalls)
                 {
-                    if (callIdx.Type != JTokenType.Integer) return ErrorAtIndex(8);
+                    if (callIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
                     callRecordsIndexs.Add(callIdx.ToObject<ulong>());
                 }
             }
+            jsnArrIdx++;
 
-            if (nodeData[9].Type != JTokenType.Boolean) return ErrorAtIndex(7);
-            unreliableCount = nodeData[9].ToObject<bool>();
+            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean) return ErrorAtIndex(jsnArrIdx);
+            unreliableCount = nodeData[jsnArrIdx].ToObject<bool>();
 
             return true;
         }
