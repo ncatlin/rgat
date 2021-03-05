@@ -498,7 +498,7 @@ namespace rgatCore
         private void DrawVisualiserGraphs(float height)
         {
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF303030);
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff008811);// 0xFF303030);
                 Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
                 if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
                 {
@@ -507,7 +507,7 @@ namespace rgatCore
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x10253880);
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff998877);// 0x10253880);
                 Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
                 if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
                 {
@@ -1118,6 +1118,15 @@ namespace rgatCore
                     MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
+                }
+                else
+                {
+                    if (MainGraphWidget.ActiveGraph != null)
+                    {
+                        MainGraphWidget.SetActiveGraph(null);
+                        PreviewGraphWidget.SetActiveTrace(null);
+
+                    }
                 }
             }
             else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)

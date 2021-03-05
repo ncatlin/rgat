@@ -212,6 +212,7 @@ namespace rgatCore
 
         public void Draw(Vector2 graphSize)
         {
+            renderLock.AcquireReaderLock(200);
             HandleInput(graphSize);
 
             if (_IrregularActionTimerFired)
@@ -225,6 +226,7 @@ namespace rgatCore
             }
 
             drawHUD(graphSize);
+            renderLock.ReleaseReaderLock();
             /*
             if (scheduledGraphResize)
             {
@@ -732,7 +734,7 @@ namespace rgatCore
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
+            _cl.ClearColorTarget(0, GlobalConfig.mainColours.edgeRet.ToRgbaFloat());// GlobalConfig.mainColours.background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
 

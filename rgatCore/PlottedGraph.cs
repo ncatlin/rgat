@@ -708,10 +708,8 @@ namespace rgatCore
         }
 
 
-        eGraphLayout _wireframeLayout = eGraphLayout.eLayoutInvalid;
-        uint _wireframeEdgeCount;
-        float _cylinderMaxB;
 
+        float _cylinderMaxB;
         //todo cache
 
         public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)
@@ -735,56 +733,30 @@ namespace rgatCore
 
             }
 
-            uint textureSize = LinearIndexTextureSize();
             if (AllHighlightedNodes.Count > 0)
             {
-                List<uint> hilightnodes;
-                lock (textLock)
-                {
-                    hilightnodes = AllHighlightedNodes.ToList();
-                }
-                foreach (uint node in hilightnodes)
-                {
-                    WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
-
-                    edgeIndices.Add((uint)resultList.Count);
-                    resultList.Add(new GeomPositionColour
-                    {
-                        Position = new Vector4(0, 0, 0, 0),
-                        Color = ecol
-                    });
-
-                    edgeIndices.Add((uint)resultList.Count);
-                    resultList.Add(new GeomPositionColour
-                    {
-                        //w = 1 => this is a position texture coord, not a space coord
-                        Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
-                        Color = ecol
-                    });
-
-                }
+                CreateHighlightEdges(edgeIndices, resultList);
             }
 
             if (IsAnimated)
             {
-                uint node = NodesDisplayData.LastAnimatedNode.lastVertID;
-                lock (animationLock)
-                {
-                    if (_LingeringActiveNodes.Count > 0)
-                    {
-                        node = _LingeringActiveNodes[new Random().Next(0, _LingeringActiveNodes.Count)];
-                    }
-                    else
-                    {
-                        if (_PulseActiveNodes.Count > 0)
-                        {
-                            node = _PulseActiveNodes[new Random().Next(0, _PulseActiveNodes.Count)];
-                        } 
-                    }
-               
-                }
+                CreateLiveNodeEdge(edgeIndices, resultList);
+            }
 
-                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Red);
+            return resultList.ToArray();
+        }
+
+        void CreateHighlightEdges(List<uint> edgeIndices, List<GeomPositionColour> resultList)
+        {
+            List<uint> highlightNodes;
+            lock (textLock)
+            {
+                highlightNodes = AllHighlightedNodes.ToList();
+            }
+            uint textureSize = LinearIndexTextureSize();
+            foreach (uint node in highlightNodes)
+            {
+                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
 
                 edgeIndices.Add((uint)resultList.Count);
                 resultList.Add(new GeomPositionColour
@@ -800,9 +772,46 @@ namespace rgatCore
                     Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
                     Color = ecol
                 });
+
+            }
+        }
+
+        void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
+        {
+            uint node = NodesDisplayData.LastAnimatedNode.lastVertID;
+            lock (animationLock)
+            {
+                if (_LingeringActiveNodes.Count > 0)
+                {
+                    node = _LingeringActiveNodes[new Random().Next(0, _LingeringActiveNodes.Count)];
+                }
+                else
+                {
+                    if (_PulseActiveNodes.Count > 0)
+                    {
+                        node = _PulseActiveNodes[new Random().Next(0, _PulseActiveNodes.Count)];
+                    }
+                }
+
             }
 
-            return resultList.ToArray();
+            uint textureSize = LinearIndexTextureSize();
+            WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Red);
+
+            edgeIndices.Add((uint)resultList.Count);
+            resultList.Add(new GeomPositionColour
+            {
+                Position = new Vector4(0, 0, 0, 0),
+                Color = ecol
+            });
+
+            edgeIndices.Add((uint)resultList.Count);
+            resultList.Add(new GeomPositionColour
+            {
+                //w = 1 => this is a position texture coord, not a space coord
+                Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
+                Color = ecol
+            });
         }
 
 

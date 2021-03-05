@@ -22,19 +22,19 @@ namespace rgatCore
             B = (float)col.B / 255f;
             A = (float)col.A / 255f;
         }
-        public WritableRgbaFloat(float r, float g, float b, float a)
+        public WritableRgbaFloat(float Rf, float Gf, float Bf, float Af)
         {
-            R = (float)r;
-            G = (float)g;
-            B = (float)b;
-            A = (float)a;
+            R = (float)Rf;
+            G = (float)Gf;
+            B = (float)Bf;
+            A = (float)Af;
         }
 
         public uint ToUint(uint? customAlpha = null)
         {
             if (customAlpha != null)
-                return (customAlpha.Value << 24) + ((uint)(R * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(B * 255));
-            return ((uint)(A * 255) << 24) + ((uint)(R * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(B * 255));
+                return (customAlpha.Value << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
+            return ((uint)(A * 255) << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
         }
 
         public Vector4 ToVec4()

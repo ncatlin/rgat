@@ -183,17 +183,18 @@ namespace rgatCore
         
         public void DrawWidget(ImGuiController _ImGuiController, GraphicsDevice _gd)
         {
-            if (ActiveTrace == null) return;
+            TraceRecord activeTrace = ActiveTrace;
+            if (activeTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
-            subGraphPosition.X += MarginWidth;
+            subGraphPosition.X -= MarginWidth;
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y + 3; //dunno where the 3 comes from but it works
 
-            DrawnPreviewGraphs = ActiveTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
-            uint backgroundcolor = GlobalConfig.mainColours.background.ToUint(customAlpha: 180);
+            DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
+            uint captionBackgroundcolor = new WritableRgbaFloat(Af:0.3f, Gf: 0, Bf:0, Rf:0).ToUint(); 
             
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
@@ -202,7 +203,7 @@ namespace rgatCore
                 int graphNodeCount = graph.GraphNodeCount();
                 if (graphNodeCount == 0) continue;
 
-                if (graph != _rgatState.ActiveGraph)
+                if (graph != _rgatState.ActiveGraph && activeTrace == _rgatState.ActiveTrace)
                 {
                     _layoutEngine.Set_activeGraph(graph);
                     _layoutEngine.Compute((uint)graph.DrawnEdgesCount, -1, false);
@@ -226,19 +227,18 @@ namespace rgatCore
                     uv_max: new Vector2(1, 0));
 
                 string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
-                float captionWidth = ImGui.CalcTextSize(Caption).X + 3.0f; //dunno where the 3 comes from but it works
 
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
-                imdp.AddRectFilled(p_min: ImGui.GetCursorScreenPos(),
-                                   p_max: new Vector2(ImGui.GetCursorScreenPos().X + captionWidth, ImGui.GetCursorScreenPos().Y + 20), 
-                                   col: backgroundcolor);
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX());
+                imdp.AddRectFilled(p_min: new Vector2(ImGui.GetCursorScreenPos().X -3, ImGui.GetCursorScreenPos().Y),
+                                   p_max: new Vector2(ImGui.GetCursorScreenPos().X + EachGraphWidth - MarginWidth, ImGui.GetCursorScreenPos().Y + 20), 
+                                   col: captionBackgroundcolor);
                 ImGui.Text(Caption);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 8);
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX());
 
                 if (ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
                 {
-                    var MainGraphs = ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                    var MainGraphs = activeTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                     HandleClickedGraph(MainGraphs[graphIdx]);
                 }
 
@@ -355,7 +355,9 @@ namespace rgatCore
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(graph._previewFramebuffer);
-            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
+
+            WritableRgbaFloat background = graph.internalProtoGraph.Terminated ? GlobalConfig.mainColours.terminatedPreview : GlobalConfig.mainColours.runningPreview;
+            _cl.ClearColorTarget(0, background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
             _cl.SetPipeline(_pointsPipeline);
