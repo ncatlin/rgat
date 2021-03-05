@@ -309,6 +309,7 @@ namespace rgatCore
             _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
         }
 
+
         void RecreateOutputTextures()
         {
             _outputTexture?.Dispose();
@@ -354,9 +355,7 @@ namespace rgatCore
             public bool isAnimated;
             //must be multiple of 16
 
-            private ushort _padding1;
-            private bool _padding3a;
-            private bool _padding3b;
+            private ulong _padding1;
             private bool _padding3c;
         }
 
@@ -660,7 +659,7 @@ namespace rgatCore
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, GlobalConfig.mainColours.edgeRet.ToRgbaFloat());// GlobalConfig.mainColours.background.ToRgbaFloat());
+            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
 

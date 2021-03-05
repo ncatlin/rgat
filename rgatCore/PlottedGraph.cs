@@ -551,8 +551,8 @@ namespace rgatCore
 
                 // modify to change the radius and position of a circle
                 float y = i * -15;
-                float z = 500 * (float)Math.Sin(phi);
-                float x = 500 * (float)Math.Cos(phi);
+                float z = CYLINDER_RADIUS * (float)Math.Sin(phi);
+                float x = CYLINDER_RADIUS * (float)Math.Cos(phi);
 
                 textureArray[i * 4] = x;
                 textureArray[i * 4 + 1] = y;
@@ -579,7 +579,7 @@ namespace rgatCore
             var textureArray = new float[textureSize * textureSize * 4];
             float a = 0;
             float b = 0;
-            float radius = 500f;
+            float radius = CYLINDER_RADIUS;
 
             textureArray[0] = radius;
             textureArray[1] = 0;
@@ -654,9 +654,10 @@ namespace rgatCore
                 }
 
 
-                float x = radius * (float)Math.Cos(a * Math.PI);
+                double apix = -1* a * CYLINDER_PIXELS_PER_A;
+                float x = (float)(radius * Math.Cos((apix * Math.PI)/radius));
                 float y = -1 * CYLINDER_PIXELS_PER_B * b;
-                float z = radius * (float)Math.Sin(a * Math.PI);
+                float z = (float)(radius * Math.Sin((apix * Math.PI)/radius));
 
                 textureArray[i * 4] = x;
                 textureArray[i * 4 + 1] = y;
@@ -677,13 +678,15 @@ namespace rgatCore
             presetPositionsArray = textureArray;
         }
 
+        float CYLINDER_RADIUS = 5000f;
         float CYLINDER_PIXELS_PER_B = 10f;
+        float CYLINDER_PIXELS_PER_A = 60f;
         void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
             int wireframe_loop_count = (int)Math.Ceiling((_cylinderMaxB * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
-            float radius = 500f;
+            float radius = CYLINDER_RADIUS;
 
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {

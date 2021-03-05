@@ -49,7 +49,6 @@ namespace rgatCore.Threads
 				}
 			}
 
-
 			if (!protoGraph.Terminated)
 			{
 				if (graph.IsAnimated)
