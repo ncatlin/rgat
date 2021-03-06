@@ -66,6 +66,8 @@ namespace rgatCore
             EdgesDisplayData = new GraphDisplayData();
             HighlightsDisplayData = new GraphDisplayData();
 
+            savedForcePositions[eGraphLayout.eForceDirected3D] = Array.Empty<float>();
+            savedForcePositions[eGraphLayout.eForceDirected3DFixed] = Array.Empty<float>();
 
             internalProtoGraph = protoGraph;
 
@@ -382,7 +384,6 @@ namespace rgatCore
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
-                    //NodeData n1 = internalProtoGraph.safe_get_node(edgeNodes.Item1);
                     //render_node(n1);
                     AddNode(edgeNodes.Item1);
                 }
@@ -392,7 +393,7 @@ namespace rgatCore
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
                     if (e.edgeClass == eEdgeNodeType.eEdgeException)
                         NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
-                    AddNode(edgeNodes.Item2);
+                    AddNode(edgeNodes.Item2, e);
 
                 }
 
@@ -421,14 +422,14 @@ namespace rgatCore
             switch (edge.edgeClass)
             {
                 case eEdgeNodeType.eEdgeNew:
-                    if (edge.sourceNodeType == eEdgeNodeType.eNodeJump) 
+                    if (edge.sourceNodeType == eEdgeNodeType.eNodeJump)
                         return 1f;
                     else
                         return 3f;
                 case eEdgeNodeType.eEdgeLib:
                     return 1f;
                 case eEdgeNodeType.eEdgeCall:
-                    return 0.2f;
+                    return 5f;
                 case eEdgeNodeType.eEdgeOld:
                     return 0.3f;
                 case eEdgeNodeType.eEdgeReturn:
@@ -498,10 +499,13 @@ namespace rgatCore
         eGraphLayout _presetLayoutStyle = eGraphLayout.eLayoutInvalid;
         uint _presetEdgeCount;
 
-        public float[] GetPresetPositionFloats()
+        public float[] GetPresetPositionFloats(out bool hasPresetNodes)
         {
             if (_presetLayoutStyle != LayoutStyle || _presetEdgeCount != internalProtoGraph.get_num_edges())
-                GeneratePresetPositions();
+                hasPresetNodes = GeneratePresetPositions();
+            else
+                hasPresetNodes = false;
+
             return presetPositionsArray;
         }
 
@@ -510,7 +514,8 @@ namespace rgatCore
 
         }
 
-        void GeneratePresetPositions()
+        //returns true if there are actually preset nodes to return to, false if a blank preset
+        bool GeneratePresetPositions()
         {
             _presetLayoutStyle = LayoutStyle;
             _presetEdgeCount = internalProtoGraph.get_num_edges();
@@ -518,23 +523,32 @@ namespace rgatCore
             {
                 case eGraphLayout.eCylinderLayout:
                     GenerateCylinderLayout();
-                    break;
+                    return true;
+
                 case eGraphLayout.eCircle:
                     GenerateCircleLayout();
-                    break;
-                case eGraphLayout.eForceDirected3D:
-                    if (savedForcePositionsArray1.Length == 0)
+                    return true;
+
+                default:
+                    if (LayoutIsForceDirected(LayoutStyle))
                     {
-                        InitBlankPresetLayout();
-                        RandomisePositionTextures();
+                        if (savedForcePositions[LayoutStyle].Length == 0)
+                        {
+                            InitBlankPresetLayout();
+                            RandomisePositionTextures();
+                            return false;
+                        }
+                        else
+                        {
+                            presetPositionsArray = savedForcePositions[LayoutStyle].ToArray();
+                            return true;
+                        }
                     }
                     else
                     {
-                        presetPositionsArray = savedForcePositionsArray1.ToArray();
+                        Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
+                        return false;
                     }
-                    break;
-                default:
-                    Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
                     break;
             }
         }
@@ -662,7 +676,7 @@ namespace rgatCore
                                 b = callerPos.Item2 + 10f;
                             }
                             else
-                            { 
+                            {
                                 a += 4;
                                 b += 4;
                             }
@@ -691,9 +705,9 @@ namespace rgatCore
                 if (b > _lowestWireframeLoop) _lowestWireframeLoop = b;
 
                 double aPix = -1 * a * CYLINDER_PIXELS_PER_A;
-                float x = (float)(radius * Math.Cos((aPix * Math.PI)/radius));
+                float x = (float)(radius * Math.Cos((aPix * Math.PI) / radius));
                 float y = -1 * CYLINDER_PIXELS_PER_B * b;
-                float z = (float)(radius * Math.Sin((aPix * Math.PI)/radius));
+                float z = (float)(radius * Math.Sin((aPix * Math.PI) / radius));
 
                 textureArray[i * 4] = x;
                 textureArray[i * 4 + 1] = y;
@@ -937,7 +951,7 @@ namespace rgatCore
                 newVelocityArr1[i] = -1;
                 newPositionsArr1[i] = -1;
                 newAttsArr1[i] = -1;
-                newPresetsArray[i] = 0;
+                newPresetsArray[i] = -1;
             }
 
 
@@ -950,7 +964,7 @@ namespace rgatCore
 
 
 
-        unsafe void AddNode(uint nodeIdx)
+        unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
         {
             Debug.Assert(nodeIdx == _graphStructureLinear.Count);
 
@@ -975,6 +989,14 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
+
+            if (edge != null)
+            {
+                if (edge.sourceNodeType == eEdgeNodeType.eNodeNonFlow && edge.edgeClass == eEdgeNodeType.eEdgeNew)
+                {
+                    nodePositionEntry[3] = 2;
+                }
+            }
 
             uint currentOffset = (futureCount - 1) * 4;
 
@@ -1013,7 +1035,7 @@ namespace rgatCore
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
             List<List<int>> targetArray = _graphStructureBalanced;
-            var textureSize = countDataArrayItems(targetArray)*2;
+            var textureSize = countDataArrayItems(targetArray) * 2;
             int[] textureArray = new int[textureSize];
 
             _edgeStrengthFloats = new float[textureSize];
@@ -1135,7 +1157,7 @@ namespace rgatCore
             {
                 _graphStructureBalanced[srcNodeIdx].Add(destNodeIdx);
             }
-            
+
 
 
         }
@@ -1154,7 +1176,7 @@ namespace rgatCore
                     presetPositionsArray[i] = 0.0f;
                     presetPositionsArray[i + 1] = 0.0f;
                     presetPositionsArray[i + 2] = 0.0f;
-                    presetPositionsArray[i + 3] = 0.0f;
+                    presetPositionsArray[i + 3] = -1.0f;
                 }
                 else
                 {
@@ -2068,6 +2090,7 @@ namespace rgatCore
             }
         }
 
+
         public void DoHighlightAddresses()
         {
             for (int i = 0; i < HighlightedAddresses.Count; i++)
@@ -2080,21 +2103,6 @@ namespace rgatCore
                 }
             }
         }
-
-        void MakeMemoryResident(bool state)
-        {
-            Debug.Assert(state != _isLoadedInVRAM);
-            if (state)
-            {
-                Console.WriteLine($"PlottedGraph Loading Graph PID{internalProtoGraph.TraceData.PID} TID{internalProtoGraph.ThreadID} into memory");
-            }
-            else
-            {
-                Console.WriteLine($"PlottedGraph Unloading Graph PID{internalProtoGraph.TraceData.PID} TID{internalProtoGraph.ThreadID} from memory");
-            }
-        }
-
-
 
 
         public List<uint> GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes)
@@ -2213,17 +2221,29 @@ namespace rgatCore
             }
         }
 
+        static bool LayoutIsForceDirected(eGraphLayout style)
+        {
+            switch (style)
+            {
+                case eGraphLayout.eForceDirected3DFixed:
+                case eGraphLayout.eForceDirected3D:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public bool SetLayout(eGraphLayout newStyle)
         {
             if (newStyle == LayoutStyle) return false;
-            if (LayoutStyle == eGraphLayout.eForceDirected3D && newStyle != eGraphLayout.eForceDirected3D)
+            if (LayoutIsForceDirected(LayoutStyle))
             {
-                savedForcePositionsArray1 = positionsArray1.ToArray();
+                savedForcePositions[LayoutStyle] = positionsArray1.ToArray();
             }
-            else if (LayoutStyle != eGraphLayout.eForceDirected3D && newStyle == eGraphLayout.eForceDirected3D)
+            
+            if (LayoutIsForceDirected(newStyle))
             {
-                if (savedForcePositionsArray1.Length > 0)
-                    presetPositionsArray = savedForcePositionsArray1;
+              presetPositionsArray = savedForcePositions[newStyle];
             }
             LayoutStyle = newStyle;
             return true;
@@ -2265,7 +2285,7 @@ namespace rgatCore
         public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3D;
 
         public float[] positionsArray1 = Array.Empty<float>();
-        public float[] savedForcePositionsArray1 = Array.Empty<float>();
+        Dictionary<eGraphLayout, float[]> savedForcePositions = new Dictionary<eGraphLayout, float[]>();
         public float[] velocityArray1 = Array.Empty<float>();
         public float[] nodeAttribArray1 = Array.Empty<float>();
         public float[] presetPositionsArray = Array.Empty<float>();
@@ -2291,9 +2311,6 @@ namespace rgatCore
         public uint tid { get; private set; }
 
         public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
-
-        bool _isLoadedInVRAM = true;
-        public bool MemoryResident { get { return _isLoadedInVRAM; } set { MakeMemoryResident(value); _isLoadedInVRAM = true; } }
 
         ulong unchainedWaitFrames = 0;
         uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays

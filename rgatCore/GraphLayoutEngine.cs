@@ -93,7 +93,7 @@ namespace rgatCore
 
             //data which is always more uptodate in the graph
             //not sure it's worth cacheing
-            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
+            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(out _activatingPreset), _gd);
             _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
             _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer();
@@ -102,8 +102,8 @@ namespace rgatCore
 
         public void ChangePreset()
         {
-
-            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
+            eGraphLayout graphStyle = _activeGraph.LayoutStyle;
+            if (graphStyle == eGraphLayout.eForceDirected3D || graphStyle == eGraphLayout.eForceDirected3DFixed)
             {
                 _cachedVersions[_activeGraph] = 0;
                 //_activeGraph.GetPresetPositionFloats();
@@ -111,10 +111,10 @@ namespace rgatCore
             }
             else
             {
-                _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
+                _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(out _activatingPreset), _gd);
+                _activatingPreset = true;
             }
             _activeGraph.IncreaseTemperature(100f);
-            _activatingPreset = true;
         }
 
         public void StoreCurrentGraphData()
@@ -438,10 +438,10 @@ namespace rgatCore
             public float temperature;
             public uint NodesTexWidth;
             public uint EdgeCount;
+            public uint fixedInternalNodes;
 
             private uint _padding1; //must be multiple of 16
             private uint _padding2; //must be multiple of 16
-            private uint _padding3; //must be multiple of 16
         }
 
 
@@ -452,13 +452,17 @@ namespace rgatCore
         {
 
             var textureSize = _activeGraph.LinearIndexTextureSize();
+            uint fixedNodes = 0;
+            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed) fixedNodes = 1;
+
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
                 k = 100.0f,
                 temperature = temperature,
                 NodesTexWidth = textureSize,
-                EdgeCount = (uint)_activeGraph.internalProtoGraph.edgeList.Count
+                EdgeCount = (uint)_activeGraph.internalProtoGraph.edgeList.Count,
+                fixedInternalNodes = fixedNodes
             };
             _gd.UpdateBuffer(_velocityParamsBuffer, 0, parms);
             _gd.WaitForIdle();
@@ -489,7 +493,7 @@ namespace rgatCore
                     if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
                     {
                         _activeGraph.InitBlankPresetLayout();
-                        _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(), _gd);
+                        _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(out bool f), _gd);
                     }
                     _activatingPreset = false;
                 }
@@ -538,9 +542,10 @@ namespace rgatCore
         {
             public float delta;
             public uint NodesTexWidth;
+            public float blockNodeSeperation;
+            public uint fixedInternalNodes;
 
-            private uint _padding1; //must be multiple of 16
-            private uint _padding2;
+            //private uint _padding1; //must be multiple of 16
         }
 
 
@@ -552,10 +557,14 @@ namespace rgatCore
             uint width = textureSize;
             uint height = textureSize;
 
+            uint fixedNodes = 0;
+            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed) fixedNodes = 1;
             PositionShaderParams parms = new PositionShaderParams
             {
                 delta = delta,
-                NodesTexWidth = textureSize
+                NodesTexWidth = textureSize,
+                blockNodeSeperation = 60,
+                fixedInternalNodes = fixedNodes
             };
 
             //Console.WriteLine($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");

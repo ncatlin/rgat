@@ -22,6 +22,8 @@ struct PositionParams
 {
     float delta;
     uint nodesTexWidth;
+    float blockNodeSeperation;
+    uint fixedInternalNodes;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -41,9 +43,18 @@ void main()	{
     uvec3 id = gl_GlobalInvocationID;    
     uint index = id.y * fieldParams.nodesTexWidth + id.x;
     vec4 selfPosition = positions[index];    
-    vec3 selfVelocity = velocities[index].xyz;
-
-    vec4 res = vec4( selfPosition.xyz + selfVelocity * fieldParams.delta * 50.0, selfPosition.w );
+    vec4 res;
+    if (selfPosition.w == 2 && fieldParams.fixedInternalNodes == 1)
+    {
+        res = positions[index-1];
+        res.y -= fieldParams.blockNodeSeperation;
+        res.w = 2;
+    }
+    else
+    {   
+        vec3 selfVelocity = velocities[index].xyz;
+        res = vec4( selfPosition.xyz + selfVelocity * fieldParams.delta * 50.0, selfPosition.w );
+    }
     field_Destination[index] = res;
 
 }

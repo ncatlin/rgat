@@ -862,6 +862,7 @@ namespace rgatCore
             switch (layout)
             {
                 case eGraphLayout.eForceDirected3D:
+                case eGraphLayout.eForceDirected3DFixed:
                     return  _controller.GetImage("Force3D");
                 case eGraphLayout.eCircle:
                     return _controller.GetImage("Circle");
@@ -914,6 +915,10 @@ namespace rgatCore
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
                 {
                     if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D)) { _layoutEngine.ChangePreset(); }
+                }
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DFixed), iconSize, buttonWidth, "Force Directed 3D Fixed", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed))
+                {
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DFixed)) { _layoutEngine.ChangePreset(); }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {

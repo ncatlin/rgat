@@ -24,6 +24,7 @@ struct VelocityParams
     float temperature;
     uint nodesTexWidth;
     uint edgeCount;
+    uint fixedInternalNodes;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -67,21 +68,24 @@ vec4 getNeighbor(uint bufferIndex){
 
 
 //fr(x) = (k*k)/x;
-vec3 addRepulsion(vec3 self, vec3 neighbor){
-    vec3 diff = self - neighbor;
+vec3 addRepulsion(vec4 self, vec4 neighbor){
+    vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
     float f = ( fieldParams.k * fieldParams.k ) / x;
+    if(fieldParams.fixedInternalNodes == 1) f *= 5;
     return normalize(diff) * f ;
 }
 
 
 //fa(x) = (x*x)/k;
-vec3 addAttraction(vec3 self, vec4 neighbor, int edgeIndex){
+vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
+
     if (neighbor.w == -1) return vec3(0,0,0); 
-    vec3 diff = self - neighbor.xyz;
+    vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
     float f = ( x * x ) / fieldParams.k;
     f *= edgeStrengths[edgeIndex];
+
 
     return normalize(diff) * f;
 }
@@ -109,29 +113,41 @@ void main()	{
 
     float speedLimit = 250.0;
     float attct = 0;
-      
-    //move towards preset layout position
-    if ( presetLayoutPosition.w > 0.0 ) {
      
-        // node needs to move towards destination.
-        
-        if ( selfPosition.w > 0.0 ) {
+     /*
+     .w position values
+     
+        -1 = not a node
+         0 = internal block node, fixed position from parent
+         1 = preset, simple attraction towards target
+         2 = free body subject to standard forces
+     */
+
+     if ( selfPosition.w > 0 && (selfPosition.w < 2 || fieldParams.fixedInternalNodes == 0)) 
+     {
+
+        //move towards preset layout position
+        if ( presetLayoutPosition.w >= 1.0) 
+        {
+     
+            // node needs to move towards destination.
+            float distFromDest = distance(presetLayoutPosition.xyz, selfPosition.xyz);
             
-            compareNodePosition = presetLayoutPosition;
-            float distFromDest = distance(compareNodePosition.xyz, selfPosition.xyz);
-            if (distFromDest > 0.001) {
+            if (distFromDest > 0.001) 
+            {
                 float speed = distFromDest/10;
                 if (speed < 10) speed = distFromDest;
-                velocity -= addProportionalAttraction(selfPosition.xyz, compareNodePosition, distFromDest/10);
+                velocity -= addProportionalAttraction(selfPosition.xyz, presetLayoutPosition, distFromDest/10);
             }
-        }
-        velocity *= 0.75;
+        
+            velocity *= 0.75;
 
-    } else {
-    
-        // force-directed n-body simulation
-        if( selfPosition.w > 0.0 )
+        } 
+        else 
         {
+    
+            // force-directed n-body simulation
+
             //first repel every node away from each other
             for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
             {
@@ -139,12 +155,12 @@ void main()	{
                 {
                     compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
                     // note: double ifs work.  using continues do not work for all GPUs.
-                    if (compareNodePosition.w != -1.0) 
+                    if (compareNodePosition.w >= 0) 
                     {
                         //if distance below threshold, repel every node from every single node
                         if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                         {
-                            velocity += addRepulsion(selfPosition.xyz, compareNodePosition.xyz);
+                            velocity += addRepulsion(selfPosition, compareNodePosition);
                         }
                     }
                 }
@@ -152,48 +168,32 @@ void main()	{
             
             //now iterate over each edge, attracting every connected node towards each other
             vec2 selfEdgeIndices = edgeIndices[index];
-            
             float start = selfEdgeIndices.x;
             float end = selfEdgeIndices.y;
 
-            /*
-                                            field_Destination[index].x = index;  
-                                field_Destination[index].y = start;  
-                                field_Destination[index].z = end;  
-                                field_Destination[index].w = -9;
-                                return;
-                                */
-
-            if(start != -1){
-                field_Destination[index] = vec4(-8,-8,-8,-8);
+            if(start != -1)
+            {
                 for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
                 {
-                        
                     uint neighbour = edgeData[edgeIndex];
-
-
                     nodePosition = positions[neighbour];
-                    velocity -= addAttraction(selfPosition.xyz, nodePosition, int(edgeIndex));  
-                    /*
-                    field_Destination[edgeIndex].x = edgeIndex;  
-                    field_Destination[edgeIndex].y = index;  
-                    field_Destination[edgeIndex].z = neighbour;  
-                    field_Destination[edgeIndex].w = edgeStrengths[edgeIndex];            */
+                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));  
                 }
             }
-        }
-
-        // temperature gradually cools down to zero
-
-       velocity = normalize(velocity) * fieldParams.temperature;
-
-        // Speed Limits
-        if ( length( velocity ) > speedLimit ) {
-            velocity = normalize( velocity ) * speedLimit;
-        }
         
-    }
 
+            // temperature gradually cools down to zero
+
+           velocity = normalize(velocity) * fieldParams.temperature;
+
+           // Speed Limits
+           if ( length( velocity ) > speedLimit ) 
+           {
+                velocity = normalize( velocity ) * speedLimit;
+           }
+        
+        }
+    }
     
     // add friction
     velocity *= 0.25;
