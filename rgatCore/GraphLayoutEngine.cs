@@ -29,7 +29,7 @@ namespace rgatCore
         private Shader _positionShader, _velocityShader, _nodeAttribShader;
 
         DeviceBuffer _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
-        DeviceBuffer _PresetLayoutFinalPositionsBuffer, _edgesConnectionDataBuffer, _edgesConnectionDataOffsetsBuffer, _edgeStrengthDataBuffer;
+        DeviceBuffer _PresetLayoutFinalPositionsBuffer, _edgesConnectionDataBuffer, _edgesConnectionDataOffsetsBuffer, _edgeStrengthDataBuffer, _blockDataBuffer;
         DeviceBuffer _activePositionsBuffer1, _activePositionsBuffer2;
         DeviceBuffer _activeNodeAttribBuffer1, _activeNodeAttribBuffer2;
         DeviceBuffer _activeVelocityBuffer1, _activeVelocityBuffer2;
@@ -97,13 +97,14 @@ namespace rgatCore
             _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
             _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer();
+            _blockDataBuffer = CreateBlockDataBuffer();
         }
 
 
         public void ChangePreset()
         {
             eGraphLayout graphStyle = _activeGraph.LayoutStyle;
-            if (graphStyle == eGraphLayout.eForceDirected3D || graphStyle == eGraphLayout.eForceDirected3DFixed)
+            if (PlottedGraph.LayoutIsForceDirected(graphStyle))
             {
                 _cachedVersions[_activeGraph] = 0;
                 //_activeGraph.GetPresetPositionFloats();
@@ -215,6 +216,7 @@ namespace rgatCore
             new ResourceLayoutElementDescription("edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("edgeStrengths", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("blockData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
             _velocityParamsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<VelocityShaderParams>(), BufferUsage.UniformBuffer));
@@ -227,6 +229,7 @@ namespace rgatCore
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("blockData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
 
@@ -421,6 +424,29 @@ namespace rgatCore
         }
 
 
+        public unsafe DeviceBuffer CreateBlockDataBuffer()
+        {
+
+            var textureSize = _activeGraph != null ? _activeGraph.EdgeTextureWidth() : 0;
+            DeviceBuffer newBuffer = null;
+            if (textureSize > 0)
+            {
+                int[] blockdats = _activeGraph.GetNodeBlockData();
+                BufferDescription bd = new BufferDescription((uint)blockdats.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4);
+                newBuffer = _factory.CreateBuffer(bd);
+
+                fixed (int* dataPtr = blockdats)
+                {
+                    _gd.UpdateBuffer(newBuffer, 0, (IntPtr)dataPtr, (uint)blockdats.Length * 4);
+                    _gd.WaitForIdle();
+                }
+            }
+
+            //PrintBufferArray(textureArray, "Created data texture:");
+            return newBuffer;
+        }
+        
+
 
 
 
@@ -469,8 +495,8 @@ namespace rgatCore
 
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(
                 new ResourceSetDescription(_velocityComputeLayout,
-                _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgesConnectionDataOffsetsBuffer, _edgesConnectionDataBuffer, _edgeStrengthDataBuffer,
-                destinationBuffer));
+                _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgesConnectionDataOffsetsBuffer,
+                _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer,   destinationBuffer));
 
 
             CommandList cl = _factory.CreateCommandList();
@@ -490,7 +516,7 @@ namespace rgatCore
                 float highest = FindHighXYZ(textureSize, destinationBuffer, 0.005f);
                 if (highest < 0.05)
                 {
-                    if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3D)
+                    if (PlottedGraph.LayoutIsForceDirected(_activeGraph.LayoutStyle))
                     {
                         _activeGraph.InitBlankPresetLayout();
                         _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(out bool f), _gd);
@@ -573,7 +599,7 @@ namespace rgatCore
             _gd.WaitForIdle();
 
             ResourceSet crs = _factory.CreateResourceSet(
-                new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer, positions, velocities, output));
+                new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer, positions, velocities, _blockDataBuffer, output));
 
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();

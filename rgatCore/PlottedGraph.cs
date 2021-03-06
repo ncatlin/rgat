@@ -379,6 +379,8 @@ namespace rgatCore
             int endIndex = internalProtoGraph.edgeList.Count;
             int drawCount = endIndex - (int)DrawnEdgesCount;
             if (drawCount <= 0) return;
+            int dbglimit = 9999;
+            if (DrawnEdgesCount > dbglimit) return;
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
@@ -401,6 +403,8 @@ namespace rgatCore
                 DrawnEdgesCount++;
 
                 if (NeedReplotting || clientState.rgatIsExiting) break;
+
+                if (DrawnEdgesCount > dbglimit) return;
             }
         }
 
@@ -423,13 +427,13 @@ namespace rgatCore
             {
                 case eEdgeNodeType.eEdgeNew:
                     if (edge.sourceNodeType == eEdgeNodeType.eNodeJump)
-                        return 1f;
+                        return 0.4f;
                     else
-                        return 3f;
+                        return 1f;
                 case eEdgeNodeType.eEdgeLib:
                     return 1f;
                 case eEdgeNodeType.eEdgeCall:
-                    return 5f;
+                    return 0.4f;
                 case eEdgeNodeType.eEdgeOld:
                     return 0.3f;
                 case eEdgeNodeType.eEdgeReturn:
@@ -1039,6 +1043,7 @@ namespace rgatCore
             int[] textureArray = new int[textureSize];
 
             _edgeStrengthFloats = new float[textureSize];
+            if (textureSize == 0) return textureArray;
 
 
             int currentNodeIndex = 0;
@@ -1091,6 +1096,70 @@ namespace rgatCore
             return _edgeStrengthFloats;
         }
 
+        int[] _blockDataInts;
+        public unsafe int[] GetNodeBlockData()
+        {
+            return _blockDataInts;
+        }
+
+        void createBlockDataBuf(int nodecount)
+        {
+
+            _blockDataInts = new int[nodecount * 4];
+            Dictionary<int, int> blockMiddles = new Dictionary<int, int>();
+            for (int blockIdx = 0; blockIdx < internalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
+            {
+                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[blockIdx];
+                
+                if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
+                {
+                    blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1;
+                }
+                        else
+
+                {
+                    uint centerNodeID = firstIdx_LastIdx.Item1 + (uint)Math.Ceiling((double)(firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) / 2.0);
+                    blockMiddles[blockIdx] = (int)centerNodeID;
+                }
+
+                Debug.Assert(blockMiddles[blockIdx] >= firstIdx_LastIdx.Item1 && blockMiddles[blockIdx] <= firstIdx_LastIdx.Item2);
+            }
+
+            for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
+            {
+                NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
+                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID];
+                var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
+                int blockID = (int)n.BlockID;
+                int blockMid = blockMiddles[blockID];
+
+
+                int offsetFromCenter = 0;
+                if (blockSize > 1)
+                {
+                    offsetFromCenter = (int)nodeIdx - blockMid;
+                }
+                else
+                {
+                    offsetFromCenter = 0;
+                }
+
+                int centerPseudoBlockTopID = -1;
+                int centerPseudoBlockBaseID = -1;
+                if (nodeIdx == blockMid || blockSize == 1)
+                {
+                    centerPseudoBlockTopID = (int)firstIdx_LastIdx.Item1;
+                    centerPseudoBlockBaseID = (int)firstIdx_LastIdx.Item2;
+                }
+
+
+
+                _blockDataInts[nodeIdx * 4] = blockID;
+                _blockDataInts[nodeIdx * 4 + 1] = offsetFromCenter;
+                _blockDataInts[nodeIdx * 4 + 2] = centerPseudoBlockTopID;
+                _blockDataInts[nodeIdx * 4 + 3] = centerPseudoBlockBaseID;
+            }
+        }
 
 
         public unsafe int[] GetNodeNeighbourDataOffsets()
@@ -1105,8 +1174,12 @@ namespace rgatCore
             int[] sourceData = new int[textureSize * textureSize * 2];
             int current = 0;
 
+            createBlockDataBuf(targetArray.Count);
+
+
             for (var srcNodeIndex = 0; srcNodeIndex < targetArray.Count; srcNodeIndex++)
             {
+
 
                 //keep track of the beginning of the array for this node
                 int start = current;
@@ -2221,7 +2294,7 @@ namespace rgatCore
             }
         }
 
-        static bool LayoutIsForceDirected(eGraphLayout style)
+       public static bool LayoutIsForceDirected(eGraphLayout style)
         {
             switch (style)
             {
