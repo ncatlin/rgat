@@ -6,6 +6,7 @@ using System.IO;
 using Veldrid;
 using System.Runtime.CompilerServices;
 using Vulkan;
+using Veldrid.ImageSharp;
 
 namespace ImGuiNET
 {
@@ -55,6 +56,34 @@ namespace ImGuiNET
         private ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
 
+        /// <summary>
+        /// Constructs a new ImGuiController.
+        /// </summary>
+        public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
+        {
+            _gd = gd;
+            _windowWidth = width;
+            _windowHeight = height;
+
+            IntPtr context = ImGui.CreateContext();
+            ImGui.SetCurrentContext(context);
+            Console.WriteLine("Loading fonts");
+            var fonts = ImGui.GetIO().Fonts;
+            LoadUnicodeFont();
+            _unicodeFont = fonts.Fonts[0];
+            fonts.AddFontDefault();
+            _originalFont = fonts.Fonts[1];
+            Console.WriteLine("Done Loading fonts");
+
+            CreateDeviceResources(gd, outputDescription);
+            SetKeyMappings();
+            LoadImages();
+            SetPerFrameImGuiData(1f / 60f);
+
+            ImGui.NewFrame();
+            _frameBegun = true;
+        }
+
         public unsafe void LoadUnicodeFont()
         {
             if (_unicodeFontLoaded) return;
@@ -68,7 +97,7 @@ namespace ImGuiNET
             //builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
             //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid
             //builder.AddRanges(fonts.GetGlyphRangesCyrillic());
-            
+
 
             //builder.AddRanges(fonts.GetGlyphRangesJapanese());
             //builder.AddRanges(fonts.GetGlyphRangesKorean());
@@ -92,34 +121,52 @@ namespace ImGuiNET
             _unicodeFontLoaded = true;
         }
 
-        /// <summary>
-        /// Constructs a new ImGuiController.
-        /// </summary>
-        public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
+        Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
+        Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
+
+        Texture _imagesTextureArray;
+        void LoadImages()
         {
-            _gd = gd;
-            _windowWidth = width;
-            _windowHeight = height;
+            ResourceFactory factory = _gd.ResourceFactory;
+            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
+            _imageTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
-            IntPtr context = ImGui.CreateContext();
-            ImGui.SetCurrentContext(context);
-            Console.WriteLine("Loading fonts");
-            var fonts = ImGui.GetIO().Fonts;
-            LoadUnicodeFont();
-            _unicodeFont = fonts.Fonts[0];
-            fonts.AddFontDefault();
-            _originalFont = fonts.Fonts[1];
-            Console.WriteLine("Done Loading fonts");
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\spring.png";
+            _imageTextures["Cylinder"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\circle.png";
+            _imageTextures["Circle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
-            CreateDeviceResources(gd, outputDescription);
-            SetKeyMappings();
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
+            _imageTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
-            SetPerFrameImGuiData(1f / 60f);
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
+            _imageTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            _textureViews["Crosshair"] = factory.CreateTextureView(_imageTextures["Crosshair"]);
 
-            ImGui.NewFrame();
-            _frameBegun = true;
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
+            _imageTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            _textureViews["VertCircle"] = factory.CreateTextureView(_imageTextures["VertCircle"]);
+
+            //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
+            //instead make a simple 2D texture atlas
+            uint textureCount = 2;
+            TextureDescription td = new TextureDescription(64 * textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
+
+            _imagesTextureArray = factory.CreateTexture(td);
+
+            CommandList cl = factory.CreateCommandList();
+            cl.Begin();
+            cl.CopyTexture(_imageTextures["VertCircle"], 0, 0, 0, 0, 0, _imagesTextureArray, 0, 0, 0, 0, 0, 64, 64, 1, 1);
+            cl.CopyTexture(_imageTextures["Crosshair"], 0, 0, 0, 0, 0, _imagesTextureArray, 64, 0, 0, 0, 0, 64, 64, 1, 1);
+            cl.End();
+            _gd.SubmitCommands(cl);
+            cl.Dispose();
         }
+
+        public Texture GetImage(string name) => _imageTextures[name];
+        public TextureView GetImageView => _gd.ResourceFactory.CreateTextureView(_imagesTextureArray);
+
 
         public void WindowResized(int width, int height)
         {
@@ -155,7 +202,7 @@ namespace ImGuiNET
 
             _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
-            
+
             byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
             byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
             _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, "VS"));
@@ -189,8 +236,8 @@ namespace ImGuiNET
                 _projMatrixBuffer,
                 gd.PointSampler));
 
-           ResourceLayout _fontLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-    new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+            ResourceLayout _fontLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+     new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
             _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_fontLayout, _fontTextureView));
         }
 
@@ -347,7 +394,7 @@ namespace ImGuiNET
             io.Fonts.ClearTexData();
 
             ImFontPtr f;
-            
+
         }
 
         /// <summary>
@@ -636,6 +683,7 @@ namespace ImGuiNET
             _textureLayout.Dispose();
             _pipeline.Dispose();
             _mainResourceSet.Dispose();
+            _imagesTextureArray.Dispose();
 
             foreach (IDisposable resource in _ownedResources)
             {

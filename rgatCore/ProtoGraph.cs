@@ -212,7 +212,7 @@ namespace rgatCore
 
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
-            EdgeData newEdge = new EdgeData(edgeList.Count);
+            EdgeData newEdge = new EdgeData(edgeList.Count, lastNodeType);
             newEdge.SetExecutionCount(repeats);
 
             if (instructionIndex > 0)
@@ -397,11 +397,11 @@ namespace rgatCore
 
 
 
-
-            EdgeData newEdge = new EdgeData(edgeList.Count);
+            NodeData sourceNode = safe_get_node(ProtoLastVertID);
+            EdgeData newEdge = new EdgeData(edgeList.Count, sourceNode.VertType());
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             newEdge.SetExecutionCount(repeats);
-            AddEdge(newEdge, safe_get_node(ProtoLastVertID), safe_get_node(targVertID));
+            AddEdge(newEdge, sourceNode, safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
             ProtoLastLastVertID = ProtoLastVertID;
@@ -659,7 +659,7 @@ namespace rgatCore
             NodeData sourceNode = safe_get_node(SrcNodeIdx);
             NodeData targNode = safe_get_node(TargNodeIdx);
 
-            EdgeData newEdge = new EdgeData(edgeList.Count);
+            EdgeData newEdge = new EdgeData(edgeList.Count, sourceNode.VertType());
             newEdge.SetExecutionCount(execCount);
 
             if (targNode.IsExternal)
@@ -998,14 +998,7 @@ namespace rgatCore
             {
                 uint source = entry[0].ToObject<uint>();
                 uint target = entry[1].ToObject<uint>();
-                uint edgeClass = entry[2].ToObject<uint>();
-
-                EdgeData edge = new EdgeData(edgeList.Count)
-                {
-                    edgeClass = (eEdgeNodeType)edgeClass
-                };
-
-                Tuple<uint, uint> stpair = new Tuple<uint, uint>(source, target);
+                EdgeData edge = new EdgeData(entry, edgeList.Count, safe_get_node(source).VertType());
                 AddEdge(edge, safe_get_node(source), safe_get_node(target));
             }
             return true;

@@ -23,7 +23,7 @@ struct VelocityParams
     float k;
     float temperature;
     uint nodesTexWidth;
-    uint edgesTexWidth;
+    uint edgeCount;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -39,13 +39,18 @@ layout(set = 0, binding=2) buffer bufPresetPositions{
 layout(set = 0, binding=3) buffer bufvelocities {   
     vec4 velocities[];
 };
+//edge data offsets
 layout(set = 0, binding=4) buffer bufedgeIndices {   
     ivec2 edgeIndices[];
 };
+//edge data 
 layout(set = 0, binding=5) buffer bufedgeData {   
-    ivec4 edgeData[];
+    uint edgeData[];
 };
-layout(set = 0, binding=6) buffer resultData
+layout(set = 0, binding=6) buffer bufEdgeStrengths {   
+    float edgeStrengths[];
+};
+layout(set = 0, binding=7) buffer resultData
 {
     vec4 field_Destination[];
 };
@@ -71,12 +76,13 @@ vec3 addRepulsion(vec3 self, vec3 neighbor){
 
 
 //fa(x) = (x*x)/k;
-vec3 addAttraction(vec3 self, vec4 neighbor){
+vec3 addAttraction(vec3 self, vec4 neighbor, int edgeIndex){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self - neighbor.xyz;
     float x = length( diff );
     float f = ( x * x ) / fieldParams.k;
-    
+    f *= edgeStrengths[edgeIndex];
+
     return normalize(diff) * f;
 }
 
@@ -103,11 +109,7 @@ void main()	{
 
     float speedLimit = 250.0;
     float attct = 0;
-    
-    int hitcount = 0;
-    vec3 hitcoord = vec3(0,0,0);
-  
-  
+      
     //move towards preset layout position
     if ( presetLayoutPosition.w > 0.0 ) {
      
@@ -130,6 +132,7 @@ void main()	{
         // force-directed n-body simulation
         if( selfPosition.w > 0.0 )
         {
+            //first repel every node away from each other
             for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
             {
                 for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
@@ -141,65 +144,41 @@ void main()	{
                         //if distance below threshold, repel every node from every single node
                         if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                         {
-                            vec3 repuls = addRepulsion(selfPosition.xyz, compareNodePosition.xyz);
-                            velocity += repuls;
+                            velocity += addRepulsion(selfPosition.xyz, compareNodePosition.xyz);
                         }
                     }
                 }
 		    }
             
-
+            //now iterate over each edge, attracting every connected node towards each other
             vec2 selfEdgeIndices = edgeIndices[index];
             
             float start = selfEdgeIndices.x;
             float end = selfEdgeIndices.y;
 
+            /*
+                                            field_Destination[index].x = index;  
+                                field_Destination[index].y = start;  
+                                field_Destination[index].z = end;  
+                                field_Destination[index].w = -9;
+                                return;
+                                */
+
             if(start != -1){
-
-                int edgeIndex = 0;
-                //iterate over every edge
-                for(uint y = 0; y < fieldParams.edgesTexWidth; y++)
+                field_Destination[index] = vec4(-8,-8,-8,-8);
+                for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
                 {
-                    for(uint x = 0; x < fieldParams.edgesTexWidth; x++)
-                    {
-                        ivec4 pixel = edgeData[y*fieldParams.edgesTexWidth + x];
-
-                        if (edgeIndex >= start && edgeIndex < end){
-                                hitcount++;
-                                nodePosition = getNeighbor(pixel.x);
-                                vec3 attrac = addAttraction(selfPosition.xyz, nodePosition);  
-                                velocity -= attrac;          
-                        }
-                        edgeIndex++;
-
-                        if (edgeIndex >= start && edgeIndex < end){
-                        hitcount++;
                         
-                                nodePosition = getNeighbor(pixel.y);
-                                vec3 attrac = addAttraction(selfPosition.xyz, nodePosition);  
-                                velocity -= attrac;      
-                        }
-                        edgeIndex++;
+                    uint neighbour = edgeData[edgeIndex];
 
-                        if (edgeIndex >= start && edgeIndex < end){
-                        hitcount++;     
-                        
-                                nodePosition = getNeighbor(pixel.z);
-                                vec3 attrac = addAttraction(selfPosition.xyz, nodePosition);  
-                                velocity -= attrac;            
-                        }
-                        edgeIndex++;
 
-                        if (edgeIndex >= start && edgeIndex < end){
-                            hitcount++;                     
-                            
-                                nodePosition = getNeighbor(pixel.w);
-                                vec3 attrac = addAttraction(selfPosition.xyz, nodePosition);  
-                                velocity -= attrac;      
-                        }
-                        edgeIndex++;
-                        
-                    }
+                    nodePosition = positions[neighbour];
+                    velocity -= addAttraction(selfPosition.xyz, nodePosition, int(edgeIndex));  
+                    /*
+                    field_Destination[edgeIndex].x = edgeIndex;  
+                    field_Destination[edgeIndex].y = index;  
+                    field_Destination[edgeIndex].z = neighbour;  
+                    field_Destination[edgeIndex].w = edgeStrengths[edgeIndex];            */
                 }
             }
         }
@@ -218,7 +197,8 @@ void main()	{
     
     // add friction
     velocity *= 0.25;
-
+    //field_Destination[index] = vec4(0,index,0,0);
+    //field_Destination[index].x = edgeStrengths[index];
     field_Destination[index] = vec4(velocity, velocities[index].w);
 }
 

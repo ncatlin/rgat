@@ -415,31 +415,34 @@ namespace rgatCore
             renderFrameVersion++;
         }
 
-        public unsafe int[] GetEdgeDataInts()
+
+        float GetAttractionForce(EdgeData edge)
         {
-            //var textureSize = indexTextureSize(_graphStructureLinear.Count);
-            List<List<int>> targetArray = _graphStructureBalanced;
-            var textureSize = indexTextureSize(targetArray.Count);
-            int[] textureArray = new int[textureSize * textureSize * 4];
-
-            var currentIndex = 0;
-            for (var i = 0; i < targetArray.Count; i++)
+            switch (edge.edgeClass)
             {
-                for (var j = 0; j < targetArray[i].Count; j++)
-                {
-                    textureArray[currentIndex] = targetArray[i][j];
-                    currentIndex++;
-                }
+                case eEdgeNodeType.eEdgeNew:
+                    if (edge.sourceNodeType == eEdgeNodeType.eNodeJump) 
+                        return 1f;
+                    else
+                        return 3f;
+                case eEdgeNodeType.eEdgeLib:
+                    return 1f;
+                case eEdgeNodeType.eEdgeCall:
+                    return 0.2f;
+                case eEdgeNodeType.eEdgeOld:
+                    return 0.3f;
+                case eEdgeNodeType.eEdgeReturn:
+                    return 0.2f;
+                case eEdgeNodeType.eEdgeException:
+                    return 2f;
+                default:
+                    Console.WriteLine($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeIndex}");
+                    return 1f;
             }
 
-            for (var i = currentIndex; i < textureArray.Length; i++)
-            {
-                //fill unused RGBA slots with -1
-                textureArray[i] = -1;
-            }
-
-            return textureArray;
+            return 1f;
         }
+
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions, uint count)
         {
@@ -1006,6 +1009,68 @@ namespace rgatCore
         }
 
 
+        public unsafe int[] GetEdgeDataInts()
+        {
+            //var textureSize = indexTextureSize(_graphStructureLinear.Count);
+            List<List<int>> targetArray = _graphStructureBalanced;
+            var textureSize = countDataArrayItems(targetArray)*2;
+            int[] textureArray = new int[textureSize];
+
+            _edgeStrengthFloats = new float[textureSize];
+
+
+            int currentNodeIndex = 0;
+            int edgeIndex = 0;
+            for (currentNodeIndex = 0; currentNodeIndex < internalProtoGraph.NodeList.Count; currentNodeIndex++)
+            {
+                List<uint> neigbours = internalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
+                for (var nidx = 0; nidx < neigbours.Count; nidx++)
+                {
+                    textureArray[edgeIndex] = (int)neigbours[nidx];
+                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(internalProtoGraph.GetEdge((uint)currentNodeIndex, neigbours[nidx]));
+                    edgeIndex++;
+                    if (edgeIndex == textureArray.Length) return textureArray;
+                }
+
+                neigbours = internalProtoGraph.NodeList[currentNodeIndex].IncomingNeighboursSet;
+                for (var nidx = 0; nidx < neigbours.Count; nidx++)
+                {
+                    textureArray[edgeIndex] = (int)neigbours[nidx];
+                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(internalProtoGraph.GetEdge(neigbours[nidx], (uint)currentNodeIndex));
+                    edgeIndex++;
+                    if (edgeIndex == textureArray.Length) return textureArray;
+                }
+            }
+
+            /*
+            var currentIndex = 0;
+            for (var i = 0; i < targetArray.Count; i++)
+            {
+                for (var j = 0; j < targetArray[i].Count; j++)
+                {
+                    textureArray[currentIndex] = targetArray[i][j];
+                    currentIndex++;
+                }
+            }*/
+
+            for (var i = edgeIndex; i < textureArray.Length; i++)
+            {
+                //fill unused RGBA slots with -1
+                textureArray[i] = -1;
+                _edgeStrengthFloats[edgeIndex] = -1;
+            }
+
+            return textureArray;
+        }
+
+        float[] _edgeStrengthFloats;
+        public unsafe float[] GetEdgeStrengthFloats()
+        {
+            return _edgeStrengthFloats;
+        }
+
+
+
         public unsafe int[] GetNodeNeighbourDataOffsets()
         {
             List<List<int>> targetArray = null;
@@ -1055,6 +1120,7 @@ namespace rgatCore
             return sourceData;
         }
 
+
         public int DrawnEdgesCount = 0;
         void UpdateNodeLinks(int srcNodeIdx, int destNodeIdx)
         {
@@ -1069,6 +1135,7 @@ namespace rgatCore
             {
                 _graphStructureBalanced[srcNodeIdx].Add(destNodeIdx);
             }
+            
 
 
         }

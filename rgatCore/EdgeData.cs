@@ -7,7 +7,14 @@ namespace rgatCore
 {
     class EdgeData
 	{
-		public EdgeData(int index) => EdgeIndex = (uint)index;
+		public EdgeData(int index, eEdgeNodeType sourceType) => EdgeIndex = (uint)index;
+
+		public EdgeData(JArray serialised, int index, eEdgeNodeType sourceType)
+		{
+			EdgeIndex = (uint)index;
+			edgeClass = (eEdgeNodeType)serialised[2].ToObject<uint>();
+			executionCount = serialised[3].ToObject<ulong>();
+		}
 
 		//write to provided file. This class doesn't actually contain the source
 		//and the target of the edge, so pass those along too
@@ -17,11 +24,14 @@ namespace rgatCore
 			edgearr.Add(src);
 			edgearr.Add(targ);
 			edgearr.Add(edgeClass);
+			edgearr.Add(executionCount);
 			return edgearr;
         }
 
+
 		//type of edge (call,extern,etc)
 		public eEdgeNodeType edgeClass;
+		public eEdgeNodeType sourceNodeType;
 
 		public ulong executionCount { get; private set; } = 0;
 		public void SetExecutionCount(ulong value) { executionCount = value; }

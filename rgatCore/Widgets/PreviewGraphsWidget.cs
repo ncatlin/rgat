@@ -108,9 +108,8 @@ namespace rgatCore
                ));
 
 
-            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\js\analytics-master\textures\new_circle.png";
-            _NodeCircleSprite = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-            _NodeCircleSpritetview = _factory.CreateTextureView(_NodeCircleSprite);
+            _NodeCircleSprite = _ImGuiController.GetImage("VertCircle");
+            _NodeCircleSpritetview = _ImGuiController.GetImageView; 
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -355,10 +354,10 @@ namespace rgatCore
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
             _cl.SetPipeline(_pointsPipeline);
-            _cl.SetVertexBuffer(0, _NodeVertexBuffer);
-            _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
             _cl.SetGraphicsResourceSet(0, _crs_core);
             _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+            _cl.SetVertexBuffer(0, _NodeVertexBuffer);
+            _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
             _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             _cl.SetPipeline(_edgesPipeline);

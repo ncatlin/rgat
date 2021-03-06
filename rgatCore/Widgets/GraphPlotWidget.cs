@@ -35,8 +35,8 @@ namespace rgatCore
         GraphicsDevice _gd;
         ResourceFactory _factory;
         Vector2 _graphWidgetSize;
-        Dictionary<string, Texture> _iconTextures = new Dictionary<string, Texture>();
-        Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
+
+        TextureView _imageTextureView;
 
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, Vector2? initialSize = null)
         {
@@ -50,55 +50,14 @@ namespace rgatCore
             _IrregularActionTimer.Start();
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller);
-
-            LoadImages();
-
+            _imageTextureView = controller.GetImageView;
             SetupRenderingResources();
 
         }
 
 
-        void LoadImages()
-        {
-            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
-            _iconTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
 
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\spring.png";
-            _iconTextures["Cylinder"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
 
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\circle.png";
-            _iconTextures["Circle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
-            _iconTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
-            _iconTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-            _textureViews["Crosshair"] = _factory.CreateTextureView(_iconTextures["Crosshair"]);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
-            _iconTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, _factory);
-            _textureViews["VertCircle"] = _factory.CreateTextureView(_iconTextures["VertCircle"]);
-
-            //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
-            //instead make a simple 2D texture atlas
-            uint textureCount = 2;
-            TextureDescription td = new TextureDescription(64 * textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
-
-            _nodesTexArray = _factory.CreateTexture(td);
-
-            CommandList cl = _factory.CreateCommandList();
-            cl.Begin();
-            cl.CopyTexture(_iconTextures["VertCircle"], 0, 0, 0, 0, 0, _nodesTexArray, 0, 0, 0, 0, 0, 64, 64, 1, 1);
-            cl.CopyTexture(_iconTextures["Crosshair"], 0, 0, 0, 0, 0, _nodesTexArray, 64, 0, 0, 0, 0, 64, 64, 1, 1);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            cl.Dispose();
-            _nodeTexArrayView = _factory.CreateTextureView(_nodesTexArray);
-        }
-
-        TextureView _nodeTexArrayView;
-        Texture _nodesTexArray;
 
         public void SetActiveGraph(PlottedGraph graph)
         {
@@ -636,7 +595,7 @@ namespace rgatCore
             _crs_core?.Dispose();
             _crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _nodeTexArrayView);
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _imageTextureView);
 
             _crs_nodesEdges?.Dispose();
             _crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
@@ -903,14 +862,14 @@ namespace rgatCore
             switch (layout)
             {
                 case eGraphLayout.eForceDirected3D:
-                    return _iconTextures["Force3D"];
+                    return  _controller.GetImage("Force3D");
                 case eGraphLayout.eCircle:
-                    return _iconTextures["Circle"];
+                    return _controller.GetImage("Circle");
                 case eGraphLayout.eCylinderLayout:
-                    return _iconTextures["Cylinder"];
+                    return _controller.GetImage("Cylinder");
                 default:
                     Console.WriteLine($"ERROR: no icond for layout {layout}");
-                    return _iconTextures["Force3D"];
+                    return _controller.GetImage("Force3D");
             }
         }
 
@@ -982,7 +941,7 @@ namespace rgatCore
 
         void DrawVisibilitySelector(Vector2 position, float scale)
         {
-            Texture btnIcon = _iconTextures["Eye"];
+            Texture btnIcon = _controller.GetImage("Eye");
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
             float padding = 6f;
             Vector2 iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
