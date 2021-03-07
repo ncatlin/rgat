@@ -23,6 +23,10 @@ namespace rgatCore
 
     enum eGraphLayout { eCylinderLayout, eForceDirected3DNodes, eForceDirected3DBlocks, eCircle, eLayoutInvalid };
 
+    enum eKeybind { eMoveLeft, eMoveRight, eMoveUp, eMoveDown,
+        eZoomIn, eZoomOut, ePitchXFwd, ePitchXBack, eRollYLeft, eRollYRight, eRotGraphZLeft, eRotGraphZRight, 
+        eCenterFrame, eLockCenterFrame, eCancel, eToggleHeatmap, eToggleConditional, eRaiseForceTemperature }
+
     enum eSignatureType { eYARA, eDetectItEasy};
 
     static class UI_Constants

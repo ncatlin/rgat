@@ -2049,13 +2049,17 @@ namespace rgatCore
             return waitFrames;
         }
 
-        public void ApplyMouseDelta(Vector2 mousedelta)
+        public void ApplyMouseWheelDelta(float delta)
         {
-            //todo
+            CameraZoom += delta * 120;
         }
 
 
-
+        public void ApplyMouseDragDelta(Vector2 delta)
+        {
+            CameraXOffset -= delta.X;
+            CameraYOffset += delta.Y;
+        }
 
 
         public void InitPreviewTexture(Vector2 size, GraphicsDevice _gd)

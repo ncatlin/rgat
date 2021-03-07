@@ -42,6 +42,11 @@ namespace rgatCore
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
 
+        private readonly object _inputLock = new object();
+        List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
+        float _mouseWheelDelta = 0;
+        Vector2 _mouseDragDelta = new Vector2(0, 0);
+
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             Console.WriteLine("Constructing rgatUI");
@@ -55,14 +60,10 @@ namespace rgatCore
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
 
-            Console.WriteLine("MainGraphRenderThread Inited");
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
-            Console.WriteLine("ProcessCoordinatorThread Inited");
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
-            Console.WriteLine("GraphPlotWidget Inited");
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
-            Console.WriteLine("PreviewGraphsWidget Inited");
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
             Console.WriteLine("rgatUI created");
         }
@@ -72,13 +73,59 @@ namespace rgatCore
             _rgatstate.ShutdownRGAT();
         }
 
+
         public void AlertResized(Vector2 size)
         {
 
         }
 
+
+        public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo)
+        {
+            lock (_inputLock)
+            {
+                _keyPresses.Add(keyCombo);
+            }
+        }
+        public void AlertResponsiveKeyEvent(Key key)
+        {
+            lock (_inputLock)
+            {
+                //modifiers are checked later on, if needed
+                _keyPresses.Add(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+            }
+        }
+
+
+
+        public void AlertMouseWheel(MouseWheelEventArgs mw)
+        {
+            lock (_inputLock)
+            {
+                float thisDelta = mw.WheelDelta;
+                if (ImGui.GetIO().KeyShift) { thisDelta *= 10; }
+                _mouseWheelDelta += thisDelta;
+            }
+        }
+
+        public void AlertMouseMove(MouseState ms, Vector2 delta)
+        {
+            if (ms.IsButtonDown(MouseButton.Left) || ms.IsButtonDown(MouseButton.Right))
+            {
+                lock (_inputLock)
+                {
+                    if (ImGui.GetIO().KeyShift) { delta = new Vector2(delta.X * 10, delta.Y * 10); }
+                    _mouseDragDelta += delta;
+                }
+
+            }
+        }
+
+
+
         public void DrawUI()
         {
+
 
             //Console.WriteLine(ImGui.GetWindowViewport());
 
@@ -86,6 +133,8 @@ namespace rgatCore
             //window_flags |= ImGuiWindowFlags.NoTitleBar;
             window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
+
+            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
             ImGui.SetNextWindowPos(new Vector2(50, 50), ImGuiCond.Appearing);
 
@@ -95,41 +144,61 @@ namespace rgatCore
             ImGui.Begin("rgat Primary Window", window_flags);
 
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
-            HandleKeyPresses();
+            HandleUserInput();
             DrawMainMenu();
-            DrawTargetBar();
-            DrawTabs();
-            if (_settings_window_shown) DrawSettingsWindow();
-            if (_show_select_exe_window) DrawFileSelectBox();
-            if (_show_load_trace_window) DrawTraceLoadBox();
+            if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
+            {
+                DrawTargetBar();
+                DrawTabs();
+                if (_settings_window_shown) DrawSettingsWindow();
+                if (_show_select_exe_window) DrawFileSelectBox();
+                if (_show_load_trace_window) DrawTraceLoadBox();
+                ImGui.EndChild();
+            }
             ImGui.End();
 
         }
 
-        void HandleKeyPresses()
+
+        void HandleUserInput()
         {
 
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Escape))) CloseDialogs();
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
-            if (ActiveGraph != null)
+            bool MouseInMainWidget = MainGraphWidget.MouseInWidget();
+            lock (_inputLock)
             {
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X)))
+                if (MouseInMainWidget)
                 {
-                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eHeatmap);
+                    if (_mouseWheelDelta != 0)
+                    {
+                        MainGraphWidget.ApplyZoom(_mouseWheelDelta);
+                        _mouseWheelDelta = 0;
+                    }
+
+                    if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
+                    {
+                        MainGraphWidget.ApplyMouseDrag(_mouseDragDelta);
+                        _mouseDragDelta = new Vector2(0, 0);
+                    }
                 }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C)))
+
+
+                foreach (Tuple<Key, ModifierKeys> KeyModifierTuple in _keyPresses)
                 {
-                    MainGraphWidget.ToggleRenderingMode(eRenderingMode.eConditionals);
+                    if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
+
+                    if (boundAction == eKeybind.eCancel)
+                    {
+                        CloseDialogs();
+                        continue;
+                    }
+
+
+                    MainGraphWidget.AlertKeybindPressed(boundAction);
+
+
                 }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow))) { ActiveGraph.CameraYOffset += 50; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow))) { ActiveGraph.CameraYOffset -= 50; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow))) { ActiveGraph.CameraXOffset -= 50; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow))) { ActiveGraph.CameraXOffset += 50; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp))) { ActiveGraph.CameraZoom += 100; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown))) { ActiveGraph.CameraZoom -= 100; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End))) { ActiveGraph.PlotZRotation += 0.05f; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete))) { ActiveGraph.PlotZRotation -= 0.05f; }
-                if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V))) { ActiveGraph.IncreaseTemperature(); }
+                _keyPresses.Clear();
             }
         }
 
@@ -1215,6 +1284,8 @@ namespace rgatCore
         {
             bool dummy = true;
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
+
+
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
                 if (ImGui.BeginTabItem("Start Trace"))
@@ -1241,7 +1312,6 @@ namespace rgatCore
 
                 ImGui.EndTabBar();
             }
-
 
         }
 

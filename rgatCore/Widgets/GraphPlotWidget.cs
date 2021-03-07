@@ -98,24 +98,32 @@ namespace rgatCore
         private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
 
-        public void ApplyZoom(float direction)
+        public void ApplyZoom(float delta)
         {
             if (ActiveGraph != null)
             {
-                float newValue = ActiveGraph.CameraZoom - (direction * 100);
-                if (newValue >= 100)
-                    ActiveGraph.CameraZoom = newValue;
+                ActiveGraph.ApplyMouseWheelDelta(delta);
             }
         }
 
-        static public bool IsMouseInWidget(Vector2 graphSize)
+        public void ApplyMouseDrag(Vector2 delta)
+        {
+            if (ActiveGraph != null)
+            {
+                ActiveGraph.ApplyMouseDragDelta(delta);
+            }
+        }
+
+
+
+        public bool MouseInWidget()
         {
             Vector2 MousePos = ImGui.GetMousePos();
             Vector2 WidgetPos = ImGui.GetCursorScreenPos();
 
-            if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + graphSize.X))
+            if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + _graphWidgetSize.X))
             {
-                if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + graphSize.Y))
+                if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + _graphWidgetSize.Y))
                 {
                     return true;
                 }
@@ -123,31 +131,72 @@ namespace rgatCore
             return false;
         }
 
-        public void HandleInput(Vector2 graphSize)
+        public void AlertKeybindPressed(eKeybind boundAction)
         {
-            bool mouseInWidget = IsMouseInWidget(graphSize);
+            PlottedGraph activeGraph = ActiveGraph;
+            if (activeGraph == null) return;
 
-
-            if (mouseInWidget)
+            float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
+            switch (boundAction)
             {
-                float scroll = ImGui.GetIO().MouseWheel;
-                if (scroll != 0) ApplyZoom(scroll);
+                case eKeybind.eToggleHeatmap:
+                    ToggleRenderingMode(eRenderingMode.eHeatmap);
+                    break;
 
-                if (ActiveGraph != null && ImGui.GetIO().MouseDown[0])
-                {
-                    ActiveGraph.ApplyMouseDelta(ImGui.GetIO().MouseDelta);
-                }
+                case eKeybind.eToggleConditional:
+                    ToggleRenderingMode(eRenderingMode.eConditionals);
+                    break;
+
+                case eKeybind.eMoveUp:
+                    float delta = 50;
+                    delta += (50 * (shiftModifier * 1.5f));
+                    ActiveGraph.CameraYOffset += delta;
+                    break;
+
+                case eKeybind.eMoveDown:
+                    delta = 50;
+                    delta += (50 * (shiftModifier * 1.5f));
+                    ActiveGraph.CameraYOffset -= delta;
+                    break;
+
+                case eKeybind.eMoveLeft:
+                    delta = 50;
+                    delta += (50 * (shiftModifier * 1.5f));
+                    ActiveGraph.CameraXOffset -= delta;
+                    break;
+
+                case eKeybind.eMoveRight:
+                    delta = 50;
+                    delta += (50 * (shiftModifier * 1.5f));
+                    ActiveGraph.CameraXOffset += delta;
+                    break;
+
+                case eKeybind.eRotGraphZLeft:
+                    delta = 0.05f;
+                    delta += (0.05f * (shiftModifier * 1.5f));
+                    ActiveGraph.PlotZRotation -= delta;
+                    break;
+
+                case eKeybind.eRotGraphZRight:
+                    delta = 0.05f;
+                    delta += (0.05f * (shiftModifier * 1.5f));
+                    ActiveGraph.PlotZRotation += delta;
+                    break;
+
+                case eKeybind.eRaiseForceTemperature:
+                    ActiveGraph.IncreaseTemperature();
+                    break;
+                default:
+                    break;
             }
-
-
         }
+
+
 
 
         public void Draw(Vector2 graphSize)
         {
             renderLock.AcquireReaderLock(200);
-            HandleInput(graphSize);
-
             if (_IrregularActionTimerFired)
                 PerformIrregularActions();
 
@@ -863,7 +912,7 @@ namespace rgatCore
             {
                 case eGraphLayout.eForceDirected3DNodes:
                 case eGraphLayout.eForceDirected3DBlocks:
-                    return  _controller.GetImage("Force3D");
+                    return _controller.GetImage("Force3D");
                 case eGraphLayout.eCircle:
                     return _controller.GetImage("Circle");
                 case eGraphLayout.eCylinderLayout:

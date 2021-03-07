@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using Veldrid;
@@ -97,7 +98,9 @@ namespace rgatCore.Threads
         public static string PinPath = @"C:\devel\libs\pin-3.17\pin.exe";
         public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
-
+        public static Dictionary<Tuple<Key,ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
+        public static List<Key> ResponsiveKeys = new List<Key>();
+        public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
 
         /*
          * Trace related config
@@ -108,8 +111,67 @@ namespace rgatCore.Threads
         public static ulong SymbolSearchDistance = 4096;
         public static int ArgStorageMax = 100;
 
+        public static void InitDefaultKeybinds()
+        {
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.W, ModifierKeys.None)] = eKeybind.eMoveUp;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Up, ModifierKeys.None)] = eKeybind.eMoveUp;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.S, ModifierKeys.None)] = eKeybind.eMoveDown;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Down, ModifierKeys.None)] = eKeybind.eMoveDown;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.A, ModifierKeys.None)] = eKeybind.eMoveLeft;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Left, ModifierKeys.None)] = eKeybind.eMoveLeft;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.D, ModifierKeys.None)] = eKeybind.eMoveRight;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Right, ModifierKeys.None)] = eKeybind.eMoveRight;
+
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.PageUp, ModifierKeys.None)] = eKeybind.ePitchXFwd;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.PageDown, ModifierKeys.None)] = eKeybind.ePitchXBack;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Insert, ModifierKeys.None)] = eKeybind.eRollYLeft;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Home, ModifierKeys.None)] = eKeybind.eRollYRight;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Delete, ModifierKeys.None)] = eKeybind.eRotGraphZLeft;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.End, ModifierKeys.None)] = eKeybind.eRotGraphZRight;
+
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Escape, ModifierKeys.None)] = eKeybind.eCancel;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Q, ModifierKeys.None)] = eKeybind.eCenterFrame;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.Q, ModifierKeys.Shift)] = eKeybind.eLockCenterFrame;
+
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.V, ModifierKeys.None)] = eKeybind.eRaiseForceTemperature;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.X, ModifierKeys.None)] = eKeybind.eToggleHeatmap;
+            Keybinds[new Tuple<Key, ModifierKeys>(Key.C, ModifierKeys.None)] = eKeybind.eToggleConditional;
+
+         
+        }
+
+        /// <summary>
+        /// Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
+        /// things like graph movement and rotation clunky. Instead we read for their keypress every update instead
+        /// of listening for the key action
+        /// 
+        /// Alt/Shift/Ctrl modifiers are reserved for these keys, so two different actions can't be bound to a key this way.
+        /// </summary>
+        static void InitResponsiveKeys()
+        {
+            ResponsiveHeldActions.Clear();
+            ResponsiveHeldActions.Add(eKeybind.eMoveRight);
+            ResponsiveHeldActions.Add(eKeybind.eMoveLeft);
+            ResponsiveHeldActions.Add(eKeybind.eMoveDown);
+            ResponsiveHeldActions.Add(eKeybind.eMoveUp);
+            ResponsiveHeldActions.Add(eKeybind.ePitchXBack);
+            ResponsiveHeldActions.Add(eKeybind.ePitchXFwd);
+            ResponsiveHeldActions.Add(eKeybind.eRollYLeft);
+            ResponsiveHeldActions.Add(eKeybind.eRollYRight);
+            ResponsiveHeldActions.Add(eKeybind.eRotGraphZLeft);
+            ResponsiveHeldActions.Add(eKeybind.eRotGraphZRight);
+
+            ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
+        }
+
+
         public static void InitDefaultConfig()
         {
+            InitDefaultKeybinds();
+            //InitCustomKeybinds();
+            InitResponsiveKeys();
+
+
             defaultGraphColours = new List<WritableRgbaFloat> { 
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept

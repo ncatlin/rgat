@@ -1,6 +1,7 @@
 ﻿using rgatCore;
 using rgatCore.Threads;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -35,9 +36,10 @@ namespace ImGuiNET
         private static byte[] _memoryEditorData;
         private static uint s_tab_bar_flags = (uint)ImGuiTabBarFlags.Reorderable;
         static bool[] s_opened = { true, true, true, true }; // Persistent user state
+        static Vector2 _lastMousePos;
 
         static void SetThing(out float i, float val) { i = val; }
-
+        static List<Key> HeldResponsiveKeys = new List<Key>();
 
 
         static void Main(string[] args)
@@ -70,13 +72,14 @@ namespace ImGuiNET
                 out _window,
                 out _gd);
 
+            _lastMousePos = new Vector2(0, 0);
+
             _window.Resized += () =>
             {
                 _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
                 _controller.WindowResized(_window.Width, _window.Height);
                 _rgatui?.AlertResized(new Vector2(_window.Width, _window.Height));
             };
-
             _cl = _gd.ResourceFactory.CreateCommandList();
             _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
             _memoryEditor = new MemoryEditor();
@@ -85,14 +88,45 @@ namespace ImGuiNET
 
             _rgatui = new rgatUI(_controller, _gd, _cl);
 
+            _window.KeyDown += (KeyEvent k) =>
+            {
+                if (GlobalConfig.ResponsiveKeys.Contains(k.Key))
+                {
+                    if (!HeldResponsiveKeys.Contains(k.Key))
+                        HeldResponsiveKeys.Add(k.Key);
+                }
+                else
+                {
+                    _rgatui.AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
+                }
+            }; 
+            _window.KeyUp += (KeyEvent k) =>
+            {
+                HeldResponsiveKeys.RemoveAll(key => key == k.Key);
+            };
+
+
+            _window.MouseWheel += (MouseWheelEventArgs mw) => _rgatui.AlertMouseWheel(mw);
+            _window.MouseMove += (MouseMoveEventArgs mm) =>
+            {
+                _rgatui.AlertMouseMove(mm.State, _lastMousePos - mm.MousePosition);
+                _lastMousePos = mm.MousePosition;
+            };
+           
+               
+
             //probably not going to have movable windows at all
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         }
+
+
 
         private static void Update()
         {
             InputSnapshot snapshot = _window.PumpEvents();
             if (!_window.Exists) { return; }
+
+            HeldResponsiveKeys.ForEach(key => _rgatui.AlertResponsiveKeyEvent(key));
 
             _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
             SubmitUI();
