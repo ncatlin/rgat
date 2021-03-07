@@ -66,8 +66,8 @@ namespace rgatCore
             EdgesDisplayData = new GraphDisplayData();
             HighlightsDisplayData = new GraphDisplayData();
 
-            savedForcePositions[eGraphLayout.eForceDirected3D] = Array.Empty<float>();
-            savedForcePositions[eGraphLayout.eForceDirected3DFixed] = Array.Empty<float>();
+            savedForcePositions[eGraphLayout.eForceDirected3DNodes] = Array.Empty<float>();
+            savedForcePositions[eGraphLayout.eForceDirected3DBlocks] = Array.Empty<float>();
 
             internalProtoGraph = protoGraph;
 
@@ -1097,6 +1097,7 @@ namespace rgatCore
         }
 
         int[] _blockDataInts;
+        bool _blockDataIncomplete = false;
         public unsafe int[] GetNodeBlockData()
         {
             return _blockDataInts;
@@ -1110,12 +1111,13 @@ namespace rgatCore
             for (int blockIdx = 0; blockIdx < internalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
             {
                 var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[blockIdx];
-                
+                if (firstIdx_LastIdx == null) continue;
+
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
                     blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1;
                 }
-                        else
+                else
 
                 {
                     uint centerNodeID = firstIdx_LastIdx.Item1 + (uint)Math.Ceiling((double)(firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) / 2.0);
@@ -1131,6 +1133,8 @@ namespace rgatCore
                 var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID];
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
                 int blockID = (int)n.BlockID;
+                if (!blockMiddles.ContainsKey(blockID)) 
+                    continue;
                 int blockMid = blockMiddles[blockID];
 
 
@@ -2287,19 +2291,19 @@ namespace rgatCore
                     return "Circle";
                 case eGraphLayout.eCylinderLayout:
                     return "Cylinder";
-                case eGraphLayout.eForceDirected3D:
+                case eGraphLayout.eForceDirected3DNodes:
                     return "ForceDirected3D";
                 default:
                     return "UnknownPlotType_" + LayoutStyle.ToString();
             }
         }
 
-       public static bool LayoutIsForceDirected(eGraphLayout style)
+        public static bool LayoutIsForceDirected(eGraphLayout style)
         {
             switch (style)
             {
-                case eGraphLayout.eForceDirected3DFixed:
-                case eGraphLayout.eForceDirected3D:
+                case eGraphLayout.eForceDirected3DBlocks:
+                case eGraphLayout.eForceDirected3DNodes:
                     return true;
                 default:
                     return false;
@@ -2313,10 +2317,10 @@ namespace rgatCore
             {
                 savedForcePositions[LayoutStyle] = positionsArray1.ToArray();
             }
-            
+
             if (LayoutIsForceDirected(newStyle))
             {
-              presetPositionsArray = savedForcePositions[newStyle];
+                presetPositionsArray = savedForcePositions[newStyle];
             }
             LayoutStyle = newStyle;
             return true;
@@ -2355,7 +2359,7 @@ namespace rgatCore
         protected bool wireframeSupported;
         protected bool wireframeActive;
         long defaultZoom;
-        public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3D;
+        public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3DNodes;
 
         public float[] positionsArray1 = Array.Empty<float>();
         Dictionary<eGraphLayout, float[]> savedForcePositions = new Dictionary<eGraphLayout, float[]>();

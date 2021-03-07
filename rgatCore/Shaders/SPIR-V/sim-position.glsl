@@ -24,6 +24,7 @@ struct PositionParams
     uint nodesTexWidth;
     float blockNodeSeperation;
     uint fixedInternalNodes;
+    bool activatingPreset;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -48,7 +49,7 @@ void main()	{
     vec4 selfPosition = positions[index];    
     vec4 res;
 
-    if (fieldParams.fixedInternalNodes == 1)
+    if (fieldParams.fixedInternalNodes == 1 && !fieldParams.activatingPreset )
     {
         
         ivec4 selfBlockData = blockData[index];
@@ -87,7 +88,7 @@ void main()	{
         res.w = 2;
     }
     */
-
+    //field_Destination[index] = blockData[index];
     field_Destination[index] = res;
 
 }

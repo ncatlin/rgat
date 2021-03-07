@@ -861,8 +861,8 @@ namespace rgatCore
         {
             switch (layout)
             {
-                case eGraphLayout.eForceDirected3D:
-                case eGraphLayout.eForceDirected3DFixed:
+                case eGraphLayout.eForceDirected3DNodes:
+                case eGraphLayout.eForceDirected3DBlocks:
                     return  _controller.GetImage("Force3D");
                 case eGraphLayout.eCircle:
                     return _controller.GetImage("Circle");
@@ -912,13 +912,13 @@ namespace rgatCore
 
             if (ImGui.BeginPopup("layout select popup"))
             {
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3D), iconSize, buttonWidth, "Force Directed 3D", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3D))
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DNodes), iconSize, buttonWidth, "Force Directed Nodes", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes))
                 {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3D)) { _layoutEngine.ChangePreset(); }
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DNodes)) { _layoutEngine.ChangePreset(); }
                 }
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DFixed), iconSize, buttonWidth, "Force Directed 3D Fixed", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed))
+                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DBlocks), iconSize, buttonWidth, "Force Directed Blocks", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks))
                 {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DFixed)) { _layoutEngine.ChangePreset(); }
+                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DBlocks)) { _layoutEngine.ChangePreset(); }
                 }
                 if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
                 {

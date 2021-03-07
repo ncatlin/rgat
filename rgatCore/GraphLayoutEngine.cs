@@ -107,7 +107,6 @@ namespace rgatCore
             if (PlottedGraph.LayoutIsForceDirected(graphStyle))
             {
                 _cachedVersions[_activeGraph] = 0;
-                //_activeGraph.GetPresetPositionFloats();
                 LoadCurrentGraphData();
             }
             else
@@ -315,6 +314,7 @@ namespace rgatCore
             _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer();
             _edgeStrengthDataBuffer?.Dispose();
             _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer();
+            _blockDataBuffer = CreateBlockDataBuffer();
         }
 
 
@@ -479,7 +479,7 @@ namespace rgatCore
 
             var textureSize = _activeGraph.LinearIndexTextureSize();
             uint fixedNodes = 0;
-            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed) fixedNodes = 1;
+            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks) fixedNodes = 1;
 
             VelocityShaderParams parms = new VelocityShaderParams
             {
@@ -570,8 +570,12 @@ namespace rgatCore
             public uint NodesTexWidth;
             public float blockNodeSeperation;
             public uint fixedInternalNodes;
-
-            //private uint _padding1; //must be multiple of 16
+            public bool activatingPreset;
+            //must be multiple of 16
+            private uint _padding1; 
+            private uint _padding3;
+            private bool y;
+            
         }
 
 
@@ -584,13 +588,14 @@ namespace rgatCore
             uint height = textureSize;
 
             uint fixedNodes = 0;
-            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DFixed) fixedNodes = 1;
+            if (_activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks) fixedNodes = 1;
             PositionShaderParams parms = new PositionShaderParams
             {
                 delta = delta,
                 NodesTexWidth = textureSize,
                 blockNodeSeperation = 60,
-                fixedInternalNodes = fixedNodes
+                fixedInternalNodes = fixedNodes,
+                activatingPreset = _activatingPreset
             };
 
             //Console.WriteLine($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
@@ -610,7 +615,7 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            //DebugPrintOutputFloatBuffer((int)textureSize, output, "Position Computation Done. Result: ", 32);
+            //DebugPrintOutputFloatBuffer(output, "Position Computation Done. Result: ", 50);
 
             cl.Dispose();
             crs.Dispose();
@@ -738,12 +743,6 @@ namespace rgatCore
             _cachedNodeAttribBuffers[_activeGraph] = new Tuple<DeviceBuffer, DeviceBuffer>(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2);
             _activeGraph.flipflop = true; //process attribs buffer 1 first into buffer 2
 
-            /*
-            _crs_nodesEdges.Dispose();
-            _crs_nodesEdges = _factory.CreateResourceSet(
-                new ResourceSetDescription(_nodesEdgesRsrclayout, _activeNodeAttribBuffer1, _NodeCircleSpritetview));
-            flipflop = true; 
-            */
         }
 
 

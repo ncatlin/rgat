@@ -920,7 +920,10 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                while (BlocksFirstLastNodeList.Count <= (int)blockID) BlocksFirstLastNodeList.Add(null);
+                while (BlocksFirstLastNodeList.Count <= (int)blockID)
+                { 
+                    BlocksFirstLastNodeList.Add(null); 
+                }
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
                     BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
@@ -1063,8 +1066,15 @@ namespace rgatCore
                 {
                     edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2));
                 }
-
                 result.Add("Edges", edgeArray);
+
+                JArray blockBounds = new JArray();
+                foreach (var blocktuple in BlocksFirstLastNodeList)
+                {
+                    blockBounds.Add(blocktuple.Item1);
+                    blockBounds.Add(blocktuple.Item2);
+                }
+                result.Add("BlockBounds", blockBounds);
             }
 
             lock (highlightsLock)
@@ -1162,6 +1172,20 @@ namespace rgatCore
                 Console.WriteLine("[rgat]ERROR: Failed to load edges");
                 return false;
             }
+
+            if (!graphData.TryGetValue("BlockBounds", out JToken blockbounds) || jEdges.Type != JTokenType.Array || (((JArray)jEdges).Count %2 != 0))
+            {
+                Console.WriteLine("[rgat] Failed to find valid BlockBounds array in trace");
+                return false;
+            }
+            BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
+            JArray blockBoundsArray = (JArray)blockbounds;
+            for (int i = 0; i < blockBoundsArray.Count; i+=2)
+            {
+                Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
+                BlocksFirstLastNodeList.Add(blockFirstLast);
+            }
+
 
             if (!graphData.TryGetValue("Exceptions", out JToken jExcepts) || jEdges.Type != JTokenType.Array)
             {

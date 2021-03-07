@@ -16,6 +16,7 @@ namespace rgatCore
             JArray nodearr = new JArray();
 
             nodearr.Add(index);
+            nodearr.Add(BlockID);
             nodearr.Add(conditional);
             nodearr.Add(GlobalModuleID);
             nodearr.Add(address);
@@ -54,6 +55,10 @@ namespace rgatCore
             int jsnArrIdx = 0;
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
             index = nodeData[jsnArrIdx].ToObject<uint>();
+            jsnArrIdx++;
+
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            BlockID = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
