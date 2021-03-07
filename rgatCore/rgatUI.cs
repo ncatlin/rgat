@@ -54,6 +54,7 @@ namespace rgatCore
             Console.WriteLine("State created");
             GlobalConfig.InitDefaultConfig();
             Console.WriteLine("Config Inited");
+            InitSettings();
 
             _ImGuiController = imguicontroller;
 
@@ -204,6 +205,12 @@ namespace rgatCore
 
         private void CloseDialogs()
         {
+            if (_pendingKeybind.active)
+            {
+                _pendingKeybind.active = false;
+                return;
+            }
+
             _show_load_trace_window = false;
             _settings_window_shown = false;
             _show_select_exe_window = false;
@@ -1315,17 +1322,166 @@ namespace rgatCore
 
         }
 
+        static bool[] optionsSelectStates;
+        static List<string> settingsNames = new List<string>();
+        enum eSettingsCategory { eSetting1, eSetting2, eSetting3, eKeybinds, eSetting5, eSetting6 };
+        void InitSettings()
+        {
+            settingsNames = new List<string>();
+            settingsNames.Add("Setting1");
+            settingsNames.Add("Setting2");
+            settingsNames.Add("Setting3");
+            settingsNames.Add("Keybinds");
+            settingsNames.Add("Setting5");
+            settingsNames.Add("Setting6");
+            optionsSelectStates = new bool[settingsNames.Count];
+            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = true;
+
+
+        }
+
         private unsafe void DrawSettingsWindow()
         {
-            ImGui.SetNextWindowPos(new Vector2(200, 200), ImGuiCond.Appearing);
+            //ImGui.SetNextWindowPos(new Vector2(700, 500), ImGuiCond.Appearing);
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
 
             ImGui.Begin("Settings", ref _settings_window_shown, window_flags);
-            ImGui.InputText("f", Encoding.ASCII.GetBytes("CHUNK THE FUNK"), 120);
-            ImGui.Text("Here be settings");
+
+            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y)))
+            {
+                for (int i = 0; i < settingsNames.Count; i++)
+                {
+                    if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
+                    {
+                        Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
+                        optionsSelectStates[i] = true;
+                    }
+                }
+                ImGui.EndChildFrame();
+            }
+            ImGui.SameLine();
+            if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
+            {
+                for (var i = 0; i < optionsSelectStates.Length; i++)
+                {
+                    if (optionsSelectStates[i])
+                    {
+                        CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
+                        break;
+                    }
+                }
+                ImGui.EndChildFrame();
+            }
             ImGui.End();
         }
+
+
+        void CreateSettingsContentPane(string settingCategoryName)
+        {
+            switch (settingCategoryName)
+            {
+                case "Keybinds":
+                    CreateOptionsPane_Keybinds();
+                    break;
+                default:
+                    Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
+                    break;
+            }
+        }
+
+
+        static PendingKeybind _pendingKeybind = new PendingKeybind();
+
+        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex)
+        {
+
+            if ((rowIndex % 2) == 0)
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafcc3500);
+            else
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafdc4500);
+
+            if (ImGui.BeginChildFrame(ImGui.GetID(caption), new Vector2(ImGui.GetContentRegionAvail().X, 30), ImGuiWindowFlags.NoScrollbar))
+            {
+                ImGui.Columns(3, "kcols" + caption, false);
+                ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
+                ImGui.SetColumnWidth(1, 150);
+                ImGui.SetColumnWidth(2, 150);
+                ImGui.AlignTextToFramePadding();
+                ImGui.Text(caption);
+                ImGui.NextColumn();
+                ImGui.AlignTextToFramePadding();
+                if (ImGui.Button("[Click To Set]")) DoClickToSetKeybind(caption, action: keyAction, 0);
+                ImGui.NextColumn();
+                ImGui.AlignTextToFramePadding();
+                if (ImGui.Button("[Click To Set]")) DoClickToSetKeybind(caption, action: keyAction, 1);
+                ImGui.Columns(1);
+                ImGui.EndChildFrame();
+            }
+            ImGui.PopStyleColor();
+        }
+
+
+
+        void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
+        { 
+            _pendingKeybind.active = true;
+            _pendingKeybind.actionText = caption;
+            _pendingKeybind.bindIndex = bindIndex;
+        }
+
+        void CreateOptionsPane_Keybinds()
+        {
+            if (_pendingKeybind.active)
+                ImGui.OpenPopup("Activate New Keybind");
+
+            if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, 110)))
+                {
+                    ImGui.Text("Binding: " + _pendingKeybind.actionText);
+                    ImGui.Text("Current keybind: [todo]");
+
+                    string msg = "Press new keybind now";
+
+                    float msgWidth = ImGui.CalcTextSize(msg).X;
+
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X/2) - msgWidth/2);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
+                    ImGui.Text(msg);
+                    ImGui.EndChildFrame();
+                }
+                ImGui.EndPopup();
+            }
+
+            int index = 0;
+            ImGui.Columns(3, "kbcols", false);
+            ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
+            ImGui.SetColumnWidth(1, 150);
+            ImGui.SetColumnWidth(2, 150);
+            ImGui.Text("Action");
+            ImGui.NextColumn();
+            ImGui.Text("Keybind");
+            ImGui.NextColumn();
+            ImGui.Text("Alternate Keybind");
+            ImGui.Columns(1);
+            CreateKeybindInput("Camera Up", eKeybind.eMoveUp, index++);
+            CreateKeybindInput("Camera Down", eKeybind.eMoveDown, index++);
+            CreateKeybindInput("Camera Left", eKeybind.eMoveLeft, index++);
+            CreateKeybindInput("Camera Right", eKeybind.eMoveRight, index++);
+            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
+            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
+            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollYLeft, index++);
+            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollYRight, index++);
+            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Toggle Heatmap", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Toggle Conditionals", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Center Graph In View", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Lock Graph Centered", eKeybind.eRotGraphZLeft, index++);
+        }
+
 
         private unsafe void DrawFileSelectBox()
         {
@@ -1398,5 +1554,14 @@ namespace rgatCore
                 ImGui.EndPopup();
             }
         }
+    }
+
+    class PendingKeybind
+    {
+        public PendingKeybind() { }
+        public bool active;
+        public string actionText = "";
+        public eKeybind action;
+        public int bindIndex;
     }
 }
