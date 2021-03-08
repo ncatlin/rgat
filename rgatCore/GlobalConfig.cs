@@ -99,6 +99,8 @@ namespace rgatCore.Threads
         public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
         public static Dictionary<Tuple<Key,ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
+        public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
+        public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         public static List<Key> ResponsiveKeys = new List<Key>();
         public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
 
@@ -113,31 +115,28 @@ namespace rgatCore.Threads
 
         public static void InitDefaultKeybinds()
         {
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.W, ModifierKeys.None)] = eKeybind.eMoveUp;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Up, ModifierKeys.None)] = eKeybind.eMoveUp;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.S, ModifierKeys.None)] = eKeybind.eMoveDown;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Down, ModifierKeys.None)] = eKeybind.eMoveDown;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.A, ModifierKeys.None)] = eKeybind.eMoveLeft;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Left, ModifierKeys.None)] = eKeybind.eMoveLeft;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.D, ModifierKeys.None)] = eKeybind.eMoveRight;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Right, ModifierKeys.None)] = eKeybind.eMoveRight;
+            SetKeybind(eKeybind.eMoveUp, 1, Key.W, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveUp, 1, Key.Up, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveDown, 1, Key.S, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveDown, 1, Key.Down, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveLeft, 1, Key.A, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveLeft, 1, Key.Left, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveRight, 1, Key.D, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveRight, 1, Key.Right, ModifierKeys.None);
 
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.PageUp, ModifierKeys.None)] = eKeybind.ePitchXFwd;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.PageDown, ModifierKeys.None)] = eKeybind.ePitchXBack;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Insert, ModifierKeys.None)] = eKeybind.eRollYLeft;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Home, ModifierKeys.None)] = eKeybind.eRollYRight;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Delete, ModifierKeys.None)] = eKeybind.eRotGraphZLeft;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.End, ModifierKeys.None)] = eKeybind.eRotGraphZRight;
+            SetKeybind(eKeybind.ePitchXFwd, 1, Key.PageUp, ModifierKeys.None);
+            SetKeybind(eKeybind.ePitchXBack, 1, Key.PageDown, ModifierKeys.None);
+            SetKeybind(eKeybind.eRollYLeft, 1, Key.Insert, ModifierKeys.None);
+            SetKeybind(eKeybind.eRollYRight, 1, Key.Home, ModifierKeys.None);
+            SetKeybind(eKeybind.eRotGraphZLeft, 1, Key.Delete, ModifierKeys.None);
+            SetKeybind(eKeybind.eRotGraphZRight, 1, Key.End, ModifierKeys.None);
 
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Escape, ModifierKeys.None)] = eKeybind.eCancel;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Q, ModifierKeys.None)] = eKeybind.eCenterFrame;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.Q, ModifierKeys.Shift)] = eKeybind.eLockCenterFrame;
-
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.V, ModifierKeys.None)] = eKeybind.eRaiseForceTemperature;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.X, ModifierKeys.None)] = eKeybind.eToggleHeatmap;
-            Keybinds[new Tuple<Key, ModifierKeys>(Key.C, ModifierKeys.None)] = eKeybind.eToggleConditional;
-
-         
+            SetKeybind(eKeybind.eCancel, 1, Key.Escape, ModifierKeys.None);
+            SetKeybind(eKeybind.eCenterFrame, 1, Key.Q, ModifierKeys.None);
+            SetKeybind(eKeybind.eLockCenterFrame, 1, Key.Q, ModifierKeys.Shift);
+            SetKeybind(eKeybind.eRaiseForceTemperature, 1, Key.V, ModifierKeys.None);
+            SetKeybind(eKeybind.eToggleHeatmap, 1, Key.X, ModifierKeys.None);
+            SetKeybind(eKeybind.eToggleConditional, 1, Key.C, ModifierKeys.None);         
         }
 
         /// <summary>
@@ -164,11 +163,46 @@ namespace rgatCore.Threads
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }
 
+        public static void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod)
+        {
+            //reserved actions cant have modifier keys
+            if (ResponsiveHeldActions.Contains(action))
+                mod = ModifierKeys.None;
+
+            Tuple<Key, ModifierKeys> keymod = new Tuple<Key, ModifierKeys>(k, mod);
+
+            //if this keybind was used on another key, get rid of it
+            foreach (var item in PrimaryKeybinds.Where(kvp => kvp.Value.GetHashCode() == keymod.GetHashCode()).ToList())
+            {
+                PrimaryKeybinds.Remove(item.Key);
+            }
+            foreach (var item in AlternateKeybinds.Where(kvp => kvp.Value.GetHashCode() == keymod.GetHashCode()).ToList())
+            {
+                AlternateKeybinds.Remove(item.Key);
+            }
+
+            //set the keybind
+            if (bindIndex == 1)
+            {
+                PrimaryKeybinds[action] = keymod;
+            }
+            else
+            {
+                AlternateKeybinds[action] = keymod;
+            }
+
+            //regenerate the keybinds lists
+            Keybinds.Clear();
+            foreach (var kvp in PrimaryKeybinds) { Keybinds[kvp.Value] = kvp.Key; }
+            foreach (var kvp in AlternateKeybinds) { Keybinds[kvp.Value] = kvp.Key; }
+
+            ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
+        }
 
         public static void InitDefaultConfig()
         {
             InitDefaultKeybinds();
-            //InitCustomKeybinds();
+            //LoadCustomKeybinds();
             InitResponsiveKeys();
 
 

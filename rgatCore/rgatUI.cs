@@ -186,6 +186,29 @@ namespace rgatCore
 
                 foreach (Tuple<Key, ModifierKeys> KeyModifierTuple in _keyPresses)
                 {
+                    if (_pendingKeybind.active)
+                    {
+                        Key k = KeyModifierTuple.Item1;
+                        switch (k)
+                        {
+                            case Key.ShiftLeft:
+                            case Key.ShiftRight:
+                            case Key.AltLeft:
+                            case Key.AltRight:
+                            case Key.ControlLeft:
+                            case Key.ControlRight:
+                                continue;
+                            case Key.Unknown:
+                                Console.WriteLine($"Unk keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                break;
+                            default:
+                                GlobalConfig.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, k, KeyModifierTuple.Item2);
+                                _pendingKeybind.active = false;
+                                Console.WriteLine($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                continue;
+                        }
+                    }
+                    
                     if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
 
                     if (boundAction == eKeybind.eCancel)
@@ -1411,10 +1434,36 @@ namespace rgatCore
                 ImGui.Text(caption);
                 ImGui.NextColumn();
                 ImGui.AlignTextToFramePadding();
-                if (ImGui.Button("[Click To Set]")) DoClickToSetKeybind(caption, action: keyAction, 0);
+
+                string kstring = "";
+                if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
+                {
+                    if (kmval.Item2 != ModifierKeys.None)
+                        kstring += kmval.Item2.ToString() + "+";
+                    kstring += kmval.Item1;
+                }
+                else
+                {
+                    kstring = "[Click To Set]";
+                }
+                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 1);
+
                 ImGui.NextColumn();
-                ImGui.AlignTextToFramePadding();
-                if (ImGui.Button("[Click To Set]")) DoClickToSetKeybind(caption, action: keyAction, 1);
+
+                ImGui.AlignTextToFramePadding(); 
+                kstring = "";
+                if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out kmval))
+                {
+                    if (kmval.Item2 != ModifierKeys.None)
+                        kstring += kmval.Item2.ToString() + "+";
+                    kstring += kmval.Item1;
+                }
+                else
+                {
+                    kstring = "[Click To Set]";
+                }
+                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 2);
+
                 ImGui.Columns(1);
                 ImGui.EndChildFrame();
             }
@@ -1428,6 +1477,7 @@ namespace rgatCore
             _pendingKeybind.active = true;
             _pendingKeybind.actionText = caption;
             _pendingKeybind.bindIndex = bindIndex;
+            _pendingKeybind.action = action;
         }
 
         void CreateOptionsPane_Keybinds()
@@ -1474,12 +1524,12 @@ namespace rgatCore
             CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollYLeft, index++);
             CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollYRight, index++);
             CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Toggle Heatmap", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Toggle Conditionals", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Center Graph In View", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Lock Graph Centered", eKeybind.eRotGraphZLeft, index++);
+            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eRotGraphZRight, index++);
+            CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
+            CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
+            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
+            CreateKeybindInput("Center Graph In View", eKeybind.eCenterFrame, index++);
+            CreateKeybindInput("Lock Graph Centered", eKeybind.eLockCenterFrame, index++);
         }
 
 
