@@ -3,6 +3,7 @@ using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -172,6 +173,93 @@ namespace rgatCore
             _gd.Unmap(destinationReadback);
             destinationReadback.Dispose();
         }
+
+        /// <summary>
+        /// Iterates over the position of every node, translating it to a screen position
+        /// Returns the offsets of the furthest nodes of the edges of the screen
+        /// To fit the graph in the screen, each offset needs to be as close to be as small as possible without being smaller than 0
+        /// </summary>
+        /// <param name="graphWidgetSize">Size of the graph widget</param>
+        /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
+        /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
+        public void GetScreenFitOffsets(Vector2 graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
+        {
+
+            float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
+            Matrix4x4 viewMatrix = _activeGraph.GetViewMatrix();
+            Matrix4x4 projectionMatrix = _activeGraph.GetProjectionMatrix(aspectRatio);
+
+            Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 zlimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 ev = new Vector2(0, 0);
+            Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev, zmin = ev, zmax = ev;
+            int fZ1 = 0;
+            int fZ2 = 0;
+
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _activePositionsBuffer1);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+
+            if (destinationReadView.Count < 4)
+            {
+
+                xoffsets = new Vector2(0, 0);
+                yoffsets = new Vector2(0, 0);
+                zoffsets = new Vector2(0, 0);
+
+                return;
+            }
+
+            for (int idx = 0; idx < destinationReadView.Count; idx += 4)
+            {
+                if (destinationReadView[idx + 3] == -1) break;
+                float x = destinationReadView[idx];
+                float y = destinationReadView[idx + 1];
+                float z = destinationReadView[idx + 2];
+                Vector3 worldpos = new Vector3(x, y, z);
+
+
+                Vector2 ndcPos = WorldToNDCPos(worldpos, viewMatrix, projectionMatrix);
+                if (ndcPos.X < xlimits.X) { xlimits = new Vector2(ndcPos.X, xlimits.Y); xmin = ndcPos; }
+                if (ndcPos.X > xlimits.Y) { xlimits = new Vector2(xlimits.X, ndcPos.X); xmax = ndcPos; }
+                if (ndcPos.Y < ylimits.X) { ylimits = new Vector2(ndcPos.Y, ylimits.Y); ymin = ndcPos; }
+                if (ndcPos.Y > ylimits.Y) { ylimits = new Vector2(ylimits.X, ndcPos.Y); ymax = ndcPos; }
+                if (worldpos.Z < zlimits.X) { zlimits = new Vector2(worldpos.Z, zlimits.Y); zmin = ndcPos; fZ1 = (idx / 4); }
+                if (worldpos.Z > zlimits.Y) { zlimits = new Vector2(zlimits.X, worldpos.Z); zmax = ndcPos; fZ2 = (idx / 4); }
+            }
+
+            Vector2 minxS = NdcToScreenPos(xmin, graphWidgetSize);
+            Vector2 maxxS = NdcToScreenPos(xmax, graphWidgetSize);
+            Vector2 minyS = NdcToScreenPos(ymin, graphWidgetSize);
+            Vector2 maxyS = NdcToScreenPos(ymax, graphWidgetSize);
+            xoffsets = new Vector2(minxS.X, graphWidgetSize.X - maxxS.X);
+            yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
+            zoffsets = new Vector2(zlimits.X - _activeGraph.CameraZoom, zlimits.Y - _activeGraph.CameraZoom);
+
+            _gd.Unmap(destinationReadback);
+            destinationReadback.Dispose();
+        }
+
+
+
+
+        Vector2 WorldToNDCPos(Vector3 worldpos, Matrix4x4 viewMatriwx, Matrix4x4 projectionMatrix)
+        {
+            Vector3 translation = new Vector3(_activeGraph.CameraXOffset, _activeGraph.CameraYOffset, _activeGraph.CameraZoom);
+            Matrix4x4 viewMatrixe = Matrix4x4.CreateTranslation(translation);
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY,0);
+            viewMatrixe = Matrix4x4.Multiply(viewMatrixe, rotation);
+
+            Vector4 clipSpacePos = Vector4.Transform(Vector4.Transform(new Vector4(worldpos, 1.0f), viewMatrixe), projectionMatrix);
+            Vector3 ndcSpacePos = Vector3.Divide(new Vector3(clipSpacePos.X, clipSpacePos.Y, clipSpacePos.Z), clipSpacePos.W);
+            return new Vector2(ndcSpacePos.X, ndcSpacePos.Y);
+        }
+
+        Vector2 NdcToScreenPos(Vector2 ndcSpacePos, Vector2 graphWidgetSize)
+        {
+            return Vector2.Divide(new Vector2(ndcSpacePos.X + 1f, ndcSpacePos.Y + 1f), 2.0f) * graphWidgetSize;
+        }
+
 
 
         //todo - only dispose and recreate if too small
@@ -445,7 +533,7 @@ namespace rgatCore
             //PrintBufferArray(textureArray, "Created data texture:");
             return newBuffer;
         }
-        
+
 
 
 
@@ -496,7 +584,7 @@ namespace rgatCore
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(
                 new ResourceSetDescription(_velocityComputeLayout,
                 _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgesConnectionDataOffsetsBuffer,
-                _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer,   destinationBuffer));
+                _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer, destinationBuffer));
 
 
             CommandList cl = _factory.CreateCommandList();
@@ -572,10 +660,10 @@ namespace rgatCore
             public uint fixedInternalNodes;
             public bool activatingPreset;
             //must be multiple of 16
-            private uint _padding1; 
+            private uint _padding1;
             private uint _padding3;
             private bool y;
-            
+
         }
 
 

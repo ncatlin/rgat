@@ -150,25 +150,25 @@ namespace rgatCore
                 case eKeybind.eMoveUp:
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraYOffset += delta;
+                    ActiveGraph.CameraYOffset -= delta;
                     break;
 
                 case eKeybind.eMoveDown:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraYOffset -= delta;
+                    ActiveGraph.CameraYOffset += delta;
                     break;
 
                 case eKeybind.eMoveLeft:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraXOffset -= delta;
+                    ActiveGraph.CameraXOffset += delta;
                     break;
 
                 case eKeybind.eMoveRight:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraXOffset += delta;
+                    ActiveGraph.CameraXOffset -= delta;
                     break;
 
                 case eKeybind.eRotGraphZLeft:
@@ -183,6 +183,14 @@ namespace rgatCore
                     ActiveGraph.PlotZRotation += delta;
                     break;
 
+                case eKeybind.eCenterFrame:
+                    StartCenterGraphInFrameStepping(false);
+                    break;
+
+                case eKeybind.eLockCenterFrame:
+                    StartCenterGraphInFrameStepping(true);
+                    break;
+
                 case eKeybind.eRaiseForceTemperature:
                     ActiveGraph.IncreaseTemperature();
                     break;
@@ -191,7 +199,146 @@ namespace rgatCore
             }
         }
 
+        int _centeringInFrame = 0;
+        int _centeringSteps = 0;
 
+        public void StartCenterGraphInFrameStepping(bool locked)
+        {
+            _centeringInFrame = locked ? 2 : 1;
+            _centeringSteps = 0;
+        }
+
+        /// <summary>
+        /// Adjust the camera offset and zoom so that every node of the graph is in the frame
+        /// </summary>
+        bool CenterGraphInFrameStep(out float MaxRemaining)
+        {
+            if (_centeringInFrame == 1) _centeringSteps += 1;
+            _layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+            float delta = 0;
+            float xdelta = 0;
+            float ydelta = 0;
+            float zdelta = 0;
+
+            float targXpadding = 80;
+            float targYpadding = 35;
+
+            float graphDepth = zoffsets.Y - zoffsets.X;
+
+            //graph being behind camera causes problems, deal with zoom first
+            if (zoffsets.X < graphDepth)
+            {
+                delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
+                float maxdelta = Math.Max(delta, 35);
+                ActiveGraph.CameraZoom -= maxdelta;
+                MaxRemaining = maxdelta;
+                return false;
+            }
+
+            //too zoomed in, zoom out
+            if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))
+            {
+                if (xoffsets.X < targXpadding)
+                    delta = Math.Min(targXpadding/2, (targXpadding - xoffsets.X)/3f);
+                else
+                    delta= Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y)/1.3f);
+
+                if (delta > 50)
+                {
+                    ActiveGraph.CameraZoom -= delta;
+                    MaxRemaining = Math.Abs(delta);
+                    return false;
+                }
+                else
+                    zdelta = -1*delta;
+            }
+
+            //too zoomed out, zoom in
+            if ((xoffsets.X > targXpadding && xoffsets.Y > targXpadding) && (yoffsets.X > targYpadding && yoffsets.Y > targYpadding))
+            {
+                if (zoffsets.X > graphDepth)
+                    zdelta += Math.Max((zoffsets.X  -graphDepth) / 8, 50);
+            }
+
+            //too far left, move right
+            if (xoffsets.X < targXpadding)
+            {
+                float diff = targXpadding - xoffsets.X;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                xdelta += delta;
+            }
+
+            //too far right, move left
+            if (xoffsets.Y < targXpadding)
+            {
+                float diff = targXpadding - xoffsets.Y;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                xdelta -= delta;
+            }
+
+            //off center, center it
+            float XDiff = xoffsets.X - xoffsets.Y;
+            if (Math.Abs(XDiff) > 40)
+            {
+                delta = Math.Max(Math.Abs(XDiff / 2), 15);
+                if (XDiff > 0) 
+                    xdelta -= delta;
+                else 
+                    xdelta += delta;
+            }
+
+            
+            if (yoffsets.X < targYpadding)
+            {
+                float diff = targYpadding - yoffsets.X;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                ydelta += delta;
+            }
+
+            if (yoffsets.Y < targYpadding)
+            {
+                float diff = targYpadding - yoffsets.Y;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                ydelta -= delta;
+            }
+
+            float YDiff = yoffsets.X - yoffsets.Y;
+            if (Math.Abs(YDiff) > 40)
+            {
+                delta = Math.Max(Math.Abs(YDiff / 2), 15);
+                if (YDiff > 0) ydelta -= delta;
+                else ydelta += delta;
+            }
+
+
+            float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
+            if (xdelta > 0)
+                ActiveGraph.CameraXOffset += actualXdelta;
+            else
+                ActiveGraph.CameraXOffset -= actualXdelta;
+
+            float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
+            if (ydelta > 0)
+                ActiveGraph.CameraYOffset += actualYdelta;
+            else
+                ActiveGraph.CameraYOffset -= actualYdelta;
+
+            float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
+            if (zdelta > 0)
+                ActiveGraph.CameraZoom += actualZdelta;
+            else
+                ActiveGraph.CameraZoom -= actualZdelta;
+
+            //weight the offsets higher
+            MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta)*4, Math.Abs(ydelta)*4), Math.Abs(zdelta));
+
+
+            return Math.Abs(xdelta) < 10 && Math.Abs(ydelta ) < 10 && Math.Abs(zdelta) < 10;
+        }
 
 
         public void Draw(Vector2 graphSize)
@@ -433,19 +580,11 @@ namespace rgatCore
             graphShaderParams shaderParams = new graphShaderParams { TexWidth = textureSize, pickingNode = _mouseoverNodeID, isAnimated = ActiveGraph.IsAnimated };
 
             float aspectRatio = _graphWidgetSize.X / _graphWidgetSize.Y;
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(ActiveGraph.CameraFieldOfView,
-                aspectRatio, ActiveGraph.CameraClippingNear, ActiveGraph.CameraClippingFar);
-            Vector3 translation = new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom);
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(translation);
+            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
+            Matrix4x4 localView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, ActiveGraph.PlotZRotation), cameraTranslation);
 
-            Matrix4x4 newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, ActiveGraph.PlotZRotation);
-            newView = Matrix4x4.Multiply(newView, cameraTranslation);
-            newView = Matrix4x4.Multiply(newView, projection);
-            shaderParams.rotatedView = newView;
-
-            newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
-            newView = Matrix4x4.Multiply(newView, cameraTranslation);
-            shaderParams.nonRotatedView = newView;
+            shaderParams.rotatedView = Matrix4x4.Multiply(localView, ActiveGraph.GetProjectionMatrix(aspectRatio));
+            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation); ;
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _gd.WaitForIdle();
@@ -586,6 +725,12 @@ namespace rgatCore
             return stringVerts;
         }
 
+        Vector2 _furthestX = new Vector2(0, 0);
+        Vector2 _furthestY = new Vector2(0, 0);
+        Vector2 _furthestZ = new Vector2(0, 0);
+
+
+
 
         public void renderGraph(DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
@@ -599,6 +744,9 @@ namespace rgatCore
                 out TextureOffsetColour[] nodePickingColors,
                 out List<Tuple<string, Color>> captions,
                 _renderingMode);
+
+
+            //_layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * TextureOffsetColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
@@ -1092,6 +1240,32 @@ namespace rgatCore
             _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID, ActiveGraph.IsAnimated);
 
             doPicking(_gd);
+
+            if (_centeringInFrame != 0)
+            {
+                bool done = CenterGraphInFrameStep(out float remaining);
+                if (!done && remaining > 200)
+                {
+                    int steps =(int) Math.Min(6, remaining / 200);
+                    for (int i = 0; i < steps && !done; i++)
+                    {
+                        done = CenterGraphInFrameStep(out remaining);
+                    }
+                }
+                if (done && _centeringInFrame != 2)
+                {
+                    Console.WriteLine($"Centering done after {_centeringSteps} steps");
+                    _centeringInFrame = 0;
+                }
+                else
+                {
+                    if (_centeringInFrame == 1 && _centeringSteps > 1000)
+                    {
+                        Console.WriteLine($"Warning: centering has taken {_centeringSteps} steps so far, abandoning");
+                        _centeringInFrame = 0;
+                    }
+                }
+            }
 
             bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
             renderGraph(positionBuf, nodeAttributesBuffer: attribBuf);

@@ -116,13 +116,13 @@ namespace rgatCore.Threads
         public static void InitDefaultKeybinds()
         {
             SetKeybind(eKeybind.eMoveUp, 1, Key.W, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveUp, 1, Key.Up, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveUp, 2, Key.Up, ModifierKeys.None);
             SetKeybind(eKeybind.eMoveDown, 1, Key.S, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveDown, 1, Key.Down, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveDown, 2, Key.Down, ModifierKeys.None);
             SetKeybind(eKeybind.eMoveLeft, 1, Key.A, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveLeft, 1, Key.Left, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveLeft, 2, Key.Left, ModifierKeys.None);
             SetKeybind(eKeybind.eMoveRight, 1, Key.D, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveRight, 1, Key.Right, ModifierKeys.None);
+            SetKeybind(eKeybind.eMoveRight, 2, Key.Right, ModifierKeys.None);
 
             SetKeybind(eKeybind.ePitchXFwd, 1, Key.PageUp, ModifierKeys.None);
             SetKeybind(eKeybind.ePitchXBack, 1, Key.PageDown, ModifierKeys.None);

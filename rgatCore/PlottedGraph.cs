@@ -131,7 +131,7 @@ namespace rgatCore
         //iterate through all the nodes, draw instruction text for the ones in view
         //TODO: in animation mode don't show text for inactive nodes
         //todo use this
-        void DrawInstructionsText(int zdist)//, PROJECTDATA* pd, graphGLWidget &gltarget)
+        void DrawInstructionsText(int zdist)
         {
             string displayText = "?";
 
@@ -219,6 +219,8 @@ namespace rgatCore
 		void draw_func_args(QPainter* painter, DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, const QFontMetrics* fontMetric);
 		void gen_graph_VBOs(graphGLWidget &gltarget);
 		*/
+
+
 
         public void render_replay_animation(float fadeRate)
         {
@@ -2055,11 +2057,26 @@ namespace rgatCore
         }
 
 
+        public Matrix4x4 GetProjectionMatrix(float aspectRatio)
+        {
+            return Matrix4x4.CreatePerspectiveFieldOfView(CameraFieldOfView, aspectRatio, CameraClippingNear, CameraClippingFar);
+        }
+
+        public Matrix4x4 GetViewMatrix()
+        {
+            Vector3 translation = new Vector3(CameraXOffset, CameraYOffset, CameraZoom);
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, PlotZRotation);
+            Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
+            viewMatrix = Matrix4x4.Multiply(viewMatrix, rotation);
+            return viewMatrix;
+        }
+
         public void ApplyMouseDragDelta(Vector2 delta)
         {
             CameraXOffset -= delta.X;
             CameraYOffset += delta.Y;
         }
+
 
 
         public void InitPreviewTexture(Vector2 size, GraphicsDevice _gd)
@@ -2076,14 +2093,9 @@ namespace rgatCore
             }
 
             _previewTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                                (uint)size.X,
-                                (uint)size.Y,
-                                1,
-                                1,
-                                PixelFormat.R32_G32_B32_A32_Float,
-                                TextureUsage.RenderTarget | TextureUsage.Sampled));
+                                width: (uint)size.X, height: (uint)size.Y, mipLevels: 1, arrayLayers: 1,
+                                format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
             _previewFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture));
-
         }
 
         public bool HighlightsChanged;

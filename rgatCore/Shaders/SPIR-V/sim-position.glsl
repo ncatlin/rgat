@@ -78,17 +78,6 @@ void main()	{
 
     }
 
-    /*
-    if (selfPosition.w == 2 && fieldParams.fixedInternalNodes == 1)
-    {
-        vec4 parent = positions[index-1];
-        res.x = parent.x;
-        res.z = parent.z;
-        //res.y -= fieldParams.blockNodeSeperation;
-        res.w = 2;
-    }
-    */
-    //field_Destination[index] = blockData[index];
     field_Destination[index] = res;
 
 }
