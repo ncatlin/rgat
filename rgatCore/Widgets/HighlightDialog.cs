@@ -230,7 +230,7 @@ namespace rgatCore.Widgets
                             settings.displayedModules[sym.moduleID].symbols[sym.address] = symdat;
                         }
 
-                        ActiveGraph.HighlightedSymbolNodes.Clear();
+                        ActiveGraph.RemoveHighlightedNodes(ActiveGraph.HighlightedSymbolNodes, eHighlightType.eExternals);
                         settings.SelectedSymbols.Clear();
                     }
 

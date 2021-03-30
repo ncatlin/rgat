@@ -127,13 +127,11 @@ namespace rgatCore
         public void DrawUI()
         {
 
-
-            //Console.WriteLine(ImGui.GetWindowViewport());
-
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             //window_flags |= ImGuiWindowFlags.NoTitleBar;
             window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
+            window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -168,6 +166,7 @@ namespace rgatCore
             bool MouseInMainWidget = MainGraphWidget.MouseInWidget();
             lock (_inputLock)
             {
+
                 if (MouseInMainWidget)
                 {
                     if (_mouseWheelDelta != 0)
@@ -233,12 +232,13 @@ namespace rgatCore
                 _pendingKeybind.active = false;
                 return;
             }
-
+            
             _show_load_trace_window = false;
             _settings_window_shown = false;
             _show_select_exe_window = false;
-
+            _show_highlight_window = false;
         }
+
 
         void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour)
         {
@@ -786,6 +786,7 @@ namespace rgatCore
                         HighlightDialogWidget.Draw();
                         ImGui.End();
                     }
+
                 }
 
 
@@ -1260,9 +1261,9 @@ namespace rgatCore
             {
                 if (ImGui.BeginMenu("Target"))
                 {
-                    if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = !_show_select_exe_window; }
+                    if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = true; }
                     if (ImGui.MenuItem("Recent Targets")) { }
-                    if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = !_show_load_trace_window; }
+                    if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true;}
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { }
                     if (ImGui.MenuItem("Save Process Traces")) { }
@@ -1274,8 +1275,7 @@ namespace rgatCore
                 }
 
 
-                if (ImGui.MenuItem("Settings", null, ref _settings_window_shown)) { }
-
+                ImGui.MenuItem("Settings", null, ref _settings_window_shown);
                 ImGui.EndMenuBar();
             }
         }
@@ -1367,11 +1367,14 @@ namespace rgatCore
         {
             //ImGui.SetNextWindowPos(new Vector2(700, 500), ImGuiCond.Appearing);
 
+
+
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
 
             ImGui.Begin("Settings", ref _settings_window_shown, window_flags);
 
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y)))
+            ImGui.BeginGroup();
+            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 28)))
             {
                 for (int i = 0; i < settingsNames.Count; i++)
                 {
@@ -1383,6 +1386,12 @@ namespace rgatCore
                 }
                 ImGui.EndChildFrame();
             }
+
+            if (ImGui.Button("Close", new Vector2(65, 25)))
+            {
+                _settings_window_shown = false;
+            }
+            ImGui.EndGroup();
             ImGui.SameLine();
             if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
             {

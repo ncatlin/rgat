@@ -1010,12 +1010,17 @@ namespace rgatCore
 
         uint _lastActiveID;
         DateTime _LastActiveIdTimer;
-        bool _tmpNodesIsToggled;
-        bool _tmpEdgesIsToggled;
         static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
+        //adapted from code somewhere from imgui internal
         void ToggleButton(string str_id, ref bool isToggled)
         {
+            const uint TOGGLE_OFF_HOVER_COL = 0xff888888;
+            const uint TOGGLE_ON_HOVER_COL = 0xff008800;
+            const uint TOGGLE_OFF_NOHOVER_COL = 0xff686868;
+            const uint TOGGLE_ON_NOHOVER_COL = 0xff005500;
+
+
             Vector2 p = ImGui.GetCursorScreenPos();
             ImDrawListPtr draw_list = ImGui.GetWindowDrawList();
 
@@ -1043,9 +1048,9 @@ namespace rgatCore
 
             uint col_bg;
             if (ImGui.IsItemHovered())
-                col_bg = isToggled ? 0xff223344 : 0xff554433;
+                col_bg = isToggled ? TOGGLE_ON_HOVER_COL : TOGGLE_OFF_HOVER_COL;
             else
-                col_bg = isToggled ? 0xff773744 : 0xff994413;
+                col_bg = isToggled ? TOGGLE_ON_NOHOVER_COL : TOGGLE_OFF_NOHOVER_COL;
 
             draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
             draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);

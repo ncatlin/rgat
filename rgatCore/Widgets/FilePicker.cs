@@ -96,6 +96,7 @@ namespace rgatFilePicker
 			private List<string> addedFilePaths = new List<string>();
 			private List<FileMetadata> lostDirs = new List<FileMetadata>();
 			private List<FileMetadata> lostFiles = new List<FileMetadata>();
+			public string ErrMsg = "";
 			public Dictionary<string, FileMetadata> fileData { get; private set; } = null;
 			public Dictionary<string, FileMetadata> dirData { get; private set; } = null;
 
@@ -252,9 +253,11 @@ namespace rgatFilePicker
 				try
 				{
 					entries = Directory.GetFileSystemEntries(basePath, "");
+					ErrMsg = "";
 				}
-				catch
+				catch (Exception e)
 				{
+					ErrMsg = e.Message;
 					return;
 				}
 
@@ -339,7 +342,9 @@ namespace rgatFilePicker
 			return fp;
 		}
 
+
 		public static void RemoveFilePicker(object o) => _filePickers.Remove(o);
+
 
 		private void EmitFileSelectableEntry(string path, FileMetadata data)
         {
@@ -350,6 +355,9 @@ namespace rgatFilePicker
 			ImGui.NextColumn();
 			ImGui.Text(data.extension); ImGui.NextColumn();
 			ImGui.Text(data.size_str); ImGui.NextColumn();
+			string modified = data.fileinfo.LastWriteTime.ToShortDateString() + " " + data.fileinfo.LastWriteTime.ToShortTimeString();
+			ImGui.Text(modified); ImGui.NextColumn();
+
 			ImGui.PopStyleColor();
 		}
 
@@ -381,15 +389,22 @@ namespace rgatFilePicker
 			return _availableDriveStrings;
 		}
 
+
 		public PickerResult Draw(object o)
 		{
+
+
 			const int LEFTCOLWIDTH = 150;
-			const int FILEPANEHEIGHT = 700;
-			const int DRIVEPANEHEIGHT = 250;
-			const int RECENTPANEHEIGHT = (FILEPANEHEIGHT - DRIVEPANEHEIGHT) - 4;
+
+			float Yavail = ImGui.GetContentRegionAvail().Y - 30;
+			float FILEPANEHEIGHT = Yavail;
+			float DRIVEPANEHEIGHT = Yavail/2;
+			float BTNSGRPHEIGHT = 28;
+			float RECENTPANEHEIGHT = Yavail / 2 - BTNSGRPHEIGHT;
 
 			PickerResult result = PickerResult.eNoAction;
 			ImGuiWindowFlags windowflags = ImGuiWindowFlags.AlwaysAutoResize;
+
 
 
 			ImGui.Text("Path: " + RootFolder + CurrentFolder.Replace(RootFolder, ""));
@@ -398,6 +413,8 @@ namespace rgatFilePicker
 			//Drive list
 			if (ImGui.BeginChildFrame(2, new Num.Vector2(LEFTCOLWIDTH, DRIVEPANEHEIGHT), windowflags))
 			{
+				
+
 				ImGui.Text("Drives");
 				ImGui.Separator();
 
@@ -426,12 +443,44 @@ namespace rgatFilePicker
 				ImGui.Text("Snap/");
 				ImGui.EndChildFrame();
 			}
+
+
+			ImGui.BeginGroup();
+			ImGui.PushStyleColor(ImGuiCol.Button, 0xee555555);
+			if (ImGui.Button("Cancel", new Vector2(50, BTNSGRPHEIGHT)))
+			{
+				result = PickerResult.eFalse;
+				ImGui.CloseCurrentPopup();
+			}
+			ImGui.PopStyleColor();
+
+			if (OnlyAllowFolders)
+			{
+				ImGui.SameLine();
+				if (ImGui.Button("Open", new Vector2(50, BTNSGRPHEIGHT)))
+				{
+					result = PickerResult.eTrue;
+					SelectedFile = CurrentFolder;
+					ImGui.CloseCurrentPopup();
+				}
+			}
+			else if (SelectedFile != null)
+			{
+				ImGui.SameLine();
+				if (ImGui.Button("Open", new Vector2(50, BTNSGRPHEIGHT)))
+				{
+					result = PickerResult.eTrue;
+					ImGui.CloseCurrentPopup();
+				}
+			}
+			ImGui.EndGroup();
+
 			ImGui.EndGroup();
 
 			ImGui.SameLine();
 
-			if (_badDir) ImGui.PushStyleColor(ImGuiCol.FrameBg, 0x55000088);
-			uint width = (uint)Math.Max(800, ImGui.GetContentRegionAvail().X);
+			if (_badDir) ImGui.PushStyleColor(ImGuiCol.FrameBg, 0x55000040);
+			uint width = (uint) ImGui.GetContentRegionAvail().X; 
 			Vector2 listSize = new Vector2(width, FILEPANEHEIGHT);
 			if (ImGui.BeginChildFrame(1, listSize, windowflags))
 			{
@@ -456,23 +505,24 @@ namespace rgatFilePicker
 						ImGui.PopStyleColor();
 					}
 
+
+
 					DirectoryContents contents = GetFileSystemEntries(di.FullName, o);
-					if (contents == null)
+					if (contents.ErrMsg.Length > 0)
 					{
-						ImGui.Text("Warning");
-						ImGui.Separator();
-						ImGui.Text("Failed to read directory");
+						ImGui.TextWrapped("Failed to read directory: "+ contents.ErrMsg);
 						_badDir = true;
 					}
 					else
 					{
 						_badDir = false;
-						ImGui.Columns(3, "fileentrycolumns");
+						ImGui.Columns(4, "fileentrycolumns");
 						ImGui.Separator();
 						ImGui.Text("File"); ImGui.NextColumn();
 						ImGui.Text("Type"); ImGui.NextColumn();
 						ImGui.Text("Size"); ImGui.NextColumn();
-						ImGui.SetColumnWidth(1, 60);
+						ImGui.Text("Modified"); ImGui.NextColumn();
+						ImGui.SetColumnWidth(1, 80);
 						ImGui.Separator();
 
 						float longestFilename = 100;
@@ -493,7 +543,7 @@ namespace rgatFilePicker
 							ImGui.NextColumn();
 							ImGui.Text(path_data.Value.size_str);
 							ImGui.NextColumn();
-
+							ImGui.NextColumn();
 							ImGui.PopStyleColor();
 						}
 
@@ -519,34 +569,14 @@ namespace rgatFilePicker
 			}
 			ImGui.EndChildFrame();
 
-
-			ImGui.BeginGroup();
-			if (ImGui.Button("Cancel"))
+			if (ImGui.IsAnyMouseDown()) 
 			{
-				result = PickerResult.eFalse;
-				ImGui.CloseCurrentPopup();
-			}
-
-			if (OnlyAllowFolders)
-			{
-				ImGui.SameLine();
-				if (ImGui.Button("Open"))
+				if (!ImGui.IsMouseHoveringRect(ImGui.GetWindowPos(), ImGui.GetWindowPos() + ImGui.GetWindowSize()))
 				{
-					result = PickerResult.eTrue;
-					SelectedFile = CurrentFolder;
+					result = PickerResult.eFalse;
 					ImGui.CloseCurrentPopup();
-				}
+				} 
 			}
-			else if (SelectedFile != null)
-			{
-				ImGui.SameLine();
-				if (ImGui.Button("Open"))
-				{
-					result = PickerResult.eTrue;
-					ImGui.CloseCurrentPopup();
-				}
-			}
-			ImGui.EndGroup();
 
 			if (result != PickerResult.eNoAction && SelectedFile == null) result = PickerResult.eFalse;
 			return result;
@@ -581,7 +611,7 @@ namespace rgatFilePicker
             }
 
 			_currentDirContents[o] = new DirectoryContents(fullName);
-			return contents;	
+			return _currentDirContents[o];	
 		}
 
 	}

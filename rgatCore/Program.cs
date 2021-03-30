@@ -165,6 +165,7 @@ namespace ImGuiNET
 
                 ImGui.Text($"Mouse position: {ImGui.GetMousePos()}");
 
+                ImGui.SetNextWindowPos(new Vector2(800, 200));
                 ImGui.Checkbox("Demo Window", ref _showDemoWindow);                 // Edit bools storing our windows open/close state
                 ImGui.Checkbox("Another Window", ref _showAnotherWindow);
                 ImGui.Checkbox("Memory Editor", ref _showMemoryEditor);
