@@ -39,6 +39,8 @@ namespace rgatCore
         GraphPlotWidget MainGraphWidget = null;
         PreviewGraphsWidget PreviewGraphWidget = null;
         HighlightDialog HighlightDialogWidget = null;
+        SettingsMenu _SettingsMenu = null;
+
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
 
@@ -54,7 +56,8 @@ namespace rgatCore
             Console.WriteLine("State created");
             GlobalConfig.InitDefaultConfig();
             Console.WriteLine("Config Inited");
-            InitSettings();
+
+            _SettingsMenu = new SettingsMenu();
 
             _ImGuiController = imguicontroller;
 
@@ -149,7 +152,7 @@ namespace rgatCore
             {
                 DrawTargetBar();
                 DrawTabs();
-                if (_settings_window_shown) DrawSettingsWindow();
+                if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
                 if (_show_select_exe_window) DrawFileSelectBox();
                 if (_show_load_trace_window) DrawTraceLoadBox();
                 ImGui.EndChild();
@@ -185,7 +188,7 @@ namespace rgatCore
 
                 foreach (Tuple<Key, ModifierKeys> KeyModifierTuple in _keyPresses)
                 {
-                    if (_pendingKeybind.active)
+                    if (_SettingsMenu.HasPendingKeybind)
                     {
                         Key k = KeyModifierTuple.Item1;
                         switch (k)
@@ -198,11 +201,10 @@ namespace rgatCore
                             case Key.ControlRight:
                                 continue;
                             case Key.Unknown:
-                                Console.WriteLine($"Unk keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                Console.WriteLine($"Unknown keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
                                 break;
                             default:
-                                GlobalConfig.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, k, KeyModifierTuple.Item2);
-                                _pendingKeybind.active = false;
+                                _SettingsMenu.AssignPendingKeybind(KeyModifierTuple);
                                 Console.WriteLine($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
                                 continue;
                         }
@@ -227,9 +229,9 @@ namespace rgatCore
 
         private void CloseDialogs()
         {
-            if (_pendingKeybind.active)
+            if (_SettingsMenu.HasPendingKeybind)
             {
-                _pendingKeybind.active = false;
+                _SettingsMenu.HasPendingKeybind = false;
                 return;
             }
             
@@ -240,28 +242,6 @@ namespace rgatCore
         }
 
 
-        void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour)
-        {
-
-            ImGui.InvisibleButton(id, barSize);
-
-            const float vertPadding = 2;
-            Vector2 start = new Vector2(ImGui.GetCursorScreenPos().X, ImGui.GetCursorScreenPos().Y - barSize.Y - vertPadding * 2);
-            Vector2 end = new Vector2(start.X + barSize.X, start.Y + barSize.Y);
-            ImGui.GetWindowDrawList().AddRectFilled(start, end, BGColour);
-
-            Vector2 startInner = new Vector2(start.X, start.Y + vertPadding);
-            Vector2 endInner = new Vector2(startInner.X + (barSize.X * progress), startInner.Y + (barSize.Y - 2 * vertPadding));
-            ImGui.GetWindowDrawList().AddRectFilled(startInner, endInner, barColour);
-
-
-            Vector2 textSize = ImGui.CalcTextSize(caption);
-            float halfCaptionWidth = textSize.X / 2;
-
-            Vector2 textpos = new Vector2(startInner.X + barSize.X / 2 - halfCaptionWidth, startInner.Y);
-            ImGui.GetWindowDrawList().AddText(textpos, 0xffffffff, caption);
-        }
-
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
@@ -271,28 +251,31 @@ namespace rgatCore
 
                 if (progress.loading)
                 {
-
-                    ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
+                    SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
                 }
                 else if (progress.running)
                 {
                     float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    ProgressBar("DieProgBar", $"{progress.scriptsFinished}/{progress.scriptCount} scripts complete", dieProgress, barSize, 0xff117711, 0xff111111);
+                    string caption = $"{progress.scriptsFinished}/{progress.scriptCount} scripts complete";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (progress.errored)
                 {
                     float dieProgress = progress.scriptCount == 0 ? 0f : (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    ProgressBar("DieProgBar", $"Scan Failed after {progress.scriptsFinished} scripts", dieProgress, barSize, 0xff117711, 0xff111111);
+                    string caption = $"Scan Failed after {progress.scriptsFinished} scripts";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (progress.StopRequestFlag)
                 {
                     float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    ProgressBar("DieProgBar", $"Cancelled after {progress.scriptsFinished}/{progress.scriptCount} scripts", dieProgress, barSize, 0xff117711, 0xff111111);
+                    string caption = $"Cancelled after {progress.scriptsFinished}/{progress.scriptCount} scripts";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else
                 {
                     float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    ProgressBar("DieProgBar", $"Scan complete ({progress.scriptsFinished} scripts)", dieProgress, barSize, 0xff117711, 0xff111111);
+                    string caption = $"Scan complete ({progress.scriptsFinished} scripts)";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
 
                 ImGui.SameLine();
@@ -1344,226 +1327,6 @@ namespace rgatCore
             }
 
         }
-
-        static bool[] optionsSelectStates;
-        static List<string> settingsNames = new List<string>();
-        enum eSettingsCategory { eSetting1, eSetting2, eText, eKeybinds, eSetting5, eSetting6 };
-        void InitSettings()
-        {
-            settingsNames = new List<string>();
-            settingsNames.Add("Setting1");
-            settingsNames.Add("Setting2");
-            settingsNames.Add("Text");
-            settingsNames.Add("Keybinds");
-            settingsNames.Add("Setting5");
-            settingsNames.Add("Setting6");
-            optionsSelectStates = new bool[settingsNames.Count];
-            optionsSelectStates[(int)eSettingsCategory.eText] = true;
-            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = true;
-
-
-        }
-
-        private unsafe void DrawSettingsWindow()
-        {
-            //ImGui.SetNextWindowPos(new Vector2(700, 500), ImGuiCond.Appearing);
-
-
-
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
-
-            ImGui.Begin("Settings", ref _settings_window_shown, window_flags);
-
-            ImGui.BeginGroup();
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 28)))
-            {
-                for (int i = 0; i < settingsNames.Count; i++)
-                {
-                    if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
-                    {
-                        Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
-                        optionsSelectStates[i] = true;
-                    }
-                }
-                ImGui.EndChildFrame();
-            }
-
-            if (ImGui.Button("Close", new Vector2(65, 25)))
-            {
-                _settings_window_shown = false;
-            }
-            ImGui.EndGroup();
-            ImGui.SameLine();
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
-            {
-                for (var i = 0; i < optionsSelectStates.Length; i++)
-                {
-                    if (optionsSelectStates[i])
-                    {
-                        CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
-                        break;
-                    }
-                }
-                ImGui.EndChildFrame();
-            }
-            ImGui.End();
-        }
-
-
-        void CreateSettingsContentPane(string settingCategoryName)
-        {
-            switch (settingCategoryName)
-            {
-                case "Text":
-                    CreateOptionsPane_Text();
-                    break;
-                case "Keybinds":
-                    CreateOptionsPane_Keybinds();
-                    break;
-                default:
-                    Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
-                    break;
-            }
-        }
-
-        void CreateOptionsPane_Text()
-        {
-
-            ImGui.Text("todo");
-        }
-
-        void CreateOptionsPane_Keybinds()
-        {
-            if (_pendingKeybind.active)
-                ImGui.OpenPopup("Activate New Keybind");
-
-            if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
-            {
-                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, 110)))
-                {
-                    ImGui.Text("Binding: " + _pendingKeybind.actionText);
-
-                    ImGui.Text($"Current keybind: [{_pendingKeybind.currentKey}]");
-
-                    string msg = "Press new keybind now";
-
-                    float msgWidth = ImGui.CalcTextSize(msg).X;
-
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - msgWidth / 2);
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
-                    ImGui.Text(msg);
-                    ImGui.EndChildFrame();
-                }
-                ImGui.EndPopup();
-            }
-
-            int index = 0;
-            ImGui.Columns(3, "kbcols", false);
-            ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
-            ImGui.SetColumnWidth(1, 150);
-            ImGui.SetColumnWidth(2, 150);
-            ImGui.Text("Action");
-            ImGui.NextColumn();
-            ImGui.Text("Keybind");
-            ImGui.NextColumn();
-            ImGui.Text("Alternate Keybind");
-            ImGui.Columns(1);
-            CreateKeybindInput("Move Graph Up", eKeybind.eMoveUp, index++);
-            CreateKeybindInput("Move Graph Down", eKeybind.eMoveDown, index++);
-            CreateKeybindInput("Move Graph Left", eKeybind.eMoveLeft, index++);
-            CreateKeybindInput("Move Graph Right", eKeybind.eMoveRight, index++);
-            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
-            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
-            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollGraphZClock, index++);
-            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollGraphZAnti, index++);
-            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eYawYRight, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eYawYLeft, index++);
-            CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
-            CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
-            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
-            CreateKeybindInput("Center Graph In View", eKeybind.eCenterFrame, index++);
-            CreateKeybindInput("Lock Graph Centered", eKeybind.eLockCenterFrame, index++);
-            CreateKeybindInput("Toggle All Text", eKeybind.eToggleText, index++);
-            CreateKeybindInput("Toggle Instruction Text", eKeybind.eToggleInsText, index++);
-            CreateKeybindInput("Toggle Dynamic Text", eKeybind.eToggleLiveText, index++);
-        }
-
-        static PendingKeybind _pendingKeybind = new PendingKeybind();
-
-        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex)
-        {
-
-            if ((rowIndex % 2) == 0)
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafcc3500);
-            else
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafdc4500);
-
-            if (ImGui.BeginChildFrame(ImGui.GetID(caption), new Vector2(ImGui.GetContentRegionAvail().X, 30), ImGuiWindowFlags.NoScrollbar))
-            {
-                ImGui.Columns(3, "kcols" + caption, false);
-                ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
-                ImGui.SetColumnWidth(1, 150);
-                ImGui.SetColumnWidth(2, 150);
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text(caption);
-                ImGui.NextColumn();
-                ImGui.AlignTextToFramePadding();
-
-                string kstring = "";
-                if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
-                {
-                    if (kmval.Item2 != ModifierKeys.None)
-                        kstring += kmval.Item2.ToString() + "+";
-                    kstring += kmval.Item1;
-                }
-                else
-                {
-                    kstring = "[Click To Set]";
-                }
-                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 1);
-
-                ImGui.NextColumn();
-
-                ImGui.AlignTextToFramePadding(); 
-                kstring = "";
-                if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out kmval))
-                {
-                    if (kmval.Item2 != ModifierKeys.None)
-                        kstring += kmval.Item2.ToString() + "+";
-                    kstring += kmval.Item1;
-                }
-                else
-                {
-                    kstring = "[Click To Set]";
-                }
-                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 2);
-
-                ImGui.Columns(1);
-                ImGui.EndChildFrame();
-            }
-            ImGui.PopStyleColor();
-        }
-
-
-
-        void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
-        { 
-            _pendingKeybind.active = true;
-            _pendingKeybind.actionText = caption;
-            _pendingKeybind.bindIndex = bindIndex;
-            _pendingKeybind.action = action;
-
-            _pendingKeybind.currentKey = "";
-            if (GlobalConfig.PrimaryKeybinds.TryGetValue(action, out var kmval))
-            {
-                if (kmval.Item2 != ModifierKeys.None)
-                    _pendingKeybind.currentKey += kmval.Item2.ToString() + "+";
-                _pendingKeybind.currentKey += kmval.Item1;
-            }
-
-        }
-
-
 
 
         private unsafe void DrawFileSelectBox()

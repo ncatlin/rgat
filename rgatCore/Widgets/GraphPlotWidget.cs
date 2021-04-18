@@ -19,6 +19,7 @@ using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
 using rgatCore.Shaders.SPIR_V;
 using static rgatCore.VeldridGraphBuffers;
+using rgatCore.Widgets;
 
 namespace rgatCore
 {
@@ -28,6 +29,8 @@ namespace rgatCore
 
         System.Timers.Timer _IrregularActionTimer;
         bool _IrregularActionTimerFired = false;
+
+        QuickMenu _QuickMenu = new QuickMenu(new Vector2(300, 300));
 
         ImGuiController _controller;
         ReaderWriterLock renderLock = new ReaderWriterLock();
@@ -452,7 +455,7 @@ namespace rgatCore
 
         public unsafe void SetupRenderingResources()
         {
-            _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<graphShaderParams>(), BufferUsage.UniformBuffer));
+            _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<GraphShaderParams>(), BufferUsage.UniformBuffer));
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
@@ -564,7 +567,7 @@ namespace rgatCore
 
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct graphShaderParams
+        public struct GraphShaderParams
         {
             ///public Matrix4x4 rotatedView;
             public Matrix4x4 proj;
@@ -646,15 +649,16 @@ namespace rgatCore
         float totalY = 0;
      
 
-        graphShaderParams updateShaderParams(uint textureSize, Matrix4x4 p, Matrix4x4 v, Matrix4x4 w)
+        GraphShaderParams updateShaderParams(uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world)
         {
-            graphShaderParams shaderParams = new graphShaderParams { TexWidth = textureSize, pickingNode = _mouseoverNodeID, isAnimated = ActiveGraph.IsAnimated };
+            GraphShaderParams shaderParams = new GraphShaderParams { TexWidth = textureSize,
+                pickingNode = _mouseoverNodeID, isAnimated = ActiveGraph.IsAnimated };
 
             Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
 
-            shaderParams.proj = p;// getview(); 
-            shaderParams.view = v;// getview(); 
-            shaderParams.world = w;// getview(); 
+            shaderParams.proj = projection; 
+            shaderParams.view = view; 
+            shaderParams.world = world; 
             shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation); ;
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
@@ -1085,58 +1089,11 @@ namespace rgatCore
             return clicked;
         }
 
-        uint _lastActiveID;
-        DateTime _LastActiveIdTimer;
-        static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
-        //adapted from code somewhere from imgui internal
-        bool ToggleButton(string str_id, bool isToggled)
-        {
-            const uint TOGGLE_OFF_HOVER_COL = 0xff888888;
-            const uint TOGGLE_ON_HOVER_COL = 0xff008800;
-            const uint TOGGLE_OFF_NOHOVER_COL = 0xff686868;
-            const uint TOGGLE_ON_NOHOVER_COL = 0xff005500;
-
-
-            Vector2 p = ImGui.GetCursorScreenPos();
-            ImDrawListPtr draw_list = ImGui.GetWindowDrawList();
-
-            float height = ImGui.GetFrameHeight();
-            float width = height * 1.55f;
-            float radius = height * 0.50f;
-
-            ImGui.InvisibleButton(str_id, new Vector2(width, height));
-            bool changed = ImGui.IsItemClicked();
-            if (changed)
-            {
-                _lastActiveID = ImGui.GetID(str_id);
-                _LastActiveIdTimer = DateTime.UtcNow;
-            }
-
-            float t = isToggled ? 1.0f : 0.0f;
-
-            float ANIM_SPEED = 0.08f;
-            if (_lastActiveID == ImGui.GetID(str_id))
-            {
-                float t_anim = ImSaturate((float)(DateTime.UtcNow - _LastActiveIdTimer).TotalSeconds / ANIM_SPEED);
-                t = isToggled ? (t_anim) : (1.0f - t_anim);
-                if (t == 0f || t == 1.0f) { _lastActiveID = 0; }
-            }
-
-            uint col_bg;
-            if (ImGui.IsItemHovered())
-                col_bg = isToggled ? TOGGLE_ON_HOVER_COL : TOGGLE_OFF_HOVER_COL;
-            else
-                col_bg = isToggled ? TOGGLE_ON_NOHOVER_COL : TOGGLE_OFF_NOHOVER_COL;
-
-            draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
-            draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
-            return changed;
-        }
 
 
         bool _showLayoutSelectorPopup;
-        bool _showVisibilitySelector;
+        bool _showQuickMenu;
         Texture getLayoutIcon(eGraphLayout layout)
         {
             switch (layout)
@@ -1241,46 +1198,26 @@ namespace rgatCore
             ImGui.PopStyleColor();
 
             bool buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
-            if (!_showVisibilitySelector && buttonHover)
+            if (!_showQuickMenu && buttonHover)
             {
-                _showVisibilitySelector = true;
+                _showQuickMenu = true;
             }
 
-            if (_showVisibilitySelector)
+            if (_showQuickMenu)
             {
                 ImGui.SetNextWindowPos(new Vector2(pmin.X, pmin.Y - iconSize.Y * 3));
-                ImGui.OpenPopup("VisibilityPopup");
+                ImGui.OpenPopup("QuickMenuPopup");
             }
             //ImGui.SetTooltip("I am a tooltip over a popup");
-            if (ImGui.BeginPopup("VisibilityPopup"))
+            if (ImGui.BeginPopup("QuickMenuPopup"))
             {
-                if (ImGui.BeginChildFrame(ImGui.GetID("VisibilityPopupFrame"), new Vector2(300, 300)))
-                {
-
-                    ImGui.Text("Show Edges");
-                    ImGui.SameLine();
-                    if (ToggleButton("edgesToggle", ActiveGraph.EdgesVisible))
-                        ActiveGraph.EdgesVisible = !ActiveGraph.EdgesVisible;
-                    ImGui.Text("Show Nodes");
-                    ImGui.SameLine();
-                    if (ToggleButton("nodes", ActiveGraph.NodesVisible))
-                        ActiveGraph.NodesVisible = !ActiveGraph.NodesVisible;
-                    ImGui.Text("Enable Text");
-                    ImGui.SameLine();
-                    if (ToggleButton("textenable", ActiveGraph.TextEnabled))
-                        ActiveGraph.TextEnabled = !ActiveGraph.TextEnabled;
-                    ImGui.Text("Instruction Text");
-                    ImGui.SameLine();
-                    if (ToggleButton("textenable_ins", ActiveGraph.TextEnabledIns))
-                        ActiveGraph.TextEnabledIns = !ActiveGraph.TextEnabledIns;
-                    ImGui.EndChildFrame();
-                }
+                _QuickMenu.Draw(ActiveGraph);
 
                 if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
                         | ImGuiHoveredFlags.AllowWhenBlockedByPopup
                         | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && !buttonHover)
                 {
-                    _showVisibilitySelector = false;
+                    _showQuickMenu = false;
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.EndPopup();

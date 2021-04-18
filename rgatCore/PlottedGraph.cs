@@ -2276,35 +2276,27 @@ namespace rgatCore
         public bool EdgesVisible = true;
 
         bool _textEnabled = true;
-        public bool TextEnabled
-        {
+        public bool TextEnabled {
             get => _textEnabled;
-            set
-            {
+            set {
                 _textEnabled = value;
                 if (_textEnabled) RegenerateLabels();
             }
         }
 
         bool _textEnabledIns = true;
-        public bool TextEnabledIns
-        {
+        public bool TextEnabledIns {
             get => _textEnabledIns;
-            set
-            {
+            set {
                 _textEnabledIns = value;
                 RegenerateLabels();
             }
         }
 
         bool _textEnabledLive = true;
-        public bool TextEnabledLive
-        {
+        public bool TextEnabledLive {
             get => _textEnabledLive;
-            set
-            {
-                _textEnabledLive = value;
-            }
+            set => _textEnabledLive = value;
         }
 
 

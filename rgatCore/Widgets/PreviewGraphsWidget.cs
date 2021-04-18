@@ -99,7 +99,8 @@ namespace rgatCore
 
         public void SetupRenderingResources()
         {
-            _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<graphShaderParams>(), BufferUsage.UniformBuffer));
+            _paramsBuffer = _factory.CreateBuffer(new BufferDescription(
+                (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer));
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
@@ -242,26 +243,9 @@ namespace rgatCore
             }
         }
 
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct graphShaderParams
+        GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize)
         {
-            public Matrix4x4 rotatedView;
-            public Matrix4x4 nonRotatedView;
-            public uint TexWidth;
-            public int pickingNode;
-            public bool isAnimated;
-            //must be multiple of 16
-
-            private ushort _padding1;
-            private bool _padding3a;
-            private bool _padding3b;
-            private bool _padding3c;
-        }
-
-        graphShaderParams updateShaderParams(uint textureSize)
-        {
-            graphShaderParams shaderParams = new graphShaderParams { TexWidth = textureSize, pickingNode = -1, isAnimated = false };
+            GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams { TexWidth = textureSize, pickingNode = -1, isAnimated = false };
 
             float aspectRatio = EachGraphWidth / EachGraphHeight;
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f,  aspectRatio, 1, 50000);
@@ -271,11 +255,15 @@ namespace rgatCore
             Matrix4x4 newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             newView = Matrix4x4.Multiply(newView, cameraTranslation);
             newView = Matrix4x4.Multiply(newView, projection);
-            shaderParams.rotatedView = newView;
 
             newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
-            newView = Matrix4x4.Multiply(newView, cameraTranslation);
             shaderParams.nonRotatedView = newView;
+
+
+            shaderParams.proj = projection;
+            shaderParams.view = newView;
+            shaderParams.world = cameraTranslation;
+
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _gd.WaitForIdle();
