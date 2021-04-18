@@ -136,7 +136,11 @@ namespace rgatCore.Threads
             SetKeybind(eKeybind.eLockCenterFrame, 1, Key.Q, ModifierKeys.Shift);
             SetKeybind(eKeybind.eRaiseForceTemperature, 1, Key.V, ModifierKeys.None);
             SetKeybind(eKeybind.eToggleHeatmap, 1, Key.X, ModifierKeys.None);
-            SetKeybind(eKeybind.eToggleConditional, 1, Key.C, ModifierKeys.None);         
+            SetKeybind(eKeybind.eToggleConditional, 1, Key.C, ModifierKeys.None);
+
+            SetKeybind(eKeybind.eToggleText, 1, Key.I, ModifierKeys.None);
+            SetKeybind(eKeybind.eToggleInsText, 1, Key.I, ModifierKeys.Shift);
+            SetKeybind(eKeybind.eToggleLiveText, 1, Key.I, ModifierKeys.Control);
         }
 
         /// <summary>

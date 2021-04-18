@@ -25,7 +25,9 @@ namespace rgatCore
 
     enum eKeybind { eMoveLeft, eMoveRight, eMoveUp, eMoveDown,
         eZoomIn, eZoomOut, ePitchXFwd, ePitchXBack, eYawYLeft, eYawYRight, eRollGraphZAnti, eRollGraphZClock, 
-        eCenterFrame, eLockCenterFrame, eCancel, eToggleHeatmap, eToggleConditional, eRaiseForceTemperature }
+        eCenterFrame, eLockCenterFrame, eCancel, eToggleHeatmap, eToggleConditional, eRaiseForceTemperature,
+        eToggleText, eToggleInsText, eToggleLiveText
+    }
 
     enum eSignatureType { eYARA, eDetectItEasy};
 

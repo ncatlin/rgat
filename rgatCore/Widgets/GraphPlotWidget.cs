@@ -363,6 +363,18 @@ namespace rgatCore
                     ActiveGraph.IncreaseTemperature();
                     break;
 
+                case eKeybind.eToggleText:
+                    ActiveGraph.TextEnabled = !ActiveGraph.TextEnabled;
+                    break;
+
+                case eKeybind.eToggleInsText:
+                    ActiveGraph.TextEnabledIns = !ActiveGraph.TextEnabledIns;
+                    break;
+
+                case eKeybind.eToggleLiveText:
+                    ActiveGraph.TextEnabledLive = !ActiveGraph.TextEnabledLive;
+                    break;
+
                 default:
                     break;
             }
@@ -680,12 +692,20 @@ namespace rgatCore
             _gd.WaitForIdle();
         }
 
-        List<fontStruc> renderNodeText(List<Tuple<string, Color>> captions, int nodeIdx = -1)
+        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string, Color>> captions, int nodeIdx = -1)
         {
             const float fontScale = 8f;
             List<fontStruc> stringVerts = new List<fontStruc>();
 
-            RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
+            if (captions.Count > nodeIdx)
+            {
+                var caption = captions[nodeIdx];
+                if (caption != null)
+                {
+                    RenderString(caption.Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, caption.Item2);
+                }
+            }
+
             maintainRisingTexts(fontScale, ref stringVerts);
             uploadFontVerts(stringVerts);
 
@@ -767,22 +787,29 @@ namespace rgatCore
             }
         }
 
+        float _fontScale = 13.0f;
 
         List<fontStruc> renderGraphText(List<Tuple<string, Color>> captions)
         {
-            const float fontScale = 13.0f;
             List<fontStruc> stringVerts = new List<fontStruc>();
-
+            if (!ActiveGraph.TextEnabled) return stringVerts;
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
-                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
+                if (captions[nodeIdx] == null) continue;
+                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, _fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
             }
 
-            maintainRisingTexts(fontScale, ref stringVerts);
-            uploadFontVerts(stringVerts);
 
             return stringVerts;
         }
+
+        void MaintainCaptions(List<fontStruc> stringVerts)
+        {
+            maintainRisingTexts(_fontScale, ref stringVerts);
+            uploadFontVerts(stringVerts);
+        }
+
+
 
         Vector2 _furthestX = new Vector2(0, 0);
         Vector2 _furthestY = new Vector2(0, 0);
@@ -865,8 +892,10 @@ namespace rgatCore
             }
             else
             {
-                stringVerts = renderNodeText(captions, _mouseoverNodeID);
+                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
             }
+
+            MaintainCaptions(stringVerts);
 
             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
@@ -1061,7 +1090,7 @@ namespace rgatCore
         static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
         //adapted from code somewhere from imgui internal
-        void ToggleButton(string str_id, ref bool isToggled)
+        bool ToggleButton(string str_id, bool isToggled)
         {
             const uint TOGGLE_OFF_HOVER_COL = 0xff888888;
             const uint TOGGLE_ON_HOVER_COL = 0xff008800;
@@ -1077,9 +1106,9 @@ namespace rgatCore
             float radius = height * 0.50f;
 
             ImGui.InvisibleButton(str_id, new Vector2(width, height));
-            if (ImGui.IsItemClicked())
+            bool changed = ImGui.IsItemClicked();
+            if (changed)
             {
-                isToggled = !isToggled;
                 _lastActiveID = ImGui.GetID(str_id);
                 _LastActiveIdTimer = DateTime.UtcNow;
             }
@@ -1102,6 +1131,7 @@ namespace rgatCore
 
             draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
             draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
+            return changed;
         }
 
 
@@ -1229,16 +1259,20 @@ namespace rgatCore
 
                     ImGui.Text("Show Edges");
                     ImGui.SameLine();
-                    ToggleButton("edgesToggle", ref ActiveGraph.EdgesVisible);
+                    if (ToggleButton("edgesToggle", ActiveGraph.EdgesVisible))
+                        ActiveGraph.EdgesVisible = !ActiveGraph.EdgesVisible;
                     ImGui.Text("Show Nodes");
                     ImGui.SameLine();
-                    ToggleButton("nodes", ref ActiveGraph.NodesVisible);
+                    if (ToggleButton("nodes", ActiveGraph.NodesVisible))
+                        ActiveGraph.NodesVisible = !ActiveGraph.NodesVisible;
                     ImGui.Text("Enable Text");
                     ImGui.SameLine();
-                    ToggleButton("textenable", ref ActiveGraph.TextEnabled);
+                    if (ToggleButton("textenable", ActiveGraph.TextEnabled))
+                        ActiveGraph.TextEnabled = !ActiveGraph.TextEnabled;
                     ImGui.Text("Instruction Text");
-                    ImGui.Text("Symbol Text");
-
+                    ImGui.SameLine();
+                    if (ToggleButton("textenable_ins", ActiveGraph.TextEnabledIns))
+                        ActiveGraph.TextEnabledIns = !ActiveGraph.TextEnabledIns;
                     ImGui.EndChildFrame();
                 }
 

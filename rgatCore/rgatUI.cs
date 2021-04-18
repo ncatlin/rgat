@@ -1347,17 +1347,18 @@ namespace rgatCore
 
         static bool[] optionsSelectStates;
         static List<string> settingsNames = new List<string>();
-        enum eSettingsCategory { eSetting1, eSetting2, eSetting3, eKeybinds, eSetting5, eSetting6 };
+        enum eSettingsCategory { eSetting1, eSetting2, eText, eKeybinds, eSetting5, eSetting6 };
         void InitSettings()
         {
             settingsNames = new List<string>();
             settingsNames.Add("Setting1");
             settingsNames.Add("Setting2");
-            settingsNames.Add("Setting3");
+            settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
             settingsNames.Add("Setting5");
             settingsNames.Add("Setting6");
             optionsSelectStates = new bool[settingsNames.Count];
+            optionsSelectStates[(int)eSettingsCategory.eText] = true;
             optionsSelectStates[(int)eSettingsCategory.eKeybinds] = true;
 
 
@@ -1413,6 +1414,9 @@ namespace rgatCore
         {
             switch (settingCategoryName)
             {
+                case "Text":
+                    CreateOptionsPane_Text();
+                    break;
                 case "Keybinds":
                     CreateOptionsPane_Keybinds();
                     break;
@@ -1422,6 +1426,67 @@ namespace rgatCore
             }
         }
 
+        void CreateOptionsPane_Text()
+        {
+
+            ImGui.Text("todo");
+        }
+
+        void CreateOptionsPane_Keybinds()
+        {
+            if (_pendingKeybind.active)
+                ImGui.OpenPopup("Activate New Keybind");
+
+            if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, 110)))
+                {
+                    ImGui.Text("Binding: " + _pendingKeybind.actionText);
+
+                    ImGui.Text($"Current keybind: [{_pendingKeybind.currentKey}]");
+
+                    string msg = "Press new keybind now";
+
+                    float msgWidth = ImGui.CalcTextSize(msg).X;
+
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - msgWidth / 2);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
+                    ImGui.Text(msg);
+                    ImGui.EndChildFrame();
+                }
+                ImGui.EndPopup();
+            }
+
+            int index = 0;
+            ImGui.Columns(3, "kbcols", false);
+            ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
+            ImGui.SetColumnWidth(1, 150);
+            ImGui.SetColumnWidth(2, 150);
+            ImGui.Text("Action");
+            ImGui.NextColumn();
+            ImGui.Text("Keybind");
+            ImGui.NextColumn();
+            ImGui.Text("Alternate Keybind");
+            ImGui.Columns(1);
+            CreateKeybindInput("Move Graph Up", eKeybind.eMoveUp, index++);
+            CreateKeybindInput("Move Graph Down", eKeybind.eMoveDown, index++);
+            CreateKeybindInput("Move Graph Left", eKeybind.eMoveLeft, index++);
+            CreateKeybindInput("Move Graph Right", eKeybind.eMoveRight, index++);
+            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
+            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
+            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollGraphZClock, index++);
+            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollGraphZAnti, index++);
+            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eYawYRight, index++);
+            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eYawYLeft, index++);
+            CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
+            CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
+            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
+            CreateKeybindInput("Center Graph In View", eKeybind.eCenterFrame, index++);
+            CreateKeybindInput("Lock Graph Centered", eKeybind.eLockCenterFrame, index++);
+            CreateKeybindInput("Toggle All Text", eKeybind.eToggleText, index++);
+            CreateKeybindInput("Toggle Instruction Text", eKeybind.eToggleInsText, index++);
+            CreateKeybindInput("Toggle Dynamic Text", eKeybind.eToggleLiveText, index++);
+        }
 
         static PendingKeybind _pendingKeybind = new PendingKeybind();
 
@@ -1487,59 +1552,18 @@ namespace rgatCore
             _pendingKeybind.actionText = caption;
             _pendingKeybind.bindIndex = bindIndex;
             _pendingKeybind.action = action;
-        }
 
-        void CreateOptionsPane_Keybinds()
-        {
-            if (_pendingKeybind.active)
-                ImGui.OpenPopup("Activate New Keybind");
-
-            if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
+            _pendingKeybind.currentKey = "";
+            if (GlobalConfig.PrimaryKeybinds.TryGetValue(action, out var kmval))
             {
-                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, 110)))
-                {
-                    ImGui.Text("Binding: " + _pendingKeybind.actionText);
-                    ImGui.Text("Current keybind: [todo]");
-
-                    string msg = "Press new keybind now";
-
-                    float msgWidth = ImGui.CalcTextSize(msg).X;
-
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X/2) - msgWidth/2);
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
-                    ImGui.Text(msg);
-                    ImGui.EndChildFrame();
-                }
-                ImGui.EndPopup();
+                if (kmval.Item2 != ModifierKeys.None)
+                    _pendingKeybind.currentKey += kmval.Item2.ToString() + "+";
+                _pendingKeybind.currentKey += kmval.Item1;
             }
 
-            int index = 0;
-            ImGui.Columns(3, "kbcols", false);
-            ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
-            ImGui.SetColumnWidth(1, 150);
-            ImGui.SetColumnWidth(2, 150);
-            ImGui.Text("Action");
-            ImGui.NextColumn();
-            ImGui.Text("Keybind");
-            ImGui.NextColumn();
-            ImGui.Text("Alternate Keybind");
-            ImGui.Columns(1);
-            CreateKeybindInput("Camera Up", eKeybind.eMoveUp, index++);
-            CreateKeybindInput("Camera Down", eKeybind.eMoveDown, index++);
-            CreateKeybindInput("Camera Left", eKeybind.eMoveLeft, index++);
-            CreateKeybindInput("Camera Right", eKeybind.eMoveRight, index++);
-            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
-            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
-            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollGraphZClock, index++);
-            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollGraphZAnti, index++);
-            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eYawYRight, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eYawYLeft, index++);
-            CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
-            CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
-            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
-            CreateKeybindInput("Center Graph In View", eKeybind.eCenterFrame, index++);
-            CreateKeybindInput("Lock Graph Centered", eKeybind.eLockCenterFrame, index++);
         }
+
+
 
 
         private unsafe void DrawFileSelectBox()
@@ -1622,5 +1646,6 @@ namespace rgatCore
         public string actionText = "";
         public eKeybind action;
         public int bindIndex;
+        public string currentKey = "";
     }
 }

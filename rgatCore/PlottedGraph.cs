@@ -126,102 +126,6 @@ namespace rgatCore
 
         }
 
-        //void changeZoom(double delta, double deltaModifier);
-
-        //iterate through all the nodes, draw instruction text for the ones in view
-        //TODO: in animation mode don't show text for inactive nodes
-        //todo use this
-        void DrawInstructionsText(int zdist)
-        {
-            string displayText = "?";
-
-            uint numVerts = internalProtoGraph.get_num_nodes();
-            for (uint i = 0; i < numVerts; ++i)
-            {
-                NodeData n = internalProtoGraph.safe_get_node(i);
-
-                if (n.IsExternal) continue;
-                //if (!get_visible_node_pos(i, &screenCoord, &screenInfo, gltarget)) continue;
-
-                bool compactDisplay;
-
-                if (!GlobalConfig.instructionTextVisibility.extraDetail || zdist > GlobalConfig.insTextCompactThreshold)
-                {
-                    if (n.ins.itype != eNodeType.eInsUndefined || !n.IsConditional() || n.label?.Length > 0)
-                        compactDisplay = false;
-                    else
-                        compactDisplay = true;
-                }
-                else
-                    compactDisplay = false;
-
-                if (compactDisplay && n.ins.itype == eNodeType.eInsUndefined) continue; //dont want to see add,mov,etc from far away
-
-                if (n.ins.itype == eNodeType.eInsCall || n.ins.itype == eNodeType.eInsJump)
-                {
-                    if (GlobalConfig.instructionTextVisibility.fullPaths && n.ins.branchAddress != 0)
-                    {
-                        List<uint> outnodes = null;
-                        lock (internalProtoGraph.nodeLock)
-                        {
-                            outnodes = n.OutgoingNeighboursSet;
-                        }
-
-                        bool expectedTarget = false;
-                        foreach (uint nidx in outnodes)
-
-                        {
-                            NodeData possibleTargN = internalProtoGraph.safe_get_node(nidx);
-                            if (possibleTargN.address == n.ins.branchAddress)
-                            {
-                                if (possibleTargN.label?.Length > 0)
-                                {
-                                    displayText = n.ins.ins_text;
-                                }
-                                else
-                                {
-                                    displayText = n.ins.mnemonic + " " + possibleTargN.label;
-                                }
-                                expectedTarget = true;
-                                break;
-                            }
-                        }
-                        if (!expectedTarget)
-                            displayText = n.ins.ins_text;
-
-                    }
-                    else
-                        displayText = n.ins.ins_text;
-                }
-                else
-                    displayText = n.ins.ins_text;
-
-
-                string string2 = $"{i}";
-
-                if (!compactDisplay && GlobalConfig.instructionTextVisibility.addresses)
-                {
-                    if (GlobalConfig.instructionTextVisibility.offsets)
-                        string2 += $"+0x{(n.ins.address - internalProtoGraph.moduleBase):X}: {displayText}";
-                    else
-                        string2 += $"+0x{n.ins.address:X}: {displayText}";
-                }
-            }
-
-        }
-
-        /*
-		 * 
-        void show_external_symbol_labels(PROJECTDATA* pd, graphGLWidget &gltarget);
-		void show_internal_symbol_labels(PROJECTDATA* pd, graphGLWidget &gltarget, bool placeHolders);
-		void draw_internal_symbol(DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, QPainter* painter, const QFontMetrics* fontMetric);
-		void draw_internal_symbol(DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, QPainter* painter, const QFontMetrics* fontMetric, string symbolText);
-		void draw_func_args(QPainter* painter, DCOORD screenCoord, NodeData n, graphGLWidget &gltarget, const QFontMetrics* fontMetric);
-		void gen_graph_VBOs(graphGLWidget &gltarget);
-		*/
-
-
-
         public void render_replay_animation(float fadeRate)
         {
             if (userSelectedAnimPosition != -1)
@@ -1397,6 +1301,11 @@ namespace rgatCore
                 }
                 else
                 {
+                    if (!TextEnabledIns && !n.ins.hasSymbol) {
+                        n.label = null;
+                        return null;
+                    };
+
                     n.label = $"{index}: {n.ins.ins_text}";
                     if (renderingMode == eRenderingMode.eHeatmap)
                     {
@@ -1417,6 +1326,7 @@ namespace rgatCore
                         internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
                         n.label += $" [{sym}]";
                     }
+                    
                 }
             }
 
@@ -1424,6 +1334,9 @@ namespace rgatCore
             return new Tuple<string, Color>(n.label, color);
         }
 
+        void RegenerateLabels() => _newLabels = true;
+
+        bool _newLabels = false;
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
         public TextureOffsetColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
@@ -1432,9 +1345,10 @@ namespace rgatCore
             out List<Tuple<string, Color>> captions)
         {
             bool createNewLabels = false;
-            if (renderingMode != lastRenderingMode)
+            if (renderingMode != lastRenderingMode || _newLabels)
             {
                 createNewLabels = true;
+                _newLabels = false;
                 lastRenderingMode = renderingMode;
             }
 
@@ -1466,10 +1380,13 @@ namespace rgatCore
                         TexPosition = new Vector2(x, y),
                         Color = new WritableRgbaFloat(index, 0, 0, 1)
                     };
-                    //if (index == 120)
-                    captions.Add(createNodeLabel((int)index, renderingMode, createNewLabels));
-                    //else
-                    //    captions.Add(new Tuple<string, Color>("", Color.Black));
+
+                    if (TextEnabled)
+                    {
+                        var caption = createNodeLabel((int)index, renderingMode, createNewLabels);
+                        captions.Add(caption);
+                    }
+
 
                 }
             }
@@ -1746,7 +1663,7 @@ namespace rgatCore
             {
                 //Console.WriteLine($"BNL node {nodeIdx}");
 
-                if (listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
+                if (TextEnabledLive && listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
                         AddRisingExtern(nodeIdx, entry.count - 1, Anim_Constants.KEEP_BRIGHT);
@@ -1769,6 +1686,7 @@ namespace rgatCore
                     AddContinuousActiveNode(nodeIdx);
                 else
                     AddPulseActiveNode(nodeIdx);
+
                 NodesDisplayData.LastAnimatedNode.lastVertID = nodeIdx;
 
                 ++listOffset;
@@ -2356,8 +2274,38 @@ namespace rgatCore
 
         public bool NodesVisible = true;
         public bool EdgesVisible = true;
-        public bool TextEnabled = true;
 
+        bool _textEnabled = true;
+        public bool TextEnabled
+        {
+            get => _textEnabled;
+            set
+            {
+                _textEnabled = value;
+                if (_textEnabled) RegenerateLabels();
+            }
+        }
+
+        bool _textEnabledIns = true;
+        public bool TextEnabledIns
+        {
+            get => _textEnabledIns;
+            set
+            {
+                _textEnabledIns = value;
+                RegenerateLabels();
+            }
+        }
+
+        bool _textEnabledLive = true;
+        public bool TextEnabledLive
+        {
+            get => _textEnabledLive;
+            set
+            {
+                _textEnabledLive = value;
+            }
+        }
 
 
 
