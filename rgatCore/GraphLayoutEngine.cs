@@ -572,7 +572,7 @@ namespace rgatCore
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
-                k = 100.0f,
+                k = 100f,
                 temperature = temperature,
                 NodesTexWidth = textureSize,
                 EdgeCount = (uint)_activeGraph.internalProtoGraph.edgeList.Count,

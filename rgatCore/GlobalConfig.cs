@@ -126,10 +126,10 @@ namespace rgatCore.Threads
 
             SetKeybind(eKeybind.ePitchXFwd, 1, Key.PageUp, ModifierKeys.None);
             SetKeybind(eKeybind.ePitchXBack, 1, Key.PageDown, ModifierKeys.None);
-            SetKeybind(eKeybind.eRollYLeft, 1, Key.Insert, ModifierKeys.None);
-            SetKeybind(eKeybind.eRollYRight, 1, Key.Home, ModifierKeys.None);
-            SetKeybind(eKeybind.eRotGraphZLeft, 1, Key.Delete, ModifierKeys.None);
-            SetKeybind(eKeybind.eRotGraphZRight, 1, Key.End, ModifierKeys.None);
+            SetKeybind(eKeybind.eYawYLeft, 1, Key.Delete, ModifierKeys.None);
+            SetKeybind(eKeybind.eYawYRight, 1, Key.End, ModifierKeys.None);
+            SetKeybind(eKeybind.eRollGraphZAnti, 1, Key.Insert, ModifierKeys.None);
+            SetKeybind(eKeybind.eRollGraphZClock, 1, Key.Home, ModifierKeys.None);
 
             SetKeybind(eKeybind.eCancel, 1, Key.Escape, ModifierKeys.None);
             SetKeybind(eKeybind.eCenterFrame, 1, Key.Q, ModifierKeys.None);
@@ -155,10 +155,10 @@ namespace rgatCore.Threads
             ResponsiveHeldActions.Add(eKeybind.eMoveUp);
             ResponsiveHeldActions.Add(eKeybind.ePitchXBack);
             ResponsiveHeldActions.Add(eKeybind.ePitchXFwd);
-            ResponsiveHeldActions.Add(eKeybind.eRollYLeft);
-            ResponsiveHeldActions.Add(eKeybind.eRollYRight);
-            ResponsiveHeldActions.Add(eKeybind.eRotGraphZLeft);
-            ResponsiveHeldActions.Add(eKeybind.eRotGraphZRight);
+            ResponsiveHeldActions.Add(eKeybind.eYawYLeft);
+            ResponsiveHeldActions.Add(eKeybind.eYawYRight);
+            ResponsiveHeldActions.Add(eKeybind.eRollGraphZAnti);
+            ResponsiveHeldActions.Add(eKeybind.eRollGraphZClock);
 
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }

@@ -58,7 +58,7 @@ namespace ImGuiNET
         {
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
             debug: true,
-            swapchainDepthFormat: PixelFormat.R16_UNorm,
+            swapchainDepthFormat: PixelFormat.R32_Float,
             syncToVerticalBlank: true,
             resourceBindingModel: ResourceBindingModel.Improved,
             preferDepthRangeZeroToOne: true,

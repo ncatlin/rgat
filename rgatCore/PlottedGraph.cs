@@ -1426,11 +1426,10 @@ namespace rgatCore
 
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
-        public TextureOffsetColour[] GetMaingraphNodeVerts(
+        public TextureOffsetColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
             out List<uint> nodeIndices,
             out TextureOffsetColour[] nodePickingColors,
-            out List<Tuple<string, Color>> captions,
-            eRenderingMode renderingMode)
+            out List<Tuple<string, Color>> captions)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode)
@@ -2065,9 +2064,9 @@ namespace rgatCore
         public Matrix4x4 GetViewMatrix()
         {
             Vector3 translation = new Vector3(CameraXOffset, CameraYOffset, CameraZoom);
-            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, PlotZRotation);
             Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
-            viewMatrix = Matrix4x4.Multiply(viewMatrix, rotation);
+            //viewMatrix = Matrix4x4.Multiply(viewMatrix, Matrix4x4.CreateFromQuaternion(_Rotation));
+            viewMatrix = Matrix4x4.Multiply(viewMatrix, _Rotation);
             return viewMatrix;
         }
 
@@ -2388,7 +2387,7 @@ namespace rgatCore
         public Veldrid.Texture _previewTexture;
         public Veldrid.Framebuffer _previewFramebuffer;
 
-
+        //todo - methods
         public float CameraZoom = -5000;
         public float CameraFieldOfView = 0.6f;
         public float CameraClippingFar = 60000;
@@ -2396,6 +2395,10 @@ namespace rgatCore
         public float CameraXOffset = 0f;
         public float CameraYOffset = 0f;
         public float PlotZRotation = 0f;
+        public float PlotXPitch = 0f;
+        public float PlotYRoll = 0f;
+        public Matrix4x4 _Rotation = Matrix4x4.Identity;//  Quaternion.Identity;
+        public Matrix4x4 _Rotation2 = Matrix4x4.CreateRotationX(0);
 
 
         public readonly Object RenderingLock = new Object();

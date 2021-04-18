@@ -46,12 +46,13 @@ namespace rgatCore.Shaders.SPIR_V
 layout(location = 0) in vec2 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
-layout(location = 1) out vec2 vPosition;
 
 layout(set = 0, binding=0) uniform ParamsBuf
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
@@ -73,13 +74,18 @@ void main() {
         vColor = vec4(Color.xyz, nodeAttribTexture[index].y) ;
     }
 
-    vec3 nodePosition = positionTexture[index].xyz;
-    vPosition = Position;
 
-    float nodeSize = 150.0;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
-    float mush = nodeSize / length(gl_Position.xyz);
-    gl_PointSize = nodeAttribTexture[index].x * mush;
+
+    vec4 worldPosition = World *  positionTexture[index];
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+    gl_Position = clipPosition;
+
+
+
+    float nodeSize = 90.0;
+    float relativeNodeSize = nodeSize / length(gl_Position.xyz);
+    gl_PointSize = nodeAttribTexture[index].x * relativeNodeSize;
 }
 
 ";
@@ -95,8 +101,10 @@ layout(location = 0) out vec4 fsout_Color;
 
 layout(set = 0, binding=0) uniform ParamsBuf
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
@@ -165,8 +173,10 @@ layout(location = 1) out vec2 vPosition;
 
 layout(set = 0, binding=0) uniform ParamsBuf
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
@@ -184,8 +194,12 @@ void main() {
     vPosition = Position;
 
     uint index = uint(Position.y * TexWidth + Position.x);
-    vec3 nodePosition = positionTexture[index].xyz;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
+
+    vec4 worldPosition = World *  vec4(positionTexture[index].xyz,1);
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+    gl_Position = clipPosition;
+
     gl_PointSize = 10;
 }";
 
@@ -242,12 +256,15 @@ layout(location = 0) out vec4 vColor;
 
 layout(set = 0, binding=0) uniform ViewBuffer
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
 };
+
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
 
 layout(set = 1, binding=0) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
@@ -257,15 +274,18 @@ layout(set = 1, binding=0) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[]
 void main() {
 
     uint index = uint(Position.y * TexWidth + Position.x);
-    //if (nodeAttribTexture[index].z > 0 )
-
     /*
         each edge has two verts, one for each node
     */    
     vColor = vec4(Color.xyz, nodeAttribTexture[index].y);
 
-    vec3 nodePosition = positionTexture[index].xyz;
-    gl_Position =  modelViewMatrix * vec4(nodePosition,1);
+    //vec3 nodePosition = ;
+    vec4 nodePos2 =  vec4(positionTexture[index].xyz,1);
+
+    vec4 worldPosition = World *  nodePos2;
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+    gl_Position = clipPosition;
     
 }
 
@@ -304,8 +324,10 @@ layout(location = 0) out vec4 vColor;
 
 layout(set = 0, binding=0) uniform ViewBuffer
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
@@ -324,7 +346,11 @@ void main() {
        nodePosition = positionTexture[index].xyz;
     }
 
-       gl_Position =  modelViewMatrix * vec4(nodePosition,1);
+    vec4 worldPosition = World *  vec4(nodePosition,1);
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+    gl_Position = clipPosition;
+
 }
 ";
 
@@ -394,10 +420,13 @@ layout(location = 1) out vec4 _outColour;
 
 layout(set = 0, binding=0) uniform ParamsBuf
 {
-    mat4 modelViewMatrix;
-    mat4 projectionMatrix;
+    mat4 Projection;
+    mat4 View;
+    mat4 World;
+    mat4 nonRotated;
     uint TexWidth;
     int pickingNodeID;
+    bool isAnimated;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=2) buffer bufpositionTexture{
@@ -408,7 +437,15 @@ void main()
 {
 
         vec3 nodePosition = positionTexture[nodeIdx].xyz;
-        gl_Position = modelViewMatrix * (vec4(nodePosition.x,nodePosition.y + yOffset,nodePosition.z, 1.0)) +  projectionMatrix * vec4(vertex.x,vertex.y,0,0);
+
+
+        vec4 worldPosition = World *   (vec4(nodePosition.x,nodePosition.y + yOffset,nodePosition.z, 1.0));
+        vec4 viewPosition = View * worldPosition;
+        vec4 clipPosition = Projection * viewPosition;
+
+        vec4 pos2 = nonRotated * vec4(vertex.x,vertex.y,0,0);
+
+        gl_Position = clipPosition + pos2;
 
         texCoords = fontCrd;
         _outColour = fontColour;

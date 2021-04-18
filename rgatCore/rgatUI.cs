@@ -1530,10 +1530,10 @@ namespace rgatCore
             CreateKeybindInput("Camera Right", eKeybind.eMoveRight, index++);
             CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
             CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
-            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollYLeft, index++);
-            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollYRight, index++);
-            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eRotGraphZLeft, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eRotGraphZRight, index++);
+            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollGraphZClock, index++);
+            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollGraphZAnti, index++);
+            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eYawYRight, index++);
+            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eYawYLeft, index++);
             CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
             CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
             CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
