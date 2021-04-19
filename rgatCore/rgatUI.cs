@@ -180,7 +180,17 @@ namespace rgatCore
 
                     if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
                     {
-                        MainGraphWidget.ApplyMouseDrag(_mouseDragDelta);
+                        
+                        
+                        if (ImGui.GetIO().KeyAlt)
+                        {
+                            MainGraphWidget.ApplyMouseRotate(_mouseDragDelta);
+                        }
+                        else
+                        {
+                            MainGraphWidget.ApplyMouseDrag(_mouseDragDelta);
+                        }
+                        
                         _mouseDragDelta = new Vector2(0, 0);
                     }
                 }
@@ -711,7 +721,7 @@ namespace rgatCore
                 ImGui.DragFloat("Y Position", ref ActiveGraph.CameraYOffset, 1, -400, 200000, "%f");
 
                 ImGui.DragFloat("Zoom", ref ActiveGraph.CameraZoom, 5, 100, 100000, "%f");
-                ImGui.DragFloat("Rotation", ref ActiveGraph.PlotZRotation, 0.01f, -10, 10, "%f");
+                //ImGui.DragFloat("Rotation", ref ActiveGraph.PlotZRotation, 0.01f, -10, 10, "%f");
                 ImGui.EndChild();
             }
         }

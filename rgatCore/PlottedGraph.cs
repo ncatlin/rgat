@@ -81,8 +81,6 @@ namespace rgatCore
             CameraClippingFar = 60000f;
             CameraZoom = -6000f;
             CameraXOffset = -400;
-            CameraYOffset = 0;
-            PlotZRotation = 0f;
         }
 
 
@@ -104,14 +102,13 @@ namespace rgatCore
         }
 
 
-        //virtual int getNearestNode(QPoint screenPos, graphGLWidget &gltarget, NodeData* node) { return INT_MAX; };
-
         public void UpdateMainRender()
         {
 
             render_graph();
 
         }
+
 
         public void SeekToAnimationPosition(float position)
         {
@@ -1983,8 +1980,7 @@ namespace rgatCore
         {
             Vector3 translation = new Vector3(CameraXOffset, CameraYOffset, CameraZoom);
             Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
-            //viewMatrix = Matrix4x4.Multiply(viewMatrix, Matrix4x4.CreateFromQuaternion(_Rotation));
-            viewMatrix = Matrix4x4.Multiply(viewMatrix, _Rotation);
+            viewMatrix = Matrix4x4.Multiply(viewMatrix, RotationMatrix);
             return viewMatrix;
         }
 
@@ -1993,7 +1989,6 @@ namespace rgatCore
             CameraXOffset -= delta.X;
             CameraYOffset += delta.Y;
         }
-
 
 
         public void InitPreviewTexture(Vector2 size, GraphicsDevice _gd)
@@ -2334,11 +2329,7 @@ namespace rgatCore
         public float CameraClippingNear = 1; //extern jut
         public float CameraXOffset = 0f;
         public float CameraYOffset = 0f;
-        public float PlotZRotation = 0f;
-        public float PlotXPitch = 0f;
-        public float PlotYRoll = 0f;
-        public Matrix4x4 _Rotation = Matrix4x4.Identity;//  Quaternion.Identity;
-        public Matrix4x4 _Rotation2 = Matrix4x4.CreateRotationX(0);
+        public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
 
 
         public readonly Object RenderingLock = new Object();

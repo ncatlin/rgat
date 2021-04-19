@@ -275,8 +275,6 @@ namespace rgatCore
                 graph.InitPreviewTexture(new Vector2(width, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
 
-            //rotval += 0.01f; //autorotate
-            if (graph.PlotZRotation >= 360) graph.PlotZRotation = 0;
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize);
 

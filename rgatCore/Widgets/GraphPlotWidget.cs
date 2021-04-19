@@ -116,6 +116,14 @@ namespace rgatCore
                 ActiveGraph.ApplyMouseDragDelta(delta);
             }
         }
+        public void ApplyMouseRotate(Vector2 delta)
+        {
+            if (ActiveGraph != null)
+            {
+                _yaw += delta.X * 0.1f;
+                _pitch += delta.Y * 0.1f;
+            }
+        }
 
 
 
@@ -149,14 +157,11 @@ namespace rgatCore
         bool CenterGraphInFrameStep(out float MaxRemaining)
         {
             if (_centeringInFrame == 1) _centeringSteps += 1;
-            _layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
-            float delta = 0;
-            float xdelta = 0;
-            float ydelta = 0;
-            float zdelta = 0;
 
-            float targXpadding = 80;
-            float targYpadding = 35;
+            _layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+            float delta;
+            float xdelta = 0, ydelta = 0, zdelta = 0;
+            float targXpadding = 80, targYpadding = 35;
 
             float graphDepth = zoffsets.Y - zoffsets.X;
 
@@ -275,6 +280,7 @@ namespace rgatCore
             return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 10;
         }
 
+
         public void AlertKeybindPressed(eKeybind boundAction)
         {
             PlottedGraph activeGraph = ActiveGraph;
@@ -319,7 +325,7 @@ namespace rgatCore
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
-                        _roll = delta;
+                        _roll += delta;
                         break;
                     }
 
@@ -327,30 +333,30 @@ namespace rgatCore
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
-                        _roll = -1* delta;
+                        _roll += -1* delta;
                         break;
                     }
 
                 case eKeybind.eYawYRight:
                     {
-                        _yaw = 0.04f + (shiftModifier * 0.13f);
+                        _yaw += 0.04f + (shiftModifier * 0.13f);
                         break;
                     }
 
                 case eKeybind.eYawYLeft:
                     {
-                        _yaw = -1*(0.04f + (shiftModifier * 0.13f));
+                        _yaw += -1*(0.04f + (shiftModifier * 0.13f));
                         break;
                     }
 
                 case eKeybind.ePitchXBack:
                     {
-                        _pitch = 0.06f + (shiftModifier * 0.13f);
+                        _pitch += 0.06f + (shiftModifier * 0.13f);
                         break;
                     }
                 case eKeybind.ePitchXFwd:
                     {
-                        _pitch = -1 * (0.06f + (shiftModifier * 0.13f));
+                        _pitch += -1 * (0.06f + (shiftModifier * 0.13f));
                         break;
                     }
 
@@ -390,7 +396,6 @@ namespace rgatCore
         private float _yaw = 0;
         private float _roll = 0;
 
-        Matrix4x4 _storedRotationMatrix = Matrix4x4.Identity;
 
         void getview(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
@@ -404,10 +409,10 @@ namespace rgatCore
 
             Matrix4x4 offsetRotation = pitch * yaw * roll;
 
-            world = _storedRotationMatrix * offsetRotation;
+            world = ActiveGraph.RotationMatrix * offsetRotation;
 
             view = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
-            _storedRotationMatrix = world;
+            ActiveGraph.RotationMatrix = world;
         }
 
 
