@@ -218,7 +218,8 @@ void main()	{
             } else {
         
         
-                //first repel todo ditch this double loop
+                //first repel 
+                //todo ditch this double loop
                 for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
                 {
                     for(uint x = 0; x < fieldParams.nodesTexWidth; x++)

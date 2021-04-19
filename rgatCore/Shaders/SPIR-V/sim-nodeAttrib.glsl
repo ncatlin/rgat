@@ -65,6 +65,7 @@ void main()	{
     }
         
     //if live trace or active replay
+    //todo - different shaders for these
     if (params.isAnimated == true)
     {        
         //alpha is based on how long since last active

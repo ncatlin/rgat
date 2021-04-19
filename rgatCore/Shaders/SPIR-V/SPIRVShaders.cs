@@ -45,6 +45,7 @@ namespace rgatCore.Shaders.SPIR_V
 
 layout(location = 0) in vec2 PositionTexCoord;
 layout(location = 1) in vec4 Color;
+layout(location = 0) out vec2 PositionTexCoordOut;
 layout(location = 1) out vec4 vColor;
 
 layout(set = 0, binding=0) uniform ParamsBuf
@@ -66,6 +67,7 @@ layout(set = 1, binding=0) buffer bufnodeAttribTexture{
 
 
 void main() {
+    PositionTexCoordOut = PositionTexCoord;
     uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
 
     if (index == pickingNodeID){
@@ -91,7 +93,7 @@ void main() {
 
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) in vec2 fsin_Position;
+layout(location = 0) in vec2 PositionTexCoord;
 layout(location = 1) in vec4 fsin_Color;
 layout(location = 0) out vec4 fsout_Color;
 
@@ -115,13 +117,16 @@ layout(set = 1, binding=1) uniform texture2D nodeTextures;
 
 void main() 
 {
-    uint index = uint(fsin_Position.y * TexWidth + fsin_Position.x);
-    float textureIdx = nodeAttribTexture[index].w;    
+    uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
+    float textureIdx = nodeAttribTexture[index].w;    //the icon used for the node
+    
 
     //draw the sphere texture over the node point
 
     vec4 node = texture(sampler2D(nodeTextures, nodeTexView), vec2((gl_PointCoord.x/2)+(0.5*textureIdx), gl_PointCoord.y)); //
     fsout_Color = vec4( fsin_Color.xyzw ) * node;
+
+
 }";
 
 

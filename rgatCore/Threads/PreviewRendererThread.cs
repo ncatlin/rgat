@@ -7,9 +7,9 @@ namespace rgatCore.Threads
 {
     class PreviewRendererThread
     {
-        TraceRecord RenderedTrace = null;
-        bool running = false;
-        public rgatState rgatState = null;
+        TraceRecord RenderedTrace;
+        bool running;
+        public rgatState rgatState;
 
         public PreviewRendererThread(TraceRecord _renderedTrace, rgatState _clientState)
         {
@@ -38,24 +38,15 @@ namespace rgatCore.Threads
                     //check for trace data that hasn't been rendered yet
                     ProtoGraph protoGraph = graph.internalProtoGraph;
 
-                    
-                    //if ((graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
-                    //{
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
-                        moreRenderingNeeded = true;
                         graph.render_graph();
-                    //}
-
+                        if (!graph.RenderingComplete())
+                            moreRenderingNeeded = true;
 
                     if (!running) break;
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);
                 }
-                /*
-				for (auto graph : graphlist)
-				{
-					graph.decrease_thread_references(1288);
-				}
-				*/
+
                 graphlist.Clear();
 
                 int waitForNextIt = 0;

@@ -72,38 +72,4 @@ namespace rgatCore
 
     }
 
-    
-    struct VertexPositionColorOld
-    {
-        public Vector3 Position;
-        public WritableRgbaFloat Color;
-        public float ActiveAnimAlpha;
-        public const uint SizeInBytes = 32;
-
-        public VertexPositionColorOld(Vector3 position, WritableRgbaFloat color, float AnimDarkAlpha)
-        {
-            Position = position;
-            Color = color;
-            ActiveAnimAlpha = AnimDarkAlpha;
-        }
-        public void SetAlpha(float alpha) => Color.A = alpha;
-        public void SetAnimAlpha(float alpha)
-        {
-            ActiveAnimAlpha = alpha;
-        }
-
-        public VertexPositionColorOld(Vector3 position, Veldrid.RgbaFloat color, float AnimDarkAlpha)
-        {
-            Position = position;
-            Color = new WritableRgbaFloat()
-            {
-                A = color.A,
-                B = color.B,
-                G = color.G,
-                R = color.R
-            };
-            ActiveAnimAlpha = AnimDarkAlpha;
-        }
-    }
-
 }

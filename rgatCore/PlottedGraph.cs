@@ -272,6 +272,8 @@ namespace rgatCore
 
         }
 
+        public bool RenderingComplete() => DrawnEdgesCount >= internalProtoGraph.edgeList.Count;
+
         protected void render_new_blocks()
         {
             int endIndex = internalProtoGraph.edgeList.Count;
@@ -892,31 +894,23 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
 
-            if (edge != null)
-            {
-                if (edge.sourceNodeType == eEdgeNodeType.eNodeNonFlow && edge.edgeClass == eEdgeNodeType.eEdgeNew)
-                {
-                    nodePositionEntry[3] = 2;
-                }
-            }
 
             uint currentOffset = (futureCount - 1) * 4;
 
-            positionsArray1[currentOffset] = nodePositionEntry[0];
-            positionsArray1[currentOffset + 1] = nodePositionEntry[1];
-            positionsArray1[currentOffset + 2] = nodePositionEntry[2];
-            positionsArray1[currentOffset + 3] = nodePositionEntry[3];
+            positionsArray1[currentOffset] = nodePositionEntry[0];      //X
+            positionsArray1[currentOffset + 1] = nodePositionEntry[1];  //Y
+            positionsArray1[currentOffset + 2] = nodePositionEntry[2];  //Z
+            positionsArray1[currentOffset + 3] = nodePositionEntry[3];  //type of position (none, preset, force directed)
 
-            presetPositionsArray[currentOffset] = 0;
-            presetPositionsArray[currentOffset + 1] = 0;
-            presetPositionsArray[currentOffset + 2] = 0;
-            presetPositionsArray[currentOffset + 3] = 0;
+            presetPositionsArray[currentOffset] = 0;      //X
+            presetPositionsArray[currentOffset + 1] = 0;  //Y
+            presetPositionsArray[currentOffset + 2] = 0;  //Z
+            presetPositionsArray[currentOffset + 3] = 0;  //>=1 => an active preset
 
             velocityArray1[currentOffset] = 0;
             velocityArray1[currentOffset + 1] = 0;
             velocityArray1[currentOffset + 2] = 0;
             velocityArray1[currentOffset + 3] = 1;
-
 
             nodeAttribArray1[currentOffset] = 200f;
             nodeAttribArray1[currentOffset + 1] = 1f;// 0.5f;
@@ -995,7 +989,7 @@ namespace rgatCore
         }
 
         int[] _blockDataInts;
-        bool _blockDataIncomplete = false;
+        bool _blockDataIncomplete;
         public unsafe int[] GetNodeBlockData()
         {
             return _blockDataInts;
@@ -2032,8 +2026,8 @@ namespace rgatCore
                 }
                 foreach (uint nidx in newnodeidxs)
                 {
-                    nodeAttribArray1[nidx * 4 + 0] = 400f;
-                    nodeAttribArray1[nidx * 4 + 3] = 1.0f;
+                    nodeAttribArray1[nidx * 4 + 0] = 400f;  // make bigger
+                    nodeAttribArray1[nidx * 4 + 3] = 1.0f;  // set target icon
                     internalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
                 }
                 HighlightsChanged = true;
