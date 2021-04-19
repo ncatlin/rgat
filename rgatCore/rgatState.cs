@@ -17,9 +17,9 @@ namespace rgatCore
     class rgatState
     {
         public BinaryTargets targets = new BinaryTargets();
-        public BinaryTarget ActiveTarget = null;// { get; private set; } = null;
-        public TraceRecord ActiveTrace = null;
-        public PlottedGraph ActiveGraph { get; private set; } = null;
+        public BinaryTarget ActiveTarget;// { get; private set; } = null;
+        public TraceRecord ActiveTrace;
+        public PlottedGraph ActiveGraph { get; private set; }
         public Veldrid.GraphicsDevice _GraphicsDevice;
         public Veldrid.CommandList _CommandList;
         public DetectItEasy DIELib;
@@ -485,7 +485,13 @@ namespace rgatCore
             var traceslist = targ.GetTracesUIList();
             foreach (Tuple<DateTime, TraceRecord> time_trace in traceslist)
             {
-                time_trace.Item2.Save(time_trace.Item1);
+                TraceRecord trace = time_trace.Item2;
+                DateTime creationTime = time_trace.Item1;
+
+                if (!trace.WasLoadedFromSave)
+                {
+                    trace.Save(creationTime); 
+                }
             }
         }
 

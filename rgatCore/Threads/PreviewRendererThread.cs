@@ -38,12 +38,13 @@ namespace rgatCore.Threads
                     //check for trace data that hasn't been rendered yet
                     ProtoGraph protoGraph = graph.internalProtoGraph;
 
-                    if ((graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
-                    {
+                    
+                    //if ((graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()))
+                    //{
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
                         moreRenderingNeeded = true;
                         graph.render_graph();
-                    }
+                    //}
 
 
                     if (!running) break;

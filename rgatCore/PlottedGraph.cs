@@ -61,11 +61,6 @@ namespace rgatCore
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
 
-            //possibly conditional. diff graphs won't want heatmaps etc
-            NodesDisplayData = new GraphDisplayData();
-            EdgesDisplayData = new GraphDisplayData();
-            HighlightsDisplayData = new GraphDisplayData();
-
             savedForcePositions[eGraphLayout.eForceDirected3DNodes] = Array.Empty<float>();
             savedForcePositions[eGraphLayout.eForceDirected3DBlocks] = Array.Empty<float>();
 
@@ -150,6 +145,7 @@ namespace rgatCore
         }
 
         //public void schedule_animation_reset() { animation_needs_reset = true; }
+        uint _lastAnimatedVert;
 
         //This should only ever be called from the rendering thread
         public void ResetAnimation()
@@ -163,7 +159,7 @@ namespace rgatCore
             }
 
             //animInstructionIndex = 0;
-            NodesDisplayData.LastAnimatedNode.lastVertID = 0;
+            _lastAnimatedVert = 0;
             animationIndex = 0;
 
             unchainedWaitFrames = 0;
@@ -172,7 +168,6 @@ namespace rgatCore
             IsAnimated = false;
 
             ReplayState = REPLAY_STATE.eStopped;
-            NodesDisplayData.LastAnimatedNode.lastVertID = 0;
             Console.WriteLine("Animation Stopped");
             //animnodesdata.release_col_write();
 
@@ -296,8 +291,8 @@ namespace rgatCore
                 if (edgeNodes.Item2 >= _graphStructureLinear.Count)
                 {
                     EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
-                    if (e.edgeClass == eEdgeNodeType.eEdgeException)
-                        NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
+                    //if (e.edgeClass == eEdgeNodeType.eEdgeException)
+                    //    NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
                     AddNode(edgeNodes.Item2, e);
 
                 }
@@ -735,7 +730,7 @@ namespace rgatCore
 
         void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
-            uint node = NodesDisplayData.LastAnimatedNode.lastVertID;
+            uint node = _lastAnimatedVert;
             lock (animationLock)
             {
                 if (_LingeringActiveNodes.Count > 0)
@@ -1034,6 +1029,8 @@ namespace rgatCore
             {
                 NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
                 var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID];
+                if (firstIdx_LastIdx == null) continue;
+
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
                 int blockID = (int)n.BlockID;
                 if (!blockMiddles.ContainsKey(blockID)) 
@@ -1596,7 +1593,7 @@ namespace rgatCore
                 newnodelist = new List<uint>();
                 foreach (Tuple<uint, uint> edge in calls) //record each call by caller
                 {
-                    if (edge.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID)
+                    if (edge.Item1 == _lastAnimatedVert)
                     {
                         newnodelist.Add(edge.Item2);
                     }
@@ -1624,8 +1621,8 @@ namespace rgatCore
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[internalProtoGraph.ThreadID];
-                uint callerIdx = callers.Find(n => n.Item1 == NodesDisplayData.LastAnimatedNode.lastVertID).Item2;
-                LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, callerIdx);
+                uint callerIdx = callers.Find(n => n.Item1 == _lastAnimatedVert).Item2;
+                LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, callerIdx);
 
             }
             else
@@ -1634,7 +1631,7 @@ namespace rgatCore
                 InstructionData nextIns = nextBlock[0];
                 if (nextIns.threadvertIdx.TryGetValue(internalProtoGraph.ThreadID, out uint caller))
                 {
-                    LinkingPair = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, caller);
+                    LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, caller);
                 }
                 else return;
             }
@@ -1671,7 +1668,7 @@ namespace rgatCore
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
-                    Tuple<uint, uint> edge = new Tuple<uint, uint>(NodesDisplayData.LastAnimatedNode.lastVertID, nodeIdx);
+                    Tuple<uint, uint> edge = new Tuple<uint, uint>(_lastAnimatedVert, nodeIdx);
                     if (internalProtoGraph.EdgeExists(edge))
                     {
                         AddPulseActiveNode(edge.Item1);
@@ -1684,7 +1681,7 @@ namespace rgatCore
                 else
                     AddPulseActiveNode(nodeIdx);
 
-                NodesDisplayData.LastAnimatedNode.lastVertID = nodeIdx;
+                _lastAnimatedVert = nodeIdx;
 
                 ++listOffset;
                 if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1))) break;
@@ -1705,7 +1702,7 @@ namespace rgatCore
 
             currentUnchainedBlocks.Clear();
             List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            NodesDisplayData.LastAnimatedNode.lastVertID = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+            _lastAnimatedVert = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
 
@@ -1824,7 +1821,7 @@ namespace rgatCore
                 process_replay_update();
             }
 
-            internalProtoGraph.set_active_node(NodesDisplayData.LastAnimatedNode.lastVertID);
+            internalProtoGraph.set_active_node(_lastAnimatedVert);
 
             if (animationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
             {
@@ -2358,16 +2355,7 @@ namespace rgatCore
 
 
         public static rgatState clientState;
-
-        public GraphDisplayData NodesDisplayData = null;
-        //public GraphDisplayData BlocksDisplayData = null;
-        public GraphDisplayData EdgesDisplayData = null;
-        public GraphDisplayData HighlightsDisplayData = null;
-        //public GraphDisplayData blocklines = null;
-        public GraphDisplayData wireframelines = null;
-
-
-        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
+                public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
 
         public ulong vertResizeIndex = 0;
         public int userSelectedAnimPosition = -1;

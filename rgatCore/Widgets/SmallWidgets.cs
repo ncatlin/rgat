@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using Veldrid;
 
 namespace rgatCore.Widgets
 {
@@ -77,6 +78,50 @@ namespace rgatCore.Widgets
             draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
             draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
             return changed;
+        }
+
+
+        public static bool ImageCaptionButton(IntPtr TextureId, Vector2 iconsize, float width, string caption, bool isSelected)
+        {
+            
+            bool isMouseHover = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(width, iconsize.Y));
+            if (isSelected)
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x45d5d5d5);
+            else
+            {
+                if (isMouseHover)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff989898);
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
+                }
+            }
+
+            bool clicked = false;
+            Vector2 widgetSize = new Vector2(width, iconsize.Y + 4);
+            if (ImGui.BeginChild(ImGui.GetID(caption + "ICB"), widgetSize, false, ImGuiWindowFlags.NoScrollbar))
+            {
+                Vector2 a = ImGui.GetCursorScreenPos() + new Vector2(5, 2);
+
+                if (ImGui.InvisibleButton(caption + "IVB", widgetSize))
+                {
+                    clicked = true;
+                }
+
+                ImGui.SetCursorScreenPos(a);
+                ImGui.Image(TextureId, iconsize);
+                ImGui.SameLine(iconsize.X + 14);
+                Vector2 iconPos = ImGui.GetCursorScreenPos();
+                ImGui.SetCursorScreenPos(new Vector2(iconPos.X, iconPos.Y + 7));
+                ImGui.Text(caption);
+                ImGui.SetCursorScreenPos(iconPos);
+
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+            return clicked;
         }
     }
 }

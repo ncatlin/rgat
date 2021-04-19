@@ -44,10 +44,9 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-
-                Console.WriteLine("Control pipe exception for PID " + trace.PID + " :"+e.Message);
+                Console.WriteLine("Control pipe exception for PID " + trace.PID + " :" + e.Message);
             }
-            
+
         }
 
 
@@ -79,14 +78,14 @@ namespace rgatCore
         {
             string pipename = GetTracePipeName(TID);
 
-            Console.WriteLine("Opening pipe "+pipename);
+            Console.WriteLine("Opening pipe " + pipename);
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
             threadListener.WaitForConnection();
             Console.WriteLine("Trace thread connected");
-                
+
             ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
-            if(!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph))
+            if (!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph))
             {
                 Console.WriteLine("ERROR: Failed to create plotted graphs for new thread, abandoning");
                 return;
@@ -140,8 +139,11 @@ namespace rgatCore
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} ended!");
 
-            trace.PlottedGraphs[TID][eRenderingMode.eStandardControlFlow].internalProtoGraph.Terminated = true;
-            trace.PlottedGraphs[TID][eRenderingMode.eStandardControlFlow].ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+            if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
+            {
+                graph.internalProtoGraph.Terminated = true;
+                graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+            }
         }
 
 
@@ -303,7 +305,8 @@ namespace rgatCore
                 controlPipe = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
                 IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
             }
-            catch (System.IO.IOException e){
+            catch (System.IO.IOException e)
+            {
                 Console.WriteLine("IO Exception on ModuleHandlerThreadListener: " + e.Message);
                 controlPipe = null;
                 return;
@@ -335,10 +338,12 @@ namespace rgatCore
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
                 if (!res.IsCompleted)
                 {
-                    try { int bytesRead = controlPipe.EndRead(res); }
+                    try { 
+                        int bytesRead = controlPipe.EndRead(res); 
+                    }
                     catch {
                         Console.WriteLine("Exception in outer ModhandlerRead");
-                    };
+                    }
                 }
             }
 

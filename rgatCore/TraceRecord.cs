@@ -70,6 +70,9 @@ namespace rgatCore
             //DisassemblyData.modBounds.resize(255, null);
         }
 
+        bool _loadedFromSave = false;
+        public bool WasLoadedFromSave => _loadedFromSave;
+
         string getModpathID() { return PID.ToString() + randID.ToString(); }
         /*
 		void notify_new_pid(uint pid, int PID_ID, uint parentPid) { runtimeline.notify_new_pid(pid, PID_ID, parentPid); running = true; }
@@ -166,6 +169,7 @@ namespace rgatCore
 				return false;
 			}
 			*/
+            _loadedFromSave = true;
             return true;
         }
 

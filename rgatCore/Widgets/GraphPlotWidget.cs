@@ -120,8 +120,8 @@ namespace rgatCore
         {
             if (ActiveGraph != null)
             {
-                _yaw += delta.X * 0.1f;
-                _pitch += delta.Y * 0.1f;
+                _yawDelta += delta.X * 0.1f;
+                _pitchDelta += delta.Y * 0.1f;
             }
         }
 
@@ -325,7 +325,7 @@ namespace rgatCore
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
-                        _roll += delta;
+                        _rollDelta += delta;
                         break;
                     }
 
@@ -333,30 +333,30 @@ namespace rgatCore
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
-                        _roll += -1* delta;
+                        _rollDelta += -1* delta;
                         break;
                     }
 
                 case eKeybind.eYawYRight:
                     {
-                        _yaw += 0.04f + (shiftModifier * 0.13f);
+                        _yawDelta += 0.04f + (shiftModifier * 0.13f);
                         break;
                     }
 
                 case eKeybind.eYawYLeft:
                     {
-                        _yaw += -1*(0.04f + (shiftModifier * 0.13f));
+                        _yawDelta += -1*(0.04f + (shiftModifier * 0.13f));
                         break;
                     }
 
                 case eKeybind.ePitchXBack:
                     {
-                        _pitch += 0.06f + (shiftModifier * 0.13f);
+                        _pitchDelta += 0.06f + (shiftModifier * 0.13f);
                         break;
                     }
                 case eKeybind.ePitchXFwd:
                     {
-                        _pitch += -1 * (0.06f + (shiftModifier * 0.13f));
+                        _pitchDelta += -1 * (0.06f + (shiftModifier * 0.13f));
                         break;
                     }
 
@@ -392,20 +392,17 @@ namespace rgatCore
       
 
 
-        private float _pitch = 0;
-        private float _yaw = 0;
-        private float _roll = 0;
-
+        private float _pitchDelta, _yawDelta, _rollDelta = 0;
 
         void getview(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
             if (ActiveGraph.CameraClippingFar <= ActiveGraph.CameraClippingNear) ActiveGraph.CameraClippingFar = ActiveGraph.CameraClippingNear + 1;
             proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)_graphWidgetSize.X / _graphWidgetSize.Y, ActiveGraph.CameraClippingNear, ActiveGraph.CameraClippingFar);
 
-            Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitch);
-            Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yaw);
-            Matrix4x4 roll = Matrix4x4.CreateFromAxisAngle(Vector3.UnitZ, _roll);
-            _pitch = 0; _yaw = 0f; _roll = 0;
+            Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
+            Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
+            Matrix4x4 roll = Matrix4x4.CreateFromAxisAngle(Vector3.UnitZ, _rollDelta);
+            _pitchDelta = 0; _yawDelta = 0f; _rollDelta = 0;
 
             Matrix4x4 offsetRotation = pitch * yaw * roll;
 
@@ -433,8 +430,6 @@ namespace rgatCore
             renderLock.ReleaseReaderLock();
         }
 
-        public DeviceBuffer _viewBufferD { get; private set; }
-        DeviceBuffer _projbufD, _worldbufD;
         Framebuffer _outputFramebuffer, _pickingFrameBuffer;
         bool processingAnimatedGraph;
 
@@ -584,8 +579,8 @@ namespace rgatCore
             public bool isAnimated;
             //must be multiple of 16
 
-            private ulong _padding1;
-            private bool _padding3c;
+            private readonly ulong _padding1;
+            private readonly bool _padding3c;
         }
 
 
@@ -649,10 +644,6 @@ namespace rgatCore
             }
         }
 
-        float totalZ = 0;
-        float totalX = 0;
-        float totalY = 0;
-     
 
         GraphShaderParams updateShaderParams(uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world)
         {
@@ -671,6 +662,7 @@ namespace rgatCore
 
             return shaderParams;
         }
+
 
         class RISINGEXTTXT
         {
@@ -745,9 +737,7 @@ namespace rgatCore
             //find any lingering labels in the new list which are not in the current list, render them
             if (currentLingeringExternLabels.Count > 0)
             {
-                var currentLingeringCaptionNodes = _activeRisings
-                    .Where(x => x.remainingFrames == -1)
-                    .Select(x => x.nodeIdx);
+                var currentLingeringCaptionNodes = _activeRisings.Where(x => x.remainingFrames == -1).Select(x => x.nodeIdx);
 
                 var newLingeringCaptions = currentLingeringExternLabels
                     .Where(x => !currentLingeringCaptionNodes.Contains((int)x.Item1));
@@ -819,20 +809,10 @@ namespace rgatCore
         }
 
 
-
-        Vector2 _furthestX = new Vector2(0, 0);
-        Vector2 _furthestY = new Vector2(0, 0);
-        Vector2 _furthestZ = new Vector2(0, 0);
-
-
-
-
         public void renderGraph(DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
 
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
-            _crs_core?.Dispose();
-            _crs_core = _factory.CreateResourceSet(crs_core_rsd);
+    
 
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _imageTextureView);
 
@@ -845,6 +825,9 @@ namespace rgatCore
             getview(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             updateShaderParams(textureSize, proj, view, world);
 
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
+            _crs_core?.Dispose();
+            _crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
             TextureOffsetColour[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(_renderingMode,
             out List<uint> nodeIndices, out TextureOffsetColour[] nodePickingColors,  out List<Tuple<string, Color>> captions);
@@ -891,7 +874,6 @@ namespace rgatCore
             //have hacked in a solution here but the codepoint and visible attribs (which we don't use) wont work. 
             //https://github.com/mellinoe/ImGui.NET/issues/206
             System.Diagnostics.Debug.Assert(_controller._unicodeFont.GetCharAdvance('4') == _controller._unicodeFont.FindGlyph('4').AdvanceX);
-
 
 
             List<fontStruc> stringVerts;
@@ -1014,7 +996,6 @@ namespace rgatCore
         }
 
 
-
         void drawHUD(Vector2 widgetSize)
         {
             string msg;
@@ -1048,88 +1029,48 @@ namespace rgatCore
         }
 
 
-
-
-        bool ImageCaptionButton(Texture iconTex, Vector2 iconsize, float width, string caption, bool isSelected)
-        {
-
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex);
-            bool isMouseHover = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(width, iconsize.Y));
-            if (isSelected)
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x45d5d5d5);
-            else
-            {
-                if (isMouseHover)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff989898);
-                }
-                else
-                {
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
-                }
-            }
-
-            bool clicked = false;
-            Vector2 widgetSize = new Vector2(width, iconsize.Y + 4);
-            if (ImGui.BeginChild(ImGui.GetID(caption + "ICB"), widgetSize, false, ImGuiWindowFlags.NoScrollbar))
-            {
-                Vector2 a = ImGui.GetCursorScreenPos() + new Vector2(5, 2);
-
-                if (ImGui.InvisibleButton(caption + "IVB", widgetSize))
-                {
-                    clicked = true;
-                }
-
-                ImGui.SetCursorScreenPos(a);
-                ImGui.Image(CPUframeBufferTextureId, iconsize);
-                ImGui.SameLine(iconsize.X + 14);
-                Vector2 iconPos = ImGui.GetCursorScreenPos();
-                ImGui.SetCursorScreenPos(new Vector2(iconPos.X, iconPos.Y + 7));
-                ImGui.Text(caption);
-                ImGui.SetCursorScreenPos(iconPos);
-
-                ImGui.EndChild();
-            }
-            ImGui.PopStyleColor();
-            return clicked;
-        }
-
-
-
-
         bool _showLayoutSelectorPopup;
         bool _showQuickMenu;
-        Texture getLayoutIcon(eGraphLayout layout)
+        IntPtr getLayoutIcon(eGraphLayout layout)
         {
+            Texture iconTex = null;
             switch (layout)
             {
                 case eGraphLayout.eForceDirected3DNodes:
                 case eGraphLayout.eForceDirected3DBlocks:
-                    return _controller.GetImage("Force3D");
+                    iconTex = _controller.GetImage("Force3D");
+                    break;
                 case eGraphLayout.eCircle:
-                    return _controller.GetImage("Circle");
+                    iconTex = _controller.GetImage("Circle");
+                    break;
                 case eGraphLayout.eCylinderLayout:
-                    return _controller.GetImage("Cylinder");
+                    iconTex = _controller.GetImage("Cylinder");
+                    break;
                 default:
                     Console.WriteLine($"ERROR: no icond for layout {layout}");
-                    return _controller.GetImage("Force3D");
+                    iconTex = _controller.GetImage("Force3D");
+                    break;
             }
+
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex);
+            return CPUframeBufferTextureId;
         }
+
+
 
 
         void DrawLayoutSelector(Vector2 position, float scale)
         {
-            Texture btnIcon = getLayoutIcon(ActiveGraph.LayoutStyle);
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
-            float buttonWidth = 150f;
+            
 
             ImGui.SetCursorScreenPos(pmin);
 
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(_controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon), iconSize);
+            ImGui.ImageButton(getLayoutIcon(ActiveGraph.LayoutStyle), iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
@@ -1151,25 +1092,11 @@ namespace rgatCore
 
             bool snappingToPreset = _layoutEngine.ActivatingPreset;
             if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
-
+            
             if (ImGui.BeginPopup("layout select popup"))
             {
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DNodes), iconSize, buttonWidth, "Force Directed Nodes", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes))
-                {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DNodes)) { _layoutEngine.ChangePreset(); }
-                }
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DBlocks), iconSize, buttonWidth, "Force Directed Blocks", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks))
-                {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DBlocks)) { _layoutEngine.ChangePreset(); }
-                }
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout), iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
-                {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout)) { _layoutEngine.ChangePreset(); }
-                }
-                if (ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle), iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
-                {
-                    if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle)) { _layoutEngine.ChangePreset(); }
-                }
+
+                DrawLayoutSelectorIcons(iconSize, snappingToPreset);
 
                 if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
                         | ImGuiHoveredFlags.AllowWhenBlockedByPopup
@@ -1181,10 +1108,40 @@ namespace rgatCore
                 ImGui.EndPopup();
             }
             if (snappingToPreset) { ImGui.PopStyleColor(); }
-
-
-
         }
+
+
+
+        void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
+        {
+            float buttonWidth = 150f;
+
+            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DNodes),
+                iconSize, buttonWidth, "Force Directed Nodes", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes))
+            {
+                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DNodes)) { _layoutEngine.ChangePreset(); }
+            }
+
+            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DBlocks),
+                iconSize, buttonWidth, "Force Directed Blocks", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks))
+            {
+                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DBlocks)) { _layoutEngine.ChangePreset(); }
+            }
+
+            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout),
+                iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
+            {
+                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout)) { _layoutEngine.ChangePreset(); }
+            }
+
+            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle),
+                iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
+            {
+                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle)) { _layoutEngine.ChangePreset(); }
+            }
+        }
+
+
 
         void DrawVisibilitySelector(Vector2 position, float scale)
         {

@@ -554,8 +554,8 @@ namespace rgatCore
             public uint EdgeCount;
             public uint fixedInternalNodes;
 
-            private uint _padding1; //must be multiple of 16
-            private uint _padding2; //must be multiple of 16
+            private readonly uint _padding1; //must be multiple of 16
+            private readonly uint _padding2; //must be multiple of 16
         }
 
 
@@ -660,9 +660,9 @@ namespace rgatCore
             public uint fixedInternalNodes;
             public bool activatingPreset;
             //must be multiple of 16
-            private uint _padding1;
-            private uint _padding3;
-            private bool y;
+            private readonly uint _padding1;
+            private readonly uint _padding3;
+            private readonly bool _padding4;
 
         }
 
@@ -725,8 +725,9 @@ namespace rgatCore
 
             public int edgesTexWidth;     // neighbor data
             public bool isAnimated;
-            private uint _padding2b;
-            private uint _padding2c;
+
+            private readonly uint _padding2b;
+            private readonly uint _padding2c;
         }
 
         public unsafe void RenderNodeAttribs(DeviceBuffer attribBufIn, DeviceBuffer attribBufOut, float delta, int mouseoverNodeID, bool useAnimAttribs)
@@ -869,7 +870,7 @@ namespace rgatCore
             return false;
         }
 
-        bool _activatingPreset = false;
+        bool _activatingPreset;
         public ulong Compute(uint drawnEdgeCount, int mouseoverNodeID, bool useAnimAttribs)
         {
             Debug.Assert(_activeGraph != null, "Layout engine called to compute without active graph");

@@ -29,8 +29,8 @@ namespace rgatCore.Threads
 			ProtoGraph protoGraph = graph.internalProtoGraph;
 			if (protoGraph == null || protoGraph.edgeList.Count == 0) return;
 
-			if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
-				return;
+			//if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
+			//	return;
 
 			if (graph.ReplayState == PlottedGraph.REPLAY_STATE.eEnded && protoGraph.Terminated)
 			{
@@ -38,6 +38,7 @@ namespace rgatCore.Threads
 			}
 
 			//update the render if there are more verts/edges or graph is being resized
+			/*
 			if (
 				(graph.NodesDisplayData.CountVerts() < protoGraph.get_num_nodes()) ||
 				(graph.EdgesDisplayData.CountRenderedEdges < protoGraph.get_num_edges()) ||
@@ -45,9 +46,12 @@ namespace rgatCore.Threads
 			{
 				lock (graph.RenderingLock)
 				{
+			*/
 					graph.UpdateMainRender();
+			/*
 				}
 			}
+			*/
 
 			if (!protoGraph.Terminated)
 			{
@@ -80,7 +84,7 @@ namespace rgatCore.Threads
 			{
 
 				activeGraph = rgatState.getActiveGraph(false);
-				while (activeGraph == null || activeGraph.EdgesDisplayData == null)
+				while (activeGraph == null)
 				{
 					Thread.Sleep(50);
 					if (rgatState.rgatIsExiting) return;

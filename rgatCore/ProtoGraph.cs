@@ -1166,6 +1166,7 @@ namespace rgatCore
                 Console.WriteLine("[rgat] Failed to find valid Edges in trace");
                 return false;
             }
+
             JArray EdgeArray = (JArray)jEdges;
             if (!LoadEdges(EdgeArray))
             {
@@ -1173,11 +1174,12 @@ namespace rgatCore
                 return false;
             }
 
-            if (!graphData.TryGetValue("BlockBounds", out JToken blockbounds) || jEdges.Type != JTokenType.Array || (((JArray)jEdges).Count %2 != 0))
+            if (!graphData.TryGetValue("BlockBounds", out JToken blockbounds) || blockbounds.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid BlockBounds array in trace");
                 return false;
             }
+
             BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
             JArray blockBoundsArray = (JArray)blockbounds;
             for (int i = 0; i < blockBoundsArray.Count; i+=2)
