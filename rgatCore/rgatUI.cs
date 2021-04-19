@@ -1340,9 +1340,20 @@ namespace rgatCore
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {
-                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue && File.Exists(picker.SelectedFile))
                     {
-                        _rgatstate.AddTargetByPath(picker.SelectedFile);
+                        FileStream fs = File.OpenRead(picker.SelectedFile);
+                        bool isJSON = (fs.ReadByte() == '{' && fs.ReadByte() == '"');
+                        fs.Close();
+                        if (isJSON)
+                        {
+                            Console.WriteLine("JSON detected, attempting to load file as saved trace instead");
+                            LoadTraceByPath(picker.SelectedFile);
+                        }
+                        else
+                        {
+                            _rgatstate.AddTargetByPath(picker.SelectedFile);
+                        }
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     _show_select_exe_window = false;

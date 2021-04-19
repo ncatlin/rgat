@@ -16,9 +16,22 @@ namespace rgatCore.Widgets
 
         public void Draw(PlottedGraph activeGraph)
         {
-            if (ImGui.BeginChildFrame(ImGui.GetID("VisibilityPopupFrame"), _size))
+            if (ImGui.BeginChildFrame(ImGui.GetID("QuickMenuMainFrame"), _size))
             {
-                DrawMainFrame(activeGraph);
+                
+                ImGui.Selectable("l1"); ImGui.SameLine();
+                ImGui.Selectable("l2"); ImGui.SameLine();
+                ImGui.Selectable("l3"); ImGui.SameLine();
+                ImGui.Selectable("l4"); ImGui.SameLine();
+                ImGui.Selectable("l5"); ImGui.SameLine();
+                
+                if (ImGui.BeginChild(ImGui.GetID("QuickMenuVisibility")))
+                {
+                    DrawMainFrame(activeGraph);
+                    ImGui.EndChild();
+                }
+
+                ImGui.EndChildFrame();
             }
         }
 
@@ -40,7 +53,6 @@ namespace rgatCore.Widgets
             ImGui.SameLine();
             if (SmallWidgets.ToggleButton("textenable_ins", activeGraph.TextEnabledIns))
                 activeGraph.TextEnabledIns = !activeGraph.TextEnabledIns;
-            ImGui.EndChildFrame();
         }
     }
 }

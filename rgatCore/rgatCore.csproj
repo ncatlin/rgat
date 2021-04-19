@@ -64,8 +64,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="PeNet" Version="2.6.0" />
-    <PackageReference Include="QuikGraph" Version="2.2.0" />
+    <PackageReference Include="PeNet" Version="2.6.2" />
     <PackageReference Include="Veldrid" Version="4.5.0" />
     <PackageReference Include="Veldrid.ImageSharp" Version="4.5.0" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.9" />

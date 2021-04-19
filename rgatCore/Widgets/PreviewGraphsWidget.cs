@@ -245,25 +245,20 @@ namespace rgatCore
 
         GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize)
         {
-            GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams { TexWidth = textureSize, pickingNode = -1, isAnimated = false };
+            GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams { 
+                TexWidth = textureSize, 
+                pickingNode = -1, 
+                isAnimated = false 
+            };
 
             float aspectRatio = EachGraphWidth / EachGraphHeight;
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f,  aspectRatio, 1, 50000);
-            Vector3 translation = new Vector3(0, 0, -4000);
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(translation);
+            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(0, 0, -4000));
 
-            Matrix4x4 newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
-            newView = Matrix4x4.Multiply(newView, cameraTranslation);
-            newView = Matrix4x4.Multiply(newView, projection);
-
-            newView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
-            shaderParams.nonRotatedView = newView;
-
-
+            shaderParams.nonRotatedView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.proj = projection;
-            shaderParams.view = newView;
+            shaderParams.view = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.world = cameraTranslation;
-
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _gd.WaitForIdle();
