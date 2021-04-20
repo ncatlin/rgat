@@ -19,6 +19,7 @@ namespace rgatCore.Widgets
             public List<uint> threadNodes;
             public ulong address;
             public bool selected;
+            public bool hovered;
             public int moduleID;
         };
 
@@ -96,13 +97,32 @@ namespace rgatCore.Widgets
             {
                 ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
                 settings.SelectedSymbols.Add(syminfo);
+
             }
             else
             {
                 ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
                 settings.SelectedSymbols = settings.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
+
             }
         }
+
+
+        private void HandleMouseoverSym(moduleEntry module_modentry, symbolInfo syminfo)
+        {
+            module_modentry.symbols[syminfo.address] = syminfo;
+            if (syminfo.hovered)
+            {
+                ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+            }
+            else
+            {
+                ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+            }
+
+        }
+
+
 
         private void DrawModSymTreeNodes()
         {
@@ -138,6 +158,7 @@ namespace rgatCore.Widgets
                 {
                     if (ImGui.TreeNode($"{module_modentry.path}"))
                     {
+                        float cursX = ImGui.GetCursorPosX() + 75;
                         foreach (ulong symaddr in keyslist)
                         {
                             symbolInfo syminfo = module_modentry.symbols[symaddr];
@@ -146,9 +167,12 @@ namespace rgatCore.Widgets
                                 !moduleMatchesFilter &&
                                 !syminfo.name.ToLower().Contains(settings.SymFilterText.ToLower())
                                 )
+                            {
                                 continue;
+                            }
 
-                            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 75);
+                            ImGui.SetCursorPosX(cursX);
+                            ImGui.BeginGroup();
                             if (ImGui.Selectable($"{syminfo.name}", syminfo.selected))
                             {
                                 HandleSelectedSym(module_modentry, syminfo);
@@ -157,10 +181,31 @@ namespace rgatCore.Widgets
                             ImGui.Text($"0x{syminfo.address:X}");
                             ImGui.SameLine(450);
                             ImGui.Text($"{syminfo.threadNodes.Count}");
+                            ImGui.EndGroup();
 
+                            if (!syminfo.selected)
+                            {
+                                if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                                {
+                                    Console.WriteLine($"hoverred {syminfo.name}");
+                                    if (syminfo.hovered == false)
+                                    {
+                                        syminfo.hovered = true;
+                                        HandleMouseoverSym(module_modentry, syminfo);
+                                    }
+                                }
+                                else
+                                {
+                                    if (syminfo.hovered == true)
+                                    {
+                                        syminfo.hovered = false;
+                                        HandleMouseoverSym(module_modentry, syminfo);
+                                    }
+                                }
+                            }
+
+                            ImGui.TreePop();
                         }
-
-                        ImGui.TreePop();
                     }
                 }
             }
@@ -200,7 +245,7 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
-            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X,  height - 80)))
+            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X, height - 80)))
             {
                 DrawModSymTreeNodes();
                 ImGui.EndChild();
@@ -214,7 +259,7 @@ namespace rgatCore.Widgets
         {
             if (settings.selectedHighlightTab == 0)
             {
-                if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height-10)))
+                if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height - 10)))
                 {
                     ImGui.AlignTextToFramePadding();
                     ImGui.Text($"{settings.SelectedSymbols.Count} highlighted symbols ({ActiveGraph.HighlightedSymbolNodes.Count} nodes)");
@@ -253,7 +298,7 @@ namespace rgatCore.Widgets
         static int selitem = 0;
         public void DrawAddressSelectBox(float height)
         {
-            ImGui.ListBox("##AddrListbox", ref selitem, 
+            ImGui.ListBox("##AddrListbox", ref selitem,
                 settings.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(),
                 settings.SelectedAddresses.Count);
 
@@ -346,7 +391,7 @@ namespace rgatCore.Widgets
             Vector2 Size = ImGui.GetContentRegionAvail();
             if (Size.X < InitialSize.X) Size.X = InitialSize.X;
             if (Size.Y < InitialSize.Y) Size.Y = InitialSize.Y;
-                
+
             if (ImGui.BeginChildFrame(ImGui.GetID("highlightControls"), Size, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
