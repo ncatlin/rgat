@@ -49,7 +49,6 @@ namespace rgatCore
         ResourceFactory _factory;
         rgatState _rgatState;
 
-        GraphLayoutEngine _layoutEngine;
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
         ResourceSet _crs_core, _crs_nodesEdges;
         DeviceBuffer _paramsBuffer;
@@ -61,6 +60,8 @@ namespace rgatCore
         Pipeline _edgesPipeline, _pointsPipeline;
 
 
+        GraphLayoutEngine _layoutEngine;
+        public GraphLayoutEngine LayoutEngine => _layoutEngine;
 
         public PreviewGraphsWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState)
         {
@@ -81,7 +82,7 @@ namespace rgatCore
         public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
 
         public void SetSelectedGraph(PlottedGraph graph) {
-            _layoutEngine.StoreGraphData(graph);
+            _layoutEngine.StoreVRAMGraphDataToGraphObj(graph);
             selectedGraphTID = graph.tid;
         }
 
@@ -94,6 +95,8 @@ namespace rgatCore
         {
             //Console.WriteLine("Handling timer fired");
             IrregularTimerFired = false;
+
+            _layoutEngine.UpdatePositionCaches();
         }
 
 
@@ -177,73 +180,227 @@ namespace rgatCore
             }
         }
 
-        
+
+        /// <summary>
+        /// Adjust the camera offset and zoom so that every node of the graph is in the frame
+        /// </summary>
+        bool CenterGraphInFrameStep(out float MaxRemaining, PlottedGraph graph)
+        {
+            Vector2 size = new Vector2(EachGraphWidth, EachGraphHeight);
+            if (!_layoutEngine.GetPreviewFitOffsets(size, graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
+            {
+                MaxRemaining = 0;
+                return false; 
+            }
+
+            float delta;
+            float xdelta = 0, ydelta = 0, zdelta = 0;
+            float targXpadding = 80, targYpadding = 35;
+
+            float graphDepth = zoffsets.Y - zoffsets.X;
+
+            //graph being behind camera causes problems, deal with zoom first
+            if (zoffsets.X < graphDepth)
+            {
+                delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
+                float maxdelta = Math.Max(delta, 35);
+                graph.PreviewCameraZoom -= maxdelta;
+                MaxRemaining = maxdelta;
+                return false;
+            }
+
+            //too zoomed in, zoom out
+            if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))
+            {
+                if (xoffsets.X < targXpadding)
+                    delta = Math.Min(targXpadding / 2, (targXpadding - xoffsets.X) / 3f);
+                else
+                    delta = Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y) / 1.3f);
+
+                if (delta > 50)
+                {
+                    graph.PreviewCameraZoom -= delta;
+                    MaxRemaining = Math.Abs(delta);
+                    return false;
+                }
+                else
+                    zdelta = -1 * delta;
+            }
+
+            //too zoomed out, zoom in
+            if ((xoffsets.X > targXpadding && xoffsets.Y > targXpadding) && (yoffsets.X > targYpadding && yoffsets.Y > targYpadding))
+            {
+                if (zoffsets.X > graphDepth)
+                    zdelta += Math.Max((zoffsets.X - graphDepth) / 8, 50);
+            }
+
+            //too far left, move right
+            if (xoffsets.X < targXpadding)
+            {
+                float diff = targXpadding - xoffsets.X;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                xdelta += delta;
+            }
+
+            //too far right, move left
+            if (xoffsets.Y < targXpadding)
+            {
+                float diff = targXpadding - xoffsets.Y;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                xdelta -= delta;
+            }
+
+            //off center, center it
+            float XDiff = xoffsets.X - xoffsets.Y;
+            if (Math.Abs(XDiff) > 40)
+            {
+                delta = Math.Max(Math.Abs(XDiff / 2), 15);
+                if (XDiff > 0)
+                    xdelta -= delta;
+                else
+                    xdelta += delta;
+            }
+
+
+            if (yoffsets.X < targYpadding)
+            {
+                float diff = targYpadding - yoffsets.X;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                ydelta += delta;
+            }
+
+            if (yoffsets.Y < targYpadding)
+            {
+                float diff = targYpadding - yoffsets.Y;
+                delta = Math.Max(-1 * (diff / 5), 15);
+                delta = Math.Min(delta, diff);
+                ydelta -= delta;
+            }
+
+            float YDiff = yoffsets.X - yoffsets.Y;
+            if (Math.Abs(YDiff) > 40)
+            {
+                delta = Math.Max(Math.Abs(YDiff / 2), 15);
+                if (YDiff > 0) ydelta -= delta;
+                else ydelta += delta;
+            }
+
+
+            float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
+            if (xdelta > 0)
+                graph.PreviewCameraXOffset += actualXdelta;
+            else
+                graph.PreviewCameraXOffset -= actualXdelta;
+
+            float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
+            if (ydelta > 0)
+                graph.PreviewCameraYOffset += actualYdelta;
+            else
+                graph.PreviewCameraYOffset -= actualYdelta;
+
+            float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
+            if (zdelta > 0)
+                graph.PreviewCameraZoom += actualZdelta;
+            else
+                graph.PreviewCameraZoom -= actualZdelta;
+
+            //weight the offsets higher
+            MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
+
+
+            return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 10;
+        }
+
+
+
+
+
         public void DrawWidget()
         {
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
-            ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
             subGraphPosition.X -= MarginWidth;
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y + 3; //dunno where the 3 comes from but it works
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
-            uint captionBackgroundcolor = new WritableRgbaFloat(Af:0.3f, Gf: 0, Bf:0, Rf:0).ToUint(); 
-            
+            uint captionBackgroundcolor = new WritableRgbaFloat(Af:0.3f, Gf: 0, Bf:0, Rf:0).ToUint();
+
+            _layoutEngine.SetActiveTrace(activeTrace);
             for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
             {
                 PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
-                if (graph == null) continue;
-                int graphNodeCount = graph.GraphNodeCount();
-                if (graphNodeCount == 0) continue;
-
-                if (graph != _rgatState.ActiveGraph && activeTrace == _rgatState.ActiveTrace)
+                if (DrawPreviewGraph(graph, subGraphPosition, captionHeight, captionBackgroundcolor))
                 {
-                    _layoutEngine.Set_activeGraph(graph);
-                    _layoutEngine.Compute((uint)graph.DrawnEdgesCount, -1, false);
-                }
-
-                bool doDispose = FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
-                renderPreview(graph: graph, positionsBuffer: positionBuf, nodeAttributesBuffer: attribBuf);
-                if (doDispose)
-                {
-                    positionBuf?.Dispose();
-                    attribBuf?.Dispose();
-                }
-                if (graph._previewTexture == null) continue;
-
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY());
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
-                imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
-                    p_min: subGraphPosition,
-                    p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight), 
-                    uv_min: new Vector2(0, 1), 
-                    uv_max: new Vector2(1, 0));
-
-                string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
-
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX());
-                imdp.AddRectFilled(p_min: new Vector2(ImGui.GetCursorScreenPos().X -3, ImGui.GetCursorScreenPos().Y),
-                                   p_max: new Vector2(ImGui.GetCursorScreenPos().X + EachGraphWidth - MarginWidth, ImGui.GetCursorScreenPos().Y + 20), 
-                                   col: captionBackgroundcolor);
-                ImGui.Text(Caption);
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX());
-
-                if (ImGui.InvisibleButton("PrevGraphBtn"+ graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
-                {
-                    var MainGraphs = activeTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                    var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                     HandleClickedGraph(MainGraphs[graphIdx]);
+                    subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
                 }
-
-                subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
             }
         }
 
-        GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize)
+
+        public bool DrawPreviewGraph(PlottedGraph graph, Vector2 subGraphPosition, float captionHeight, uint captionBackgroundcolor)
+        {
+            ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
+            bool clicked = false;
+            if (graph == null) return clicked;
+            int graphNodeCount = graph.GraphNodeCount();
+            if (graphNodeCount == 0) return clicked;
+
+            
+            if (graph != _rgatState.ActiveGraph)
+            {
+                _layoutEngine.Set_activeGraph(graph);
+                _layoutEngine.Compute((uint)graph.DrawnEdgesCount, -1, false);
+            }
+           
+            
+
+            bool doDispose = FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
+            renderPreview(graph: graph, positionsBuffer: positionBuf, nodeAttributesBuffer: attribBuf);
+
+            if (doDispose)
+            {
+                positionBuf?.Dispose();
+                attribBuf?.Dispose();
+            }
+            if (graph._previewTexture == null) return clicked;
+
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY());
+            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
+            imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
+                p_min: subGraphPosition,
+                p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
+                uv_min: new Vector2(0, 1),
+                uv_max: new Vector2(1, 0));
+
+            string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX());
+            imdp.AddRectFilled(p_min: new Vector2(ImGui.GetCursorScreenPos().X - 3, ImGui.GetCursorScreenPos().Y),
+                               p_max: new Vector2(ImGui.GetCursorScreenPos().X + EachGraphWidth - MarginWidth, ImGui.GetCursorScreenPos().Y + 20),
+                               col: captionBackgroundcolor);
+            ImGui.Text(Caption);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX());
+
+            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
+            {
+                clicked = true;
+            }
+            return clicked;
+
+        }
+
+
+        GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize, PlottedGraph graph)
         {
             GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams { 
                 TexWidth = textureSize, 
@@ -253,7 +410,8 @@ namespace rgatCore
 
             float aspectRatio = EachGraphWidth / EachGraphHeight;
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f,  aspectRatio, 1, 50000);
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(0, 0, -4000));
+            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(
+                new Vector3(graph.PreviewCameraXOffset, graph.PreviewCameraYOffset, graph.PreviewCameraZoom));
 
             shaderParams.nonRotatedView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.proj = projection;
@@ -275,8 +433,11 @@ namespace rgatCore
                 graph.InitPreviewTexture(new Vector2(width, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
 
+
+            CenterGraphInFrameStep(out float maxremaining, graph);
+
             var textureSize = graph.LinearIndexTextureSize();
-            updateShaderParams(textureSize);
+            updateShaderParams(textureSize, graph);
 
             TextureOffsetColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
 
@@ -300,7 +461,7 @@ namespace rgatCore
             TextureOffsetColour[] EdgeLineVerts  = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
-            if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
+            if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer.SizeInBytes))
             {
                 _EdgeVertBuffer.Dispose();
                 BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
@@ -322,10 +483,9 @@ namespace rgatCore
             _crs_nodesEdges?.Dispose();
             _crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
-            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
-            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
+            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
+            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
-            //draw nodes and edges
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(graph._previewFramebuffer);
@@ -334,6 +494,7 @@ namespace rgatCore
             _cl.ClearColorTarget(0, background.ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
+            //draw nodes
             _cl.SetPipeline(_pointsPipeline);
             _cl.SetGraphicsResourceSet(0, _crs_core);
             _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
@@ -341,6 +502,7 @@ namespace rgatCore
             _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
             _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
+            //draw edges
             _cl.SetPipeline(_edgesPipeline);
             _cl.SetVertexBuffer(0, _EdgeVertBuffer);
             _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);

@@ -3,6 +3,7 @@ using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -26,6 +27,8 @@ namespace rgatCore
         ImGuiController _controller;
 
         PlottedGraph _activeGraph;
+        TraceRecord _activeTrace;
+
         Pipeline _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
         private Shader _positionShader, _velocityShader, _nodeAttribShader;
 
@@ -44,57 +47,65 @@ namespace rgatCore
 
         ReaderWriterLock _computeLock = new ReaderWriterLock();
 
-        public void Set_activeGraph(PlottedGraph newgraph)
+        /*
+         * Having a list of other layout engines (eg previews, main widget) lets us grab the most up 
+         * to date rendering of a graph without replicating the effort for each type of rendering
+         */
+        List<GraphLayoutEngine> _parallelLayoutEngines = new List<GraphLayoutEngine>();
+        public void AddParallelLayoutEngine(GraphLayoutEngine engine)
         {
-            if (newgraph == _activeGraph) return;
-
-            //make sure the graph has the latest version of the data in case a different widget wants it
-            if (_activeGraph != null)
-            {
-                StoreCurrentGraphData();
-            }
-
-            if (newgraph == null)
-            {
-                _computeLock.AcquireWriterLock(0);
-                _activeGraph = null;
-                _computeLock.ReleaseWriterLock();
-                return;
-            }
-
-            _computeLock.AcquireWriterLock(0);
-            _activeGraph = newgraph;
-            LoadCurrentGraphData();
-            _computeLock.ReleaseWriterLock();
+            lock (_computeLock) { _parallelLayoutEngines.Add(engine); }
         }
+        List<GraphLayoutEngine> GetParallelLayoutEngines()
+        {
+            lock (_computeLock)
+            {
+                return _parallelLayoutEngines.ToList();
+            }
+        }
+
+
+
 
 
         //If graph buffers already stored in VRAM, load the reference
         //Otherwise, fill GPU buffers from stored data in the plottedgraph
-        public void LoadCurrentGraphData()
+        public void LoadActivegraphComputeBuffersIntoVRAM()
         {
+            PlottedGraph graph = _activeGraph;
+
             ulong cachedVersion;
-            if (_cachedVersions.TryGetValue(_activeGraph, out cachedVersion) && cachedVersion == _activeGraph.renderFrameVersion)
+
+            // already in VRAM, assign to the working buffers
+            if (_cachedVersions.TryGetValue(graph, out cachedVersion) && cachedVersion == graph.renderFrameVersion)
             {
-                Tuple<DeviceBuffer, DeviceBuffer> bufs = _cachedVelocityBuffers[_activeGraph];
+                Tuple<DeviceBuffer, DeviceBuffer> bufs = _cachedVelocityBuffers[graph];
                 _activeVelocityBuffer1 = bufs.Item1;
                 _activeVelocityBuffer2 = bufs.Item2;
-                bufs = _cachedNodeAttribBuffers[_activeGraph];
+
+                bufs = _cachedNodeAttribBuffers[graph];
                 _activeNodeAttribBuffer1 = bufs.Item1;
                 _activeNodeAttribBuffer2 = bufs.Item2;
-                bufs = _cachedPositionBuffers[_activeGraph];
+
+                bufs = _cachedPositionBuffers[graph];
                 _activePositionsBuffer1 = bufs.Item1;
                 _activePositionsBuffer2 = bufs.Item2;
             }
             else
             {
+                foreach (GraphLayoutEngine engine in GetParallelLayoutEngines())
+                {
+                    engine.StoreVRAMGraphDataToGraphObj(graph);
+                }
+
+                //slow load from RAM
                 InitComputeBuffersFrom_activeGraph();
-                _cachedVersions[_activeGraph] = _activeGraph.renderFrameVersion;
+                _cachedVersions[graph] = graph.renderFrameVersion;
             }
 
             //data which is always more uptodate in the graph
             //not sure it's worth cacheing
-            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(_activeGraph.GetPresetPositionFloats(out _activatingPreset), _gd);
+            _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPresetPositionFloats(out _activatingPreset), _gd);
             _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer();
             _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer();
             _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer();
@@ -107,8 +118,8 @@ namespace rgatCore
             eGraphLayout graphStyle = _activeGraph.LayoutStyle;
             if (PlottedGraph.LayoutIsForceDirected(graphStyle))
             {
-                _cachedVersions[_activeGraph] = 0;
-                LoadCurrentGraphData();
+                InvalidateCache(_activeGraph);
+                LoadActivegraphComputeBuffersIntoVRAM();
             }
             else
             {
@@ -118,30 +129,49 @@ namespace rgatCore
             _activeGraph.IncreaseTemperature(100f);
         }
 
-        public void StoreCurrentGraphData()
+        public void StoreVRAMGraphDataToGraphObj(PlottedGraph graph)
         {
-            lock (_activeGraph.RenderingLock)
+            lock (_computeLock)
             {
-                ulong currentRenderVersion = _cachedVersions[_activeGraph];
-                if (currentRenderVersion > _activeGraph.renderFrameVersion)
+                if (_cachedVersions.ContainsKey(graph))
                 {
-                    StoreNodePositions(_activeGraph);
-                    StoreNodeVelocity(_activeGraph);
-                    _activeGraph.UpdateRenderFrameVersion(currentRenderVersion);
+                    ulong currentRenderVersion = _cachedVersions[graph];
+                    if (currentRenderVersion > graph.renderFrameVersion)
+                    {
+                        lock (graph.RenderingLock)
+                        {
+                            StoreNodePositions(graph);
+                            StoreNodeVelocity(graph);
+                            graph.UpdateRenderFrameVersion(currentRenderVersion);
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        public void InvalidateCache(PlottedGraph graph)
+        {
+            lock (_computeLock)
+            {
+                _cachedVersions[graph] = 0; //invalidate everything in VRAM
+                foreach (GraphLayoutEngine engine in GetParallelLayoutEngines())
+                {
+                    engine.InvalidateCache(graph);
                 }
             }
         }
 
-        public void StoreGraphData(PlottedGraph graph)
+        public void SaveComputeBuffers()
         {
-            if (_cachedVersions.ContainsKey(graph))
+            TraceRecord trace = _activeTrace;
+            if (trace != null)
             {
-                ulong currentRenderVersion = _cachedVersions[graph];
-                if (currentRenderVersion > graph.renderFrameVersion)
+                var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                foreach (PlottedGraph graph in graphs)
                 {
-                    StoreNodePositions(graph);
-                    StoreNodeVelocity(graph);
-                    graph.UpdateRenderFrameVersion(currentRenderVersion);
+                    StoreVRAMGraphDataToGraphObj(graph);
                 }
             }
         }
@@ -150,13 +180,14 @@ namespace rgatCore
         //read node positions from the GPU and store in provided plottedgraph
         public void StoreNodePositions(PlottedGraph graph)
         {
-            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _activePositionsBuffer1);
+            if (graph.ComputeBufferNodeCount == 0) return;
+            if (graph.renderFrameVersion == _cachedVersions[graph]) return;
+
+            DeviceBuffer positionsBuffer = _cachedPositionBuffers[graph].Item1;
+
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, positionsBuffer);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-            uint floatCount = graph.ComputeBufferNodeCount * sizeof(float);
-            if (floatCount > 0)
-            {
-                graph.UpdateNodePositions(destinationReadView, floatCount);
-            }
+            graph.UpdateNodePositions(destinationReadView);
             _gd.Unmap(destinationReadback);
             destinationReadback.Dispose();
         }
@@ -165,8 +196,14 @@ namespace rgatCore
         //read node velocities from the GPU and store in provided plottedgraph
         public void StoreNodeVelocity(PlottedGraph graph)
         {
+
+            if (graph.ComputeBufferNodeCount == 0) return;
+            if (graph.renderFrameVersion == _cachedVersions[graph]) return;
+
+            DeviceBuffer velocityBuffer = _cachedVelocityBuffers[graph].Item1;
+
             uint textureSize = graph.LinearIndexTextureSize();
-            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _activeVelocityBuffer1);
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, velocityBuffer);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
             _activeGraph.UpdateNodeVelocities(destinationReadView, floatCount);
@@ -182,12 +219,13 @@ namespace rgatCore
         /// <param name="graphWidgetSize">Size of the graph widget</param>
         /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
         /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        public void GetScreenFitOffsets(Vector2 graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
+        /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
+        public void GetScreenFitOffsets(eRenderingMode mode, Vector2 graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
 
             float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
-            Matrix4x4 viewMatrix = _activeGraph.GetViewMatrix();
             Matrix4x4 projectionMatrix = _activeGraph.GetProjectionMatrix(aspectRatio);
+            Matrix4x4 viewMatrix = mode == eRenderingMode.eStandardControlFlow ? _activeGraph.GetViewMatrix() : _activeGraph.GetPreviewViewMatrix();
 
             Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
             Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
@@ -206,7 +244,6 @@ namespace rgatCore
                 xoffsets = new Vector2(0, 0);
                 yoffsets = new Vector2(0, 0);
                 zoffsets = new Vector2(0, 0);
-
                 return;
             }
 
@@ -240,20 +277,132 @@ namespace rgatCore
             destinationReadback.Dispose();
         }
 
+        public DeviceBuffer GetPositionsVRAMBuffer(PlottedGraph graph)
+        {
+
+            if (_cachedPositionBuffers.TryGetValue(graph, out Tuple<DeviceBuffer, DeviceBuffer> posBuffers))
+            {
+                return posBuffers.Item1; 
+            }
+            return null;
+        }
+
+        public void UpdatePositionCaches()
+        {
+            lock (_computeLock)
+            {
+                TraceRecord trace = _activeTrace;
+                if (trace == null) return;
+                var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+
+                var engines = GetParallelLayoutEngines();
+                foreach (PlottedGraph graph in graphs)
+                {
+                    foreach (var engine in engines) engine.StoreVRAMGraphDataToGraphObj(graph);
+                    var latestVersion = graph.renderFrameVersion;
+                    if (!_cachedVersions.TryGetValue(graph, out ulong cachedVersion) || latestVersion > cachedVersion )
+                    {
+                        Set_activeGraph(graph);
+                        LoadActivegraphComputeBuffersIntoVRAM();
+                    }
+                }
+            }
+        }
+
+
+
+        public bool GetPreviewFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
+        {
+            float zoom;
+            DeviceBuffer positionsBuffer;
+
+            xoffsets = new Vector2(0, 0);
+            yoffsets = new Vector2(0, 0);
+            zoffsets = new Vector2(0, 0);
+
+            zoom = graph.PreviewCameraZoom;
+            positionsBuffer = GetPositionsVRAMBuffer(graph);// _cachedPositionBuffers[graph].Item1;
+            if (positionsBuffer == null) return false;
+
+            float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
+            Matrix4x4 projectionMatrix = graph.GetProjectionMatrix(aspectRatio);
+
+            Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 zlimits = new Vector2(float.MaxValue, float.MinValue);
+            Vector2 ev = new Vector2(0, 0);
+            Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev;
+
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, positionsBuffer);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+
+            if (destinationReadView.Count < 4)
+            {
+                _gd.Unmap(destinationReadback);
+                destinationReadback.Dispose();
+                return false;
+            }
+
+            Vector3 translation = new Vector3(graph.PreviewCameraXOffset, graph.PreviewCameraYOffset, graph.PreviewCameraZoom);
+            Matrix4x4 tMatrix = Matrix4x4.CreateTranslation(translation); //todo optimise
+
+            for (int idx = 0; idx < destinationReadView.Count; idx += 4)
+            {
+                if (destinationReadView[idx + 3] == -1) break;
+                float x = destinationReadView[idx];
+                float y = destinationReadView[idx + 1];
+                float z = destinationReadView[idx + 2];
+                Vector3 worldpos = new Vector3(x, y, z);
+
+
+                Vector2 ndcPos = WorldToNDCPosB(worldpos, tMatrix, projectionMatrix);
+                if (ndcPos.X < xlimits.X) { xlimits = new Vector2(ndcPos.X, xlimits.Y); xmin = ndcPos; }
+                if (ndcPos.X > xlimits.Y) { xlimits = new Vector2(xlimits.X, ndcPos.X); xmax = ndcPos; }
+                if (ndcPos.Y < ylimits.X) { ylimits = new Vector2(ndcPos.Y, ylimits.Y); ymin = ndcPos; }
+                if (ndcPos.Y > ylimits.Y) { ylimits = new Vector2(ylimits.X, ndcPos.Y); ymax = ndcPos; }
+                if (worldpos.Z < zlimits.X) { zlimits = new Vector2(worldpos.Z, zlimits.Y); }
+                if (worldpos.Z > zlimits.Y) { zlimits = new Vector2(zlimits.X, worldpos.Z); }
+            }
+            _gd.Unmap(destinationReadback);
+            destinationReadback.Dispose();
+
+            Vector2 minxS = NdcToScreenPos(xmin, graphWidgetSize);
+            Vector2 maxxS = NdcToScreenPos(xmax, graphWidgetSize);
+            xoffsets = new Vector2(minxS.X, graphWidgetSize.X - maxxS.X);
+
+            Vector2 minyS = NdcToScreenPos(ymin, graphWidgetSize);
+            Vector2 maxyS = NdcToScreenPos(ymax, graphWidgetSize);
+            yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
+
+            zoffsets = new Vector2(zlimits.X - zoom, zlimits.Y - zoom);
+
+
+            return true;
+        }
 
 
 
         Vector2 WorldToNDCPos(Vector3 worldpos, Matrix4x4 viewMatriwx, Matrix4x4 projectionMatrix)
         {
-            Vector3 translation = new Vector3(_activeGraph.CameraXOffset, _activeGraph.CameraYOffset, _activeGraph.CameraZoom);
-            Matrix4x4 viewMatrixe = Matrix4x4.CreateTranslation(translation);
-            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY,0);
+            Matrix4x4 viewMatrixe = Matrix4x4.CreateTranslation(new Vector3(_activeGraph.CameraXOffset, _activeGraph.CameraYOffset, _activeGraph.CameraZoom)); //todo optimise
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             viewMatrixe = Matrix4x4.Multiply(viewMatrixe, rotation);
 
             Vector4 clipSpacePos = Vector4.Transform(Vector4.Transform(new Vector4(worldpos, 1.0f), viewMatrixe), projectionMatrix);
             Vector3 ndcSpacePos = Vector3.Divide(new Vector3(clipSpacePos.X, clipSpacePos.Y, clipSpacePos.Z), clipSpacePos.W);
             return new Vector2(ndcSpacePos.X, ndcSpacePos.Y);
         }
+
+        Vector2 WorldToNDCPosB(Vector3 worldpos, Matrix4x4 viewMatrixw, Matrix4x4 projectionMatrix)
+        {
+            Matrix4x4 rotation = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
+            Matrix4x4 viewMatrixe = Matrix4x4.Multiply(viewMatrixw, rotation);
+
+            Vector4 clipSpacePos = Vector4.Transform(Vector4.Transform(new Vector4(worldpos, 1.0f), viewMatrixe), projectionMatrix);
+            Vector3 ndcSpacePos = Vector3.Divide(new Vector3(clipSpacePos.X, clipSpacePos.Y, clipSpacePos.Z), clipSpacePos.W);
+            return new Vector2(ndcSpacePos.X, ndcSpacePos.Y);
+        }
+
 
         Vector2 NdcToScreenPos(Vector2 ndcSpacePos, Vector2 graphWidgetSize)
         {
@@ -287,6 +436,61 @@ namespace rgatCore
             _gd.WaitForIdle();
         }
 
+        /*
+         * 
+         * 
+         * the math works, need to fix the buffers/mem/cache positions for previews
+         * 
+         * 
+         * 
+         * */
+        void InitPreviewPositionBuffers(PlottedGraph graph)
+        {
+
+            if (!_cachedPositionBuffers.ContainsKey(graph))
+            {
+                DeviceBuffer pos1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
+                DeviceBuffer pos2 = _factory.CreateBuffer(new BufferDescription { SizeInBytes = pos1.SizeInBytes, Usage = pos1.Usage, StructureByteStride = 4 });
+                _cachedPositionBuffers[graph] = new Tuple<DeviceBuffer, DeviceBuffer>(pos1, pos2);
+
+                CommandList cl = _factory.CreateCommandList();
+                cl.Begin();
+                cl.CopyBuffer(pos1, 0, pos2, 0, pos1.SizeInBytes);
+                cl.End();
+                _gd.SubmitCommands(cl);
+                _gd.WaitForIdle();
+            }
+            else
+            {
+                DeviceBuffer pos1 = _cachedPositionBuffers[graph].Item1;
+                DeviceBuffer pos2 = _cachedPositionBuffers[graph].Item1;
+
+                float[] newPositions = graph.GetPositionFloats();
+
+                uint oldSize = pos1.SizeInBytes;
+                int currentSize = sizeof(float) * newPositions.Length;
+
+                if (true)//currentSize > oldSize) //todo!
+                {
+                    pos1.Dispose();
+                    pos2.Dispose();
+                    pos1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
+                    pos2 = _factory.CreateBuffer(new BufferDescription { SizeInBytes = pos1.SizeInBytes, Usage = pos1.Usage, StructureByteStride = 4 });
+                    _cachedPositionBuffers[graph] = new Tuple<DeviceBuffer, DeviceBuffer>(pos1, pos2);
+
+                    CommandList cl = _factory.CreateCommandList();
+                    cl.Begin();
+                    cl.CopyBuffer(pos1, 0, pos2, 0, pos1.SizeInBytes);
+                    cl.End();
+                    _gd.SubmitCommands(cl);
+                    _gd.WaitForIdle();
+                }
+
+            }
+
+
+
+        }
 
         public unsafe void SetupComputeResources()
         {
@@ -351,15 +555,11 @@ namespace rgatCore
         unsafe void AddNewNodesToComputeBuffers(int finalCount)
         {
 
-            uint newNodeCount = (uint)finalCount - _activeGraph.ComputeBufferNodeCount;
+            int newNodeCount = finalCount - _activeGraph.ComputeBufferNodeCount;
             if (newNodeCount == 0) return;
 
-            float[] newPositions = _activeGraph.GetPositionFloats();
-            float[] newVelocities = _activeGraph.GetVelocityFloats();
-            float[] newAttribs = _activeGraph.GetNodeAttribFloats();
-
-            uint offset = _activeGraph.ComputeBufferNodeCount * 4 * sizeof(float);
-            uint updateSize = 4 * sizeof(float) * newNodeCount;
+            uint offset = (uint)_activeGraph.ComputeBufferNodeCount * 4 * sizeof(float);
+            uint updateSize = 4 * sizeof(float) * (uint)newNodeCount;
 
             if ((offset + updateSize) > _activeVelocityBuffer1.SizeInBytes)
             {
@@ -372,25 +572,30 @@ namespace rgatCore
                 resizeComputeBuffers(bufferSize);
             }
 
+            float[] newPositions = _activeGraph.GetPositionFloats();
+            float[] newVelocities = _activeGraph.GetVelocityFloats();
+            float[] newAttribs = _activeGraph.GetNodeAttribFloats();
 
-            uint floatOffset = _activeGraph.ComputeBufferNodeCount * 4;
+            uint endOfComputeBufferOffset = (uint)_activeGraph.ComputeBufferNodeCount * 4;
             fixed (float* dataPtr = newPositions)
             {
-                _gd.UpdateBuffer(_activePositionsBuffer1, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
-                _gd.UpdateBuffer(_activePositionsBuffer2, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
+                _gd.UpdateBuffer(_activePositionsBuffer1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                _gd.UpdateBuffer(_activePositionsBuffer2, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
             }
 
             fixed (float* dataPtr = newVelocities)
             {
-                _gd.UpdateBuffer(_activeVelocityBuffer1, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
-                _gd.UpdateBuffer(_activeVelocityBuffer2, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
+                _gd.UpdateBuffer(_activeVelocityBuffer1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                _gd.UpdateBuffer(_activeVelocityBuffer2, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
             }
 
             fixed (float* dataPtr = newAttribs)
             {
-                _gd.UpdateBuffer(_activeNodeAttribBuffer1, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
-                _gd.UpdateBuffer(_activeNodeAttribBuffer2, offset, (IntPtr)(dataPtr + floatOffset), updateSize);
+                _gd.UpdateBuffer(_activeNodeAttribBuffer1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                _gd.UpdateBuffer(_activeNodeAttribBuffer2, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
             }
+
+            _activeGraph.ComputeBufferNodeCount = finalCount;
         }
 
 
@@ -870,6 +1075,61 @@ namespace rgatCore
             return false;
         }
 
+
+        public void LayoutPreviewGraphs(PlottedGraph IgnoreGraph)
+        {
+            if (_activeTrace == null) return;
+            var graphs = _activeTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            foreach (PlottedGraph graph in graphs)
+            {
+                if (graph != null && graph != IgnoreGraph)
+                {
+                    Set_activeGraph(graph);
+                    Compute((uint)graph.DrawnEdgesCount, -1, false);
+                    StoreVRAMGraphDataToGraphObj(_activeGraph);
+                }
+            }
+        }
+
+
+        public void SetActiveTrace(TraceRecord trace)
+        {
+            if (_activeTrace != trace)
+            {
+                Set_activeGraph(trace.GetFirstGraph());
+            }
+        }
+
+        public void Set_activeGraph(PlottedGraph newgraph)
+        {
+            if (newgraph == _activeGraph) return;
+
+            //make sure the graph has the latest version of the data in case a different widget wants it
+            if (_activeGraph != null)
+            {
+                StoreVRAMGraphDataToGraphObj(_activeGraph);
+            }
+
+            if (newgraph == null)
+            {
+                _computeLock.AcquireWriterLock(0);
+                _activeGraph = null;
+                _activeTrace = null;
+                _computeLock.ReleaseWriterLock();
+                return;
+            }
+
+
+            _activeTrace = newgraph.internalProtoGraph.TraceData;
+            _computeLock.AcquireWriterLock(0);
+            _activeGraph = newgraph;
+            _activeTrace = newgraph.internalProtoGraph.TraceData;
+            LoadActivegraphComputeBuffersIntoVRAM();
+            _computeLock.ReleaseWriterLock();
+        }
+
+
+
         bool _activatingPreset;
         public ulong Compute(uint drawnEdgeCount, int mouseoverNodeID, bool useAnimAttribs)
         {
@@ -889,7 +1149,6 @@ namespace rgatCore
             if (_activeGraph.ComputeBufferNodeCount < graphNodeCount)
             {
                 AddNewNodesToComputeBuffers(graphNodeCount);
-                _activeGraph.ComputeBufferNodeCount = (uint)graphNodeCount;
             }
 
 

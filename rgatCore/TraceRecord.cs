@@ -80,7 +80,7 @@ namespace rgatCore
 		void notify_tid_end(uint tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
 		*/
 
-        public bool InsertNewThread(PlottedGraph mainplot, PlottedGraph previewplot)
+        public bool InsertNewThread(PlottedGraph mainplot)
         {
             lock (GraphListLock)
             {
@@ -94,7 +94,6 @@ namespace rgatCore
                 ProtoGraphs.Add(mainplot.tid, mainplot.internalProtoGraph);
                 PlottedGraphs.Add(mainplot.tid, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[mainplot.tid][eRenderingMode.eStandardControlFlow] = mainplot;
-                PlottedGraphs[mainplot.tid][eRenderingMode.ePreview] = previewplot;
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }

@@ -297,16 +297,13 @@ namespace rgatCore
             return tmp;
         }
 
-        public bool CreateNewPlottedGraph(ProtoGraph protoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph)
+        public bool CreateNewPlottedGraph(ProtoGraph protoGraph, out PlottedGraph MainGraph)
         {
             switch (newGraphLayout)
             {
                 case eGraphLayout.eForceDirected3DNodes:
                     {
                         MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
-                        PreviewGraph = null;
-                        //PreviewGraph = new CylinderGraph(protoGraph, GlobalConfig.defaultGraphColours);
-                        //PreviewGraph.InitialisePreviewDimensions();
                         return true;
                     }
                 /*
@@ -320,7 +317,6 @@ namespace rgatCore
                 default:
                     {
                         MainGraph = null;
-                        PreviewGraph = null;
                         Console.WriteLine("Bad graph layout: " + newGraphLayout);
                         Debug.Assert(false);
                         return false;

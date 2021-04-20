@@ -85,7 +85,7 @@ namespace rgatCore
             Console.WriteLine("Trace thread connected");
 
             ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
-            if (!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph, out PlottedGraph PreviewGraph))
+            if (!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph))
             {
                 Console.WriteLine("ERROR: Failed to create plotted graphs for new thread, abandoning");
                 return;
@@ -95,7 +95,7 @@ namespace rgatCore
 
             ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph);
 
-            if (!trace.InsertNewThread(MainGraph, PreviewGraph))
+            if (!trace.InsertNewThread(MainGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
                 return;

@@ -73,7 +73,7 @@ void main() {
     if (index == pickingNodeID){
         vColor = vec4(1.0,0.0,1.0,1.0);
     } else {
-        vColor = vec4(Color.xyz, nodeAttribTexture[index].y) ;
+        vColor = vec4(Color.xyz, nodeAttribTexture[index].y) ; //attrib.y == alpha
     }
 
     vec4 worldPosition = World *  positionTexture[index];

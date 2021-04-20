@@ -286,7 +286,6 @@ namespace rgatCore
                 var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
-                    //render_node(n1);
                     AddNode(edgeNodes.Item1);
                 }
 
@@ -349,20 +348,16 @@ namespace rgatCore
         }
 
 
-        public void UpdateNodePositions(MappedResourceView<float> newPositions, uint count)
+        public void UpdateNodePositions(MappedResourceView<float> newPositions)
         {
-
-            if (positionsArray1.Length < count)
-                positionsArray1 = new float[count];
-            for (var i = 0; i < count; i++)
+            int floatCount = _computeBufferNodeCount * 4; //xyzw
+            if (positionsArray1.Length < floatCount)
+                positionsArray1 = new float[floatCount];
+            
+            for (var i = 0; i < floatCount; i++)
             {
-                if (positionsArray1[i] > 0 && newPositions[i] == 0)
-                {
-                    Console.WriteLine("bad");
-                }
+                Debug.Assert(newPositions[i] != 0);
                 positionsArray1[i] = newPositions[i];
-                if (positionsArray1[i] == 0)
-                    Console.WriteLine($"!----UpdateNodePositions {i} -> {newPositions[i]} ");
             }
 
 
@@ -412,6 +407,8 @@ namespace rgatCore
 
             return presetPositionsArray;
         }
+
+
 
         void ZeroisePreset()
         {
@@ -1975,6 +1972,15 @@ namespace rgatCore
             return viewMatrix;
         }
 
+        public Matrix4x4 GetPreviewViewMatrix()
+        {
+            Vector3 translation = new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom);
+            Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
+            viewMatrix = Matrix4x4.Multiply(viewMatrix, RotationMatrix);
+            return viewMatrix;
+        }
+
+
         public void ApplyMouseDragDelta(Vector2 delta)
         {
             CameraXOffset -= delta.X;
@@ -2037,7 +2043,13 @@ namespace rgatCore
         public long lastRenderTime;
         public bool flipflop;
         public uint RenderedEdgeCount; //todo - this is really all we need
-        public uint ComputeBufferNodeCount; //this is gross and temporary
+
+        int _computeBufferNodeCount; //this is gross and temporary
+        public int ComputeBufferNodeCount
+        {
+            get => _computeBufferNodeCount;
+            set => _computeBufferNodeCount = value;
+        }
 
         public void RemoveHighlightedNodes(List<uint> nodeidxs, eHighlightType highlightType)
         {
@@ -2057,6 +2069,7 @@ namespace rgatCore
                         HighlightedExceptionNodes = HighlightedExceptionNodes.Except(nodeidxs).ToList();
                         break;
                 }
+
                 AllHighlightedNodes.Clear();
                 AllHighlightedNodes.AddRange(HighlightedSymbolNodes);
                 AllHighlightedNodes.AddRange(HighlightedAddressNodes.Where(n => !AllHighlightedNodes.Contains(n)));
@@ -2315,11 +2328,15 @@ namespace rgatCore
 
         //todo - methods
         public float CameraZoom = -5000;
+        public float CameraXOffset = 0f;
+        public float CameraYOffset = 0f;
+
+        public float PreviewCameraXOffset = 0f;
+        public float PreviewCameraYOffset = 0f;
+        public float PreviewCameraZoom = -4000;
         public float CameraFieldOfView = 0.6f;
         public float CameraClippingFar = 60000;
         public float CameraClippingNear = 1; //extern jut
-        public float CameraXOffset = 0f;
-        public float CameraYOffset = 0f;
         public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
 
 

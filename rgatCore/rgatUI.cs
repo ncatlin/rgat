@@ -68,6 +68,10 @@ namespace rgatCore
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
+
+            MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
+            PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
+
             HighlightDialogWidget = new HighlightDialog(_rgatstate);
             Console.WriteLine("rgatUI created");
         }

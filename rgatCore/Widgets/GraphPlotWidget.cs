@@ -23,18 +23,22 @@ using rgatCore.Widgets;
 
 namespace rgatCore
 {
-    class GraphPlotWidget
+    class GraphPlotWidget : IDisposable
     {
-        public PlottedGraph ActiveGraph { get; private set; } = null;
+        public PlottedGraph ActiveGraph { get; private set; }
 
         System.Timers.Timer _IrregularActionTimer;
-        bool _IrregularActionTimerFired = false;
+        bool _IrregularActionTimerFired;
 
         QuickMenu _QuickMenu = new QuickMenu(new Vector2(300, 300));
 
         ImGuiController _controller;
-        ReaderWriterLock renderLock = new ReaderWriterLock();
+        readonly ReaderWriterLock renderLock = new ReaderWriterLock();
+
         GraphLayoutEngine _layoutEngine;
+        public GraphLayoutEngine LayoutEngine => _layoutEngine;
+
+
         GraphicsDevice _gd;
         ResourceFactory _factory;
         Vector2 _graphWidgetSize;
@@ -59,12 +63,16 @@ namespace rgatCore
         }
 
 
-
+        public void Dispose()
+        {
+            if (_IrregularActionTimer != null) _IrregularActionTimer.Dispose();
+        }
 
 
         public void SetActiveGraph(PlottedGraph graph)
         {
             if (graph == ActiveGraph) return;
+
 
             //todo - grab lock
             if (graph == null)
@@ -154,11 +162,11 @@ namespace rgatCore
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// </summary>
-        bool CenterGraphInFrameStep(out float MaxRemaining)
+        bool CenterGraphInFrameStep(eRenderingMode mode, out float MaxRemaining)
         {
             if (_centeringInFrame == 1) _centeringSteps += 1;
 
-            _layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+            _layoutEngine.GetScreenFitOffsets(mode, _graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
             float targXpadding = 80, targYpadding = 35;
@@ -271,13 +279,15 @@ namespace rgatCore
             if (zdelta > 0)
                 ActiveGraph.CameraZoom += actualZdelta;
             else
+            {
+                if (zdelta < 0) actualZdelta *= 10;
                 ActiveGraph.CameraZoom -= actualZdelta;
+            }
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
 
-
-            return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 10;
+            return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 20;
         }
 
 
@@ -333,7 +343,7 @@ namespace rgatCore
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
-                        _rollDelta += -1* delta;
+                        _rollDelta += -1 * delta;
                         break;
                     }
 
@@ -345,7 +355,7 @@ namespace rgatCore
 
                 case eKeybind.eYawYLeft:
                     {
-                        _yawDelta += -1*(0.04f + (shiftModifier * 0.13f));
+                        _yawDelta += -1 * (0.04f + (shiftModifier * 0.13f));
                         break;
                     }
 
@@ -389,7 +399,7 @@ namespace rgatCore
             }
         }
 
-      
+
 
 
         private float _pitchDelta, _yawDelta, _rollDelta = 0;
@@ -647,14 +657,18 @@ namespace rgatCore
 
         GraphShaderParams updateShaderParams(uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world)
         {
-            GraphShaderParams shaderParams = new GraphShaderParams { TexWidth = textureSize,
-                pickingNode = _mouseoverNodeID, isAnimated = ActiveGraph.IsAnimated };
+            GraphShaderParams shaderParams = new GraphShaderParams
+            {
+                TexWidth = textureSize,
+                pickingNode = _mouseoverNodeID,
+                isAnimated = ActiveGraph.IsAnimated
+            };
 
             Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
 
-            shaderParams.proj = projection; 
-            shaderParams.view = view; 
-            shaderParams.world = world; 
+            shaderParams.proj = projection;
+            shaderParams.view = view;
+            shaderParams.world = world;
             shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation); ;
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
@@ -812,7 +826,7 @@ namespace rgatCore
         public void renderGraph(DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
 
-    
+
 
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _imageTextureView);
 
@@ -830,7 +844,7 @@ namespace rgatCore
             _crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
             TextureOffsetColour[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(_renderingMode,
-            out List<uint> nodeIndices, out TextureOffsetColour[] nodePickingColors,  out List<Tuple<string, Color>> captions);
+            out List<uint> nodeIndices, out TextureOffsetColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
@@ -905,7 +919,7 @@ namespace rgatCore
                 _cl.SetVertexBuffer(0, _NodeVertexBuffer);
                 _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
                 _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
- 
+
             }
 
             if (ActiveGraph.EdgesVisible)
@@ -959,7 +973,7 @@ namespace rgatCore
                 _cl.SetGraphicsResourceSet(1, _crs_font);
                 _cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
-            
+
 
             //update the picking framebuffer
             _cl.SetPipeline(_pickingPipeline);
@@ -1064,7 +1078,7 @@ namespace rgatCore
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
-            
+
 
             ImGui.SetCursorScreenPos(pmin);
 
@@ -1092,7 +1106,7 @@ namespace rgatCore
 
             bool snappingToPreset = _layoutEngine.ActivatingPreset;
             if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
-            
+
             if (ImGui.BeginPopup("layout select popup"))
             {
 
@@ -1229,13 +1243,13 @@ namespace rgatCore
 
             if (_centeringInFrame != 0)
             {
-                bool done = CenterGraphInFrameStep(out float remaining);
+                bool done = CenterGraphInFrameStep(eRenderingMode.eStandardControlFlow, out float remaining);
                 if (!done && remaining > 200)
                 {
-                    int steps =(int) Math.Min(6, remaining / 200);
+                    int steps = (int)Math.Min(6, remaining / 200);
                     for (int i = 0; i < steps && !done; i++)
                     {
-                        done = CenterGraphInFrameStep(out remaining);
+                        done = CenterGraphInFrameStep(eRenderingMode.eStandardControlFlow, out remaining);
                     }
                 }
                 if (done && _centeringInFrame != 2)
@@ -1329,9 +1343,11 @@ namespace rgatCore
             if (ActiveGraph == null)
                 return;
 
-            //store latest positions for the preview graph
+            //store latest positions for the preview graphs
 
-            _layoutEngine.StoreCurrentGraphData();
+            _layoutEngine.LayoutPreviewGraphs(IgnoreGraph: ActiveGraph);
+
+            _layoutEngine.SaveComputeBuffers();
 
             //highlight new nodes with highlighted address
             ActiveGraph.DoHighlightAddresses();
