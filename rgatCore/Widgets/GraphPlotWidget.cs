@@ -30,8 +30,7 @@ namespace rgatCore
         System.Timers.Timer _IrregularActionTimer;
         bool _IrregularActionTimerFired;
 
-        QuickMenu _QuickMenu = new QuickMenu(new Vector2(300, 300));
-
+        QuickMenu _QuickMenu;
         ImGuiController _controller;
         readonly ReaderWriterLock renderLock = new ReaderWriterLock();
 
@@ -50,6 +49,8 @@ namespace rgatCore
             _controller = controller;
             _gd = gdev;
             _factory = _gd.ResourceFactory;
+            _QuickMenu = new QuickMenu(new Vector2(300, 300), _gd, controller);
+
             _graphWidgetSize = initialSize ?? new Vector2(400, 400);
             _IrregularActionTimer = new System.Timers.Timer(600);
             _IrregularActionTimer.Elapsed += FireIrregularTimer;
@@ -392,6 +393,10 @@ namespace rgatCore
 
                 case eKeybind.eToggleLiveText:
                     ActiveGraph.TextEnabledLive = !ActiveGraph.TextEnabledLive;
+                    break;
+
+                case eKeybind.eCancel:
+                    _QuickMenu.CancelPressed();
                     break;
 
                 default:
@@ -1038,7 +1043,7 @@ namespace rgatCore
             ImGui.Text(msg);
             ImGui.SetCursorPos(currentPos);
 
-            DrawVisibilitySelector(bottomLeft, 0.25f);
+            _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 
         }
 
@@ -1157,49 +1162,6 @@ namespace rgatCore
 
 
 
-        void DrawVisibilitySelector(Vector2 position, float scale)
-        {
-            Texture btnIcon = _controller.GetImage("Eye");
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
-            float padding = 6f;
-            Vector2 iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
-            Vector2 pmin = new Vector2((position.X) + padding, ((position.Y - iconSize.Y) - 4) - padding);
-
-            ImGui.SetCursorScreenPos(pmin);
-
-            ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(CPUframeBufferTextureId, iconSize);
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-
-            bool buttonHover = ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup);
-            if (!_showQuickMenu && buttonHover)
-            {
-                _showQuickMenu = true;
-            }
-
-            if (_showQuickMenu)
-            {
-                ImGui.SetNextWindowPos(new Vector2(pmin.X, pmin.Y - iconSize.Y * 3));
-                ImGui.OpenPopup("QuickMenuPopup");
-            }
-            //ImGui.SetTooltip("I am a tooltip over a popup");
-            if (ImGui.BeginPopup("QuickMenuPopup"))
-            {
-                _QuickMenu.Draw(ActiveGraph);
-
-                if (!ImGui.IsWindowHovered(flags: ImGuiHoveredFlags.RootAndChildWindows
-                        | ImGuiHoveredFlags.AllowWhenBlockedByPopup
-                        | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && !buttonHover)
-                {
-                    _showQuickMenu = false;
-                    ImGui.CloseCurrentPopup();
-                }
-                ImGui.EndPopup();
-            }
-
-        }
 
         void HandleGraphUpdates()
         {
@@ -1243,6 +1205,7 @@ namespace rgatCore
 
             if (_centeringInFrame != 0)
             {
+                //todo - increase stopping threshold as step count increases
                 bool done = CenterGraphInFrameStep(eRenderingMode.eStandardControlFlow, out float remaining);
                 if (!done && remaining > 200)
                 {

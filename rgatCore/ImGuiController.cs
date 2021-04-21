@@ -140,6 +140,14 @@ namespace ImGuiNET
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
             _imageTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\menu2.png";
+            _imageTextures["Menu"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\menu3.png";
+            _imageTextures["Menu2"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\search.png";
+            _imageTextures["Search"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
             _imageTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
             _textureViews["Crosshair"] = factory.CreateTextureView(_imageTextures["Crosshair"]);

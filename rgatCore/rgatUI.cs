@@ -72,7 +72,7 @@ namespace rgatCore
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
 
-            HighlightDialogWidget = new HighlightDialog(_rgatstate);
+            HighlightDialogWidget = new HighlightDialog();
             Console.WriteLine("rgatUI created");
         }
 
@@ -229,9 +229,7 @@ namespace rgatCore
                     if (boundAction == eKeybind.eCancel)
                     {
                         CloseDialogs();
-                        continue;
                     }
-
 
                     MainGraphWidget.AlertKeybindPressed(boundAction);
 
@@ -248,7 +246,7 @@ namespace rgatCore
                 _SettingsMenu.HasPendingKeybind = false;
                 return;
             }
-            
+
             _show_load_trace_window = false;
             _settings_window_shown = false;
             _show_select_exe_window = false;
@@ -764,28 +762,6 @@ namespace rgatCore
                 }
                 ImGui.PopItemWidth();
                 ImGui.SameLine();
-
-                //todo: this should show a drowndown if some highlights are active
-                //with choice of pick more or reset
-                if (ImGui.Button("Highlight"))
-                {
-                    _show_highlight_window = true;
-                }
-
-                ImGui.SameLine();
-
-                if (_show_highlight_window)
-                {
-                    ImGui.SetNextWindowSizeConstraints(HighlightDialog.InitialSize, new Vector2(HighlightDialog.InitialSize.X + 400, HighlightDialog.InitialSize.Y + 500));
-                    if (this._rgatstate.ActiveGraph != null &&
-                        ImGui.Begin("Code Highlighting", ref _show_highlight_window))
-                    {
-                        HighlightDialogWidget.Draw();
-                        ImGui.End();
-                    }
-
-                }
-
 
                 if (ImGui.Button("Scale"))
                 {

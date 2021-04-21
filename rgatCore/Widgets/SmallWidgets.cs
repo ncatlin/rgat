@@ -37,7 +37,7 @@ namespace rgatCore.Widgets
         static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
         //adapted from code somewhere from imgui internal
-        public static bool ToggleButton(string str_id, bool isToggled)
+        public static bool ToggleButton(string str_id, bool isToggled, string tooltip)
         {
             const uint TOGGLE_OFF_HOVER_COL = 0xff888888;
             const uint TOGGLE_ON_HOVER_COL = 0xff008800;
@@ -57,6 +57,12 @@ namespace rgatCore.Widgets
             {
                 _lastActiveID = ImGui.GetID(str_id);
                 _LastActiveIdTimer = DateTime.UtcNow;
+            }
+            if (tooltip != null && ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text(tooltip);
+                ImGui.EndTooltip();
             }
 
             float t = isToggled ? 1.0f : 0.0f;
