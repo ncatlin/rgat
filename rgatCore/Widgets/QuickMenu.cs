@@ -11,6 +11,8 @@ namespace rgatCore.Widgets
     {
         ImGuiController _controller;
         bool _expanded;
+        bool ExpansionFinished => Math.Floor(_expandProgress) == _menuEntries.Count;
+        float _expandProgress = 0f;
         string _popupShown;
         Vector2 _popupPos = Vector2.Zero;
         Vector2 _menuBase = Vector2.Zero;
@@ -48,7 +50,6 @@ namespace rgatCore.Widgets
             _expanded = false;
             if (_popupShown != null)
             {
-
                 ImGui.CloseCurrentPopup();
                 _popupShown = null;
             }
@@ -69,6 +70,7 @@ namespace rgatCore.Widgets
                 if (ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup))
                 {
                     _expanded = true;
+                    _expandProgress = 0;
                 }
             }
 
@@ -84,40 +86,44 @@ namespace rgatCore.Widgets
 
         }
 
-
         void DrawExpandedMenu(Vector2 position)
         {
-
+            const float expansionPerFrame = 0.3f;
             Vector2 padding = new Vector2(16f, 6f);
             _menuBase = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
 
             float menuYPad = 8;
             float iconCount = _menuEntries.Count;
+            float currentExpansion = (float)(_expandProgress / ((float)_menuEntries.Count));
 
             float expandedHeight = iconCount * (_iconSize.Y + menuYPad);
-            Vector2 menuPos = new Vector2(position.X + padding.X, position.Y - (expandedHeight + menuYPad));
-
+            Vector2 menuPos = new Vector2(position.X + padding.X, position.Y - (expandedHeight * currentExpansion + menuYPad));
 
             ImGui.SetCursorScreenPos(menuPos);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 5.0f);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.3f, 0.6f, 0.5f));
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.1f, 0.3f, 0.6f, 0.5f));
-            ImGui.Button(" ", new Vector2(_iconSize.X, expandedHeight));
+            ImGui.Button(" ", new Vector2(_iconSize.X, expandedHeight * currentExpansion));
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleVar();
 
-            if (_popupShown == null && !ImGui.IsItemHovered())
+            if (_popupShown == null && !ImGui.IsItemHovered() && ExpansionFinished)
             {
                 _expanded = false;
             }
 
-            float menuY = 0;
-            foreach (MenuEntry entry in _menuEntries)
+            float menuY = 0; 
+            for (var i = 0; i < _menuEntries.Count; i++)
             {
-                DrawMenuButton(entry.IconName, entry.PopupName, entry.ToolTip, menuY);
+                MenuEntry entry = _menuEntries[i];
+                float progressAdjustedY = menuY * currentExpansion; 
+                DrawMenuButton(entry.IconName, entry.PopupName, entry.ToolTip, progressAdjustedY);
                 menuY += (_iconSize.Y + menuYPad);
+                if (i >= _expandProgress) break;
             }
+            if (!ExpansionFinished) _expandProgress += expansionPerFrame;
+            _expandProgress = Math.Min(_expandProgress, _menuEntries.Count);
         }
 
 
@@ -129,6 +135,8 @@ namespace rgatCore.Widgets
             ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
             Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
             ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);
+
+            if (!ExpansionFinished) return;
 
             ImGuiHoveredFlags flags = ImGuiHoveredFlags.AllowWhenBlockedByActiveItem |
                                       ImGuiHoveredFlags.AllowWhenOverlapped |
