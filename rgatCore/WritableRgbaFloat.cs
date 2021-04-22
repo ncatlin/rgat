@@ -29,6 +29,13 @@ namespace rgatCore
             B = (float)Bf;
             A = (float)Af;
         }
+        public WritableRgbaFloat(Vector4 col)
+        {
+            R = col.X;
+            G = col.Y;
+            B = col.Z;
+            A = col.W;
+        }
 
         public uint ToUint(uint? customAlpha = null)
         {

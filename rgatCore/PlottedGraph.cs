@@ -700,20 +700,34 @@ namespace rgatCore
         void CreateHighlightEdges(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
             List<uint> highlightNodes;
+
             lock (textLock)
             {
                 highlightNodes = AllHighlightedNodes.ToList();
             }
             uint textureSize = LinearIndexTextureSize();
+            WritableRgbaFloat defaultColour = new WritableRgbaFloat(Color.Cyan);
             foreach (uint node in highlightNodes)
             {
-                WritableRgbaFloat ecol = new WritableRgbaFloat(Color.Cyan);
+                WritableRgbaFloat edgeColour;
+                if (_customHighlightColours.Count > 0)
+                {
+                    Vector4? customColour = GetCustomHighlightColour((int)node);
+                    if (customColour != null)
+                        edgeColour = new WritableRgbaFloat(customColour.Value);
+                    else
+                        edgeColour = defaultColour;
+                }   
+                else
+                {
+                    edgeColour = defaultColour;
+                }
 
                 edgeIndices.Add((uint)resultList.Count);
                 resultList.Add(new GeomPositionColour
                 {
-                    Position = new Vector4(0, 0, 0, 0),
-                    Color = ecol
+                    Position = new Vector4(0, 0, 0, 0), //better ideas??
+                    Color = edgeColour
                 });
 
                 edgeIndices.Add((uint)resultList.Count);
@@ -721,7 +735,7 @@ namespace rgatCore
                 {
                     //w = 1 => this is a position texture coord, not a space coord
                     Position = new Vector4(node % textureSize, (float)Math.Floor((float)(node / textureSize)), 0, 1),
-                    Color = ecol
+                    Color = edgeColour
                 });
 
             }
@@ -2008,6 +2022,24 @@ namespace rgatCore
         }
 
         public bool HighlightsChanged;
+
+        Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
+        public Vector4? GetCustomHighlightColour(int nodeIdx)
+        {
+            lock (textLock)
+            {
+                if (_customHighlightColours.TryGetValue(nodeIdx, out Vector4 col)) return col;
+                return null;
+            }
+        }
+        public void SetCustomHighlightColour(int nodeIdx, Vector4 colour)
+        {
+            lock (textLock)
+            {
+                _customHighlightColours[nodeIdx] = colour;
+            }
+        }
+
         public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
             lock (textLock)

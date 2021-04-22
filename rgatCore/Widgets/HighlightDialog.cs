@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
@@ -10,7 +11,7 @@ namespace rgatCore.Widgets
 {
     class HighlightDialog
     {
-        public HighlightDialog(Vector2 initialSize) 
+        public HighlightDialog(Vector2 initialSize)
         {
             _initialSize = initialSize;
         }
@@ -129,7 +130,7 @@ namespace rgatCore.Widgets
 
         }
 
-
+        Vector4 _activeColorPick1 = new WritableRgbaFloat(Color.Cyan).ToVec4();
 
         private void DrawModSymTreeNodes()
         {
@@ -178,15 +179,42 @@ namespace rgatCore.Widgets
                                 continue;
                             }
 
-                            ImGui.SetCursorPosX(cursX);
+                            ImGui.SetCursorPosX(10);
                             ImGui.BeginGroup();
                             if (ImGui.Selectable($"{syminfo.name}", syminfo.selected))
                             {
                                 HandleSelectedSym(module_modentry, syminfo);
                             }
-                            ImGui.SameLine(300);
+                            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                            {
+                                ImGui.OpenPopup("HighlightColorPicker", ImGuiPopupFlags.MouseButtonRight);
+                            }
+                            if (ImGui.BeginPopup("HighlightColorPicker"))
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
+                                ImGui.Text($"Configuring highlight colour for {syminfo.name} (0x{syminfo.address}:x)");
+                                ImGuiColorEditFlags flags = ImGuiColorEditFlags.NoInputs;
+                                flags |= ImGuiColorEditFlags.AlphaBar;
+                                if(ImGui.ColorPicker4("Highlight Colour", ref _activeColorPick1, flags))
+                                {
+                                    foreach (uint node in syminfo.threadNodes)
+                                    {
+                                        _ActiveGraph.SetCustomHighlightColour((int)node, _activeColorPick1);
+                                    }
+                                }
+                                ImGui.Text("Highlight active:");
+                                ImGui.SameLine();
+                                if(SmallWidgets.ToggleButton("NodeActiveHighlightToggle", syminfo.selected, "Node is highlighted"))
+                                {
+                                    HandleSelectedSym(module_modentry, syminfo);
+                                }
+                                ImGui.PopStyleColor();
+                                ImGui.EndPopup();
+                            }
+
+                            ImGui.SameLine(190);
                             ImGui.Text($"0x{syminfo.address:X}");
-                            ImGui.SameLine(450);
+                            ImGui.SameLine(305);
                             ImGui.Text($"{syminfo.threadNodes.Count}");
                             ImGui.EndGroup();
 
@@ -239,20 +267,20 @@ namespace rgatCore.Widgets
             ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
-            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X -3, 20)))
+            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X - 3, 20)))
             {
-                ImGui.SameLine(100);
+                ImGui.SameLine(10);
                 ImGui.Text("Symbol");
-                ImGui.SameLine(300);
+                ImGui.SameLine(200);
                 ImGui.Text("Address");
-                ImGui.SameLine(450);
+                ImGui.SameLine(315);
                 ImGui.Text("Unique Nodes");
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
-            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X - 3,ImGui.GetContentRegionAvail().Y - reserveSize)))
+            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X - 3, ImGui.GetContentRegionAvail().Y - reserveSize)))
             {
                 DrawModSymTreeNodes();
                 ImGui.EndChild();
@@ -433,9 +461,9 @@ namespace rgatCore.Widgets
                     }
                     ImGui.EndTabBar();
                 }
-             ImGui.EndChildFrame();
-           }
-           //ImGui.PopStyleColor();
+                ImGui.EndChildFrame();
+            }
+            //ImGui.PopStyleColor();
         }
     }
 }
