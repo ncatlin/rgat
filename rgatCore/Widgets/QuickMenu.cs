@@ -154,10 +154,15 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
             ImGui.PopStyleVar();
 
-            if (_expanded && _activeMenuPopupName == null && !ImGui.IsItemHovered() && ExpansionFinished && !_stayExpanded)
+            //close menu if menu fully expanded, no child popup and mouse is far enough away
+            if (_expanded && _activeMenuPopupName == null && ExpansionFinished && !_stayExpanded)
             {
-                Contract();
-                return;
+                float mouseDistance = Vector2.Distance(position, ImGui.GetMousePos());
+                if (mouseDistance > 135)
+                {
+                    Contract();
+                    return;
+                }
             }
 
             float menuY = 0;
