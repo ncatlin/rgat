@@ -164,6 +164,12 @@ namespace rgatCore
 
         void HandleUserInput()
         {
+            if (_hexTooltipShown)
+            {
+                _hexTooltipScroll -= _mouseWheelDelta*60;
+                _mouseWheelDelta = 0;
+                return;
+            }
 
             PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
             bool MouseInMainWidget = MainGraphWidget.MouseInWidget();
@@ -356,11 +362,16 @@ namespace rgatCore
                 ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
 
                 ImGui.Text("Hex Preview"); ImGui.NextColumn();
-
+                _hexTooltipShown = false;
                 _ImGuiController.PushOriginalFont(); //it's monospace and UTF8
                 {
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
                     ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                    _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                    if (ImGui.IsItemHovered())
+                    {
+                        ShowHexPreviewTooltip(activeTarget);
+                    }
                     ImGui.PopFont();
                 }
 
@@ -369,8 +380,16 @@ namespace rgatCore
                 {
                     _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
                     ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                    _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                    if (ImGui.IsItemHovered())
+                    {
+                        ShowHexPreviewTooltip(activeTarget);
+                    }
                     ImGui.PopFont();
+
                 }
+
+                if (!_hexTooltipShown) _hexTooltipScroll = 0;
 
                 DrawSignaturesBox(activeTarget);
 
@@ -382,6 +401,26 @@ namespace rgatCore
             ImGui.EndGroup();
             ImGui.EndChildFrame();
         }
+
+        float _hexTooltipScroll = 0;
+        bool _hexTooltipShown;
+        private void ShowHexPreviewTooltip(BinaryTarget target)
+        {
+            ImGui.SetNextWindowSize(new Vector2(530, 300));
+            ImGui.BeginTooltip();
+
+            string hexline = target.HexTooltip();
+
+
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.ReadOnly;
+            flags |= ImGuiInputTextFlags.Multiline;
+            flags |= ImGuiInputTextFlags.NoHorizontalScroll;
+            ImGui.SetScrollY(_hexTooltipScroll);
+            ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530,845), flags);
+
+            ImGui.EndTooltip();
+        }
+
 
         private static void DrawTraceTab_DiagnosticSettings(float width)
         {

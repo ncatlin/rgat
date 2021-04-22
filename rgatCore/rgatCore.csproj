@@ -59,6 +59,7 @@
     <PackageReference Include="ImGui.NET" Version="1.78.0" />
     <PackageReference Include="ImGui.NET.Docking" Version="1.75.0" />
     <PackageReference Include="Jint" Version="3.0.0-beta-1914" />
+    <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -58,6 +58,15 @@ namespace rgatCore.Widgets
                 PopupName = "SearchMenuPopup",
                 ToolTip = "Search/Highlighting (S)"
             });
+
+            _menuEntries.Add(new MenuEntry
+            {
+                IconName = "Force3D",
+                PopupName = "GraphLayoutMenu",
+                ToolTip = "Graph Layout (G)"
+            });
+
+            
         }
 
         public void CancelPressed()
@@ -147,7 +156,7 @@ namespace rgatCore.Widgets
 
             ImGui.SetCursorScreenPos(menuPos);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 5.0f);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.3f, 0.6f, 0.5f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.3f, 0.6f, 0.4f));
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.1f, 0.3f, 0.6f, 0.5f));
             ImGui.Button(" ", new Vector2(_iconSize.X, expandedHeight * currentExpansion));
             ImGui.PopStyleColor();
@@ -165,6 +174,7 @@ namespace rgatCore.Widgets
                 }
             }
 
+            //now draw the buttons, Y position proportional to the expansion progress
             float menuY = 0;
             for (var i = 0; i < _menuEntries.Count; i++)
             {
@@ -250,6 +260,13 @@ namespace rgatCore.Widgets
                 }
             }
 
+            if (ImGui.BeginPopup("GraphLayoutMenu"))
+            {
+                DrawGraphLayoutFrame(graph);
+                ImGui.EndPopup();
+            }
+
+
             if (_activeMenuPopupName != null && !ImGui.IsPopupOpen(_activeMenuPopupName))
             {
                 _activeMenuPopupName = null;
@@ -288,6 +305,29 @@ namespace rgatCore.Widgets
             //_size = ImGui.GetWindowSize();
         }
 
+
+        void DrawGraphLayoutFrame(PlottedGraph activeGraph)
+        {
+            if (activeGraph.LayoutStyle == eGraphLayout.eCircle)
+            {
+                ImGui.Text("Circle Config Options");
+            }
+
+            if (activeGraph.LayoutStyle == eGraphLayout.eCylinderLayout)
+            {
+                ImGui.Text("Cylinder Config Options");
+            }
+
+            if (activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks)
+            {
+                ImGui.Text("ForceDirected3DBlocks Config Options");
+            }
+
+            if (activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes)
+            {
+                ImGui.Text("eForceDirected3DNodes Config Options");
+            }
+        }
 
         void DrawSearchHighlightFrame(PlottedGraph activeGraph)
         {

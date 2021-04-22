@@ -63,7 +63,7 @@ namespace rgatCore
         private string _sha256hash = "";
         private long fileSize = 0;
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
-        private Byte[] startbytes = null;
+        public Byte[] StartBytes = null;
         public PeNet.PeFile PEFileObj;
 
         public int BitWidth = 0;
@@ -71,6 +71,24 @@ namespace rgatCore
         public string FileName { get; private set; } = "";
         public string HexPreview { get; private set; } = "";
         public string ASCIIPreview { get; private set; } = "";
+
+        string _hexTooltip;
+        public string HexTooltip()
+        {
+            if (_hexTooltip?.Length > 0) return _hexTooltip;
+            byte[] fragment;
+            for (var i = 0; i < 64; i++)
+            {
+                fragment = StartBytes.Skip(i * 16).Take(16).ToArray();
+                if (fragment.Length == 0) break;
+                _hexTooltip += $"{i * 16:X3}  ";
+                _hexTooltip += BitConverter.ToString(fragment, 0, 16).Replace("-", " ");
+                _hexTooltip += " | ";
+                _hexTooltip += TextUtils.IllustrateASCIIBytesCompact(fragment, 16);
+                _hexTooltip += $"\n";
+            }
+            return _hexTooltip;
+        }
 
         List<string> signatureHitsDIE = null;
         List<string> signatureHitsYARA = null;
@@ -99,7 +117,7 @@ namespace rgatCore
         private readonly Object signaturesLock = new Object();
         public void ClearSignatureHits(eSignatureType sigType)
         {
-            
+
             switch (sigType)
             {
                 case eSignatureType.eDetectItEasy:
@@ -142,7 +160,7 @@ namespace rgatCore
 
         public void DeleteTrace(DateTime timestarted)
         {
-            lock(tracesLock)
+            lock (tracesLock)
             {
                 if (RecordedTraces.ContainsKey(timestarted))
                 {
@@ -210,8 +228,8 @@ namespace rgatCore
             try
             {
                 using FileStream fs = File.OpenRead(FilePath);
-                startbytes = new byte[Math.Min(1024, fileSize)];
-                int bytesread = fs.Read(startbytes, 0, startbytes.Length);
+                StartBytes = new byte[Math.Min(1024, fileSize)];
+                int bytesread = fs.Read(StartBytes, 0, StartBytes.Length);
                 int previewSize = Math.Min(16, bytesread);
                 if (fileSize == 0)
                 {
@@ -220,8 +238,8 @@ namespace rgatCore
                 }
                 else
                 {
-                    HexPreview = BitConverter.ToString(startbytes, 0, previewSize).Replace("-", " ");
-                    ASCIIPreview = TextUtils.IllustrateASCIIBytes(startbytes, previewSize);
+                    HexPreview = BitConverter.ToString(StartBytes, 0, previewSize).Replace("-", " ");
+                    ASCIIPreview = TextUtils.IllustrateASCIIBytes(StartBytes, previewSize);
                 }
 
                 SHA1 sha1 = new SHA1Managed();
@@ -229,9 +247,9 @@ namespace rgatCore
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
 
-                if(PeNet.PeFile.TryParse(FilePath, out PEFileObj))
+                if (PeNet.PeFile.TryParse(FilePath, out PEFileObj))
                 {
-                    this.BitWidth = PEFileObj.Is32Bit ? 32 : 
+                    this.BitWidth = PEFileObj.Is32Bit ? 32 :
                         (PEFileObj.Is64Bit ? 64 : 0);
                 }
                 else
