@@ -11,7 +11,11 @@ namespace rgatCore.Widgets
     {
         ImGuiController _controller;
         bool _expanded;
+        bool _stayExpanded;
+
         bool ExpansionFinished => Math.Floor(_expandProgress) == _menuEntries.Count;
+        public bool Expanded => _expanded;
+
         float _expandProgress = 0f;
         string _popupShown;
         Vector2 _popupPos = Vector2.Zero;
@@ -35,14 +39,26 @@ namespace rgatCore.Widgets
             _controller = controller;
             HighlightDialogWidget = new HighlightDialog();
 
-            _menuEntries.Add(new MenuEntry { 
-                IconName = "Menu2", PopupName = null, ToolTip = "Menu (M)" });//todo - read keybind
+            _menuEntries.Add(new MenuEntry
+            {
+                IconName = "Menu2",
+                PopupName = null,
+                ToolTip = "Menu (M)"
+            });//todo - read keybind
 
-            _menuEntries.Add(new MenuEntry { 
-                IconName = "Eye", PopupName = "VisibilityMenuPopup", ToolTip = "Visibility(V)" });
+            _menuEntries.Add(new MenuEntry
+            {
+                IconName = "Eye",
+                PopupName = "VisibilityMenuPopup",
+                ToolTip = "Visibility(V)"
+            });
 
-            _menuEntries.Add(new MenuEntry { 
-                IconName = "Search", PopupName = "SearchMenuPopup", ToolTip = "Search/Highlighting (S)" });
+            _menuEntries.Add(new MenuEntry
+            {
+                IconName = "Search",
+                PopupName = "SearchMenuPopup",
+                ToolTip = "Search/Highlighting (S)"
+            });
         }
 
         public void CancelPressed()
@@ -55,12 +71,35 @@ namespace rgatCore.Widgets
             }
         }
 
+        public void Expand(bool persistent = false)
+        {
+            if (_expanded == false && _expandProgress <= 0)
+            {
+                _expanded = true;
+                _stayExpanded = persistent;
+            }
+        }
+
+        public void Contract()
+        {
+
+            if (ExpansionFinished)
+            {
+                _expanded = false;
+                _stayExpanded = false;
+                _popupShown = null;
+            }
+
+        }
+
+
+
         public void Draw(Vector2 position, float scale, PlottedGraph graph)
         {
             Texture btnIcon = _controller.GetImage("Menu");
             _iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
 
-            if (!_expanded)
+            if (_expandProgress == 0)
             {
                 IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
                 Vector2 padding = new Vector2(16f, 6f);
@@ -69,12 +108,11 @@ namespace rgatCore.Widgets
                 ImGui.Image(CPUframeBufferTextureId, _iconSize);
                 if (ImGui.IsItemHovered(flags: ImGuiHoveredFlags.AllowWhenBlockedByPopup))
                 {
-                    _expanded = true;
-                    _expandProgress = 0;
+                    Expand();
                 }
             }
 
-            if (_expanded)
+            if (_expanded || _expandProgress != 0)
             {
                 DrawExpandedMenu(position);
             }
@@ -108,22 +146,26 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
             ImGui.PopStyleVar();
 
-            if (_popupShown == null && !ImGui.IsItemHovered() && ExpansionFinished)
+            if (_expanded && _popupShown == null && !ImGui.IsItemHovered() && ExpansionFinished && !_stayExpanded)
             {
-                _expanded = false;
+                Contract();
+                return;
             }
 
-            float menuY = 0; 
+            float menuY = 0;
             for (var i = 0; i < _menuEntries.Count; i++)
             {
                 MenuEntry entry = _menuEntries[i];
-                float progressAdjustedY = menuY * currentExpansion; 
+                float progressAdjustedY = menuY * currentExpansion;
                 DrawMenuButton(entry.IconName, entry.PopupName, entry.ToolTip, progressAdjustedY);
                 menuY += (_iconSize.Y + menuYPad);
                 if (i >= _expandProgress) break;
             }
-            if (!ExpansionFinished) _expandProgress += expansionPerFrame;
+            if (_expanded && !ExpansionFinished) _expandProgress += expansionPerFrame;
+            if (!_expanded && _expandProgress > 0) _expandProgress -= expansionPerFrame;
+
             _expandProgress = Math.Min(_expandProgress, _menuEntries.Count);
+            _expandProgress = Math.Max(_expandProgress, 0);
         }
 
 
@@ -176,7 +218,7 @@ namespace rgatCore.Widgets
                 DrawSearchHighlightFrame(graph);
                 ImGui.EndPopup();
             }
-                        
+
             if (_popupShown != null && !ImGui.IsPopupOpen(_popupShown))
             {
                 _popupShown = null;
@@ -195,7 +237,7 @@ namespace rgatCore.Widgets
             tooltip = "Toggle display of graph instruction nodes. Current Keybind: [N]";
             ImGui.Text("Show Nodes");
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-            ImGui.SameLine(); 
+            ImGui.SameLine();
             if (SmallWidgets.ToggleButton("nodes", activeGraph.NodesVisible, tooltip))
                 activeGraph.NodesVisible = !activeGraph.NodesVisible;
 

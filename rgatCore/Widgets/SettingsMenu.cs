@@ -169,6 +169,7 @@ namespace rgatCore.Widgets
             CreateKeybindInput("Toggle All Text", eKeybind.eToggleText, index++);
             CreateKeybindInput("Toggle Instruction Text", eKeybind.eToggleInsText, index++);
             CreateKeybindInput("Toggle Dynamic Text", eKeybind.eToggleLiveText, index++);
+            CreateKeybindInput("Graph QuickMenu", eKeybind.eQuickMenu, index++);
         }
 
 

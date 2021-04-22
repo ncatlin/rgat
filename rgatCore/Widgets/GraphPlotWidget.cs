@@ -399,6 +399,12 @@ namespace rgatCore
                     _QuickMenu.CancelPressed();
                     break;
 
+                case eKeybind.eQuickMenu:
+                    {
+                        if (_QuickMenu.Expanded) _QuickMenu.Contract();
+                        else _QuickMenu.Expand(persistent: true);
+                        break;
+                    }
                 default:
                     break;
             }

@@ -141,6 +141,7 @@ namespace rgatCore.Threads
             SetKeybind(eKeybind.eToggleText, 1, Key.I, ModifierKeys.None);
             SetKeybind(eKeybind.eToggleInsText, 1, Key.I, ModifierKeys.Shift);
             SetKeybind(eKeybind.eToggleLiveText, 1, Key.I, ModifierKeys.Control);
+            SetKeybind(eKeybind.eQuickMenu, 1, Key.M, ModifierKeys.None);
         }
 
         /// <summary>
