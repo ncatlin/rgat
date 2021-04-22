@@ -24,7 +24,6 @@ namespace rgatCore
         //rgat ui state
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
-        private bool _show_highlight_window = false;
         private bool _show_load_trace_window = false;
         private ImGuiController _ImGuiController = null;
 
@@ -38,8 +37,7 @@ namespace rgatCore
 
         GraphPlotWidget MainGraphWidget = null;
         PreviewGraphsWidget PreviewGraphWidget = null;
-        HighlightDialog HighlightDialogWidget = null;
-        SettingsMenu _SettingsMenu = null;
+        SettingsMenu _SettingsMenu = new SettingsMenu();
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
@@ -57,7 +55,6 @@ namespace rgatCore
             GlobalConfig.InitDefaultConfig();
             Console.WriteLine("Config Inited");
 
-            _SettingsMenu = new SettingsMenu();
 
             _ImGuiController = imguicontroller;
 
@@ -71,8 +68,6 @@ namespace rgatCore
 
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
-
-            HighlightDialogWidget = new HighlightDialog();
             Console.WriteLine("rgatUI created");
         }
 
@@ -141,6 +136,7 @@ namespace rgatCore
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+            //ImGui.GetIO().ConfigWindowsResizeFromEdges = true;
 
             ImGui.SetNextWindowPos(new Vector2(50, 50), ImGuiCond.Appearing);
 
@@ -223,7 +219,8 @@ namespace rgatCore
                                 continue;
                         }
                     }
-                    
+
+                    MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
                     if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
 
                     if (boundAction == eKeybind.eCancel)
@@ -250,7 +247,6 @@ namespace rgatCore
             _show_load_trace_window = false;
             _settings_window_shown = false;
             _show_select_exe_window = false;
-            _show_highlight_window = false;
         }
 
 
@@ -737,31 +733,6 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3);
-                ImGui.Button("Wireframe");
-                ImGui.SameLine();
-                ImGui.Button("Symbols");
-                ImGui.SameLine();
-                ImGui.Button("Instructions");
-                ImGui.SameLine();
-                ImGui.PushItemWidth(100);
-                if (ImGui.BeginCombo("##TraceTypeSelectCombo", "Trace"))
-                {
-                    if (ImGui.Selectable("Trace", true))
-                    {
-                        Console.WriteLine("Trace selected");
-                    }
-                    if (ImGui.Selectable("Heatmap", false))
-                    {
-                        Console.WriteLine("Heatmap selected");
-                    }
-                    if (ImGui.Selectable("Conditionals", false))
-                    {
-                        Console.WriteLine("Conditionals selected");
-                    }
-                    ImGui.EndCombo();
-                }
-                ImGui.PopItemWidth();
-                ImGui.SameLine();
 
                 if (ImGui.Button("Scale"))
                 {

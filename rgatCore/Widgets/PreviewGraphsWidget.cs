@@ -95,8 +95,10 @@ namespace rgatCore
         {
             //Console.WriteLine("Handling timer fired");
             IrregularTimerFired = false;
-
-            _layoutEngine.UpdatePositionCaches();
+            foreach (PlottedGraph graph in _centeringRequired.Keys.ToList())
+            {
+                _centeringRequired[graph] = true;
+            }
         }
 
 
@@ -424,6 +426,9 @@ namespace rgatCore
             return shaderParams;
         }
 
+        Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
+
+
         void renderPreview(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
             if (graph == null || positionsBuffer == null || nodeAttributesBuffer == null) return;
@@ -433,8 +438,20 @@ namespace rgatCore
                 graph.InitPreviewTexture(new Vector2(width, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
 
+            bool needsCentering = true;
+            if (!_centeringRequired.TryGetValue(graph, out needsCentering))
+            {
+                _centeringRequired.Add(graph, true);
+            }
 
-            CenterGraphInFrameStep(out float maxremaining, graph);
+            if (needsCentering)
+            {
+               bool done = CenterGraphInFrameStep(out float maxremaining, graph);
+                if (done)
+                {
+                    _centeringRequired[graph] = false;
+                }
+            }
 
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph);

@@ -10,20 +10,20 @@ namespace rgatCore.Widgets
     class QuickMenu
     {
         ImGuiController _controller;
-        bool _expanded;
-        bool _stayExpanded;
+        bool _expanded; //true if menu is expanded or in the process of expanding.
+        bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
 
         bool ExpansionFinished => Math.Floor(_expandProgress) == _menuEntries.Count;
         public bool Expanded => _expanded;
 
         float _expandProgress = 0f;
-        string _popupShown;
+        string _activeMenuPopupName;
         Vector2 _popupPos = Vector2.Zero;
         Vector2 _menuBase = Vector2.Zero;
         Vector2 _iconSize = Vector2.Zero;
 
         GraphicsDevice _gd;
-        HighlightDialog HighlightDialogWidget = null;
+        HighlightDialog HighlightDialogWidget = new HighlightDialog();
         List<MenuEntry> _menuEntries = new List<MenuEntry>();
 
         struct MenuEntry
@@ -33,11 +33,10 @@ namespace rgatCore.Widgets
             public string ToolTip;
         }
 
-        public QuickMenu(Vector2 size, GraphicsDevice gd, ImGuiController controller)
+        public QuickMenu(GraphicsDevice gd, ImGuiController controller)
         {
             _gd = gd;
             _controller = controller;
-            HighlightDialogWidget = new HighlightDialog();
 
             _menuEntries.Add(new MenuEntry
             {
@@ -64,12 +63,18 @@ namespace rgatCore.Widgets
         public void CancelPressed()
         {
             _expanded = false;
-            if (_popupShown != null)
+            if (_activeMenuPopupName != null)
             {
                 ImGui.CloseCurrentPopup();
-                _popupShown = null;
+                _activeMenuPopupName = null;
             }
         }
+        
+        public void KeyPressed(Tuple<Key, ModifierKeys> keyModTuple)
+        {
+           
+        }
+
 
         public void Expand(bool persistent = false)
         {
@@ -87,7 +92,8 @@ namespace rgatCore.Widgets
             {
                 _expanded = false;
                 _stayExpanded = false;
-                _popupShown = null;
+                _activeMenuPopupName = null;
+                HighlightDialogWidget.PopoutHighlight = false;
             }
 
         }
@@ -117,9 +123,11 @@ namespace rgatCore.Widgets
                 DrawExpandedMenu(position);
             }
 
-            if (_popupShown != null)
+            if (_activeMenuPopupName != null)
             {
+                ImGui.PushStyleColor(ImGuiCol.ModalWindowDimBg, 0x00000050);
                 DrawPopups(graph);
+                ImGui.PopStyleColor();
             }
 
         }
@@ -146,7 +154,7 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
             ImGui.PopStyleVar();
 
-            if (_expanded && _popupShown == null && !ImGui.IsItemHovered() && ExpansionFinished && !_stayExpanded)
+            if (_expanded && _activeMenuPopupName == null && !ImGui.IsItemHovered() && ExpansionFinished && !_stayExpanded)
             {
                 Contract();
                 return;
@@ -190,14 +198,14 @@ namespace rgatCore.Widgets
                 ImGui.Text(tooltip);
                 ImGui.EndTooltip();
 
-                if (_popupShown != popupName)
+                if (_activeMenuPopupName != popupName)
                 {
                     if (popupName != null)
                     {
-                        _popupPos = new Vector2(_menuBase.X + 50, _menuBase.Y - Yoffset);
+                        _popupPos = new Vector2(_menuBase.X + 50, _menuBase.Y - (Yoffset + 50));
                         ImGui.OpenPopup(popupName);
                     }
-                    _popupShown = popupName;
+                    _activeMenuPopupName = popupName;
                 }
             }
 
@@ -205,23 +213,41 @@ namespace rgatCore.Widgets
 
         void DrawPopups(PlottedGraph graph)
         {
-            ImGui.SetNextWindowPos(_popupPos);
-            if (ImGui.BeginPopup("VisibilityMenuPopup", ImGuiWindowFlags.AlwaysAutoResize))
+            ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
+
+            if (ImGui.BeginPopup("VisibilityMenuPopup"))
             {
                 DrawVisibilityFrame(graph);
                 ImGui.EndPopup();
             }
 
-            ImGui.SetNextWindowPos(_popupPos);
-            if (ImGui.BeginPopup("SearchMenuPopup", ImGuiWindowFlags.AlwaysAutoResize))
+            if (HighlightDialogWidget.PopoutHighlight)
             {
-                DrawSearchHighlightFrame(graph);
-                ImGui.EndPopup();
+                bool ff = true;
+                ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
+                ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
+                if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight))
+                {
+                    DrawSearchHighlightFrame(graph);
+                    ImGui.End();
+                }
+                return;
+            }
+            else
+            {
+                ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Always);
+                ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
+                ImGuiWindowFlags flags = ImGuiWindowFlags.None;
+                if (ImGui.BeginPopup("SearchMenuPopup", flags))
+                {
+                    DrawSearchHighlightFrame(graph);
+                    ImGui.EndPopup();
+                }
             }
 
-            if (_popupShown != null && !ImGui.IsPopupOpen(_popupShown))
+            if (_activeMenuPopupName != null && !ImGui.IsPopupOpen(_activeMenuPopupName))
             {
-                _popupShown = null;
+                _activeMenuPopupName = null;
             }
         }
 
@@ -260,7 +286,6 @@ namespace rgatCore.Widgets
 
         void DrawSearchHighlightFrame(PlottedGraph activeGraph)
         {
-            ImGui.SetNextWindowSizeConstraints(HighlightDialog.InitialSize, new Vector2(HighlightDialog.InitialSize.X + 400, HighlightDialog.InitialSize.Y + 500));
             HighlightDialogWidget.Draw(activeGraph);
         }
     }

@@ -10,7 +10,15 @@ namespace rgatCore.Widgets
 {
     class HighlightDialog
     {
-        public HighlightDialog() { }
+        public HighlightDialog(Vector2 initialSize) 
+        {
+            _initialSize = initialSize;
+        }
+
+        public HighlightDialog()
+        {
+            _initialSize = new Vector2(600, 300);
+        }
 
         struct symbolInfo
         {
@@ -45,7 +53,7 @@ namespace rgatCore.Widgets
         Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
         PlottedGraph _ActiveGraph = null;
         ThreadHighlightSettings _activeHighlights = null;
-        public static Vector2 InitialSize = new Vector2(600, 400);
+        Vector2 _initialSize = new Vector2(600, 300);
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
@@ -186,7 +194,6 @@ namespace rgatCore.Widgets
                             {
                                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
                                 {
-                                    Console.WriteLine($"hoverred {syminfo.name}");
                                     if (syminfo.hovered == false)
                                     {
                                         syminfo.hovered = true;
@@ -210,8 +217,9 @@ namespace rgatCore.Widgets
             }
         }
 
-        private void DrawSymbolsSelectBox(float height)
+        private void DrawSymbolsSelectBox(float reserveSize)
         {
+
             if (_ActiveGraph == null) return;
             if (_activeHighlights.LastExternNodeCount < _ActiveGraph.internalProtoGraph.ExternalNodesCount)
             {
@@ -231,7 +239,7 @@ namespace rgatCore.Widgets
             ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
-            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X, 20)))
+            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X -3, 20)))
             {
                 ImGui.SameLine(100);
                 ImGui.Text("Symbol");
@@ -244,7 +252,7 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
-            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X, height - 80)))
+            if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X - 3,ImGui.GetContentRegionAvail().Y - reserveSize)))
             {
                 DrawModSymTreeNodes();
                 ImGui.EndChild();
@@ -254,11 +262,12 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
         }
 
-        private void DrawSymbolsSelectControls(float height)
+        private void DrawSymbolsSelectControls()
         {
+            float height = 30;
             if (_activeHighlights.selectedHighlightTab == 0)
             {
-                if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height - 10)))
+                if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
                 {
                     ImGui.AlignTextToFramePadding();
                     ImGui.Text($"{_activeHighlights.SelectedSymbols.Count} highlighted symbols ({_ActiveGraph.HighlightedSymbolNodes.Count} nodes)");
@@ -278,12 +287,12 @@ namespace rgatCore.Widgets
                         _activeHighlights.SelectedSymbols.Clear();
                     }
 
-                    ImGui.SameLine(ImGui.GetContentRegionAvail().X - 95);
+                    ImGui.SameLine(ImGui.GetContentRegionAvail().X - 100);
                     ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000);
                     ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000ff);
                     if (ImGui.Button("Highlight Colour"))
                     {
-                        //todo: higlight colour picker
+                        //todo: highlight colour picker
                     }
                     ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
@@ -372,6 +381,8 @@ namespace rgatCore.Widgets
 
         }
 
+        public bool PopoutHighlight = false;
+
         public void Draw(PlottedGraph LatestActiveGraph)
         {
             if (LatestActiveGraph == null) return;
@@ -384,42 +395,47 @@ namespace rgatCore.Widgets
                     graphSettings.Add(_ActiveGraph, _activeHighlights);
                 }
             }
+            Vector2 Size = ImGui.GetWindowSize();
+            Size.Y = ImGui.GetContentRegionAvail().Y;
 
-            Vector2 Size = ImGui.GetContentRegionAvail();
-            if (Size.X < InitialSize.X) Size.X = InitialSize.X;
-            if (Size.Y < InitialSize.Y) Size.Y = InitialSize.Y;
-
-            if (ImGui.BeginChildFrame(ImGui.GetID("highlightControls"), Size, ImGuiWindowFlags.AlwaysAutoResize))
+            //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff0000ff);
+            if (ImGui.BeginChildFrame(ImGui.GetID("highlightControls"), Size))
             {
+                if (!PopoutHighlight && ImGui.Button("Popout"))
+                {
+                    ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 50);
+                    PopoutHighlight = true;
+                }
+
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
                 if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
                 {
                     if (ImGui.BeginTabItem("Externals/Symbols"))
                     {
                         _activeHighlights.selectedHighlightTab = 0;
-                        DrawSymbolsSelectBox(Size.Y - 40); //todo: unbadify this height choice
-                        DrawSymbolsSelectControls(40);
+                        DrawSymbolsSelectBox(reserveSize: 32); //todo: unbadify this height choice
+                        DrawSymbolsSelectControls();
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Addresses"))
                     {
                         _activeHighlights.selectedHighlightTab = 1;
-                        DrawAddressSelectBox(Size.Y - 80);
+                        DrawAddressSelectBox(888);
                         DrawAddressSelectControls();
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
                         _activeHighlights.selectedHighlightTab = 2;
-                        DrawExceptionSelectBox(Size.Y - 80);
+                        DrawExceptionSelectBox(555);
                         DrawExceptionSelectControls();
                         ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
                 }
-
-                ImGui.EndChildFrame();
-            }
+             ImGui.EndChildFrame();
+           }
+           //ImGui.PopStyleColor();
         }
     }
 }

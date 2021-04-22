@@ -49,7 +49,7 @@ namespace rgatCore
             _controller = controller;
             _gd = gdev;
             _factory = _gd.ResourceFactory;
-            _QuickMenu = new QuickMenu(new Vector2(300, 300), _gd, controller);
+            _QuickMenu = new QuickMenu(_gd, controller);
 
             _graphWidgetSize = initialSize ?? new Vector2(400, 400);
             _IrregularActionTimer = new System.Timers.Timer(600);
@@ -118,9 +118,10 @@ namespace rgatCore
             }
         }
 
+        bool _isInputTarget = false;
         public void ApplyMouseDrag(Vector2 delta)
         {
-            if (ActiveGraph != null)
+            if (ActiveGraph != null && _isInputTarget)
             {
                 ActiveGraph.ApplyMouseDragDelta(delta);
             }
@@ -291,6 +292,13 @@ namespace rgatCore
             return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 20;
         }
 
+        public void AlertRawKeyPress(Tuple<Key, ModifierKeys> keyModTuple)
+        {
+            if (_QuickMenu.Expanded)
+            {
+                _QuickMenu.KeyPressed(keyModTuple);
+            }
+        }
 
         public void AlertKeybindPressed(eKeybind boundAction)
         {
@@ -1011,7 +1019,7 @@ namespace rgatCore
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
                 p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
-
+            _isInputTarget = ImGui.IsItemActive();
             _cl.Dispose();
 
             Vector2 mp = new Vector2(ImGui.GetMousePos().X + 8, ImGui.GetMousePos().Y - 12);
