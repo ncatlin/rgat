@@ -58,6 +58,11 @@ namespace rgatCore.Threads
 
         public static uint MaximumLoadedGraphs = 1; //todo for dev - change to something like 20 later
 
+        public static uint IngestStatsPerSecond = 6; //granularity of thread update rate plot
+        public static float IngestStatWindow = 5f; //length of time a small thread activity plot covers (last X seconds)
+
+
+
         public static class mainColours
         {
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);

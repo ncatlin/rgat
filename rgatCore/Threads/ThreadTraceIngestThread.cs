@@ -48,6 +48,8 @@ namespace rgatCore
         DateTime _lastStatsUpdate = DateTime.Now;
         private List<float> _updateRates = new List<float>();
         private readonly Object _statsLock = new Object();
+        int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
+       
 
 
         public ThreadTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe)
@@ -65,7 +67,9 @@ namespace rgatCore
             splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
             splittingThread.Start();
 
-            StatsTimer = new System.Timers.Timer(150);
+            _updateRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();
+
+            StatsTimer = new System.Timers.Timer(1000.0 / GlobalConfig.IngestStatsPerSecond);
             StatsTimer.Elapsed += StatsTimerFired;
             StatsTimer.AutoReset = true;
             StatsTimer.Start();
@@ -89,7 +93,7 @@ namespace rgatCore
             float updateRate = (float)(messagesSinceLastUpdate) / elapsedTimeS;
             lock (_statsLock)
             {
-                if (_updateRates.Count > 25)
+                if (_updateRates.Count > _StatCacheSize)
                 {
                     _updateRates.RemoveAt(0);
                 }

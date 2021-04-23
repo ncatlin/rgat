@@ -414,14 +414,14 @@ namespace rgatCore
             {
                 values = graph.internalProtoGraph.TraceReader.RecentMessageRates();
             }
-            if (values == null || values.Length == 0)
+            if (values?.Length == 0)
             {
                 values = new List<float>() { 0, 0, 0, 0, 0 }.ToArray();
                 maxVal = 100;
             }
             else
             {
-                maxVal = values.Max();
+                maxVal = values.Max(); // should instead do the max of all the values from all the threads?
             }
 
             ImGui.PushStyleColor(ImGuiCol.FrameBg, captionBackgroundcolor);
