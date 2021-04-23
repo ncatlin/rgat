@@ -8,6 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading;
+using System.Timers;
 
 namespace rgatCore
 {
@@ -41,6 +42,13 @@ namespace rgatCore
         ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
         public ulong QueueSize = 0;
 
+        long _recentMsgCount = 0;
+
+        System.Timers.Timer StatsTimer;
+        DateTime _lastStatsUpdate = DateTime.Now;
+        private List<float> _updateRates = new List<float>();
+        private readonly Object _statsLock = new Object();
+
 
         public ThreadTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe)
         {
@@ -56,8 +64,53 @@ namespace rgatCore
             splittingThread = new Thread(MessageSplitterThread);
             splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
             splittingThread.Start();
+
+            StatsTimer = new System.Timers.Timer(150);
+            StatsTimer.Elapsed += StatsTimerFired;
+            StatsTimer.AutoReset = true;
+            StatsTimer.Start();
         }
 
+        /*
+         * The purpose of this is for plotting a little thread activity graph on the
+         * preview pane, we don't really care about precision and want to minimise 
+         * performance impact, so don't use any locks that contend with the I/O.
+         */
+        private void StatsTimerFired(object sender, ElapsedEventArgs e)
+        {
+            long messagesSinceLastUpdate = _recentMsgCount;
+            DateTime lastUpdate = _lastStatsUpdate;
+
+            _lastStatsUpdate = DateTime.Now;
+            _recentMsgCount = 0;
+
+            float elapsedTimeS = ((float)(DateTime.Now - lastUpdate).Milliseconds) / 1000.0f;
+
+            float updateRate = (float)(messagesSinceLastUpdate) / elapsedTimeS;
+            lock (_statsLock)
+            {
+                if (_updateRates.Count > 25)
+                {
+                    _updateRates.RemoveAt(0);
+                }
+                _updateRates.Add(updateRate);
+
+                if (StopFlag)
+                {
+                    //stop updating once all activity has gone
+                    if (_updateRates.Max() == 0) StatsTimer.Stop(); 
+                }
+            }
+
+        }
+
+        public float[] RecentMessageRates()
+        {
+            lock (_statsLock)
+            {
+                return _updateRates.ToArray();
+            }
+        }
 
         public byte[] DeQueueData()
         {
@@ -157,7 +210,7 @@ namespace rgatCore
                 {
                     RawIngestCompleteEvent.WaitOne();
                     RawIngestCompleteEvent.Reset();
-                    continue; 
+                    continue;
                 }
 
                 byte[] buf = buf_sz.Item1;
@@ -186,6 +239,7 @@ namespace rgatCore
                         Buffer.BlockCopy(buf, msgstart, msg, 0, msgsize);
                         //Console.WriteLine($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                         EnqueueData(msg);
+                        _recentMsgCount += 1;
                         msgstart = tokenpos + 1;
                     }
                 }
@@ -208,11 +262,11 @@ namespace rgatCore
                         protograph.Terminated = true;
                     }
                     else
-                    { 
+                    {
                         RawQueue.Enqueue(new Tuple<byte[], int>(buf, bytesread));
                         RawIngestCompleteEvent.Set();
                     }
-                } 
+                }
             }
             catch (Exception e)
             {
@@ -242,7 +296,7 @@ namespace rgatCore
                 byte[] TagReadBuffer = new byte[TAGCACHESIZE];
                 IAsyncResult res = threadpipe.BeginRead(TagReadBuffer, 0, TAGCACHESIZE, new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 1500); //timeout so we can check for rgat exit
-                
+
                 if (!res.IsCompleted)
                 {
                     try { threadpipe.EndRead(res); }
@@ -266,6 +320,7 @@ namespace rgatCore
 
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
+
             Console.WriteLine(runningThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 
         }

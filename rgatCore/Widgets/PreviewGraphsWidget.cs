@@ -408,9 +408,25 @@ namespace rgatCore
             //live thread activity plot
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
 
-            float[] values = { 0.1f, 0.2f, 0.3f, 0.4f, 0.1f, 0.7f };
-            ImGui.PlotLines("", ref values[0], values.Length, 0, "", 0, 1, new Vector2(40, captionHeight));
+            float maxVal;
+            float[] values = null;
+            if (graph.internalProtoGraph.TraceReader != null)
+            {
+                values = graph.internalProtoGraph.TraceReader.RecentMessageRates();
+            }
+            if (values == null || values.Length == 0)
+            {
+                values = new List<float>() { 0, 0, 0, 0, 0 }.ToArray();
+                maxVal = 100;
+            }
+            else
+            {
+                maxVal = values.Max();
+            }
 
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, captionBackgroundcolor);
+            ImGui.PlotLines("", ref values[0], values.Length, 0, "", 0, maxVal, new Vector2(40, captionHeight));
+            ImGui.PopStyleColor();
             //invisible button to detect graph click
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
             if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
