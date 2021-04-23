@@ -345,6 +345,7 @@ namespace rgatCore
                     subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
                 }
             }
+
         }
 
 
@@ -374,7 +375,9 @@ namespace rgatCore
                 attribBuf?.Dispose();
             }
             if (graph._previewTexture == null) return clicked;
+            bool isSelected = graph.tid == selectedGraphTID;
 
+            //copy in the actual rendered graph
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
             IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
@@ -383,16 +386,33 @@ namespace rgatCore
                 uv_min: new Vector2(0, 1),
                 uv_max: new Vector2(1, 0));
 
-            string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(graph.tid == selectedGraphTID ? "[Selected]" : "")}";
+            //selection border
+            if (isSelected)
+            {
+                imdp.AddRect(
+                    p_min: new Vector2(subGraphPosition.X + 1, subGraphPosition.Y),
+                    p_max: new Vector2(subGraphPosition.X + EachGraphWidth - 1, subGraphPosition.Y + EachGraphHeight), 
+                    col: graph.internalProtoGraph.Terminated ? 0xff0000ff : 0xff00ff00);
+            }
+
+            //write the caption
+            string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
 
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
-            imdp.AddRectFilled(p_min: new Vector2(ImGui.GetCursorScreenPos().X - 3, ImGui.GetCursorScreenPos().Y),
-                               p_max: new Vector2(ImGui.GetCursorScreenPos().X + EachGraphWidth - MarginWidth, ImGui.GetCursorScreenPos().Y + 20),
-                               col: captionBackgroundcolor);
+            Vector2 captionBGStart = new Vector2(ImGui.GetCursorScreenPos().X - 3, ImGui.GetCursorScreenPos().Y + 1);
+            Vector2 captionBGEnd = new Vector2((ImGui.GetCursorScreenPos().X + EachGraphWidth) - (MarginWidth + 3), ImGui.GetCursorScreenPos().Y + captionHeight);
+            imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
             ImGui.Text(Caption);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX());
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + EachGraphWidth - 48);
 
+            //live thread activity plot
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
+
+            float[] values = { 0.1f, 0.2f, 0.3f, 0.4f, 0.1f, 0.7f };
+            ImGui.PlotLines("", ref values[0], values.Length, 0, "", 0, 1, new Vector2(40, captionHeight));
+
+            //invisible button to detect graph click
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
             if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
             {
                 clicked = true;
