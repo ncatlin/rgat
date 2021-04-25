@@ -132,8 +132,6 @@ void main()
 
 
 
-
-
         /*
         * 
         * Picking node points for mousing over instruction verts
@@ -465,11 +463,10 @@ void main()
 }  
 ";
 
-
-
-
-
-     
-
     }
+
+
+
+
+
 }

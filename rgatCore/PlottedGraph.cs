@@ -350,26 +350,30 @@ namespace rgatCore
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions)
         {
-            int floatCount = _computeBufferNodeCount * 4; //xyzw
-            if (positionsArray1.Length < floatCount)
-                positionsArray1 = new float[floatCount];
-            
-            for (var i = 0; i < floatCount; i++)
+            lock (RenderingLock)
             {
-                Debug.Assert(newPositions[i] != 0);
-                positionsArray1[i] = newPositions[i];
-            }
+                int floatCount = _computeBufferNodeCount * 4; //xyzw
+                if (positionsArray1.Length < floatCount)
+                    positionsArray1 = new float[floatCount];
 
+                for (var i = 0; i < floatCount; i++)
+                {
+                    positionsArray1[i] = newPositions[i];
+                }
+            }
 
         }
 
         //This is assumed to never shrink
         public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, uint count)
         {
-            if (velocityArray1.Length < count)
-                velocityArray1 = new float[count];
-            for (var i = 0; i < count; i++)
-                velocityArray1[i] = newVelocities[i];
+            lock (this.RenderingLock)
+            {
+                if (velocityArray1.Length < count)
+                    velocityArray1 = new float[count];
+                for (var i = 0; i < count; i++)
+                    velocityArray1[i] = newVelocities[i];
+            }
         }
 
 
@@ -1334,8 +1338,8 @@ namespace rgatCore
         }
 
         void RegenerateLabels() => _newLabels = true;
+        bool _newLabels;
 
-        bool _newLabels = false;
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
         public TextureOffsetColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
@@ -2328,6 +2332,39 @@ namespace rgatCore
         public bool TextEnabledLive {
             get => _textEnabledLive;
             set => _textEnabledLive = value;
+        }
+
+
+        public Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
+
+
+        public void UpdatePreviewVisibleRegion(Vector2 graphWidgetSize)
+        {
+
+            Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)graphWidgetSize.X / graphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
+            Matrix4x4 world = RotationMatrix;
+            Matrix4x4 view = Matrix4x4.CreateTranslation(new Vector3(CameraXOffset, CameraYOffset, CameraZoom));
+
+            Matrix4x4.Invert(proj, out Matrix4x4 invProj);
+            Matrix4x4.Invert(world * view, out Matrix4x4 invWV);
+
+            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, CameraZoom), proj);
+            Vector3 NDC = Vector3.Divide(new Vector3(ClipAfterProj.X, ClipAfterProj.Y, ClipAfterProj.Z), ClipAfterProj.W);
+
+            _unprojWorldCoordTL = GraphicsMaths.ScreenToWorldCoord(new Vector2(0, 0), NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
+            _unprojWorldCoordBR = GraphicsMaths.ScreenToWorldCoord(graphWidgetSize, NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
+        }
+
+        public void GetPreviewVisibleRegion(Vector2 PrevWidgetSize, Matrix4x4 previewProjection, out Vector2 TopLeft, out Vector2 BaseRight)
+        {
+            //Vector2 PrevWidgetSize = new Vector2(290, 150);
+
+            Matrix4x4 worldP = RotationMatrix;
+            Matrix4x4 viewP = Matrix4x4.CreateTranslation(new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom));
+            Matrix4x4 worldviewP = worldP * viewP;
+
+            TopLeft = GraphicsMaths.WorldToScreenCoord(_unprojWorldCoordTL, worldviewP, previewProjection, PrevWidgetSize);
+            BaseRight = GraphicsMaths.WorldToScreenCoord(_unprojWorldCoordBR, worldviewP, previewProjection, PrevWidgetSize);
         }
 
 

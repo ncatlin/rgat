@@ -164,11 +164,12 @@ namespace rgatCore
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// </summary>
-        bool CenterGraphInFrameStep(eRenderingMode mode, out float MaxRemaining)
+        bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
             if (_centeringInFrame == 1) _centeringSteps += 1;
 
-            _layoutEngine.GetScreenFitOffsets(mode, _graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+
+            _layoutEngine.GetScreenFitOffsets(worldView, _graphWidgetSize, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
             float targXpadding = 80, targYpadding = 35;
@@ -423,7 +424,7 @@ namespace rgatCore
 
         private float _pitchDelta, _yawDelta, _rollDelta = 0;
 
-        void getview(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
+        void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
             if (ActiveGraph.CameraClippingFar <= ActiveGraph.CameraClippingNear) ActiveGraph.CameraClippingFar = ActiveGraph.CameraClippingNear + 1;
             proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)_graphWidgetSize.X / _graphWidgetSize.Y, ActiveGraph.CameraClippingNear, ActiveGraph.CameraClippingFar);
@@ -451,7 +452,7 @@ namespace rgatCore
             if (ActiveGraph != null)
             {
                 renderLock.AcquireReaderLock(10); //todo handle timeout
-                DrawGraph();
+                    DrawGraph();
                 renderLock.ReleaseReaderLock();
             }
 
@@ -713,6 +714,7 @@ namespace rgatCore
 
             if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
             {
+                Console.WriteLine($"{stringVerts.Count * fontStruc.SizeInBytes} > {_FontVertBuffer.SizeInBytes}");
                 _FontVertBuffer.Dispose();
                 BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
                 _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
@@ -855,7 +857,7 @@ namespace rgatCore
             //rotval += 0.01f; //autorotate
             var textureSize = ActiveGraph.LinearIndexTextureSize();
 
-            getview(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
+            UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             updateShaderParams(textureSize, proj, view, world);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
@@ -880,6 +882,7 @@ namespace rgatCore
                 _NodeIndexBuffer.Dispose();
                 _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
             }
+            
             //todo - only do this on changes
             _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
@@ -1217,16 +1220,19 @@ namespace rgatCore
 
             doPicking(_gd);
 
+            UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
+            Matrix4x4 worldView = world * view;
             if (_centeringInFrame != 0)
             {
+
                 //todo - increase stopping threshold as step count increases
-                bool done = CenterGraphInFrameStep(eRenderingMode.eStandardControlFlow, out float remaining);
+                bool done = CenterGraphInFrameStep(worldView, out float remaining);
                 if (!done && remaining > 200)
                 {
                     int steps = (int)Math.Min(6, remaining / 200);
                     for (int i = 0; i < steps && !done; i++)
                     {
-                        done = CenterGraphInFrameStep(eRenderingMode.eStandardControlFlow, out remaining);
+                        done = CenterGraphInFrameStep(worldView, out remaining);
                     }
                 }
                 if (done && _centeringInFrame != 2)
@@ -1244,6 +1250,7 @@ namespace rgatCore
                 }
             }
 
+
             bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
             renderGraph(positionBuf, nodeAttributesBuffer: attribBuf);
             if (doDispose)
@@ -1252,6 +1259,7 @@ namespace rgatCore
                 attribBuf?.Dispose();
             }
 
+            ActiveGraph.UpdatePreviewVisibleRegion(_graphWidgetSize);
         }
 
 

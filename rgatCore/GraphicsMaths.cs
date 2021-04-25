@@ -48,7 +48,44 @@ namespace rgatCore
             return ((-1.401298E-45f <= num) && (num <= float.Epsilon));
         }
 
-         
+
+        static Vector2 ScreenToNDCPos(Vector2 screenPos, Vector2 graphWidgetSize)
+        {
+            Vector2 temp = Vector2.Multiply(Vector2.Divide(screenPos, graphWidgetSize), 2.0f);
+            Vector2 NDCPos = new Vector2(temp.X - 1f, temp.Y - 1f);
+            return NDCPos;
+        }
+
+        public static Vector3 ScreenToWorldCoord(Vector2 screenCoord, float NDCZ, float CLIPW, Matrix4x4 invWV, Matrix4x4 invProj, Vector2 graphWidgetSize)
+        {
+            Vector2 NDCPos = ScreenToNDCPos(screenCoord, graphWidgetSize);
+            Vector4 BCLIP_AfterWMul = Vector4.Multiply(new Vector4(NDCPos.X, NDCPos.Y, NDCZ, 1), CLIPW);
+            Vector4 worldCoord = Vector4.Transform(Vector4.Transform(BCLIP_AfterWMul, invProj), invWV);
+            return new Vector3(worldCoord.X, worldCoord.Y, worldCoord.Z);
+        }
+
+        public static Vector2 NdcToScreenPos(Vector2 ndcSpacePos, Vector2 graphWidgetSize)
+        {
+            return Vector2.Divide(new Vector2(ndcSpacePos.X + 1f, ndcSpacePos.Y + 1f), 2.0f) * graphWidgetSize;
+        }
+
+        public static Vector2 WorldToNDCPos(Vector3 worldCoord, Matrix4x4 worldView, Matrix4x4 projection)
+        {
+            Vector4 clipSpacePos = Vector4.Transform(Vector4.Transform(new Vector4(worldCoord, 1.0f), worldView), projection);
+            Vector3 ndcSpacePos = Vector3.Divide(new Vector3(clipSpacePos.X, clipSpacePos.Y, clipSpacePos.Z), clipSpacePos.W);
+            return new Vector2(ndcSpacePos.X, ndcSpacePos.Y);
+        }
+
+        public static Vector2 WorldToScreenCoord(Vector3 worldCoord, Matrix4x4 worldView, Matrix4x4 projection, Vector2 screenSize)
+        {
+            Vector4 clipSpacePos = Vector4.Transform(Vector4.Transform(new Vector4(worldCoord, 1.0f), worldView), projection);
+            Vector3 ndcSpacePos = Vector3.Divide(new Vector3(clipSpacePos.X, clipSpacePos.Y, clipSpacePos.Z), clipSpacePos.W);
+            Vector2 ndcPos = new Vector2(ndcSpacePos.X, ndcSpacePos.Y);
+
+            Vector2 screenPos = NdcToScreenPos(ndcPos, screenSize);
+            return screenPos;
+        }
+
 
     }
 }
