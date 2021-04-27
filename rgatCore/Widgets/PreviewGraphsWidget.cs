@@ -353,7 +353,7 @@ namespace rgatCore
 
         }
 
-        void DrawPreviewViewBox(PlottedGraph graph, Vector2 subGraphPosition )
+        void DrawPreviewViewBox(PlottedGraph graph, Vector2 subGraphPosition)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             float previewBaseY = subGraphPosition.Y + EachGraphHeight;
@@ -471,10 +471,18 @@ namespace rgatCore
 
 
             //invisible button to detect graph click
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (float)(captionHeight));
-            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight)))
+            ImGui.SetCursorPos(new Vector2(1, ImGui.GetCursorPosY() - (float)(captionHeight)));
+            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
             {
                 clicked = true;
+                if (isSelected)
+                {
+                    Vector2 clickPos = ImGui.GetMousePos();
+                    Vector2 clickOffset = clickPos - subGraphPosition;
+                    clickOffset.Y = EachGraphHeight - clickOffset.Y;
+                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884,454), PreviewProjection);
+                }
+
             }
             return clicked;
 

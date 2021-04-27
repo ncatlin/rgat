@@ -714,7 +714,6 @@ namespace rgatCore
 
             if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
             {
-                Console.WriteLine($"{stringVerts.Count * fontStruc.SizeInBytes} > {_FontVertBuffer.SizeInBytes}");
                 _FontVertBuffer.Dispose();
                 BufferDescription tfontvDescription = new BufferDescription((uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer);
                 _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);

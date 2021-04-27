@@ -2368,6 +2368,36 @@ namespace rgatCore
         }
 
 
+        /*
+         * I'm not good enough at graphics to work out how far to move the camera in one click, instead move towards the click location
+         * In a few frames it will get there.
+         */
+        public void MoveCameraToPreviewClick(Vector2 pos, Vector2 previewSize, Vector2 mainGraphWidgetSize, Matrix4x4 previewProjection)
+        {
+            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, PreviewCameraZoom), previewProjection);
+            Vector3 NDC = Vector3.Divide(new Vector3(ClipAfterProj.X, ClipAfterProj.Y, ClipAfterProj.Z), ClipAfterProj.W);
+
+            Matrix4x4 worldP = RotationMatrix;
+            Matrix4x4 viewP = Matrix4x4.CreateTranslation(new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom));
+            Matrix4x4.Invert(worldP * viewP, out Matrix4x4 invVWP);
+            Matrix4x4.Invert(previewProjection, out Matrix4x4 invPrevProj);
+
+            Matrix4x4 projMain = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, mainGraphWidgetSize.X / mainGraphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
+            Matrix4x4 worldMain = RotationMatrix;
+            Matrix4x4 viewMain = Matrix4x4.CreateTranslation(new Vector3(CameraXOffset, CameraYOffset, CameraZoom));
+
+            Vector3 clickWorldCoord = GraphicsMaths.ScreenToWorldCoord(pos, NDC.Z, ClipAfterProj.W, invVWP, invPrevProj, previewSize);
+            Vector2 clickMainViewCoord = GraphicsMaths.WorldToScreenCoord(clickWorldCoord, worldMain * viewMain, projMain, mainGraphWidgetSize);
+            
+            float XDiff = (mainGraphWidgetSize.X / 2f) - clickMainViewCoord.X;
+            float YDiff = (mainGraphWidgetSize.Y / 2f) - clickMainViewCoord.Y;
+
+            CameraXOffset += XDiff; 
+            CameraYOffset += YDiff;
+        }
+
+
+
 
 
         bool freeMe = false;
