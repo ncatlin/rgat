@@ -973,13 +973,30 @@ namespace rgatCore
                         ImGui.SetTooltip("Terminate the process");
 
                     ImGui.SameLine();
+
                     if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
+
                     ImGui.EndGroup();
 
                     ImGui.NextColumn();
 
                     ImGui.BeginGroup();
-                    if (ImGui.Button("Pause/Break")) Console.WriteLine("Kill clicked");
+
+                    if (ImGui.Button("Pause/Break"))
+                    {
+                        graph.internalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                    }
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Pause all process threads");
+
+                    if (ImGui.Button("Continue"))
+                    {
+                        graph.internalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
+                    }
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Resume all process threads");
+
+
                     ImGui.EndGroup();
 
                     ImGui.Columns(1);

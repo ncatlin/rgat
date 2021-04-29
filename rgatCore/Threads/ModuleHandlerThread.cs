@@ -212,7 +212,15 @@ namespace rgatCore
         {
             if (controlPipe.IsConnected)
             {
-                controlPipe.Write(cmd);
+                try
+                {
+                    controlPipe.Write(cmd);
+                } 
+                catch (Exception e)
+                {
+                    return -1;
+                }
+
                 return cmd.Length;
             }
             return -1;
