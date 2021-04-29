@@ -70,8 +70,6 @@ namespace rgatCore.Threads
 				}
 				
 			}
-
-			graph.draw_highlight_lines();
 		}
 
 

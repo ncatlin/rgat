@@ -480,7 +480,7 @@ namespace rgatCore
                     Vector2 clickPos = ImGui.GetMousePos();
                     Vector2 clickOffset = clickPos - subGraphPosition;
                     clickOffset.Y = EachGraphHeight - clickOffset.Y;
-                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884,454), PreviewProjection);
+                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884,454), PreviewProjection);//todo widget size
                 }
 
             }

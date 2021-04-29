@@ -187,15 +187,6 @@ namespace rgatCore
         }
 
 
-        public void draw_highlight_lines()
-        {
-            //todo
-            return;
-        }
-
-
-
-
         bool setGraphBusy(bool set, int caller)
         {
             if (set)
@@ -693,10 +684,11 @@ namespace rgatCore
                 CreateHighlightEdges(edgeIndices, resultList);
             }
 
-            if (IsAnimated)
-            {
+            if ((IsAnimated || !internalProtoGraph.Terminated) && _liveNodeEdgeEnabled)
+            { 
                 CreateLiveNodeEdge(edgeIndices, resultList);
             }
+            
 
             return resultList.ToArray();
         }
@@ -1561,7 +1553,6 @@ namespace rgatCore
         }
 
 
-
         //node+edge col+pos
         bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint> newnodelist)
         {
@@ -1621,6 +1612,7 @@ namespace rgatCore
 
             return true;
         }
+
 
         void brighten_next_block_edge(uint blockID, ulong blockAddress, int brightTime)
         {
@@ -1699,13 +1691,6 @@ namespace rgatCore
         }
 
 
-        //void draw_condition_ins_text(float zdist, PROJECTDATA* pd, GraphDisplayData* vertsdata, graphGLWidget &gltarget);
-        //void draw_edge_heat_text(int zdist, PROJECTDATA* pd, graphGLWidget &gltarget);
-        //void set_edge_alpha(NODEPAIR eIdx, GraphDisplayData* edgesdata, float alpha);
-
-
-
-
         void end_unchained(ANIMATIONENTRY entry)
         {
 
@@ -1728,10 +1713,9 @@ namespace rgatCore
 
         }
 
+
         bool process_live_update()
         {
-
-
             //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
             //internalProtoGraph.animationListsRWLOCK_.lock_shared();
             ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
@@ -1798,8 +1782,6 @@ namespace rgatCore
         }
 
 
-
-
         void process_replay_animation_updates(int optionalStepSize = 0)
         {
             if (internalProtoGraph.SavedAnimationData.Count == 0)
@@ -1837,6 +1819,7 @@ namespace rgatCore
                 ReplayState = REPLAY_STATE.eEnded;
             }
         }
+
 
         void process_replay_update()
         {
@@ -2036,6 +2019,8 @@ namespace rgatCore
                 return null;
             }
         }
+
+
         public void SetCustomHighlightColour(int nodeIdx, Vector4 colour)
         {
             lock (textLock)
@@ -2043,6 +2028,7 @@ namespace rgatCore
                 _customHighlightColours[nodeIdx] = colour;
             }
         }
+
 
         public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
@@ -2178,8 +2164,6 @@ namespace rgatCore
         }
 
 
-
-
         public void AddRisingExtern(uint nodeIdx, ulong callIndex, int lingerFrames)
         {
             NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
@@ -2209,12 +2193,12 @@ namespace rgatCore
             }
         }
 
+
         //this node is active in a loop or blocking, keep it lit up until deactivated
         public void AddContinuousActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {
-                Console.WriteLine($"Making node {nodeIdx} lingering");
                 if (!_LingeringActiveNodes.Contains(nodeIdx))
                 {
                     _LingeringActiveNodes.Add(nodeIdx);
@@ -2304,6 +2288,7 @@ namespace rgatCore
         bool animBuildingLoop = false;
 
         public bool IsAnimated { get; private set; } = false;
+        //public bool 
         public bool NeedReplotting = false; //all verts need re-plotting from scratch
                                             //bool performSymbolResolve = false;
 
@@ -2334,6 +2319,12 @@ namespace rgatCore
             set => _textEnabledLive = value;
         }
 
+        bool _liveNodeEdgeEnabled = true;
+        public bool LiveNodeEdgeEnabled
+        {
+            get => _liveNodeEdgeEnabled;
+            set => _liveNodeEdgeEnabled = value;
+        }
 
         public Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
@@ -2354,6 +2345,7 @@ namespace rgatCore
             _unprojWorldCoordTL = GraphicsMaths.ScreenToWorldCoord(new Vector2(0, 0), NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
             _unprojWorldCoordBR = GraphicsMaths.ScreenToWorldCoord(graphWidgetSize, NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
         }
+
 
         public void GetPreviewVisibleRegion(Vector2 PrevWidgetSize, Matrix4x4 previewProjection, out Vector2 TopLeft, out Vector2 BaseRight)
         {
@@ -2409,9 +2401,6 @@ namespace rgatCore
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
-        protected bool wireframeSupported;
-        protected bool wireframeActive;
-        long defaultZoom;
         public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3DNodes;
 
         public float[] positionsArray1 = Array.Empty<float>();

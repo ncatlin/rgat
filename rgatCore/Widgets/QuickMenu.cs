@@ -66,7 +66,7 @@ namespace rgatCore.Widgets
                 ToolTip = "Graph Layout (G)"
             });
 
-            
+
         }
 
         public void CancelPressed()
@@ -78,10 +78,10 @@ namespace rgatCore.Widgets
                 _activeMenuPopupName = null;
             }
         }
-        
+
         public void KeyPressed(Tuple<Key, ModifierKeys> keyModTuple)
         {
-           
+
         }
 
 
@@ -275,34 +275,73 @@ namespace rgatCore.Widgets
 
         void DrawVisibilityFrame(PlottedGraph activeGraph)
         {
-            string tooltip = "Toggle display of graph edges.Current Keybind: [E]";
-            ImGui.Text("Show Edges");
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-            ImGui.SameLine();
-            if (SmallWidgets.ToggleButton("edgesToggle", activeGraph.EdgesVisible, tooltip))
-                activeGraph.EdgesVisible = !activeGraph.EdgesVisible;
 
-            tooltip = "Toggle display of graph instruction nodes. Current Keybind: [N]";
-            ImGui.Text("Show Nodes");
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-            ImGui.SameLine();
-            if (SmallWidgets.ToggleButton("nodes", activeGraph.NodesVisible, tooltip))
-                activeGraph.NodesVisible = !activeGraph.NodesVisible;
+            if (ImGui.BeginChildFrame(324234, new Vector2(250, 160)))
+            {
 
-            tooltip = "Toggle display of all graph text. Current Keybind: [I]";
-            ImGui.Text("Enable Text");
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-            ImGui.SameLine();
-            if (SmallWidgets.ToggleButton("textenable", activeGraph.TextEnabled, tooltip))
-                activeGraph.TextEnabled = !activeGraph.TextEnabled;
+                ImGui.Columns(2, "visselcolumns", true);
+                ImGui.SetColumnWidth(0, 180);
+                ImGui.SetColumnWidth(1, 65);
 
-            tooltip = "Toggle display of graph node instruction text. Current Keybind: [Shift-I]";
-            ImGui.Text("Instruction Text");
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-            ImGui.SameLine();
-            if (SmallWidgets.ToggleButton("textenable_ins", activeGraph.TextEnabledIns, tooltip))
-                activeGraph.TextEnabledIns = !activeGraph.TextEnabledIns;
-            //_size = ImGui.GetWindowSize();
+                float width = ImGui.GetWindowContentRegionWidth();
+                float rowHeight = 21;
+                Vector2 selSize = new Vector2(width, rowHeight);
+
+                string tooltip;
+                tooltip = "Toggle display of graph edges.Current Keybind: [E]";
+                if (ImGui.Selectable("Show Edges", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+                {
+                    activeGraph.EdgesVisible = !activeGraph.EdgesVisible;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+                ImGui.NextColumn();
+                SmallWidgets.ToggleButton("edgesToggle", activeGraph.EdgesVisible, null);
+                ImGui.NextColumn();
+
+                tooltip = "Toggle display of graph instruction nodes. Current Keybind: [N]";
+                if (ImGui.Selectable("Show Nodes", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+                {
+                    activeGraph.NodesVisible = !activeGraph.NodesVisible;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+                ImGui.NextColumn();
+                SmallWidgets.ToggleButton("nodesToggle", activeGraph.NodesVisible, null);
+                ImGui.NextColumn();
+
+                tooltip = "Toggle display of all graph text. Current Keybind: [I]";
+                if (ImGui.Selectable("Enable Text", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+                {
+                    activeGraph.TextEnabled = !activeGraph.TextEnabled;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+                ImGui.NextColumn();
+                SmallWidgets.ToggleButton("textenable", activeGraph.TextEnabled, null);
+                ImGui.NextColumn();
+
+                tooltip = "Toggle display of graph node instruction text. Current Keybind: [Shift-I]";
+                if (ImGui.Selectable("Instruction Text", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+                {
+                    activeGraph.TextEnabledIns = !activeGraph.TextEnabledIns;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+                ImGui.NextColumn();
+                SmallWidgets.ToggleButton("textenable_ins", activeGraph.TextEnabledIns, null);
+                ImGui.NextColumn();
+
+                tooltip = "Display a highlight line indicating the most recently executed instruction";
+
+                if (ImGui.Selectable("Active Node Highlight", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+                {
+                    activeGraph.LiveNodeEdgeEnabled = !activeGraph.LiveNodeEdgeEnabled;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+                ImGui.NextColumn();
+                SmallWidgets.ToggleButton("livenodeedge_enabled", activeGraph.LiveNodeEdgeEnabled, null);
+
+                ImGui.Columns(1);
+                ImGui.EndChildFrame();
+            }
+
         }
 
 

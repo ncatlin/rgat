@@ -47,7 +47,7 @@ namespace rgatCore.Widgets
             Vector2 p = ImGui.GetCursorScreenPos();
             ImDrawListPtr draw_list = ImGui.GetWindowDrawList();
 
-            float height = ImGui.GetFrameHeight();
+            float height = ImGui.GetFrameHeight() - 2;
             float width = height * 1.55f;
             float radius = height * 0.50f;
 
@@ -83,6 +83,7 @@ namespace rgatCore.Widgets
 
             draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
             draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
+
             return changed;
         }
 

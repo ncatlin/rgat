@@ -443,6 +443,20 @@ namespace rgatCore
             outfile.Close();
         }
 
+        public void SendDebugCommand(ulong threadID, string command)
+        {
+            if (_moduleThread == null)
+            {
+                Console.WriteLine("Error: DBG command send to trace with no active module thread");
+                return;
+            }
+
+            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command+'@'+threadID);
+            if(_moduleThread.SendCommand(buf) == -1)
+            {
+                Console.WriteLine("Error sending command to control pipe");
+            }
+        }
 
 
         public ProcessRecord DisassemblyData { private set; get; } = null; //the first disassembly of each address
@@ -453,5 +467,10 @@ namespace rgatCore
         public BinaryTarget binaryTarg { private set; get; } = null;
         public bool IsRunning { private set; get; } = false;
         private bool killed = false;
+
+        ModuleHandlerThread _moduleThread;
+        BlockHandlerThread _blockThread;
+        public void SetModuleHandlerThread(ModuleHandlerThread moduleHandlerObj) => _moduleThread = moduleHandlerObj;
+        public void SetBlockHandlerThread(BlockHandlerThread blockHandlerObj) => _blockThread = blockHandlerObj;
     }
 }

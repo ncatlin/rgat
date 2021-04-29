@@ -164,9 +164,10 @@ namespace rgatCore
 
         void HandleUserInput()
         {
-            if (_hexTooltipShown)
+            if (_hexTooltipShown && _mouseWheelDelta != 0)
             {
                 _hexTooltipScroll -= _mouseWheelDelta*60;
+                if (_hexTooltipScroll < 0) _hexTooltipScroll = 0;
                 _mouseWheelDelta = 0;
                 return;
             }
@@ -417,6 +418,8 @@ namespace rgatCore
             flags |= ImGuiInputTextFlags.NoHorizontalScroll;
             ImGui.SetScrollY(_hexTooltipScroll);
             ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530,845), flags);
+            if (_hexTooltipScroll > ImGui.GetScrollMaxY())
+                _hexTooltipScroll = ImGui.GetScrollMaxY();
 
             ImGui.EndTooltip();
         }
@@ -932,7 +935,7 @@ namespace rgatCore
 
 
 
-        private unsafe void DrawLiveTraceControls(float otherControlsHeight)
+        private unsafe void DrawLiveTraceControls(float otherControlsHeight, PlottedGraph graph)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
 
@@ -949,12 +952,26 @@ namespace rgatCore
                     ImGui.SetColumnWidth(1, 200);
 
                     ImGui.BeginGroup();
-                    if (ImGui.RadioButton("Static", false)) Console.WriteLine("Static clicked");
-                    if (ImGui.RadioButton("Animated", true)) Console.WriteLine("Animated clicked");
+                    if (ImGui.RadioButton("Static", !graph.IsAnimated))
+                    {
+                        graph.SetAnimated(false);
+                    }
+                    if (ImGui.RadioButton("Animated", graph.IsAnimated))
+                    {
+                        graph.SetAnimated(true);
+                    }
                     ImGui.EndGroup();
 
                     ImGui.BeginGroup();
-                    if (ImGui.Button("Kill")) Console.WriteLine("Kill clicked");
+                    if (ImGui.Button("Kill"))
+                    {
+
+                        graph.internalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+
+                    }
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Terminate the process");
+
                     ImGui.SameLine();
                     if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
                     ImGui.EndGroup();
@@ -1170,8 +1187,15 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
             {
                 const float selectorWidth = 350;
-                //DrawLiveTraceControls(frameHeight);
-                DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X - selectorWidth);
+                PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+                if (activeGraph != null)
+                {
+                 if (!activeGraph.internalProtoGraph.Terminated)
+                    DrawLiveTraceControls(frameHeight, activeGraph);
+                else
+                    DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X - selectorWidth);
+
+                }
                 ImGui.SameLine();
                 DrawTraceSelector(frameHeight, selectorWidth);
                 ImGui.EndChild();

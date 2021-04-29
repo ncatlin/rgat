@@ -158,11 +158,12 @@ namespace rgatCore.Threads
 
 			target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
-
+			tr.SetModuleHandlerThread(moduleHandler);
 			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
 
 
 			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);
+			tr.SetBlockHandlerThread(blockHandler);
 			blockHandler.Begin(GetBBPipeName(PID, ID));
 
 			//_clientState.SwitchTrace = tr;

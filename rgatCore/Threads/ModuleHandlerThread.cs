@@ -28,7 +28,6 @@ namespace rgatCore
         }
 
 
-
         private string GetTracePipeName(ulong TID)
         {
             return "TR" + trace.PID.ToString() + trace.randID.ToString() + TID.ToString();
@@ -46,9 +45,7 @@ namespace rgatCore
             {
                 Console.WriteLine("Control pipe exception for PID " + trace.PID + " :" + e.Message);
             }
-
         }
-
 
 
         void HandleSymbol(byte[] buf)
@@ -62,6 +59,7 @@ namespace rgatCore
             trace.DisassemblyData.AddSymbol(modnum, offset, name);
         }
 
+
         void HandleModule(byte[] buf)
         {
             //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
@@ -73,6 +71,7 @@ namespace rgatCore
             ulong end = Convert.ToUInt64(fields[4], 16);
             trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
         }
+
 
         void HandleNewVisualiserThread(uint TID)
         {
@@ -166,7 +165,6 @@ namespace rgatCore
                 return;
             }
 
-
             if (buf[0] == 'T' && buf[1] == 'I')
             {
                 HandleNewThread(buf);
@@ -201,6 +199,7 @@ namespace rgatCore
             Console.WriteLine($"Control pipe read unhandled entry from PID {trace.PID}: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
         }
 
+
         public void Begin(string controlPipeName)
         {
 
@@ -209,9 +208,19 @@ namespace rgatCore
             listenerThread.Start(controlPipeName);
         }
 
+        public int SendCommand(byte[] cmd)
+        {
+            if (controlPipe.IsConnected)
+            {
+                controlPipe.Write(cmd);
+                return cmd.Length;
+            }
+            return -1;
+        }
+
+
         void SendIncludeLists()
         {
-
             byte[] buf;
             if (target.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
             {
@@ -289,6 +298,7 @@ namespace rgatCore
                 return;
             }
         }
+
 
         void SendTraceSettings()
         {
