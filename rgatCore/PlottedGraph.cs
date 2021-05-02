@@ -1722,8 +1722,11 @@ namespace rgatCore
         }
 
 
+        //return false if we need more trace data to do further updates
         bool process_live_update()
         {
+            if (internalProtoGraph.HasRecentStep) return false;
+
             //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
             //internalProtoGraph.animationListsRWLOCK_.lock_shared();
             ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
