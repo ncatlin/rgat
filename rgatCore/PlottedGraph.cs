@@ -740,6 +740,13 @@ namespace rgatCore
         void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
             uint node = _lastAnimatedVert;
+            if (internalProtoGraph.HasRecentStep)
+            {
+                var addrnodes = internalProtoGraph.ProcessData.GetNodesAtAddress(internalProtoGraph.RecentStepAddr, internalProtoGraph.ThreadID);
+                if (addrnodes.Count > 0)
+                    node = addrnodes[^1];
+            }
+
             lock (animationLock)
             {
                 if (_LingeringActiveNodes.Count > 0)
@@ -888,10 +895,13 @@ namespace rgatCore
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
             var bufferSize = bufferFloatCount * sizeof(float);
 
-            if (bufferSize > oldVelocityArraySize)
+            uint currentOffset = (futureCount - 1) * 4;
+
+            if (bufferSize > oldVelocityArraySize || currentOffset >= oldVelocityArraySize) //todo this is bad
             {
-                Console.WriteLine($"Recreating graph RAM buffers as {bufferSize} > {oldVelocityArraySize}");
-                EnlargeRAMDataBuffers(bufferFloatCount);
+                uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
+                Console.WriteLine($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}");
+                EnlargeRAMDataBuffers(newSize);
             }
 
             //possible todo here - shift Y down as the index increases
@@ -901,8 +911,6 @@ namespace rgatCore
                 ((float)rnd.NextDouble() * bounds) - bounds_half,
                 ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
 
-
-            uint currentOffset = (futureCount - 1) * 4;
 
             positionsArray1[currentOffset] = nodePositionEntry[0];      //X
             positionsArray1[currentOffset + 1] = nodePositionEntry[1];  //Y
@@ -2217,7 +2225,6 @@ namespace rgatCore
 
         void remove_unchained_from_animation()
         {
-            Console.WriteLine("Removing all lingering");
             lock (animationLock)
             {
                 _DeactivatedNodes = _LingeringActiveNodes.ToArray();

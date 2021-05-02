@@ -51,6 +51,9 @@ namespace rgatCore
     class TraceRecord
     {
         public enum eTracePurpose { eVisualiser, eFuzzer };
+        public enum eTraceState { eRunning, eSuspended, eTerminated };
+
+
         public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser, int arch = 0)
         {
             PID = newPID;
@@ -67,7 +70,7 @@ namespace rgatCore
             }
 
             DisassemblyData = new ProcessRecord(binary.BitWidth);
-            //DisassemblyData.modBounds.resize(255, null);
+            TraceState = eTraceState.eRunning;
         }
 
         bool _loadedFromSave = false;
@@ -79,6 +82,24 @@ namespace rgatCore
 		void notify_pid_end(uint pid, int PID_ID) { running = runtimeline.notify_pid_end(pid, PID_ID); }
 		void notify_tid_end(uint tid) { runtimeline.notify_thread_end(getPID(), randID, tid); }
 		*/
+
+        public void SetTraceState(eTraceState newState)
+        {
+            if (TraceState == newState) return;
+            if (newState != eTraceState.eSuspended)
+            {
+
+                lock (GraphListLock)
+                {
+                    foreach (ProtoGraph graph in ProtoGraphs.Values)
+                    {
+                        graph.ClearRecentStep();
+                    }
+                }
+            }
+            TraceState = newState;
+            
+        }
 
         public bool InsertNewThread(PlottedGraph mainplot)
         {
@@ -169,6 +190,7 @@ namespace rgatCore
 			}
 			*/
             _loadedFromSave = true;
+            TraceState = eTraceState.eTerminated;
             return true;
         }
 
@@ -227,7 +249,7 @@ namespace rgatCore
 
         public TraceRecord ParentTrace = null;
         public List<TraceRecord> children = new List<TraceRecord>();
-        bool UIRunningFlag = false;
+
         public RGAT_THREADS_STRUCT ProcessThreads;
         //void* fuzzRunPtr = null;
 
@@ -451,7 +473,7 @@ namespace rgatCore
                 return;
             }
 
-            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command+'@'+threadID);
+            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command+'@'+threadID.ToString()+"\n\x00");
             if(_moduleThread.SendCommand(buf) == -1)
             {
                 Console.WriteLine("Error sending command to control pipe");
@@ -465,8 +487,10 @@ namespace rgatCore
         public DateTime launchedTime { private set; get; } //the time the user pressed start, not when the first process was seen
 
         public BinaryTarget binaryTarg { private set; get; } = null;
-        public bool IsRunning { private set; get; } = false;
+        public bool IsRunning => TraceState != eTraceState.eTerminated;
         private bool killed = false;
+
+        public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
         ModuleHandlerThread _moduleThread;
         BlockHandlerThread _blockThread;

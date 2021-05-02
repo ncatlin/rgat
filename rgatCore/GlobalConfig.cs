@@ -68,6 +68,7 @@ namespace rgatCore.Threads
             public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);
             public static WritableRgbaFloat runningPreview = new WritableRgbaFloat(Color.FromArgb(180, 0, 42, 0));
             public static WritableRgbaFloat terminatedPreview = new WritableRgbaFloat(Color.FromArgb(180, 42, 0, 0));
+            public static WritableRgbaFloat suspendedPreview = new WritableRgbaFloat(Color.FromArgb(150, 245, 163, 71));
             public static WritableRgbaFloat highlightLine = new WritableRgbaFloat(Color.Green);
             public static WritableRgbaFloat wireframe = new WritableRgbaFloat(Color.LightGray);
             public static WritableRgbaFloat instructionText = new WritableRgbaFloat(Color.White);

@@ -16,7 +16,8 @@ namespace rgatCore
         TraceRecord trace;
         rgatState _clientState;
         int threadsCount = 0;
-        NamedPipeServerStream controlPipe = null;
+        NamedPipeServerStream commandPipe = null;
+        NamedPipeServerStream eventPipe = null;
         Thread listenerThread = null;
 
 
@@ -34,18 +35,7 @@ namespace rgatCore
         }
 
 
-        void ConnectCallback(IAsyncResult ar)
-        {
-            try
-            {
-                controlPipe.EndWaitForConnection(ar);
-                Console.WriteLine("Control pipe connected for PID " + trace.PID);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Control pipe exception for PID " + trace.PID + " :" + e.Message);
-            }
-        }
+
 
 
         void HandleSymbol(byte[] buf)
@@ -80,6 +70,7 @@ namespace rgatCore
             Console.WriteLine("Opening pipe " + pipename);
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
+            Console.WriteLine("Waiting for thread connection... ");
             threadListener.WaitForConnection();
             Console.WriteLine("Trace thread connected");
 
@@ -146,78 +137,52 @@ namespace rgatCore
         }
 
 
-        void ReadCallback(IAsyncResult ar)
+        public static string GetCommandPipeName(uint PID, long instanceID)
         {
-            int bytesread = 0;
-            byte[] buf = (byte[])ar.AsyncState;
-            try
-            {
-                bytesread = controlPipe.EndRead(ar);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("ModuleHandlerThread Readcall back exception " + e.Message);
-                return;
-            }
+            return "CM" + PID.ToString() + instanceID.ToString();
+        }
 
-            if (bytesread == 0) //probably pipe ended
-            {
-                return;
-            }
+        public static string GetEventPipeName(uint PID, long instanceID)
+        {
+            return "CR" + PID.ToString() + instanceID.ToString();
+        }
 
-            if (buf[0] == 'T' && buf[1] == 'I')
-            {
-                HandleNewThread(buf);
-                return;
-            }
-
-            if (buf[0] == 'T' && buf[1] == 'Z')
-            {
-
-                HandleTerminatedThread(buf);
-                return;
-            }
-
-            if (buf[0] == 's' && buf[1] == '!')
-            {
-                HandleSymbol(buf);
-                return;
-            }
-
-            if (buf[0] == 'm' && buf[1] == 'n')
-            {
-                HandleModule(buf);
-                return;
-            }
-
-            if (buf[0] == '!')
-            {
-                Console.WriteLine($"[!Log Msg from instrumentation]: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
-                return;
-            }
-
-            Console.WriteLine($"Control pipe read unhandled entry from PID {trace.PID}: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+        public void Begin(long traceID)
+        {
+            listenerThread = new Thread(new ParameterizedThreadStart(ControlEventListener));
+            listenerThread.Name = "ControlThread";
+            listenerThread.Start(traceID);
         }
 
 
-        public void Begin(string controlPipeName)
+        void WriteCallback(IAsyncResult ar)
         {
-
-            listenerThread = new Thread(new ParameterizedThreadStart(Listener));
-            listenerThread.Name = "ControlThread";
-            listenerThread.Start(controlPipeName);
+            Console.WriteLine("WriteCallback, calling endwrite");
+            commandPipe.EndWrite(ar);
+            Console.WriteLine("EndWrite done");
         }
 
         public int SendCommand(byte[] cmd)
         {
-            if (controlPipe.IsConnected)
+            if (commandPipe.IsConnected)
             {
                 try
                 {
-                    controlPipe.Write(cmd);
-                } 
+                    Console.WriteLine($"controlPipe.BeginWrite with {cmd.Length} bytes {cmd}");
+
+                    //controlPipe.Write(cmd);
+                    //controlPipe.Write();
+                    //controlPipe.Flush();
+                    IAsyncResult res = commandPipe.BeginWrite(cmd, 0, cmd.Length, WriteCallback, null);
+                    Thread.Sleep(500);
+
+                    //res = controlPipe.BeginWrite(Encoding.ASCII.GetBytes("\n"), 0, 1, null, null);
+                    //controlPipe.EndWrite(res);
+
+                }
                 catch (Exception e)
                 {
+                    Console.WriteLine($"SendCommand failed with exception {e.Message}");
                     return -1;
                 }
 
@@ -246,7 +211,7 @@ namespace rgatCore
                     //buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    try { commandPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
                         Console.WriteLine($"[rgat]Exception '{e.Message}' while sending tracedDir data");
@@ -258,7 +223,7 @@ namespace rgatCore
                     Console.Write("Sending included file " + name + "\n");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    try { commandPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
                         Console.WriteLine($"Exception '{e.Message}' while sending tracedFile data");
@@ -277,7 +242,7 @@ namespace rgatCore
 
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     buf = System.Text.Encoding.ASCII.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    try { commandPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
                         Console.WriteLine($"[rgat]Exception '{e.Message}' while sending ignored dir data");
@@ -289,7 +254,7 @@ namespace rgatCore
                     Console.Write("Sending ignored file " + name + "\n");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     buf = System.Text.Encoding.ASCII.GetBytes($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { controlPipe.Write(buf, 0, buf.Length); }
+                    try { commandPipe.Write(buf, 0, buf.Length); }
                     catch (Exception e)
                     {
                         Console.WriteLine($"Exception '{e.Message}' while sending ignored File data");
@@ -299,7 +264,7 @@ namespace rgatCore
             }
 
             buf = System.Text.Encoding.UTF8.GetBytes($"@XX@0@@\x00");
-            try { controlPipe.Write(buf, 0, buf.Length); }
+            try { commandPipe.Write(buf, 0, buf.Length); }
             catch (Exception e)
             {
                 Console.WriteLine($"Exception '{e.Message}' while finalising ignored File data");
@@ -314,58 +279,160 @@ namespace rgatCore
         }
 
 
-        void Listener(Object pipenameobj_)
+        void ConnectCallback(IAsyncResult ar)
         {
-            string pipename = (string)pipenameobj_;
+            string pipeType = (string)ar.AsyncState;
+            try
+            {
+                if (pipeType == "Commands")
+                {
+                    commandPipe.EndWaitForConnection(ar);
+                }
+                if (pipeType == "Events")
+                {
+                    eventPipe.EndWaitForConnection(ar);
+                }
+                Console.WriteLine($"{pipeType} pipe connected for PID " + trace.PID);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{pipeType} pipe exception for PID " + trace.PID + " :" + e.Message);
+            }
+        }
+
+
+        void ReadCallback(IAsyncResult ar)
+        {
+            int bytesread = 0;
+            byte[] buf = (byte[])ar.AsyncState;
+            try
+            {
+                bytesread = eventPipe.EndRead(ar);
+                //Console.WriteLine($"In ctrl endread cB. br: {bytesread} {Encoding.ASCII.GetString(buf)}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("ModuleHandlerThread Readcall back exception " + e.Message);
+                return;
+            }
+
+            if (bytesread < 3) //probably pipe ended
+            {
+                if (bytesread != 0)
+                    Console.WriteLine($"Unhandled tiny control pipe message: {buf}");
+                return;
+            }
+
+            if (buf[0] == 'T' && buf[1] == 'I')
+            {
+                HandleNewThread(buf);
+                return;
+            }
+
+            if (buf[0] == 'T' && buf[1] == 'Z')
+            {
+
+                HandleTerminatedThread(buf);
+                return;
+            }
+
+            if (buf[0] == 's' && buf[1] == '!')
+            {
+                HandleSymbol(buf);
+                return;
+            }
+
+            if (buf[0] == 'm' && buf[1] == 'n')
+            {
+                HandleModule(buf);
+                return;
+            }
+
+            if (bytesread >= 4 && buf[0] == 'D' && buf[1] == 'B' && buf[2] == 'G')
+            {
+                char dbgCmd = (char)buf[3];
+                switch (dbgCmd)
+                {
+                    case 'b':
+                        this.trace.SetTraceState(eTraceState.eSuspended);
+                        return;
+                    case 'c':
+                        this.trace.SetTraceState(eTraceState.eRunning);
+                        return;
+                    default:
+                        Console.WriteLine($"Bad debug command response {dbgCmd}");
+                        return;
+                }
+#pragma warning disable CS0162 // Unreachable code detected
+                return;
+#pragma warning restore CS0162 // Unreachable code detected
+            }
+
+
+            if (buf[0] == '!')
+            {
+                Console.WriteLine($"[!Log Msg from instrumentation]: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+                return;
+            }
+
+            Console.WriteLine($"Control pipe read unhandled entry from PID {trace.PID}: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+        }
+
+
+        void ControlEventListener(object instanceID)
+        {
+            string cmdPipeName = GetCommandPipeName(this.trace.PID, (long)instanceID);
+            string eventPipeName = GetEventPipeName(this.trace.PID, (long)instanceID);
 
             try
             {
-                controlPipe = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
-                IAsyncResult res1 = controlPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Control");
+                eventPipe = new NamedPipeServerStream(eventPipeName, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 4096, 4096);
+                commandPipe = new NamedPipeServerStream(cmdPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 4096, 4096);
+                IAsyncResult res1 = eventPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Events");
+                IAsyncResult res2 = commandPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Commands");
             }
             catch (System.IO.IOException e)
             {
                 Console.WriteLine("IO Exception on ModuleHandlerThreadListener: " + e.Message);
-                controlPipe = null;
+                eventPipe = null;
                 return;
             }
 
             int totalWaited = 0;
             while (!_clientState.rgatIsExiting)
             {
-                if (controlPipe.IsConnected) break;
+                if (eventPipe.IsConnected & commandPipe.IsConnected) break;
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"ModuleHandlerThread Waiting ControlPipeConnected:{controlPipe.IsConnected} TotalTime:{totalWaited}");
+                Console.WriteLine($"ModuleHandlerThread Waiting ControlPipeConnected:{eventPipe.IsConnected} TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
-                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{controlPipe.IsConnected} ");
+                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
                     break;
                 }
             }
 
-            if (controlPipe.IsConnected)
+            if (commandPipe.IsConnected)
             {
                 SendTraceSettings();
             }
 
-            while (!_clientState.rgatIsExiting && controlPipe.IsConnected)
+            while (!_clientState.rgatIsExiting && eventPipe.IsConnected)
             {
                 byte[] buf = new byte[4096 * 4];
-                IAsyncResult res = controlPipe.BeginRead(buf, 0, 4096 * 4, new AsyncCallback(ReadCallback), buf);
+                //controlPipe.Read(buf);
+
+                IAsyncResult res = eventPipe.BeginRead(buf, 0, 4096 * 4, new AsyncCallback(ReadCallback), buf);
+
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
+
                 if (!res.IsCompleted)
                 {
-                    try { 
-                        int bytesRead = controlPipe.EndRead(res); 
-                    }
-                    catch {
-                        Console.WriteLine("Exception in outer ModhandlerRead");
-                    }
+                    eventPipe.EndRead(res);
                 }
             }
 
-            controlPipe.Dispose();
+            eventPipe.Dispose();
             Console.WriteLine($"ControlHandler Listener thread exited for PID {trace.PID}");
         }
 

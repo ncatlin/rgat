@@ -46,7 +46,7 @@ namespace rgatCore
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
-        public List<Tuple<ulong,ulong>> edgeCounts;
+        public List<Tuple<ulong, ulong>> edgeCounts;
         public ulong count;
         public ulong targetAddr;
         public uint targetID;
@@ -252,6 +252,19 @@ namespace rgatCore
 
 
         }
+
+
+        public bool HasRecentStep { private set; get; } = false;
+        public ulong RecentStepAddr { private set; get; }
+        public ulong NextStepAddr { private set; get; }
+        public void ClearRecentStep() => HasRecentStep = false;
+        public void SetRecentStep(ulong address, ulong nextAddr)
+        {
+            HasRecentStep = true;
+            RecentStepAddr = address;
+            NextStepAddr = nextAddr;
+        }
+
 
         private void run_faulting_BB(TAG tag)
         {
@@ -463,7 +476,7 @@ namespace rgatCore
                 Debug.Assert(arg.calledAddress == currentTarget, "ProcessIncomingCallArguments() unexpected change of target");
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
                 Debug.Assert(arg.argIndex > currentIndex, "ProcessIncomingCallArguments() unexpected change of source");
-                if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock) 
+                if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)
                     break;
                 uint callerNodeIdx = BlocksFirstLastNodeList[(int)currentSourceBlock].Item2;
                 currentIndex = arg.argIndex;
@@ -683,7 +696,7 @@ namespace rgatCore
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
             //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
- 
+
             if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
             {
                 source.OutgoingNeighboursSet.Add(edgePair.Item2);
@@ -705,8 +718,8 @@ namespace rgatCore
                     }
                 }
                 else if (source.ins.branchAddress == target.address)
-                { 
-                    source.conditional |= eConditionalType.CONDTAKEN; 
+                {
+                    source.conditional |= eConditionalType.CONDTAKEN;
                 }
             }
 
@@ -720,7 +733,7 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                edgeDict.Add(edgePair, e); 
+                edgeDict.Add(edgePair, e);
                 edgeList.Add(edgePair);
                 edgePtrList.Add(e);
             }
@@ -921,8 +934,8 @@ namespace rgatCore
             lock (edgeLock)
             {
                 while (BlocksFirstLastNodeList.Count <= (int)blockID)
-                { 
-                    BlocksFirstLastNodeList.Add(null); 
+                {
+                    BlocksFirstLastNodeList.Add(null);
                 }
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
@@ -1182,7 +1195,7 @@ namespace rgatCore
 
             BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
             JArray blockBoundsArray = (JArray)blockbounds;
-            for (int i = 0; i < blockBoundsArray.Count; i+=2)
+            for (int i = 0; i < blockBoundsArray.Count; i += 2)
             {
                 Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
                 BlocksFirstLastNodeList.Add(blockFirstLast);

@@ -431,7 +431,7 @@ namespace rgatCore
                 imdp.AddRect(
                     p_min: new Vector2(subGraphPosition.X + 1, subGraphPosition.Y),
                     p_max: new Vector2(subGraphPosition.X + EachGraphWidth - 1, subGraphPosition.Y + EachGraphHeight),
-                    col: graph.internalProtoGraph.Terminated ? 0xff0000ff : 0xff00ff00);
+                    col: GetGraphBorderColour(graph));
             }
 
             //write the caption
@@ -525,6 +525,36 @@ namespace rgatCore
 
         Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
 
+        WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
+        {
+            switch(graph.internalProtoGraph.TraceData.TraceState)
+            {
+                case TraceRecord.eTraceState.eTerminated:
+                    return GlobalConfig.mainColours.terminatedPreview;
+                case TraceRecord.eTraceState.eRunning:
+                    return GlobalConfig.mainColours.runningPreview;
+                case TraceRecord.eTraceState.eSuspended:
+                    return GlobalConfig.mainColours.suspendedPreview;
+                default:
+                    return new WritableRgbaFloat(0, 0, 0, 0);
+            }
+        }
+
+        uint GetGraphBorderColour(PlottedGraph graph)
+        {
+            switch (graph.internalProtoGraph.TraceData.TraceState)
+            {
+                case TraceRecord.eTraceState.eTerminated:
+                    return 0xff0000ff;
+                case TraceRecord.eTraceState.eRunning:
+                    return 0xff00ff00;
+                case TraceRecord.eTraceState.eSuspended:
+                    return 0xff47A3f0;
+                default:
+                    return 0;
+            }
+        }
+
 
         void renderPreview(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
@@ -605,8 +635,7 @@ namespace rgatCore
             _cl.Begin();
             _cl.SetFramebuffer(graph._previewFramebuffer);
 
-            WritableRgbaFloat background = graph.internalProtoGraph.Terminated ? GlobalConfig.mainColours.terminatedPreview : GlobalConfig.mainColours.runningPreview;
-            _cl.ClearColorTarget(0, background.ToRgbaFloat());
+            _cl.ClearColorTarget(0, GetGraphBackgroundColour(graph).ToRgbaFloat());
             _cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
             //draw nodes

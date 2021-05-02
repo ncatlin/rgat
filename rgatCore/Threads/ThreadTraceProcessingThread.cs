@@ -216,6 +216,23 @@ namespace rgatCore.Threads
             ProcessExtern(nextBlockAddress, thistag.blockID);
         }
 
+        void AddSingleStepUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 1, entry.Length - 1);
+            string[] entries = msg.Split(',', 2);
+            if (entries.Length == 2)
+            {
+                ulong stepAddr = ulong.Parse(entries[0], NumberStyles.HexNumber);
+                ulong nextAddr = uint.Parse(entries[1], NumberStyles.HexNumber);
+                this.protograph.SetRecentStep(stepAddr, nextAddr);
+            }
+            else
+            {
+                Console.WriteLine($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
+            }
+        }
+
+
         void ProcessExtern(ulong externAddr, uint callerBlock)
         {
             //modType could be known unknown here
@@ -599,9 +616,6 @@ namespace rgatCore.Threads
                         case (byte)'j':
                             ProcessTraceTag(msg);
                             break;
-                       // case (byte)'R':
-                       //     ProcessLoopMarker(msg);
-                       //     break;
                         case (byte)'A':
                             HandleArg(msg);
                             break;
@@ -619,6 +633,9 @@ namespace rgatCore.Threads
                             break;
                         case (byte)'X':
                             AddExceptionUpdate(msg);
+                            break;
+                        case (byte)'S':
+                            AddSingleStepUpdate(msg);
                             break;
                         default:
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");

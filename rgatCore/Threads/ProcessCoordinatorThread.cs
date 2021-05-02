@@ -53,7 +53,9 @@ namespace rgatCore.Threads
 					if (success)
 					{
 						string programName = fields[4];
-						string response = $"CT@{GetCtrlPipeName(PID, randno)}@BB@{GetBBPipeName(PID, randno)}@\x00";
+						string cmdPipeName = ModuleHandlerThread.GetCommandPipeName(PID, randno);
+						string eventPipeName = ModuleHandlerThread.GetEventPipeName(PID, randno);
+						string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{GetBBPipeName(PID, randno)}@\x00";
 						byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
 						coordPipe.Write(outBuffer);
 						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
@@ -125,10 +127,8 @@ namespace rgatCore.Threads
 
         }
 
-		public string GetCtrlPipeName(uint PID, long instanceID)
-		{
-			return "CT" + PID.ToString() + instanceID.ToString();
-		}
+
+
 		public string GetBBPipeName(uint PID, long instanceID)
 		{
 			return "BB" + PID.ToString() + instanceID.ToString();
@@ -159,7 +159,7 @@ namespace rgatCore.Threads
 			target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
 			tr.SetModuleHandlerThread(moduleHandler);
-			moduleHandler.Begin(GetCtrlPipeName(PID, ID));
+			moduleHandler.Begin(ID);
 
 
 			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);

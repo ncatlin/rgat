@@ -996,6 +996,12 @@ namespace rgatCore
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Resume all process threads");
 
+                    if (ImGui.Button("Step In"))
+                    {
+                        graph.internalProtoGraph.TraceData.SendDebugCommand(_rgatstate.ActiveGraph.tid, "SIN");
+                    }
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Step to next instruction");
 
                     ImGui.EndGroup();
 

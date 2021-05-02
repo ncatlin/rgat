@@ -130,8 +130,8 @@ namespace rgatCore
         {
             if (ActiveGraph != null)
             {
-                _yawDelta += delta.X * 0.1f;
-                _pitchDelta += delta.Y * 0.1f;
+                _yawDelta -= delta.X * 0.03f;
+                _pitchDelta -= delta.Y * 0.03f;
             }
         }
 
