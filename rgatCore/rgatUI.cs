@@ -982,26 +982,32 @@ namespace rgatCore
 
                     ImGui.BeginGroup();
 
-                    if (ImGui.Button("Pause/Break"))
+                    if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
                     {
-                        graph.internalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                        if (ImGui.Button("Pause/Break"))
+                        {
+                            graph.internalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                        }
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip("Pause all process threads");
                     }
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("Pause all process threads");
 
-                    if (ImGui.Button("Continue"))
+                    if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
                     {
-                        graph.internalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
-                    }
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("Resume all process threads");
+                        if (ImGui.Button("Continue"))
+                        {
+                            graph.internalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
+                        }
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip("Resume all process threads");
 
-                    if (ImGui.Button("Step In"))
-                    {
-                        graph.internalProtoGraph.TraceData.SendDebugCommand(_rgatstate.ActiveGraph.tid, "SIN");
+                        if (ImGui.Button("Step In"))
+                        {
+                            graph.internalProtoGraph.TraceData.SendDebugCommand(_rgatstate.ActiveGraph.tid, "SIN");
+                        }
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip("Step to next instruction");
                     }
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("Step to next instruction");
 
                     ImGui.EndGroup();
 
