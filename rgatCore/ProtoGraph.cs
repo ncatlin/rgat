@@ -258,11 +258,19 @@ namespace rgatCore
         public ulong RecentStepAddr { private set; get; }
         public ulong NextStepAddr { private set; get; }
         public void ClearRecentStep() => HasRecentStep = false;
-        public void SetRecentStep(ulong address, ulong nextAddr)
+        public bool SetRecentStep(uint blockID, ulong address, ulong nextAddr)
         {
             HasRecentStep = true;
             RecentStepAddr = address;
             NextStepAddr = nextAddr;
+
+            if (BlocksFirstLastNodeList.Count <= blockID)
+            { 
+                addBlockToGraph(blockID, 1);
+                return false;
+            }
+
+            return true;
         }
 
 
@@ -866,6 +874,7 @@ namespace rgatCore
             safe_get_node(targVertID).IncreaseExecutionCount(repeats);
         }
 
+
         public void addBlockToGraph(uint blockID, ulong repeats)
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
@@ -894,12 +903,12 @@ namespace rgatCore
                 bool alreadyExecuted = set_target_instruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} is new, handling as new");
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
+                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} exists, handling as existing");
+                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} exists, handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
@@ -940,6 +949,7 @@ namespace rgatCore
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
                     BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
+                    Debug.Assert(firstVert <= ProtoLastVertID, "Mismatch between top and bottom of a block. The trace is probably missing a tag.");
                 }
             }
 
@@ -1199,6 +1209,7 @@ namespace rgatCore
             {
                 Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
                 BlocksFirstLastNodeList.Add(blockFirstLast);
+                Debug.Assert(blockFirstLast.Item1 < blockFirstLast.Item2);
             }
 
 
@@ -1270,8 +1281,6 @@ namespace rgatCore
 
 
         public eLoopState loopState = eLoopState.eNoLoop;
-        //tag address, mod type
-        public List<TAG> loopCache = new List<TAG>();
 
         List<string> loggedCalls = new List<string>();
 

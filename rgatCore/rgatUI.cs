@@ -544,6 +544,7 @@ namespace rgatCore
 
         }
 
+        bool _checkStartPausedState;
         private void DrawTraceTab_ExecutionSettings(float width)
         {
             ImGui.BeginGroup();
@@ -573,10 +574,17 @@ namespace rgatCore
                 ImGui.PopStyleColor();
                 if (ImGui.Button("Start Trace"))
                 {
-                    Console.WriteLine("Hit it!");
                     string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
                     System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
                     Console.WriteLine($"Started process id {p.Id}");
+                }
+                ImGui.SameLine();
+                if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState))
+                {
+                    if (_checkStartPausedState)
+                    {
+                        _rgatstate.ActiveTarget.SetTraceConfig("PAUSE_ON_START", "TRUE");
+                    }
                 }
                 ImGui.EndChildFrame();
                 ImGui.PopStyleColor();
@@ -1003,10 +1011,17 @@ namespace rgatCore
 
                         if (ImGui.Button("Step In"))
                         {
-                            graph.internalProtoGraph.TraceData.SendDebugCommand(_rgatstate.ActiveGraph.tid, "SIN");
+                            graph.internalProtoGraph.TraceData.SendDebugStep(graph.tid);
                         }
                         if (ImGui.IsItemHovered())
                             ImGui.SetTooltip("Step to next instruction");
+
+                        if (ImGui.Button("Step Over"))
+                        {
+                            graph.internalProtoGraph.TraceData.SendDebugStepOver(graph.internalProtoGraph);
+                        }
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip("Step past call instruction");
                     }
 
                     ImGui.EndGroup();

@@ -201,7 +201,7 @@ namespace rgatCore
                         return;
                     }
 
-                    Console.WriteLine($"\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
+                    Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
                     { 

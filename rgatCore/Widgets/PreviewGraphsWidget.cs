@@ -527,7 +527,10 @@ namespace rgatCore
 
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
-            switch(graph.internalProtoGraph.TraceData.TraceState)
+            if (graph.internalProtoGraph.Terminated)
+                return GlobalConfig.mainColours.terminatedPreview; 
+
+            switch (graph.internalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:
                     return GlobalConfig.mainColours.terminatedPreview;
@@ -542,6 +545,9 @@ namespace rgatCore
 
         uint GetGraphBorderColour(PlottedGraph graph)
         {
+            if (graph.internalProtoGraph.Terminated)
+                return 0xff0000ff;
+
             switch (graph.internalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:

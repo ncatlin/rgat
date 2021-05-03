@@ -76,13 +76,13 @@ namespace rgatCore.Threads
                 //first find the blocks instruction list
                 //if (brep.blockID >= RecordedBlocksQty) { remainingRepeats.Add(brep); continue; }
                 NodeData n = null;
-                
+
                 if (brep.blockInslist == null)
                 {
                     if (brep.blockID >= protograph.BlocksFirstLastNodeList.Count ||
                         protograph.BlocksFirstLastNodeList[(int)brep.blockID] == null)
                     {
-                        continue; 
+                        continue;
                     }
                     brep.blockInslist = protograph.ProcessData.BasicBlocksList[(int)brep.blockID].Item2;
                 }
@@ -167,6 +167,9 @@ namespace rgatCore.Threads
             }
         }*/
 
+        bool _ignore_next_tag = false;
+        uint _ignored_tag_blockID = 0;
+
         public void ProcessTraceTag(byte[] entry)
         {
             TAG thistag;
@@ -185,21 +188,20 @@ namespace rgatCore.Threads
             thistag.foundExtern = null;
             thistag.insCount = 0; //meaningless here
 
-
-            if (protograph.loopState == eLoopState.eBuildingLoop)
+            if (_ignore_next_tag)
             {
-                protograph.loopCache.Add(thistag);
+                Debug.Assert(thistag.blockID == _ignored_tag_blockID);
+                _ignore_next_tag = false;
             }
             else
             {
                 protograph.handle_tag(thistag);
-
-                ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-                animUpdate.blockAddr = thistag.blockaddr;
-                animUpdate.blockID = thistag.blockID;
-                protograph.PushAnimUpdate(animUpdate);
             }
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
+            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
+            animUpdate.blockAddr = thistag.blockaddr;
+            animUpdate.blockID = thistag.blockID;
+            protograph.PushAnimUpdate(animUpdate);
 
             //fallen through/failed conditional jump
             if (nextBlockAddress == 0) return;
@@ -209,8 +211,8 @@ namespace rgatCore.Threads
             {
                 if (protograph.exeModuleID == -1 && protograph.NodeList.Count != 0)
                     protograph.AssignModulePath();
-                
-                return; 
+
+                return;
             }
 
             ProcessExtern(nextBlockAddress, thistag.blockID);
@@ -219,12 +221,17 @@ namespace rgatCore.Threads
         void AddSingleStepUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 1, entry.Length - 1);
-            string[] entries = msg.Split(',', 2);
-            if (entries.Length == 2)
+            string[] entries = msg.Split(',', 3);
+            if (entries.Length == 3)
             {
-                ulong stepAddr = ulong.Parse(entries[0], NumberStyles.HexNumber);
-                ulong nextAddr = uint.Parse(entries[1], NumberStyles.HexNumber);
-                this.protograph.SetRecentStep(stepAddr, nextAddr);
+                uint blockID = uint.Parse(entries[0], NumberStyles.HexNumber);
+                ulong stepAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
+                ulong nextAddr = uint.Parse(entries[2], NumberStyles.HexNumber);
+                if(!protograph.SetRecentStep(blockID, stepAddr, nextAddr))
+                {
+                    _ignore_next_tag = true;
+                    _ignored_tag_blockID = blockID;
+                }
             }
             else
             {
@@ -243,28 +250,24 @@ namespace rgatCore.Threads
             externTag.jumpModifier = eCodeInstrumentation.eUninstrumentedCode;
             externTag.blockaddr = externAddr;
 
-            if (protograph.loopState == eLoopState.eBuildingLoop)
-                protograph.loopCache.Add(externTag);
+            protograph.handle_tag(externTag);
+
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
+            animUpdate.blockAddr = externAddr;
+            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
+            animUpdate.blockID = uint.MaxValue;
+            if (protograph.externFuncCallCounter.TryGetValue(callerBlock, out ulong prevCount))
+            {
+                protograph.externFuncCallCounter[callerBlock] = prevCount + 1;
+                animUpdate.count = prevCount + 1;
+            }
             else
             {
-                protograph.handle_tag(externTag);
-
-                ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-                animUpdate.blockAddr = externAddr;
-                animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-                animUpdate.blockID = uint.MaxValue;
-                if (protograph.externFuncCallCounter.TryGetValue(callerBlock, out ulong prevCount))
-                {
-                    protograph.externFuncCallCounter[callerBlock] = prevCount + 1;
-                    animUpdate.count = prevCount + 1;
-                }
-                else
-                {
-                    protograph.externFuncCallCounter.Add(callerBlock, 1);
-                    animUpdate.count = 1;
-                }
-                protograph.PushAnimUpdate(animUpdate);
+                protograph.externFuncCallCounter.Add(callerBlock, 1);
+                animUpdate.count = 1;
             }
+            protograph.PushAnimUpdate(animUpdate);
+
         }
 
 
@@ -419,7 +422,7 @@ namespace rgatCore.Threads
                 }
 
             }
-            
+
             ANIMATIONENTRY animUpdate;
             animUpdate.blockAddr = thistag.blockaddr;
             animUpdate.blockID = thistag.blockID;
@@ -470,10 +473,10 @@ namespace rgatCore.Threads
             string[] edgeCounts = entries[2].Split(',');
 
             ulong blockExecs = 0;
-            for (int i = 0; i < edgeCounts.Count(); i+=2)
+            for (int i = 0; i < edgeCounts.Count(); i += 2)
             {
                 ulong targAddr = ulong.Parse(edgeCounts[i], NumberStyles.HexNumber);
-                
+
                 ulong targBlock = protograph.ProcessData.GetBlockAtAddress(targAddr);
                 ulong edgeExecCount = ulong.Parse(edgeCounts[i + 1], NumberStyles.HexNumber);
 
@@ -504,7 +507,7 @@ namespace rgatCore.Threads
             animUpdate.count = blockExecs;
             animUpdate.targetAddr = 0;
             animUpdate.targetID = 0;
-            protograph.PushAnimUpdate(animUpdate);  
+            protograph.PushAnimUpdate(animUpdate);
         }
 
 
@@ -540,7 +543,7 @@ namespace rgatCore.Threads
             bool gotDisas = false;
             lock (protograph.ProcessData.InstructionsLock) //read lock
             {
-                gotDisas = protograph.ProcessData.disassembly.TryGetValue(address, out  faultingBlock);
+                gotDisas = protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock);
             }
 
 
@@ -567,10 +570,10 @@ namespace rgatCore.Threads
 
             //todo: Lock, linq
             int instructionsUntilFault = 0;
-            for (;  instructionsUntilFault < faultingBB.Count; ++instructionsUntilFault)
+            for (; instructionsUntilFault < faultingBB.Count; ++instructionsUntilFault)
             {
                 if (faultingBB[instructionsUntilFault].address == address) break;
-        
+
             }
 
             TAG interruptedBlockTag;
@@ -583,7 +586,7 @@ namespace rgatCore.Threads
             protograph.handle_exception_tag(interruptedBlockTag);
 
             ANIMATIONENTRY animUpdate;
-            animUpdate.entryType =  eTraceUpdateType.eAnimExecException;
+            animUpdate.entryType = eTraceUpdateType.eAnimExecException;
             animUpdate.blockAddr = interruptedBlockTag.blockaddr;
             animUpdate.blockID = interruptedBlockTag.blockID;
             animUpdate.count = (ulong)instructionsUntilFault;

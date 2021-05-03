@@ -499,7 +499,7 @@ namespace rgatCore
                 Console.WriteLine("[rgat] Failed to find ModuleTraceStates in trace");
                 return false;
             }
-            
+
             ModuleTraceStates.Clear();
             int[] intstates = modtracestatesTkn.ToObject<List<int>>().ToArray();
             ModuleTraceStates = Array.ConvertAll(intstates, value => (eCodeInstrumentation)value).ToList();
@@ -569,8 +569,9 @@ namespace rgatCore
                 if (insdata.mnemonic[0] == 'j')
                 {
                     insdata.conditional = true;
-                    try {
-                        insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); 
+                    try
+                    {
+                        insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16);
                     } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
                     insdata.condDropAddress = insdata.address + (ulong)insdata.numbytes;
@@ -858,10 +859,10 @@ namespace rgatCore
             saveObject.Add("RGATVersionFeature", Version_Constants.RGAT_VERSION_FEATURE);
         }
 
-        private void SerialiseDisassembly(ref JObject saveObject) 
+        private void SerialiseDisassembly(ref JObject saveObject)
         {
             JArray disasarray = new JArray();
-            foreach (KeyValuePair< ulong, List < InstructionData >> addr_inslist in disassembly)
+            foreach (KeyValuePair<ulong, List<InstructionData>> addr_inslist in disassembly)
             {
                 JArray insentry = new JArray();
                 insentry.Add(addr_inslist.Key);
@@ -870,13 +871,13 @@ namespace rgatCore
 
                 JArray opcodesMutationsList = new JArray();
                 foreach (var mutation in addr_inslist.Value)
-                { 
+                {
                     JArray mutationData = new JArray();
                     string opcodestring = System.Convert.ToBase64String(mutation.opcodes);
                     mutationData.Add(opcodestring);
 
                     JArray threadsUsingInstruction = new JArray();
-                    foreach (KeyValuePair<uint,uint> thread_node in mutation.threadvertIdx)
+                    foreach (KeyValuePair<uint, uint> thread_node in mutation.threadvertIdx)
                     {
                         JArray threadNodeMappings = new JArray();
                         threadNodeMappings.Add(thread_node.Key);
@@ -903,7 +904,7 @@ namespace rgatCore
             saveObject.Add("ModulePaths", ModulePaths);
 
             JArray ModuleBounds = new JArray();
-            foreach (Tuple<ulong,ulong> start_end in LoadedModuleBounds)
+            foreach (Tuple<ulong, ulong> start_end in LoadedModuleBounds)
             {
                 JArray BoundsTuple = new JArray();
                 BoundsTuple.Add(start_end.Item1);
@@ -946,7 +947,7 @@ namespace rgatCore
         }
 
 
-        private void SerialiseBlockData(ref JObject saveObject) 
+        private void SerialiseBlockData(ref JObject saveObject)
         {
             JArray BasicBlocksArray = new JArray();
 
@@ -956,8 +957,8 @@ namespace rgatCore
                 blockArray.Add(addr_inslist.Item1);
 
                 JArray inslist = new JArray();
-                foreach ( InstructionData i in addr_inslist.Item2)
-                { 
+                foreach (InstructionData i in addr_inslist.Item2)
+                {
                     JArray insentry = new JArray();
                     insentry.Add(i.address);
                     insentry.Add(i.mutationIndex);

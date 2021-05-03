@@ -155,13 +155,6 @@ namespace rgatCore
         }
 
 
-        void WriteCallback(IAsyncResult ar)
-        {
-            Console.WriteLine("WriteCallback, calling endwrite");
-            commandPipe.EndWrite(ar);
-            Console.WriteLine("EndWrite done");
-        }
-
         public int SendCommand(byte[] cmd)
         {
             if (commandPipe.IsConnected)
@@ -173,7 +166,7 @@ namespace rgatCore
                     //controlPipe.Write(cmd);
                     //controlPipe.Write();
                     //controlPipe.Flush();
-                    IAsyncResult res = commandPipe.BeginWrite(cmd, 0, cmd.Length, WriteCallback, null);
+                    commandPipe.Write(cmd, 0, cmd.Length);
                     Thread.Sleep(500);
 
                     //res = controlPipe.BeginWrite(Encoding.ASCII.GetBytes("\n"), 0, 1, null, null);
@@ -191,9 +184,24 @@ namespace rgatCore
             return -1;
         }
 
+        bool CommandWrite(string msg)
+        {
+            byte[] buf = System.Text.Encoding.UTF8.GetBytes(msg);
+            try { commandPipe.Write(buf, 0, buf.Length); }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception '{e.Message}' while writing command: {msg}");
+                return false;
+            }
+            commandPipe.Flush();
+            return true;
+        }
 
         void SendIncludeLists()
         {
+
+            if (!CommandWrite($"INCLUDELISTS\n\x00\x00\x00")) return;
+
             byte[] buf;
             if (target.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
             {
@@ -203,32 +211,19 @@ namespace rgatCore
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
                     Console.WriteLine("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
 
-
                 foreach (string name in tracedDirs)
                 {
-                    Console.Write("Sending included dir " + name + "\n");
+                    Console.Write("Sending traced dir " + name + "\n");
                     //buf = System.Text.Encoding.Unicode.GetBytes(name);
                     //buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { commandPipe.Write(buf, 0, buf.Length); }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"[rgat]Exception '{e.Message}' while sending tracedDir data");
-                        return;
-                    }
+                    if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in tracedFiles)
                 {
-                    Console.Write("Sending included file " + name + "\n");
+                    Console.Write("Sending traced file " + name + "\n");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    buf = System.Text.Encoding.ASCII.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { commandPipe.Write(buf, 0, buf.Length); }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Exception '{e.Message}' while sending tracedFile data");
-                        return;
-                    }
+                    if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
             }
             else
@@ -239,36 +234,30 @@ namespace rgatCore
                 foreach (string name in ignoredDirs)
                 {
                     Console.Write("Sending ignored dir " + name + "\n");
-
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    buf = System.Text.Encoding.ASCII.GetBytes($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { commandPipe.Write(buf, 0, buf.Length); }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"[rgat]Exception '{e.Message}' while sending ignored dir data");
-                        return;
-                    }
+                    if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in ignoredFiles)
                 {
                     Console.Write("Sending ignored file " + name + "\n");
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    buf = System.Text.Encoding.ASCII.GetBytes($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
-                    try { commandPipe.Write(buf, 0, buf.Length); }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Exception '{e.Message}' while sending ignored File data");
-                        return;
-                    }
+                    if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
             }
 
-            buf = System.Text.Encoding.UTF8.GetBytes($"@XX@0@@\x00");
-            try { commandPipe.Write(buf, 0, buf.Length); }
-            catch (Exception e)
+            CommandWrite($"@XX@0@@\n\x00");
+        }
+
+        void SendConfiguration()
+        {
+            Dictionary<string, string> config = target.GetCurrentTraceConfiguration();
+
+            if (!CommandWrite($"CONFIGKEYS@{config.Count}")) return;
+            foreach (KeyValuePair<string, string> kvp in config)
             {
-                Console.WriteLine($"Exception '{e.Message}' while finalising ignored File data");
-                return;
+                string cmdc = $"@CK@{kvp.Key}@{kvp.Value}@\n\x00\x00\x00";
+                Console.WriteLine("Sending cmd " + cmdc);
+                CommandWrite(cmdc);
             }
         }
 
@@ -276,6 +265,7 @@ namespace rgatCore
         void SendTraceSettings()
         {
             SendIncludeLists();
+            SendConfiguration();
         }
 
 
@@ -354,9 +344,11 @@ namespace rgatCore
                 switch (dbgCmd)
                 {
                     case 'b':
+                        Console.WriteLine("Module hndler gotr dbg cmd break");
                         this.trace.SetTraceState(eTraceState.eSuspended);
                         return;
                     case 'c':
+                        Console.WriteLine("Module hndler gotr dbg cmd continue");
                         this.trace.SetTraceState(eTraceState.eRunning);
                         return;
                     default:
@@ -387,9 +379,9 @@ namespace rgatCore
             try
             {
                 eventPipe = new NamedPipeServerStream(eventPipeName, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 4096, 4096);
-                commandPipe = new NamedPipeServerStream(cmdPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 4096, 4096);
+                commandPipe = new NamedPipeServerStream(cmdPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
                 IAsyncResult res1 = eventPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Events");
-                IAsyncResult res2 = commandPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Commands");
+                commandPipe.WaitForConnection();
             }
             catch (System.IO.IOException e)
             {

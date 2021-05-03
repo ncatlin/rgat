@@ -85,20 +85,24 @@ namespace rgatCore
 
         public void SetTraceState(eTraceState newState)
         {
+            Console.WriteLine($"Set trace state {newState}");
             if (TraceState == newState) return;
+            Console.WriteLine("\tactioning it");
             if (newState != eTraceState.eSuspended)
             {
 
                 lock (GraphListLock)
                 {
+                    Console.WriteLine($"\t\t {ProtoGraphs.Count} graphs");
                     foreach (ProtoGraph graph in ProtoGraphs.Values)
                     {
+                        Console.WriteLine("\t\t clearing flag step");
                         graph.ClearRecentStep();
                     }
                 }
             }
             TraceState = newState;
-            
+
         }
 
         public bool InsertNewThread(PlottedGraph mainplot)
@@ -306,7 +310,7 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Console.WriteLine("Deserialising trace file failed: "+e.Message);
+                Console.WriteLine("Deserialising trace file failed: " + e.Message);
                 return false;
             }
 
@@ -356,7 +360,7 @@ namespace rgatCore
             traceSaveObject.Add("BinaryPath", binaryTarg.FilePath);
             traceSaveObject.Add("StartTime", traceStartedTime);
             traceSaveObject.Add("Threads", SerialiseGraphs());
-            traceSaveObject.Add("Timeline", SerialiseTimeline() );
+            traceSaveObject.Add("Timeline", SerialiseTimeline());
 
             JArray childPathsArray = new JArray();
             foreach (TraceRecord trace in children)
@@ -378,7 +382,7 @@ namespace rgatCore
         {
             JArray graphsList = new JArray();
 
-            lock(GraphListLock)
+            lock (GraphListLock)
             {
                 foreach (var tid__mode_graph in PlottedGraphs)
                 {
@@ -439,17 +443,17 @@ namespace rgatCore
         //private bool loadTimeline(const rapidjson::Value& saveJSON);
 
 
-        public  void ExportPajek(uint TID)
+        public void ExportPajek(uint TID)
         {
             ProtoGraph pgraph = this.ProtoGraphs[TID];
 
             FileStream outfile = File.OpenWrite(Path.Combine(GlobalConfig.SaveDirectory, "pajeksave" + TID.ToString() + ".net"));
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
-            outfile.Write(Encoding.ASCII.GetBytes("*Vertices "+pgraph.NodeList.Count+"\n"));
+            outfile.Write(Encoding.ASCII.GetBytes("*Vertices " + pgraph.NodeList.Count + "\n"));
 
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.index+" \""+n.ins.ins_text+"\"\n"));
+                outfile.Write(Encoding.ASCII.GetBytes(n.index + " \"" + n.ins.ins_text + "\"\n"));
             }
 
             outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
@@ -465,7 +469,33 @@ namespace rgatCore
             outfile.Close();
         }
 
-        public void SendDebugCommand(ulong threadID, string command)
+
+        public void SendDebugStepOver(ProtoGraph graph)
+        {
+            if (!graph.HasRecentStep) return;
+
+            ulong stepAddr = graph.RecentStepAddr;
+            List<uint> nodes = DisassemblyData.GetNodesAtAddress(stepAddr, graph.ThreadID);
+            if (nodes.Count == 0) return;
+
+            NodeData n = graph.safe_get_node(nodes[^1]);
+            if (n.ins.itype != eNodeType.eInsCall)
+            {
+                SendDebugStep(graph.ThreadID);
+                return;
+            }
+            ulong nextInsAddress = n.ins.address + (ulong)n.ins.numbytes;
+
+            string cmd = $"SOV,{nextInsAddress:X}";
+            SendDebugCommand(graph.ThreadID, cmd);
+        }
+
+        public void SendDebugStep(uint threadID)
+        {
+            SendDebugCommand(threadID, "SIN");
+        }
+
+        public void SendDebugCommand(uint threadID, string command)
         {
             if (_moduleThread == null)
             {
@@ -473,8 +503,9 @@ namespace rgatCore
                 return;
             }
 
-            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command+'@'+threadID.ToString()+"\n\x00");
-            if(_moduleThread.SendCommand(buf) == -1)
+
+            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
+            if (_moduleThread.SendCommand(buf) == -1)
             {
                 Console.WriteLine("Error sending command to control pipe");
             }

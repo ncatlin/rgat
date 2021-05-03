@@ -92,6 +92,23 @@ namespace rgatCore
 
         List<string> signatureHitsDIE = null;
         List<string> signatureHitsYARA = null;
+
+        Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
+
+        public Dictionary<string, string> GetCurrentTraceConfiguration()
+        {
+            lock (tracesLock) return new Dictionary<string, string>(_traceConfiguration);
+        }
+        public void SetTraceConfig(string key, string value)
+        {
+            if (key.Contains('@') || value.Contains('@')) { Console.WriteLine("invalid character '@' in config item"); return; }
+            lock (tracesLock)
+            {
+                _traceConfiguration[key] = value;
+            }
+        }
+
+
         public string FormatSignatureHits(out bool sigHitsYARA, out bool sigHitsDie)
         {
             sigHitsYARA = (signatureHitsYARA != null);
