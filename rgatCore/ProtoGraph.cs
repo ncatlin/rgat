@@ -1209,7 +1209,7 @@ namespace rgatCore
             {
                 Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
                 BlocksFirstLastNodeList.Add(blockFirstLast);
-                Debug.Assert(blockFirstLast.Item1 < blockFirstLast.Item2);
+                Debug.Assert(blockFirstLast.Item1 <= blockFirstLast.Item2);
             }
 
 

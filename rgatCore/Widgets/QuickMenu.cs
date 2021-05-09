@@ -344,6 +344,29 @@ namespace rgatCore.Widgets
 
         }
 
+        /*
+private void DrawScalePopup()
+{
+    if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(200, 200)))
+    {
+        if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
+        {
+            InitGraphReplot();
+            Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.scalefactors.pix_per_A}");
+        };
+        if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
+        {
+            InitGraphReplot();
+        };
+        if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
+        {
+            InitGraphReplot();
+        };
+
+        ImGui.EndChild();
+    }
+}
+*/
 
         void DrawGraphLayoutFrame(PlottedGraph activeGraph)
         {
@@ -365,8 +388,19 @@ namespace rgatCore.Widgets
             if (activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes)
             {
                 ImGui.Text("eForceDirected3DNodes Config Options");
+                if (ImGui.Button("Rerender"))
+                {
+                    InitGraphReplot();
+                }
             }
         }
+
+
+        private void InitGraphReplot()
+        {
+            Console.WriteLine("init graph replot called");
+        }
+
 
         void DrawSearchHighlightFrame(PlottedGraph activeGraph)
         {

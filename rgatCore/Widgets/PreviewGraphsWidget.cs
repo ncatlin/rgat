@@ -39,7 +39,6 @@ namespace rgatCore
 
         public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
         public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
-        public float MarginWidth = 5f;
 
         public uint selectedGraphTID;
         public PlottedGraph clickedGraph { get; private set; }
@@ -325,17 +324,20 @@ namespace rgatCore
 
         public void DrawWidget()
         {
+
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
-            Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
-            subGraphPosition.X -= MarginWidth;
 
-            float captionHeight = ImGui.CalcTextSize("123456789").Y + 3; //dunno where the 3 comes from but it works
+            Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
+            subGraphPosition.X += UI_Constants.PREVIEW_PANE_PADDING;
+            subGraphPosition.Y += UI_Constants.PREVIEW_PANE_PADDING;
+
+            float captionHeight = ImGui.CalcTextSize("123456789").Y; //dunno where the 3 comes from but it works
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
-            uint captionBackgroundcolor = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
+            uint captionBackgroundcolor = GlobalConfig.ThemeColoursCustom[GlobalConfig.eThemeColour.ePreviewTextBackground];
 
             _layoutEngine.SetActiveTrace(activeTrace);
             _layoutEngine.UpdatePositionCaches();
@@ -353,7 +355,8 @@ namespace rgatCore
 
         }
 
-        void DrawPreviewViewBox(PlottedGraph graph, Vector2 subGraphPosition)
+
+        void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             float previewBaseY = subGraphPosition.Y + EachGraphHeight;
@@ -365,20 +368,21 @@ namespace rgatCore
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
+            uint colour = GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewZoomEnvelope);
+
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
-            uint boxcol = 0x65ffffff;
 
             if (C1Y > subGraphPosition.Y && C1Y < previewBaseY)
-                imdp.AddLine(new Vector2(C1X, C1Y), new Vector2(C2X, C1Y), boxcol);
+                imdp.AddLine(new Vector2(C1X, C1Y), new Vector2(C2X, C1Y), colour);
 
             if (C2Y > subGraphPosition.Y && C2Y < previewBaseY)
-                imdp.AddLine(new Vector2(C2X, C2Y), new Vector2(C1X, C2Y), boxcol);
+                imdp.AddLine(new Vector2(C2X, C2Y), new Vector2(C1X, C2Y), colour);
 
             if (C2Y < previewBaseY && C1Y > subGraphPosition.Y)
             {
-                imdp.AddLine(new Vector2(C2X, C1Y), new Vector2(C2X, C2Y), boxcol);
-                imdp.AddLine(new Vector2(C1X, C2Y), new Vector2(C1X, C1Y), boxcol);
+                imdp.AddLine(new Vector2(C2X, C1Y), new Vector2(C2X, C2Y), colour);
+                imdp.AddLine(new Vector2(C1X, C2Y), new Vector2(C1X, C1Y), colour);
             }
 
         }
@@ -417,31 +421,36 @@ namespace rgatCore
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
                 p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
-                uv_min: new Vector2(0, 1),
-                uv_max: new Vector2(1, 0));
+                uv_min: new Vector2(0, 0),
+                uv_max: new Vector2(1, 1));
 
+            float borderThickness = GlobalConfig.GetThemeSize(GlobalConfig.eThemeSize.ePreviewSelectedBorder);
+            float halfBorderThickness = (float)Math.Floor(borderThickness / 2f);
 
-
-
-            //selection border
             if (isSelected)
             {
-                DrawPreviewViewBox(graph, subGraphPosition);
+                DrawPreviewZoomEnvelope(graph, subGraphPosition);
 
-                imdp.AddRect(
-                    p_min: new Vector2(subGraphPosition.X + 1, subGraphPosition.Y),
-                    p_max: new Vector2(subGraphPosition.X + EachGraphWidth - 1, subGraphPosition.Y + EachGraphHeight),
-                    col: GetGraphBorderColour(graph));
+                if (borderThickness > 0)
+                {
+                    imdp.AddRect(
+                        p_min: new Vector2(subGraphPosition.X + halfBorderThickness, subGraphPosition.Y + halfBorderThickness),
+                        p_max: new Vector2((subGraphPosition.X + EachGraphWidth - halfBorderThickness), subGraphPosition.Y + EachGraphHeight - halfBorderThickness),
+                        col: GetGraphBorderColour(graph), 0, ImDrawCornerFlags.None, borderThickness);
+                }
             }
 
             //write the caption
             string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
-
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
-            Vector2 captionBGStart = new Vector2(ImGui.GetCursorScreenPos().X - 3, ImGui.GetCursorScreenPos().Y + 1);
-            Vector2 captionBGEnd = new Vector2((ImGui.GetCursorScreenPos().X + EachGraphWidth) - (MarginWidth + 3), ImGui.GetCursorScreenPos().Y + captionHeight);
+            Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
+            Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness*2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
+            ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewText));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_PADDING + borderThickness + 1);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + UI_Constants.PREVIEW_PANE_PADDING + borderThickness);
             ImGui.Text(Caption);
+            ImGui.PopStyleColor();
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + EachGraphWidth - 48);
 
             //live thread activity plot
@@ -471,6 +480,7 @@ namespace rgatCore
 
 
             //invisible button to detect graph click
+
             ImGui.SetCursorPos(new Vector2(1, ImGui.GetCursorPosY() - (float)(captionHeight)));
             if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
             {
@@ -480,10 +490,11 @@ namespace rgatCore
                     Vector2 clickPos = ImGui.GetMousePos();
                     Vector2 clickOffset = clickPos - subGraphPosition;
                     clickOffset.Y = EachGraphHeight - clickOffset.Y;
-                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884,454), PreviewProjection);//todo widget size
+                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884, 454), PreviewProjection);//todo widget size
                 }
 
             }
+
             return clicked;
 
         }
@@ -528,7 +539,7 @@ namespace rgatCore
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
             if (graph.internalProtoGraph.Terminated)
-                return GlobalConfig.mainColours.terminatedPreview; 
+                return GlobalConfig.mainColours.terminatedPreview;
 
             switch (graph.internalProtoGraph.TraceData.TraceState)
             {
@@ -551,7 +562,7 @@ namespace rgatCore
             switch (graph.internalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:
-                    return 0xff0000ff;
+                    return 0x4f00004f;
                 case TraceRecord.eTraceState.eRunning:
                     return 0xff00ff00;
                 case TraceRecord.eTraceState.eSuspended:
@@ -567,8 +578,7 @@ namespace rgatCore
             if (graph == null || positionsBuffer == null || nodeAttributesBuffer == null) return;
             if (graph._previewTexture == null)
             {
-                int width = UI_Constants.PREVIEW_PANE_WIDTH - (UI_Constants.PREVIEW_PANE_PADDING * 2);
-                graph.InitPreviewTexture(new Vector2(width, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
+                graph.InitPreviewTexture(new Vector2(EachGraphWidth, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
 
             bool needsCentering = true;

@@ -41,10 +41,10 @@ namespace rgatCore
 
         public WritableRgbaFloat(uint col)
         {
-            A = (col & 0xff000000) >> 24;
-            B = (col & 0xff0000) >> 16;
-            G = (col & 0xff00) >> 8;
-            R = (col & 0xff);
+            A = ((col & 0xff000000) >> 24) / 255f;
+            B = ((col & 0xff0000) >> 16) / 255f;
+            G = ((col & 0xff00) >> 8) / 255f;
+            R = ((col & 0xff)) / 255f;
         }
 
         public uint ToUint(uint? customAlpha = null)

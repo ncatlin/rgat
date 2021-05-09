@@ -4,18 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Text;
-using System.Threading;
-using System.Xml.Linq;
-using Veldrid.SPIRV;
 
 
 using Veldrid;
 using Veldrid.Sdl2;
-using Veldrid.StartupUtilities;
-using System.Linq;
 using rgatCore.Threads;
 using System.Drawing;
 using rgatCore.Widgets;
+using System.Linq;
 
 namespace rgatCore
 {
@@ -145,6 +141,8 @@ namespace rgatCore
 
             ImGui.Begin("rgat Primary Window", window_flags);
 
+            ApplyThemeColours();
+
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
             HandleUserInput();
             DrawMainMenu();
@@ -157,9 +155,29 @@ namespace rgatCore
                 if (_show_load_trace_window) DrawTraceLoadBox();
                 ImGui.EndChild();
             }
+
+            ResetThemeColours();
+
             ImGui.End();
 
         }
+
+
+        static void ApplyThemeColours()
+        {
+            foreach (KeyValuePair<ImGuiCol, uint> kvp in GlobalConfig.ThemeColoursStandard)
+            {
+
+                ImGui.PushStyleColor(kvp.Key, kvp.Value);
+            }
+        }
+
+
+        static void ResetThemeColours()
+        {
+            GlobalConfig.ThemeColoursStandard.ToList().ForEach((f) => ImGui.PopStyleColor());
+        }
+
 
 
         void HandleUserInput()
@@ -429,7 +447,7 @@ namespace rgatCore
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998800);
+                //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998800);
                 ImGui.BeginChildFrame(9, new Vector2(width, 300));
                 {
                     ImGui.Button("DynamoRIO Test");
@@ -453,7 +471,7 @@ namespace rgatCore
                 }
                 ImGui.EndChildFrame();
 
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
             }
             ImGui.EndGroup();
         }
@@ -461,7 +479,7 @@ namespace rgatCore
         private void DrawTraceTab_InstrumentationSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
+            //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
 
 
 
@@ -490,11 +508,11 @@ namespace rgatCore
 
 
             ImGui.BeginChildFrame(18, new Vector2(width, 200));
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
+            //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
 
             if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+                //ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
                 if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
                 {
                     if (ImGui.TreeNode($"Ignored Directories ({activeTarget.traceChoices.ignoreDirsCount})"))
@@ -526,10 +544,10 @@ namespace rgatCore
                         ImGui.TreePop();
                     }
                 }
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
                 ImGui.EndChildFrame();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
 
             if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiPopupFlags.MouseButtonRight))
             {
@@ -539,7 +557,7 @@ namespace rgatCore
 
             ImGui.EndChildFrame();
 
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
             ImGui.EndGroup();
 
         }
@@ -549,7 +567,7 @@ namespace rgatCore
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF222200);
+                //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF222200);
                 ImGui.BeginChildFrame(10, new Vector2(width, 200));
                 ImGui.Text("Execution Settings");
 
@@ -561,7 +579,7 @@ namespace rgatCore
                 ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
                 ImGui.EndChildFrame();
 
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998880);
+                //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998880);
                 ImGui.AlignTextToFramePadding();
 
                 ImGui.Text("Command Line");
@@ -571,7 +589,7 @@ namespace rgatCore
 
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
                 if (ImGui.Button("Start Trace"))
                 {
                     string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
@@ -587,7 +605,7 @@ namespace rgatCore
                     }
                 }
                 ImGui.EndChildFrame();
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
             }
             ImGui.EndGroup();
         }
@@ -637,17 +655,25 @@ namespace rgatCore
 
         private void DrawVisualiserGraphs(float height)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF303030);
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize);
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
-            ImGui.SameLine();
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x10253880);
+
+            ImGui.SameLine(0,0);
+
             Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
+            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewPaneBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewPaneBackground));
+
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
             {
                 PreviewGraphWidget.DrawWidget();
@@ -658,6 +684,11 @@ namespace rgatCore
                 }
                 ImGui.EndChild();
             }
+            ImGui.PopStyleVar();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
         }
@@ -717,42 +748,6 @@ namespace rgatCore
         }
 
 
-        private void InitGraphReplot()
-        {
-            Console.WriteLine("init graph replot called");
-        }
-
-        private void DrawScalePopup()
-        {
-            if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(200, 200)))
-            {
-                if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
-                {
-                    InitGraphReplot();
-                    Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.scalefactors.pix_per_A}");
-                };
-                if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
-                {
-                    InitGraphReplot();
-                };
-                if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
-                {
-                    InitGraphReplot();
-                };
-
-                ImGui.EndChild();
-            }
-        }
-
-
-
-        private void DrawLayoutSettingsPopup()
-        {
-
-        }
-
-
-
 
 
         private void DrawCameraPopup()
@@ -775,64 +770,6 @@ namespace rgatCore
         }
 
 
-
-        private void drawVisToolBar(float height)
-        {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 3);
-            if (ImGui.BeginChild(ImGui.GetID("ControlTopBar"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
-            {
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3);
-
-                if (ImGui.Button("Scale"))
-                {
-                    ImGui.OpenPopup("##ScaleGraphDialog");
-                }
-
-                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##ScaleGraphDialog", ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    DrawScalePopup();
-                    ImGui.EndPopup();
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button("Layout"))
-                {
-                    ImGui.OpenPopup("##LayoutSettingsDialog");
-                }
-
-                if (this._rgatstate.ActiveGraph != null && ImGui.BeginPopup("##LayoutSettingsDialog", ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    DrawLayoutSettingsPopup();
-                    ImGui.EndPopup();
-                }
-
-
-
-
-                ImGui.SameLine();
-                if (ImGui.Button("Camera"))
-                {
-                    ImGui.OpenPopup("##CameraBtn");
-                }
-
-                if (ImGui.BeginPopup("##CameraBtn", ImGuiWindowFlags.AlwaysAutoResize))
-                {
-                    DrawCameraPopup();
-                    ImGui.EndPopup();
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button("Rerender"))
-                {
-                    InitGraphReplot();
-                }
-
-                ImGui.EndChild();
-            }
-            ImGui.PopStyleColor();
-        }
-
         private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
             PlottedGraph activeGraph = _rgatstate.ActiveGraph;
@@ -847,7 +784,7 @@ namespace rgatCore
                 return;
             }
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
             {
@@ -938,14 +875,14 @@ namespace rgatCore
                 ImGui.EndChild();
             }
 
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
         }
 
 
 
         private unsafe void DrawLiveTraceControls(float otherControlsHeight, PlottedGraph graph)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF555555);
 
             float replayControlsSize = ImGui.GetContentRegionAvail().X - 300f;
             if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
@@ -969,7 +906,7 @@ namespace rgatCore
                         graph.SetAnimated(true);
                     }
                     ImGui.EndGroup();
-
+                    
                     ImGui.BeginGroup();
                     if (ImGui.Button("Kill"))
                     {
@@ -1036,7 +973,7 @@ namespace rgatCore
                 ImGui.EndChild();
             }
 
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
         }
 
         private void SetActiveGraph(PlottedGraph graph)
@@ -1085,7 +1022,7 @@ namespace rgatCore
 
 
             float vpadding = 4;
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
 
             if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
             {
@@ -1158,7 +1095,7 @@ namespace rgatCore
                 ImGui.SetColumnWidth(2, 250);
                 ImGui.NextColumn();
 
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+                //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
                     ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
@@ -1191,13 +1128,13 @@ namespace rgatCore
                     ImGui.Text("Q: 41");
                     ImGui.EndChild();
                 }
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
                 ImGui.Columns(1, "smushes");
 
 
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
         }
 
         private unsafe void DrawVisualiserControls(float controlsHeight)
@@ -1206,7 +1143,7 @@ namespace rgatCore
 
             if (_rgatstate.ActiveGraph == null)
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF222222);
+                //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF222222);
                 if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, controlsHeight - vpadding)))
                 {
                     string caption = "No trace to display";
@@ -1217,17 +1154,14 @@ namespace rgatCore
                     ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature}");
                     ImGui.EndChild();
                 }
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
                 return;
             }
             float topControlsBarHeight = 30;
             float otherControlsHeight = controlsHeight - topControlsBarHeight;
             float frameHeight = otherControlsHeight - vpadding;
 
-            drawVisToolBar(topControlsBarHeight);
-
-
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
             {
                 const float selectorWidth = 350;
@@ -1244,7 +1178,7 @@ namespace rgatCore
                 DrawTraceSelector(frameHeight, selectorWidth);
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
 
         }
 

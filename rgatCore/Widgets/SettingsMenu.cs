@@ -12,7 +12,7 @@ namespace rgatCore.Widgets
     {
         static bool[] optionsSelectStates;
         static List<string> settingsNames = new List<string>();
-        enum eSettingsCategory { eSetting1, eSetting2, eText, eKeybinds, eSetting5, eSetting6 };
+        enum eSettingsCategory { eSetting1, eSetting2, eText, eKeybinds, eUITheme, eGraphTheme };
 
         public SettingsMenu()
         {
@@ -32,8 +32,8 @@ namespace rgatCore.Widgets
             _pendingKeybind.active = false;
         }
 
-  
-        
+
+
 
         void InitSettings()
         {
@@ -42,11 +42,12 @@ namespace rgatCore.Widgets
             settingsNames.Add("Setting2");
             settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
-            settingsNames.Add("Setting5");
-            settingsNames.Add("Setting6");
+            settingsNames.Add("Theme - GUI");
             optionsSelectStates = new bool[settingsNames.Count];
-            optionsSelectStates[(int)eSettingsCategory.eText] = true;
-            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = true;
+            optionsSelectStates[(int)eSettingsCategory.eText] = false;
+            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
+            optionsSelectStates[(int)eSettingsCategory.eText] = false;
+            optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
         }
 
         public void Draw(ref bool window_shown_flag)
@@ -102,6 +103,9 @@ namespace rgatCore.Widgets
                     break;
                 case "Keybinds":
                     CreateOptionsPane_Keybinds();
+                    break;
+                case "Theme - GUI":
+                    CreateOptionsPane_UITheme();
                     break;
                 default:
                     Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
@@ -171,6 +175,143 @@ namespace rgatCore.Widgets
             CreateKeybindInput("Toggle Dynamic Text", eKeybind.eToggleLiveText, index++);
             CreateKeybindInput("Graph QuickMenu", eKeybind.eQuickMenu, index++);
         }
+
+
+        void ApplyUIJSON()
+        {
+            Console.WriteLine("Apply UI JSON");
+        }
+
+
+
+        string _theme_UI_JSON = "fffffffffff";
+        string _theme_UI_JSON_Text = "fffffffffff";
+        bool _UI_JSON_edited = false;
+
+        unsafe void CreateOptionsPane_UITheme()
+        {
+
+            if(ImGui.BeginCombo("Preset Themes", "Default"))
+            {
+                if (ImGui.Selectable("Default", true)) ActivateUIThemePreset("Default");
+                if (ImGui.Selectable("Theme 2", false)) ActivateUIThemePreset("Theme 2");
+                if (ImGui.Selectable("Theme 3", false)) ActivateUIThemePreset("Theme 3");
+                if (ImGui.Selectable("Theme 4", false)) ActivateUIThemePreset("Theme 4");
+                ImGui.EndCombo();
+            }
+
+            if (ImGui.InputTextMultiline("", ref _theme_UI_JSON_Text, 10000, new Vector2(ImGui.GetContentRegionAvail().X - 70, 65)))
+            {
+                _UI_JSON_edited = (_theme_UI_JSON != _theme_UI_JSON_Text);
+            }
+            if (!_UI_JSON_edited)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, 0xff444444);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff444444);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff444444);
+            }
+            ImGui.BeginGroup();
+            if (ImGui.Button("Apply Imported Theme"))
+            {
+                if (_UI_JSON_edited) RegenerateUIThemeJSON();
+            }
+            if (!_UI_JSON_edited)
+            {
+                ImGui.PopStyleColor();
+                ImGui.PopStyleColor();
+                ImGui.PopStyleColor();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Save As Preset"))
+            {
+                Console.WriteLine("Todo save preset");
+            }
+            ImGui.EndGroup();
+
+            if (!ImGui.CollapsingHeader("Customise Theme"))
+            {
+                return;
+            }
+
+            bool changed = false;
+            if (ImGui.TreeNode("Base Widget Colours"))
+            {
+                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+                {
+                    ImGuiCol stdCol = (ImGuiCol)colI;
+                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColour(stdCol)).ToVec4();
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    {
+                        changed = true;
+                        GlobalConfig.ThemeColoursStandard[stdCol] = new WritableRgbaFloat(colval).ToUint();
+                    }
+
+                }
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNode("rgat Custom Colours"))
+            {
+                for (int colI = 0; colI < (int)(GlobalConfig.ThemeColoursCustom.Count); colI++)
+                {
+                    GlobalConfig.eThemeColour customCol = (GlobalConfig.eThemeColour)colI;
+                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColour(customCol)).ToVec4();
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(GlobalConfig.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    {
+                        changed = true;
+                        GlobalConfig.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
+                    }
+
+                }
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNode("Dimensions"))
+            {
+                for (int dimI = 0; dimI < (int)(GlobalConfig.ThemeSizesCustom.Count); dimI++)
+                {
+                    GlobalConfig.eThemeSize sizeEnum = (GlobalConfig.eThemeSize)dimI;
+                    int size = (int)GlobalConfig.GetThemeSize(sizeEnum);
+                    Vector2 sizelimit = GlobalConfig.ThemeSizeLimits[sizeEnum];
+                    if (ImGui.SliderInt(Enum.GetName(typeof(GlobalConfig.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
+                    {
+                        changed = true;
+                        GlobalConfig.ThemeSizesCustom[sizeEnum] = (float)size;
+                    }
+
+                }
+                ImGui.TreePop();
+            }
+
+
+            if (changed)
+            {
+                RegenerateUIThemeJSON();
+            }
+
+        }
+
+        void RegenerateUIThemeJSON()
+        {
+            _theme_UI_JSON = "";
+
+            foreach (KeyValuePair<ImGuiCol, uint> kvp in GlobalConfig.ThemeColoursStandard)
+            { 
+                ImGuiCol col = kvp.Key;
+                uint colval = kvp.Value;
+                _theme_UI_JSON += $"{Enum.GetName(typeof(ImGuiCol), (int)col)}:{colval}";
+            }
+            _theme_UI_JSON_Text = _theme_UI_JSON;
+        }
+
+        void ActivateUIThemePreset(string name)
+        {
+
+            //todo
+        }
+
+
+
 
 
 

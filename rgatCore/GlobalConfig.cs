@@ -1,6 +1,8 @@
-﻿using System;
+﻿using ImGuiNET;
+using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -111,6 +113,67 @@ namespace rgatCore.Threads
         public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
 
         /*
+         * Theme - probably going to put in own class
+         */
+        //todo should be lists not dicts
+        public enum eThemeColour { ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
+            ePreviewZoomEnvelope,
+            COUNT
+        }
+        public enum eThemeSize
+        {
+            ePreviewSelectedBorder,
+            COUNT
+        }
+        public static Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
+        public static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
+        public static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
+        public static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
+
+
+        public unsafe static void InitDefaultTheme()
+        {
+            for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+            {
+                ImGuiCol col = (ImGuiCol)colI;
+                Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
+                if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
+
+                ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
+            }
+
+            ThemeColoursCustom[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
+            ThemeColoursCustom[eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
+            ThemeColoursCustom[eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint();
+            ThemeColoursCustom[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
+            ThemeColoursCustom[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
+
+            ThemeSizesCustom[eThemeSize.ePreviewSelectedBorder] = 1f;
+            ThemeSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
+
+        }
+
+        public static uint GetThemeColour(eThemeColour item)
+        {
+            Debug.Assert(ThemeColoursCustom.ContainsKey(item));
+            Debug.Assert((uint)item < ThemeColoursCustom.Count);
+            return ThemeColoursCustom[item];
+        }
+
+        public static uint GetThemeColour(ImGuiCol item)
+        {
+            Debug.Assert(ThemeColoursStandard.ContainsKey(item));
+            Debug.Assert((uint)item < ThemeColoursStandard.Count);
+            return ThemeColoursStandard[item];
+        }
+        public static float GetThemeSize(eThemeSize item)
+        {
+            Debug.Assert(ThemeSizesCustom.ContainsKey(item));
+            Debug.Assert((uint)item < ThemeSizesCustom.Count);
+            return ThemeSizesCustom[item];
+        }
+
+        /*
          * Trace related config
          */
 
@@ -215,7 +278,7 @@ namespace rgatCore.Threads
             InitDefaultKeybinds();
             //LoadCustomKeybinds();
             InitResponsiveKeys();
-
+            InitDefaultTheme();
 
             defaultGraphColours = new List<WritableRgbaFloat> { 
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
