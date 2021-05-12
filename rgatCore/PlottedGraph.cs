@@ -2400,8 +2400,6 @@ namespace rgatCore
 
 
 
-
-
         bool freeMe = false;
 
         protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();

@@ -115,7 +115,7 @@ namespace rgatCore
 
 
             _NodeCircleSprite = _ImGuiController.GetImage("VertCircle");
-            _NodeCircleSpritetview = _ImGuiController.GetImageView;
+            _NodeCircleSpritetview = _ImGuiController.IconTexturesView;
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(

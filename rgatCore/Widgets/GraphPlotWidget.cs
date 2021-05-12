@@ -58,7 +58,7 @@ namespace rgatCore
             _IrregularActionTimer.Start();
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller);
-            _imageTextureView = controller.GetImageView;
+            _imageTextureView = controller.IconTexturesView;
             SetupRenderingResources();
 
         }
@@ -564,21 +564,21 @@ namespace rgatCore
         void RecreateOutputTextures()
         {
             _outputTexture?.Dispose();
-            _outputTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
             _outputFramebuffer?.Dispose();
-            _outputFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+            _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
             _testPickingTexture?.Dispose();
-            _testPickingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
             _pickingFrameBuffer?.Dispose();
-            _pickingFrameBuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
+            _pickingFrameBuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
 
             _pickingStagingTexture?.Dispose();
-            _pickingStagingTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
         }

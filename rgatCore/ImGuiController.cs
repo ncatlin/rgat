@@ -173,7 +173,7 @@ namespace ImGuiNET
         }
 
         public Texture GetImage(string name) => _imageTextures[name];
-        public TextureView GetImageView => _gd.ResourceFactory.CreateTextureView(_imagesTextureArray);
+        public TextureView IconTexturesView => _gd.ResourceFactory.CreateTextureView(_imagesTextureArray);
 
 
         public void WindowResized(int width, int height)

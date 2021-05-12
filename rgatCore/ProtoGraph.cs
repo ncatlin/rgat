@@ -904,11 +904,11 @@ namespace rgatCore
                 if (!alreadyExecuted)
                 {
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
-                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
+                    Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                    //Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} exists, handling as existing");
+                    Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
@@ -1256,6 +1256,23 @@ namespace rgatCore
             }
             return true;
         }
+
+
+        //todo - pointless copying these, can access directly
+        public int GetRecentAnimationEntries(int count, out List<ANIMATIONENTRY> result)
+        {
+            result = new List<ANIMATIONENTRY>();
+            int sz = Math.Min(count, SavedAnimationData.Count-1);
+            int index = SavedAnimationData.Count-1;
+            for (var i = 0; i < sz; i++)
+            {
+                result.Add(SavedAnimationData[index - i]);
+            }
+            return index;
+        }
+
+
+
         /*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/

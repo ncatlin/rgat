@@ -154,7 +154,7 @@ void main()
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
                 shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
-             vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
+            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
 
             return shaderSetDesc;
         }
@@ -463,6 +463,112 @@ void main()
 }  
 ";
 
+
+
+
+
+
+
+
+
+
+
+
+
+        /*
+        * 
+        * Display icons for the visualiser bar
+        * 
+        */
+
+        public static ShaderSetDescription CreateVisBarPointIconShader(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        {
+            VertexElementDescription VEDpos = new VertexElementDescription("Coord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
+            VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
+            VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
+
+            byte[] nodeVertShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.vs_visbar_points);
+            byte[] nodeFragShaderBytes = Encoding.UTF8.GetBytes(Shaders.SPIR_V.SPIRVShaders.fs_visbar_points);
+            ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, nodeVertShaderBytes, "main");
+            ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, nodeFragShaderBytes, "main");
+
+            ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
+                vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
+                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+
+            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
+            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+
+            return shaderSetDesc;
+        }
+
+
+        public const string vs_visbar_points = @"
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+
+layout(location = 0) in vec2 PointCoord;
+layout(location = 1) in vec4 Color;
+layout(location = 0) out vec2 CoordOut;
+layout(location = 1) out vec4 vColor;
+
+layout(set = 0, binding=0) uniform ParamsBuf
+{
+    bool useTexture;
+    float xShift;
+    float width;
+    float height;
+};
+
+void main() {
+
+    CoordOut = PointCoord;
+    vColor = Color;
+    float halfW = width/2;
+    float halfH = height/2;
+    gl_Position = vec4(((PointCoord.x - halfW) / halfW), ((-1 * PointCoord.y + halfH) / halfH), 0, 1);
+    gl_PointSize = 2.0;
+}
+
+";
+
+        public const string fs_visbar_points = @"
+#version 430
+
+#extension GL_EXT_nonuniform_qualifier : enable
+
+layout(location = 0) in vec2 PositionTexCoord;
+layout(location = 1) in vec4 fsin_Color;
+layout(location = 0) out vec4 fsout_Color;
+
+layout(set = 0, binding=0) uniform ParamsBuf
+{
+    bool useTexture;
+    float xShift;
+    mat4 Projection;
+};
+layout(set = 0, binding=1) uniform sampler pointTextureView; //point sampler
+layout(set = 0, binding=2) uniform texture2D pointTextures; 
+
+
+void main() 
+{
+
+    //float textureIdx = nodeAttribTexture[index].w;    //the icon used for the node
+    float textureIdx = 0;
+    if (useTexture)
+    {
+        vec4 node = texture(sampler2D(pointTextures, pointTextureView), vec2((gl_PointCoord.x/2)+(0.5*textureIdx), gl_PointCoord.y)); //
+        fsout_Color = vec4( fsin_Color.xyzw ) * node;
+    }
+    else{
+        fsout_Color = fsin_Color;
+    }
+
+}";
+
     }
 
 
@@ -470,3 +576,4 @@ void main()
 
 
 }
+
