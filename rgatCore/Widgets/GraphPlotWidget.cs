@@ -863,15 +863,15 @@ namespace rgatCore
             _crs_core?.Dispose();
             _crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
-            TextureOffsetColour[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(_renderingMode,
-            out List<uint> nodeIndices, out TextureOffsetColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
+            Position2DColour[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(_renderingMode,
+            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
-            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * TextureOffsetColour.SizeInBytes ||
+            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _NodeVertexBuffer.Dispose();
                 _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
                 _NodePickingBuffer.Dispose();
@@ -887,13 +887,13 @@ namespace rgatCore
             _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
             _gd.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-            TextureOffsetColour[] EdgeLineVerts = ActiveGraph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
+            Position2DColour[] EdgeLineVerts = ActiveGraph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
                 _EdgeVertBuffer.Dispose();
-                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
                 _EdgeIndexBuffer.Dispose();

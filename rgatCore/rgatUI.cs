@@ -894,7 +894,8 @@ namespace rgatCore
                 if (ImGui.BeginChild("RenderingBox"))
                 {
 
-                    _visualiserBar.Generate(width, _rgatstate.ActiveGraph.internalProtoGraph);// Draw(width);
+                    _visualiserBar.Generate(width, 50, _rgatstate.ActiveGraph.internalProtoGraph);
+                    _visualiserBar.Draw();
 
                     ImGui.Columns(2);
                     ImGui.SetColumnWidth(0, 200);

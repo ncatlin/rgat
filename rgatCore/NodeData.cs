@@ -239,11 +239,8 @@ namespace rgatCore
         }
         public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
 
-        public ulong heat_ExecutionsRemainingIn = 0;
-        public ulong heat_ExecutionsRemainingOut = 0;
+        public float heatRank = 0; //0-9 least to most busy
 
-        public List<uint> UnsolvedOutNeighbours = new List<uint>();
-        public List<uint> UnsolvedInNeighbours = new List<uint>();
 
         public List<uint> IncomingNeighboursSet = new List<uint>();
         public List<uint> OutgoingNeighboursSet = new List<uint>();

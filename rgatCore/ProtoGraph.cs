@@ -657,12 +657,19 @@ namespace rgatCore
             }
         }
 
-        public List<EdgeData> GetEdgePtrlistCopy()
+        public List<EdgeData> GetEdgeObjListCopy()
         {
-
             lock (edgeLock)
             {
-                return edgePtrList.ToList();
+                return edgeObjList.ToList();
+            }
+        }
+
+        public List<NodeData> GetNodeObjlistCopy()
+        {
+            lock (nodeLock)
+            {
+                return NodeList.ToList();
             }
         }
 
@@ -743,7 +750,7 @@ namespace rgatCore
             {
                 edgeDict.Add(edgePair, e);
                 edgeList.Add(edgePair);
-                edgePtrList.Add(e);
+                edgeObjList.Add(e);
             }
 
         }
@@ -823,7 +830,7 @@ namespace rgatCore
         //order of edge execution
         //todo - make this private, hide from view for thread safety
         public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
-        public List<EdgeData> edgePtrList = new List<EdgeData>();
+        public List<EdgeData> edgeObjList = new List<EdgeData>();
         //light-touch list of blocks for filling in edges without locking disassembly data
         public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
 
@@ -1209,7 +1216,7 @@ namespace rgatCore
             {
                 Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
                 BlocksFirstLastNodeList.Add(blockFirstLast);
-                Debug.Assert(blockFirstLast.Item1 <= blockFirstLast.Item2);
+                Debug.Assert((int)blockFirstLast.Item1 <= (int)blockFirstLast.Item2);
             }
 
 
@@ -1259,6 +1266,7 @@ namespace rgatCore
 
 
         //todo - pointless copying these, can access directly
+        //gets latest count entries in order of most recent first
         public int GetRecentAnimationEntries(int count, out List<ANIMATIONENTRY> result)
         {
             result = new List<ANIMATIONENTRY>();
@@ -1294,9 +1302,10 @@ namespace rgatCore
 
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
-        public List<ulong> heatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
+        public List<ulong> _edgeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
+        public List<ulong> _nodeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
 
-
+        public ulong BusiestBlockExecCount = 0;
         public eLoopState loopState = eLoopState.eNoLoop;
 
         List<string> loggedCalls = new List<string>();

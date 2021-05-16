@@ -14,26 +14,26 @@ namespace rgatCore
 
         //LineStrip
         Pipeline _linesPipeline;
-        TextureOffsetColour[] _EdgeLineVertices;
+        Position2DColour[] _EdgeLineVertices;
         DeviceBuffer _EdgeLineVertexBuffer;
         DeviceBuffer _EdgeLineIndexBuffer;
 
         //LineList
         Pipeline _IllustrationLinePipeline;
-        TextureOffsetColour[] _IllustrationLineVertices;
+        Position2DColour[] _IllustrationLineVertices;
         DeviceBuffer _IllustrationLineVertexBuffer;
         DeviceBuffer _IllustrationLineIndexBuffer;
 
         //Nodes
         Pipeline _pointsPipeline;
-        TextureOffsetColour[] _PointVertices;
+        Position2DColour[] _PointVertices;
         DeviceBuffer _PointVertexBuffer;
         DeviceBuffer _PointIndexBuffer;
 
 
         //Triangles
         Pipeline _trianglesPipeline;
-        TextureOffsetColour[] _TriangleVertices;
+        Position2DColour[] _TriangleVertices;
         DeviceBuffer _TriangleVertexBuffer;
         DeviceBuffer _TriangleIndexBuffer;
         
@@ -112,15 +112,15 @@ namespace rgatCore
         /// This is used for shaders where the coordinate being referenced is contained in a texture. 
         /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
         /// </summary>
-        public struct TextureOffsetColour
+        public struct Position2DColour
         {
-            public Vector2 TexPosition;
+            public Vector2 Position;
             public WritableRgbaFloat Color;
             public const uint SizeInBytes = 24;
 
-            public TextureOffsetColour(Vector2 position, WritableRgbaFloat color)
+            public Position2DColour(Vector2 position, WritableRgbaFloat color)
             {
-                TexPosition = position;
+                Position = position;
                 Color = color;
             }
         }

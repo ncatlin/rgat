@@ -481,7 +481,7 @@ void main()
         * 
         */
 
-        public static ShaderSetDescription CreateVisBarPointIconShader(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateVisBarPointIconShader(ResourceFactory factory)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Coord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -495,9 +495,6 @@ void main()
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
                 shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
-
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
 
             return shaderSetDesc;
         }
@@ -528,7 +525,7 @@ void main() {
     vColor = Color;
     float halfW = width/2;
     float halfH = height/2;
-    gl_Position = vec4(((PointCoord.x - halfW) / halfW), ((-1 * PointCoord.y + halfH) / halfH), 0, 1);
+    gl_Position = vec4((((PointCoord.x + 0.5) - halfW) / halfW), ((-1 * PointCoord.y  + 0.5 + halfH) / halfH), 0, 1);
     gl_PointSize = 2.0;
 }
 

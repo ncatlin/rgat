@@ -20,34 +20,63 @@ namespace rgatCore.Threads
             runningThread.Start();
         }
 
-        //problem: the instruction trace doesn't tell us how many times each edge executes
-        //work it out from how many times each node has executed
-        void PerformHeatRanking(ProtoGraph graph)
+
+        static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
             if (graph.edgeList.Count < 10) return;
-            
-            var edgeList = graph.GetEdgePtrlistCopy();
 
-            var allExecutions = edgeList.Select(e => e.executionCount).ToList();
-            allExecutions.Sort();
+            var edgeList = graph.GetEdgeObjListCopy();
 
-            int decile = allExecutions.Count / 10;
+            var allEdgeExecutions = edgeList.Select(e => e.executionCount).ToList();
+            allEdgeExecutions.Sort();
+
+            int decile = allEdgeExecutions.Count / 10;
             int current = decile;
             for (var i = 0; i < 9; i++)
             {
-                graph.heatThresholds[i] = allExecutions.ElementAt(current);
+                graph._edgeHeatThresholds[i] = allEdgeExecutions.ElementAt(current);
                 current += decile;
             }
 
-            foreach(EdgeData e in edgeList)
+            foreach (EdgeData e in edgeList)
             {
                 ulong execCount = e.executionCount;
                 int threshold = 0;
-                while (threshold < graph.heatThresholds.Count && execCount > graph.heatThresholds[threshold])
+                while (threshold < graph._edgeHeatThresholds.Count && execCount > graph._edgeHeatThresholds[threshold])
                 {
                     threshold++;
                 }
                 e.heatRank = threshold;
+            }
+
+
+        }
+
+        static void PerformNodeHeatRanking(ProtoGraph graph)
+        {
+            if (graph.NodeList.Count < 10) return;
+
+            var nodeList = graph.GetNodeObjlistCopy();
+            var allNodeExecutions = nodeList.Select(n => n.executionCount).ToList();
+            allNodeExecutions.Sort();
+
+            int decile = allNodeExecutions.Count / 10;
+            int current = decile;
+            for (var i = 0; i < 9; i++)
+            {
+                graph._nodeHeatThresholds[i] = allNodeExecutions.ElementAt(current);
+                current += decile;
+            }
+
+            foreach (NodeData n in nodeList)
+            {
+                ulong execCount = n.executionCount;
+                int threshold = 0;
+                while (threshold < graph._nodeHeatThresholds.Count && execCount > graph._nodeHeatThresholds[threshold])
+                {
+                    threshold++;
+                }
+                n.heatRank = threshold;
             }
         }
 
@@ -69,8 +98,9 @@ namespace rgatCore.Threads
                 }
 
                 if (!graph.internalProtoGraph.HeatSolvingComplete)
-                { 
-                    PerformHeatRanking(graph.internalProtoGraph); 
+                {
+                    PerformEdgeHeatRanking(graph.internalProtoGraph);
+                    PerformNodeHeatRanking(graph.internalProtoGraph);
                 }
 
 

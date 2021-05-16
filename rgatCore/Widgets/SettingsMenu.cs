@@ -299,7 +299,7 @@ namespace rgatCore.Widgets
             { 
                 ImGuiCol col = kvp.Key;
                 uint colval = kvp.Value;
-                _theme_UI_JSON += $"{Enum.GetName(typeof(ImGuiCol), (int)col)}:{colval}";
+                _theme_UI_JSON += $"{Enum.GetName(typeof(ImGuiCol), (int)col)}:#{colval:X}";
             }
             _theme_UI_JSON_Text = _theme_UI_JSON;
         }

@@ -190,7 +190,7 @@ namespace rgatCore.Threads
 
             if (_ignore_next_tag)
             {
-                Debug.Assert(thistag.blockID == _ignored_tag_blockID);
+                Debug.Assert(thistag.blockID == _ignored_tag_blockID); //todo - happens singlestepping past call then continuing in functions test
                 _ignore_next_tag = false;
             }
             else
@@ -482,9 +482,7 @@ namespace rgatCore.Threads
 
                 if (targBlock == ulong.MaxValue)
                 {
-
                     ProcessExtern(targAddr, newRepeat.blockID);
-
                 }
                 else
                 {
@@ -501,13 +499,16 @@ namespace rgatCore.Threads
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimUnchainedResults;
-            animUpdate.blockAddr = 0;
+            animUpdate.blockAddr = ulong.MaxValue;
             animUpdate.blockID = newRepeat.blockID;
             animUpdate.edgeCounts = newRepeat.targEdges;
             animUpdate.count = blockExecs;
-            animUpdate.targetAddr = 0;
+            animUpdate.targetAddr = ulong.MaxValue;
             animUpdate.targetID = 0;
             protograph.PushAnimUpdate(animUpdate);
+
+            if (blockExecs > protograph.BusiestBlockExecCount)
+                protograph.BusiestBlockExecCount = blockExecs;
         }
 
 

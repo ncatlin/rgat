@@ -600,12 +600,12 @@ namespace rgatCore
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph);
 
-            TextureOffsetColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
+            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode.eStandardControlFlow);
 
-            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * TextureOffsetColour.SizeInBytes ||
+            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _NodeVertexBuffer.Dispose();
                 _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
 
@@ -619,13 +619,13 @@ namespace rgatCore
 
 
 
-            TextureOffsetColour[] EdgeLineVerts = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
             if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer.SizeInBytes))
             {
                 _EdgeVertBuffer.Dispose();
-                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * TextureOffsetColour.SizeInBytes, BufferUsage.VertexBuffer);
+                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
                 _EdgeIndexBuffer.Dispose();

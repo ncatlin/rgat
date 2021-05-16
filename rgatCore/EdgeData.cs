@@ -46,6 +46,6 @@ namespace rgatCore
         public bool heatComplete = false;
 
         public uint EdgeIndex = 0;
-        public float heatRank = 0; //0-1 least to most busy
+        public float heatRank = 0; //0-9 least to most busy
     }
 }

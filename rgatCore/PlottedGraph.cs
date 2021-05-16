@@ -1025,8 +1025,8 @@ namespace rgatCore
                     blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1;
                 }
                 else
-
                 {
+                    Debug.Assert(firstIdx_LastIdx.Item1 < firstIdx_LastIdx.Item2);
                     uint centerNodeID = firstIdx_LastIdx.Item1 + (uint)Math.Ceiling((double)(firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) / 2.0);
                     blockMiddles[blockIdx] = (int)centerNodeID;
                 }
@@ -1258,31 +1258,9 @@ namespace rgatCore
                     return graphColours[(int)e.edgeClass];
                 case eRenderingMode.eHeatmap:
                     {
-                        switch (e.heatRank)
-                        {
-                            case 0:
-                                return new WritableRgbaFloat(0, 0, 1, 0.7f);
-                            case 1:
-                                return new WritableRgbaFloat(0.1f, 0, 0.9f, 1);
-                            case 2:
-                                return new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
-                            case 3:
-                                return new WritableRgbaFloat(0.5f, 0, 0.5f, 1);
-                            case 4:
-                                return new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
-                            case 5:
-                                return new WritableRgbaFloat(0.9f, 0, 0.1f, 1);
-                            case 6:
-                                return new WritableRgbaFloat(1, 0, 1, 1);
-                            case 7:
-                                return new WritableRgbaFloat(1, 0.3f, 1, 1);
-                            case 8:
-                                return new WritableRgbaFloat(1, 0.7f, 1, 1);
-                            case 9:
-                                return new WritableRgbaFloat(1, 1, 1, 1);
-                            default:
-                                return new WritableRgbaFloat(Color.Green);
-                        }
+                        Debug.Assert(e.heatRank >= 0 && e.heatRank <= 9);
+                        GlobalConfig.eThemeColour heatColEnum = (GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + e.heatRank);
+                        return new WritableRgbaFloat(GlobalConfig.ThemeColoursCustom[heatColEnum]);
                     }
                 case eRenderingMode.eConditionals:
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
@@ -1342,9 +1320,9 @@ namespace rgatCore
 
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         //important todo - cacheing!  once the result is good
-        public TextureOffsetColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
+        public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
             out List<uint> nodeIndices,
-            out TextureOffsetColour[] nodePickingColors,
+            out Position2DColour[] nodePickingColors,
             out List<Tuple<string, Color>> captions)
         {
             bool createNewLabels = false;
@@ -1356,9 +1334,9 @@ namespace rgatCore
             }
 
             uint textureSize = LinearIndexTextureSize();
-            TextureOffsetColour[] NodeVerts = new TextureOffsetColour[textureSize * textureSize];
+            Position2DColour[] NodeVerts = new Position2DColour[textureSize * textureSize];
 
-            nodePickingColors = new TextureOffsetColour[textureSize * textureSize];
+            nodePickingColors = new Position2DColour[textureSize * textureSize];
             captions = new List<Tuple<string, Color>>();
 
             nodeIndices = new List<uint>();
@@ -1372,15 +1350,15 @@ namespace rgatCore
 
                     nodeIndices.Add(index);
 
-                    NodeVerts[index] = new TextureOffsetColour
+                    NodeVerts[index] = new Position2DColour
                     {
-                        TexPosition = new Vector2(x, y),
+                        Position = new Vector2(x, y),
                         Color = GetNodeColor((int)index, renderingMode)
                     };
 
-                    nodePickingColors[index] = new TextureOffsetColour
+                    nodePickingColors[index] = new Position2DColour
                     {
-                        TexPosition = new Vector2(x, y),
+                        Position = new Vector2(x, y),
                         Color = new WritableRgbaFloat(index, 0, 0, 1)
                     };
 
@@ -1397,10 +1375,10 @@ namespace rgatCore
         }
 
 
-        public TextureOffsetColour[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
+        public Position2DColour[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
         {
             uint textureSize = LinearIndexTextureSize();
-            TextureOffsetColour[] NodeVerts = new TextureOffsetColour[textureSize * textureSize];
+            Position2DColour[] NodeVerts = new Position2DColour[textureSize * textureSize];
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
@@ -1413,9 +1391,9 @@ namespace rgatCore
 
                     nodeIndices.Add(index);
 
-                    NodeVerts[index] = new TextureOffsetColour
+                    NodeVerts[index] = new Position2DColour
                     {
-                        TexPosition = new Vector2(x, y),
+                        Position = new Vector2(x, y),
                         Color = GetNodeColor((int)index, renderingMode)
                     };
                 }
@@ -1485,11 +1463,11 @@ namespace rgatCore
         }
 
 
-        public TextureOffsetColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
+        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
             out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {
             uint evTexWidth = EdgeVertsTextureWidth();
-            TextureOffsetColour[] EdgeLineVerts = new TextureOffsetColour[evTexWidth * evTexWidth * 16];
+            Position2DColour[] EdgeLineVerts = new Position2DColour[evTexWidth * evTexWidth * 16];
 
             vertCount = 0;
             edgeIndices = new List<uint>();
@@ -1504,17 +1482,17 @@ namespace rgatCore
                 WritableRgbaFloat ecol = GetEdgeColor(edge, renderingMode);
 
                 EdgeLineVerts[vertCount] =
-                        new TextureOffsetColour
+                        new Position2DColour
                         {
-                            TexPosition = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
+                            Position = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
                 edgeIndices.Add((uint)vertCount); vertCount++;
 
                 EdgeLineVerts[vertCount] =
-                    new TextureOffsetColour
+                    new Position2DColour
                     {
-                        TexPosition = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
+                        Position = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
                 edgeIndices.Add((uint)vertCount); vertCount++;

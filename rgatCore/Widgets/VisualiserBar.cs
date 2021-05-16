@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -27,10 +28,11 @@ namespace rgatCore.Widgets
         ImGuiController _controller;
         GraphicsDevice _gd;
         ResourceFactory _factory;
-        Pipeline _edgesPipelineRaw, _pointsPipeline;
+        Pipeline _lineListPipeline, _pointPipeline, _triPipeline;
         ResourceLayout _rsrcLayout;
-        DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;
-        DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
+        DeviceBuffer _pointsVertexBuffer, _pointsIndexBuffer;
+        DeviceBuffer _linesVertexBuffer, _linesIndexBuffer;
+        DeviceBuffer _trisVertexBuffer, _trisIndexBuffer;
         Texture _outputTexture;
         Framebuffer _outputFramebuffer;
         DeviceBuffer _paramsBuffer;
@@ -51,7 +53,7 @@ namespace rgatCore.Widgets
             // Create pipelines
             GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
             pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-            pipelineDescription.DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual;
+            pipelineDescription.DepthStencilState = DepthStencilStateDescription.Disabled;
             pipelineDescription.RasterizerState = new RasterizerStateDescription(
                 cullMode: FaceCullMode.Back,
                 fillMode: PolygonFillMode.Solid,
@@ -59,30 +61,29 @@ namespace rgatCore.Widgets
                 depthClipEnabled: false,
                 scissorTestEnabled: false);
             pipelineDescription.ResourceLayouts = new[] { _rsrcLayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_factory, out _NodeVertexBuffer, out _NodeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_factory);
 
-            _NodeIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)100 * sizeof(uint), BufferUsage.IndexBuffer));
-            _NodeVertexBuffer = _factory.CreateBuffer(new BufferDescription((uint)100 * sizeof(uint), BufferUsage.VertexBuffer));
+            CreateTextures(1, 1);
+
+            _pointsVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
+            _linesVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
+            _trisVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
+            _pointsIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
+            _linesIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
+            _trisIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
 
 
-            Debug.Assert(_outputTexture == null);
-            Debug.Assert(_outputFramebuffer == null);
-
-            _outputTexture?.Dispose();
-            _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D(600, 50, 1, 1,
-                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
-
-            _outputFramebuffer?.Dispose();
-            _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
 
             pipelineDescription.Outputs = _outputFramebuffer.OutputDescription;
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-            _pointsPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _pointPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
 
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRawShaders(_factory, out _EdgeVertBuffer, out _EdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _edgesPipelineRaw = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _lineListPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
+
+            pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            _triPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
         }
 
 
@@ -95,37 +96,94 @@ namespace rgatCore.Widgets
             public float height;
         }
 
-        public void Generate(float width, ProtoGraph graph)
-        {
-            float height = 50;
+        float _width;
+        float _height;
+        Position2DColour[] _pointVerts;
+        Position2DColour[] _lineVerts;
+        Position2DColour[] _triangleVerts;
 
-            Matrix4x4 proj =  Matrix4x4.CreatePerspectiveFieldOfView(1f, (float)600 / 50, 1, 2);
+        void CreateTextures(float width, float height)
+        {
+            _width = width;
+            _height = height;
+            _outputTexture?.Dispose();
+            _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
+                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+
+            _outputFramebuffer?.Dispose();
+            _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+        }
+
+        void MaintainBuffers()
+        {
+            uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
+            if (_pointsVertexBuffer.SizeInBytes < requiredSize)
+            {
+                _pointsVertexBuffer?.Dispose();
+                _pointsVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
+                _pointsIndexBuffer?.Dispose();
+                _pointsIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_pointVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+
+            }
+
+            requiredSize = (uint)_lineVerts.Length * Position2DColour.SizeInBytes;
+            if (_linesVertexBuffer.SizeInBytes < requiredSize)
+            {
+                _linesVertexBuffer?.Dispose();
+                _linesVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
+                _linesIndexBuffer?.Dispose();
+                _linesIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_lineVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+            }
+
+            requiredSize = (uint)_triangleVerts.Length * Position2DColour.SizeInBytes;
+            if (_trisVertexBuffer.SizeInBytes < requiredSize)
+            {
+                _trisVertexBuffer?.Dispose();
+                _trisVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
+                _trisIndexBuffer?.Dispose();
+                _trisIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_triangleVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+            }
+        }
+
+        public void Draw()
+        {
 
             BarShaderParams shaderParams = new BarShaderParams
             {
                 useTexture = false,
                 xShift = 0,
-                width = 600,
-                height = 50
+                width = _width,
+                height = _height
             };
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _gd.WaitForIdle();
 
-            Random rnd = new Random();
-            TextureOffsetColour[] NodeVerts = new TextureOffsetColour[5];
-            NodeVerts[0] = new TextureOffsetColour { Color = new WritableRgbaFloat(Color.Red), TexPosition = new Vector2(0, 0 )};
+            MaintainBuffers();
 
-            NodeVerts[1] = new TextureOffsetColour { Color = new WritableRgbaFloat(Color.LightCyan), TexPosition = new Vector2(50, 20) };
-            NodeVerts[2] = new TextureOffsetColour { Color = new WritableRgbaFloat(Color.White), TexPosition = new Vector2(400, 30) };
-            NodeVerts[3] = new TextureOffsetColour { Color = new WritableRgbaFloat(Color.Coral), TexPosition = new Vector2(150, 40) };
-            NodeVerts[4] = new TextureOffsetColour { Color = new WritableRgbaFloat(Color.PaleGreen), TexPosition = new Vector2(190, 45) };
-
-            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
+            _gd.UpdateBuffer(_pointsVertexBuffer, 0, _pointVerts);
             _gd.WaitForIdle();
 
-            List<uint> nodeIndices = new List<uint>() { 0 , 1, 2, 3, 4 };
-            _gd.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
+            int[] pointIndices = Enumerable.Range(0, _pointVerts.Length).Select(i => (int)i).ToArray();
+            _gd.UpdateBuffer(_pointsIndexBuffer, 0, pointIndices);
             _gd.WaitForIdle();
+
+
+            _gd.UpdateBuffer(_linesVertexBuffer, 0, _lineVerts);
+            _gd.WaitForIdle();
+
+            int[] lineIndices = Enumerable.Range(0, _lineVerts.Length).Select(i => (int)i).ToArray();
+            _gd.UpdateBuffer(_linesIndexBuffer, 0, lineIndices);
+            _gd.WaitForIdle();
+
+
+            _gd.UpdateBuffer(_trisVertexBuffer, 0, _triangleVerts);
+            _gd.WaitForIdle();
+
+            int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => (int)i).ToArray();
+            _gd.UpdateBuffer(_trisIndexBuffer, 0, triIndices);
+            _gd.WaitForIdle();
+
+
 
             ResourceSetDescription rsrc_rsd = new ResourceSetDescription(_rsrcLayout, _paramsBuffer, _gd.PointSampler, _iconsTextureView);
             _rsrcs?.Dispose();
@@ -134,16 +192,34 @@ namespace rgatCore.Widgets
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, new WritableRgbaFloat(Color.Black).ToRgbaFloat());//  GlobalConfig.mainColours.background.ToRgbaFloat());
+            _cl.ClearColorTarget(0, GlobalConfig.mainColours.visualiserBarBackground.ToRgbaFloat());
 
-            _cl.SetPipeline(_pointsPipeline);
+
+            _cl.SetPipeline(_triPipeline);
             _cl.SetGraphicsResourceSet(0, _rsrcs);
-            _cl.SetVertexBuffer(0, _NodeVertexBuffer);
-            _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            _cl.SetVertexBuffer(0, _trisVertexBuffer);
+            _cl.SetIndexBuffer(_trisIndexBuffer, IndexFormat.UInt32);
+            _cl.DrawIndexed(indexCount: (uint)triIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
+
+            _cl.SetPipeline(_lineListPipeline);
+            _cl.SetGraphicsResourceSet(0, _rsrcs);
+            _cl.SetVertexBuffer(0, _linesVertexBuffer);
+            _cl.SetIndexBuffer(_linesIndexBuffer, IndexFormat.UInt32);
+            _cl.DrawIndexed(indexCount: (uint)lineIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
+
+            _cl.SetPipeline(_pointPipeline);
+            _cl.SetGraphicsResourceSet(0, _rsrcs);
+            _cl.SetVertexBuffer(0, _pointsVertexBuffer);
+            _cl.SetIndexBuffer(_pointsIndexBuffer, IndexFormat.UInt32);
+            _cl.DrawIndexed(indexCount: (uint)pointIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
+
             _cl.End();
             _gd.SubmitCommands(_cl);
             _gd.WaitForIdle();
+            _cl.Dispose();
 
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
@@ -152,21 +228,103 @@ namespace rgatCore.Widgets
                 p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
+            foreach(var mtxt in _moduleTexts)
+            {
+                imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
+            }
 
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + height + 14);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height + 14);
+        }
+
+        /*
+         * Creates a white symbol with a size depending on instruction count. Handles 1 - 194ish instructions length blocks.
+         * Any higher will just be the max size symbol.
+         */
+        static void CreateExecTagSymbol(float Xoffset, uint insCount, ref List<Position2DColour> lines)
+        {
+            float remaining = insCount;
+            float xMid = Xoffset + 1;
+            float yStart = 2;
+            float len = Math.Min(remaining, 9) + 1;
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid, yStart) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid, yStart + len) });
+
+            remaining /= 2;
+            if (remaining <= 7) return;
+
+            len = Math.Min(remaining - 7, 9) + 1;
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 1, yStart) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 1, yStart + len) });
+
+            remaining /= 2;
+            if (remaining <= 14) return;
+
+            len = Math.Min(remaining - 14, 5) + 1;
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid - 1, yStart + 2) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid - 1, yStart + 2 + len) });
+
+            remaining /= 2;
+            if (remaining <= 19) return;
+
+            len = Math.Min(remaining - 19, 5) + 1;
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 2, yStart + 2) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 2, yStart + 2 + len) });
+        }
+
+        void CreateRect(WritableRgbaFloat colour, float leftX, float topY, float width, float height, ref List<Position2DColour> triangles)
+        {
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY) });
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY + height) });
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX + width, topY + height) });
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX + width, topY) });
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY) });
+            triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX + width, topY + height) });
+        }
+
+        void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
+        {
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset + 8) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset + 8) });
         }
 
 
+        class MODULE_SEGMENT
+        {
+            public int firstIdx;
+            public int lastIdx;
+            public int modID;
+            public string name;
+        };
+        struct MODULE_LABEL
+        {
+            public float startX;
+            public float endX;
+            public int modID;
+            public string name;
+        };
+
         int lastDrawnTagIdx = 0;
         float barScrollingPos = 0;
-        public void Draw(float width, ProtoGraph graph)
+
+        List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
+
+        public void Generate(float width, float height, ProtoGraph graph)
         {
 
-            float height = 30;
-            Vector2 start = ImGui.GetItemRectMin();
-            Vector2 end = start + new Vector2(width, 30);
-            ImGui.GetWindowDrawList().AddRectFilled(start, end, 0xff000000);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + height + 14);
+            if (width != _width || height != _height)
+            {
+                CreateTextures(width, height);
+            }
+
+            _moduleTexts.Clear();
+            List<Position2DColour> points = new List<Position2DColour>();
+            List<Position2DColour> lines = new List<Position2DColour>();
+            List<Position2DColour> triangles = new List<Position2DColour>();
+            List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
+            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourB(GlobalConfig.eThemeColour.eVisBarPlotLine);
+            List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             //Draw Tag visualisation
             int entryCount = 100;
@@ -180,127 +338,183 @@ namespace rgatCore.Widgets
             float scrollOffset = 0f;
             if (barScrollingPos != 0)
             {
-                scrollOffset = (barScrollingPos * pSep);
+                scrollOffset = (barScrollingPos * pSep) - pSep;
                 barScrollingPos += 0.1f;
                 if (barScrollingPos >= 1f) barScrollingPos = 0;
             }
+            scrollOffset += width % pSep;
 
-            int prevBlockID = -1;
             for (var i = 1; i < entries.Count + 1; i++)
             {
                 int backIdx = entries.Count - i;
                 ANIMATIONENTRY ae = entries[backIdx];
-                float Xoffset = (end.X - pSep * backIdx) - tagWidth;
+                float Xoffset = (width - pSep * backIdx) - tagWidth;
+
                 Xoffset -= scrollOffset;
+                bool drawPlotLine = false;
+                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 0) });
+                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 50) });
+                if ((int)ae.blockID != -1)
+                {
+                    var blockFirstLast = graph.BlocksFirstLastNodeList[(int)ae.blockID];
+                    uint insCount = blockFirstLast.Item2 - blockFirstLast.Item1;
+                    CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
+                }
 
                 switch (ae.entryType)
                 {
                     case eTraceUpdateType.eAnimExecTag:
-                        ImGui.GetWindowDrawList().AddCircleFilled(new Vector2(Xoffset + tagWidth / 2, start.Y + 4f),
-                           2.5f, new WritableRgbaFloat(Color.White).ToUint());
+                        drawPlotLine = true;
                         break;
+
                     case eTraceUpdateType.eAnimUnchained:
-                        Vector2[] points = { new Vector2(Xoffset + 6f, start.Y + 1f),
-                                             new Vector2(Xoffset,     start.Y + 1f),
-                                             new Vector2(Xoffset,     start.Y + 8f),
-                                             new Vector2(Xoffset + 6f, start.Y + 8f) };
-                        ImGui.GetWindowDrawList().AddPolyline(ref points[0], 4, new WritableRgbaFloat(Color.Red).ToUint(), false, 1);
-                        ImGui.GetWindowDrawList().AddBezierCurve(points[0], points[1], points[2], points[3], new WritableRgbaFloat(Color.Red).ToUint(), 1);
+                        {
+                            float symbase = 12f;
+                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset + pSep, 2) });
+                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, 2) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, 2) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, symbase) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, symbase) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset + pSep + 1, symbase) });
+                        }
                         break;
-                    case eTraceUpdateType.eAnimUnchainedDone:
-                        Vector2[] points2 = { new Vector2(Xoffset,     start.Y + 1f),
-                                              new Vector2(Xoffset + 6f, start.Y + 1f),
-                                              new Vector2(Xoffset + 6f, start.Y + 8f),
-                                              new Vector2(Xoffset,     start.Y + 8f) };
-                        ImGui.GetWindowDrawList().AddPolyline(ref points2[0], 4, new WritableRgbaFloat(Color.Orange).ToUint(), false, 1);
-                        break;
+
                     case eTraceUpdateType.eAnimUnchainedResults:
-                        Vector2[] points3 = { new Vector2(Xoffset,   start.Y + 1f),
-                                            new Vector2(Xoffset + 6f, start.Y + 1f),
-                                            new Vector2(Xoffset + 6f, start.Y + 8f),
-                                            new Vector2(Xoffset,     start.Y + 8f) };
-                        ImGui.GetWindowDrawList().AddPolyline(ref points3[0], 4, new WritableRgbaFloat(Color.LimeGreen).ToUint(), false, 1);
-                        ImGui.GetWindowDrawList().AddBezierCurve(points3[0], points3[1], points3[2], points3[3], new WritableRgbaFloat(Color.Red).ToUint(), 1);
+                        {
+                            drawPlotLine = true;
+                            float symbase = 12f;
+                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset, 2) });
+                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, 2) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, 2) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, symbase) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, symbase) });
+                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset, symbase) });
+                        }
                         break;
+
                     default:
-                        ImGui.GetWindowDrawList().AddRectFilled(new Vector2(Xoffset, start.Y + 1),
-                            new Vector2(Xoffset + tagWidth, start.Y + 6),
-                            new WritableRgbaFloat(Color.Orange).ToUint());
+                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset, 2) });
+                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
+                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 2) });
+                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
+
                         Console.WriteLine($"Unhandled tag type {ae.entryType}");
                         break;
-
                 }
 
-                if (ae.entryType == eTraceUpdateType.eAnimExecTag)
+
+                //Draw Heatmap visualisation
+
+                if ((int)ae.blockID != -1)
                 {
-                    if (prevBlockID != -1 && (int)ae.blockID != -1)
+                    int blockTailIdx = (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2;
+                    WritableRgbaFloat heatColour;
+                    if (graph.NodeList.Count > blockTailIdx)
                     {
-                        uint lastblockEnd = graph.BlocksFirstLastNodeList[prevBlockID].Item2;
-                        uint blockStart = graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
-                        Tuple<uint, uint> edgeTup = new Tuple<uint, uint>(lastblockEnd, blockStart);
-                        WritableRgbaFloat heatColour;
-                        if (graph.edgeDict.TryGetValue(edgeTup, out EdgeData edge))
+                        // colour from heat ranking of final node
+                        NodeData node = graph.NodeList[blockTailIdx];
+                        Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+                        heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
+
+                        CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
+
+
+
+                        // plot line from edge counts
+                        if (graph.BusiestBlockExecCount > 0)
                         {
-                            switch (edge.heatRank)
+                            //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
+                            //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
+                            float ecountprop = 1 - ((float)ae.count / (float)graph.BusiestBlockExecCount);
+                            if (busyCountLinePoints.Count > 0)
                             {
-                                case 0:
-                                    heatColour = new WritableRgbaFloat(0, 0, 1, 0.7f);
-                                    break;
-                                case 1:
-                                    heatColour = new WritableRgbaFloat(0.1f, 0, 0.9f, 1);
-                                    break;
-                                case 2:
-                                    heatColour = new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
-                                    break;
-                                case 3:
-                                    heatColour = new WritableRgbaFloat(0.5f, 0, 0.5f, 1);
-                                    break;
-                                case 4:
-                                    heatColour = new WritableRgbaFloat(0.3f, 0, 0.7f, 1);
-                                    break;
-                                case 5:
-                                    heatColour = new WritableRgbaFloat(0.9f, 0, 0.1f, 1);
-                                    break;
-                                case 6:
-                                    heatColour = new WritableRgbaFloat(1, 0, 1, 1);
-                                    break;
-                                case 7:
-                                    heatColour = new WritableRgbaFloat(1, 0.3f, 1, 1);
-                                    break;
-                                case 8:
-                                    heatColour = new WritableRgbaFloat(1, 0.7f, 1, 1);
-                                    break;
-                                case 9:
-                                    heatColour = new WritableRgbaFloat(1, 1, 1, 1);
-                                    break;
-                                default:
-                                    heatColour = new WritableRgbaFloat(Color.Green);
-                                    break;
+                                busyCountLinePoints.Add(busyCountLinePoints[^1]);
+                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
                             }
+                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
+                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
                         }
-                        else heatColour = new WritableRgbaFloat(Color.Green);
-                        ImGui.GetWindowDrawList().AddRectFilled(
-                            new Vector2(Xoffset - 4, start.Y + 11), new Vector2(Xoffset - 4 + tagWidth + pSep, start.Y + 15), heatColour.ToUint());
                     }
-                    prevBlockID = (int)ae.blockID;
+                    else
+                    {
+                        CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
+                    }
+
                 }
 
+
+                //Draw API icon
+                if ((int)ae.blockID == -1)
+                {
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    if (found)
+                    {
+                        DrawAPIEntry(Xoffset+2, 33, pSep, moduleID, module, symbol, ref lines);
+
+                    }
+
+                }
+                else
+                {
+                    //Draw Module location bits
+                    int moduleID = graph.ProcessData.FindContainingModule(graph.ProcessData.GetAddressOfBlock((int)ae.blockID));
+                    if (moduleAreas.Count > 0)
+                    {
+                        MODULE_SEGMENT lastRec = moduleAreas[^1];
+                        if (lastRec.lastIdx == (backIdx + 1) && lastRec.modID == moduleID)
+                        {
+                            lastRec.lastIdx = backIdx;
+                            continue;
+                        }
+                    }
+
+                    moduleAreas.Add(new MODULE_SEGMENT()
+                    {
+                        firstIdx = backIdx,
+                        lastIdx = backIdx,
+                        modID = moduleID
+                    });
+
+                }
             }
 
-            //Draw Heatmap visualisation
-            // colour from heat ranking of edge(s)
+            for (var i = 0; i < moduleAreas.Count; i++)
+            {
+                MODULE_SEGMENT ms = moduleAreas[i];
+                WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
 
 
+                float startX = (ms.firstIdx + 1) * pSep;
+                float endX = ms.lastIdx * pSep + 1;
+                MODULE_LABEL label = new MODULE_LABEL
+                {
+                    startX = (width - startX) + 2,
+                    endX = width - (endX + 2),
+                    modID = ms.modID,
+                    name = ms.name
+                };
+                _moduleTexts.Add(label);
 
-            // plot line from edge counts
+                //left border
+                lines.Add(new Position2DColour(){ Color = segColour, Position = new Vector2(width - startX, 33f)});
+                lines.Add(new Position2DColour(){ Color = segColour, Position = new Vector2(width - startX, 48f)});
+                //top
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 33f) });
+                //base
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 48f) });
+                //right border
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 48f) });
+            }
 
 
-            //Draw Module location bit
-
-
-            //Draw API icons
-
-
+            _pointVerts = points.ToArray();
+            _lineVerts = lines.Concat(busyCountLinePoints).ToArray();
+            _triangleVerts = triangles.ToArray();
         }
     }
 }

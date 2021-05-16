@@ -122,6 +122,7 @@ namespace rgatCore
             ROUTINE_STRUCT? stub = null;
             return getDisassemblyBlock(blockID, ref stub);
         }
+
         public List<InstructionData> getDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
         {
             int iterations = 0;
@@ -189,8 +190,6 @@ namespace rgatCore
         }
 
 
-
-
         public void AddModule(int localmodID, string path, ulong start, ulong end, char isInstrumented)
         {
             if (localmodID > 1000)
@@ -248,7 +247,6 @@ namespace rgatCore
         public bool SymbolExists(int GlobalModuleNumber, ulong address)
         {
             return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address);
-
         }
 
         public bool GetSymbol(int GlobalModuleNumber, ulong address, out string symbol)
@@ -263,9 +261,46 @@ namespace rgatCore
             }
             symbol = "";
             return false;
-
         }
 
+
+        /// <summary>
+        /// Takes an address in target process and looks up the path of the module and symbol at that address
+        /// </summary>
+        /// <param name="address">Address of potential symbol in loaded modules of target program</param>
+        /// <param name="moduleID">rgat ID of module output here, if found.</param>
+        /// <param name="module">Path of module is output here, if found</param>
+        /// <param name="symbol">Name of symbol is output here, if found</param>
+        /// <returns>True if both module and symbol string resolved. False otherwise.</returns>
+        public bool ResolveSymbolAtAddress(ulong address, out int moduleID, out string module, out string symbol)
+        {
+            moduleID = FindContainingModule(address);
+            if (moduleID == -1)
+            {
+                module = "";
+                symbol = "";
+                return false; 
+            }
+
+            lock (ModulesLock)
+            {
+                module = LoadedModulePaths[moduleID];
+
+                if (modsymsPlain.ContainsKey(moduleID))
+                {
+                    ulong offset = address - LoadedModuleBounds[moduleID].Item1;
+                    if (modsymsPlain[moduleID].TryGetValue(offset, out symbol)) return true;
+                }
+            }
+            symbol = "";
+            return false;
+        }
+
+        /// <summary>
+        /// Lookup the path of a module (ie DLL/library/binary) from the module ID
+        /// </summary>
+        /// <param name="GlobalModuleID">rgat internal ID for module in target process</param>
+        /// <returns>string containing the module path</returns>
         public string GetModulePath(int GlobalModuleID)
         {
             lock (ModulesLock)
@@ -273,6 +308,7 @@ namespace rgatCore
                 return LoadedModulePaths[GlobalModuleID];
             }
         }
+
 
         public ulong GetBlockAtAddress(ulong address)
         {
@@ -300,6 +336,12 @@ namespace rgatCore
 
             }
             return blockIDDict[address][^1];
+        }
+
+        public ulong GetAddressOfBlock(int blockID)
+        {
+            Debug.Assert(blockID != -1 && blockID < BasicBlocksList.Count);
+            return BasicBlocksList[blockID].Item1;
         }
 
 
