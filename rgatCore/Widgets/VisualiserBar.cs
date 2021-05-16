@@ -310,6 +310,8 @@ namespace rgatCore.Widgets
 
         List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
 
+
+
         //todo lots of opportunity for caching here
         public void GenerateLive(float width, float height, ProtoGraph graph)
         {
@@ -352,7 +354,7 @@ namespace rgatCore.Widgets
                 float Xoffset = (width - pSep * backIdx) - tagWidth;
 
                 Xoffset -= scrollOffset;
-                bool drawPlotLine = false;
+                bool drawPlotLine;
                 //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 0) });
                 //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 50) });
                 if ((int)ae.blockID != -1)
@@ -419,8 +421,6 @@ namespace rgatCore.Widgets
 
                         CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
 
-
-
                         // plot line from edge counts
                         if (graph.BusiestBlockExecCount > 0)
                         {
@@ -453,9 +453,7 @@ namespace rgatCore.Widgets
                     if (found)
                     {
                         DrawAPIEntry(Xoffset + 2, 33, pSep, moduleID, module, symbol, ref lines);
-
                     }
-
                 }
                 else
                 {
@@ -485,7 +483,6 @@ namespace rgatCore.Widgets
             {
                 MODULE_SEGMENT ms = moduleAreas[i];
                 WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
-
 
                 float startX = (ms.firstIdx + 1) * pSep;
                 float endX = ms.lastIdx * pSep + 1;
@@ -519,31 +516,29 @@ namespace rgatCore.Widgets
         }
 
 
-        //todo lots of opportunity for caching here
-        public void GenerateReplay(float width, float height, ProtoGraph graph)
+        Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
+            out Dictionary<int, double> pixCumul, out Dictionary<int, double> pixAvg)
         {
-
-            if (width != _width || height != _height)
+            if (_cumuls.TryGetValue(graph, out pixCumul))
             {
-                CreateTextures(width, height);
+                pixAvg = _avgs[graph];
+                return;
             }
 
-            _moduleTexts.Clear();
-            List<Position2DColour> points = new List<Position2DColour>();
-            List<Position2DColour> lines = new List<Position2DColour>();
-            List<Position2DColour> triangles = new List<Position2DColour>();
-            List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
-            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourB(GlobalConfig.eThemeColour.eVisBarPlotLine);
-            List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
-
             List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
-            Console.WriteLine("Starto");
 
-            //Draw cumulative instruction count plot
-            ulong cumulativeInsCount = 0;
+            ulong segmentBlockCount = 0;
+            ulong segmentBlockInsCount = 0;
+            pixCumul = new Dictionary<int, double>();
+            pixAvg = new Dictionary<int, double>();
+            double highestSegmentAvg = 0;
+
             int lastPlotXPixel = -1;
-            float plotHeight = 15;
-            Vector2 lastLinePos = new Vector2(0, plotHeight);
+            //Draw cumulative instruction count plot
+            ulong MaxInsCount = 0;
+            ulong cumulativeInsCount = 0;
             for (var i = 0; i < animationData.Count; i++)
             {
                 var ae = animationData[i];
@@ -568,28 +563,109 @@ namespace rgatCore.Widgets
                         break;
                 }
                 cumulativeInsCount += tagInsCount;
-                int currentPlotXPixel = (int)Math.Floor(width * ((float)i / (float)animationData.Count));
+                segmentBlockInsCount += tagInsCount;
+                segmentBlockCount += 1;
 
-                //Console.WriteLine($"Cumu: {cumulativeInsCount}/{graph.TotalInstructions}, Xpos: {currentPlotXPixel}");
+
+                int currentPlotXPixel = (int)Math.Floor(barWidth * ((float)i / (float)animationData.Count));
 
                 if (currentPlotXPixel > lastPlotXPixel)
                 {
-                    lastPlotXPixel = currentPlotXPixel;
-                    lines.Add(new Position2DColour()
-                    {
-                        Color = new WritableRgbaFloat(Color.White),
-                        Position = lastLinePos
-                    });
-                    float yHeight = plotHeight - (plotHeight - 1) * ((float)cumulativeInsCount / (float)graph.TotalInstructions);
-                    Vector2 thisLinePos = new Vector2(currentPlotXPixel, yHeight);
-                    lines.Add(new Position2DColour()
-                    {
-                        Color = new WritableRgbaFloat(Color.White),
-                        Position = thisLinePos
-                    });
-                    lastLinePos = thisLinePos;
+
+                    pixCumul[currentPlotXPixel] = (double)cumulativeInsCount / (double)graph.TotalInstructions;
+                    double segmentAvg = (double)segmentBlockInsCount / (double)segmentBlockCount;
+                    pixAvg[currentPlotXPixel] = segmentAvg;
+                    if (segmentAvg > highestSegmentAvg)
+                        highestSegmentAvg = segmentAvg;
+
+                    segmentBlockInsCount = 0;
+                    segmentBlockCount = 0;
                 }
             }
+
+            var keys = pixAvg.Keys.ToArray();
+            foreach (int pix in keys)
+            {
+                pixAvg[pix] = pixAvg[pix] / highestSegmentAvg;
+            }
+
+            if (graph.Terminated)
+            {
+                _avgs[graph] = pixAvg;
+                _cumuls[graph] = pixCumul;
+            }
+        }
+
+
+        //todo lots of opportunity for caching here
+        public void GenerateReplay(float width, float height, ProtoGraph graph)
+        {
+
+            if (width != _width || height != _height)
+            {
+                CreateTextures(width, height);
+            }
+
+            _moduleTexts.Clear();
+            List<Position2DColour> points = new List<Position2DColour>();
+            List<Position2DColour> lines = new List<Position2DColour>();
+            List<Position2DColour> triangles = new List<Position2DColour>();
+            List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
+            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourB(GlobalConfig.eThemeColour.eVisBarPlotLine);
+            List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
+
+            List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
+
+
+            //Draw cumulative instruction count plot
+            ulong cumulativeInsCount = 0;
+            int lastPlotXPixel = -1;
+            float plotHeight = 15;
+            Vector2 lastCumuLinePos = new Vector2(0, plotHeight);
+            Vector2 lastAvgLinePos = new Vector2(0, plotHeight);
+
+            MaxBlockWorkCount(graph, width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs);
+
+            foreach (KeyValuePair<int, double> cumulativeInsLinePixel in cumuls)
+            {
+                int currentPlotXPixel = cumulativeInsLinePixel.Key;
+                double cumulativeProportion = cumulativeInsLinePixel.Value;
+                double avgProportion = avgs[currentPlotXPixel];
+
+                //draw the cumulative instruction count line
+                lines.Add(new Position2DColour()
+                {
+                    Color = new WritableRgbaFloat(Color.White),
+                    Position = lastCumuLinePos
+                });
+                float yHeight = plotHeight - ((plotHeight - 1) * (float)cumulativeProportion);
+                Vector2 thisLinePos = new Vector2(currentPlotXPixel, yHeight);
+                lines.Add(new Position2DColour()
+                {
+                    Color = new WritableRgbaFloat(Color.White),
+                    Position = thisLinePos
+                });
+                lastCumuLinePos = thisLinePos;
+
+
+                //draw the avg instruction count line
+                lastPlotXPixel = currentPlotXPixel;
+                lines.Add(new Position2DColour()
+                {
+                    Color = new WritableRgbaFloat(Color.Gold),
+                    Position = lastAvgLinePos
+                });
+
+                yHeight = plotHeight - (float)((plotHeight - 1) * avgProportion);
+                thisLinePos = new Vector2(currentPlotXPixel, yHeight);
+                lines.Add(new Position2DColour()
+                {
+                    Color = new WritableRgbaFloat(Color.Gold),
+                    Position = thisLinePos
+                });
+                lastAvgLinePos = thisLinePos;
+            }
+
 
             for (float x = 0; x < width; x++)
             {
@@ -619,6 +695,7 @@ namespace rgatCore.Widgets
 
                 }
             }
+
             /*
             for (var i = 1; i < entries.Count + 1; i++)
             {
