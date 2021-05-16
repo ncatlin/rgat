@@ -1099,10 +1099,19 @@ namespace rgatCore
                 result.Add("Edges", edgeArray);
 
                 JArray blockBounds = new JArray();
-                foreach (var blocktuple in BlocksFirstLastNodeList)
+                for (var i = 0; i < BlocksFirstLastNodeList.Count; i++) 
                 {
-                    blockBounds.Add(blocktuple.Item1);
-                    blockBounds.Add(blocktuple.Item2);
+                    var blocktuple = BlocksFirstLastNodeList[i];
+                    if (blocktuple == null)
+                    {
+                        blockBounds.Add(ProcessData.BasicBlocksList[i].Item2[0].threadvertIdx[ThreadID]);
+                        blockBounds.Add(ProcessData.BasicBlocksList[i].Item2[^1].threadvertIdx[ThreadID]);
+                    }
+                    else
+                    { 
+                        blockBounds.Add(blocktuple.Item1);
+                        blockBounds.Add(blocktuple.Item2);
+                    }
                 }
                 result.Add("BlockBounds", blockBounds);
             }
@@ -1279,7 +1288,7 @@ namespace rgatCore
             return index;
         }
 
-
+        public List<ANIMATIONENTRY> GetSavedAnimationData() => SavedAnimationData;
 
         /*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);

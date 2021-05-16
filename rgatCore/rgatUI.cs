@@ -700,11 +700,12 @@ namespace rgatCore
         private unsafe void DrawReplaySlider(float replayControlsSize)
         {
             int progressBarPadding = 6;
-            Vector2 progressBarSize = new Vector2(replayControlsSize - (progressBarPadding * 2), 30);
+            Vector2 progressBarSize = new Vector2(replayControlsSize - (progressBarPadding * 2), 50);
 
             ImGui.InvisibleButton("Replay Progress", progressBarSize);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - progressBarSize.Y);
+
             Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
-            AnimationProgressBarPos.X += progressBarPadding;
 
             Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
             Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
@@ -741,12 +742,17 @@ namespace rgatCore
                 Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
             }
 
-            ImGui.GetWindowDrawList().AddRectFilled(SliderRectStart, SliderRectEnd, 0xff000000);
 
+            //ImGui.GetWindowDrawList().AddRectFilled(SliderRectStart, SliderRectEnd, 0xff000000);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+            _visualiserBar.GenerateReplay(progressBarSize.X, 50, _rgatstate.ActiveGraph.internalProtoGraph);
+            _visualiserBar.Draw();
+
+            
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
                 SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
-
+            
         }
 
 
@@ -792,6 +798,9 @@ namespace rgatCore
             {
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+
+                DrawReplaySlider(width);
+
                 switch (activeGraph.ReplayState)
                 {
                     case PlottedGraph.REPLAY_STATE.ePaused:
@@ -808,12 +817,12 @@ namespace rgatCore
                         break;
                 }
 
-                DrawReplaySlider(width);
-
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
                 if (ImGui.BeginChild("ctrls2354"))
                 {
+
+
 
 
                     if (activeGraph != null)
@@ -894,7 +903,7 @@ namespace rgatCore
                 if (ImGui.BeginChild("RenderingBox"))
                 {
 
-                    _visualiserBar.Generate(width, 50, _rgatstate.ActiveGraph.internalProtoGraph);
+                    _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.internalProtoGraph);
                     _visualiserBar.Draw();
 
                     ImGui.Columns(2);

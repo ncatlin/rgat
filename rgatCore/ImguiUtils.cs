@@ -82,8 +82,10 @@ namespace rgatCore
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y + 1),         half_sz, ImGuiDir.Down, OuterColor);
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y),             half_sz, ImGuiDir.Down, InnerColor);
 
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y - 1), half_sz, ImGuiDir.Up, OuterColor);
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - half_sz.Y),     half_sz, ImGuiDir.Up, InnerColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - 1), half_sz, ImGuiDir.Up, OuterColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w),     half_sz, ImGuiDir.Up, InnerColor);
+
+            draw_list.AddLine(new Vector2(pos.X, pos.Y + half_sz.Y + 1), new Vector2(pos.X, pos.Y + bar_w + 1), 0xffffffff);
         }
 
         public static RgbaFloat ColToRgbaF(Color inColour)
