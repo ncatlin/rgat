@@ -856,7 +856,7 @@ namespace rgatCore
                             bt = "Set NonAnimated";
                             isanimed = true;
                         }
-
+                        ImGui.SameLine();
                         if (ImGui.Button(bt, new Vector2(36, 36)))
                         {
                             activeGraph.SetAnimated(!isanimed);

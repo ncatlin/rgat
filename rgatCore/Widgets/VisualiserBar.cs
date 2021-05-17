@@ -473,7 +473,8 @@ namespace rgatCore.Widgets
                     {
                         firstIdx = backIdx,
                         lastIdx = backIdx,
-                        modID = moduleID
+                        modID = moduleID,
+                        name = "todo"
                     });
 
                 }
@@ -518,12 +519,18 @@ namespace rgatCore.Widgets
 
         Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
         Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
+
         void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
-            out Dictionary<int, double> pixCumul, out Dictionary<int, double> pixAvg)
+            out Dictionary<int, double> pixCumul, 
+            out Dictionary<int, double> pixAvg,
+            out List<MODULE_SEGMENT> modSegs
+            )
         {
             if (_cumuls.TryGetValue(graph, out pixCumul))
             {
                 pixAvg = _avgs[graph];
+                modSegs = _modSegs[graph];
                 return;
             }
 
@@ -533,11 +540,10 @@ namespace rgatCore.Widgets
             ulong segmentBlockInsCount = 0;
             pixCumul = new Dictionary<int, double>();
             pixAvg = new Dictionary<int, double>();
+            modSegs = new List<MODULE_SEGMENT>();
             double highestSegmentAvg = 0;
-
+            int currentModule = -1;
             int lastPlotXPixel = -1;
-            //Draw cumulative instruction count plot
-            ulong MaxInsCount = 0;
             ulong cumulativeInsCount = 0;
             for (var i = 0; i < animationData.Count; i++)
             {
@@ -548,6 +554,26 @@ namespace rgatCore.Widgets
                     case eTraceUpdateType.eAnimExecTag:
                         if ((int)ae.blockID != -1)
                         {
+                            int moduleID = graph.ProcessData.FindContainingModule(graph.ProcessData.GetAddressOfBlock((int)ae.blockID));
+                            if (modSegs.Count > 0)
+                            {
+                                MODULE_SEGMENT lastRec = modSegs[^1];
+                                if (lastRec.modID == moduleID)
+                                {
+                                    lastRec.lastIdx = i;
+                                    continue;
+                                }
+                            }
+
+                            modSegs.Add(new MODULE_SEGMENT()
+                            {
+                                firstIdx = i,
+                                lastIdx = i,
+                                modID = moduleID,
+                                name = "todo"
+                            });
+
+
                             tagInsCount = (graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2 -
                                 graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1) + 1;
                         }
@@ -562,6 +588,7 @@ namespace rgatCore.Widgets
                         }
                         break;
                 }
+
                 cumulativeInsCount += tagInsCount;
                 segmentBlockInsCount += tagInsCount;
                 segmentBlockCount += 1;
@@ -589,10 +616,14 @@ namespace rgatCore.Widgets
                 pixAvg[pix] = pixAvg[pix] / highestSegmentAvg;
             }
 
+            
+            
+
             if (graph.Terminated)
             {
                 _avgs[graph] = pixAvg;
                 _cumuls[graph] = pixCumul;
+                _modSegs[graph] = modSegs;
             }
         }
 
@@ -624,7 +655,7 @@ namespace rgatCore.Widgets
             Vector2 lastCumuLinePos = new Vector2(0, plotHeight);
             Vector2 lastAvgLinePos = new Vector2(0, plotHeight);
 
-            MaxBlockWorkCount(graph, width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs);
+            MaxBlockWorkCount(graph, width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs, out List<MODULE_SEGMENT> modsegs);
 
             foreach (KeyValuePair<int, double> cumulativeInsLinePixel in cumuls)
             {
@@ -696,6 +727,35 @@ namespace rgatCore.Widgets
                 }
             }
 
+            foreach(MODULE_SEGMENT seg in modsegs)
+            {
+                WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
+                float startX = width * ((float)seg.firstIdx / (float)animationData.Count);
+                float endX = width * ((float)seg.lastIdx / (float)animationData.Count);
+
+                //left border
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 48f) });
+                //top
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 33f) });
+                //base
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 48f) });
+                //right border
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 48f) });
+
+                MODULE_LABEL label = new MODULE_LABEL
+                {
+                    startX = startX + 2,
+                    endX = endX -2,
+                    modID = seg.modID,
+                    name = seg.name
+                };
+                _moduleTexts.Add(label);
+            }
+
             /*
             for (var i = 1; i < entries.Count + 1; i++)
             {
@@ -704,99 +764,6 @@ namespace rgatCore.Widgets
                 float Xoffset = (width - pSep * backIdx) - tagWidth;
 
                 Xoffset -= scrollOffset;
-                bool drawPlotLine = false;
-                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 0) });
-                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 50) });
-                if ((int)ae.blockID != -1)
-                {
-                    var blockFirstLast = graph.BlocksFirstLastNodeList[(int)ae.blockID];
-                    uint insCount = blockFirstLast.Item2 - blockFirstLast.Item1;
-                    CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
-                }
-
-                switch (ae.entryType)
-                {
-                    case eTraceUpdateType.eAnimExecTag:
-                        drawPlotLine = true;
-                        break;
-
-                    case eTraceUpdateType.eAnimUnchained:
-                        {
-                            float symbase = 12f;
-                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset + pSep, 2) });
-                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, 2) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, 2) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, symbase) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset, symbase) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Red), Position = new Vector2(Xoffset + pSep + 1, symbase) });
-                        }
-                        break;
-
-                    case eTraceUpdateType.eAnimUnchainedResults:
-                        {
-                            drawPlotLine = true;
-                            float symbase = 12f;
-                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset, 2) });
-                            //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, 2) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, 2) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, symbase) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, symbase) });
-                            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset, symbase) });
-                        }
-                        break;
-
-                    default:
-                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset, 2) });
-                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
-                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 2) });
-                        lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
-
-                        Console.WriteLine($"Unhandled tag type {ae.entryType}");
-                        break;
-                }
-
-
-                //Draw Heatmap visualisation
-
-                if ((int)ae.blockID != -1)
-                {
-                    int blockTailIdx = (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2;
-                    WritableRgbaFloat heatColour;
-                    if (graph.NodeList.Count > blockTailIdx)
-                    {
-                        // colour from heat ranking of final node
-                        NodeData node = graph.NodeList[blockTailIdx];
-                        Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-                        heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
-
-                        CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
-
-
-
-                        // plot line from edge counts
-                        if (graph.BusiestBlockExecCount > 0)
-                        {
-                            //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
-                            //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
-                            float ecountprop = 1 - ((float)ae.count / (float)graph.BusiestBlockExecCount);
-                            if (busyCountLinePoints.Count > 0)
-                            {
-                                busyCountLinePoints.Add(busyCountLinePoints[^1]);
-                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
-                            }
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
-                        }
-                    }
-                    else
-                    {
-                        CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
-                    }
-
-                }
-
 
                 //Draw API icon
                 if ((int)ae.blockID == -1)
