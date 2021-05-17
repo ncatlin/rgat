@@ -689,7 +689,7 @@ namespace rgatCore
             shaderParams.proj = projection;
             shaderParams.view = view;
             shaderParams.world = world;
-            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation); ;
+            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation);
 
             _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _gd.WaitForIdle();

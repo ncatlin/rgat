@@ -748,11 +748,11 @@ namespace rgatCore
             _visualiserBar.GenerateReplay(progressBarSize.X, 50, _rgatstate.ActiveGraph.internalProtoGraph);
             _visualiserBar.Draw();
 
-            
+
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
                 SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
-            
+
         }
 
 
@@ -1044,54 +1044,52 @@ namespace rgatCore
             {
 
                 float combosHeight = 60 - vpadding;
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth - 20, combosHeight)))
+
+                if (_rgatstate.ActiveTarget != null)
                 {
-                    if (_rgatstate.ActiveTarget != null)
+                    var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
+                    string selString = (_rgatstate.ActiveGraph != null) ? "PID " + _rgatstate.ActiveGraph.pid : "";
+                    if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
                     {
-                        var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
-                        string selString = (_rgatstate.ActiveGraph != null) ? "PID " + _rgatstate.ActiveGraph.pid : "";
-                        if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
+                        foreach (var timepid in tracelist)
                         {
-                            foreach (var timepid in tracelist)
+                            TraceRecord selectableTrace = timepid.Item2;
+                            if (ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
                             {
-                                TraceRecord selectableTrace = timepid.Item2;
-                                if (ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
+                                _rgatstate.SelectActiveTrace(selectableTrace);
+                            }
+                            if (selectableTrace.children.Count > 0)
+                            {
+                                CreateTracesDropdown(selectableTrace, 1);
+                            }
+                            //ImGui.Selectable("PID 12345 (xyz.exe)");
+                        }
+                        ImGui.EndCombo();
+                    }
+
+                    if (_rgatstate.ActiveTrace != null)
+                    {
+                        selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
+                        uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
+                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                        if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
+                        {
+                            foreach (PlottedGraph selectablegraph in graphs)
+                            {
+                                string caption = "TID " + selectablegraph.tid;
+                                int nodeCount = selectablegraph.GraphNodeCount();
+                                if (nodeCount == 0) caption += " [No Data]";
+                                else caption += $" [{nodeCount} nodes]";
+                                if (ImGui.Selectable(caption, activeTID == selectablegraph.tid))
                                 {
-                                    _rgatstate.SelectActiveTrace(selectableTrace);
+                                    SetActiveGraph(selectablegraph);
                                 }
-                                if (selectableTrace.children.Count > 0)
-                                {
-                                    CreateTracesDropdown(selectableTrace, 1);
-                                }
-                                //ImGui.Selectable("PID 12345 (xyz.exe)");
                             }
                             ImGui.EndCombo();
                         }
-
-                        if (_rgatstate.ActiveTrace != null)
-                        {
-                            selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
-                            uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
-                            List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-                            if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
-                            {
-                                foreach (PlottedGraph selectablegraph in graphs)
-                                {
-                                    string caption = "TID " + selectablegraph.tid;
-                                    int nodeCount = selectablegraph.GraphNodeCount();
-                                    if (nodeCount == 0) caption += " [No Data]";
-                                    else caption += $" [{nodeCount} nodes]";
-                                    if (ImGui.Selectable(caption, activeTID == selectablegraph.tid))
-                                    {
-                                        SetActiveGraph(selectablegraph);
-                                    }
-                                }
-                                ImGui.EndCombo();
-                            }
-                        }
                     }
-                    ImGui.EndChild();
                 }
+
 
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
@@ -1180,19 +1178,18 @@ namespace rgatCore
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF553180);
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, frameHeight)))
             {
-                const float selectorWidth = 350;
                 PlottedGraph activeGraph = _rgatstate.ActiveGraph;
                 if (activeGraph != null)
                 {
-                    float width = ImGui.GetContentRegionAvail().X - selectorWidth;
+                    float width = ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH;
                     if (!activeGraph.internalProtoGraph.Terminated)
-                        DrawLiveTraceControls(frameHeight, width,  activeGraph);
+                        DrawLiveTraceControls(frameHeight, width, activeGraph);
                     else
                         DrawPlaybackControls(frameHeight, width);
 
                 }
-                ImGui.SameLine();
-                DrawTraceSelector(frameHeight, selectorWidth);
+                ImGui.SameLine(0,0);
+                DrawTraceSelector(frameHeight, UI_Constants.PREVIEW_PANE_WIDTH);
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();

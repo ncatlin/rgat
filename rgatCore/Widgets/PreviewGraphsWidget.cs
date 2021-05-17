@@ -421,8 +421,8 @@ namespace rgatCore
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
                 p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
-                uv_min: new Vector2(0, 0),
-                uv_max: new Vector2(1, 1));
+                uv_min: new Vector2(0, 1),
+                uv_max: new Vector2(1, 0));
 
             float borderThickness = GlobalConfig.GetThemeSize(GlobalConfig.eThemeSize.ePreviewSelectedBorder);
             float halfBorderThickness = (float)Math.Floor(borderThickness / 2f);
@@ -518,13 +518,7 @@ namespace rgatCore
 
             shaderParams.nonRotatedView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.proj = PreviewProjection;
-            shaderParams.view = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
-            shaderParams.world = cameraTranslation;
-
-
             shaderParams.world = graph.RotationMatrix;
-
-
             shaderParams.view = cameraTranslation;
 
 
@@ -587,7 +581,7 @@ namespace rgatCore
                 _centeringRequired.Add(graph, true);
             }
 
-            /*
+            
             if (needsCentering)
             {
                bool done = CenterGraphInFrameStep(out float maxremaining, graph);
@@ -595,7 +589,7 @@ namespace rgatCore
                 {
                     _centeringRequired[graph] = false;
                 }
-            }*/
+            }
 
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph);

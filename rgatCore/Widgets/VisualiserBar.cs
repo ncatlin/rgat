@@ -104,8 +104,8 @@ namespace rgatCore.Widgets
 
         void CreateTextures(float width, float height)
         {
-            _width = width;
-            _height = height;
+            _width = Math.Max(50, width);
+            _height = Math.Max(50, height);
             _outputTexture?.Dispose();
             _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
