@@ -301,7 +301,40 @@ namespace rgatCore
             }
         }
 
-        public void AlertKeybindPressed(eKeybind boundAction)
+        class KEYPRESS_CAPTION
+        {
+            public string message;
+            public Key key;
+            public ModifierKeys modifiers;
+            public long startedMS;
+            public long repeats;
+        }
+
+        List<KEYPRESS_CAPTION> _keypressCaptions = new List<KEYPRESS_CAPTION>();
+
+        void DisplayKeyPress(Tuple<Key, ModifierKeys> keyPressed, string messageCaption)
+        {
+            if (_keypressCaptions.Count > 0 && _keypressCaptions[^1].message == messageCaption)
+            {
+                var lastPress = _keypressCaptions[^1];
+                lastPress.repeats += 1;
+                lastPress.startedMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            }
+            else
+            {
+                _keypressCaptions.Add(new KEYPRESS_CAPTION()
+                {
+                    message = messageCaption,
+                    key = keyPressed.Item1,
+                    modifiers = keyPressed.Item2,
+                    startedMS = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                    repeats = 1
+                });
+            }
+        }
+
+
+        public void AlertKeybindPressed(Tuple<Key, ModifierKeys> keyPressed, eKeybind boundAction)
         {
             PlottedGraph activeGraph = ActiveGraph;
             if (activeGraph == null) return;
@@ -309,39 +342,39 @@ namespace rgatCore
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
             {
-                case eKeybind.eToggleHeatmap:
+                case eKeybind.ToggleHeatmap:
                     ToggleRenderingMode(eRenderingMode.eHeatmap);
                     break;
 
-                case eKeybind.eToggleConditional:
+                case eKeybind.ToggleConditionals:
                     ToggleRenderingMode(eRenderingMode.eConditionals);
                     break;
 
-                case eKeybind.eMoveUp:
+                case eKeybind.MoveUp:
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     ActiveGraph.CameraYOffset += delta;
                     break;
 
-                case eKeybind.eMoveDown:
+                case eKeybind.MoveDown:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     ActiveGraph.CameraYOffset -= delta;
                     break;
 
-                case eKeybind.eMoveLeft:
+                case eKeybind.MoveLeft:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     ActiveGraph.CameraXOffset -= delta;
                     break;
 
-                case eKeybind.eMoveRight:
+                case eKeybind.MoveRight:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     ActiveGraph.CameraXOffset += delta;
                     break;
 
-                case eKeybind.eRollGraphZAnti:
+                case eKeybind.RollGraphZAnti:
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
@@ -349,7 +382,7 @@ namespace rgatCore
                         break;
                     }
 
-                case eKeybind.eRollGraphZClock:
+                case eKeybind.RollGraphZClock:
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
@@ -357,58 +390,58 @@ namespace rgatCore
                         break;
                     }
 
-                case eKeybind.eYawYRight:
+                case eKeybind.YawYRight:
                     {
                         _yawDelta += 0.04f + (shiftModifier * 0.13f);
                         break;
                     }
 
-                case eKeybind.eYawYLeft:
+                case eKeybind.YawYLeft:
                     {
                         _yawDelta += -1 * (0.04f + (shiftModifier * 0.13f));
                         break;
                     }
 
-                case eKeybind.ePitchXBack:
+                case eKeybind.PitchXBack:
                     {
                         _pitchDelta += 0.06f + (shiftModifier * 0.13f);
                         break;
                     }
-                case eKeybind.ePitchXFwd:
+                case eKeybind.PitchXFwd:
                     {
                         _pitchDelta += -1 * (0.06f + (shiftModifier * 0.13f));
                         break;
                     }
 
-                case eKeybind.eCenterFrame:
+                case eKeybind.CenterFrame:
                     StartCenterGraphInFrameStepping(false);
                     break;
 
-                case eKeybind.eLockCenterFrame:
+                case eKeybind.LockCenterFrame:
                     StartCenterGraphInFrameStepping(true);
                     break;
 
-                case eKeybind.eRaiseForceTemperature:
+                case eKeybind.RaiseForceTemperature:
                     ActiveGraph.IncreaseTemperature();
                     break;
 
-                case eKeybind.eToggleText:
+                case eKeybind.ToggleAllText:
                     ActiveGraph.TextEnabled = !ActiveGraph.TextEnabled;
                     break;
 
-                case eKeybind.eToggleInsText:
+                case eKeybind.ToggleInsText:
                     ActiveGraph.TextEnabledIns = !ActiveGraph.TextEnabledIns;
                     break;
 
-                case eKeybind.eToggleLiveText:
+                case eKeybind.ToggleLiveText:
                     ActiveGraph.TextEnabledLive = !ActiveGraph.TextEnabledLive;
                     break;
 
-                case eKeybind.eCancel:
+                case eKeybind.Cancel:
                     _QuickMenu.CancelPressed();
                     break;
 
-                case eKeybind.eQuickMenu:
+                case eKeybind.QuickMenu:
                     {
                         if (_QuickMenu.Expanded) _QuickMenu.Contract();
                         else _QuickMenu.Expand(persistent: true);
@@ -417,6 +450,9 @@ namespace rgatCore
                 default:
                     break;
             }
+
+            if (GlobalConfig.ShowKeystrokes) 
+                DisplayKeyPress(keyPressed, boundAction.ToString());
         }
 
 
@@ -451,9 +487,7 @@ namespace rgatCore
 
             if (ActiveGraph != null)
             {
-                renderLock.AcquireReaderLock(10); //todo handle timeout
-                    DrawGraph();
-                renderLock.ReleaseReaderLock();
+                DrawGraph();
             }
 
             drawHUD(graphSize);
@@ -881,7 +915,7 @@ namespace rgatCore
                 _NodeIndexBuffer.Dispose();
                 _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
             }
-            
+
             //todo - only do this on changes
             _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
@@ -1030,6 +1064,48 @@ namespace rgatCore
 
         }
 
+        unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+
+        void DrawKeystrokes(Vector2 topLeft)
+        {
+            long timeNowMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            long removeLimit = timeNowMS - GlobalConfig.KeystrokeDisplayMS;
+            long fadeLimit = timeNowMS - GlobalConfig.KeystrokeStartFadeMS;
+            long fadeWindow = fadeLimit - removeLimit;
+            Vector4 textCol = GetTextColour();
+
+            _keypressCaptions = _keypressCaptions
+                .Skip(Math.Max(0, _keypressCaptions.Count - GlobalConfig.KeystrokeDisplayMaxCount))
+                .Where(k => k.startedMS > removeLimit)
+                .ToList();
+
+            int maxKeystrokes = Math.Min(GlobalConfig.KeystrokeDisplayMaxCount, _keypressCaptions.Count);
+
+            for (var i = _keypressCaptions.Count - 1; i >= 0; i--)
+            {
+                KEYPRESS_CAPTION keycaption = _keypressCaptions[i];
+                ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, topLeft.Y + 10 + (15 * (maxKeystrokes - i))));
+
+                string keystroke = keycaption.key.ToString();
+                if (keycaption.modifiers.HasFlag(ModifierKeys.Control)) keystroke = "Ctrl+" + keystroke;
+                if (keycaption.modifiers.HasFlag(ModifierKeys.Alt)) keystroke = "Alt+" + keystroke;
+                if (keycaption.modifiers.HasFlag(ModifierKeys.Shift)) keystroke = "Shift+" + keystroke;
+
+                string msg = $"[{keystroke}] -> {keycaption.message}";
+                if (keycaption.repeats > 1) msg += $" x{keycaption.repeats}";
+
+                float alpha = i == (_keypressCaptions.Count - 1) ? 255 : 220;
+                if (keycaption.startedMS < fadeLimit)
+                {
+                    double fadetime = fadeLimit - keycaption.startedMS;
+                    alpha *= (float)(1 - (fadetime / (double)fadeWindow));
+                }
+
+                ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(textCol).ToUint((uint)alpha));
+                ImGui.Text(msg);
+                ImGui.PopStyleColor();
+            }
+        }
 
         void drawHUD(Vector2 widgetSize)
         {
@@ -1052,12 +1128,7 @@ namespace rgatCore
                 return;
             }
 
-
-            msg = $"Displaying thread {activeGraph.tid}";
-            Vector2 currentPos = ImGui.GetCursorPos();
-            ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, topLeft.Y + 4));
-            ImGui.Text(msg);
-            ImGui.SetCursorPos(currentPos);
+            if (GlobalConfig.ShowKeystrokes) DrawKeystrokes(topLeft);
 
             _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 

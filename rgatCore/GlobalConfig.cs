@@ -63,7 +63,10 @@ namespace rgatCore.Threads
         public static uint IngestStatsPerSecond = 6; //granularity of thread update rate plot
         public static float IngestStatWindow = 5f; //length of time a small thread activity plot covers (last X seconds)
 
-
+        public static int KeystrokeDisplayMS = 4000;
+        public static int KeystrokeStartFadeMS = 3650;
+        public static int KeystrokeDisplayMaxCount = 5;
+        public static bool ShowKeystrokes = true;
 
         public static class mainColours
         {
@@ -207,33 +210,33 @@ namespace rgatCore.Threads
 
         public static void InitDefaultKeybinds()
         {
-            SetKeybind(eKeybind.eMoveUp, 1, Key.W, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveUp, 2, Key.Up, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveDown, 1, Key.S, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveDown, 2, Key.Down, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveLeft, 1, Key.A, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveLeft, 2, Key.Left, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveRight, 1, Key.D, ModifierKeys.None);
-            SetKeybind(eKeybind.eMoveRight, 2, Key.Right, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveUp, 1, Key.W, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveUp, 2, Key.Up, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveDown, 1, Key.S, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveDown, 2, Key.Down, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveLeft, 1, Key.A, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveLeft, 2, Key.Left, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveRight, 1, Key.D, ModifierKeys.None);
+            SetKeybind(eKeybind.MoveRight, 2, Key.Right, ModifierKeys.None);
 
-            SetKeybind(eKeybind.ePitchXFwd, 1, Key.PageUp, ModifierKeys.None);
-            SetKeybind(eKeybind.ePitchXBack, 1, Key.PageDown, ModifierKeys.None);
-            SetKeybind(eKeybind.eYawYLeft, 1, Key.Delete, ModifierKeys.None);
-            SetKeybind(eKeybind.eYawYRight, 1, Key.End, ModifierKeys.None);
-            SetKeybind(eKeybind.eRollGraphZAnti, 1, Key.Insert, ModifierKeys.None);
-            SetKeybind(eKeybind.eRollGraphZClock, 1, Key.Home, ModifierKeys.None);
+            SetKeybind(eKeybind.PitchXFwd, 1, Key.PageUp, ModifierKeys.None);
+            SetKeybind(eKeybind.PitchXBack, 1, Key.PageDown, ModifierKeys.None);
+            SetKeybind(eKeybind.YawYLeft, 1, Key.Delete, ModifierKeys.None);
+            SetKeybind(eKeybind.YawYRight, 1, Key.End, ModifierKeys.None);
+            SetKeybind(eKeybind.RollGraphZAnti, 1, Key.Insert, ModifierKeys.None);
+            SetKeybind(eKeybind.RollGraphZClock, 1, Key.Home, ModifierKeys.None);
 
-            SetKeybind(eKeybind.eCancel, 1, Key.Escape, ModifierKeys.None);
-            SetKeybind(eKeybind.eCenterFrame, 1, Key.Q, ModifierKeys.None);
-            SetKeybind(eKeybind.eLockCenterFrame, 1, Key.Q, ModifierKeys.Shift);
-            SetKeybind(eKeybind.eRaiseForceTemperature, 1, Key.V, ModifierKeys.None);
-            SetKeybind(eKeybind.eToggleHeatmap, 1, Key.X, ModifierKeys.None);
-            SetKeybind(eKeybind.eToggleConditional, 1, Key.C, ModifierKeys.None);
+            SetKeybind(eKeybind.Cancel, 1, Key.Escape, ModifierKeys.None);
+            SetKeybind(eKeybind.CenterFrame, 1, Key.Q, ModifierKeys.None);
+            SetKeybind(eKeybind.LockCenterFrame, 1, Key.Q, ModifierKeys.Shift);
+            SetKeybind(eKeybind.RaiseForceTemperature, 1, Key.V, ModifierKeys.None);
+            SetKeybind(eKeybind.ToggleHeatmap, 1, Key.X, ModifierKeys.None);
+            SetKeybind(eKeybind.ToggleConditionals, 1, Key.C, ModifierKeys.None);
 
-            SetKeybind(eKeybind.eToggleText, 1, Key.I, ModifierKeys.None);
-            SetKeybind(eKeybind.eToggleInsText, 1, Key.I, ModifierKeys.Shift);
-            SetKeybind(eKeybind.eToggleLiveText, 1, Key.I, ModifierKeys.Control);
-            SetKeybind(eKeybind.eQuickMenu, 1, Key.M, ModifierKeys.None);
+            SetKeybind(eKeybind.ToggleAllText, 1, Key.I, ModifierKeys.None);
+            SetKeybind(eKeybind.ToggleInsText, 1, Key.I, ModifierKeys.Shift);
+            SetKeybind(eKeybind.ToggleLiveText, 1, Key.I, ModifierKeys.Control);
+            SetKeybind(eKeybind.QuickMenu, 1, Key.M, ModifierKeys.None);
         }
 
         /// <summary>
@@ -246,16 +249,16 @@ namespace rgatCore.Threads
         static void InitResponsiveKeys()
         {
             ResponsiveHeldActions.Clear();
-            ResponsiveHeldActions.Add(eKeybind.eMoveRight);
-            ResponsiveHeldActions.Add(eKeybind.eMoveLeft);
-            ResponsiveHeldActions.Add(eKeybind.eMoveDown);
-            ResponsiveHeldActions.Add(eKeybind.eMoveUp);
-            ResponsiveHeldActions.Add(eKeybind.ePitchXBack);
-            ResponsiveHeldActions.Add(eKeybind.ePitchXFwd);
-            ResponsiveHeldActions.Add(eKeybind.eYawYLeft);
-            ResponsiveHeldActions.Add(eKeybind.eYawYRight);
-            ResponsiveHeldActions.Add(eKeybind.eRollGraphZAnti);
-            ResponsiveHeldActions.Add(eKeybind.eRollGraphZClock);
+            ResponsiveHeldActions.Add(eKeybind.MoveRight);
+            ResponsiveHeldActions.Add(eKeybind.MoveLeft);
+            ResponsiveHeldActions.Add(eKeybind.MoveDown);
+            ResponsiveHeldActions.Add(eKeybind.MoveUp);
+            ResponsiveHeldActions.Add(eKeybind.PitchXBack);
+            ResponsiveHeldActions.Add(eKeybind.PitchXFwd);
+            ResponsiveHeldActions.Add(eKeybind.YawYLeft);
+            ResponsiveHeldActions.Add(eKeybind.YawYRight);
+            ResponsiveHeldActions.Add(eKeybind.RollGraphZAnti);
+            ResponsiveHeldActions.Add(eKeybind.RollGraphZClock);
 
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }

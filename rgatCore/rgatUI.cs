@@ -250,12 +250,12 @@ namespace rgatCore
                     MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
                     if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
 
-                    if (boundAction == eKeybind.eCancel)
+                    if (boundAction == eKeybind.Cancel)
                     {
                         CloseDialogs();
                     }
 
-                    MainGraphWidget.AlertKeybindPressed(boundAction);
+                    MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction);
 
 
                 }

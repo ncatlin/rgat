@@ -23,10 +23,10 @@ namespace rgatCore
 
     enum eGraphLayout { eCylinderLayout, eForceDirected3DNodes, eForceDirected3DBlocks, eCircle, eLayoutInvalid };
 
-    enum eKeybind { eMoveLeft, eMoveRight, eMoveUp, eMoveDown,
-        eZoomIn, eZoomOut, ePitchXFwd, ePitchXBack, eYawYLeft, eYawYRight, eRollGraphZAnti, eRollGraphZClock, 
-        eCenterFrame, eLockCenterFrame, eCancel, eToggleHeatmap, eToggleConditional, eRaiseForceTemperature,
-        eToggleText, eToggleInsText, eToggleLiveText, eQuickMenu
+    enum eKeybind { MoveLeft, MoveRight, MoveUp, MoveDown,
+        ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock, 
+        CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
+        ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu
     }
 
     enum eSignatureType { eYARA, eDetectItEasy};

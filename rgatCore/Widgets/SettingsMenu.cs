@@ -155,25 +155,25 @@ namespace rgatCore.Widgets
             ImGui.NextColumn();
             ImGui.Text("Alternate Keybind");
             ImGui.Columns(1);
-            CreateKeybindInput("Move Graph Up", eKeybind.eMoveUp, index++);
-            CreateKeybindInput("Move Graph Down", eKeybind.eMoveDown, index++);
-            CreateKeybindInput("Move Graph Left", eKeybind.eMoveLeft, index++);
-            CreateKeybindInput("Move Graph Right", eKeybind.eMoveRight, index++);
-            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.ePitchXFwd, index++);
-            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.ePitchXBack, index++);
-            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.eRollGraphZClock, index++);
-            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.eRollGraphZAnti, index++);
-            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.eYawYRight, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.eYawYLeft, index++);
-            CreateKeybindInput("Toggle Heatmap", eKeybind.eToggleHeatmap, index++);
-            CreateKeybindInput("Toggle Conditionals", eKeybind.eToggleConditional, index++);
-            CreateKeybindInput("Force Direction Temperature +", eKeybind.eRaiseForceTemperature, index++);
-            CreateKeybindInput("Center Graph In View", eKeybind.eCenterFrame, index++);
-            CreateKeybindInput("Lock Graph Centered", eKeybind.eLockCenterFrame, index++);
-            CreateKeybindInput("Toggle All Text", eKeybind.eToggleText, index++);
-            CreateKeybindInput("Toggle Instruction Text", eKeybind.eToggleInsText, index++);
-            CreateKeybindInput("Toggle Dynamic Text", eKeybind.eToggleLiveText, index++);
-            CreateKeybindInput("Graph QuickMenu", eKeybind.eQuickMenu, index++);
+            CreateKeybindInput("Move Graph Up", eKeybind.MoveUp, index++);
+            CreateKeybindInput("Move Graph Down", eKeybind.MoveDown, index++);
+            CreateKeybindInput("Move Graph Left", eKeybind.MoveLeft, index++);
+            CreateKeybindInput("Move Graph Right", eKeybind.MoveRight, index++);
+            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.PitchXFwd, index++);
+            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.PitchXBack, index++);
+            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.RollGraphZClock, index++);
+            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.RollGraphZAnti, index++);
+            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.YawYRight, index++);
+            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.YawYLeft, index++);
+            CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++);
+            CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++);
+            CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++);
+            CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++);
+            CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++);
+            CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++);
+            CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++);
+            CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++);
+            CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++);
         }
 
 
