@@ -1080,11 +1080,12 @@ namespace rgatCore
                 .ToList();
 
             int maxKeystrokes = Math.Min(GlobalConfig.KeystrokeDisplayMaxCount, _keypressCaptions.Count);
-
+            float depth = topLeft.Y + 80;
             for (var i = _keypressCaptions.Count - 1; i >= 0; i--)
             {
                 KEYPRESS_CAPTION keycaption = _keypressCaptions[i];
-                ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, topLeft.Y + 10 + (15 * (maxKeystrokes - i))));
+                float newPos = depth - (15 * (maxKeystrokes - i));
+                ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, newPos));
 
                 string keystroke = keycaption.key.ToString();
                 if (keycaption.modifiers.HasFlag(ModifierKeys.Control)) keystroke = "Ctrl+" + keystroke;
