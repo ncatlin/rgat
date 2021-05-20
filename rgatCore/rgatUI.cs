@@ -192,7 +192,6 @@ namespace rgatCore
                 return;
             }
 
-            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
             bool MouseInMainWidget = MainGraphWidget.MouseInWidget();
             lock (_inputLock)
             {
@@ -246,6 +245,7 @@ namespace rgatCore
                                 continue;
                         }
                     }
+
 
                     MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
                     if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
@@ -661,6 +661,8 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize);
+                Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1* graphSize.Y);
+                MainGraphWidget.DisplayVisualiserMessages(msgpos, _rgatstate.GetVisualiserMessages());
                 ImGui.EndChild();
             }
 

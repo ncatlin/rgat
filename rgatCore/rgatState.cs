@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -82,7 +83,88 @@ namespace rgatCore
 
 
 
-        
+        public enum eMessageType { eDebug = 0, eLog = 1, Alert = 2, eVisThread = 2, eVisProcess = 4, eVisAll = 8 }
+
+        public struct DISPLAY_MESSAGE
+        {
+            public eMessageType visibility;
+            public string text;
+            public uint? colour;
+            public long expiryMS;
+            public ProtoGraph graph;
+        }
+        List<DISPLAY_MESSAGE> DisplayMessages = new List<DISPLAY_MESSAGE>();
+        readonly object _messagesLock = new object();
+
+
+        /// <summary>      
+        /// Display a message in the logfile/message window
+        /// Also will show on the UI alert pane with the Alert option
+        /// </summary>
+        /// <param name="message">Message to display</param>
+        /// <param name="visibility">    
+        /// Debug -     Diagnostic debug log visible messages generally uninteresting to users
+        /// Log -       Information messages users might want to seek out
+        /// Alert -     Information the user needs to see to enable proper functionality. Will be shown somewhere prominent.
+        /// </param>
+        /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
+        /// <param name="colour">Optional colour, otherwise default will be used</param>
+
+        public void AddLogMessage(string text, eMessageType visibility = eMessageType.eLog, ProtoGraph? graph = null, WritableRgbaFloat? colour = null)
+        {
+            Debug.Assert(visibility >= eMessageType.eDebug && visibility <= eMessageType.Alert);
+            //Add to log queue
+        }
+        public void AddLogMessage(DISPLAY_MESSAGE msg)
+        {
+            //Add to log queue
+        }
+
+
+
+        /// <summary>
+        /// Display a message in the visualise log panel, useful for helping the user understand the events unfolding 
+        /// </summary>
+        /// <param name="message">Message to display</param>
+        /// <param name="visibility">
+        /// VisThread -  Messages appearing in the graph visualiser if that particular thread is being viewed
+        /// VisProcess - Messages appearing in the graph visualiser if any thread from that process is being viewed
+        /// VisAll    - Messages that will always appear in the graph visualiser
+        /// </param>
+        /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
+        /// <param name="colour">Optional colour, otherwise default will be used</param>
+        public void AddVisualiserMessage(string message, eMessageType visibility, ProtoGraph? graph = null, WritableRgbaFloat? colour = null)
+        {
+            Debug.Assert(visibility >= eMessageType.eVisThread && visibility <= eMessageType.eVisAll);
+            long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            //Show on visualiser widgets
+            DISPLAY_MESSAGE msg = new DISPLAY_MESSAGE()
+            {
+                colour = colour?.ToUint(),
+                graph = graph,
+                text = message,
+                visibility = visibility,
+                expiryMS = timenow + GlobalConfig.VisMessageMaxLingerTime
+            };
+            lock (_messagesLock)
+            {
+                DisplayMessages.Add(msg);
+            }
+            AddLogMessage(message, eMessageType.eLog, graph, colour);
+        }
+
+
+        public DISPLAY_MESSAGE[] GetVisualiserMessages()
+        {
+            long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            lock (_messagesLock)
+            {
+                DISPLAY_MESSAGE[] result = DisplayMessages.Where(x => x.expiryMS > timenow).ToArray();
+                if (result.Length < DisplayMessages.Count)
+                    DisplayMessages = result.ToList();
+                return result;
+            }
+        }
 
 
         public void SetActiveTarget(string path)
@@ -278,19 +360,19 @@ namespace rgatCore
             }
 
             /*
-			 * todooooooooooooo
-			 * 
-			if (increaseReferences)
-			{
-				bool success = activeGraph.increase_thread_references(52);
-				if (!success)
-				{
-					activeGraphLock.unlock();
-					return NULL;
-				}
-				//cout << "[+1: "<< ((plotted_graph *)activeGraph).threadReferences << "]increased refs to graph " << activeGraph << endl;
-			}
-			*/
+             * todooooooooooooo
+             * 
+            if (increaseReferences)
+            {
+                bool success = activeGraph.increase_thread_references(52);
+                if (!success)
+                {
+                    activeGraphLock.unlock();
+                    return NULL;
+                }
+                //cout << "[+1: "<< ((plotted_graph *)activeGraph).threadReferences << "]increased refs to graph " << activeGraph << endl;
+            }
+            */
             PlottedGraph tmp = ActiveGraph;
             //activeGraphLock.unlock();
 
@@ -486,7 +568,7 @@ namespace rgatCore
 
                 if (!trace.WasLoadedFromSave)
                 {
-                    trace.Save(creationTime); 
+                    trace.Save(creationTime);
                 }
             }
         }
@@ -495,6 +577,6 @@ namespace rgatCore
         {
             trace.ExportPajek(TID);
         }
-        
+
     }
 }

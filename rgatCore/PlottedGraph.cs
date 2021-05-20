@@ -1037,7 +1037,7 @@ namespace rgatCore
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
                 NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
-                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID];
+                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
                 if (firstIdx_LastIdx == null) continue;
 
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
@@ -1087,7 +1087,7 @@ namespace rgatCore
             int[] sourceData = new int[textureSize * textureSize * 2];
             int current = 0;
 
-            createBlockDataBuf(targetArray.Count);
+            createBlockDataBuf(Math.Min(targetArray.Count, internalProtoGraph.BlocksFirstLastNodeList.Count));
 
 
             for (var srcNodeIndex = 0; srcNodeIndex < targetArray.Count; srcNodeIndex++)

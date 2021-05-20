@@ -19,15 +19,19 @@ namespace rgatCore.Threads
     class ProcessCoordinatorThread
     {
 		private Thread runningThread = null;
-        public ProcessCoordinatorThread(rgatState _rgatstate) {
+		rgatState _clientState = null;
+		byte[] buf = new byte[1024];
+		NamedPipeServerStream coordPipe = null;
+
+
+		public ProcessCoordinatorThread(rgatState _rgatstate) 
+		{
 			_clientState = _rgatstate;
 			runningThread = new Thread(Listener);
 			runningThread.Name = "ProcessCoordinator";
 			runningThread.Start();
 		}
 
-		byte[] buf = new byte[1024];
-		NamedPipeServerStream coordPipe = null;
 
 		void GotMessage(IAsyncResult ir)
         {
@@ -42,7 +46,9 @@ namespace rgatCore.Threads
 
 				string[] fields = csString.Split(',');
 
-				Console.WriteLine($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: " + fields.ToString());
+				_clientState.AddLogMessage($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields.ToString()}",
+					rgatState.eMessageType.eDebug);
+
 				if (fields.Length == 5)
 				{
 					bool success = true;
@@ -59,11 +65,11 @@ namespace rgatCore.Threads
 						byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
 						coordPipe.Write(outBuffer);
 						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
-						Console.WriteLine("Coordinator connection complete");
+						_clientState.AddLogMessage($"Coordinator connection initiated", rgatState.eMessageType.eDebug);
 					}
 					else
 					{
-						Console.WriteLine("Coordinator got bad buf from client: " + csString);
+						_clientState.AddLogMessage($"Coordinator got bad data from client: " + csString);
 					}
 				}
 			}
@@ -78,24 +84,24 @@ namespace rgatCore.Threads
 			try
 			{
 				nps.EndWaitForConnection(ar);
-				Console.WriteLine("Coordinator pipe connected ");
+				_clientState.AddLogMessage($"Incoming connection on coordinator pipe", rgatState.eMessageType.eDebug);
 			}
 			catch (Exception e)
 			{
-
+				_clientState.AddLogMessage($"Coordinator pipe callback exception {e.Message}", rgatState.eMessageType.eDebug);
 			}
 			
 		}
 
-		rgatState _clientState = null;
+
         public void Listener()
         {
             try { 
 
 				coordPipe = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
 			} catch ( System.IO.IOException e)
-            {
-				Console.WriteLine($"Error: Failed to start bootstrap thread '{e.Message}' so rgat will not process incoming traces");
+			{
+				_clientState.AddLogMessage($"Error: Failed to start bootstrap thread '{e.Message}' so rgat will not process incoming traces", rgatState.eMessageType.Alert);
 				//todo: does this happen outside of debugging? if so A: figure out why, B:give visual indication
 				return;
             }
@@ -111,16 +117,17 @@ namespace rgatCore.Threads
 				}
 
 
-				Console.WriteLine("rgatCoordinator pipe connected");
+				_clientState.AddLogMessage($"rgatCoordinator pipe connected", rgatState.eMessageType.eDebug);
 
 				var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
 
-				Console.WriteLine("Began read");
+				_clientState.AddLogMessage("rgatCoordinator began read", rgatState.eMessageType.eDebug);
+
 				int mush = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
 
 				if (!readres.IsCompleted)
 				{
-					Console.WriteLine($"Warning: Read timeout for coordinator connection, abandoning");
+					_clientState.AddLogMessage("Warning: Read timeout for coordinator connection, abandoning", rgatState.eMessageType.eLog);
 				}
 				while (coordPipe.IsConnected) Thread.Sleep(5);
 			}
@@ -129,7 +136,7 @@ namespace rgatCore.Threads
 
 
 
-		public string GetBBPipeName(uint PID, long instanceID)
+		static string GetBBPipeName(uint PID, long instanceID)
 		{
 			return "BB" + PID.ToString() + instanceID.ToString();
 		}
@@ -137,18 +144,21 @@ namespace rgatCore.Threads
 
 		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
 		{
-			Console.WriteLine($"New Pin connection from {programName} (PID:{PID}, arch:{arch})");
+			string shortName = Path.GetFileName(programName).Substring(0, Math.Min(programName.Length, 20));
+			string msg = $"New {arch}-bit trace: {shortName} (PID:{PID})";
+			_clientState.AddVisualiserMessage(msg, rgatState.eMessageType.eVisAll, null, new WritableRgbaFloat(System.Drawing.Color.LightGreen));
 
-			BinaryTarget target = null;
+			BinaryTarget target;
 			if (!_clientState.targets.GetTargetByPath(programName, out target))
             {
 				target = _clientState.AddTargetByPath(programName, arch, true);
 			}
 			if (target.BitWidth != arch)
             {
-				if (target.BitWidth != 0) 
-                {
-					Console.WriteLine($"Warning: Incoming process reports different arch {arch} to binary {target.BitWidth}");
+				if (target.BitWidth != 0)
+				{
+					msg = $"Warning: Incoming process reports different arch {arch} to binary {target.BitWidth}";
+					_clientState.AddLogMessage(msg, rgatState.eMessageType.eLog, null, new WritableRgbaFloat(System.Drawing.Color.Red));
                 }
 				target.BitWidth = arch;
 			}

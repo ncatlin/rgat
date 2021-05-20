@@ -64,9 +64,15 @@ namespace rgatCore.Threads
         public static float IngestStatWindow = 5f; //length of time a small thread activity plot covers (last X seconds)
 
         public static int KeystrokeDisplayMS = 4000;
-        public static int KeystrokeStartFadeMS = 3650;
+        public static int KeystrokeStartFadeMS = 350;
         public static int KeystrokeDisplayMaxCount = 5;
         public static bool ShowKeystrokes = true;
+
+
+        public static int VisMessageMaxLingerTime = 9000;
+        public static int VisMessageFadeStartTime = 500;
+        public static bool ShowVisMessages = true;
+
 
         public static class mainColours
         {

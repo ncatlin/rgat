@@ -1057,11 +1057,6 @@ namespace rgatCore
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
             _isInputTarget = ImGui.IsItemActive();
             _cl.Dispose();
-
-            Vector2 mp = new Vector2(ImGui.GetMousePos().X + 8, ImGui.GetMousePos().Y - 12);
-            ImGui.GetWindowDrawList().AddText(font: _controller._unicodeFont, font_size: 16,
-                pos: mp, col: 0xffffffff, text_begin: $"{ImGui.GetMousePos().X},{ImGui.GetMousePos().Y}");
-
         }
 
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
@@ -1070,7 +1065,7 @@ namespace rgatCore
         {
             long timeNowMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             long removeLimit = timeNowMS - GlobalConfig.KeystrokeDisplayMS;
-            long fadeLimit = timeNowMS - GlobalConfig.KeystrokeStartFadeMS;
+            long fadeLimit = timeNowMS - (GlobalConfig.KeystrokeDisplayMS - GlobalConfig.KeystrokeStartFadeMS);
             long fadeWindow = fadeLimit - removeLimit;
             Vector4 textCol = GetTextColour();
 
@@ -1107,6 +1102,42 @@ namespace rgatCore
                 ImGui.PopStyleColor();
             }
         }
+
+        public void DisplayVisualiserMessages(Vector2 pos, rgatState.DISPLAY_MESSAGE[] msgs)
+        {
+            long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            uint textCol = new WritableRgbaFloat(GetTextColour()).ToUint();
+            float depth = 20;//todo based on count 
+            float maxWidth = 300;
+
+            float currentY = depth;
+            ImGui.SetCursorScreenPos(new Vector2(pos.X - maxWidth, pos.Y + currentY));
+            for (var i = 0; i < msgs.Length; i++)
+            {
+                rgatState.DISPLAY_MESSAGE msg = msgs[i];
+                long timeRemaining = msg.expiryMS - timenow;
+                if (timeRemaining < 0) continue;
+
+
+                ImGui.SetCursorPosX(pos.X - maxWidth);
+
+                float alpha = i == (msgs.Length - 1) ? 255 : 220;
+                if (timeRemaining < GlobalConfig.VisMessageFadeStartTime)
+                {
+                    double fadetime = GlobalConfig.VisMessageFadeStartTime - timeRemaining;
+                    alpha *= (float)(1 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime));
+                }
+
+                ImGui.PushStyleColor(ImGuiCol.Text, msg.colour.HasValue ? msg.colour.Value : textCol & 0xffffff00 | (uint)(alpha));
+                ImGui.TextWrapped(msg.text);
+                ImGui.PopStyleColor();
+
+
+                //Vector2 msgSize = ImGui.CalcTextSize(msg.text);
+                //currentY += msgSize.Y;
+            }
+        }
+
 
         void drawHUD(Vector2 widgetSize)
         {

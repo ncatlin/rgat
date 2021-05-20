@@ -127,12 +127,21 @@ namespace rgatCore
             Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
-            Console.WriteLine($"Thread {TID} ended!");
+
+
 
             if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
             {
                 graph.internalProtoGraph.Terminated = true;
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+
+                _clientState.AddVisualiserMessage($"Thread {TID} terminated", rgatState.eMessageType.eVisProcess,
+                    graph.internalProtoGraph, new WritableRgbaFloat(System.Drawing.Color.Red));
+            }
+            else
+            {
+                _clientState.AddLogMessage($"Thread {TID} terminated (no graph)", rgatState.eMessageType.eVisProcess,
+                    null, new WritableRgbaFloat(System.Drawing.Color.Red));
             }
         }
 
