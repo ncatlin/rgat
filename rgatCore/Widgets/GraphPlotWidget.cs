@@ -422,6 +422,7 @@ namespace rgatCore
                     break;
 
                 case eKeybind.RaiseForceTemperature:
+                    ActiveGraph.internalProtoGraph.TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, 0);
                     ActiveGraph.IncreaseTemperature();
                     break;
 
@@ -694,6 +695,8 @@ namespace rgatCore
                 ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
                 float charWidth = glyph.AdvanceX * fontScale;
                 float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
+
+
                 float xEnd = xPos + charWidth;
                 float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
                 float yTop = yBase + charHeight;
@@ -939,10 +942,11 @@ namespace rgatCore
             _gd.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
             _gd.WaitForIdle();
+            ImFontGlyphPtr glpha = _controller._unicodeFont.FindGlyph('a');
+            ImFontGlyphPtr glphb = _controller._unicodeFont.FindGlyph('b');
+            ImFontGlyphPtr glphc = _controller._unicodeFont.FindGlyph('c');
 
-            //have hacked in a solution here but the codepoint and visible attribs (which we don't use) wont work. 
-            //https://github.com/mellinoe/ImGui.NET/issues/206
-            System.Diagnostics.Debug.Assert(_controller._unicodeFont.GetCharAdvance('4') == _controller._unicodeFont.FindGlyph('4').AdvanceX);
+            System.Diagnostics.Debug.Assert(_controller._unicodeFont.GetCharAdvance('a') == _controller._unicodeFont.FindGlyph('a').AdvanceX);
 
 
             List<fontStruc> stringVerts;
@@ -1103,38 +1107,63 @@ namespace rgatCore
             }
         }
 
-        public void DisplayVisualiserMessages(Vector2 pos, rgatState.DISPLAY_MESSAGE[] msgs)
+        public void DisplayEventMessages(Vector2 pos)
         {
+            if (ActiveGraph == null) return;
+
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            uint textCol = new WritableRgbaFloat(GetTextColour()).ToUint();
             float depth = 20;//todo based on count 
-            float maxWidth = 300;
+            float maxWidth = 200;
+
+            TraceRecord trace = ActiveGraph.internalProtoGraph.TraceData;
+            
+            Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime);
 
             float currentY = depth;
             ImGui.SetCursorScreenPos(new Vector2(pos.X - maxWidth, pos.Y + currentY));
-            for (var i = 0; i < msgs.Length; i++)
+            for (var i = 0; i < evts.Length; i++)
             {
-                rgatState.DISPLAY_MESSAGE msg = msgs[i];
-                long timeRemaining = msg.expiryMS - timenow;
-                if (timeRemaining < 0) continue;
-
+                Logging.TIMELINE_EVENT evt = evts[i];
+                long displayTimeRemaining = GlobalConfig.VisMessageMaxLingerTime - (timenow - evt.EventTimeMS);
 
                 ImGui.SetCursorPosX(pos.X - maxWidth);
 
-                float alpha = i == (msgs.Length - 1) ? 255 : 220;
-                if (timeRemaining < GlobalConfig.VisMessageFadeStartTime)
+                double alpha = i == (evts.Length - 1) ? 255 : 220;
+                if (displayTimeRemaining <= GlobalConfig.VisMessageFadeStartTime)
                 {
-                    double fadetime = GlobalConfig.VisMessageFadeStartTime - timeRemaining;
-                    alpha *= (float)(1 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime));
+                    double fadetime =  GlobalConfig.VisMessageFadeStartTime - displayTimeRemaining;
+                    alpha *= 1.0 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime);
                 }
 
-                ImGui.PushStyleColor(ImGuiCol.Text, msg.colour.HasValue ? msg.colour.Value : textCol & 0xffffff00 | (uint)(alpha));
-                ImGui.TextWrapped(msg.text);
+                Color textCol;
+                string msg;
+                switch (evt.TimelineEventType)
+                {
+                    case Logging.eTimelineEvent.ProcessStart:
+                        textCol = Color.LightGreen;
+                        msg = $"Process {evt.ID} started";
+                        break;
+                    case Logging.eTimelineEvent.ProcessEnd:
+                        textCol = Color.OrangeRed;
+                        msg = $"Process {evt.ID} ended";
+                        break;
+                    case Logging.eTimelineEvent.ThreadStart:
+                        textCol = Color.LightGreen;
+                        msg = $"Thread {evt.ID} started";
+                        break;
+                    case Logging.eTimelineEvent.ThreadEnd:
+                        textCol = Color.OrangeRed;
+                        msg = $"Thread {evt.ID} ended";
+                        break;
+                    default:
+                        textCol = Color.Gray;
+                        msg = "Unknown Timeline event" + evt.TimelineEventType.ToString();
+                        break;
+                }
+
+                ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(textCol).ToUint((uint)alpha));
+                ImGui.TextWrapped(msg);
                 ImGui.PopStyleColor();
-
-
-                //Vector2 msgSize = ImGui.CalcTextSize(msg.text);
-                //currentY += msgSize.Y;
             }
         }
 

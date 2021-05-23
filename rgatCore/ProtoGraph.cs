@@ -265,7 +265,7 @@ namespace rgatCore
             NextStepAddr = nextAddr;
 
             if (BlocksFirstLastNodeList.Count <= blockID)
-            { 
+            {
                 addBlockToGraph(blockID, 1);
                 return false;
             }
@@ -1072,6 +1072,11 @@ namespace rgatCore
 		ulong get_backlog_total();
         */
 
+        public void RecordAPIEvent()
+        {
+
+        }
+
 
         public JObject Serialise()
         {
@@ -1081,21 +1086,14 @@ namespace rgatCore
             lock (nodeLock)
             {
                 JArray nodesArray = new JArray();
-                foreach (NodeData node in NodeList)
-                {
-                    nodesArray.Add(node.Serialise());
-                }
-
+                NodeList.ForEach(node => nodesArray.Add(node.Serialise()));
                 result.Add("Nodes", nodesArray);
             }
 
             lock (edgeLock)
             {
                 JArray edgeArray = new JArray();
-                foreach (var edgetuple in edgeList)
-                {
-                    edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2));
-                }
+                edgeList.ForEach(edgetuple => edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
                 result.Add("Edges", edgeArray);
 
                 JArray blockBounds = new JArray();
@@ -1119,11 +1117,7 @@ namespace rgatCore
             lock (highlightsLock)
             {
                 JArray exceptNodeArray = new JArray();
-                foreach (var exc_node_idx in exceptionSet)
-                {
-                    exceptNodeArray.Add(exc_node_idx);
-                }
-
+                exceptionSet.ForEach(exc_node_idx => exceptNodeArray.Add(exc_node_idx));
                 result.Add("Exceptions", exceptNodeArray);
             }
 

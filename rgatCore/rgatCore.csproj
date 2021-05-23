@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="cimgui.dll" />
     <None Remove="Shaders\GLSL\imgui-frag.glsl" />
     <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
     <None Remove="Shaders\HLSL\imgui-frag.hlsl" />
@@ -30,12 +29,6 @@
     <None Remove="Shaders\SPIR-V\imgui-frag.glsl" />
     <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
     <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="cimgui.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -56,20 +49,14 @@
   <ItemGroup>
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="HexMate" Version="0.0.3" />
-    <PackageReference Include="ImGui.NET" Version="1.78.0" />
-    <PackageReference Include="ImGui.NET.Docking" Version="1.75.0" />
-    <PackageReference Include="Jint" Version="3.0.0-beta-1914" />
+    <PackageReference Include="Jint" Version="3.0.0-beta-2032" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="PeNet" Version="2.6.2" />
-    <PackageReference Include="Veldrid" Version="4.5.0" />
-    <PackageReference Include="Veldrid.ImageSharp" Version="4.5.0" />
-    <PackageReference Include="Veldrid.SPIRV" Version="1.0.9" />
-    <PackageReference Include="Veldrid.StartupUtilities" Version="4.5.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="PeNet" Version="2.6.3" />
+    <PackageReference Include="Veldrid" Version="4.8.0" />
+    <PackageReference Include="Veldrid.ImageSharp" Version="4.8.0" />
+    <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.8.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,6 +66,15 @@
     <Reference Include="dnYara">
       <HintPath>..\..\dnYara\dnYara\bin\Debug\netcoreapp3.1\dnYara.dll</HintPath>
     </Reference>
+    <Reference Include="ImGui.NET">
+      <HintPath>..\..\ImGui.NET-master\bin\Debug\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="cimgui.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

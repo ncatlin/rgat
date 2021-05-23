@@ -187,7 +187,7 @@ namespace rgatCore.Widgets
                             }
                             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                             {
-                                ImGui.OpenPopup("HighlightColorPicker", ImGuiPopupFlags.MouseButtonRight);
+                                ImGui.OpenPopup("HighlightColorPicker");
                             }
                             if (ImGui.BeginPopup("HighlightColorPicker"))
                             {
@@ -381,6 +381,7 @@ namespace rgatCore.Widgets
                 return;
             }
 
+            /*
             if (ImGui.ListBoxHeader("##ExceptionsListbox"))
             {
                 foreach (uint nodeidx in exceptionNodes)
@@ -402,6 +403,7 @@ namespace rgatCore.Widgets
                 }
             }
             ImGui.ListBoxFooter();
+            */
         }
 
         public void DrawExceptionSelectControls()

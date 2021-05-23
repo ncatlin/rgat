@@ -69,7 +69,7 @@ namespace rgatCore.Threads
         public static bool ShowKeystrokes = true;
 
 
-        public static int VisMessageMaxLingerTime = 9000;
+        public static int VisMessageMaxLingerTime = 6500;
         public static int VisMessageFadeStartTime = 500;
         public static bool ShowVisMessages = true;
 

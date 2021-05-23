@@ -115,7 +115,7 @@ namespace rgatCore
                         break;
                     }
                 default:
-                    Console.WriteLine("[rgat]HandleNewThread Bad Trace Type " + trace.TraceType);
+                    Logging.RecordLogEvent("HandleNewThread Bad Trace Type " + trace.TraceType, Logging.eLogLevel.Error);
                     break;
             }
 
@@ -135,17 +135,17 @@ namespace rgatCore
                 graph.internalProtoGraph.Terminated = true;
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
 
-                _clientState.AddVisualiserMessage($"Thread {TID} terminated", rgatState.eMessageType.eVisProcess,
-                    graph.internalProtoGraph, new WritableRgbaFloat(System.Drawing.Color.Red));
+                graph.internalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, ID: TID);
             }
             else
             {
-                _clientState.AddLogMessage($"Thread {TID} terminated (no graph)", rgatState.eMessageType.eVisProcess,
-                    null, new WritableRgbaFloat(System.Drawing.Color.Red));
+                Logging.RecordLogEvent($"Thread {TID} terminated (no graph)");
             }
         }
 
 
+        //There is scope to randomise these in case it becomes a detection method, but 
+        //there are so many other potential ones I'll wait and see if its needed first
         public static string GetCommandPipeName(uint PID, long instanceID)
         {
             return "CM" + PID.ToString() + instanceID.ToString();
@@ -171,20 +171,11 @@ namespace rgatCore
                 try
                 {
                     Console.WriteLine($"controlPipe.BeginWrite with {cmd.Length} bytes {cmd}");
-
-                    //controlPipe.Write(cmd);
-                    //controlPipe.Write();
-                    //controlPipe.Flush();
                     commandPipe.Write(cmd, 0, cmd.Length);
-                    Thread.Sleep(500);
-
-                    //res = controlPipe.BeginWrite(Encoding.ASCII.GetBytes("\n"), 0, 1, null, null);
-                    //controlPipe.EndWrite(res);
-
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"SendCommand failed with exception {e.Message}");
+                    Logging.RecordLogEvent($"MH:SendCommand failed with exception {e.Message}");
                     return -1;
                 }
 
@@ -195,11 +186,11 @@ namespace rgatCore
 
         bool CommandWrite(string msg)
         {
-            byte[] buf = System.Text.Encoding.UTF8.GetBytes(msg);
+            byte[] buf = Encoding.UTF8.GetBytes(msg);
             try { commandPipe.Write(buf, 0, buf.Length); }
             catch (Exception e)
             {
-                Console.WriteLine($"Exception '{e.Message}' while writing command: {msg}");
+                Logging.RecordLogEvent($"MH:CommandWrite Exception '{e.Message}' while writing command: {msg}");
                 return false;
             }
             commandPipe.Flush();
@@ -218,19 +209,19 @@ namespace rgatCore
                 List<string> tracedFiles = target.traceChoices.GetTracedFiles();
 
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
-                    Console.WriteLine("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
+                { 
+                    Logging.RecordLogEvent("Warning: Exclude mode with nothing included. Nothing will be instrumented.");         
+                }
 
                 foreach (string name in tracedDirs)
                 {
-                    Console.Write("Sending traced dir " + name + "\n");
-                    //buf = System.Text.Encoding.Unicode.GetBytes(name);
-                    //buf = System.Text.Encoding.Unicode.GetBytes($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00");
+                    Logging.RecordLogEvent($"Sending traced directory {name}", Logging.eLogLevel.Debug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in tracedFiles)
                 {
-                    Console.Write("Sending traced file " + name + "\n");
+                    Logging.RecordLogEvent($"Sending traced file {name}", Logging.eLogLevel.Debug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
@@ -242,14 +233,14 @@ namespace rgatCore
 
                 foreach (string name in ignoredDirs)
                 {
-                    Console.Write("Sending ignored dir " + name + "\n");
-                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.eLogLevel.Debug);
+                    buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in ignoredFiles)
                 {
-                    Console.Write("Sending ignored file " + name + "\n");
-                    buf = System.Text.Encoding.ASCII.GetBytes(name);
+                    Logging.RecordLogEvent($"Sending ignored file {name}", Logging.eLogLevel.Debug);
+                    buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
             }
@@ -265,7 +256,7 @@ namespace rgatCore
             foreach (KeyValuePair<string, string> kvp in config)
             {
                 string cmdc = $"@CK@{kvp.Key}@{kvp.Value}@\n\x00\x00\x00";
-                Console.WriteLine("Sending cmd " + cmdc);
+                Logging.RecordLogEvent("MH:SendConfiguration() sending command " + cmdc, Logging.eLogLevel.Debug);
                 CommandWrite(cmdc);
             }
         }
@@ -291,11 +282,11 @@ namespace rgatCore
                 {
                     eventPipe.EndWaitForConnection(ar);
                 }
-                Console.WriteLine($"{pipeType} pipe connected for PID " + trace.PID);
+                Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.eLogLevel.Debug);
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{pipeType} pipe exception for PID " + trace.PID + " :" + e.Message);
+                Logging.RecordLogEvent($"MH:{pipeType} pipe exception for PID {trace.PID}: + {e.Message}");
             }
         }
 
@@ -307,32 +298,37 @@ namespace rgatCore
             try
             {
                 bytesread = eventPipe.EndRead(ar);
-                //Console.WriteLine($"In ctrl endread cB. br: {bytesread} {Encoding.ASCII.GetString(buf)}");
             }
             catch (Exception e)
             {
-                Console.WriteLine("ModuleHandlerThread Readcall back exception " + e.Message);
+                Logging.RecordLogEvent($"MH:ReadCallback() Readcall back exception " + e.Message);
                 return;
             }
 
             if (bytesread < 3) //probably pipe ended
             {
                 if (bytesread != 0)
-                    Console.WriteLine($"Unhandled tiny control pipe message: {buf}");
+                {
+                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.eLogLevel.Error);
+                }
+
                 return;
             }
 
-            if (buf[0] == 'T' && buf[1] == 'I')
-            {
-                HandleNewThread(buf);
-                return;
-            }
-
-            if (buf[0] == 'T' && buf[1] == 'Z')
+            if (buf[0] == 'T')
             {
 
-                HandleTerminatedThread(buf);
-                return;
+                if (buf[1] == 'I')
+                {
+                    HandleNewThread(buf);
+                    return;
+                }
+                
+                if (buf[1] == 'Z')
+                {
+                    HandleTerminatedThread(buf);
+                    return;
+                }
             }
 
             if (buf[0] == 's' && buf[1] == '!')
@@ -353,30 +349,30 @@ namespace rgatCore
                 switch (dbgCmd)
                 {
                     case 'b':
-                        Console.WriteLine("Module hndler gotr dbg cmd break");
-                        this.trace.SetTraceState(eTraceState.eSuspended);
-                        return;
+                        Logging.RecordLogEvent(text: "Trace entered suspended state to to pingat break event", trace: trace);
+                        trace.SetTraceState(eTraceState.eSuspended);
+                        break;
                     case 'c':
-                        Console.WriteLine("Module hndler gotr dbg cmd continue");
-                        this.trace.SetTraceState(eTraceState.eRunning);
-                        return;
+                        Logging.RecordLogEvent(text: "Trace left suspended state to to pingat continue event", trace: trace);
+                        trace.SetTraceState(eTraceState.eRunning);
+                        break;
                     default:
-                        Console.WriteLine($"Bad debug command response {dbgCmd}");
-                        return;
+                        Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.eLogLevel.Error);
+                        break;
                 }
-#pragma warning disable CS0162 // Unreachable code detected
                 return;
-#pragma warning restore CS0162 // Unreachable code detected
             }
 
 
             if (buf[0] == '!')
             {
-                Console.WriteLine($"[!Log Msg from instrumentation]: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+                string text = ASCIIEncoding.ASCII.GetString(buf);
+                Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
                 return;
             }
 
-            Console.WriteLine($"Control pipe read unhandled entry from PID {trace.PID}: {System.Text.ASCIIEncoding.ASCII.GetString(buf)}");
+            string errmsg = $"Control pipe read unhandled entry from PID {trace.PID}: {ASCIIEncoding.ASCII.GetString(buf)}";
+            Logging.RecordLogEvent(errmsg, Logging.eLogLevel.Error, trace: trace);
         }
 
 
@@ -394,7 +390,7 @@ namespace rgatCore
             }
             catch (System.IO.IOException e)
             {
-                Console.WriteLine("IO Exception on ModuleHandlerThreadListener: " + e.Message);
+                Logging.RecordLogEvent("IO Exception on ModuleHandlerThreadListener: " + e.Message);
                 eventPipe = null;
                 return;
             }
@@ -434,7 +430,8 @@ namespace rgatCore
             }
 
             eventPipe.Dispose();
-            Console.WriteLine($"ControlHandler Listener thread exited for PID {trace.PID}");
+            trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace.PID);
+            Logging.RecordLogEvent($"ControlHandler Listener thread exited for PID {trace.PID}", trace: trace);
         }
 
     }

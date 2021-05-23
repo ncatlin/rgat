@@ -46,11 +46,11 @@ namespace rgatCore
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
-            Console.WriteLine("Constructing rgatUI");
+            Logging.RecordLogEvent("Constructing rgatUI", Logging.eLogLevel.Debug);
             _rgatstate = new rgatState(_gd, _cl);
-            Console.WriteLine("State created");
+            Logging.RecordLogEvent("State created", Logging.eLogLevel.Debug);
             GlobalConfig.InitDefaultConfig();
-            Console.WriteLine("Config Inited");
+            Logging.RecordLogEvent("Config Inited", Logging.eLogLevel.Debug);
 
 
             _ImGuiController = imguicontroller;
@@ -66,7 +66,7 @@ namespace rgatCore
 
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
-            Console.WriteLine("rgatUI created");
+            Logging.RecordLogEvent("rgatUI created", Logging.eLogLevel.Debug);
         }
 
         public void Exit()
@@ -661,8 +661,8 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize);
-                Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1* graphSize.Y);
-                MainGraphWidget.DisplayVisualiserMessages(msgpos, _rgatstate.GetVisualiserMessages());
+                Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
+                MainGraphWidget.DisplayEventMessages(msgpos);
                 ImGui.EndChild();
             }
 
@@ -1190,7 +1190,7 @@ namespace rgatCore
                         DrawPlaybackControls(frameHeight, width);
 
                 }
-                ImGui.SameLine(0,0);
+                ImGui.SameLine(0, 0);
                 DrawTraceSelector(frameHeight, UI_Constants.PREVIEW_PANE_WIDTH);
                 ImGui.EndChild();
             }
@@ -1251,10 +1251,56 @@ namespace rgatCore
         {
             ImGui.Text("Trace start stuff here");
         }
-        private unsafe void DrawSettingsTab()
+
+
+        private void DrawLogsTab()
         {
-            ImGui.Text("Trace start stuff here");
+            //_rgatstate.
+            //ImGui.InputTextMultiline("MultilineTExt label", ref logslist[0], 2000, new Vector2(500, 300), ImGuiInputTextFlags.ReadOnly);
+            //ImGui.TextWrapped("WrappedText");
+            Logging.LOG_EVENT[] msgs = Logging.GetLogMessages();
+
+         
+            if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders))
+            {
+                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 60);
+                ImGui.TableSetupColumn("Log");
+                ImGui.TableHeadersRow();
+
+                foreach (Logging.LOG_EVENT msg in msgs)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                    string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                    ImGui.Text(timeString);
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text(msg.LogType.ToString());
+
+                    string msgString;
+                    switch (msg.LogType)
+                    {
+                        case Logging.eLogType.Text:
+                            {
+                                Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
+                                msgString = text_evt._text;
+                                break;
+                            }
+                        default:
+                            msgString = "Other event type " + msg.LogType.ToString();
+                            break;
+
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.TextWrapped(msgString);
+                }
+                ImGui.EndTable();
+            }
         }
+
 
         private unsafe void DrawMainMenu()
         {
@@ -1338,6 +1384,11 @@ namespace rgatCore
                 if (ImGui.BeginTabItem("Graph Comparison"))
                 {
                     DrawCompareTab();
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Logs"))
+                {
+                    DrawLogsTab();
                     ImGui.EndTabItem();
                 }
 

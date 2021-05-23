@@ -7,6 +7,7 @@ using Veldrid;
 using System.Runtime.CompilerServices;
 using Vulkan;
 using Veldrid.ImageSharp;
+using rgatCore;
 
 namespace ImGuiNET
 {
@@ -53,7 +54,7 @@ namespace ImGuiNET
 
         //private ImFontPtr _customFont = null;
         public ImFontPtr _unicodeFont = null;
-        private ImFontPtr _originalFont = null;
+        public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
 
         /// <summary>
@@ -67,13 +68,12 @@ namespace ImGuiNET
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
-            Console.WriteLine("Loading fonts");
+            
+            Logging.RecordLogEvent("Loading fonts", Logging.eLogLevel.Debug);
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
-            _unicodeFont = fonts.Fonts[0];
-            fonts.AddFontDefault();
-            _originalFont = fonts.Fonts[1];
-            Console.WriteLine("Done Loading fonts");
+            _originalFont = fonts.AddFontDefault();
+            Logging.RecordLogEvent("Done Loading fonts", Logging.eLogLevel.Debug);
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
@@ -213,8 +213,8 @@ namespace ImGuiNET
 
             byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
             byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
-            _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, "VS"));
-            _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, "FS"));
+            _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, "main"));
+            _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, "main"));
 
             VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
             {
@@ -401,7 +401,6 @@ namespace ImGuiNET
 
             io.Fonts.ClearTexData();
 
-            ImFontPtr f;
 
         }
 
@@ -554,7 +553,7 @@ namespace ImGuiNET
             uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
             if (totalVBSize > _vertexBuffer.SizeInBytes)
             {
-                Console.WriteLine("Resizing Vertex buffer from " + _vertexBuffer.SizeInBytes + " to " + totalVBSize * 1.5f);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.eLogLevel.Debug);
                 gd.DisposeWhenIdle(_vertexBuffer);
                 _vertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             }
@@ -562,11 +561,12 @@ namespace ImGuiNET
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
             if (totalIBSize > _indexBuffer.SizeInBytes)
             {
-                Console.WriteLine("Resizing Index buffer from " + _indexBuffer.SizeInBytes + " to " + totalIBSize * 1.5f);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.eLogLevel.Debug);
                 gd.DisposeWhenIdle(_indexBuffer);
                 _indexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic));
             }
         }
+
 
         private void SetupUIProjection(ImDrawDataPtr draw_data)
         {

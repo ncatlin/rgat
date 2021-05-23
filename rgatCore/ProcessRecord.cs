@@ -460,12 +460,12 @@ namespace rgatCore
 
         private bool LoadSymbols(JObject processJSON)
         {
-            Console.WriteLine("[rgat]Loading Module Symbols");
+            Logging.RecordLogEvent("Loading Module Symbols", Logging.eLogLevel.Debug);
             //display_only_status_message(symLoadMsg.str(), clientState);
 
             if (!processJSON.TryGetValue("ModuleSymbols", out JToken symbolslist) || symbolslist.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid ModuleSymbols in trace");
+                Logging.RecordLogEvent("Failed to find valid ModuleSymbols in trace", Logging.eLogLevel.Error);
                 return false;
             }
 
@@ -474,21 +474,21 @@ namespace rgatCore
             {
                 if (!item.TryGetValue("ModuleID", out JToken modID) || modID.Type != JTokenType.Integer)
                 {
-                    Console.WriteLine("[rgat]ERROR: Symbols load failed: No valid module ID");
+                    Logging.RecordLogEvent("ERROR: Symbols load failed: No valid module ID", Logging.eLogLevel.Error);
                     return false;
                 }
                 modsymsPlain.Add(modID.ToObject<int>(), new Dictionary<ulong, string>());
 
                 if (!item.TryGetValue("Symbols", out JToken syms) || syms.Type != JTokenType.Array)
                 {
-                    Console.WriteLine("[rgat]ERROR: Symbols load failed: No valid symbols list");
+                    Logging.RecordLogEvent("[rgat]ERROR: Symbols load failed: No valid symbols list", Logging.eLogLevel.Error);
                     return false;
                 }
                 foreach (JArray sym in syms.Children())
                 {
                     if (sym.Count != 2 || sym[0].Type != JTokenType.Integer || sym[1].Type != JTokenType.String)
                     {
-                        Console.WriteLine("[rgat]ERROR: Symbols load failed: Bad symbol in list");
+                        Logging.RecordLogEvent("[rgat]ERROR: Symbols load failed: Bad symbol in list", Logging.eLogLevel.Error);
                         return false;
                     }
                     ulong SymAddress = sym[0].ToObject<ulong>();
@@ -498,7 +498,8 @@ namespace rgatCore
                     totalSyms += 1;
                 }
             }
-            Console.WriteLine("[rgat]Finished loading " + totalSyms + " symbols");
+
+            Logging.RecordLogEvent("Finished loading " + totalSyms + " symbols", Logging.eLogLevel.Debug);
             return true;
         }
 
@@ -506,16 +507,16 @@ namespace rgatCore
         {
             //display_only_status_message("Loading Modules", clientState);
 
-            Console.WriteLine("[rgat]Loading Module Paths");
+            Logging.RecordLogEvent("LoadModules() Loading Module Paths");
             if (!processJSON.TryGetValue("ModulePaths", out JToken moduleslist))
             {
-                Console.WriteLine("[rgat] Failed to find ModulePaths in trace");
+                Logging.RecordLogEvent("LoadModules() Failed to find ModulePaths in trace", Logging.eLogLevel.Error);
                 return false;
             }
 
             var modulesArray = moduleslist.ToObject<List<string>>();
 
-            Console.WriteLine("Loading " + modulesArray.Count + " modules");
+            Logging.RecordLogEvent("Loading " + modulesArray.Count + " modules", Logging.eLogLevel.Debug);
             foreach (string b64entry in modulesArray)
             {
                 string plainpath = Encoding.Unicode.GetString(Convert.FromBase64String(b64entry));
@@ -524,7 +525,7 @@ namespace rgatCore
 
             if (!processJSON.TryGetValue("ModuleBounds", out Newtonsoft.Json.Linq.JToken modulebounds))
             {
-                Console.WriteLine("[rgat] Failed to find ModuleBounds in trace");
+                Logging.RecordLogEvent("Failed to find ModuleBounds in trace", Logging.eLogLevel.Error);
                 return false;
             }
             var modsBoundArray = modulebounds.ToObject<List<List<ulong>>>();
@@ -538,7 +539,7 @@ namespace rgatCore
 
             if (!processJSON.TryGetValue("ModuleTraceStates", out Newtonsoft.Json.Linq.JToken modtracestatesTkn))
             {
-                Console.WriteLine("[rgat] Failed to find ModuleTraceStates in trace");
+                Logging.RecordLogEvent("Failed to find ModuleTraceStates in trace", Logging.eLogLevel.Error);
                 return false;
             }
 
@@ -565,7 +566,7 @@ namespace rgatCore
             //todo: catch some kind of exception, since i cant see any way of getting error codes
             if (instructions.Length != 1)
             {
-                Console.WriteLine("[rgat]ERROR: Failed disassembly for opcodes: " + insdata.opcodes);// << " error: " << cs_errno(hCapstone) << endl;
+                Logging.RecordLogEvent("ERROR: Failed disassembly for opcodes: " + insdata.opcodes, Logging.eLogLevel.Error);// << " error: " << cs_errno(hCapstone) << endl;
                 return 0;
             }
 
@@ -630,7 +631,7 @@ namespace rgatCore
             {
                 if (mutation.Count != 2 || mutation[0].Type != JTokenType.String || mutation[1].Type != JTokenType.Array)
                 {
-                    Console.WriteLine("[rgat]Load Error: Bad mutation entry");
+                    Logging.RecordLogEvent("Load Error: Bad mutation entry", Logging.eLogLevel.Error);
                     opcodeVariants = null;
                     return false;
                 }
@@ -645,7 +646,7 @@ namespace rgatCore
 
                 if (ins.numbytes == 0)
                 {
-                    Console.WriteLine("[rgat]Load Error: Empty opcode string");
+                    Logging.RecordLogEvent("Load Error: Empty opcode string", Logging.eLogLevel.Error);
                     opcodeVariants = null;
                     return false;
                 }
@@ -659,7 +660,7 @@ namespace rgatCore
                 {
                     if (entry.Count != 2 || entry[0].Type != JTokenType.Integer || entry[1].Type != JTokenType.Integer)
                     {
-                        Console.WriteLine("[rgat] Load Error: Bad thread nodes entry");
+                        Logging.RecordLogEvent("Load Error: Bad thread nodes entry", Logging.eLogLevel.Error);
                         return false;
                     }
 
@@ -682,7 +683,7 @@ namespace rgatCore
                        entry[3].Type != JTokenType.Array
                        )
             {
-                Console.WriteLine("[rgat] Invalid disassembly entry in trace");
+                Logging.RecordLogEvent("Invalid disassembly entry in saved trace", Logging.eLogLevel.Error);
                 return false;
             }
 
@@ -701,7 +702,7 @@ namespace rgatCore
 
             if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData> opcodeVariants))
             {
-                Console.WriteLine("[rgat] Invalid disassembly for opcodes");
+                Logging.RecordLogEvent("Invalid disassembly for opcodes in trace", Logging.eLogLevel.Error);
                 return false;
             }
             disassembly.Add(addrData.address, opcodeVariants);
@@ -712,24 +713,24 @@ namespace rgatCore
         {
             if (!processJSON.TryGetValue("BitWidth", out JToken tBitWidth) || tBitWidth.Type != JTokenType.Integer)
             {
-                Console.WriteLine("[rgat] Failed to find valid BitWidth in trace");
+                Logging.RecordLogEvent("Failed to find valid BitWidth in trace", Logging.eLogLevel.Error);
                 return false;
             }
             BitWidth = tBitWidth.ToObject<int>();
             if (BitWidth != 32 && BitWidth != 64)
             {
-                Console.WriteLine("[rgat] Invalid BitWidth " + BitWidth);
+                Logging.RecordLogEvent("Invalid BitWidth " + BitWidth, Logging.eLogLevel.Error);
                 return false;
             }
 
             if (!processJSON.TryGetValue("Disassembly", out JToken disassemblyList) || disassemblyList.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Disassembly in trace");
+                Logging.RecordLogEvent("Failed to find valid Disassembly in trace", Logging.eLogLevel.Error);
                 return false;
             }
             JArray DisassemblyArray = (JArray)disassemblyList;
 
-            Console.WriteLine("[rgat]Loading Disassembly for " + DisassemblyArray.Count + " addresses");
+            Logging.RecordLogEvent("Loading Disassembly for " + DisassemblyArray.Count + " addresses", Logging.eLogLevel.Debug);
             //display_only_status_message("", clientState);
 
             X86DisassembleMode disasMode = (BitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
@@ -750,19 +751,19 @@ namespace rgatCore
         {
             if (!processJSON.TryGetValue("BasicBlocks", out JToken tBBLocks) || tBBLocks.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid BasicBlocks in trace");
+                Logging.RecordLogEvent("Failed to find valid BasicBlocks in trace", Logging.eLogLevel.Error);
                 return false;
             }
             JArray BBlocksArray = (JArray)tBBLocks;
 
-            Console.WriteLine("Loading " + BBlocksArray.Count + " basic blocks");
+            Logging.RecordLogEvent("Loading " + BBlocksArray.Count + " basic blocks", Logging.eLogLevel.Debug);
             //display_only_status_message(BBLoadMsg.str(), clientState);
             uint blockID = 0;
             foreach (JArray blockEntry in BBlocksArray)
             {
                 if (blockEntry.Count != 2 || blockEntry[0].Type != JTokenType.Integer || blockEntry[1].Type != JTokenType.Array)
                 {
-                    Console.WriteLine("Error: Bad basic block descriptor");
+                    Logging.RecordLogEvent("Error in saved trace: Bad basic block descriptor", Logging.eLogLevel.Error);
                     return false;
                 }
                 JArray insAddresses = (JArray)blockEntry[1];
@@ -794,7 +795,7 @@ namespace rgatCore
         {
             if (!externEntry.TryGetValue("A", out JToken Addr) || Addr.Type != JTokenType.Integer)
             {
-                Console.WriteLine("[rgat]Error, address not found in extern entry");
+                Logging.RecordLogEvent("Error, address not found in extern entry", Logging.eLogLevel.Error);
                 return false;
             }
             ulong externAddr = Addr.ToObject<ulong>();
@@ -804,14 +805,14 @@ namespace rgatCore
 
             if (!externEntry.TryGetValue("M", out JToken ModID) || ModID.Type != JTokenType.Integer)
             {
-                Console.WriteLine("[rgat]Error: module ID not found in extern entry");
+                Logging.RecordLogEvent("[rgat]Error: module ID not found in extern entry", Logging.eLogLevel.Error);
                 return false;
             }
             BBEntry.globalmodnum = ModID.ToObject<int>();
 
             if (!externEntry.TryGetValue("S", out JToken hasSym) || hasSym.Type != JTokenType.Boolean)
             {
-                Console.WriteLine("[rgat]Error: Symbol presence not found in extern entry");
+                Logging.RecordLogEvent("[rgat]Error: Symbol presence not found in extern entry", Logging.eLogLevel.Error);
                 return false;
             }
             BBEntry.hasSymbol = ModID.ToObject<bool>();
@@ -856,7 +857,7 @@ namespace rgatCore
             JArray ExternsArray = (JArray)jExterns;
 
 
-            Console.WriteLine("Loading " + ExternsArray.Count + " externs");
+            Logging.RecordLogEvent("Loading " + ExternsArray.Count + " externs", Logging.eLogLevel.Debug);
             //display_only_status_message(externLoadMsg.str(), clientState);
 
             foreach (JObject externObj in ExternsArray.Children())
@@ -892,7 +893,7 @@ namespace rgatCore
             }
             else
             {
-                Console.WriteLine($"Error: Serialise() - Invalid bitwidth {BitWidth}");
+                Logging.RecordLogEvent($"Error: Serialise() - Invalid bitwidth {BitWidth}", Logging.eLogLevel.Error);
                 return;
             }
 

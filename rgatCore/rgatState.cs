@@ -34,12 +34,11 @@ namespace rgatCore
             _GraphicsDevice = _gd;
             _CommandList = _cl;
             PlottedGraph.clientState = this;
-            Console.WriteLine("Loading dielib");
+            Logging.RecordLogEvent("Loading dielib", Logging.eLogLevel.Debug);
             DIELib = new DetectItEasy(@"C:\Users\nia\Downloads\Detect-It-Easy-master\db");
-            Console.WriteLine("dielib loaded. loading yara");
+            Logging.RecordLogEvent("dielib loaded. loading yara", Logging.eLogLevel.Debug);
             YARALib = new YARAScan();
-
-            Console.WriteLine("yara loaded");
+            Logging.RecordLogEvent("yara loaded", Logging.eLogLevel.Debug);
         }
 
 
@@ -82,45 +81,7 @@ namespace rgatCore
 
 
 
-
-        public enum eMessageType { eDebug = 0, eLog = 1, Alert = 2, eVisThread = 2, eVisProcess = 4, eVisAll = 8 }
-
-        public struct DISPLAY_MESSAGE
-        {
-            public eMessageType visibility;
-            public string text;
-            public uint? colour;
-            public long expiryMS;
-            public ProtoGraph graph;
-        }
-        List<DISPLAY_MESSAGE> DisplayMessages = new List<DISPLAY_MESSAGE>();
-        readonly object _messagesLock = new object();
-
-
-        /// <summary>      
-        /// Display a message in the logfile/message window
-        /// Also will show on the UI alert pane with the Alert option
-        /// </summary>
-        /// <param name="message">Message to display</param>
-        /// <param name="visibility">    
-        /// Debug -     Diagnostic debug log visible messages generally uninteresting to users
-        /// Log -       Information messages users might want to seek out
-        /// Alert -     Information the user needs to see to enable proper functionality. Will be shown somewhere prominent.
-        /// </param>
-        /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
-        /// <param name="colour">Optional colour, otherwise default will be used</param>
-
-        public void AddLogMessage(string text, eMessageType visibility = eMessageType.eLog, ProtoGraph? graph = null, WritableRgbaFloat? colour = null)
-        {
-            Debug.Assert(visibility >= eMessageType.eDebug && visibility <= eMessageType.Alert);
-            //Add to log queue
-        }
-        public void AddLogMessage(DISPLAY_MESSAGE msg)
-        {
-            //Add to log queue
-        }
-
-
+        /*
 
         /// <summary>
         /// Display a message in the visualise log panel, useful for helping the user understand the events unfolding 
@@ -138,7 +99,7 @@ namespace rgatCore
             Debug.Assert(visibility >= eMessageType.eVisThread && visibility <= eMessageType.eVisAll);
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             //Show on visualiser widgets
-            DISPLAY_MESSAGE msg = new DISPLAY_MESSAGE()
+            LOG_ENTRY msg = new LOG_ENTRY()
             {
                 colour = colour?.ToUint(),
                 graph = graph,
@@ -154,17 +115,18 @@ namespace rgatCore
         }
 
 
-        public DISPLAY_MESSAGE[] GetVisualiserMessages()
+        public LOG_ENTRY[] GetVisualiserMessages()
         {
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             lock (_messagesLock)
             {
-                DISPLAY_MESSAGE[] result = DisplayMessages.Where(x => x.expiryMS > timenow).ToArray();
+                LOG_ENTRY[] result = DisplayMessages.Where(x => x.expiryMS > timenow).ToArray();
                 if (result.Length < DisplayMessages.Count)
                     DisplayMessages = result.ToList();
                 return result;
             }
         }
+        */
 
 
         public void SetActiveTarget(string path)
@@ -319,7 +281,7 @@ namespace rgatCore
             PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
-                Console.WriteLine("Got first graph " + firstgraph.tid);
+                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, Logging.eLogLevel.Debug);
                 SwitchToGraph(firstgraph);
                 //firstgraph->decrease_thread_references(33);
             }

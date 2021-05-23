@@ -436,7 +436,7 @@ namespace rgatCore
                     imdp.AddRect(
                         p_min: new Vector2(subGraphPosition.X + halfBorderThickness, subGraphPosition.Y + halfBorderThickness),
                         p_max: new Vector2((subGraphPosition.X + EachGraphWidth - halfBorderThickness), subGraphPosition.Y + EachGraphHeight - halfBorderThickness),
-                        col: GetGraphBorderColour(graph), 0, ImDrawCornerFlags.None, borderThickness);
+                        col: GetGraphBorderColour(graph), 0, ImDrawFlags.None, borderThickness);
                 }
             }
 

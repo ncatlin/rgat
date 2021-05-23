@@ -64,9 +64,9 @@ namespace ImGuiNET
             preferDepthRangeZeroToOne: true,
             preferStandardClipSpaceYDirection: false);
 
-            //todo: work out how to create consistent rendering with each backend
             VeldridStartup.CreateWindowAndGraphicsDevice(
                 new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
+                //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
                 options,
                 preferredBackend: GraphicsBackend.Vulkan,
                 out _window,
@@ -153,6 +153,7 @@ namespace ImGuiNET
 
         private static unsafe void SubmitDemoUI()
         {
+
             // Demo code adapted from the official Dear ImGui demo program:
             // https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx11/main.cpp#L172
 
@@ -179,7 +180,6 @@ namespace ImGuiNET
                 float framerate = ImGui.GetIO().Framerate;
                 ImGui.Text($"Application average {1000.0f / framerate:0.##} ms/frame ({framerate:0.#} FPS)");
             }
-
             // 2. Show another simple window. In most cases you will use an explicit Begin/End pair to name your windows.
             if (_showAnotherWindow)
             {

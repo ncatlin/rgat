@@ -168,7 +168,7 @@ namespace rgatCore
             IsAnimated = false;
 
             ReplayState = REPLAY_STATE.eStopped;
-            Console.WriteLine("Animation Stopped");
+            Logging.RecordLogEvent("Animation reset to stopped state");
             //animnodesdata.release_col_write();
 
 
@@ -900,7 +900,7 @@ namespace rgatCore
             if (bufferSize > oldVelocityArraySize || currentOffset >= oldVelocityArraySize) //todo this is bad
             {
                 uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
-                Console.WriteLine($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}");
+                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.eLogLevel.Debug);
                 EnlargeRAMDataBuffers(newSize);
             }
 

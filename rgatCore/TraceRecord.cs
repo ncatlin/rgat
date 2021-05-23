@@ -85,18 +85,18 @@ namespace rgatCore
 
         public void SetTraceState(eTraceState newState)
         {
-            Console.WriteLine($"Set trace state {newState}");
+            Logging.RecordLogEvent($"Set trace state {newState}", Logging.eLogLevel.Debug);
             if (TraceState == newState) return;
-            Console.WriteLine("\tactioning it");
+            Logging.RecordLogEvent("\tactioning it", Logging.eLogLevel.Debug);
             if (newState != eTraceState.eSuspended)
             {
 
                 lock (GraphListLock)
                 {
-                    Console.WriteLine($"\t\t {ProtoGraphs.Count} graphs");
+                    Logging.RecordLogEvent($"\t\t {ProtoGraphs.Count} graphs", Logging.eLogLevel.Debug);
                     foreach (ProtoGraph graph in ProtoGraphs.Values)
                     {
-                        Console.WriteLine("\t\t clearing flag step");
+                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.eLogLevel.Debug);
                         graph.ClearRecentStep();
                     }
                 }
@@ -174,16 +174,16 @@ namespace rgatCore
         {
             if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
             {
-                Console.WriteLine("[rgat]ERROR: Process data load failed");
+                Logging.RecordLogEvent("ERROR: Process data load failed", Logging.eLogLevel.Error);
                 return false;
             }
 
-            Console.WriteLine("[rgat]Loaded process data. Loading graphs...");
+            Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.eLogLevel.Debug);
 
 
             if (!LoadProcessGraphs(saveJSON))//, colours))//.. &config.graphColours))
             {
-                Console.WriteLine("[rgat]Process Graph load failed");
+                Logging.RecordLogEvent("Process Graph load failed", Logging.eLogLevel.Error);
                 return false;
             }
             /*
@@ -209,6 +209,46 @@ namespace rgatCore
 
         //void killTree();
 
+        // Process start, process end, thread start, thread end
+        readonly object _logLock = new object();
+        List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
+        public void RecordTimelineEvent(Logging.eTimelineEvent type, ulong ID, ulong parentID = ulong.MaxValue)
+        {
+            Logging.TIMELINE_EVENT tlevent = new Logging.TIMELINE_EVENT(type);
+            tlevent.SetIDs(ID: ID, parentID: parentID);
+
+            lock (_logLock)
+            {
+                _timeline.Add(tlevent);
+            }
+        }
+
+
+        /// <summary>
+        /// Fetches an array of the newest timeline events for the trace
+        /// </summary>
+        /// <param name="oldest">The oldest event to return</param>
+        /// <param name="max">The most events to return. Default 5.</param>
+        /// <returns>And array of TIMELINE_EVENT objects</returns>
+        public Logging.TIMELINE_EVENT[] GetTimeLineEntries(long oldest = 0, int max = 5)
+        {
+            List<Logging.TIMELINE_EVENT> results = new List<Logging.TIMELINE_EVENT>();
+            lock (_logLock)
+            {
+                var last = _timeline.Count - 1;
+                for (; last >= 0 && last >= _timeline.Count - max; last--)
+                {
+                    if (_timeline[last].EventTimeMS < oldest) break;
+                }
+                for (var i = last+1; i < _timeline.Count; i++)
+                {
+                    results.Add(_timeline[i]);
+                }
+            }
+            return results.ToArray();
+        }
+
+
         public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
         {
             localmodID = DisassemblyData.FindContainingModule(address);
@@ -223,8 +263,7 @@ namespace rgatCore
                     localmodID = DisassemblyData.FindContainingModule(address);
                     if (localmodID != -1)
                     {
-                        Console.WriteLine("found!");
-
+                        Console.WriteLine("FindContainingModule found!");
                         break;
                     }
                 }
@@ -264,19 +303,19 @@ namespace rgatCore
         {
             if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Threads in trace");
+                Logging.RecordLogEvent("Failed to find valid Threads in trace", Logging.eLogLevel.Error);
                 return false;
             }
 
             JArray ThreadsArray = (JArray)jThreads;
-            Console.WriteLine("Loading " + ThreadsArray.Count + " thread graphs");
+            Logging.RecordLogEvent("Loading " + ThreadsArray.Count + " thread graphs", Logging.eLogLevel.Debug);
             //display_only_status_message(graphLoadMsg.str(), clientState);
 
             foreach (JObject threadObj in ThreadsArray)
             {
                 if (!LoadGraph(threadObj))
                 {
-                    Console.WriteLine("[rgat] Failed to load graph");
+                    Logging.RecordLogEvent("Failed to load graph", Logging.eLogLevel.Error);
                     return false;
                 }
             }
@@ -289,12 +328,12 @@ namespace rgatCore
         {
             if (!jThreadObj.TryGetValue("ThreadID", out JToken tTID) || tTID.Type != JTokenType.Integer)
             {
-                Console.WriteLine("[rgat] Failed to find valid ThreadID in thread");
+                Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.eLogLevel.Error);
                 return false;
             }
 
             uint GraphThreadID = tTID.ToObject<uint>();
-            Console.WriteLine("Loading thread ID " + GraphThreadID.ToString());
+            Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.eLogLevel.Debug);
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
             ProtoGraph protograph = new ProtoGraph(this, GraphThreadID);
@@ -310,7 +349,7 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Console.WriteLine("Deserialising trace file failed: " + e.Message);
+                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message, Logging.eLogLevel.Error);
                 return false;
             }
 
@@ -339,17 +378,17 @@ namespace rgatCore
         /// <returns>The path the trace was saved to</returns>
         public string Save(DateTime traceStartedTime)
         {
-            Console.WriteLine($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
+            Logging.RecordLogEvent($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
             if (TraceType != eTracePurpose.eVisualiser)
             {
-                Console.WriteLine("\tSkipping non visualiser trace");
+                Logging.RecordLogEvent("\tSkipping non visualiser trace");
                 return "";
             }
 
             JsonTextWriter wr = CreateSaveFile(traceStartedTime);
             if (wr == null)
             {
-                Console.WriteLine("\tSaving Failed: Unable to create filestream");
+                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.eLogLevel.Error);
                 return "";
             }
 
@@ -374,7 +413,7 @@ namespace rgatCore
             traceSaveObject.WriteTo(wr);
             wr.Close();
 
-            Console.WriteLine("Trace Save Complete");
+            Logging.RecordLogEvent("Trace Save Complete");
             return wr.Path;
         }
 
@@ -415,7 +454,7 @@ namespace rgatCore
             }
             if (!Directory.Exists(GlobalConfig.SaveDirectory))
             {
-                Console.WriteLine("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist");
+                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist", Logging.eLogLevel.Info);
                 return null;
             }
 
@@ -428,12 +467,12 @@ namespace rgatCore
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine($"\tWarning: Unauthorized to open {path} for writing");
+                Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.eLogLevel.Info);
                 return null;
             }
             catch
             {
-                Console.WriteLine($"\tWarning: Failed to open {path} for writing");
+                Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.eLogLevel.Info);
                 return null;
             }
 
@@ -499,7 +538,7 @@ namespace rgatCore
         {
             if (_moduleThread == null)
             {
-                Console.WriteLine("Error: DBG command send to trace with no active module thread");
+                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.eLogLevel.Error);
                 return;
             }
 
@@ -507,7 +546,7 @@ namespace rgatCore
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
             if (_moduleThread.SendCommand(buf) == -1)
             {
-                Console.WriteLine("Error sending command to control pipe");
+                Logging.RecordLogEvent("Error sending command to control pipe", Logging.eLogLevel.Error);
             }
         }
 
