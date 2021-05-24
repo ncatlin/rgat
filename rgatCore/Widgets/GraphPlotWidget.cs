@@ -942,11 +942,7 @@ namespace rgatCore
             _gd.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
             _gd.WaitForIdle();
-            ImFontGlyphPtr glpha = _controller._unicodeFont.FindGlyph('a');
-            ImFontGlyphPtr glphb = _controller._unicodeFont.FindGlyph('b');
-            ImFontGlyphPtr glphc = _controller._unicodeFont.FindGlyph('c');
 
-            System.Diagnostics.Debug.Assert(_controller._unicodeFont.GetCharAdvance('a') == _controller._unicodeFont.FindGlyph('a').AdvanceX);
 
 
             List<fontStruc> stringVerts;

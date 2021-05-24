@@ -12,6 +12,7 @@ using rgatCore.Threads;
 using System.Drawing;
 using rgatCore.Widgets;
 using System.Linq;
+using static rgatCore.Logging;
 
 namespace rgatCore
 {
@@ -1253,51 +1254,185 @@ namespace rgatCore
         }
 
 
+        static bool[] selected = new bool[(int)LogFilterType.COUNT];
+        static bool[] rowLastSelected = new bool[3];
+        static byte[] textFilterValue = new byte[500];
         private void DrawLogsTab()
         {
-            //_rgatstate.
-            //ImGui.InputTextMultiline("MultilineTExt label", ref logslist[0], 2000, new Vector2(500, 300), ImGuiInputTextFlags.ReadOnly);
-            //ImGui.TextWrapped("WrappedText");
-            Logging.LOG_EVENT[] msgs = Logging.GetLogMessages();
-
-         
-            if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders))
+            if (ImGui.BeginChildFrame(ImGui.GetID("logtableframe"), ImGui.GetContentRegionAvail()))
             {
-                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 100);
-                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 60);
-                ImGui.TableSetupColumn("Log");
-                ImGui.TableHeadersRow();
+                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(selected);
+                int activeCount = selected.Where(x => x == true).Count();
 
-                foreach (Logging.LOG_EVENT msg in msgs)
+                string label = $"{msgs.Length} log entries displayed from ({selected.Length-activeCount}/{selected.Length}) sources";
+                bool isOpen = ImGui.TreeNode("##FiltersTree", label);
+                if (isOpen)
                 {
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                    string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
-                    ImGui.Text(timeString);
+                    Vector2 boxSize = new Vector2(64, 40);
+                    Vector2 marginSize = new Vector2(70, 40);
 
-                    ImGui.TableNextColumn();
-                    ImGui.Text(msg.LogType.ToString());
+                    ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
+                    uint tableHdrBG = 0xff333333;
 
-                    string msgString;
-                    switch (msg.LogType)
+                    if (ImGui.BeginTable("LogFilterTable", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(440, 100)))
                     {
-                        case Logging.eLogType.Text:
-                            {
-                                Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
-                                msgString = text_evt._text;
-                                break;
-                            }
-                        default:
-                            msgString = "Other event type " + msg.LogType.ToString();
-                            break;
+                        ImGui.TableNextRow();
 
+                        ImGui.TableSetColumnIndex(0);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                        if (ImGui.Selectable("Message", false, flags, marginSize))
+                        {
+                            rowLastSelected[0] = !rowLastSelected[0];
+                            selected[(int)LogFilterType.TextDebug] = rowLastSelected[0];
+                            selected[(int)LogFilterType.TextInfo] = rowLastSelected[0];
+                            selected[(int)LogFilterType.TextAlert] = rowLastSelected[0];
+                            selected[(int)LogFilterType.TextError] = rowLastSelected[0];
+                        }
+
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Debug", ref selected[(int)LogFilterType.TextDebug], flags, boxSize);
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Info", ref selected[(int)LogFilterType.TextInfo], flags, boxSize);
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Alert", ref selected[(int)LogFilterType.TextAlert], flags, boxSize);
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Error", ref selected[(int)LogFilterType.TextError], flags, boxSize);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableSetColumnIndex(0);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                        if (ImGui.Selectable("Timeline", false, flags, marginSize))
+                        {
+                            rowLastSelected[1] = !rowLastSelected[1];
+                            selected[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
+                            selected[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
+                        }
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Process", ref selected[(int)LogFilterType.TimelineProcess], flags, boxSize);
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Thread", ref selected[(int)LogFilterType.TimelineThread], flags, boxSize);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableSetColumnIndex(0);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                        if (ImGui.Selectable("API", false, flags, marginSize))
+                        {
+                            rowLastSelected[2] = !rowLastSelected[2];
+                            selected[(int)LogFilterType.APIFile] = rowLastSelected[2];
+                            selected[(int)LogFilterType.APINetwork] = rowLastSelected[2];
+                            selected[(int)LogFilterType.APIReg] = rowLastSelected[2];
+                            selected[(int)LogFilterType.APIProcess] = rowLastSelected[2];
+                            selected[(int)LogFilterType.APIOther] = rowLastSelected[2];
+                        }
+
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("File", ref selected[(int)LogFilterType.APIFile], flags, boxSize);
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Network", ref selected[(int)LogFilterType.APINetwork], flags, boxSize);
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Registry", ref selected[(int)LogFilterType.APIReg], flags, boxSize);
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Process", ref selected[(int)LogFilterType.APIProcess], flags, boxSize);
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable("Other", ref selected[(int)LogFilterType.APIOther], flags, boxSize);
+                        ImGui.EndTable();
                     }
+                    
+                    if (ImGui.BeginPopupContextItem("FlterTableRightCtx",ImGuiPopupFlags.MouseButtonRight))
+                    {
+                        if (ImGui.MenuItem("Clear All Source Filters"))
+                        {
+                            Array.Clear(selected, 0, selected.Length);
+                        }
+                        if (ImGui.MenuItem("Apply All Source Filters"))
+                        {
+                            selected = Enumerable.Repeat(true, selected.Length).ToArray();
+                        }
+                        ImGui.EndPopup();
+                    }
+                    
+                    
+                    ImGui.BeginGroup();
 
-                    ImGui.TableNextColumn();
-                    ImGui.TextWrapped(msgString);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
+                    ImGui.Indent(8);
+                    ImGui.Text("Log Text Filter");
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(280);
+                    ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
+
+                    ImGui.SameLine();
+                    if (ImGui.Button("Clear")) textFilterValue = new byte[textFilterValue.Length];
+
+                    ImGui.EndGroup();
+
+
+                    ImGui.TreePop();
                 }
-                ImGui.EndTable();
+
+
+
+
+
+
+
+
+
+
+
+                if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders))
+                {
+                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 100);
+                    ImGui.TableSetupColumn("Details");
+                    ImGui.TableHeadersRow();
+
+                    foreach (LOG_EVENT msg in msgs)
+                    {
+                        string msgString;
+                        string sourceString;
+                        switch (msg.LogType)
+                        {
+                            case Logging.eLogType.Text:
+                                {
+                                    Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
+                                    sourceString = $"{msg.LogType} - {text_evt._logLevel}";
+                                    msgString = text_evt._text;
+                                    break;
+                                }
+
+                            case Logging.eLogType.TimeLine:
+                                {
+                                    Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
+                                    sourceString = $"{msg.LogType} - {tl_evt.LogType}";
+                                    msgString = tl_evt.ID.ToString();
+                                    break;
+                                }
+                            default:
+                                sourceString = "";
+                                msgString = "Other event type " + msg.LogType.ToString();
+                                break;
+
+                        }
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                        ImGui.Text(timeString);
+                        ImGui.TableNextColumn();
+                        ImGui.Text(sourceString);
+                        ImGui.TableNextColumn();
+                        ImGui.TextWrapped(msgString);
+                    }
+                    ImGui.EndTable();
+                }
+                ImGui.EndChildFrame();
             }
         }
 

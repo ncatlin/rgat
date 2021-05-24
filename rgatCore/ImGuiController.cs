@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Vulkan;
 using Veldrid.ImageSharp;
 using rgatCore;
+using System.Diagnostics;
 
 namespace ImGuiNET
 {
@@ -73,12 +74,18 @@ namespace ImGuiNET
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
             _originalFont = fonts.AddFontDefault();
+
+
             Logging.RecordLogEvent("Done Loading fonts", Logging.eLogLevel.Debug);
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
             LoadImages();
             SetPerFrameImGuiData(1f / 60f);
+
+            Debug.Assert(_unicodeFont.GetCharAdvance('a') == _unicodeFont.FindGlyph('a').AdvanceX,
+"The ImGui.NET used is not handling bitfields properly, preventing fonts from rendering correctly in the graph. https://github.com/mellinoe/ImGui.NET/issues/206");
+
 
             ImGui.NewFrame();
             _frameBegun = true;

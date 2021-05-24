@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace rgatCore
@@ -20,13 +21,31 @@ namespace rgatCore
             public eLogType LogType => _type;
             long _eventTimeMS;
             eLogType _type;
+            public LogFilterType Filter;
         }
 
 
         public enum eTimelineEvent { ProcessStart, ProcessEnd, ThreadStart, ThreadEnd }
         public class TIMELINE_EVENT : LOG_EVENT
         {
-            public TIMELINE_EVENT(eTimelineEvent timelineEventType) : base(eLogType.TimeLine) => _eventType = timelineEventType;
+            public TIMELINE_EVENT(eTimelineEvent timelineEventType) : base(eLogType.TimeLine)
+            {
+                _eventType = timelineEventType;
+                switch (_eventType)
+                {
+                    case eTimelineEvent.ProcessStart:
+                    case eTimelineEvent.ProcessEnd:
+                        Filter = LogFilterType.TimelineProcess;
+                        break;
+                    case eTimelineEvent.ThreadStart:
+                    case eTimelineEvent.ThreadEnd:
+                        Filter = LogFilterType.TimelineThread;
+                        break;
+                    default:
+                        Debug.Assert(false, "Bad timeline event");
+                        break;
+                }
+            }
 
             //process/thread ID of event source. parent ID optional, depending on context
             public void SetIDs(ulong ID, ulong parentID = ulong.MaxValue) { _ID = ID; _parentID = parentID; }
@@ -40,6 +59,8 @@ namespace rgatCore
         }
 
 
+        public enum LogFilterType { TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
+        APIFile, APIReg, APINetwork, APIProcess, APIOther, COUNT };
 
         public enum eLogLevel { Debug, Info, Error, Alert }
 
@@ -53,7 +74,25 @@ namespace rgatCore
             public TEXT_LOG_EVENT(eLogLevel logLevel, string text) : base(eLogType.Text)
             {
                 _logLevel = logLevel;
-                _text = text;
+                _text = text; 
+                switch (logLevel)
+                {
+                    case eLogLevel.Debug:
+                        Filter = LogFilterType.TextDebug;
+                        break;
+                    case eLogLevel.Info:
+                        Filter = LogFilterType.TextInfo;
+                        break;
+                    case eLogLevel.Alert:
+                        Filter = LogFilterType.TextAlert;
+                        break;
+                    case eLogLevel.Error:
+                        Filter = LogFilterType.TextError;
+                        break;
+                    default:
+                        Debug.Assert(false, "Bad text log event");
+                        break;
+                }
             }
 
             public void SetAssociatedGraph(ProtoGraph graph)
@@ -96,11 +135,11 @@ namespace rgatCore
             }
         }
 
-        public static LOG_EVENT[] GetLogMessages()
+        public static LOG_EVENT[] GetLogMessages(bool[] filters)
         {
             lock (_messagesLock)
             {
-                return _logMessages.ToArray();
+               return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
             }
         }
 
