@@ -619,7 +619,7 @@ namespace rgatCore
                 var bufferSize = bufferFloatCount * sizeof(float);
                 Debug.Assert(bufferSize >= updateSize);
 
-                Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {_activeVelocityBuffer1.SizeInBytes}", Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {_activeVelocityBuffer1.SizeInBytes}", Logging.LogFilterType.TextDebug);
                 resizeComputeBuffers(bufferSize);
             }
 

@@ -47,11 +47,11 @@ namespace rgatCore
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
-            Logging.RecordLogEvent("Constructing rgatUI", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
             _rgatstate = new rgatState(_gd, _cl);
-            RecordLogEvent("State created", Logging.eLogLevel.Debug);
+            RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
             GlobalConfig.InitDefaultConfig();
-            RecordLogEvent("Config Inited", Logging.eLogLevel.Debug);
+            RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
 
             _ImGuiController = imguicontroller;
 
@@ -67,30 +67,30 @@ namespace rgatCore
 
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
-            Logging.RecordLogEvent("rgatUI created", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("rgatUI created", Logging.LogFilterType.TextDebug);
 
-            RecordLogEvent("Signature hit: first aslert", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
-            RecordLogEvent("Signature hit: Last alert", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: first aslert", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
+            RecordLogEvent("Signature hit: Last alert", LogFilterType.TextAlert);
 
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
@@ -1398,6 +1398,10 @@ namespace rgatCore
                     ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
                     uint tableHdrBG = 0xff333333;
 
+
+                    var textFilterCounts = Logging.GetTextFilterCounts();
+                    var timelineCounts = _rgatstate.ActiveTrace?.GetTimeLineFilterCounts();
+
                     if (ImGui.BeginTable("LogFilterTable", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(440, 100)))
                     {
                         ImGui.TableNextRow();
@@ -1415,16 +1419,20 @@ namespace rgatCore
 
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Debug", ref _LogFilters[(int)LogFilterType.TextDebug], flags, boxSize);
+                        ImGui.Selectable($"Debug ({textFilterCounts[LogFilterType.TextDebug]})", 
+                            ref _LogFilters[(int)LogFilterType.TextDebug], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Info", ref _LogFilters[(int)LogFilterType.TextInfo], flags, boxSize);
+                        ImGui.Selectable($"Info ({textFilterCounts[LogFilterType.TextInfo]})",
+                            ref _LogFilters[(int)LogFilterType.TextInfo], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Alert", ref _LogFilters[(int)LogFilterType.TextAlert], flags, boxSize);
+                        ImGui.Selectable($"Alert ({textFilterCounts[LogFilterType.TextAlert]})", 
+                            ref _LogFilters[(int)LogFilterType.TextAlert], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Error", ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
+                        ImGui.Selectable($"Error ({textFilterCounts[LogFilterType.TextError]})",
+                            ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
 
                         ImGui.TableNextRow();
                         ImGui.TableSetColumnIndex(0);
@@ -1436,10 +1444,12 @@ namespace rgatCore
                             _LogFilters[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
                         }
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Process", ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
+                        int processCounts = timelineCounts != null ? timelineCounts[LogFilterType.TimelineProcess] : 0;
+                        ImGui.Selectable($"Process ({processCounts})", ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Thread", ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
+                        int threadCounts = timelineCounts != null ? timelineCounts[LogFilterType.TimelineThread] : 0;
+                        ImGui.Selectable($"Thread ({threadCounts})", ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
 
                         ImGui.TableNextRow();
                         ImGui.TableSetColumnIndex(0);
@@ -1501,32 +1511,52 @@ namespace rgatCore
 
 
 
-
-                if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders))
+                List<LOG_EVENT> shownMsgs = new List<LOG_EVENT>(msgs);
+                bool TlProcessShown = _LogFilters[(int)Logging.LogFilterType.TimelineProcess];
+                bool TlThreadShown = _LogFilters[(int)Logging.LogFilterType.TimelineThread];
+                if (TlProcessShown || TlThreadShown)
                 {
+                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
+                    foreach (TIMELINE_EVENT ev in TLmsgs)
+                    {
+                        if (_LogFilters[(int)ev.Filter]) shownMsgs.Add(ev);
+                    }
+                }
+
+                var sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS);
+                int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
+                string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
+
+
+                if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
+                {
+                    ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 90);
                     ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 100);
                     ImGui.TableSetupColumn("Details");
                     ImGui.TableHeadersRow();
 
-                    foreach (LOG_EVENT msg in msgs)
+                    foreach (LOG_EVENT msg in sortedMsgs)
                     {
+                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+
                         string msgString;
                         string sourceString;
                         switch (msg.LogType)
                         {
-                            case Logging.eLogType.Text:
+                            case eLogType.Text:
                                 {
                                     Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
-                                    sourceString = $"{msg.LogType} - {text_evt._logLevel}";
+                                    sourceString = $"{msg.LogType} - {text_evt._filter}";
                                     msgString = text_evt._text;
                                     break;
                                 }
 
-                            case Logging.eLogType.TimeLine:
+                            case eLogType.TimeLine:
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
-                                    sourceString = $"{msg.LogType} - {tl_evt.LogType}";
+                                    sourceString = $"{tl_evt.Filter}";
                                     msgString = tl_evt.ID.ToString();
                                     break;
                                 }
@@ -1537,17 +1567,25 @@ namespace rgatCore
 
                         }
 
+
+
+                        if (filterLen > 0)
+                        {
+                            if (!msgString.Contains(textFilterString) &&
+                                !sourceString.Contains(textFilterString) &&
+                                !timeString.Contains(textFilterString))
+                                continue;
+                        }
+
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
                         ImGui.Text(timeString);
                         ImGui.TableNextColumn();
                         ImGui.Text(sourceString);
                         ImGui.TableNextColumn();
                         ImGui.TextWrapped(msgString);
                     }
-                    ImGui.EndTable();
+                    ImGui.EndTable(); ;
                 }
                 ImGui.EndChildFrame();
             }
@@ -1623,9 +1661,9 @@ namespace rgatCore
         private unsafe void DrawTabs()
         {
             bool tabDrawn = false;
-            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs; 
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
 
-            if(_WaitingNewTraceCount != -1 && _rgatstate.InstrumentationCount > _WaitingNewTraceCount)
+            if (_WaitingNewTraceCount != -1 && _rgatstate.InstrumentationCount > _WaitingNewTraceCount)
             {
                 _WaitingNewTraceCount = -1;
                 _SwitchToVisualiserTab = true;
@@ -1669,7 +1707,7 @@ namespace rgatCore
 
                 if (_SwitchToLogsTab)
                 {
-                    tabDrawn = ImGui.BeginTabItem("Logs", ref tabDrawn, ImGuiTabItemFlags.SetSelected); 
+                    tabDrawn = ImGui.BeginTabItem("Logs", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
                     _SwitchToLogsTab = false;
                 }
                 else

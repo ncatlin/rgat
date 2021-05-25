@@ -45,7 +45,7 @@ namespace rgatCore.Threads
 				string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
 
 				string[] fields = csString.Split(',');
-				Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.eLogLevel.Debug);
+				Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.TextDebug);
 
 				if (fields.Length == 5)
 				{
@@ -63,11 +63,11 @@ namespace rgatCore.Threads
 						byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
 						coordPipe.Write(outBuffer);
 						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
-						Logging.RecordLogEvent($"Coordinator connection initiated", Logging.eLogLevel.Debug);
+						Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.TextDebug);
 					}
 					else
 					{
-						Logging.RecordLogEvent($"Coordinator got bad data from client: " + csString, Logging.eLogLevel.Error);
+						Logging.RecordLogEvent($"Coordinator got bad data from client: " + csString, Logging.LogFilterType.TextError);
 					}
 				}
 			}
@@ -82,11 +82,11 @@ namespace rgatCore.Threads
 			try
 			{
 				nps.EndWaitForConnection(ar);
-				Logging.RecordLogEvent($"Incoming connection on coordinator pipe", Logging.eLogLevel.Debug);
+				Logging.RecordLogEvent($"Incoming connection on coordinator pipe", Logging.LogFilterType.TextDebug);
 			}
 			catch (Exception e)
 			{
-				Logging.RecordLogEvent($"Coordinator pipe callback exception {e.Message}", Logging.eLogLevel.Error);
+				Logging.RecordLogEvent($"Coordinator pipe callback exception {e.Message}", Logging.LogFilterType.TextError);
 			}
 			
 		}
@@ -100,7 +100,7 @@ namespace rgatCore.Threads
 			} catch ( System.IO.IOException e)
 			{
 				string errmsg = $"Error: Failed to start bootstrap thread '{e.Message}' so rgat will not process incoming traces";
-				Logging.RecordLogEvent(errmsg, Logging.eLogLevel.Alert);
+				Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextAlert);
 				//todo: does this happen outside of debugging? if so A: figure out why, B:give visual indication
 				return;
             }
@@ -116,11 +116,11 @@ namespace rgatCore.Threads
 				}
 
 
-				Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.eLogLevel.Debug);
+				Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.TextDebug);
 
 				var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
 
-				Logging.RecordLogEvent("rgatCoordinator began read", Logging.eLogLevel.Debug);
+				Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.TextDebug);
 
 				int mush = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
 
@@ -146,7 +146,7 @@ namespace rgatCore.Threads
 			string shortName = Path.GetFileName(programName).Substring(0, Math.Min(programName.Length, 20));
 			string msg = $"New instrumentation connection with {arch}-bit trace: {shortName} (PID:{PID})";
 
-			Logging.RecordLogEvent(msg, Logging.eLogLevel.Debug);
+			Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
 			BinaryTarget target;
 			if (!_clientState.targets.GetTargetByPath(programName, out target))
@@ -159,7 +159,7 @@ namespace rgatCore.Threads
 				if (target.BitWidth != 0)
 				{
 					msg = $"Warning: Incoming process reports different arch {arch} to binary {target.BitWidth}";
-					Logging.RecordLogEvent(msg, Logging.eLogLevel.Error);
+					Logging.RecordLogEvent(msg, Logging.LogFilterType.TextError);
                 }
 				target.BitWidth = arch;
 			}

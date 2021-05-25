@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -71,6 +72,9 @@ namespace rgatCore
 
             DisassemblyData = new ProcessRecord(binary.BitWidth);
             TraceState = eTraceState.eRunning;
+
+            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
+            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
         }
 
         bool _loadedFromSave = false;
@@ -85,18 +89,18 @@ namespace rgatCore
 
         public void SetTraceState(eTraceState newState)
         {
-            Logging.RecordLogEvent($"Set trace state {newState}", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent($"Set trace state {newState}", Logging.LogFilterType.TextDebug);
             if (TraceState == newState) return;
-            Logging.RecordLogEvent("\tactioning it", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.TextDebug);
             if (newState != eTraceState.eSuspended)
             {
 
                 lock (GraphListLock)
                 {
-                    Logging.RecordLogEvent($"\t\t {ProtoGraphs.Count} graphs", Logging.eLogLevel.Debug);
+                    Logging.RecordLogEvent($"\t\t {ProtoGraphs.Count} graphs", Logging.LogFilterType.TextDebug);
                     foreach (ProtoGraph graph in ProtoGraphs.Values)
                     {
-                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.eLogLevel.Debug);
+                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.LogFilterType.TextDebug);
                         graph.ClearRecentStep();
                     }
                 }
@@ -201,16 +205,16 @@ namespace rgatCore
         {
             if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
             {
-                Logging.RecordLogEvent("ERROR: Process data load failed", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("ERROR: Process data load failed",Logging.LogFilterType.TextError);
                 return false;
             }
 
-            Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.LogFilterType.TextDebug);
 
 
             if (!LoadProcessGraphs(saveJSON))//, colours))//.. &config.graphColours))
             {
-                Logging.RecordLogEvent("Process Graph load failed", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Process Graph load failed",Logging.LogFilterType.TextError);
                 return false;
             }
             /*
@@ -239,6 +243,7 @@ namespace rgatCore
         // Process start, process end, thread start, thread end
         readonly object _logLock = new object();
         List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
+        Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
         public void RecordTimelineEvent(Logging.eTimelineEvent type, ulong ID, ulong parentID = ulong.MaxValue)
         {
             Logging.TIMELINE_EVENT tlevent = new Logging.TIMELINE_EVENT(type);
@@ -246,7 +251,24 @@ namespace rgatCore
 
             lock (_logLock)
             {
+                int currentCount;
                 _timeline.Add(tlevent);
+                switch (type)
+                {
+                    case Logging.eTimelineEvent.ProcessStart:
+                    case Logging.eTimelineEvent.ProcessEnd:
+                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                        _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        break;
+                    case Logging.eTimelineEvent.ThreadStart:
+                    case Logging.eTimelineEvent.ThreadEnd:
+                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                        _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        break;
+                    default:
+                        Debug.Assert(false,"Timeline event has no assigned filter");
+                        break;
+                }
             }
         }
 
@@ -273,6 +295,17 @@ namespace rgatCore
                 }
             }
             return results.ToArray();
+        }
+
+        public Dictionary<Logging.LogFilterType, int> GetTimeLineFilterCounts()
+        {
+            Dictionary<Logging.LogFilterType, int> result = new Dictionary<Logging.LogFilterType, int>();
+            lock (_logLock)
+            {
+                result[Logging.LogFilterType.TimelineProcess] = _tlFilterCounts[Logging.LogFilterType.TimelineProcess];
+                result[Logging.LogFilterType.TimelineThread] = _tlFilterCounts[Logging.LogFilterType.TimelineThread];
+                return result;
+            }
         }
 
 
@@ -330,19 +363,19 @@ namespace rgatCore
         {
             if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)
             {
-                Logging.RecordLogEvent("Failed to find valid Threads in trace", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Failed to find valid Threads in trace",Logging.LogFilterType.TextError);
                 return false;
             }
 
             JArray ThreadsArray = (JArray)jThreads;
-            Logging.RecordLogEvent("Loading " + ThreadsArray.Count + " thread graphs", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Loading " + ThreadsArray.Count + " thread graphs", Logging.LogFilterType.TextDebug);
             //display_only_status_message(graphLoadMsg.str(), clientState);
 
             foreach (JObject threadObj in ThreadsArray)
             {
                 if (!LoadGraph(threadObj))
                 {
-                    Logging.RecordLogEvent("Failed to load graph", Logging.eLogLevel.Error);
+                    Logging.RecordLogEvent("Failed to load graph",Logging.LogFilterType.TextError);
                     return false;
                 }
             }
@@ -355,12 +388,12 @@ namespace rgatCore
         {
             if (!jThreadObj.TryGetValue("ThreadID", out JToken tTID) || tTID.Type != JTokenType.Integer)
             {
-                Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Failed to find valid ThreadID in thread",Logging.LogFilterType.TextError);
                 return false;
             }
 
             uint GraphThreadID = tTID.ToObject<uint>();
-            Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.LogFilterType.TextDebug);
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
             ProtoGraph protograph = new ProtoGraph(this, GraphThreadID);
@@ -376,7 +409,7 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message, Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message,Logging.LogFilterType.TextError);
                 return false;
             }
 
@@ -415,7 +448,7 @@ namespace rgatCore
             JsonTextWriter wr = CreateSaveFile(traceStartedTime);
             if (wr == null)
             {
-                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream",Logging.LogFilterType.TextError);
                 return "";
             }
 
@@ -481,7 +514,7 @@ namespace rgatCore
             }
             if (!Directory.Exists(GlobalConfig.SaveDirectory))
             {
-                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist", Logging.eLogLevel.Info);
+                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist", Logging.LogFilterType.TextInfo);
                 return null;
             }
 
@@ -494,12 +527,12 @@ namespace rgatCore
             }
             catch (UnauthorizedAccessException e)
             {
-                Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.eLogLevel.Info);
+                Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.LogFilterType.TextInfo);
                 return null;
             }
             catch
             {
-                Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.eLogLevel.Info);
+                Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.LogFilterType.TextInfo);
                 return null;
             }
 
@@ -565,7 +598,7 @@ namespace rgatCore
         {
             if (_moduleThread == null)
             {
-                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread",Logging.LogFilterType.TextError);
                 return;
             }
 
@@ -573,7 +606,7 @@ namespace rgatCore
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
             if (_moduleThread.SendCommand(buf) == -1)
             {
-                Logging.RecordLogEvent("Error sending command to control pipe", Logging.eLogLevel.Error);
+                Logging.RecordLogEvent("Error sending command to control pipe",Logging.LogFilterType.TextError);
             }
         }
 

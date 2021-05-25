@@ -34,11 +34,11 @@ namespace rgatCore
             _GraphicsDevice = _gd;
             _CommandList = _cl;
             PlottedGraph.clientState = this;
-            Logging.RecordLogEvent("Loading dielib", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Loading dielib", Logging.LogFilterType.TextDebug);
             DIELib = new DetectItEasy(@"C:\Users\nia\Downloads\Detect-It-Easy-master\db");
-            Logging.RecordLogEvent("dielib loaded. loading yara", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("dielib loaded. loading yara", Logging.LogFilterType.TextDebug);
             YARALib = new YARAScan();
-            Logging.RecordLogEvent("yara loaded", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("yara loaded", Logging.LogFilterType.TextDebug);
         }
 
 
@@ -283,7 +283,7 @@ namespace rgatCore
             PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
-                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, Logging.LogFilterType.TextDebug);
                 SwitchToGraph(firstgraph);
                 //firstgraph->decrease_thread_references(33);
             }

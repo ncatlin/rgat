@@ -70,13 +70,13 @@ namespace ImGuiNET
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
             
-            Logging.RecordLogEvent("Loading fonts", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
             _originalFont = fonts.AddFontDefault();
 
 
-            Logging.RecordLogEvent("Done Loading fonts", Logging.eLogLevel.Debug);
+            Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.TextDebug);
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
@@ -560,7 +560,7 @@ namespace ImGuiNET
             uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
             if (totalVBSize > _vertexBuffer.SizeInBytes)
             {
-                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_vertexBuffer);
                 _vertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             }
@@ -568,7 +568,7 @@ namespace ImGuiNET
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
             if (totalIBSize > _indexBuffer.SizeInBytes)
             {
-                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_indexBuffer);
                 _indexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic));
             }

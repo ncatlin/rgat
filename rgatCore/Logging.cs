@@ -64,12 +64,27 @@ namespace rgatCore
             TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
             APIFile, APIReg, APINetwork, APIProcess, APIOther, COUNT
         };
-
-        public enum eLogLevel { Debug, Info, Error, Alert }
+        static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
         static List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
         static List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
         readonly static object _messagesLock = new object();
+
+
+        public static Dictionary<LogFilterType, int> GetTextFilterCounts()
+        {
+            Dictionary<LogFilterType, int> result = new Dictionary<LogFilterType, int>();
+            lock (_messagesLock)
+            {
+                result[LogFilterType.TextError] = MessageCounts[(int)LogFilterType.TextError];
+                result[LogFilterType.TextAlert] = MessageCounts[(int)LogFilterType.TextAlert];
+                result[LogFilterType.TextDebug] = MessageCounts[(int)LogFilterType.TextDebug];
+                result[LogFilterType.TextInfo] = MessageCounts[(int)LogFilterType.TextInfo];
+                return result;
+            }
+        }
+
+
 
         public static int GetAlerts(int max, out LOG_EVENT[] alerts) 
         { 
@@ -90,22 +105,22 @@ namespace rgatCore
 
         public class TEXT_LOG_EVENT : LOG_EVENT
         {
-            public TEXT_LOG_EVENT(eLogLevel logLevel, string text) : base(eLogType.Text)
+            public TEXT_LOG_EVENT(LogFilterType filter, string text) : base(eLogType.Text)
             {
-                _logLevel = logLevel;
+                _filter = filter;
                 _text = text;
-                switch (logLevel)
+                switch (filter)
                 {
-                    case eLogLevel.Debug:
+                    case LogFilterType.TextDebug:
                         Filter = LogFilterType.TextDebug;
                         break;
-                    case eLogLevel.Info:
+                    case LogFilterType.TextInfo:
                         Filter = LogFilterType.TextInfo;
                         break;
-                    case eLogLevel.Alert:
+                    case LogFilterType.TextAlert:
                         Filter = LogFilterType.TextAlert;
                         break;
-                    case eLogLevel.Error:
+                    case LogFilterType.TextError:
                         Filter = LogFilterType.TextError;
                         break;
                     default:
@@ -120,7 +135,7 @@ namespace rgatCore
                 _trace = graph.TraceData;
             }
             public void SetAssociatedTrace(TraceRecord trace) => _trace = trace;
-            public eLogLevel _logLevel;
+            public LogFilterType _filter;
             public string _text;
             //public uint? colour;
             public ProtoGraph _graph;
@@ -142,16 +157,17 @@ namespace rgatCore
         /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
         /// <param name="colour">Optional colour, otherwise default will be used</param>
 
-        public static void RecordLogEvent(string text, eLogLevel visibility = eLogLevel.Info,
+        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo,
             ProtoGraph graph = null, TraceRecord trace = null, WritableRgbaFloat? colour = null)
         {
-            TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(logLevel: visibility, text: text);
+            TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }
             if (trace != null) { log.SetAssociatedTrace(trace); }
             lock (_messagesLock)
             {
                 _logMessages.Add(log);
-                if (log._logLevel == eLogLevel.Alert) _alertNotifications.Add(log);
+                if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
+                MessageCounts[(int)filter] += 1;
             }
         }
 

@@ -900,7 +900,7 @@ namespace rgatCore
             if (bufferSize > oldVelocityArraySize || currentOffset >= oldVelocityArraySize) //todo this is bad
             {
                 uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
-                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.LogFilterType.TextDebug);
                 EnlargeRAMDataBuffers(newSize);
             }
 

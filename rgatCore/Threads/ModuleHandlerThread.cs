@@ -115,7 +115,7 @@ namespace rgatCore
                         break;
                     }
                 default:
-                    Logging.RecordLogEvent("HandleNewThread Bad Trace Type " + trace.TraceType, Logging.eLogLevel.Error);
+                    Logging.RecordLogEvent("HandleNewThread Bad Trace Type " + trace.TraceType, Logging.LogFilterType.TextError);
                     break;
             }
 
@@ -215,13 +215,13 @@ namespace rgatCore
 
                 foreach (string name in tracedDirs)
                 {
-                    Logging.RecordLogEvent($"Sending traced directory {name}", Logging.eLogLevel.Debug);
+                    Logging.RecordLogEvent($"Sending traced directory {name}", Logging.LogFilterType.TextDebug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in tracedFiles)
                 {
-                    Logging.RecordLogEvent($"Sending traced file {name}", Logging.eLogLevel.Debug);
+                    Logging.RecordLogEvent($"Sending traced file {name}", Logging.LogFilterType.TextDebug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
@@ -233,13 +233,13 @@ namespace rgatCore
 
                 foreach (string name in ignoredDirs)
                 {
-                    Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.eLogLevel.Debug);
+                    Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.TextDebug);
                     buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
                 foreach (string name in ignoredFiles)
                 {
-                    Logging.RecordLogEvent($"Sending ignored file {name}", Logging.eLogLevel.Debug);
+                    Logging.RecordLogEvent($"Sending ignored file {name}", Logging.LogFilterType.TextDebug);
                     buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
                 }
@@ -256,7 +256,7 @@ namespace rgatCore
             foreach (KeyValuePair<string, string> kvp in config)
             {
                 string cmdc = $"@CK@{kvp.Key}@{kvp.Value}@\n\x00\x00\x00";
-                Logging.RecordLogEvent("MH:SendConfiguration() sending command " + cmdc, Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent("MH:SendConfiguration() sending command " + cmdc, Logging.LogFilterType.TextDebug);
                 CommandWrite(cmdc);
             }
         }
@@ -282,7 +282,7 @@ namespace rgatCore
                 {
                     eventPipe.EndWaitForConnection(ar);
                 }
-                Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.eLogLevel.Debug);
+                Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.LogFilterType.TextDebug);
             }
             catch (Exception e)
             {
@@ -309,7 +309,7 @@ namespace rgatCore
             {
                 if (bytesread != 0)
                 {
-                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.eLogLevel.Error);
+                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.TextError);
                 }
 
                 return;
@@ -357,7 +357,7 @@ namespace rgatCore
                         trace.SetTraceState(eTraceState.eRunning);
                         break;
                     default:
-                        Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.eLogLevel.Error);
+                        Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.LogFilterType.TextError);
                         break;
                 }
                 return;
@@ -372,7 +372,7 @@ namespace rgatCore
             }
 
             string errmsg = $"Control pipe read unhandled entry from PID {trace.PID}: {ASCIIEncoding.ASCII.GetString(buf)}";
-            Logging.RecordLogEvent(errmsg, Logging.eLogLevel.Error, trace: trace);
+            Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextError, trace: trace);
         }
 
 
