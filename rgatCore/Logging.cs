@@ -59,22 +59,41 @@ namespace rgatCore
         }
 
 
-        public enum LogFilterType { TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
-        APIFile, APIReg, APINetwork, APIProcess, APIOther, COUNT };
+        public enum LogFilterType
+        {
+            TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
+            APIFile, APIReg, APINetwork, APIProcess, APIOther, COUNT
+        };
 
         public enum eLogLevel { Debug, Info, Error, Alert }
 
         static List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
+        static List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
         readonly static object _messagesLock = new object();
 
+        public static int GetAlerts(int max, out LOG_EVENT[] alerts) 
+        { 
+            lock (_messagesLock) 
+            {
+                alerts = _alertNotifications.Take(Math.Min(max, _alertNotifications.Count)).ToArray();
+                return _alertNotifications.Count;
+            } 
+        }
 
+        public static void ClearAlerts()
+        {
+            lock (_messagesLock)
+            {
+                _alertNotifications.Clear();
+            }
+        }
 
         public class TEXT_LOG_EVENT : LOG_EVENT
         {
             public TEXT_LOG_EVENT(eLogLevel logLevel, string text) : base(eLogType.Text)
             {
                 _logLevel = logLevel;
-                _text = text; 
+                _text = text;
                 switch (logLevel)
                 {
                     case eLogLevel.Debug:
@@ -132,6 +151,7 @@ namespace rgatCore
             lock (_messagesLock)
             {
                 _logMessages.Add(log);
+                if (log._logLevel == eLogLevel.Alert) _alertNotifications.Add(log);
             }
         }
 
@@ -139,7 +159,7 @@ namespace rgatCore
         {
             lock (_messagesLock)
             {
-               return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
+                return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
             }
         }
 

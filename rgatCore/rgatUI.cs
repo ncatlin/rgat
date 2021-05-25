@@ -49,10 +49,9 @@ namespace rgatCore
         {
             Logging.RecordLogEvent("Constructing rgatUI", Logging.eLogLevel.Debug);
             _rgatstate = new rgatState(_gd, _cl);
-            Logging.RecordLogEvent("State created", Logging.eLogLevel.Debug);
+            RecordLogEvent("State created", Logging.eLogLevel.Debug);
             GlobalConfig.InitDefaultConfig();
-            Logging.RecordLogEvent("Config Inited", Logging.eLogLevel.Debug);
-
+            RecordLogEvent("Config Inited", Logging.eLogLevel.Debug);
 
             _ImGuiController = imguicontroller;
 
@@ -68,6 +67,34 @@ namespace rgatCore
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
             Logging.RecordLogEvent("rgatUI created", Logging.eLogLevel.Debug);
+
+            RecordLogEvent("Signature hit: first aslert", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: RC4 detected", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Cobalt Strike", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: URL Contacted", eLogLevel.Alert);
+            RecordLogEvent("Signature hit: Last alert", eLogLevel.Alert);
+
+            _LogFilters[(int)LogFilterType.TextDebug] = true;
+            _LogFilters[(int)LogFilterType.TextInfo] = true;
+            _LogFilters[(int)LogFilterType.TextError] = true;
+            _LogFilters[(int)LogFilterType.TextAlert] = true;
         }
 
         public void Exit()
@@ -152,6 +179,11 @@ namespace rgatCore
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
                 DrawTargetBar();
+                if (DrawAlertBox())
+                {
+                    //raise the tabs up so the alert box nestles into the space
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 17);
+                }
                 DrawTabs();
                 if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
                 if (_show_select_exe_window) DrawFileSelectBox();
@@ -163,6 +195,91 @@ namespace rgatCore
 
             ImGui.End();
 
+        }
+
+        bool DrawAlertBox()
+        {
+            int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
+            if (alerts.Length == 0) return false;
+
+            const float width = 250;
+            Vector2 size = new Vector2(width, 38);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - (width + 6));
+
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eAlertWindowBg));
+            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eAlertWindowBorder));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
+            Vector2 popupBR = ImGui.GetCursorPos() + new Vector2(0, 150);
+            if (ImGui.BeginChild(78789, size, true))
+            {
+                if (alerts.Length <= 2)
+                {
+                    for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
+                    {
+                        ImGui.Text(((TEXT_LOG_EVENT)alerts[i])._text);
+                    }
+                }
+                else
+                {
+                    ImGui.Text($"{alerts.Length} Alerts");
+                    ImGui.Text(((TEXT_LOG_EVENT)alerts[^1])._text);
+                }
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleVar();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup | ImGuiHoveredFlags.AllowWhenOverlapped))
+            {
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    Console.WriteLine("TODO open logs tab with alerts filter");
+                }
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                {
+                    Logging.ClearAlerts();
+                }
+
+                ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
+                ImGui.OpenPopup("##AlertsCtx");
+
+                if (ImGui.BeginPopup("##AlertsCtx"))
+                {
+                    if (ImGui.BeginTable("##AlertsCtxTbl", 2))
+                    {
+                        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
+                        ImGui.TableSetupColumn("Event");
+                        ImGui.TableHeadersRow();
+                        foreach (LOG_EVENT log in alerts)
+                        {
+                            TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                            string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                            ImGui.Text(timeString);
+                            ImGui.TableNextColumn();
+                            ImGui.Text(msg._text);
+                        }
+                        ImGui.EndTable();
+                    }
+                    if (alertCount > alerts.Length)
+                    {
+                        ImGui.Text($"...and {alertCount - alerts.Length} more");
+                    }
+                    ImGui.Indent(5);
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                    ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
+                    ImGui.PopStyleColor();
+                    ImGui.EndPopup();
+                }
+            }
+
+
+            return true;
         }
 
 
@@ -1254,17 +1371,17 @@ namespace rgatCore
         }
 
 
-        static bool[] selected = new bool[(int)LogFilterType.COUNT];
+        static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
         static bool[] rowLastSelected = new bool[3];
         static byte[] textFilterValue = new byte[500];
         private void DrawLogsTab()
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("logtableframe"), ImGui.GetContentRegionAvail()))
             {
-                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(selected);
-                int activeCount = selected.Where(x => x == true).Count();
+                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(_LogFilters);
+                int activeCount = _LogFilters.Where(x => x == true).Count();
 
-                string label = $"{msgs.Length} log entries displayed from ({selected.Length-activeCount}/{selected.Length}) sources";
+                string label = $"{msgs.Length} log entries displayed from ({_LogFilters.Length - activeCount}/{_LogFilters.Length}) sources";
                 bool isOpen = ImGui.TreeNode("##FiltersTree", label);
                 if (isOpen)
                 {
@@ -1283,24 +1400,24 @@ namespace rgatCore
                         if (ImGui.Selectable("Message", false, flags, marginSize))
                         {
                             rowLastSelected[0] = !rowLastSelected[0];
-                            selected[(int)LogFilterType.TextDebug] = rowLastSelected[0];
-                            selected[(int)LogFilterType.TextInfo] = rowLastSelected[0];
-                            selected[(int)LogFilterType.TextAlert] = rowLastSelected[0];
-                            selected[(int)LogFilterType.TextError] = rowLastSelected[0];
+                            _LogFilters[(int)LogFilterType.TextDebug] = rowLastSelected[0];
+                            _LogFilters[(int)LogFilterType.TextInfo] = rowLastSelected[0];
+                            _LogFilters[(int)LogFilterType.TextAlert] = rowLastSelected[0];
+                            _LogFilters[(int)LogFilterType.TextError] = rowLastSelected[0];
                         }
 
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Debug", ref selected[(int)LogFilterType.TextDebug], flags, boxSize);
+                        ImGui.Selectable("Debug", ref _LogFilters[(int)LogFilterType.TextDebug], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Info", ref selected[(int)LogFilterType.TextInfo], flags, boxSize);
+                        ImGui.Selectable("Info", ref _LogFilters[(int)LogFilterType.TextInfo], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Alert", ref selected[(int)LogFilterType.TextAlert], flags, boxSize);
+                        ImGui.Selectable("Alert", ref _LogFilters[(int)LogFilterType.TextAlert], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Error", ref selected[(int)LogFilterType.TextError], flags, boxSize);
+                        ImGui.Selectable("Error", ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
 
                         ImGui.TableNextRow();
                         ImGui.TableSetColumnIndex(0);
@@ -1308,14 +1425,14 @@ namespace rgatCore
                         if (ImGui.Selectable("Timeline", false, flags, marginSize))
                         {
                             rowLastSelected[1] = !rowLastSelected[1];
-                            selected[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
-                            selected[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
+                            _LogFilters[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
+                            _LogFilters[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
                         }
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Process", ref selected[(int)LogFilterType.TimelineProcess], flags, boxSize);
+                        ImGui.Selectable("Process", ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Thread", ref selected[(int)LogFilterType.TimelineThread], flags, boxSize);
+                        ImGui.Selectable("Thread", ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
 
                         ImGui.TableNextRow();
                         ImGui.TableSetColumnIndex(0);
@@ -1323,40 +1440,40 @@ namespace rgatCore
                         if (ImGui.Selectable("API", false, flags, marginSize))
                         {
                             rowLastSelected[2] = !rowLastSelected[2];
-                            selected[(int)LogFilterType.APIFile] = rowLastSelected[2];
-                            selected[(int)LogFilterType.APINetwork] = rowLastSelected[2];
-                            selected[(int)LogFilterType.APIReg] = rowLastSelected[2];
-                            selected[(int)LogFilterType.APIProcess] = rowLastSelected[2];
-                            selected[(int)LogFilterType.APIOther] = rowLastSelected[2];
+                            _LogFilters[(int)LogFilterType.APIFile] = rowLastSelected[2];
+                            _LogFilters[(int)LogFilterType.APINetwork] = rowLastSelected[2];
+                            _LogFilters[(int)LogFilterType.APIReg] = rowLastSelected[2];
+                            _LogFilters[(int)LogFilterType.APIProcess] = rowLastSelected[2];
+                            _LogFilters[(int)LogFilterType.APIOther] = rowLastSelected[2];
                         }
 
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("File", ref selected[(int)LogFilterType.APIFile], flags, boxSize);
+                        ImGui.Selectable("File", ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Network", ref selected[(int)LogFilterType.APINetwork], flags, boxSize);
+                        ImGui.Selectable("Network", ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Registry", ref selected[(int)LogFilterType.APIReg], flags, boxSize);
+                        ImGui.Selectable("Registry", ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Process", ref selected[(int)LogFilterType.APIProcess], flags, boxSize);
+                        ImGui.Selectable("Process", ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Other", ref selected[(int)LogFilterType.APIOther], flags, boxSize);
+                        ImGui.Selectable("Other", ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
                         ImGui.EndTable();
                     }
-                    
-                    if (ImGui.BeginPopupContextItem("FlterTableRightCtx",ImGuiPopupFlags.MouseButtonRight))
+
+                    if (ImGui.BeginPopupContextItem("FlterTableRightCtx", ImGuiPopupFlags.MouseButtonRight))
                     {
                         if (ImGui.MenuItem("Clear All Source Filters"))
                         {
-                            Array.Clear(selected, 0, selected.Length);
+                            Array.Clear(_LogFilters, 0, _LogFilters.Length);
                         }
                         if (ImGui.MenuItem("Apply All Source Filters"))
                         {
-                            selected = Enumerable.Repeat(true, selected.Length).ToArray();
+                            _LogFilters = Enumerable.Repeat(true, _LogFilters.Length).ToArray();
                         }
                         ImGui.EndPopup();
                     }
-                    
-                    
+
+
                     ImGui.BeginGroup();
 
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
@@ -1462,15 +1579,21 @@ namespace rgatCore
             }
         }
 
-        private unsafe void DrawTargetBar()
+        /// <summary>
+        /// Draws a dropdown allowing selection of one of the loaded target binaries
+        /// </summary>
+        /// <returns>true if at least one binary is loaded, otherwise false</returns>
+        private unsafe bool DrawTargetBar()
         {
+
             if (_rgatstate.targets.count() == 0)
             {
                 ImGui.Text("No target selected or trace loaded");
-                return;
+                return false;
             }
 
             BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+            //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = _rgatstate.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
@@ -1490,6 +1613,7 @@ namespace rgatCore
                 }
                 ImGui.EndCombo();
             }
+            return true;
         }
 
         private unsafe void DrawTabs()

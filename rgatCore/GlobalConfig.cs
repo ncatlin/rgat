@@ -129,7 +129,7 @@ namespace rgatCore.Threads
         public enum eThemeColour { ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
             ePreviewZoomEnvelope, 
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
-            eVisBarPlotLine,
+            eVisBarPlotLine, eAlertWindowBg, eAlertWindowBorder,
             COUNT
         }
         public enum eThemeSize
@@ -171,6 +171,8 @@ namespace rgatCore.Threads
             ThemeColoursCustom[eThemeColour.eHeat8] = new WritableRgbaFloat(255f/255f, 64f/255f, 64f/255f, 1).ToUint();
             ThemeColoursCustom[eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
             ThemeColoursCustom[eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint();
+            ThemeColoursCustom[eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint();
 
 
             ThemeSizesCustom[eThemeSize.ePreviewSelectedBorder] = 1f;
