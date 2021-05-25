@@ -80,7 +80,7 @@ namespace rgatCore
             } 
         }
 
-        public static void ClearAlerts()
+        public static void ClearAlertsBox()
         {
             lock (_messagesLock)
             {

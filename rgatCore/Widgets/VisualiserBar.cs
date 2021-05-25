@@ -631,7 +631,7 @@ namespace rgatCore.Widgets
         //todo lots of opportunity for caching here
         public void GenerateReplay(float width, float height, ProtoGraph graph)
         {
-
+            
             if (width != _width || height != _height)
             {
                 CreateTextures(width, height);
@@ -646,7 +646,7 @@ namespace rgatCore.Widgets
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
-
+            if (animationData.Count == 0) return;
 
             //Draw cumulative instruction count plot
             ulong cumulativeInsCount = 0;

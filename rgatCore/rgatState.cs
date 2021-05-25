@@ -46,7 +46,9 @@ namespace rgatCore
         public PlottedGraph SwitchGraph = null;
 
         public bool rgatIsExiting { private set; get; } = false;
-        public bool WaitingForNewTrace = false;
+        public int InstrumentationCount { private set; get; } = 0;
+        public void NewInstrumentationConnection() => InstrumentationCount += 1;
+
         public int AnimationStepRate = 1;
         public eGraphLayout newGraphLayout = eGraphLayout.eForceDirected3DNodes;
 
@@ -154,21 +156,22 @@ namespace rgatCore
         }
 
 
-        public void SelectActiveTrace(TraceRecord trace = null)
+        public void SelectActiveTrace(TraceRecord trace = null, bool newest = false)
         {
             ActiveGraph = null;
 
             if (trace == null && ActiveTarget != null)
             {
-                //waiting for a shiny new trace that the user just launched
-                if (WaitingForNewTrace)
-                    return;
-                trace = ActiveTarget.GetFirstTrace();
+                if (newest)
+                    trace = ActiveTarget.GetNewestTrace();
+                else
+                    trace = ActiveTarget.GetFirstTrace();
             }
 
             ActiveTrace = trace;
             selectGraphInActiveTrace();
         }
+
 
         static bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
         {
@@ -230,11 +233,10 @@ namespace rgatCore
                 return true;
             }
 
-            if (ActiveGraph == null && !WaitingForNewTrace)
+            if (ActiveGraph == null)
             {
-                if (ActiveTrace != null)
+                if (ActiveTrace == null)
                     SelectActiveTrace();
-
 
                 selectGraphInActiveTrace();
             }
@@ -292,7 +294,7 @@ namespace rgatCore
         public bool SetActiveGraph(PlottedGraph graph)
         {
 
-            if (ActiveGraph != null && !ActiveGraph.beingDeleted)
+            if (ActiveGraph != null && ActiveGraph.beingDeleted)
                 return false;
             ClearActiveGraph();
             if (graph.pid != ActiveTrace.PID) ActiveTrace = null;

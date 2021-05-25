@@ -156,8 +156,35 @@ namespace rgatCore
             }
 
             return MainPlottedGraphs.First();
-
         }
+
+        public PlottedGraph GetLatestGraph()
+        {
+            if (PlottedGraphs.Count == 0) return null;
+
+            //if (graphListLock.trylock())
+            var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.internalProtoGraph.NodeList.Count > 0);
+            if (graphsWithNodes.Any())
+            {
+                return graphsWithNodes.Last();
+            }
+
+            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.internalProtoGraph.TotalInstructions > 0);
+            if (graphsWithInstructions.Any())
+            {
+                return graphsWithInstructions.Last();
+            }
+
+            var graphsWithData = MainPlottedGraphs.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
+            if (graphsWithData.Any())
+            {
+                return graphsWithData.Last();
+            }
+
+            return MainPlottedGraphs.Last();
+        }
+
         /*
 
         DateTime getStartedTime() { return launchedTime; }

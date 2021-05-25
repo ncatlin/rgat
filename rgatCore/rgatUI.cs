@@ -57,6 +57,7 @@ namespace rgatCore
 
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
+            //todo - conditional thread here instead of new trace
             _visualiserBar = new VisualiserBar(_gd, imguicontroller);
 
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
@@ -151,7 +152,6 @@ namespace rgatCore
         }
 
 
-
         public void DrawUI()
         {
 
@@ -182,7 +182,7 @@ namespace rgatCore
                 if (DrawAlertBox())
                 {
                     //raise the tabs up so the alert box nestles into the space
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 17);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
                 }
                 DrawTabs();
                 if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
@@ -236,11 +236,17 @@ namespace rgatCore
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    Console.WriteLine("TODO open logs tab with alerts filter");
+                    //switch to the logs tab
+                    _SwitchToLogsTab = true;
+                    //select only the alerts filter
+                    Array.Clear(_LogFilters, 0, _LogFilters.Length);
+                    _LogFilters[(int)LogFilterType.TextAlert] = true;
+
+                    Logging.ClearAlertsBox();
                 }
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 {
-                    Logging.ClearAlerts();
+                    Logging.ClearAlertsBox();
                 }
 
                 ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
@@ -270,6 +276,7 @@ namespace rgatCore
                     {
                         ImGui.Text($"...and {alertCount - alerts.Length} more");
                     }
+                    ImGui.Separator();
                     ImGui.Indent(5);
                     ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
                     ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
@@ -297,7 +304,6 @@ namespace rgatCore
         {
             GlobalConfig.ThemeColoursStandard.ToList().ForEach((f) => ImGui.PopStyleColor());
         }
-
 
 
         void HandleUserInput()
@@ -381,6 +387,7 @@ namespace rgatCore
             }
         }
 
+
         private void CloseDialogs()
         {
             if (_SettingsMenu.HasPendingKeybind)
@@ -393,7 +400,6 @@ namespace rgatCore
             _settings_window_shown = false;
             _show_select_exe_window = false;
         }
-
 
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
@@ -712,6 +718,7 @@ namespace rgatCore
                 ImGui.PopStyleColor();
                 if (ImGui.Button("Start Trace"))
                 {
+                    _WaitingNewTraceCount = _rgatstate.InstrumentationCount;
                     string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
                     System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
                     Console.WriteLine($"Started process id {p.Id}");
@@ -1381,7 +1388,7 @@ namespace rgatCore
                 Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(_LogFilters);
                 int activeCount = _LogFilters.Where(x => x == true).Count();
 
-                string label = $"{msgs.Length} log entries displayed from ({_LogFilters.Length - activeCount}/{_LogFilters.Length}) sources";
+                string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
                 bool isOpen = ImGui.TreeNode("##FiltersTree", label);
                 if (isOpen)
                 {
@@ -1495,13 +1502,6 @@ namespace rgatCore
 
 
 
-
-
-
-
-
-
-
                 if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders))
                 {
                     ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 90);
@@ -1589,6 +1589,7 @@ namespace rgatCore
             if (_rgatstate.targets.count() == 0)
             {
                 ImGui.Text("No target selected or trace loaded");
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                 return false;
             }
 
@@ -1616,11 +1617,22 @@ namespace rgatCore
             return true;
         }
 
+        bool _SwitchToLogsTab = false;
+        bool _SwitchToVisualiserTab = false;
+        int _WaitingNewTraceCount = -1;
         private unsafe void DrawTabs()
         {
-            bool dummy = true;
-            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
+            bool tabDrawn = false;
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs; 
 
+            if(_WaitingNewTraceCount != -1 && _rgatstate.InstrumentationCount > _WaitingNewTraceCount)
+            {
+                _WaitingNewTraceCount = -1;
+                _SwitchToVisualiserTab = true;
+                MainGraphWidget.SetActiveGraph(null);
+                PreviewGraphWidget.SetActiveTrace(null);
+                _rgatstate.SelectActiveTrace(newest: true);
+            }
 
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
@@ -1630,22 +1642,39 @@ namespace rgatCore
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Visualiser"))
+                if (_SwitchToVisualiserTab)
+                {
+                    tabDrawn = ImGui.BeginTabItem("Visualiser", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
+                    _SwitchToVisualiserTab = false;
+                }
+                else
+                    tabDrawn = ImGui.BeginTabItem("Visualiser");
+                if (tabDrawn)
                 {
                     DrawVisTab();
                     ImGui.EndTabItem();
                 }
+
                 if (ImGui.BeginTabItem("Trace Analysis"))
                 {
                     DrawAnalysisTab();
                     ImGui.EndTabItem();
                 }
+
                 if (ImGui.BeginTabItem("Graph Comparison"))
                 {
                     DrawCompareTab();
                     ImGui.EndTabItem();
                 }
-                if (ImGui.BeginTabItem("Logs"))
+
+                if (_SwitchToLogsTab)
+                {
+                    tabDrawn = ImGui.BeginTabItem("Logs", ref tabDrawn, ImGuiTabItemFlags.SetSelected); 
+                    _SwitchToLogsTab = false;
+                }
+                else
+                    tabDrawn = ImGui.BeginTabItem("Logs");
+                if (tabDrawn)
                 {
                     DrawLogsTab();
                     ImGui.EndTabItem();

@@ -318,5 +318,15 @@ namespace rgatCore
             }
         }
 
+        public TraceRecord GetNewestTrace()
+        {
+            lock (tracesLock)
+            {
+                if (TraceRecordsList.Count == 0) return null;
+                return TraceRecordsList[^1];
+            }
+        }
+
+
     }
 }

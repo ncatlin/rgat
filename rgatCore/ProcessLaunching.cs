@@ -67,16 +67,10 @@ namespace rgatCore
 			processThreads.threads.Add(t1);
 			t1.Start();
 
-
 			Thread.Sleep(200);
 			processThreads.conditionalThread = new ConditionalRendererThread(runRecord, clientState);
 			Thread t2 = new Thread(processThreads.conditionalThread.ThreadProc);
 			processThreads.threads.Add(t2);
-
-			//Thread.Sleep(200);
-			//processThreads.heatmapThread = new HeatmapRendererThread(runRecord, clientState);
-			//Thread t3 = new Thread(processThreads.heatmapThread.ThreadProc);
-			//processThreads.threads.Add(t3);
 
 			runRecord.ProcessThreads = processThreads;
 		}

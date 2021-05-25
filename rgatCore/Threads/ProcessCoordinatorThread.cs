@@ -144,7 +144,9 @@ namespace rgatCore.Threads
 		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
 		{
 			string shortName = Path.GetFileName(programName).Substring(0, Math.Min(programName.Length, 20));
-			string msg = $"New {arch}-bit trace: {shortName} (PID:{PID})";
+			string msg = $"New instrumentation connection with {arch}-bit trace: {shortName} (PID:{PID})";
+
+			Logging.RecordLogEvent(msg, Logging.eLogLevel.Debug);
 
 			BinaryTarget target;
 			if (!_clientState.targets.GetTargetByPath(programName, out target))
@@ -165,6 +167,8 @@ namespace rgatCore.Threads
 
 			//TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
 
+			_clientState.NewInstrumentationConnection();
+
 			target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
 			tr.SetModuleHandlerThread(moduleHandler);
@@ -179,47 +183,7 @@ namespace rgatCore.Threads
 
 			//_clientState.SwitchTrace = tr;
 
-
 			ProcessLaunching.launch_new_visualiser_threads(target, tr, _clientState);
-
-			return;
-		/*
-
-
-
-			PID_TID parentPID = getParentPID(PID); //todo: pin can do this
-
-			binaryTarget* target;
-			binaryTargets* container;
-
-			if (clientState->testsRunning && clientState->testTargets.exists(binarypath))
-				container = &clientState->testTargets;
-			else
-				container = &clientState->targets;
-
-			container->getTargetByPath(binarypath, &target);
-
-			target->applyBitWidthHint(bitWidth);
-
-			traceRecord* trace = target->createNewTrace(PID, PID_ID, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-			trace->setTraceType(eTracePurpose::eVisualiser);
-			trace->notify_new_pid(PID, PID_ID, parentPID);
-
-			container->registerChild(parentPID, trace);
-
-
-			launch_new_visualiser_threads(target, trace, clientState, localHandles);
-
-			threadsList->push_back((RGAT_THREADS_STRUCT*)trace->processThreads);
-
-			if (clientState->waitingForNewTrace)
-			{
-				clientState->updateActivityStatus("New process started with PID: " + QString::number(trace->PID), 5000);
-				clientState->switchTrace = trace;
-				clientState->waitingForNewTrace = false;
-			}
-			*/
-
 		}
 	}
 }
