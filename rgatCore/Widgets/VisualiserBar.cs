@@ -192,7 +192,7 @@ namespace rgatCore.Widgets
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, GlobalConfig.mainColours.visualiserBarBackground.ToRgbaFloat());
+            _cl.ClearColorTarget(0, new WritableRgbaFloat(GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eVisBarBg)).ToRgbaFloat());
 
 
             _cl.SetPipeline(_triPipeline);
@@ -233,7 +233,7 @@ namespace rgatCore.Widgets
                 imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
             }
 
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height + 14);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
 
         /*
@@ -651,9 +651,9 @@ namespace rgatCore.Widgets
             //Draw cumulative instruction count plot
             ulong cumulativeInsCount = 0;
             int lastPlotXPixel = -1;
-            float plotHeight = 15;
-            Vector2 lastCumuLinePos = new Vector2(0, plotHeight);
-            Vector2 lastAvgLinePos = new Vector2(0, plotHeight);
+            float thirdHeight = (float)Math.Floor(height/3);
+            Vector2 lastCumuLinePos = new Vector2(0, thirdHeight);
+            Vector2 lastAvgLinePos = new Vector2(0, thirdHeight);
 
             MaxBlockWorkCount(graph, width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs, out List<MODULE_SEGMENT> modsegs);
 
@@ -666,14 +666,14 @@ namespace rgatCore.Widgets
                 //draw the cumulative instruction count line
                 lines.Add(new Position2DColour()
                 {
-                    Color = new WritableRgbaFloat(Color.White),
+                    Color = plotLineColour,
                     Position = lastCumuLinePos
                 });
-                float yHeight = plotHeight - ((plotHeight - 1) * (float)cumulativeProportion);
+                float yHeight = thirdHeight - ((thirdHeight - 1) * (float)cumulativeProportion);
                 Vector2 thisLinePos = new Vector2(currentPlotXPixel, yHeight);
                 lines.Add(new Position2DColour()
                 {
-                    Color = new WritableRgbaFloat(Color.White),
+                    Color = plotLineColour,
                     Position = thisLinePos
                 });
                 lastCumuLinePos = thisLinePos;
@@ -687,7 +687,7 @@ namespace rgatCore.Widgets
                     Position = lastAvgLinePos
                 });
 
-                yHeight = plotHeight - (float)((plotHeight - 1) * avgProportion);
+                yHeight = thirdHeight - (float)((thirdHeight - 1) * avgProportion);
                 thisLinePos = new Vector2(currentPlotXPixel, yHeight);
                 lines.Add(new Position2DColour()
                 {
@@ -710,41 +710,45 @@ namespace rgatCore.Widgets
                         // colour from heat ranking of final node
                         NodeData node = graph.NodeList[blockTailIdx];
                         Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-                        WritableRgbaFloat heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
+                        WritableRgbaFloat heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)
+                            ((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
                         //Console.WriteLine($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
                         lines.Add(new Position2DColour()
                         {
                             Color = heatColour,
-                            Position = new Vector2(x, 17)
+                            Position = new Vector2(x, thirdHeight + 1)
                         });
                         lines.Add(new Position2DColour()
                         {
                             Color = heatColour,
-                            Position = new Vector2(x, 30)
+                            Position = new Vector2(x, thirdHeight * 2)
                         });
                     }
 
                 }
             }
 
-            foreach(MODULE_SEGMENT seg in modsegs)
+            float baseThirdStart = thirdHeight*2 + 1;
+            float baseThirdEnd = height - 2;
+
+            foreach (MODULE_SEGMENT seg in modsegs)
             {
                 WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
                 float startX = width * ((float)seg.firstIdx / (float)animationData.Count);
                 float endX = width * ((float)seg.lastIdx / (float)animationData.Count);
 
                 //left border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
                 //top
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
                 //base
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, 48f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
                 //right border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
 
                 MODULE_LABEL label = new MODULE_LABEL
                 {

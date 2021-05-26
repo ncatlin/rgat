@@ -1189,7 +1189,25 @@ namespace rgatCore
 
             _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 
+
+            Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y/2);
+            //DrawDisasmPreview(activeGraph, midRight);
         }
+
+        
+        /*
+        //drawing on graph, doesn't fit great
+        void DrawDisasmPreview(PlottedGraph activeGraph, Vector2 midPosition)
+        {
+            Vector2 startPos = ImGui.GetCursorScreenPos();
+            for (var i = 0; i < 5; i++)
+            {
+                ImGui.SetCursorScreenPos(midPosition - new Vector2(100, i * 15));
+                ImGui.Text($"Ins {i}");
+            }
+            ImGui.SetCursorScreenPos(startPos);
+        }
+        */
 
 
         bool _showLayoutSelectorPopup;
