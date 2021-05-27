@@ -37,7 +37,7 @@ namespace rgatCore
         public float dbg_camZ = 100f;
         public float dbg_rot = 0;
 
-        public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_PADDING);
+        public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_X_PADDING + 2); //-2 for border
         public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
 
         public uint selectedGraphTID;
@@ -329,29 +329,32 @@ namespace rgatCore
             if (activeTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
 
-
-            Vector2 subGraphPosition = ImGui.GetCursorScreenPos();
-            subGraphPosition.X += UI_Constants.PREVIEW_PANE_PADDING;
-            subGraphPosition.Y += UI_Constants.PREVIEW_PANE_PADDING;
-
-            float captionHeight = ImGui.CalcTextSize("123456789").Y; //dunno where the 3 comes from but it works
+            float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
             uint captionBackgroundcolor = GlobalConfig.ThemeColoursCustom[GlobalConfig.eThemeColour.ePreviewTextBackground];
 
             _layoutEngine.SetActiveTrace(activeTrace);
             _layoutEngine.UpdatePositionCaches();
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, UI_Constants.PREVIEW_PANE_Y_SEP));
 
-            for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
+            if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
             {
-                PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
-                if (DrawPreviewGraph(graph, subGraphPosition, captionHeight, captionBackgroundcolor))
+                for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
                 {
-                    var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-                    HandleClickedGraph(MainGraphs[graphIdx]);
-                    subGraphPosition.Y += (EachGraphHeight + UI_Constants.PREVIEW_PANE_PADDING);
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
+                    PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
+                    float xPadding = UI_Constants.PREVIEW_PANE_X_PADDING;
+                    if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
+                    {
+                        var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                        HandleClickedGraph(MainGraphs[graphIdx]);
+                    }
                 }
+                ImGui.EndTable();
             }
+            ImGui.PopStyleVar();
 
         }
 
@@ -388,7 +391,7 @@ namespace rgatCore
         }
 
 
-        public bool DrawPreviewGraph(PlottedGraph graph, Vector2 subGraphPosition, float captionHeight, uint captionBackgroundcolor)
+        public bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
@@ -417,6 +420,8 @@ namespace rgatCore
 
             //copy in the actual rendered graph
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
+            Vector2 subGraphPosition = ImGui.GetCursorScreenPos() + new Vector2(xPadding, 0);
+
             IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, graph._previewTexture);
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
@@ -447,8 +452,8 @@ namespace rgatCore
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness*2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
             ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewText));
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_PADDING + borderThickness + 1);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + UI_Constants.PREVIEW_PANE_PADDING + borderThickness);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_X_PADDING + borderThickness + 1);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + borderThickness);
             ImGui.Text(Caption);
             ImGui.PopStyleColor();
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + EachGraphWidth - 48);

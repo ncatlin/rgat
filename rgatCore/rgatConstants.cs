@@ -36,7 +36,8 @@ namespace rgatCore
         public const int MAX_DIFF_PATH_LENGTH = 50;
         public const int PREVIEW_PANE_WIDTH = 300;
         public const int PREVIEW_PANE_GRAPH_HEIGHT = 150;
-        public const int PREVIEW_PANE_PADDING = 3;
+        public const float PREVIEW_PANE_X_PADDING = 3;
+        public const float PREVIEW_PANE_Y_SEP = 6;
     }
 
     static class GL_Constants

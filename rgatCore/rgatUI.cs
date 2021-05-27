@@ -803,9 +803,9 @@ namespace rgatCore
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
-
-            if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, true))
+            if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
+               
                 PreviewGraphWidget.DrawWidget();
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
@@ -814,12 +814,20 @@ namespace rgatCore
                 }
                 ImGui.EndChild();
             }
-            ImGui.PopStyleVar();
-            ImGui.PopStyleVar();
-            ImGui.PopStyleVar();
-            ImGui.PopStyleVar();
+            ImGui.PopStyleVar(4);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
+            if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
+            {
+                ImGui.Text("Sort");
+                ImGui.Separator();
+                ImGui.MenuItem("Start Time", "S", true, true);
+                ImGui.MenuItem("Instruction Count", "I", false, false);
+                ImGui.MenuItem("Recent Activity", "A", false, false);
+                ImGui.MenuItem("Thread ID", "T", false, false);
+
+                ImGui.EndPopup();
+            }
 
         }
 
