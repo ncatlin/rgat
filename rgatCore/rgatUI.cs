@@ -882,7 +882,6 @@ namespace rgatCore
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
                 SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 14);
         }
 
 
@@ -922,16 +921,15 @@ namespace rgatCore
                 return;
             }
 
-            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
             {
                 DrawReplaySlider(width: width, height: 50);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
                 {
-
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
                     if (ImGui.BeginChild("ctrls2354", new Vector2(600, 110)))
@@ -1011,7 +1009,8 @@ namespace rgatCore
                 }
                 ImGui.EndGroup();
                 ImGui.SameLine();
-                DrawDiasmPreviewBox(activeGraph.internalProtoGraph);
+                //ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8);
+                DrawDiasmPreviewBox(activeGraph.internalProtoGraph, activeGraph.AnimationIndex);
 
                 ImGui.EndChild();
             }
@@ -1020,26 +1019,47 @@ namespace rgatCore
         }
 
 
-        void DrawDiasmPreviewBox(ProtoGraph graph)
+        void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChildFrame(ImGui.GetID("##DisasmPreview"), ImGui.GetContentRegionAvail()))
             {
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(10, 0));
 
-                int sznow = graph.SavedAnimationData.Count - 1;
-                if (sznow >= 0)
+                if (lastAnimIdx >= 0)
                 {
-                    ANIMATIONENTRY lastEntry = graph.SavedAnimationData[sznow];
+                    ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
                     ImGui.Text(lastEntry.entryType.ToString());
-                    //Console.WriteLine(lastEntry.entryType.ToString());
                     switch (lastEntry.entryType)
                     {
                         case eTraceUpdateType.eAnimExecTag:
+                            {
+                                uint blkID = lastEntry.blockID;
+                                if (blkID < uint.MaxValue)
+                                {
+                                    List<InstructionData> inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
+
+                                    for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                    {
+                                        ImGui.Text(inslist[i].ins_text);
+                                    }
+                                }
+                            }
                             break;
                         case eTraceUpdateType.eAnimUnchained:
+                            {
+                                int ucBlkCount = 0;
+                                for (var i = lastAnimIdx; i > 0; i--)
+                                {
+                                    if (graph.SavedAnimationData[i].entryType != eTraceUpdateType.eAnimUnchained)
+                                        break;
+                                    ucBlkCount++;
+                                }
+                                ImGui.Text($"Busy area of {ucBlkCount} blocks"); 
+                            }
                             break;
                         case eTraceUpdateType.eAnimUnchainedResults:
                             break;
@@ -1054,7 +1074,7 @@ namespace rgatCore
                 ImGui.Text("0x400004: xor eax, eax");
                 ImGui.Text("0x400005: xor eax, eax");
                 */
-                ImGui.PopStyleVar(2);
+                ImGui.PopStyleVar(3);
                 ImGui.EndChild();
             }
 
@@ -1073,15 +1093,11 @@ namespace rgatCore
                 _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.internalProtoGraph);
                 _visualiserBar.Draw();
 
-
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
                 if (ImGui.BeginChild("RenderingBox"))
                 {
-
-
                     ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
-
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
                     if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(600, 110)))
                     {
@@ -1105,9 +1121,7 @@ namespace rgatCore
                         ImGui.BeginGroup();
                         if (ImGui.Button("Kill"))
                         {
-
                             graph.internalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
-
                         }
                         if (ImGui.IsItemHovered())
                             ImGui.SetTooltip("Terminate the process");
@@ -1162,7 +1176,7 @@ namespace rgatCore
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();
-                    DrawDiasmPreviewBox(graph.internalProtoGraph);
+                    DrawDiasmPreviewBox(graph.internalProtoGraph, graph.internalProtoGraph.SavedAnimationData.Count - 1);
 
 
                     ImGui.EndChild();
@@ -1432,7 +1446,7 @@ namespace rgatCore
 
             float controlsHeight = 230;
 
-            DrawVisualiserGraphs(ImGui.GetWindowContentRegionMax().Y - controlsHeight);
+            DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y -13 ) - controlsHeight);
             DrawVisualiserControls(controlsHeight);
         }
 

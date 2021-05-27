@@ -129,11 +129,11 @@ namespace rgatCore
                 int selectionDiff;
                 if (userSelectedAnimPosition < 20 || internalProtoGraph.SavedAnimationData.Count < 20)
                 {
-                    animationIndex = 0;
+                    AnimationIndex = 0;
                     selectionDiff = userSelectedAnimPosition;
                 }
                 else
-                    animationIndex = userSelectedAnimPosition - 20;
+                    AnimationIndex = userSelectedAnimPosition - 20;
 
                 process_replay_animation_updates(20);
             }
@@ -160,7 +160,7 @@ namespace rgatCore
 
             //animInstructionIndex = 0;
             _lastAnimatedVert = 0;
-            animationIndex = 0;
+            AnimationIndex = 0;
 
             unchainedWaitFrames = 0;
             currentUnchainedBlocks.Clear();
@@ -177,7 +177,7 @@ namespace rgatCore
         public float GetAnimationPercent()
         {
             if (internalProtoGraph.SavedAnimationData.Count == 0) return 0;
-            return (float)((float)animationIndex / (float)internalProtoGraph.SavedAnimationData.Count);
+            return (float)((float)AnimationIndex / (float)internalProtoGraph.SavedAnimationData.Count);
         }
 
         public void render_live_animation(float fadeRate)
@@ -1790,20 +1790,20 @@ namespace rgatCore
                 stepSize = (ReplayState != REPLAY_STATE.ePaused) ? clientState.AnimationStepRate : 0;
             }
 
-            int targetAnimIndex = animationIndex + stepSize;
+            int targetAnimIndex = AnimationIndex + stepSize;
             if (targetAnimIndex >= internalProtoGraph.SavedAnimationData.Count)
                 targetAnimIndex = internalProtoGraph.SavedAnimationData.Count - 1;
 
 
-            for (; animationIndex < targetAnimIndex; ++animationIndex)
+            for (; AnimationIndex < targetAnimIndex; ++AnimationIndex)
             {
-                Console.WriteLine($"Anim Step {animationIndex}");
+                Console.WriteLine($"Anim Step {AnimationIndex}");
                 process_replay_update();
             }
 
             internalProtoGraph.set_active_node(_lastAnimatedVert);
 
-            if (animationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
+            if (AnimationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
             {
                 ReplayState = REPLAY_STATE.eEnded;
             }
@@ -1813,16 +1813,16 @@ namespace rgatCore
         void process_replay_update()
         {
             bool verbose = true;
-            ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[animationIndex];
+            ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[AnimationIndex];
 
             int stepSize = clientState.AnimationStepRate;
             if (stepSize == 0) stepSize = 1;
 
             //brighten edge between last block and this
             //todo - probably other situations we want to do this apart from a parent exec tag
-            if (animationIndex > 0)
+            if (AnimationIndex > 0)
             {
-                ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[animationIndex - 1];
+                ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[AnimationIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
@@ -2425,7 +2425,7 @@ namespace rgatCore
         uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
         //which BB we are pointing to in the sequence list
-        int animationIndex = 0;
+        public int AnimationIndex { get; private set; }
 
         List<uint> _PulseActiveNodes = new List<uint>();
         List<uint> _LingeringActiveNodes = new List<uint>();
