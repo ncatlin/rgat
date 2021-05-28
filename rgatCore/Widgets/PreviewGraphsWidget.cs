@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -324,7 +325,7 @@ namespace rgatCore
 
         public void DrawWidget()
         {
-
+            bool showToolTip = false;
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
             if (IrregularTimerFired) HandleFrameTimerFired();
@@ -352,40 +353,104 @@ namespace rgatCore
                         var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
                     {
                         latestHoverGraph = graph;
-                        ImGui.SetNextWindowPos(ImGui.GetMousePos() + new Vector2(0, 20));
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"Graph TID: {graph.tid}");
-                        ImGui.Text($"Graph PID: {graph.pid}");
-                        ImGui.Text($"Unique Instructions: {graph.internalProtoGraph.NodeList.Count}");
-                        ImGui.Text($"Total Instructions: {graph.internalProtoGraph.TotalInstructions}");
-                        if (graph.internalProtoGraph.SavedAnimationData.Count > 0)
-                        { 
-                            ImGui.Text($"Start Address: 0x{graph.internalProtoGraph.SavedAnimationData[0].blockAddr:X}"); 
-                        }
-                        ImGui.Separator();
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                        ImGui.Text("Right click for options");
-                        ImGui.PopStyleColor();
-                        ImGui.EndTooltip();
+                        showToolTip = true;
                     }
                 }
                 ImGui.EndTable();
             }
             ImGui.PopStyleVar();
 
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 5));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(5, 5));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(5, 5));
+            ImGui.PushStyleColor(ImGuiCol.Border, 0x77999999);
+
             HoveredGraph = latestHoverGraph;
-            HandlePreviewGraphContextMenu();
+            bool showedCtx = HandlePreviewGraphContextMenu();
+
+            bool veryRecentPopup = showedCtx || _lastCtxMenu.AddMilliseconds(250) > DateTime.Now;
+            if (showToolTip && !veryRecentPopup)
+            {
+                DrawGraphTooltip(latestHoverGraph);
+            }
+            ImGui.PopStyleVar(3);
+            ImGui.PopStyleColor();
 
         }
 
+        void DrawGraphTooltip(PlottedGraph graph)
+        {
+            ImGui.SetNextWindowPos(ImGui.GetMousePos() + new Vector2(0, 20));
 
-        void HandlePreviewGraphContextMenu()
+            ImGui.BeginTooltip();
+            string runningState;
+            //todo a 'blocked' option when i get around to detecting/displaying the blocked state
+            if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+            {
+                runningState = "Suspended";
+            }
+            else
+            {
+                if (graph.internalProtoGraph.Terminated)
+                {
+                    runningState = "Terminated";
+                }
+                else
+                {
+                    runningState = "Running";
+                }
+            }
+
+            if (_threadStartCache.ContainsKey(graph))
+            {
+                ImGui.Text(_threadStartCache[graph]);
+            }
+            else
+            {
+                if (graph.internalProtoGraph.SavedAnimationData.Count > 0)
+                {
+                    ulong blockaddr = graph.internalProtoGraph.SavedAnimationData[0].blockAddr;
+                    int module = graph.internalProtoGraph.ProcessData.FindContainingModule(blockaddr);
+                    string path = graph.internalProtoGraph.ProcessData.GetModulePath(module);
+                    string pathSnip = Path.GetFileName(path);
+                    if (pathSnip.Length > 50)
+                        pathSnip = pathSnip.Substring(pathSnip.Length - 50, pathSnip.Length);
+                    string val = $"Start Address: {pathSnip}:0x{blockaddr:X}";
+                    _threadStartCache[graph] = val;
+                    ImGui.Text(val);
+                }
+            }
+
+            ImGui.Text($"Graph TID: {graph.tid} [{runningState}]");
+            ImGui.Text($"Graph PID: {graph.pid}");
+            ImGui.Text($"Unique Instructions: {graph.internalProtoGraph.NodeList.Count}");
+            ImGui.Text($"Total Instructions: {graph.internalProtoGraph.TotalInstructions}");
+            ImGui.Text($"Animation Entries: {graph.internalProtoGraph.SavedAnimationData.Count}");
+
+
+            ImGui.Separator();
+            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+            string ctxtiptext = "Right click for options";
+            ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X / 2) - ImGui.CalcTextSize(ctxtiptext).X / 2);
+            ImGui.Text(ctxtiptext);
+            ImGui.PopStyleColor();
+            ImGui.EndTooltip();
+
+        }
+
+        Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
+
+
+        DateTime _lastCtxMenu = DateTime.MinValue;
+        bool HandlePreviewGraphContextMenu()
         {
             if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
             {
+                _lastCtxMenu = DateTime.Now;
                 ImGui.Text("Sort");
                 ImGui.Separator();
                 ImGui.MenuItem("Start Time", "S", true, true);
@@ -409,11 +474,11 @@ namespace rgatCore
                 }
 
                 ImGui.EndPopup();
+                return true;
             }
-            else
-            {
-                PreviewPopupGraph = null;
-            }
+            PreviewPopupGraph = null;
+            return false;
+
         }
 
 
