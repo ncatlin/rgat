@@ -321,13 +321,20 @@ namespace rgatCore
 
 
 
-
+        enum PreviewSortMethod { StartOrder, InsCount, ThreadID, LastUpdated }
+        PreviewSortMethod _activeSortMethod = PreviewSortMethod.StartOrder;
+        Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
+        DateTime lastSort = DateTime.MinValue;
 
         public void DrawWidget()
         {
+            int SORT_UPDATE_RATE_MS = 750;
+
             bool showToolTip = false;
+            PlottedGraph latestHoverGraph = null;
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
+
             if (IrregularTimerFired) HandleFrameTimerFired();
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
@@ -339,7 +346,18 @@ namespace rgatCore
             _layoutEngine.UpdatePositionCaches();
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, UI_Constants.PREVIEW_PANE_Y_SEP));
 
-            PlottedGraph latestHoverGraph = null;
+            List<int> indexes;
+
+            if (lastSort.AddMilliseconds(SORT_UPDATE_RATE_MS) < DateTime.Now ||
+                !_cachedSorts.TryGetValue(activeTrace, out indexes) ||
+                (indexes.Count < DrawnPreviewGraphs.Count))
+            {
+                indexes = SortGraphs(DrawnPreviewGraphs, _activeSortMethod);
+                _cachedSorts[activeTrace] = indexes;
+            }
+
+
+            //Graph drawing loop
             if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
             {
                 for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
@@ -381,6 +399,34 @@ namespace rgatCore
             ImGui.PopStyleColor();
 
         }
+
+
+        List<int> SortGraphs(List<PlottedGraph> graphs, PreviewSortMethod order)
+        {
+            List<int> result = new List<int>();
+
+            switch (order)
+            {
+                case PreviewSortMethod.InsCount:
+                    result = graphs.ToList().OrderByDescending(x => x.internalProtoGraph.TotalInstructions).Select(x => graphs.IndexOf(x)).ToList();
+                    break;
+                case PreviewSortMethod.LastUpdated:
+                    result = graphs.ToList().OrderByDescending(x => x.internalProtoGraph.LastUpdated).Select(x => graphs.IndexOf(x)).ToList();
+                    break;
+                case PreviewSortMethod.ThreadID:
+                    result = graphs.ToList().OrderBy(x => x.tid).Select(x => graphs.IndexOf(x)).ToList();
+                    break;
+                case PreviewSortMethod.StartOrder:
+                    result = Enumerable.Repeat(0, DrawnPreviewGraphs.Count).ToList();
+                    break;
+                default:
+                    Logging.RecordLogEvent($"Bad preview sort order: {order.ToString()}");
+                    break;
+            }
+
+            return result;
+        }
+
 
         void DrawGraphTooltip(PlottedGraph graph)
         {
@@ -453,10 +499,26 @@ namespace rgatCore
                 _lastCtxMenu = DateTime.Now;
                 ImGui.Text("Sort");
                 ImGui.Separator();
-                ImGui.MenuItem("Start Time", "S", true, true);
-                ImGui.MenuItem("Instruction Count", "I", false, false);
-                ImGui.MenuItem("Recent Activity", "A", false, false);
-                ImGui.MenuItem("Thread ID", "T", false, false);
+                if (ImGui.MenuItem("Start Order", "S", _activeSortMethod == PreviewSortMethod.StartOrder, true))
+                {
+                    _cachedSorts.Remove(ActiveTrace);
+                    _activeSortMethod = PreviewSortMethod.StartOrder;
+                }
+                if (ImGui.MenuItem("Instruction Count", "I", _activeSortMethod == PreviewSortMethod.InsCount, true))
+                {
+                    _cachedSorts.Remove(ActiveTrace);
+                    _activeSortMethod = PreviewSortMethod.InsCount;
+                }
+                if (ImGui.MenuItem("Recent Activity", "A", _activeSortMethod == PreviewSortMethod.LastUpdated, true))
+                {
+                    _cachedSorts.Remove(ActiveTrace);
+                    _activeSortMethod = PreviewSortMethod.LastUpdated;
+                }
+                if (ImGui.MenuItem("Thread ID", "T", _activeSortMethod == PreviewSortMethod.ThreadID, true))
+                {
+                    _cachedSorts.Remove(ActiveTrace);
+                    _activeSortMethod = PreviewSortMethod.ThreadID;
+                }
 
 
                 PlottedGraph hoverGraph = HoveredGraph;

@@ -1045,8 +1045,10 @@ namespace rgatCore
             {
                 SavedAnimationData.Add(entry);
             }
+            LastUpdated = DateTime.Now;
         }
 
+        public DateTime LastUpdated { get; private set; } = DateTime.Now;
         private readonly object AnimDataLock = new object();
         //animation data received from target
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
