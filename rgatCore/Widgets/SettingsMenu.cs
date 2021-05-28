@@ -2,6 +2,7 @@
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Text;
 using Veldrid;
@@ -12,7 +13,7 @@ namespace rgatCore.Widgets
     {
         static bool[] optionsSelectStates;
         static List<string> settingsNames = new List<string>();
-        enum eSettingsCategory { eSetting1, eSetting2, eText, eKeybinds, eUITheme, eGraphTheme };
+        enum eSettingsCategory { eSetting1, eFiles, eText, eKeybinds, eUITheme, eGraphTheme };
 
         public SettingsMenu()
         {
@@ -38,28 +39,44 @@ namespace rgatCore.Widgets
         void InitSettings()
         {
             settingsNames = new List<string>();
-            settingsNames.Add("Setting1");
+            settingsNames.Add("Files");
             settingsNames.Add("Setting2");
             settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
             settingsNames.Add("Theme - GUI");
             optionsSelectStates = new bool[settingsNames.Count];
+            optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
             optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
         }
 
+        void DeclareError(string msg, long MSDuration = 5500)
+        {
+            _errorExpiryTime = DateTime.Now.AddMilliseconds(MSDuration);
+            _errorBanner = msg;
+        }
+
         public void Draw(ref bool window_shown_flag)
         {
-            //ImGui.SetNextWindowPos(new Vector2(700, 500), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(700, 500), ImGuiCond.FirstUseEver);
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
 
-            ImGui.Begin("Settings", ref window_shown_flag, window_flags);
+            string title = "Settings";
+            bool hasError = _errorExpiryTime > DateTime.Now;
+
+            if (hasError)
+            {
+                title += " -- " + _errorBanner;
+                ImGui.PushStyleColor(ImGuiCol.TitleBgActive, 0xff2525FF);
+            }
+
+            ImGui.Begin(title + "###Settings", ref window_shown_flag, window_flags);
 
             ImGui.BeginGroup();
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 28)))
+            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
             {
                 for (int i = 0; i < settingsNames.Count; i++)
                 {
@@ -90,7 +107,14 @@ namespace rgatCore.Widgets
                 }
                 ImGui.EndChildFrame();
             }
+
+
             ImGui.End();
+
+            if (hasError)
+            {
+                ImGui.PopStyleColor();
+            }
         }
 
 
@@ -103,6 +127,9 @@ namespace rgatCore.Widgets
                     break;
                 case "Keybinds":
                     CreateOptionsPane_Keybinds();
+                    break;
+                case "Files":
+                    CreateOptionsPane_Files();
                     break;
                 case "Theme - GUI":
                     CreateOptionsPane_UITheme();
@@ -118,6 +145,116 @@ namespace rgatCore.Widgets
 
             ImGui.Text("todo");
         }
+
+        string _errorBanner = "";
+        DateTime _errorExpiryTime = DateTime.MinValue;
+        string _pendingPathSetting;
+
+        bool mush = false;
+        void CreateOptionsPane_Files()
+        {
+            string selectedSetting = "";
+            uint pid = ImGui.GetID("##FilesDLG");
+            if (ImGui.BeginTable("#PathsTable", 2))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
+            {
+                ImGui.TableSetupColumn("Setting", ImGuiTableColumnFlags.WidthFixed, 180);
+                ImGui.TableSetupColumn("Path");
+
+                ImGui.TableHeadersRow();
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+                if (ImGui.Selectable($"Pin.exe", mush, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "PinPath";
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.PinPath}");
+
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+            
+                if (ImGui.Selectable($"Pintool32.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "PinTool32Path";
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.PinToolPath32}");
+      
+                ImGui.EndTable();
+            }
+
+            //doesn't seem to work inside table (ID issue?), so do it after
+            if (selectedSetting.Length > 0)
+            {
+                LaunchFileSelectBox(selectedSetting, "##FilesDLG");
+            }
+
+            DrawFileSelectBox();
+        }
+
+        void ChoseSettingPath(string setting, string path)
+        {
+            switch (setting)
+            {
+                case "PinPath":
+                    GlobalConfig.PinPath = path;
+                    break;
+                case "PinTool32Path":
+                    GlobalConfig.PinToolPath32 = path;
+                    break;
+                default:
+                    Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
+                    break;
+            }
+        }
+
+
+        void LaunchFileSelectBox(string setting, string popupID)
+        {
+
+            ImGui.SetNextWindowSize(new Vector2(800, 820), ImGuiCond.Appearing);
+            ImGui.OpenPopup(popupID);
+            _pendingPathSetting = setting;
+        }
+
+
+        bool f = true;
+        private void DrawFileSelectBox()
+        {
+            if (ImGui.BeginPopupModal("##FilesDLG", ref f))
+            { 
+
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
+                {
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                    {
+                        if (File.Exists(picker.SelectedFile))
+                        {
+                            ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
+                        }
+                        else
+                        {
+                            DeclareError($"Error: Path {picker.SelectedFile} does not exist");
+                        }
+                        rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                    }
+
+                }
+            }
+            ImGui.EndPopup();
+
+        }
+
+
 
         void CreateOptionsPane_Keybinds()
         {
@@ -191,7 +328,7 @@ namespace rgatCore.Widgets
         unsafe void CreateOptionsPane_UITheme()
         {
 
-            if(ImGui.BeginCombo("Preset Themes", "Default"))
+            if (ImGui.BeginCombo("Preset Themes", "Default"))
             {
                 if (ImGui.Selectable("Default", true)) ActivateUIThemePreset("Default");
                 if (ImGui.Selectable("Theme 2", false)) ActivateUIThemePreset("Theme 2");
@@ -296,7 +433,7 @@ namespace rgatCore.Widgets
             _theme_UI_JSON = "";
 
             foreach (KeyValuePair<ImGuiCol, uint> kvp in GlobalConfig.ThemeColoursStandard)
-            { 
+            {
                 ImGuiCol col = kvp.Key;
                 uint colval = kvp.Value;
                 _theme_UI_JSON += $"{Enum.GetName(typeof(ImGuiCol), (int)col)}:#{colval:X}";

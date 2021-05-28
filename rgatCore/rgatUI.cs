@@ -233,7 +233,7 @@ namespace rgatCore
             ImGui.PopStyleVar();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup | ImGuiHoveredFlags.AllowWhenOverlapped))
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
@@ -781,6 +781,7 @@ namespace rgatCore
             }
         }
 
+
         private void DrawVisualiserGraphs(float height)
         {
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
@@ -817,19 +818,12 @@ namespace rgatCore
             ImGui.PopStyleVar(4);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
-            if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
-            {
-                ImGui.Text("Sort");
-                ImGui.Separator();
-                ImGui.MenuItem("Start Time", "S", true, true);
-                ImGui.MenuItem("Instruction Count", "I", false, false);
-                ImGui.MenuItem("Recent Activity", "A", false, false);
-                ImGui.MenuItem("Thread ID", "T", false, false);
 
-                ImGui.EndPopup();
-            }
 
         }
+
+
+
 
         float sliderPosX = -1;
 
@@ -1818,7 +1812,7 @@ namespace rgatCore
         {
             ImGui.OpenPopup("Select Executable");
 
-            if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.None))
+            if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.NoScrollbar) )
             {
 
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
@@ -1876,7 +1870,7 @@ namespace rgatCore
         {
             ImGui.OpenPopup("Select Trace File");
 
-            if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.None))
+            if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.NoScrollbar))
             {
                 string savedir = GlobalConfig.SaveDirectory;
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;

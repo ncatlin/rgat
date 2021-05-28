@@ -338,6 +338,7 @@ namespace rgatCore
             _layoutEngine.UpdatePositionCaches();
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, UI_Constants.PREVIEW_PANE_Y_SEP));
 
+            PlottedGraph latestHoverGraph = null;
             if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
             {
                 for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
@@ -351,12 +352,73 @@ namespace rgatCore
                         var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+                    {
+                        latestHoverGraph = graph;
+                        ImGui.SetNextWindowPos(ImGui.GetMousePos() + new Vector2(0, 20));
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"Graph TID: {graph.tid}");
+                        ImGui.Text($"Graph PID: {graph.pid}");
+                        ImGui.Text($"Unique Instructions: {graph.internalProtoGraph.NodeList.Count}");
+                        ImGui.Text($"Total Instructions: {graph.internalProtoGraph.TotalInstructions}");
+                        if (graph.internalProtoGraph.SavedAnimationData.Count > 0)
+                        { 
+                            ImGui.Text($"Start Address: 0x{graph.internalProtoGraph.SavedAnimationData[0].blockAddr:X}"); 
+                        }
+                        ImGui.Separator();
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                        ImGui.Text("Right click for options");
+                        ImGui.PopStyleColor();
+                        ImGui.EndTooltip();
+                    }
                 }
                 ImGui.EndTable();
             }
             ImGui.PopStyleVar();
 
+            HoveredGraph = latestHoverGraph;
+            HandlePreviewGraphContextMenu();
+
         }
+
+
+        void HandlePreviewGraphContextMenu()
+        {
+            if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
+            {
+                ImGui.Text("Sort");
+                ImGui.Separator();
+                ImGui.MenuItem("Start Time", "S", true, true);
+                ImGui.MenuItem("Instruction Count", "I", false, false);
+                ImGui.MenuItem("Recent Activity", "A", false, false);
+                ImGui.MenuItem("Thread ID", "T", false, false);
+
+
+                PlottedGraph hoverGraph = HoveredGraph;
+                if (hoverGraph != null || PreviewPopupGraph != null)
+                {
+                    if (hoverGraph != null)
+                        PreviewPopupGraph = hoverGraph;
+
+                    ImGui.Separator();
+                    ImGui.Text($"Graph {PreviewPopupGraph.tid}");
+                    if (!PreviewPopupGraph.internalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
+                    {
+                        PreviewPopupGraph.internalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.tid, "KILL");
+                    }
+                }
+
+                ImGui.EndPopup();
+            }
+            else
+            {
+                PreviewPopupGraph = null;
+            }
+        }
+
+
+        PlottedGraph PreviewPopupGraph = null;
+        public PlottedGraph HoveredGraph { get; private set; } = null;
 
 
         void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
@@ -449,7 +511,7 @@ namespace rgatCore
             string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
-            Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness*2), captionBGStart.Y + captionHeight);
+            Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
             ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewText));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_X_PADDING + borderThickness + 1);
@@ -499,7 +561,6 @@ namespace rgatCore
                 }
 
             }
-
             return clicked;
 
         }
@@ -586,10 +647,10 @@ namespace rgatCore
                 _centeringRequired.Add(graph, true);
             }
 
-            
+
             if (needsCentering)
             {
-               bool done = CenterGraphInFrameStep(out float maxremaining, graph);
+                bool done = CenterGraphInFrameStep(out float maxremaining, graph);
                 if (done)
                 {
                     _centeringRequired[graph] = false;

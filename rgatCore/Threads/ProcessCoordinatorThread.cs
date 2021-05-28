@@ -107,7 +107,24 @@ namespace rgatCore.Threads
 
 			while (!_clientState.rgatIsExiting)
             {
-				IAsyncResult res1 = coordPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), coordPipe);
+				try
+				{
+					AsyncCallback acb = new AsyncCallback(ConnectCallback);
+					IAsyncResult res1 = coordPipe.BeginWaitForConnection(acb, coordPipe);
+				}
+				catch(System.ExecutionEngineException e)
+                {
+					Logging.RecordLogEvent($"PCT::Listener BeginWaitForConnection Execution Engine exception {e.Message}", Logging.LogFilterType.TextError);
+					Thread.Sleep(80);
+					continue;
+				}
+				catch(Exception e)
+                {
+					Logging.RecordLogEvent($"PCT::Listener BeginWaitForConnection exception {e.Message}", Logging.LogFilterType.TextError);
+					Thread.Sleep(80);
+					continue;
+                }
+
 
 				while (!coordPipe.IsConnected)
 				{
