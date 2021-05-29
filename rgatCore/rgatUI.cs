@@ -35,7 +35,7 @@ namespace rgatCore
         GraphPlotWidget MainGraphWidget;
         PreviewGraphsWidget PreviewGraphWidget;
         VisualiserBar _visualiserBar;
-        SettingsMenu _SettingsMenu = new SettingsMenu();
+        SettingsMenu _SettingsMenu;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
@@ -51,6 +51,7 @@ namespace rgatCore
             _rgatstate = new rgatState(_gd, _cl);
             RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
             GlobalConfig.InitDefaultConfig();
+            _SettingsMenu = new SettingsMenu(); //call after config init, so theme gets generated
             RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
 
             _ImGuiController = imguicontroller;
@@ -208,8 +209,8 @@ namespace rgatCore
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - (width + 6));
 
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eAlertWindowBg));
-            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eAlertWindowBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.eAlertWindowBg));
+            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.eAlertWindowBorder));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
             Vector2 popupBR = ImGui.GetCursorPos() + new Vector2(0, 150);
@@ -796,8 +797,8 @@ namespace rgatCore
             ImGui.SameLine(0, 0);
 
             Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
-            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewPaneBorder));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewPaneBackground));
+            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewPaneBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewPaneBackground));
 
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));

@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using Newtonsoft.Json.Linq;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,8 @@ namespace rgatCore.Widgets
 
         void InitSettings()
         {
+            RegenerateUIThemeJSON();
+
             settingsNames = new List<string>();
             settingsNames.Add("Files");
             settingsNames.Add("Setting2");
@@ -178,7 +181,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
-            
+
                 if (ImGui.Selectable($"Pintool32.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "PinTool32Path";
@@ -186,7 +189,7 @@ namespace rgatCore.Widgets
                 ImGui.PopStyleColor();
                 ImGui.TableNextColumn();
                 ImGui.Text($"{GlobalConfig.PinToolPath32}");
-      
+
                 ImGui.EndTable();
             }
 
@@ -198,6 +201,7 @@ namespace rgatCore.Widgets
 
             DrawFileSelectBox();
         }
+
 
         void ChoseSettingPath(string setting, string path)
         {
@@ -229,7 +233,7 @@ namespace rgatCore.Widgets
         private void DrawFileSelectBox()
         {
             if (ImGui.BeginPopupModal("##FilesDLG", ref f))
-            { 
+            {
 
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
@@ -324,6 +328,7 @@ namespace rgatCore.Widgets
         string _theme_UI_JSON = "fffffffffff";
         string _theme_UI_JSON_Text = "fffffffffff";
         bool _UI_JSON_edited = false;
+        bool _expanded_theme_json = false;
 
         unsafe void CreateOptionsPane_UITheme()
         {
@@ -337,11 +342,30 @@ namespace rgatCore.Widgets
                 ImGui.EndCombo();
             }
 
-            if (ImGui.InputTextMultiline("", ref _theme_UI_JSON_Text, 10000, new Vector2(ImGui.GetContentRegionAvail().X - 70, 65)))
+            CreateJSONEditor();
+           
+
+            if (!ImGui.CollapsingHeader("Customise Theme"))
+            {
+                return;
+            }
+
+            CreateThemeSelectors();
+
+        }
+
+        void CreateJSONEditor()
+        {
+            //This widget doesn't have wrapping https://github.com/ocornut/imgui/issues/952
+            //the json generator makes nice newline pretty printed text so not worth implementing a custom fix
+            float height = _expanded_theme_json ? 500 : 70;
+            if (ImGui.InputTextMultiline("", ref _theme_UI_JSON_Text, 10000, new Vector2(ImGui.GetContentRegionAvail().X - 70, height)))
             {
                 _UI_JSON_edited = (_theme_UI_JSON != _theme_UI_JSON_Text);
             }
-            if (!_UI_JSON_edited)
+
+            bool disableRestore = !_UI_JSON_edited;
+            if (disableRestore)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, 0xff444444);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff444444);
@@ -350,33 +374,57 @@ namespace rgatCore.Widgets
             ImGui.BeginGroup();
             if (ImGui.Button("Apply Imported Theme"))
             {
-                if (_UI_JSON_edited) RegenerateUIThemeJSON();
+                if (_UI_JSON_edited) ApplyNewThemeJSONToUI();
             }
-            if (!_UI_JSON_edited)
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
+
+            ImGui.SameLine();
+            if (ImGui.Button("Restore"))
             {
-                ImGui.PopStyleColor();
-                ImGui.PopStyleColor();
-                ImGui.PopStyleColor();
+                RegenerateUIThemeJSON();
             }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Regenerate JSON from the currently applied theme. The current JSON text will be lost.");
+
+            if (disableRestore) { ImGui.PopStyleColor(3); }
+
             ImGui.SameLine();
             if (ImGui.Button("Save As Preset"))
             {
                 Console.WriteLine("Todo save preset");
             }
-            ImGui.EndGroup();
-
-            if (!ImGui.CollapsingHeader("Customise Theme"))
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Store the currently applied theme so it can be reloaded from the above dropdown.");
+            ImGui.SameLine();
+            if (ImGui.Button("Copy"))
             {
-                return;
+                ImGui.LogToClipboard();
+                int blockSize = 255; //LogText won't copy more than this at once
+                for (var written = 0; written < _theme_UI_JSON_Text.Length; written += blockSize)
+                    if (written < _theme_UI_JSON_Text.Length)
+                        ImGui.LogText(_theme_UI_JSON_Text.Substring(written, Math.Min(blockSize, _theme_UI_JSON_Text.Length - written)));
+                ImGui.LogFinish();
             }
+            ImGui.SameLine();
+            string expandBtnText = _expanded_theme_json ? "Collapse" : "Expand";
+            string expandBtnTip = _expanded_theme_json ? "Collapse the JSON editor" : "Expand the JSON editor";
+            if (ImGui.Button(expandBtnText))
+            {
+                _expanded_theme_json = !_expanded_theme_json;
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
+            ImGui.EndGroup();
+        }
+
+
+        void CreateThemeSelectors()
+        {
             bool changed = false;
             if (ImGui.TreeNode("Base Widget Colours"))
             {
                 for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
                 {
                     ImGuiCol stdCol = (ImGuiCol)colI;
-                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColour(stdCol)).ToVec4();
+                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColourImGui(stdCol)).ToVec4();
                     if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
@@ -392,7 +440,7 @@ namespace rgatCore.Widgets
                 for (int colI = 0; colI < (int)(GlobalConfig.ThemeColoursCustom.Count); colI++)
                 {
                     GlobalConfig.eThemeColour customCol = (GlobalConfig.eThemeColour)colI;
-                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColour(customCol)).ToVec4();
+                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColourUINT(customCol)).ToVec4();
                     if (ImGui.ColorEdit4(Enum.GetName(typeof(GlobalConfig.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
@@ -420,26 +468,75 @@ namespace rgatCore.Widgets
                 ImGui.TreePop();
             }
 
+            if (ImGui.TreeNode("Metadata"))
+            {
+                Tuple<string,string>? changedVal = null;
+                foreach (KeyValuePair<string, string> kvp in GlobalConfig.ThemeMetadata)
+                {
+                    string valstr = kvp.Value;
+                    if (ImGui.InputText(kvp.Key, ref valstr, 1024, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        changed = true;
+                        changedVal = new Tuple<string, string>(kvp.Key, valstr);
+                    }
+
+                }
+                if (changedVal != null)
+                {
+                    GlobalConfig.ThemeMetadata[changedVal.Item1] = changedVal.Item2;
+                }
+                ImGui.TreePop();
+            }
+
+
 
             if (changed)
             {
                 RegenerateUIThemeJSON();
             }
-
         }
 
         void RegenerateUIThemeJSON()
         {
-            _theme_UI_JSON = "";
 
-            foreach (KeyValuePair<ImGuiCol, uint> kvp in GlobalConfig.ThemeColoursStandard)
-            {
-                ImGuiCol col = kvp.Key;
-                uint colval = kvp.Value;
-                _theme_UI_JSON += $"{Enum.GetName(typeof(ImGuiCol), (int)col)}:#{colval:X}";
-            }
-            _theme_UI_JSON_Text = _theme_UI_JSON;
+            JObject themeJsnObj = new JObject();
+
+            JObject themeCustom = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeColoursCustom) themeCustom.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("CustomColours", themeCustom);
+
+            JObject themeImgui = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeColoursStandard) themeImgui.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("StandardColours", themeImgui);
+
+            JObject sizesObj = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeSizesCustom) sizesObj.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("Sizes", sizesObj);
+
+            JObject sizeLimitsObj = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeSizeLimits) sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
+            themeJsnObj.Add("SizeLimits", sizeLimitsObj);
+
+            JObject metadObj = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeMetadata) metadObj.Add(kvp.Key.ToString(), kvp.Value.ToString());
+            themeJsnObj.Add("Metadata", metadObj);
+
+            _theme_UI_JSON_Text = themeJsnObj.ToString();
+            _theme_UI_JSON = themeJsnObj.ToString();
+            _UI_JSON_edited = false;
         }
+
+
+        void ApplyNewThemeJSONToUI()
+        {
+            // read this into json
+            //_theme_UI_JSON_Text
+
+            //apply it to the config lists/arrays
+
+            _UI_JSON_edited = (_theme_UI_JSON != _theme_UI_JSON_Text);
+        }
+
 
         void ActivateUIThemePreset(string name)
         {

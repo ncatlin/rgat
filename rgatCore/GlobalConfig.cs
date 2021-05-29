@@ -115,7 +115,7 @@ namespace rgatCore.Threads
         public static string PinPath = @"C:\devel\libs\pin-3.17\pin.exe";
         public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
-        public static Dictionary<Tuple<Key,ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
+        public static Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         public static List<Key> ResponsiveKeys = new List<Key>();
@@ -126,7 +126,7 @@ namespace rgatCore.Threads
          */
         //todo should be lists not dicts
         public enum eThemeColour { ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
-            ePreviewZoomEnvelope, 
+            ePreviewZoomEnvelope,
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
             COUNT
@@ -140,18 +140,19 @@ namespace rgatCore.Threads
         public static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
         public static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
         public static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
+        public static Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
 
 
-        public unsafe static void InitDefaultTheme()
+
+        public  static void InitDefaultTheme()
         {
-            for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
-            {
-                ImGuiCol col = (ImGuiCol)colI;
-                Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
-                if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
 
-                ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
-            }
+            InitDefaultImGuiColours();
+
+            ThemeMetadata["Name"] = "Development";
+            ThemeMetadata["Description"] = "Pre Theme-development collection of default/development colours";
+            ThemeMetadata["Author"] = "rgat default theme";
+            ThemeMetadata["Author2"] = "https://github.com/ncatlin/rgat";
 
             ThemeColoursCustom[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
             ThemeColoursCustom[eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
@@ -159,15 +160,15 @@ namespace rgatCore.Threads
             ThemeColoursCustom[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
             ThemeColoursCustom[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
 
-            ThemeColoursCustom[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f/255f, 0.7f).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat1] = new WritableRgbaFloat(46f/255f, 28f/255f, 155f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat2] = new WritableRgbaFloat(95f/255f, 104f/255f, 226f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat3] = new WritableRgbaFloat(117f/255f, 143f/255f, 223f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat4] = new WritableRgbaFloat(255f/255f, 255f/225f, 255f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat5] = new WritableRgbaFloat(252f/255f, 196f/255f, 180f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat6] = new WritableRgbaFloat(242f/255f, 152f/255f, 152f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f/255f, 107f/255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat8] = new WritableRgbaFloat(255f/255f, 64f/255f, 64f/255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint();
+            ThemeColoursCustom[eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint();
             ThemeColoursCustom[eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
             ThemeColoursCustom[eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
             ThemeColoursCustom[eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint();
@@ -177,29 +178,43 @@ namespace rgatCore.Threads
 
             ThemeSizesCustom[eThemeSize.ePreviewSelectedBorder] = 1f;
             ThemeSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
-
         }
 
-        public static uint GetThemeColour(eThemeColour item)
+
+        static unsafe void InitDefaultImGuiColours()
+        {
+            for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+            {
+                ImGuiCol col = (ImGuiCol)colI;
+                Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
+                if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
+
+                ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
+            }
+        }
+
+
+        public static uint GetThemeColourUINT(eThemeColour item)
         {
             Debug.Assert(ThemeColoursCustom.ContainsKey(item));
             Debug.Assert((uint)item < ThemeColoursCustom.Count);
             return ThemeColoursCustom[item];
         }
 
-        public static WritableRgbaFloat GetThemeColourB(eThemeColour item)
+        public static WritableRgbaFloat GetThemeColourWRF(eThemeColour item)
         {
             Debug.Assert(ThemeColoursCustom.ContainsKey(item));
             Debug.Assert((uint)item < ThemeColoursCustom.Count);
             return new WritableRgbaFloat(ThemeColoursCustom[item]);
         }
 
-        public static uint GetThemeColour(ImGuiCol item)
+        public static uint GetThemeColourImGui(ImGuiCol item)
         {
             Debug.Assert(ThemeColoursStandard.ContainsKey(item));
             Debug.Assert((uint)item < ThemeColoursStandard.Count);
             return ThemeColoursStandard[item];
         }
+
         public static float GetThemeSize(eThemeSize item)
         {
             Debug.Assert(ThemeSizesCustom.ContainsKey(item));

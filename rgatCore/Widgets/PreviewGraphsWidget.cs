@@ -321,14 +321,13 @@ namespace rgatCore
 
 
 
-        enum PreviewSortMethod { StartOrder, InsCount, ThreadID, LastUpdated }
+        enum PreviewSortMethod { StartOrder, InstructionCount, ThreadID, LastUpdated }
         PreviewSortMethod _activeSortMethod = PreviewSortMethod.StartOrder;
         Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
         DateTime lastSort = DateTime.MinValue;
 
         public void DrawWidget()
         {
-            int SORT_UPDATE_RATE_MS = 750;
 
             bool showToolTip = false;
             PlottedGraph latestHoverGraph = null;
@@ -340,27 +339,17 @@ namespace rgatCore
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
+            List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
             uint captionBackgroundcolor = GlobalConfig.ThemeColoursCustom[GlobalConfig.eThemeColour.ePreviewTextBackground];
 
             _layoutEngine.SetActiveTrace(activeTrace);
             _layoutEngine.UpdatePositionCaches();
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, UI_Constants.PREVIEW_PANE_Y_SEP));
 
-            List<int> indexes;
-
-            if (lastSort.AddMilliseconds(SORT_UPDATE_RATE_MS) < DateTime.Now ||
-                !_cachedSorts.TryGetValue(activeTrace, out indexes) ||
-                (indexes.Count < DrawnPreviewGraphs.Count))
-            {
-                indexes = SortGraphs(DrawnPreviewGraphs, _activeSortMethod);
-                _cachedSorts[activeTrace] = indexes;
-            }
-
-
             //Graph drawing loop
             if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
             {
-                for (var graphIdx = 0; graphIdx < DrawnPreviewGraphs.Count; graphIdx++)
+                foreach (int graphIdx in indexes)
                 {
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
@@ -400,6 +389,20 @@ namespace rgatCore
 
         }
 
+        List<int> GetGraphOrder(TraceRecord trace, List<PlottedGraph> graphs)
+        {
+            int SORT_UPDATE_RATE_MS = 750;
+            List<int> indexes;
+
+            if (lastSort.AddMilliseconds(SORT_UPDATE_RATE_MS) < DateTime.Now ||
+                !_cachedSorts.TryGetValue(trace, out indexes) ||
+                (indexes.Count < graphs.Count))
+            {
+                indexes = SortGraphs(graphs, _activeSortMethod);
+                _cachedSorts[trace] = indexes;
+            }
+            return indexes;
+        }
 
         List<int> SortGraphs(List<PlottedGraph> graphs, PreviewSortMethod order)
         {
@@ -407,7 +410,7 @@ namespace rgatCore
 
             switch (order)
             {
-                case PreviewSortMethod.InsCount:
+                case PreviewSortMethod.InstructionCount:
                     result = graphs.ToList().OrderByDescending(x => x.internalProtoGraph.TotalInstructions).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.LastUpdated:
@@ -491,23 +494,38 @@ namespace rgatCore
         Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
 
 
+
+        /*
+         * No working PIN api for this, have to do from rgat
+         */
+        [DllImport("kernel32.dll")]
+        static extern IntPtr OpenThread(ulong dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll")]
+        static extern bool TerminateThread(IntPtr hThread, uint dwExitCode);
+
+
         DateTime _lastCtxMenu = DateTime.MinValue;
         bool HandlePreviewGraphContextMenu()
         {
             if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
             {
                 _lastCtxMenu = DateTime.Now;
-                ImGui.Text("Sort");
+                ImGui.Text($"Sort ({_activeSortMethod.ToString()})");
                 ImGui.Separator();
                 if (ImGui.MenuItem("Start Order", "S", _activeSortMethod == PreviewSortMethod.StartOrder, true))
                 {
                     _cachedSorts.Remove(ActiveTrace);
                     _activeSortMethod = PreviewSortMethod.StartOrder;
                 }
-                if (ImGui.MenuItem("Instruction Count", "I", _activeSortMethod == PreviewSortMethod.InsCount, true))
+                if (ImGui.MenuItem("Instruction Count", "I", _activeSortMethod == PreviewSortMethod.InstructionCount, true))
                 {
                     _cachedSorts.Remove(ActiveTrace);
-                    _activeSortMethod = PreviewSortMethod.InsCount;
+                    _activeSortMethod = PreviewSortMethod.InstructionCount;
                 }
                 if (ImGui.MenuItem("Recent Activity", "A", _activeSortMethod == PreviewSortMethod.LastUpdated, true))
                 {
@@ -532,6 +550,16 @@ namespace rgatCore
                     if (!PreviewPopupGraph.internalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
                     {
                         PreviewPopupGraph.internalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.tid, "KILL");
+                    }
+                    if (!PreviewPopupGraph.internalProtoGraph.Terminated && ImGui.MenuItem("Force Terminate"))
+                    {
+                        //todo - rgat doesn't detect this because pin threads still run, keeping pipes open
+                        IntPtr handle = OpenThread(1, false, PreviewPopupGraph.tid);
+                        if(handle != (IntPtr)0)
+                        {
+                            TerminateThread(handle, 0);
+                            CloseHandle(handle);
+                        }
                     }
                 }
 
@@ -560,7 +588,7 @@ namespace rgatCore
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
-            uint colour = GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewZoomEnvelope);
+            uint colour = GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewZoomEnvelope);
 
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
@@ -640,7 +668,7 @@ namespace rgatCore
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
-            ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.ePreviewText));
+            ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewText));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_X_PADDING + borderThickness + 1);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + borderThickness);
             ImGui.Text(Caption);

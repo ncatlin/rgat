@@ -192,7 +192,7 @@ namespace rgatCore.Widgets
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, new WritableRgbaFloat(GlobalConfig.GetThemeColour(GlobalConfig.eThemeColour.eVisBarBg)).ToRgbaFloat());
+            _cl.ClearColorTarget(0, new WritableRgbaFloat(GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.eVisBarBg)).ToRgbaFloat());
 
 
             _cl.SetPipeline(_triPipeline);
@@ -326,7 +326,7 @@ namespace rgatCore.Widgets
             List<Position2DColour> lines = new List<Position2DColour>();
             List<Position2DColour> triangles = new List<Position2DColour>();
             List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
-            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourB(GlobalConfig.eThemeColour.eVisBarPlotLine);
+            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourWRF(GlobalConfig.eThemeColour.eVisBarPlotLine);
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             //Draw Tag visualisation
@@ -417,7 +417,7 @@ namespace rgatCore.Widgets
                         // colour from heat ranking of final node
                         NodeData node = graph.NodeList[blockTailIdx];
                         Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-                        heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
+                        heatColour = GlobalConfig.GetThemeColourWRF((GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
 
                         CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
 
@@ -642,7 +642,7 @@ namespace rgatCore.Widgets
             List<Position2DColour> lines = new List<Position2DColour>();
             List<Position2DColour> triangles = new List<Position2DColour>();
             List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
-            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourB(GlobalConfig.eThemeColour.eVisBarPlotLine);
+            WritableRgbaFloat plotLineColour = GlobalConfig.GetThemeColourWRF(GlobalConfig.eThemeColour.eVisBarPlotLine);
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
@@ -710,7 +710,7 @@ namespace rgatCore.Widgets
                         // colour from heat ranking of final node
                         NodeData node = graph.NodeList[blockTailIdx];
                         Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-                        WritableRgbaFloat heatColour = GlobalConfig.GetThemeColourB((GlobalConfig.eThemeColour)
+                        WritableRgbaFloat heatColour = GlobalConfig.GetThemeColourWRF((GlobalConfig.eThemeColour)
                             ((float)GlobalConfig.eThemeColour.eHeat0Lowest + node.heatRank));
                         //Console.WriteLine($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
                         lines.Add(new Position2DColour()
