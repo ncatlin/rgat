@@ -361,7 +361,6 @@ namespace ImGuiNET
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
 
-
             using (Stream s = assembly.GetManifestResourceStream(resourceName))
             {
                 if (s == null)

@@ -1,6 +1,8 @@
 ﻿using ImGuiNET;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -125,7 +127,9 @@ namespace rgatCore.Threads
          * Theme - probably going to put in own class
          */
         //todo should be lists not dicts
-        public enum eThemeColour { ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
+        public enum eThemeColour
+        {
+            ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
             ePreviewZoomEnvelope,
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
@@ -136,22 +140,23 @@ namespace rgatCore.Threads
             ePreviewSelectedBorder,
             COUNT
         }
+
         public static Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
         public static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
         public static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
         public static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
         public static Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
+        public static bool IsBuiltinTheme = true;
+        public static bool UnsavedTheme = false;
 
 
-
-        public  static void InitDefaultTheme()
+        public static void InitFallbackTheme()
         {
-
             InitDefaultImGuiColours();
 
-            ThemeMetadata["Name"] = "Development";
-            ThemeMetadata["Description"] = "Pre Theme-development collection of default/development colours";
-            ThemeMetadata["Author"] = "rgat default theme";
+            ThemeMetadata["Name"] = "Fallback";
+            ThemeMetadata["Description"] = "Fallback theme for when preloaded and custom themes failed to load";
+            ThemeMetadata["Author"] = "rgat fallback theme";
             ThemeMetadata["Author2"] = "https://github.com/ncatlin/rgat";
 
             ThemeColoursCustom[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
@@ -178,6 +183,7 @@ namespace rgatCore.Threads
 
             ThemeSizesCustom[eThemeSize.ePreviewSelectedBorder] = 1f;
             ThemeSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
+            IsBuiltinTheme = true;
         }
 
 
@@ -322,14 +328,372 @@ namespace rgatCore.Threads
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }
 
+        public static Dictionary<string, string> LoadedStringResources = new Dictionary<string, string>();
+
+        /*
+         * This will load valid but incomplete theme data into the existing theme, but not if there
+         * is any invalid data
+         */
+        static bool ActivateThemeObject(JObject theme)
+        {
+            Dictionary<string, string> pendingMetadata = new Dictionary<string, string>();
+            Dictionary<ImGuiCol, uint> pendingColsStd = new Dictionary<ImGuiCol, uint>();
+            Dictionary<eThemeColour, uint> pendingColsCustom = new Dictionary<eThemeColour, uint>();
+            Dictionary<eThemeSize, float> pendingSizes = new Dictionary<eThemeSize, float>();
+            Dictionary<eThemeSize, Vector2> pendingLimits = new Dictionary<eThemeSize, Vector2>();
+
+            if (!LoadMetadataStrings(theme, out pendingMetadata, out string errorMsg))
+            {
+                Logging.RecordLogEvent(errorMsg); return false;
+            }
+
+            if (theme.TryGetValue("CustomColours", out JToken customColTok) && customColTok.Type == JTokenType.Object)
+            {
+                foreach (var item in customColTok.ToObject<JObject>())
+                {
+                    eThemeColour customcolType;
+                    try
+                    {
+                        customcolType = (eThemeColour)Enum.Parse(typeof(eThemeColour), item.Key, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key.ToString()}"); return false;
+                    }
+                    if (customcolType >= eThemeColour.COUNT)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key.ToString()}"); return false;
+                    }
+                    if (item.Value.Type != JTokenType.Integer)
+                    {
+                        Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                    }
+                    pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
+                }
+            }
+
+            if (theme.TryGetValue("StandardColours", out JToken stdColTok) && stdColTok.Type == JTokenType.Object)
+            {
+                foreach (var item in stdColTok.ToObject<JObject>())
+                {
+                    ImGuiCol stdcolType;
+                    try
+                    {
+                        stdcolType = (ImGuiCol)Enum.Parse(typeof(ImGuiCol), item.Key, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                    }
+                    if (stdcolType >= ImGuiCol.COUNT)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                    }
+                    if (item.Value.Type != JTokenType.Integer)
+                    {
+                        Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                    }
+                    pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
+                }
+            }
+
+            if (theme.TryGetValue("Sizes", out JToken sizesTok) && sizesTok.Type == JTokenType.Object)
+            {
+                foreach (var item in sizesTok.ToObject<JObject>())
+                {
+                    eThemeSize sizeType;
+                    try
+                    {
+                        sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key.ToString()}"); return false;
+                    }
+                    if (sizeType >= eThemeSize.COUNT)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key.ToString()}"); return false;
+                    }
+                    if (item.Value.Type != JTokenType.Float)
+                    {
+                        Logging.RecordLogEvent($"Theme has size with non-float size entry {item.Key}"); return false;
+                    }
+                    ThemeSizesCustom[sizeType] = item.Value.ToObject<float>();
+                }
+            }
+
+
+            if (theme.TryGetValue("SizeLimits", out JToken sizelimTok) && sizesTok.Type == JTokenType.Object)
+            {
+                foreach (var item in sizelimTok.ToObject<JObject>())
+                {
+                    eThemeSize sizeType;
+                    try
+                    {
+                        sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
+                    }
+                    if (sizeType >= eThemeSize.COUNT)
+                    {
+                        Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
+                    }
+                    if (item.Value.Type != JTokenType.Array)
+                    {
+                        Logging.RecordLogEvent($"Theme has sizelimit with non-array entry {item.Key}"); return false;
+                    }
+                    JArray limits = item.Value.ToObject<JArray>();
+                    if (limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
+                    {
+                        Logging.RecordLogEvent($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
+                    }
+                    pendingLimits[sizeType] = new Vector2(limits[0].ToObject<float>(), limits[1].ToObject<float>());
+                }
+            }
+
+            //all loaded and validated, load them into the UI
+            foreach (var kvp in pendingMetadata) ThemeMetadata[kvp.Key] = kvp.Value;
+            foreach (var kvp in pendingColsCustom) ThemeColoursCustom[kvp.Key] = kvp.Value;
+            foreach (var kvp in pendingColsStd) ThemeColoursStandard[kvp.Key] = kvp.Value;
+            foreach (var kvp in pendingLimits) ThemeSizeLimits[kvp.Key] = kvp.Value;
+            foreach (var kvp in pendingSizes) ThemeSizesCustom[kvp.Key] = kvp.Value;
+
+            IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
+
+            return true;
+        }
+
+        public static void SaveMetadataChange(string key, string value)
+        {
+            ThemeMetadata[key] = value;
+            currentThemeJSON["Metadata"][key] = value;
+            UnsavedTheme = true;
+        }
+
+        public static void SavePresetTheme(string name)
+        {
+            if (name != ThemeMetadata["Name"])
+            {
+                SaveMetadataChange("Name", name);
+            }
+
+            if (!BuiltinThemes.ContainsKey(name))
+            {
+                CustomThemes[name] = currentThemeJSON;
+                ThemesMetadataCatalogue[name] = ThemeMetadata;
+                UnsavedTheme = false;
+            }
+        }
+
+        static JObject currentThemeJSON;
+
+        public static string RegenerateUIThemeJSON()
+        {
+
+            JObject themeJsnObj = new JObject();
+
+            JObject themeCustom = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeColoursCustom) themeCustom.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("CustomColours", themeCustom);
+
+            JObject themeImgui = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeColoursStandard) themeImgui.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("StandardColours", themeImgui);
+
+            JObject sizesObj = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeSizesCustom) sizesObj.Add(kvp.Key.ToString(), kvp.Value);
+            themeJsnObj.Add("Sizes", sizesObj);
+
+            JObject sizeLimitsObj = new JObject();
+            foreach (var kvp in GlobalConfig.ThemeSizeLimits) sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
+            themeJsnObj.Add("SizeLimits", sizeLimitsObj);
+
+            JObject metadObj = new JObject();
+
+            foreach (var kvp in GlobalConfig.ThemeMetadata) 
+            {
+                metadObj.Add(kvp.Key.ToString(), kvp.Value.ToString()); 
+            }
+            themeJsnObj.Add("Metadata", metadObj);
+
+            currentThemeJSON = themeJsnObj;
+            return themeJsnObj.ToString();
+        }
+
+
+        public static bool ActivateThemeObject(string themeJSON, out string error)
+        {
+            JObject themeJson = null;
+            try
+            {
+                themeJson = Newtonsoft.Json.Linq.JObject.Parse(themeJSON);
+            }
+            catch (Exception e)
+            {
+                error = "Error parsing JSON";
+                return false;
+            }
+
+            if (ActivateThemeObject(themeJson))
+            {
+                error = "Success";
+                UnsavedTheme = true;
+                return true;
+            }
+
+            error = "Load of parsed JSON failed";
+            return false;
+        }
+
+
+        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string error)
+        {
+            result = new Dictionary<string, string>();
+
+            JObject metadataObj;
+            if (themeObj.TryGetValue("Metadata", out JToken mdTok) && mdTok.Type == JTokenType.Object)
+            {
+                metadataObj = mdTok.ToObject<JObject>();
+            }
+            else
+            {
+                error = "Unable to find \"Metadata\" object in theme";
+                return false;
+            }
+
+            foreach (var item in metadataObj)
+            {
+                if (item.Key.Length > 255)
+                {
+                    error = $"Theme has metadata key with excessive length {item.Key.Length}"; return false;
+                }
+                if (item.Value.Type != JTokenType.String)
+                {
+                    error = $"Theme has non-string metadata item {item.Key}"; return false;
+                }
+                string mdvalue = item.Value.ToObject<string>();
+                if (mdvalue.Length > 4096)
+                {
+                    error = $"Skipping Theme metadata value with excessive length {mdvalue.Length}"; return false;
+                }
+                result[item.Key] = mdvalue;
+            }
+            error = "Success";
+            return true;
+        }
+
+
+        public static void LoadTheme(string themename)
+        {
+            if (ThemeMetadata.TryGetValue("Name", out string currentTheme) && currentTheme == themename)
+            {
+                return;
+            }
+
+            if (BuiltinThemes.ContainsKey(themename))
+            {
+                Logging.RecordLogEvent($"Loading builtin theme {themename}");
+                ActivateThemeObject(BuiltinThemes[themename]);
+
+                return;
+            }
+            if (CustomThemes.ContainsKey(themename))
+            {
+                Logging.RecordLogEvent($"Loading custom theme {themename}");
+                ActivateThemeObject(CustomThemes[themename]);
+                return;
+            }
+            Logging.RecordLogEvent($"Tried to load unknown theme {themename}", Logging.LogFilterType.TextError);
+        }
+
+
+        public static Dictionary<string, JObject> CustomThemes = new Dictionary<string, JObject>();
+        public static Dictionary<string, JObject> BuiltinThemes = new Dictionary<string, JObject>();
+        public static Dictionary<string, Dictionary<string, string>> ThemesMetadataCatalogue = new Dictionary<string, Dictionary<string, string>>();
+
+        public static void LoadPresetThemes(JArray themesArray)
+        {
+            Console.WriteLine($"Loading {themesArray.Count} builtin themes");
+
+            for (var i = 0; i < themesArray.Count; i++)
+            {
+                JObject theme = themesArray[i].Value<JObject>();
+                if (!LoadMetadataStrings(theme, out Dictionary<string, string> metadata, out string error))
+                {
+                    Logging.RecordLogEvent($"Error loading metadata for preloaded theme {i}: {error}");
+                    continue;
+                }
+
+                if (!metadata.TryGetValue("Name", out string themeName))
+                {
+                    Logging.RecordLogEvent($"Skipping load for preloaded theme {i} (no 'Name' in metadata)");
+                    continue;
+                }
+
+                BuiltinThemes[themeName] = theme;
+                ThemesMetadataCatalogue[themeName] = metadata;
+            }
+        }
+
+        public static void LoadResources()
+        {
+            System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
+            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
+            System.Collections.IDictionaryEnumerator dict = r.GetEnumerator();
+
+            while (dict.MoveNext())
+            {
+                if (dict.Key.ToString() == "BuiltinJSONThemes")
+                {
+                    string themesjsn = (string)dict.Value.ToString();
+
+                    Newtonsoft.Json.Linq.JArray themesListJson = new Newtonsoft.Json.Linq.JArray();
+                    try
+                    {
+                        themesListJson = Newtonsoft.Json.Linq.JArray.Parse(themesjsn);
+                        LoadPresetThemes(themesListJson);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Exception loading builtin themes: {e.Message}");
+                    }
+                }
+            }
+        }
+
         public static void InitDefaultConfig()
         {
+            LoadResources();
+
+            //todo - user default theme once setting loaded
+            if (BuiltinThemes.Count > 0)
+            {
+                LoadTheme(BuiltinThemes.Keys.First());
+            }
+
+            if (ThemeColoursStandard.Count == 0)
+            {
+                InitFallbackTheme();
+            }
+
+
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            var settings = configFile.AppSettings.Settings;
+            settings.Add("Setting1", "setting1value");
+            settings.Add("Theme1", "{Google play \"cards\"");
+            Console.WriteLine(configFile.FilePath);
+            configFile.Save();
+            ConfigurationManager.RefreshSection("appSettings");
+
+
             InitDefaultKeybinds();
             //LoadCustomKeybinds();
             InitResponsiveKeys();
-            InitDefaultTheme();
 
-            defaultGraphColours = new List<WritableRgbaFloat> { 
+            defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
             };

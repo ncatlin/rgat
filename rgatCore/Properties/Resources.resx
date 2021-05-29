@@ -1,0 +1,218 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BuiltinJSONThemes" xml:space="preserve">
+    <value>[{
+  "CustomColours": {
+    "ePreviewText": 4294967295,
+    "ePreviewTextBackground": 1275068416,
+    "ePreviewPaneBorder": 4278190335,
+    "ePreviewPaneBackground": 4278979596,
+    "ePreviewZoomEnvelope": 2998055602,
+    "eHeat0Lowest": 2996502528,
+    "eHeat1": 4288355374,
+    "eHeat2": 4293027935,
+    "eHeat3": 4292841333,
+    "eHeat4": 8703,
+    "eHeat5": 4290036988,
+    "eHeat6": 4288190706,
+    "eHeat7": 4285230073,
+    "eHeat8": 4282401023,
+    "eHeat9Highest": 4278190335,
+    "eVisBarPlotLine": 4278190335,
+    "eVisBarBg": 4278190080,
+    "eAlertWindowBg": 4291648106,
+    "eAlertWindowBorder": 4294965496
+  },
+  "StandardColours": {
+    "Text": 4294967295,
+    "TextDisabled": 4286545791,
+    "WindowBg": 4009754624,
+    "ChildBg": 2991871075,
+    "PopupBg": 4011070484,
+    "Border": 2139057517,
+    "BorderShadow": 2986344448,
+    "FrameBg": 2306492712,
+    "FrameBgHovered": 1727632962,
+    "FrameBgActive": 2868483650,
+    "TitleBg": 4278848010,
+    "TitleBgActive": 4286204200,
+    "TitleBgCollapsed": 2181038080,
+    "MenuBarBg": 4280492835,
+    "ScrollbarBg": 2265253125,
+    "ScrollbarGrab": 4283387727,
+    "ScrollbarGrabHovered": 4285032552,
+    "ScrollbarGrabActive": 4286743170,
+    "CheckMark": 4294547010,
+    "SliderGrab": 4292903997,
+    "SliderGrabActive": 4294547010,
+    "Button": 1727632962,
+    "ButtonHovered": 4294547010,
+    "ButtonActive": 4294543119,
+    "Header": 1341756994,
+    "HeaderHovered": 3438908994,
+    "HeaderActive": 4294547010,
+    "Separator": 2139057517,
+    "SeparatorHovered": 3334432281,
+    "SeparatorActive": 4290733593,
+    "ResizeGrip": 3002701378,
+    "ResizeGripHovered": 2868483650,
+    "ResizeGripActive": 4076443202,
+    "Tab": 3683866925,
+    "TabHovered": 3438908994,
+    "TabActive": 4289554482,
+    "TabUnfocused": 4146403857,
+    "TabUnfocusedActive": 4285284898,
+    "DockingPreview": 3002701378,
+    "DockingEmptyBg": 4281545523,
+    "PlotLines": 4288387995,
+    "PlotLinesHovered": 4284050943,
+    "PlotHistogram": 4278235877,
+    "PlotHistogramHovered": 4278229503,
+    "TableHeaderBg": 4281544752,
+    "TableBorderStrong": 4284043087,
+    "TableBorderLight": 4282333754,
+    "TableRowBg": 2986344448,
+    "TableRowBgAlt": 3003121663,
+    "TextSelectedBg": 1509529154,
+    "DragDropTarget": 3842047999,
+    "NavHighlight": 4294547010,
+    "NavWindowingHighlight": 3003121663,
+    "NavWindowingDimBg": 2999766220,
+    "ModalWindowDimBg": 1506593996
+  },
+  "Sizes": {
+    "ePreviewSelectedBorder": 1.0
+  },
+  "SizeLimits": {
+    "ePreviewSelectedBorder": [
+      0.0,
+      30.0
+    ]
+  },
+  "Metadata": {
+    "Name": "Development",
+    "Description": "Pre Theme-development collection of default/development colours",
+    "Author": "rgat default theme",
+    "Author2": "https://github.com/ncatlin/rgat"
+  }
+}]</value>
+    <comment>Default immutable preset themes included with rgat</comment>
+  </data>
+</root>

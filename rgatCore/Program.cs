@@ -99,7 +99,7 @@ namespace ImGuiNET
                 {
                     _rgatui.AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
                 }
-            }; 
+            };
             _window.KeyUp += (KeyEvent k) =>
             {
                 HeldResponsiveKeys.RemoveAll(key => key == k.Key);
@@ -112,8 +112,8 @@ namespace ImGuiNET
                 _rgatui.AlertMouseMove(mm.State, _lastMousePos - mm.MousePosition);
                 _lastMousePos = mm.MousePosition;
             };
-           
-               
+
+
 
             //probably not going to have movable windows at all
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
@@ -162,7 +162,7 @@ namespace ImGuiNET
             {
                 ImGui.Text("Hello, world!");                                        // Display some text (you can use a format string too)
                 ImGui.SliderFloat("float", ref _f, 0, 1, _f.ToString("0.000"));  // Edit 1 float using a slider from 0.0f to 1.0f    
-                                                                                    //ImGui.ColorEdit3("clear color", ref _clearColor);                   // Edit 3 floats representing a color
+                                                                                 //ImGui.ColorEdit3("clear color", ref _clearColor);                   // Edit 3 floats representing a color
 
                 ImGui.Text($"Mouse position: {ImGui.GetMousePos()}");
 
@@ -280,7 +280,7 @@ namespace ImGuiNET
 
         private static unsafe void SubmitUI()
         {
-            
+
             SubmitDemoUI();
 
             _rgatui.DrawUI();
