@@ -4,6 +4,7 @@ using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -337,19 +338,19 @@ namespace rgatCore.Widgets
 
         unsafe void CreateOptionsPane_UITheme()
         {
-            if (GlobalConfig.UnsavedTheme)
+            if (Themes.UnsavedTheme)
             {
-                ImGui.Text($"Current Theme: {GlobalConfig.ThemeMetadata["Name"]} [Modified - Unsaved]. Save as a preset to keep changes.");
+                ImGui.Text($"Current Theme: {Themes.ThemeMetadata["Name"]} [Modified - Unsaved]. Save as a preset to keep changes.");
             }
             else
             {
-                ImGui.Text($"Current Theme: {GlobalConfig.ThemeMetadata["Name"]}");
+                ImGui.Text($"Current Theme: {Themes.ThemeMetadata["Name"]}");
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Save As Preset"))
             {
-                pendingPresetName = GlobalConfig.ThemeMetadata["Name"];
+                pendingPresetName = Themes.ThemeMetadata["Name"];
                 ImGui.OpenPopup("##SavePreset");
                 ImGui.SetNextWindowSize(new Vector2(300, 160));
             }
@@ -358,53 +359,34 @@ namespace rgatCore.Widgets
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Store the currently applied theme so it can be reloaded from the above dropdown.");
             }
 
-            if (ImGui.BeginPopupModal("##SavePreset"))
+            DrawSavePresetPopUp();
+
+
+            if (ImGui.BeginCombo("Preset Themes", Themes.ThemeMetadata["Name"]))
             {
-                bool validName = !GlobalConfig.BuiltinThemes.ContainsKey(pendingPresetName) && !pendingPresetName.Contains('"');
-
-                if (!validName)
+                foreach (string themeName in Themes.ThemesMetadataCatalogue.Keys)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, INVALID_VALUE_TEXTBOX_COLOUR);
-                    ImGui.PushStyleColor(ImGuiCol.Button, 0xff333333);
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff333333);
-                    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff333333);
-                }
-                ImGui.Text("Theme Name");
-                if (ImGui.InputText("", ref pendingPresetName, 255, ImGuiInputTextFlags.EnterReturnsTrue) && validName)
-                {
-                    GlobalConfig.SavePresetTheme(pendingPresetName);
-                    ImGui.CloseCurrentPopup();
-                }
-                if (validName && ImGui.Button("Save"))
-                {
-                    GlobalConfig.SavePresetTheme(pendingPresetName);
-                    ImGui.CloseCurrentPopup();
-                }
-                if (!validName)
-                {
-                    ImGui.Text("Invalid name");
-                    ImGui.PopStyleColor(4);
-                }
-                ImGui.EndPopup();
-            }
-
-
-            if (ImGui.BeginCombo("Preset Themes", GlobalConfig.ThemeMetadata["Name"]))
-            {
-                foreach (string themeName in GlobalConfig.ThemesMetadataCatalogue.Keys)
-                {
+                    string themeLabel = themeName;
+                    if (Themes.DefaultTheme == themeName)
+                        themeLabel += "  [Default]";
                     if (ImGui.Selectable(themeName, true))
                         ActivateUIThemePreset(themeName);
-                    if (GlobalConfig.ThemeMetadata.TryGetValue("Description", out string themeDescription))
+                    if (ImGui.IsItemHovered())
                     {
-                        if (ImGui.IsItemHovered())
-                            ImGui.SetTooltip(themeDescription);
+                        string tipDescription = $"Name: {themeName}\r\n";
+                        if (Themes.ThemeMetadata.TryGetValue("Description", out string themeDescription))  tipDescription += $"Description: {themeDescription}\r\n";   
+                        if (Themes.ThemeMetadata.TryGetValue("Author", out string auth1))  tipDescription += $"Source: {auth1}";
+                        if (Themes.ThemeMetadata.TryGetValue("Author2", out string auth2)) tipDescription += $" ({auth2})";
+                        
+                        ImGui.SetTooltip(tipDescription);
                     }
+
+                    
                 }
                 ImGui.EndCombo();
             }
 
-            if (ImGui.CollapsingHeader("Import/Export Theme"))
+            if (ImGui.CollapsingHeader("Manage Theme"))
             {
                 CreateJSONEditor();
                 ImGui.TreePop();
@@ -416,6 +398,40 @@ namespace rgatCore.Widgets
             }
 
             CreateThemeSelectors();
+
+        }
+
+        void DrawSavePresetPopUp()
+        {
+            if (ImGui.BeginPopupModal("##SavePreset"))
+            {
+                bool validName = !Themes.BuiltinThemes.ContainsKey(pendingPresetName) && !pendingPresetName.Contains('"');
+
+                if (!validName)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, INVALID_VALUE_TEXTBOX_COLOUR);
+                    ImGui.PushStyleColor(ImGuiCol.Button, 0xff333333);
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff333333);
+                    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff333333);
+                }
+                ImGui.Text("Theme Name");
+                if (ImGui.InputText("", ref pendingPresetName, 255, ImGuiInputTextFlags.EnterReturnsTrue) && validName)
+                {
+                    Themes.SavePresetTheme(pendingPresetName);
+                    ImGui.CloseCurrentPopup();
+                }
+                if (validName && ImGui.Button("Save"))
+                {
+                    Themes.SavePresetTheme(pendingPresetName);
+                    ImGui.CloseCurrentPopup();
+                }
+                if (!validName)
+                {
+                    ImGui.Text("Invalid name");
+                    ImGui.PopStyleColor(4);
+                }
+                ImGui.EndPopup();
+            }
 
         }
 
@@ -444,11 +460,11 @@ namespace rgatCore.Widgets
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
 
             ImGui.SameLine();
-            if (ImGui.Button("Restore"))
+            if (ImGui.Button("Cancel"))
             {
                 RegenerateUIThemeJSON();
             }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Regenerate JSON from the currently applied theme. The current JSON text will be lost.");
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Restore export text from the currently applied theme. The changes will be lost.");
 
             if (disableRestore) { ImGui.PopStyleColor(3); }
 
@@ -472,10 +488,50 @@ namespace rgatCore.Widgets
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
+            if (Themes.DefaultTheme != Themes.ThemeMetadata["Name"])
+            {
+                ImGui.SameLine();
+                if (ImGui.Button("Set As Default"))
+                {
+                    Themes.DefaultTheme = Themes.ThemeMetadata["Name"];
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
+            }
+
+            if (!Themes.IsBuiltinTheme)
+            {
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 20);
+                ImGui.PushStyleColor(ImGuiCol.Button, 0x9B331EFF);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff3344ff);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff0000ff);
+                if (ImGui.Button("Delete"))
+                {
+                    DeleteCurrentTheme();
+                }
+                ImGui.PopStyleColor(3);
+            }
+
 
             ImGui.EndGroup();
         }
 
+        void DeleteCurrentTheme()
+        {
+            string oldTheme = Themes.ThemeMetadata["Name"];
+
+            //todo load default theme
+            if (Themes.BuiltinThemes.Count > 0) {
+                ActivateUIThemePreset(Themes.BuiltinThemes.Keys.First());
+            }
+            else
+            {
+                Logging.RecordLogEvent("Cannot delete theme, no builtin theme to revert to", Logging.LogFilterType.TextError);
+                return;
+            }
+
+            Themes.DeleteTheme(oldTheme);
+        }
 
 
         unsafe void CreateThemeSelectors()
@@ -486,11 +542,11 @@ namespace rgatCore.Widgets
                 for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
                 {
                     ImGuiCol stdCol = (ImGuiCol)colI;
-                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColourImGui(stdCol)).ToVec4();
+                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourImGui(stdCol)).ToVec4();
                     if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
-                        GlobalConfig.ThemeColoursStandard[stdCol] = new WritableRgbaFloat(colval).ToUint();
+                        Themes.ThemeColoursStandard[stdCol] = new WritableRgbaFloat(colval).ToUint();
                     }
 
                 }
@@ -499,14 +555,14 @@ namespace rgatCore.Widgets
 
             if (ImGui.TreeNode("rgat Custom Colours"))
             {
-                for (int colI = 0; colI < (int)(GlobalConfig.ThemeColoursCustom.Count); colI++)
+                for (int colI = 0; colI < (int)(Themes.ThemeColoursCustom.Count); colI++)
                 {
-                    GlobalConfig.eThemeColour customCol = (GlobalConfig.eThemeColour)colI;
-                    Vector4 colval = new WritableRgbaFloat(GlobalConfig.GetThemeColourUINT(customCol)).ToVec4();
-                    if (ImGui.ColorEdit4(Enum.GetName(typeof(GlobalConfig.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
+                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(Themes.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
-                        GlobalConfig.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
+                        Themes.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
                     }
 
                 }
@@ -515,15 +571,15 @@ namespace rgatCore.Widgets
 
             if (ImGui.TreeNode("Dimensions"))
             {
-                for (int dimI = 0; dimI < (int)(GlobalConfig.ThemeSizesCustom.Count); dimI++)
+                for (int dimI = 0; dimI < (int)(Themes.ThemeSizesCustom.Count); dimI++)
                 {
-                    GlobalConfig.eThemeSize sizeEnum = (GlobalConfig.eThemeSize)dimI;
-                    int size = (int)GlobalConfig.GetThemeSize(sizeEnum);
-                    Vector2 sizelimit = GlobalConfig.ThemeSizeLimits[sizeEnum];
-                    if (ImGui.SliderInt(Enum.GetName(typeof(GlobalConfig.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
+                    Themes.eThemeSize sizeEnum = (Themes.eThemeSize)dimI;
+                    int size = (int)Themes.GetThemeSize(sizeEnum);
+                    Vector2 sizelimit = Themes.ThemeSizeLimits[sizeEnum];
+                    if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
                     {
                         changed = true;
-                        GlobalConfig.ThemeSizesCustom[sizeEnum] = (float)size;
+                        Themes.ThemeSizesCustom[sizeEnum] = (float)size;
                     }
 
                 }
@@ -533,7 +589,7 @@ namespace rgatCore.Widgets
             if (ImGui.TreeNode("Metadata"))
             {
                 Tuple<string, string>? changedVal = null;
-                Dictionary<string, string> currentMetadata = new Dictionary<string, string>(GlobalConfig.ThemeMetadata);
+                Dictionary<string, string> currentMetadata = new Dictionary<string, string>(Themes.ThemeMetadata);
                 foreach (KeyValuePair<string, string> kvp in currentMetadata)
                 {
                     string value = kvp.Value;
@@ -560,7 +616,7 @@ namespace rgatCore.Widgets
                 }
                 if (changedVal != null)
                 {
-                    GlobalConfig.ThemeMetadata[changedVal.Item1] = changedVal.Item2;
+                    Themes.ThemeMetadata[changedVal.Item1] = changedVal.Item2;
                 }
                 ImGui.TreePop();
             }
@@ -569,7 +625,7 @@ namespace rgatCore.Widgets
 
             if (changed)
             {
-                GlobalConfig.UnsavedTheme = true;
+                Themes.UnsavedTheme = true;
                 RegenerateUIThemeJSON();
             }
         }
@@ -589,20 +645,20 @@ namespace rgatCore.Widgets
             {
                 bool validValue = true;
 
-                if (keyname == "Name" && GlobalConfig.BuiltinThemes.ContainsKey(actualCurrentValue)) validValue = false;
+                if (keyname == "Name" && Themes.BuiltinThemes.ContainsKey(actualCurrentValue)) validValue = false;
                 if (actualCurrentValue.Contains('"')) validValue = true;
 
                 if (badFields.Contains(keyname) && validValue)
                 {
-                   badFields.Remove(keyname);
+                    badFields.Remove(keyname);
                 }
                 else if (!badFields.Contains(keyname) && !validValue)
                 {
-                  badFields.Add(keyname);
+                    badFields.Add(keyname);
                 }
                 if (validValue)
                 {
-                    GlobalConfig.SaveMetadataChange(keyname, actualCurrentValue);
+                    Themes.SaveMetadataChange(keyname, actualCurrentValue);
                 }
             }
 
@@ -613,7 +669,7 @@ namespace rgatCore.Widgets
 
         void RegenerateUIThemeJSON()
         {
-            _theme_UI_JSON = GlobalConfig.RegenerateUIThemeJSON();
+            _theme_UI_JSON = Themes.RegenerateUIThemeJSON();
             _theme_UI_JSON_Text = _theme_UI_JSON;
             _UI_JSON_edited = false;
         }
@@ -625,7 +681,7 @@ namespace rgatCore.Widgets
             //_theme_UI_JSON_Text
 
             //apply it to the config lists/arrays
-            if (!GlobalConfig.ActivateThemeObject(_theme_UI_JSON_Text, out string error))
+            if (!Themes.ActivateThemeObject(_theme_UI_JSON_Text, out string error))
             {
                 Console.WriteLine("Failed to load json");
                 return;
@@ -639,7 +695,7 @@ namespace rgatCore.Widgets
 
         void ActivateUIThemePreset(string name)
         {
-            GlobalConfig.LoadTheme(name);
+            Themes.LoadTheme(name);
         }
 
 

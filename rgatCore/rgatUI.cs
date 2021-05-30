@@ -170,9 +170,9 @@ namespace rgatCore
             //ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Appearing);
             ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
+            ApplyThemeColours();
             ImGui.Begin("rgat Primary Window", window_flags);
 
-            ApplyThemeColours();
 
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
             HandleUserInput();
@@ -209,8 +209,8 @@ namespace rgatCore
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - (width + 6));
 
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.eAlertWindowBg));
-            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.eAlertWindowBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
+            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBorder));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
             Vector2 popupBR = ImGui.GetCursorPos() + new Vector2(0, 150);
@@ -294,17 +294,16 @@ namespace rgatCore
 
         static void ApplyThemeColours()
         {
-            foreach (KeyValuePair<ImGuiCol, uint> kvp in GlobalConfig.ThemeColoursStandard)
+            foreach (KeyValuePair<ImGuiCol, uint> kvp in Themes.ThemeColoursStandard)
             {
 
                 ImGui.PushStyleColor(kvp.Key, kvp.Value);
             }
         }
 
-
         static void ResetThemeColours()
         {
-            GlobalConfig.ThemeColoursStandard.ToList().ForEach((f) => ImGui.PopStyleColor());
+            Themes.ThemeColoursStandard.ToList().ForEach((f) => ImGui.PopStyleColor());
         }
 
 
@@ -797,8 +796,8 @@ namespace rgatCore
             ImGui.SameLine(0, 0);
 
             Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
-            ImGui.PushStyleColor(ImGuiCol.Border, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewPaneBorder));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewPaneBackground));
+            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBackground));
 
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));

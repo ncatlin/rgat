@@ -340,7 +340,7 @@ namespace rgatCore
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
             List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
-            uint captionBackgroundcolor = GlobalConfig.ThemeColoursCustom[GlobalConfig.eThemeColour.ePreviewTextBackground];
+            uint captionBackgroundcolor = Themes.ThemeColoursCustom[Themes.eThemeColour.ePreviewTextBackground];
 
             _layoutEngine.SetActiveTrace(activeTrace);
             _layoutEngine.UpdatePositionCaches();
@@ -588,7 +588,7 @@ namespace rgatCore
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
-            uint colour = GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewZoomEnvelope);
+            uint colour = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewZoomEnvelope);
 
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
@@ -646,7 +646,7 @@ namespace rgatCore
                 uv_min: new Vector2(0, 1),
                 uv_max: new Vector2(1, 0));
 
-            float borderThickness = GlobalConfig.GetThemeSize(GlobalConfig.eThemeSize.ePreviewSelectedBorder);
+            float borderThickness = Themes.GetThemeSize(Themes.eThemeSize.ePreviewSelectedBorder);
             float halfBorderThickness = (float)Math.Floor(borderThickness / 2f);
 
             if (isSelected)
@@ -668,7 +668,7 @@ namespace rgatCore
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
-            ImGui.PushStyleColor(ImGuiCol.Text, GlobalConfig.GetThemeColourUINT(GlobalConfig.eThemeColour.ePreviewText));
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewText));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + UI_Constants.PREVIEW_PANE_X_PADDING + borderThickness + 1);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + borderThickness);
             ImGui.Text(Caption);

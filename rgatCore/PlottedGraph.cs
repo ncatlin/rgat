@@ -1259,8 +1259,8 @@ namespace rgatCore
                 case eRenderingMode.eHeatmap:
                     {
                         Debug.Assert(e.heatRank >= 0 && e.heatRank <= 9);
-                        GlobalConfig.eThemeColour heatColEnum = (GlobalConfig.eThemeColour)((float)GlobalConfig.eThemeColour.eHeat0Lowest + e.heatRank);
-                        return new WritableRgbaFloat(GlobalConfig.ThemeColoursCustom[heatColEnum]);
+                        Themes.eThemeColour heatColEnum = (Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + e.heatRank);
+                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[heatColEnum]);
                     }
                 case eRenderingMode.eConditionals:
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
