@@ -372,15 +372,26 @@ namespace rgatCore
                     }
 
 
-                    MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
-                    if (!GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction)) continue;
+                    bool isKeybind = GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
 
-                    if (boundAction == eKeybind.Cancel)
+
+                    if (isKeybind)
                     {
-                        CloseDialogs();
+                        if (MainGraphWidget.QuickMenuActive &&
+                            (boundAction == eKeybind.QuickMenu || boundAction == eKeybind.Cancel))
+                        { 
+                            MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, eKeybind.Cancel); 
+                            continue;
+                        }
+                        if (boundAction == eKeybind.Cancel)
+                            CloseDialogs();
                     }
 
-                    MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction);
+                    //could be a menu shortcut
+                    if (MainGraphWidget.AlertRawKeyPress(KeyModifierTuple)) continue;
+                   
+                    if (isKeybind) 
+                        MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction);
 
 
                 }
@@ -806,7 +817,7 @@ namespace rgatCore
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-               
+
                 PreviewGraphWidget.DrawWidget();
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
@@ -1060,7 +1071,7 @@ namespace rgatCore
                                         break;
                                     ucBlkCount++;
                                 }
-                                ImGui.Text($"Busy area of {ucBlkCount} blocks"); 
+                                ImGui.Text($"Busy area of {ucBlkCount} blocks");
                             }
                             break;
                         case eTraceUpdateType.eAnimUnchainedResults:
@@ -1448,7 +1459,7 @@ namespace rgatCore
 
             float controlsHeight = 230;
 
-            DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y -13 ) - controlsHeight);
+            DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 13) - controlsHeight);
             DrawVisualiserControls(controlsHeight);
         }
 
@@ -1812,7 +1823,7 @@ namespace rgatCore
         {
             ImGui.OpenPopup("Select Executable");
 
-            if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.NoScrollbar) )
+            if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
 
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));

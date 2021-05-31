@@ -293,12 +293,14 @@ namespace rgatCore
             return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 20;
         }
 
-        public void AlertRawKeyPress(Tuple<Key, ModifierKeys> keyModTuple)
+        public bool QuickMenuActive => _QuickMenu.Expanded == true;
+        public bool AlertRawKeyPress(Tuple<Key, ModifierKeys> keyModTuple)
         {
             if (_QuickMenu.Expanded)
             {
-                _QuickMenu.KeyPressed(keyModTuple);
+                return _QuickMenu.KeyPressed(keyModTuple);
             }
+            return false;
         }
 
         class KEYPRESS_CAPTION

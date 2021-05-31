@@ -10,10 +10,22 @@ namespace rgatCore.Widgets
     class QuickMenu
     {
         ImGuiController _controller;
-        bool _expanded; //true if menu is expanded or in the process of expanding.
+        //true if menu is expanded or in the process of expanding.
+
+        bool _expanded
+        {
+            get
+            {
+                return _baseMenuEntry.active;
+            }
+            set
+            {
+                _baseMenuEntry.active = value;
+            }
+        }
         bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
 
-        bool ExpansionFinished => Math.Floor(_expandProgress) == _menuEntries.Count;
+        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.subMenuEntries.Count;
         public bool Expanded => _expanded;
 
         float _expandProgress = 0f;
@@ -24,13 +36,38 @@ namespace rgatCore.Widgets
 
         GraphicsDevice _gd;
         HighlightDialog HighlightDialogWidget = new HighlightDialog();
-        List<MenuEntry> _menuEntries = new List<MenuEntry>();
+        MenuEntry _baseMenuEntry;
 
-        struct MenuEntry
+        class MenuEntry
         {
             public string IconName;
             public string PopupName;
             public string ToolTip;
+            public Key Shortcut;
+            public List<MenuEntry> subMenuEntries;
+            bool _isActive;
+            public bool active
+            {
+                get => _isActive;
+                set
+                {
+                    if (value)
+                    {
+                        if (!_isActive) _isActive = true;
+                    }
+                    else
+                    {
+                        _isActive = false;
+                        if (subMenuEntries != null)
+                        {
+                            foreach (var e in subMenuEntries)
+                            {
+                                if (e.active) e.active = false;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public QuickMenu(GraphicsDevice gd, ImGuiController controller)
@@ -38,36 +75,17 @@ namespace rgatCore.Widgets
             _gd = gd;
             _controller = controller;
 
-            _menuEntries.Add(new MenuEntry
-            {
-                IconName = "Menu2",
-                PopupName = null,
-                ToolTip = "Menu (M)"
-            });//todo - read keybind
+            List<MenuEntry> baseEntries = new List<MenuEntry>();
 
-            _menuEntries.Add(new MenuEntry
-            {
-                IconName = "Eye",
-                PopupName = "VisibilityMenuPopup",
-                ToolTip = "Visibility(V)"
-            });
+            _baseMenuEntry = new MenuEntry() { IconName = "Menu2", PopupName = null, ToolTip = "Menu", subMenuEntries = baseEntries, Shortcut = Key.M };
 
-            _menuEntries.Add(new MenuEntry
-            {
-                IconName = "Search",
-                PopupName = "SearchMenuPopup",
-                ToolTip = "Search/Highlighting (S)"
-            });
-
-            _menuEntries.Add(new MenuEntry
-            {
-                IconName = "Force3D",
-                PopupName = "GraphLayoutMenu",
-                ToolTip = "Graph Layout (G)"
-            });
+            baseEntries.Add(new MenuEntry { IconName = "Eye", PopupName = "VisibilityMenuPopup", ToolTip = "Visibility", Shortcut = Key.V });
+            baseEntries.Add(new MenuEntry { IconName = "Search", PopupName = "SearchMenuPopup", ToolTip = "Search/Highlighting", Shortcut = Key.S });
+            baseEntries.Add(new MenuEntry { IconName = "Force3D", PopupName = "GraphLayoutMenu", ToolTip = "Graph Layout", Shortcut = Key.G });
 
 
         }
+
 
         public void CancelPressed()
         {
@@ -79,9 +97,30 @@ namespace rgatCore.Widgets
             }
         }
 
-        public void KeyPressed(Tuple<Key, ModifierKeys> keyModTuple)
-        {
 
+        Tuple<Key, ModifierKeys> _RecentKeypress;
+        public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple)
+        {
+            if (!_expanded) return false;
+
+            if (_activeEntry == null || _activeEntry.subMenuEntries == null) return false;
+
+            _RecentKeypress = keyModTuple;
+
+            Console.WriteLine($"ActivateKeybind: {keyModTuple.Item1}, {keyModTuple.Item2}");
+            for (var i = 0; i < _activeEntry.subMenuEntries.Count; i++)
+            {
+                MenuEntry entry = _activeEntry.subMenuEntries[i];
+                if (keyModTuple.Item1 == entry.Shortcut)
+                {
+                    Console.WriteLine($"Activating QM shortcut {entry.ToolTip} {keyModTuple.Item1}");
+                    entry.active = true;
+                    _activeEntry = entry;
+                    return true;
+                }
+
+            }
+            return false;
         }
 
 
@@ -91,6 +130,8 @@ namespace rgatCore.Widgets
             {
                 _expanded = true;
                 _stayExpanded = persistent;
+                _activeEntry = _baseMenuEntry;
+                _baseMenuEntry.active = true;
             }
         }
 
@@ -103,6 +144,7 @@ namespace rgatCore.Widgets
                 _stayExpanded = false;
                 _activeMenuPopupName = null;
                 HighlightDialogWidget.PopoutHighlight = false;
+                _activeEntry = null;
             }
 
         }
@@ -141,18 +183,19 @@ namespace rgatCore.Widgets
 
         }
 
+        readonly float _menuYPad = 8;
+
         void DrawExpandedMenu(Vector2 position)
         {
             const float expansionPerFrame = 0.3f;
             Vector2 padding = new Vector2(16f, 6f);
             _menuBase = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
 
-            float menuYPad = 8;
-            float iconCount = _menuEntries.Count;
-            float currentExpansion = (float)(_expandProgress / ((float)_menuEntries.Count));
+            float iconCount = _baseMenuEntry.subMenuEntries.Count + 1;
+            float currentExpansion = (float)(_expandProgress / iconCount);
 
-            float expandedHeight = iconCount * (_iconSize.Y + menuYPad);
-            Vector2 menuPos = new Vector2(position.X + padding.X, position.Y - (expandedHeight * currentExpansion + menuYPad));
+            float expandedHeight = iconCount * (_iconSize.Y + _menuYPad);
+            Vector2 menuPos = new Vector2(position.X + padding.X, position.Y - (expandedHeight * currentExpansion + _menuYPad));
 
             ImGui.SetCursorScreenPos(menuPos);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 5.0f);
@@ -176,26 +219,48 @@ namespace rgatCore.Widgets
 
             //now draw the buttons, Y position proportional to the expansion progress
             float menuY = 0;
-            for (var i = 0; i < _menuEntries.Count; i++)
+
+            for (var i = 0; i < iconCount; i++)
             {
-                MenuEntry entry = _menuEntries[i];
+                MenuEntry entry = i == 0 ? _baseMenuEntry : _baseMenuEntry.subMenuEntries[i - 1];
+
                 float progressAdjustedY = menuY * currentExpansion;
-                DrawMenuButton(entry.IconName, entry.PopupName, entry.ToolTip, progressAdjustedY);
-                menuY += (_iconSize.Y + menuYPad);
+                DrawMenuButton(entry, progressAdjustedY);
+                menuY += (_iconSize.Y + _menuYPad);
                 if (i >= _expandProgress) break;
             }
+            Console.WriteLine(_expanded);
             if (_expanded && !ExpansionFinished) _expandProgress += expansionPerFrame;
-            if (!_expanded && _expandProgress > 0) _expandProgress -= expansionPerFrame;
+            if (!_expanded && _expandProgress > 0)
+                _expandProgress -= expansionPerFrame;
 
-            _expandProgress = Math.Min(_expandProgress, _menuEntries.Count);
+            _expandProgress = Math.Min(_expandProgress, iconCount);
             _expandProgress = Math.Max(_expandProgress, 0);
         }
 
-
-        void DrawMenuButton(string iconName, string popupName, string tooltip, float Yoffset)
+        MenuEntry? __activeEntry_;
+        MenuEntry? _activeEntry
         {
-            bool isActive = popupName != null && ImGui.IsPopupOpen(popupName);
-            Texture btnIcon = _controller.GetImage(iconName);
+            get { return __activeEntry_; }
+            set
+            {
+                /*
+                if (__activeEntry_ != null)
+                {
+                    MenuEntry oldval = __activeEntry_;
+                    oldval.active = false;
+                }*/
+                if (value != null) 
+                    value.active = true;
+                __activeEntry_ = value;
+            }
+        }
+
+        void DrawMenuButton(MenuEntry entry, float Yoffset)
+        {
+
+            bool isActive = entry.PopupName != null && ImGui.IsPopupOpen(entry.PopupName);
+            Texture btnIcon = _controller.GetImage(entry.IconName);
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
             ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
             Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
@@ -206,21 +271,27 @@ namespace rgatCore.Widgets
             ImGuiHoveredFlags flags = ImGuiHoveredFlags.AllowWhenBlockedByActiveItem |
                                       ImGuiHoveredFlags.AllowWhenOverlapped |
                                       ImGuiHoveredFlags.AllowWhenBlockedByPopup;
-            if (ImGui.IsItemHovered(flags))
+            bool isHovered = ImGui.IsItemHovered(flags);
+            if (isHovered)
             {
-
-                ImGui.BeginTooltip();
-                ImGui.Text(tooltip);
-                ImGui.EndTooltip();
-
-                if (_activeMenuPopupName != popupName)
+                if (_activeEntry == null || _activeEntry != entry)
                 {
-                    if (popupName != null)
+                    _activeEntry = entry;
+                }
+                ImGui.BeginTooltip();
+                ImGui.Text($"{entry.ToolTip} ({entry.Shortcut})");
+                ImGui.EndTooltip();
+            }
+            if (entry.active)
+            {
+                if (_activeMenuPopupName != entry.PopupName)
+                {
+                    if (entry.PopupName != null)
                     {
                         _popupPos = new Vector2(_menuBase.X + 50, _menuBase.Y - (Yoffset + 50));
-                        ImGui.OpenPopup(popupName);
+                        ImGui.OpenPopup(entry.PopupName);
                     }
-                    _activeMenuPopupName = popupName;
+                    _activeMenuPopupName = entry.PopupName;
                 }
             }
 
