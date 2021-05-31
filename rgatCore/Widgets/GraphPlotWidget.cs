@@ -298,7 +298,12 @@ namespace rgatCore
         {
             if (_QuickMenu.Expanded)
             {
-                return _QuickMenu.KeyPressed(keyModTuple);
+                bool swallowKeypress = _QuickMenu.KeyPressed(keyModTuple, out Tuple<string, string> ActivatedShortcut);
+                if (ActivatedShortcut != null)
+                {
+                    DisplayShortcutActivation(shortcut: ActivatedShortcut.Item1, action: ActivatedShortcut.Item2);
+                }
+                return swallowKeypress;
             }
             return false;
         }
@@ -310,9 +315,27 @@ namespace rgatCore
             public ModifierKeys modifiers;
             public long startedMS;
             public long repeats;
+            public string MenuShortut;
         }
 
         List<KEYPRESS_CAPTION> _keypressCaptions = new List<KEYPRESS_CAPTION>();
+
+        public void DisplayShortcutActivation(string shortcut, string action)
+        {
+            //replace the keypress that activated the menu with the shortcut
+            if (_keypressCaptions.Count > 0 && (_keypressCaptions[^1].key.ToString()[0] == shortcut[0]))
+            {
+                _keypressCaptions.RemoveAt(_keypressCaptions.Count - 1);
+            }
+            _keypressCaptions.Add(new KEYPRESS_CAPTION()
+            {
+                message = action,
+                startedMS = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                repeats = 1,
+                MenuShortut = shortcut
+            });
+        }
+
 
         void DisplayKeyPress(Tuple<Key, ModifierKeys> keyPressed, string messageCaption)
         {
@@ -446,15 +469,14 @@ namespace rgatCore
 
                 case eKeybind.QuickMenu:
                     {
-                        if (_QuickMenu.Expanded) _QuickMenu.Contract();
-                        else _QuickMenu.Expand(persistent: true);
+                        _QuickMenu.MenuPressed();
                         break;
                     }
                 default:
                     break;
             }
 
-            if (GlobalConfig.ShowKeystrokes) 
+            if (GlobalConfig.ShowKeystrokes)
                 DisplayKeyPress(keyPressed, boundAction.ToString());
         }
 
@@ -1084,10 +1106,18 @@ namespace rgatCore
                 float newPos = depth - (15 * (maxKeystrokes - i));
                 ImGui.SetCursorScreenPos(new Vector2(topLeft.X + 4, newPos));
 
-                string keystroke = keycaption.key.ToString();
-                if (keycaption.modifiers.HasFlag(ModifierKeys.Control)) keystroke = "Ctrl+" + keystroke;
-                if (keycaption.modifiers.HasFlag(ModifierKeys.Alt)) keystroke = "Alt+" + keystroke;
-                if (keycaption.modifiers.HasFlag(ModifierKeys.Shift)) keystroke = "Shift+" + keystroke;
+                string keystroke;
+                if (keycaption.MenuShortut != null)
+                {
+                    keystroke = keycaption.MenuShortut;
+                }
+                else
+                {
+                    keystroke = keycaption.key.ToString();
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Control)) keystroke = "Ctrl+" + keystroke;
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Alt)) keystroke = "Alt+" + keystroke;
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Shift)) keystroke = "Shift+" + keystroke;
+                }
 
                 string msg = $"[{keystroke}] -> {keycaption.message}";
                 if (keycaption.repeats > 1) msg += $" x{keycaption.repeats}";
@@ -1114,7 +1144,7 @@ namespace rgatCore
             float maxWidth = 200;
 
             TraceRecord trace = ActiveGraph.internalProtoGraph.TraceData;
-            
+
             Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime);
 
             float currentY = depth;
@@ -1129,7 +1159,7 @@ namespace rgatCore
                 double alpha = i == (evts.Length - 1) ? 255 : 220;
                 if (displayTimeRemaining <= GlobalConfig.VisMessageFadeStartTime)
                 {
-                    double fadetime =  GlobalConfig.VisMessageFadeStartTime - displayTimeRemaining;
+                    double fadetime = GlobalConfig.VisMessageFadeStartTime - displayTimeRemaining;
                     alpha *= 1.0 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime);
                 }
 
@@ -1192,11 +1222,11 @@ namespace rgatCore
             _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 
 
-            Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y/2);
+            Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y / 2);
             //DrawDisasmPreview(activeGraph, midRight);
         }
 
-        
+
         /*
         //drawing on graph, doesn't fit great
         void DrawDisasmPreview(PlottedGraph activeGraph, Vector2 midPosition)

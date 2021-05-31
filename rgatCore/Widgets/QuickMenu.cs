@@ -25,7 +25,7 @@ namespace rgatCore.Widgets
         }
         bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
 
-        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.subMenuEntries.Count;
+        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.children.Count;
         public bool Expanded => _expanded;
 
         float _expandProgress = 0f;
@@ -40,11 +40,13 @@ namespace rgatCore.Widgets
 
         class MenuEntry
         {
-            public string IconName;
-            public string PopupName;
+            public string Icon;
+            public string Popup;
             public string ToolTip;
+            public string Action;
+            public bool CloseMenu;
             public Key Shortcut;
-            public List<MenuEntry> subMenuEntries;
+            public List<MenuEntry> children;
             bool _isActive;
             public bool active
             {
@@ -58,9 +60,9 @@ namespace rgatCore.Widgets
                     else
                     {
                         _isActive = false;
-                        if (subMenuEntries != null)
+                        if (children != null)
                         {
-                            foreach (var e in subMenuEntries)
+                            foreach (var e in children)
                             {
                                 if (e.active) e.active = false;
                             }
@@ -70,6 +72,8 @@ namespace rgatCore.Widgets
             }
         }
 
+        Dictionary<string, MenuEntry> menuActions = new Dictionary<string, MenuEntry>();
+
         public QuickMenu(GraphicsDevice gd, ImGuiController controller)
         {
             _gd = gd;
@@ -77,13 +81,90 @@ namespace rgatCore.Widgets
 
             List<MenuEntry> baseEntries = new List<MenuEntry>();
 
-            _baseMenuEntry = new MenuEntry() { IconName = "Menu2", PopupName = null, ToolTip = "Menu", subMenuEntries = baseEntries, Shortcut = Key.M };
+            //menu button
+            _baseMenuEntry = new MenuEntry() { Shortcut = Key.M, ToolTip = "Menu", Icon = "Menu2", Action = "Toggle Menu", children = baseEntries, };
 
-            baseEntries.Add(new MenuEntry { IconName = "Eye", PopupName = "VisibilityMenuPopup", ToolTip = "Visibility", Shortcut = Key.V });
-            baseEntries.Add(new MenuEntry { IconName = "Search", PopupName = "SearchMenuPopup", ToolTip = "Search/Highlighting", Shortcut = Key.S });
-            baseEntries.Add(new MenuEntry { IconName = "Force3D", PopupName = "GraphLayoutMenu", ToolTip = "Graph Layout", Shortcut = Key.G });
+            //visibility menu
+            List<MenuEntry> visEntries = new List<MenuEntry>();
+            baseEntries.Add(new MenuEntry { Shortcut = Key.V, ToolTip = "Visibility", Icon = "Eye", Action = "Show VisMenu", Popup = "VisibilityMenuPopup", children = visEntries });
+            //visEntries.Add
+            visEntries.Add(new MenuEntry { Shortcut = Key.E, CloseMenu = true, Action = "Toggle Edges", ToolTip = "Toggle display of graph edges." });
+            visEntries.Add(new MenuEntry { Shortcut = Key.N, CloseMenu = true, Action = "Toggle Nodes", ToolTip = "Toggle display of instruction nodes." });
+            visEntries.Add(new MenuEntry { Shortcut = Key.T, CloseMenu = true, Action = "Toggle Text", ToolTip = "Toggle display of all text." });
+            visEntries.Add(new MenuEntry { Shortcut = Key.I, CloseMenu = true, Action = "Toggle Instruction Text", ToolTip = "Toggle display of instruction text." });
+            visEntries.Add(new MenuEntry { Shortcut = Key.H, CloseMenu = true, Action = "Toggle Active Node Highlight", ToolTip = "Display a highlight line indicating the most recently executed instruction." });
 
 
+            baseEntries.Add(new MenuEntry { Shortcut = Key.S, ToolTip = "Search/Highlighting", Action = "Show SearchMenu", Icon = "Search", Popup = "SearchMenuPopup" });
+            baseEntries.Add(new MenuEntry { Shortcut = Key.G, ToolTip = "Graph Layout", Action = "Show LayoutMenu", Icon = "Force3D", Popup = "GraphLayoutMenu" });
+
+            PopulateMenuActionsList(_baseMenuEntry);
+        }
+
+
+        bool ActivateAction(string actionName)
+        {
+            if (!menuActions.TryGetValue(actionName, out MenuEntry action))
+            {
+                Logging.RecordLogEvent("Bad quickmenu action:" + actionName);
+                return false;
+            }
+            keyCombo.Add(action.Shortcut);
+
+            switch (actionName)
+            {
+                case "Toggle Nodes":
+                    _currentGraph.NodesVisible = !_currentGraph.NodesVisible;
+                    break;
+                case "Toggle Edges":
+                    _currentGraph.EdgesVisible = !_currentGraph.EdgesVisible;
+                    break;
+                case "Toggle Text":
+                    _currentGraph.TextEnabled = !_currentGraph.TextEnabled;
+                    break;
+                case "Toggle Instruction Text":
+                    _currentGraph.TextEnabledIns = !_currentGraph.TextEnabledIns;
+                    break;
+                case "Toggle Active Node Highlight":
+                    _currentGraph.LiveNodeEdgeEnabled = !_currentGraph.LiveNodeEdgeEnabled;
+                    break;
+                case "Toggle Menu":
+                    MenuPressed();
+                    break;
+                case "Show SearchMenu":
+                case "Show VisMenu":
+                case "Show LayoutMenu":
+                    _activeEntry = action;
+                    _activeMenuPopupName = action.Popup;
+                    break;
+                default:
+                    Logging.RecordLogEvent("Unhandled quickmenu action: " + actionName);
+                    break;
+            }
+            if (action.children == null)
+            {
+                if (action.CloseMenu)
+                {
+                    MenuPressed();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        void PopulateMenuActionsList(MenuEntry entry)
+        {
+            if (entry.Action != null)
+            {
+                menuActions[entry.Action] = entry;
+            }
+            if (entry.children?.Count > 0)
+            {
+                foreach (MenuEntry child in entry.children)
+                {
+                    PopulateMenuActionsList(child);
+                }
+            }
         }
 
 
@@ -97,35 +178,51 @@ namespace rgatCore.Widgets
             }
         }
 
-
+        /// <summary>
+        /// Take a keypress that might be dealt with by the open quickmenu
+        /// Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
+        /// </summary>
         Tuple<Key, ModifierKeys> _RecentKeypress;
-        public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple)
+        public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple, out Tuple<string, string> ComboAction)
         {
-            if (!_expanded) return false;
-
-            if (_activeEntry == null || _activeEntry.subMenuEntries == null) return false;
+            ComboAction = null;
+            if (!_expanded || _activeEntry == null) return false;
 
             _RecentKeypress = keyModTuple;
 
-            Console.WriteLine($"ActivateKeybind: {keyModTuple.Item1}, {keyModTuple.Item2}");
-            for (var i = 0; i < _activeEntry.subMenuEntries.Count; i++)
+            for (var i = 0; i < _activeEntry.children?.Count; i++)
             {
-                MenuEntry entry = _activeEntry.subMenuEntries[i];
+                MenuEntry entry = _activeEntry.children[i];
                 if (keyModTuple.Item1 == entry.Shortcut)
                 {
-                    Console.WriteLine($"Activating QM shortcut {entry.ToolTip} {keyModTuple.Item1}");
-                    entry.active = true;
-                    _activeEntry = entry;
+                    if (entry.Action != null)
+                    {
+                        if (ActivateAction(entry.Action))
+                        {
+                            string combo = String.Join("-", keyCombo.ToArray());
+                            ComboAction = new Tuple<string, string>(combo, entry.Action);
+                        }
+                    }
                     return true;
                 }
 
             }
-            return false;
+            return true;
         }
 
+        public void MenuPressed()
+        {
+            if (Expanded) Contract();
+            else Expand(persistent: true);
+        }
+
+        List<Key> keyCombo = new List<Key>();
 
         public void Expand(bool persistent = false)
         {
+            keyCombo.Clear();
+            keyCombo.Add(_baseMenuEntry.Shortcut);
+
             if (_expanded == false && _expandProgress <= 0)
             {
                 _expanded = true;
@@ -150,9 +247,11 @@ namespace rgatCore.Widgets
         }
 
 
-
+        PlottedGraph _currentGraph;
         public void Draw(Vector2 position, float scale, PlottedGraph graph)
         {
+            _currentGraph = graph;
+
             Texture btnIcon = _controller.GetImage("Menu");
             _iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
 
@@ -177,7 +276,7 @@ namespace rgatCore.Widgets
             if (_activeMenuPopupName != null)
             {
                 ImGui.PushStyleColor(ImGuiCol.ModalWindowDimBg, 0x00000050);
-                DrawPopups(graph);
+                DrawPopups();
                 ImGui.PopStyleColor();
             }
 
@@ -191,7 +290,7 @@ namespace rgatCore.Widgets
             Vector2 padding = new Vector2(16f, 6f);
             _menuBase = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
 
-            float iconCount = _baseMenuEntry.subMenuEntries.Count + 1;
+            float iconCount = _baseMenuEntry.children.Count + 1;
             float currentExpansion = (float)(_expandProgress / iconCount);
 
             float expandedHeight = iconCount * (_iconSize.Y + _menuYPad);
@@ -222,14 +321,14 @@ namespace rgatCore.Widgets
 
             for (var i = 0; i < iconCount; i++)
             {
-                MenuEntry entry = i == 0 ? _baseMenuEntry : _baseMenuEntry.subMenuEntries[i - 1];
+                MenuEntry entry = i == 0 ? _baseMenuEntry : _baseMenuEntry.children[i - 1];
 
                 float progressAdjustedY = menuY * currentExpansion;
                 DrawMenuButton(entry, progressAdjustedY);
                 menuY += (_iconSize.Y + _menuYPad);
                 if (i >= _expandProgress) break;
             }
-            Console.WriteLine(_expanded);
+            //Console.WriteLine(_expanded);
             if (_expanded && !ExpansionFinished) _expandProgress += expansionPerFrame;
             if (!_expanded && _expandProgress > 0)
                 _expandProgress -= expansionPerFrame;
@@ -250,17 +349,20 @@ namespace rgatCore.Widgets
                     MenuEntry oldval = __activeEntry_;
                     oldval.active = false;
                 }*/
-                if (value != null) 
+                if (value != null)
                     value.active = true;
                 __activeEntry_ = value;
             }
         }
 
+
+
+
         void DrawMenuButton(MenuEntry entry, float Yoffset)
         {
 
-            bool isActive = entry.PopupName != null && ImGui.IsPopupOpen(entry.PopupName);
-            Texture btnIcon = _controller.GetImage(entry.IconName);
+            bool isActive = entry.Popup != null && ImGui.IsPopupOpen(entry.Popup);
+            Texture btnIcon = _controller.GetImage(entry.Icon);
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
             ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
             Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
@@ -276,34 +378,45 @@ namespace rgatCore.Widgets
             {
                 if (_activeEntry == null || _activeEntry != entry)
                 {
+                    if (_activeMenuPopupName != null)
+                    {
+                        _activeEntry.active = false;
+                        ImGui.CloseCurrentPopup();
+                        _activeMenuPopupName = null;
+                    }
                     _activeEntry = entry;
                 }
                 ImGui.BeginTooltip();
                 ImGui.Text($"{entry.ToolTip} ({entry.Shortcut})");
                 ImGui.EndTooltip();
             }
-            if (entry.active)
+            else
             {
-                if (_activeMenuPopupName != entry.PopupName)
+                if (_activeMenuPopupName == null && entry.active == false &&
+                    entry?.Popup != null && ImGui.IsPopupOpen(entry.Popup))
                 {
-                    if (entry.PopupName != null)
-                    {
-                        _popupPos = new Vector2(_menuBase.X + 50, _menuBase.Y - (Yoffset + 50));
-                        ImGui.OpenPopup(entry.PopupName);
-                    }
-                    _activeMenuPopupName = entry.PopupName;
+                    ImGui.CloseCurrentPopup();
+                }    
+            }
+            if (entry.active && entry.Popup != null)
+            {
+                if (_activeMenuPopupName != entry.Popup)
+                {
+                    _popupPos = new Vector2(_menuBase.X + 50, _menuBase.Y - (Yoffset + 50));
+                    ImGui.OpenPopup(entry.Popup);
+                    _activeMenuPopupName = entry.Popup;
                 }
             }
 
         }
 
-        void DrawPopups(PlottedGraph graph)
+        void DrawPopups()
         {
             ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
 
-            if (ImGui.BeginPopup("VisibilityMenuPopup"))
+            if (_activeMenuPopupName == "VisibilityMenuPopup" && ImGui.BeginPopup("VisibilityMenuPopup"))
             {
-                DrawVisibilityFrame(graph);
+                DrawVisibilityFrame();
                 ImGui.EndPopup();
             }
 
@@ -314,26 +427,30 @@ namespace rgatCore.Widgets
                 ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
                 if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight))
                 {
-                    DrawSearchHighlightFrame(graph);
+                    DrawSearchHighlightFrame();
                     ImGui.End();
                 }
                 return;
             }
             else
             {
-                ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Always);
-                ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
-                ImGuiWindowFlags flags = ImGuiWindowFlags.None;
-                if (ImGui.BeginPopup("SearchMenuPopup", flags))
+                if (_activeMenuPopupName == "SearchMenuPopup")
                 {
-                    DrawSearchHighlightFrame(graph);
-                    ImGui.EndPopup();
+                    ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Always);
+                    ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
+                    ImGuiWindowFlags flags = ImGuiWindowFlags.None;
+
+                    if (ImGui.BeginPopup("SearchMenuPopup", flags))
+                    {
+                        DrawSearchHighlightFrame();
+                        ImGui.EndPopup();
+                    }
                 }
             }
 
-            if (ImGui.BeginPopup("GraphLayoutMenu"))
+            if ((_activeMenuPopupName == "GraphLayoutMenu") && ImGui.BeginPopup("GraphLayoutMenu"))
             {
-                DrawGraphLayoutFrame(graph);
+                DrawGraphLayoutFrame();
                 ImGui.EndPopup();
             }
 
@@ -344,7 +461,7 @@ namespace rgatCore.Widgets
             }
         }
 
-        void DrawVisibilityFrame(PlottedGraph activeGraph)
+        void DrawVisibilityFrame()
         {
 
             if (ImGui.BeginChildFrame(324234, new Vector2(250, 160)))
@@ -353,61 +470,11 @@ namespace rgatCore.Widgets
                 ImGui.Columns(2, "visselcolumns", true);
                 ImGui.SetColumnWidth(0, 180);
                 ImGui.SetColumnWidth(1, 65);
-
-                float width = ImGui.GetWindowContentRegionWidth();
-                float rowHeight = 21;
-                Vector2 selSize = new Vector2(width, rowHeight);
-
-                string tooltip;
-                tooltip = "Toggle display of graph edges.Current Keybind: [E]";
-                if (ImGui.Selectable("Show Edges", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
-                {
-                    activeGraph.EdgesVisible = !activeGraph.EdgesVisible;
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-                ImGui.NextColumn();
-                SmallWidgets.ToggleButton("edgesToggle", activeGraph.EdgesVisible, null);
-                ImGui.NextColumn();
-
-                tooltip = "Toggle display of graph instruction nodes. Current Keybind: [N]";
-                if (ImGui.Selectable("Show Nodes", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
-                {
-                    activeGraph.NodesVisible = !activeGraph.NodesVisible;
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-                ImGui.NextColumn();
-                SmallWidgets.ToggleButton("nodesToggle", activeGraph.NodesVisible, null);
-                ImGui.NextColumn();
-
-                tooltip = "Toggle display of all graph text. Current Keybind: [I]";
-                if (ImGui.Selectable("Enable Text", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
-                {
-                    activeGraph.TextEnabled = !activeGraph.TextEnabled;
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-                ImGui.NextColumn();
-                SmallWidgets.ToggleButton("textenable", activeGraph.TextEnabled, null);
-                ImGui.NextColumn();
-
-                tooltip = "Toggle display of graph node instruction text. Current Keybind: [Shift-I]";
-                if (ImGui.Selectable("Instruction Text", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
-                {
-                    activeGraph.TextEnabledIns = !activeGraph.TextEnabledIns;
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-                ImGui.NextColumn();
-                SmallWidgets.ToggleButton("textenable_ins", activeGraph.TextEnabledIns, null);
-                ImGui.NextColumn();
-
-                tooltip = "Display a highlight line indicating the most recently executed instruction";
-
-                if (ImGui.Selectable("Active Node Highlight", false, ImGuiSelectableFlags.SpanAllColumns, selSize))
-                {
-                    activeGraph.LiveNodeEdgeEnabled = !activeGraph.LiveNodeEdgeEnabled;
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
-                ImGui.NextColumn();
-                SmallWidgets.ToggleButton("livenodeedge_enabled", activeGraph.LiveNodeEdgeEnabled, null);
+                ShowTooltipToggle("Toggle Edges", _currentGraph.EdgesVisible);
+                ShowTooltipToggle("Toggle Nodes", _currentGraph.NodesVisible);
+                ShowTooltipToggle("Toggle Text", _currentGraph.TextEnabled);
+                ShowTooltipToggle("Toggle Instruction Text", _currentGraph.TextEnabledIns);
+                ShowTooltipToggle("Toggle Active Node Highlight", _currentGraph.LiveNodeEdgeEnabled);
 
                 ImGui.Columns(1);
                 ImGui.EndChildFrame();
@@ -415,21 +482,36 @@ namespace rgatCore.Widgets
 
         }
 
+        void ShowTooltipToggle(string actionName, bool value)
+        {
+            float width = ImGui.GetWindowContentRegionWidth();
+            float rowHeight = 21;
+            Vector2 selSize = new Vector2(width, rowHeight);
+            if (ImGui.Selectable(actionName, false, ImGuiSelectableFlags.SpanAllColumns, selSize))
+            {
+                ActivateAction(actionName);
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(menuActions[actionName].ToolTip);
+            ImGui.NextColumn();
+            SmallWidgets.ToggleButton("##Toggle" + actionName, value, null);
+            ImGui.NextColumn();
+        }
+
         /*
 private void DrawScalePopup()
 {
     if (ImGui.BeginChild(ImGui.GetID("SizeControls"), new Vector2(200, 200)))
     {
-        if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
+        if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate._currentGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
         {
             InitGraphReplot();
-            Console.WriteLine($"Needreplot { _rgatstate.ActiveGraph.scalefactors.pix_per_A}");
+            Console.WriteLine($"Needreplot { _rgatstate._currentGraph.scalefactors.pix_per_A}");
         };
-        if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate.ActiveGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
+        if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate._currentGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
         {
             InitGraphReplot();
         };
-        if (ImGui.DragFloat("Plot Size", ref _rgatstate.ActiveGraph.scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
+        if (ImGui.DragFloat("Plot Size", ref _rgatstate._currentGraph.scalefactors.plotSize, 10.0f, 0.1f, 100000f, "%f%%"))
         {
             InitGraphReplot();
         };
@@ -439,24 +521,24 @@ private void DrawScalePopup()
 }
 */
 
-        void DrawGraphLayoutFrame(PlottedGraph activeGraph)
+        void DrawGraphLayoutFrame()
         {
-            if (activeGraph.LayoutStyle == eGraphLayout.eCircle)
+            if (_currentGraph.LayoutStyle == eGraphLayout.eCircle)
             {
                 ImGui.Text("Circle Config Options");
             }
 
-            if (activeGraph.LayoutStyle == eGraphLayout.eCylinderLayout)
+            if (_currentGraph.LayoutStyle == eGraphLayout.eCylinderLayout)
             {
                 ImGui.Text("Cylinder Config Options");
             }
 
-            if (activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks)
+            if (_currentGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks)
             {
                 ImGui.Text("ForceDirected3DBlocks Config Options");
             }
 
-            if (activeGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes)
+            if (_currentGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes)
             {
                 ImGui.Text("eForceDirected3DNodes Config Options");
                 if (ImGui.Button("Rerender"))
@@ -473,9 +555,9 @@ private void DrawScalePopup()
         }
 
 
-        void DrawSearchHighlightFrame(PlottedGraph activeGraph)
+        void DrawSearchHighlightFrame()
         {
-            HighlightDialogWidget.Draw(activeGraph);
+            HighlightDialogWidget.Draw(_currentGraph);
         }
     }
 }
