@@ -508,17 +508,13 @@ namespace rgatCore
         JsonTextWriter CreateSaveFile(DateTime startedTime)
         {
             string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
-            if (!Directory.Exists(GlobalConfig.SaveDirectory))
+            if (!Directory.Exists(GlobalConfig.TraceSaveDirectory))
             {
-                GlobalConfig.SaveDirectory = Path.Join(Directory.GetCurrentDirectory(), "saves");
-            }
-            if (!Directory.Exists(GlobalConfig.SaveDirectory))
-            {
-                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.SaveDirectory + " does not exist", Logging.LogFilterType.TextInfo);
+                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.TraceSaveDirectory + " does not exist", Logging.LogFilterType.TextInfo);
                 return null;
             }
 
-            string path = Path.Join(GlobalConfig.SaveDirectory, saveFilename);
+            string path = Path.Join(GlobalConfig.TraceSaveDirectory, saveFilename);
             try
             {
                 StreamWriter sw = File.CreateText(path);
@@ -545,8 +541,8 @@ namespace rgatCore
         public void ExportPajek(uint TID)
         {
             ProtoGraph pgraph = this.ProtoGraphs[TID];
-
-            FileStream outfile = File.OpenWrite(Path.Combine(GlobalConfig.SaveDirectory, "pajeksave" + TID.ToString() + ".net"));
+            if (!Directory.Exists(GlobalConfig.TraceSaveDirectory)) return;
+            FileStream outfile = File.OpenWrite(Path.Combine(GlobalConfig.TraceSaveDirectory, "pajeksave" + TID.ToString() + ".net"));
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
             outfile.Write(Encoding.ASCII.GetBytes("*Vertices " + pgraph.NodeList.Count + "\n"));
 

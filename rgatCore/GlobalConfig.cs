@@ -8,8 +8,11 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Veldrid;
 
@@ -17,6 +20,83 @@ namespace rgatCore.Threads
 {
     class GlobalConfig
     {
+        public class JSONBlobConverter : TypeConverter
+        {
+            public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+            {
+                return (sourceType == typeof(JObject)) || sourceType == typeof(JArray) || (sourceType == typeof(string));
+            }
+
+            public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+            {
+                if (value.GetType() != typeof(string))
+                {
+                    throw new NotImplementedException($"JSONBlobConverter can only convert from string");
+                }
+
+                try
+                {
+                    JToken result = JToken.Parse((String)value);
+                    return result;
+                }
+                catch
+                {
+                    throw new DataException($"JSONBlobConverter ConvertFrom Bad json value {value}");
+                }
+            }
+
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+            {
+                return (destinationType == typeof(JObject)) 
+                    || destinationType == typeof(JArray)
+                    || (destinationType == typeof(string));
+            }
+            public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
+            {
+                if (destinationType == typeof(string))
+                {
+                    if (value.GetType() == typeof(JObject) || value.GetType() == typeof(JArray))
+                    {
+                        return value.ToString();
+                    }
+                }
+                throw new NotImplementedException($"ConvertTo can't convert type {value.GetType()} to {destinationType}");
+                return null;
+            }
+        }
+
+
+        public sealed class KeybindSection : ConfigurationSection
+        {
+
+            private static ConfigurationPropertyCollection _Properties;
+            private static readonly ConfigurationProperty _keybindJSON = new ConfigurationProperty(
+                "CustomKeybinds",
+                typeof(JArray),
+                new JArray(),
+                new GlobalConfig.JSONBlobConverter(),
+                null,
+                ConfigurationPropertyOptions.None);
+
+            public KeybindSection()
+            {
+                _Properties = new ConfigurationPropertyCollection();
+                _Properties.Add(_keybindJSON);
+            }
+
+            protected override object GetRuntimeObject() => base.GetRuntimeObject();
+            protected override ConfigurationPropertyCollection Properties => _Properties;
+
+            public JArray CustomKeybinds
+            {
+                get => (JArray)this["CustomKeybinds"];
+                set
+                {
+                    this["CustomKeybinds"] = value;
+                }
+            }
+        }
+
         public struct SYMS_VISIBILITY
         {
             public bool enabled;
@@ -114,17 +194,20 @@ namespace rgatCore.Threads
         /*
          * UI/App related config
          */
+        static readonly object _settingsLock = new object();
+        public static string TraceSaveDirectory;
+        public static string PinPath;
+        public static string PinToolPath32;
+        public static string PinToolPath64;
+        public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
+        public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
 
-        public static string SaveDirectory = @"C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\bin\Debug\netcoreapp3.1\testsaves";// "[not set]";
-        public static string PinPath = @"C:\devel\libs\pin-3.17\pin.exe";
-        public static string PinToolPath32 = @"C:\Users\nia\Documents\Visual Studio 2017\Projects\rgatPinClients\Debug\pingat.dll";
 
         public static Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         public static List<Key> ResponsiveKeys = new List<Key>();
         public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
-
 
 
         /*
@@ -138,34 +221,136 @@ namespace rgatCore.Threads
 
         public static void InitDefaultKeybinds()
         {
-            SetKeybind(eKeybind.MoveUp, 1, Key.W, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveUp, 2, Key.Up, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveDown, 1, Key.S, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveDown, 2, Key.Down, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveLeft, 1, Key.A, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveLeft, 2, Key.Left, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveRight, 1, Key.D, ModifierKeys.None);
-            SetKeybind(eKeybind.MoveRight, 2, Key.Right, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveUp, bindIndex: 2, Key.Up, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveDown, bindIndex: 1, Key.S, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveDown, bindIndex: 2, Key.Down, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveLeft, bindIndex: 1, Key.A, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveLeft, bindIndex: 2, Key.Left, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveRight, bindIndex: 1, Key.D, ModifierKeys.None);
+            SetKeybind(action: eKeybind.MoveRight, bindIndex: 2, Key.Right, ModifierKeys.None);
 
-            SetKeybind(eKeybind.PitchXFwd, 1, Key.PageUp, ModifierKeys.None);
-            SetKeybind(eKeybind.PitchXBack, 1, Key.PageDown, ModifierKeys.None);
-            SetKeybind(eKeybind.YawYLeft, 1, Key.Delete, ModifierKeys.None);
-            SetKeybind(eKeybind.YawYRight, 1, Key.End, ModifierKeys.None);
-            SetKeybind(eKeybind.RollGraphZAnti, 1, Key.Insert, ModifierKeys.None);
-            SetKeybind(eKeybind.RollGraphZClock, 1, Key.Home, ModifierKeys.None);
+            SetKeybind(action: eKeybind.PitchXFwd, bindIndex: 1, Key.PageUp, ModifierKeys.None);
+            SetKeybind(action: eKeybind.PitchXBack, bindIndex: 1, Key.PageDown, ModifierKeys.None);
+            SetKeybind(action: eKeybind.YawYLeft, bindIndex: 1, Key.Delete, ModifierKeys.None);
+            SetKeybind(action: eKeybind.YawYRight, bindIndex: 1, Key.End, ModifierKeys.None);
+            SetKeybind(action: eKeybind.RollGraphZAnti, bindIndex: 1, Key.Insert, ModifierKeys.None);
+            SetKeybind(action: eKeybind.RollGraphZClock, bindIndex: 1, Key.Home, ModifierKeys.None);
 
-            SetKeybind(eKeybind.Cancel, 1, Key.Escape, ModifierKeys.None);
-            SetKeybind(eKeybind.CenterFrame, 1, Key.Q, ModifierKeys.None);
-            SetKeybind(eKeybind.LockCenterFrame, 1, Key.Q, ModifierKeys.Shift);
-            SetKeybind(eKeybind.RaiseForceTemperature, 1, Key.V, ModifierKeys.None);
-            SetKeybind(eKeybind.ToggleHeatmap, 1, Key.X, ModifierKeys.None);
-            SetKeybind(eKeybind.ToggleConditionals, 1, Key.C, ModifierKeys.None);
+            SetKeybind(action: eKeybind.Cancel, bindIndex: 1, Key.Escape, ModifierKeys.None);
+            SetKeybind(action: eKeybind.CenterFrame, bindIndex: 1, Key.Q, ModifierKeys.None);
+            SetKeybind(action: eKeybind.LockCenterFrame, bindIndex: 1, Key.Q, ModifierKeys.Shift);
+            SetKeybind(action: eKeybind.RaiseForceTemperature, bindIndex: 1, Key.V, ModifierKeys.None);
+            SetKeybind(action: eKeybind.ToggleHeatmap, bindIndex: 1, Key.X, ModifierKeys.None);
+            SetKeybind(action: eKeybind.ToggleConditionals, bindIndex: 1, Key.C, ModifierKeys.None);
 
-            SetKeybind(eKeybind.ToggleAllText, 1, Key.I, ModifierKeys.None);
-            SetKeybind(eKeybind.ToggleInsText, 1, Key.I, ModifierKeys.Shift);
-            SetKeybind(eKeybind.ToggleLiveText, 1, Key.I, ModifierKeys.Control);
-            SetKeybind(eKeybind.QuickMenu, 1, Key.M, ModifierKeys.None);
+            SetKeybind(action: eKeybind.ToggleAllText, bindIndex: 1, Key.I, ModifierKeys.None);
+            SetKeybind(action: eKeybind.ToggleInsText, bindIndex: 1, Key.I, ModifierKeys.Shift);
+            SetKeybind(action: eKeybind.ToggleLiveText, bindIndex: 1, Key.I, ModifierKeys.Control);
+            SetKeybind(action: eKeybind.QuickMenu, bindIndex: 1, Key.M, ModifierKeys.None);
         }
+
+
+
+        static void LoadCustomKeybinds()
+        {
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            KeybindSection sec = (KeybindSection)configFile.GetSection("CustomKeybinds");
+            if (sec != null)
+            {
+                JArray keybinds = sec.CustomKeybinds;
+                foreach (var bindTok in keybinds)
+                {
+                    if (bindTok.Type != JTokenType.Object)
+                    {
+                        Logging.RecordLogEvent("Bad type in loaded user keybinds array", Logging.LogFilterType.TextError);
+                        continue;
+                    }
+                    JObject bindObj = (JObject)bindTok;
+                    RestoreCustomKeybind(bindObj);
+                }
+            }
+        }
+
+
+        static void RestoreCustomKeybind(JObject bindobj)
+        {
+
+            bool error = bindobj.TryGetValue("Action", out JToken actionTok) && actionTok.Type == JTokenType.String;
+            error &= bindobj.TryGetValue("BindIndex", out JToken indexTok) && indexTok.Type == JTokenType.Integer;
+            error &= bindobj.TryGetValue("Key", out JToken keyTok) && keyTok.Type == JTokenType.String;
+            error &= bindobj.TryGetValue("Modifiers", out JToken modifierTok) && keyTok.Type == JTokenType.String;
+
+            try
+            {
+                eKeybind action = (eKeybind)Enum.Parse(typeof(eKeybind), actionTok.ToObject<string>());
+                Key key = (Key)Enum.Parse(typeof(Key), keyTok.ToObject<string>());
+                int bindIndex = indexTok.ToObject<int>();
+                error &= (bindIndex == 1 || bindIndex == 2);
+                ModifierKeys mods = (ModifierKeys)Enum.Parse(typeof(ModifierKeys), modifierTok.ToObject<string>());
+                SetKeybind(action, bindIndex, key, mods);
+            }
+            catch
+            {
+                error = true;
+            }
+
+            if (error)
+            {
+                Logging.RecordLogEvent($"Error loading keybind {bindobj}");
+            }
+        }
+
+
+        public static void StoreCustomKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod)
+        {
+            JObject bindObj = new JObject();
+            bindObj.Add("Action", action.ToString());
+            bindObj.Add("BindIndex", bindIndex);
+            bindObj.Add("Key", k.ToString());
+            bindObj.Add("Modifiers", mod.ToString());
+
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            KeybindSection sec = (KeybindSection)configFile.GetSection("CustomKeybinds");
+            JArray secarr;
+            if (sec == null)
+            {
+                sec = new KeybindSection();
+                secarr = new JArray();
+                configFile.Sections.Add("CustomKeybinds", sec);
+            }
+            else
+            {
+                secarr = sec.CustomKeybinds;
+            }
+            secarr.Add(bindObj);
+
+            sec.CustomKeybinds = secarr;
+
+            sec.SectionInformation.ForceSave = true;
+            configFile.Save();
+        }
+
+        public static void ResetKeybinds()
+        {
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            KeybindSection sec = (KeybindSection)configFile.GetSection("CustomKeybinds");
+            if (sec == null)
+            {
+                sec = new KeybindSection();
+                configFile.Sections.Add("CustomKeybinds", sec);
+            }
+
+            sec.CustomKeybinds = new JArray();
+            sec.SectionInformation.ForceSave = true;
+            configFile.Save();
+
+            PrimaryKeybinds.Clear();
+            AlternateKeybinds.Clear();
+            InitDefaultKeybinds();
+            InitResponsiveKeys();
+        }
+
 
         /// <summary>
         /// Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
@@ -191,7 +376,7 @@ namespace rgatCore.Threads
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }
 
-        public static void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod)
+        public static void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
         {
             //reserved actions cant have modifier keys
             if (ResponsiveHeldActions.Contains(action))
@@ -217,6 +402,11 @@ namespace rgatCore.Threads
             else
             {
                 AlternateKeybinds[action] = keymod;
+            }
+
+            if (userSpecified)
+            {
+                StoreCustomKeybind(action: action, bindIndex: bindIndex, k: k, mod: mod);
             }
 
             //regenerate the keybinds lists
@@ -254,6 +444,27 @@ namespace rgatCore.Threads
             }
         }
 
+        public static bool GetAppSetting(string key, out string value)
+        {
+            try
+            {
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                var settings = configFile.AppSettings.Settings;
+                if (settings[key] != null)
+                {
+                    value = settings[key].Value;
+                    return true;
+                }
+            }
+            catch (ConfigurationErrorsException e)
+            {
+                Logging.RecordLogEvent($"Error getting app setting {key}: {e.Message}");
+            }
+            value = null;
+            return false;
+        }
+
+
         public static void LoadResources()
         {
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
@@ -285,6 +496,206 @@ namespace rgatCore.Threads
         }
 
 
+        static string GetStorageDirectoryPath(string name)
+        {
+            List<string> candidates = new List<string>() {
+                    AppContext.BaseDirectory,
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rgat"),
+                    Directory.GetCurrentDirectory()
+                };
+            foreach (string dir in candidates)
+            {
+                string candidate = Path.Combine(dir, "traces");
+                if (Directory.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+            foreach (string dir in candidates)
+            {
+                if (!Directory.Exists(dir))
+                {
+                    //this is for creating an rgat dir in the application data dir
+                    try
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                    if (!Directory.Exists(dir)) continue;
+                }
+                string candidate = Path.Combine(dir, "traces");
+                try
+                {
+                    Directory.CreateDirectory(candidate);
+                    if (Directory.Exists(candidate)) return candidate;
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+            return "";
+        }
+
+        public static bool BadSigners(out List<Tuple<string, string>> errors)
+        {
+            lock (_settingsLock)
+            {
+                if (_BinaryValidationErrorCache.Any())
+                {
+                    errors = _BinaryValidationErrorCache.ToList();
+                    return true;
+                }
+            }
+            errors = null;
+            return false;
+        }
+
+        static bool VerifyCertificate(string path, string expectedSigner, out string error)
+        {
+            try
+            {
+                X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
+                if (!signer.Issuer.Contains($"O={expectedSigner},"))
+                {
+                    error = "Unexpected signer " + signer.Issuer;
+                    return false;
+                }
+
+                X509Certificate2 certificate = new X509Certificate2(signer);
+                var certificateChain = new X509Chain
+                {
+                    ChainPolicy = {RevocationFlag = X509RevocationFlag.EntireChain,  RevocationMode = X509RevocationMode.Online,
+                                UrlRetrievalTimeout = new TimeSpan(0, 1, 0),  VerificationFlags = X509VerificationFlags.NoFlag}
+                };
+
+                if (!certificateChain.Build(certificate))
+                {
+                    error = "Unverifiable signature";
+                    return false;
+                }
+                error = "Success";
+                return true;
+            }
+            catch (Exception e)
+            {
+                error = "Exception verifying certificate: " + e.Message;
+                return false;
+            }
+        }
+
+
+        static void InitPaths()
+        {
+            if (GetAppSetting("TraceSaveDirectory", out string tracedir) && Directory.Exists(tracedir))
+            {
+                TraceSaveDirectory = tracedir;
+            }
+            else
+            {
+                TraceSaveDirectory = GetStorageDirectoryPath("traces");
+                if (!Directory.Exists(TraceSaveDirectory))
+                {
+                    Logging.RecordLogEvent("Warning: Failed to load an existing trace storage path");
+                }
+                else
+                {
+
+                    AddUpdateAppSettings("TraceSaveDirectory", TraceSaveDirectory);
+                }
+            }
+
+            if (GetAppSetting("PinPath", out string pinexe) && File.Exists(pinexe))
+            {
+                SetBinaryPath("PinPath", pinexe, save: false);
+            }
+            else
+            {
+                List<string> pindirs = Directory.GetDirectories(AppContext.BaseDirectory)
+                    .Where(dir => Path.GetFileName(dir).StartsWith("pin"))
+                    .ToList();
+                foreach (string dir in pindirs)
+                {
+                    string candidate = Path.Combine(dir, "pin.exe");
+                    if (File.Exists(candidate))
+                    {
+                        SetBinaryPath("PinPath", pinexe, save: true);
+                        break;
+                    }
+                }
+            }
+
+            if (GetAppSetting("PinToolPath32", out string pintool32) && File.Exists(pintool32))
+            {
+                SetBinaryPath("PinToolPath32", pintool32, save: false);
+            }
+            else
+            {
+                string candidate = Path.Combine(AppContext.BaseDirectory, "pingat32.dll");
+                if (File.Exists(candidate))
+                {
+                    SetBinaryPath("PinToolPath32", candidate, save: true);
+                }
+            }
+
+
+            if (GetAppSetting("PinToolPath64", out string pintool64) && File.Exists(pintool32))
+            {
+                SetBinaryPath("PinToolPath64", pintool32, save: false);
+            }
+            else
+            {
+                string candidate = Path.Combine(AppContext.BaseDirectory, "pingat64.dll");
+                if (File.Exists(candidate))
+                {
+                    SetBinaryPath("PinToolPath64", candidate, save: true);
+                }
+            }
+
+        }
+
+        public static void SetBinaryPath(string setting, string path, bool save = true)
+        {
+            if (setting == "PinPath")
+            {
+                if (!VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error))
+                {
+                    lock (_settingsLock) { BinaryValidationErrors[path] = error; }
+                }
+                PinPath = path;
+            }
+            if (setting == "PinToolPath32")
+            {
+                if (!VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                {
+                    lock (_settingsLock) { BinaryValidationErrors[path] = error; }
+                }
+                PinToolPath32 = path;
+            }
+            if (setting == "PinToolPath64")
+            {
+                if (!VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                {
+                    lock (_settingsLock) { BinaryValidationErrors[path] = error; }
+                }
+                PinToolPath64 = path;
+            }
+            if (save)
+            {
+                AddUpdateAppSettings(setting, path);
+            }
+
+            lock (_settingsLock)
+            {
+                if (BinaryValidationErrors.Any())
+                {
+                    _BinaryValidationErrorCache = BinaryValidationErrors.Select(kvp => new Tuple<string, string>(kvp.Key, kvp.Value)).ToList();
+                }
+            }
+        }
 
         public static void InitDefaultConfig()
         {
@@ -299,9 +710,14 @@ namespace rgatCore.Threads
             }
             Themes.ActivateDefaultTheme();
 
+            //load base keybinds
             InitDefaultKeybinds();
-            //LoadCustomKeybinds();
             InitResponsiveKeys();
+
+            //overwrite with any user configured binds
+            LoadCustomKeybinds();
+
+            InitPaths();
 
             defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,

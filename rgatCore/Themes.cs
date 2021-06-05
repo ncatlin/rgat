@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using Newtonsoft.Json.Linq;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -457,104 +458,37 @@ namespace rgatCore
             }
         }
 
+
         public sealed class ThemesSection : ConfigurationSection
         {
 
             private static ConfigurationPropertyCollection _Properties;
-            private static bool _ReadOnly;
-
-            /*
-            [TypeConverter(typeof(JSONBlobConverter))]
-            private readonly ConfigurationProperty _customThemeJSONs = new ConfigurationProperty("customThemeJSONs", 
-                typeof(Dictionary<string, string>), new Dictionary<string, string>(), ConfigurationPropertyOptions.IsRequired);
-            */
-
-            //[TypeConverter(typeof(JSONBlobConverter))]
             private static readonly ConfigurationProperty _customThemeJSONs2 = new ConfigurationProperty(
                 "CustomThemes",
                 typeof(JObject),
                 new JObject(),
-                new JSONBlobConverter(),
+                new GlobalConfig.JSONBlobConverter(),
                 null,
                 ConfigurationPropertyOptions.IsRequired);
 
-
             private static readonly ConfigurationProperty _MaxUsers =
                 new ConfigurationProperty("maxUsers", typeof(long), (long)1000, ConfigurationPropertyOptions.None);
-
-            public class JSONBlobConverter : TypeConverter
-            {
-                public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
-                {
-                    return (sourceType == typeof(JObject)) || (sourceType == typeof(string));
-                }
-                public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
-                {
-                    if (value.GetType() != typeof(string))
-                    {
-                        throw new NotImplementedException($"JSONBlobConverter can only convert from string");
-                    }
-
-                    try
-                    {
-                        JObject result = JObject.Parse((String)value);
-                        return result;
-                    }
-                    catch
-                    {
-                        throw new DataException($"JSONBlobConverter ConvertFrom Bad json value {value}");
-                    }
-                }
-
-                public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
-                {
-                    return (destinationType == typeof(JObject)) || (destinationType == typeof(string));
-                }
-                public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
-                {
-                    if (destinationType == typeof(string))
-                    {
-                        if (value.GetType() == typeof(JObject))
-                        {
-                            return value.ToString();
-                        }
-                    }
-                    throw new NotImplementedException($"ConvertTo can't convert type {value.GetType()} to {destinationType}");
-                    return null;
-                }
-            }
-
 
 
             public ThemesSection()
             {
                 _Properties = new ConfigurationPropertyCollection();
-                //_Properties.Add(_customThemeJSONs);
                 _Properties.Add(_MaxUsers);
                 _Properties.Add(_customThemeJSONs2);
             }
-            protected override object GetRuntimeObject()
-            {
-                // To enable property setting just assign true to
-                // the following flag.
-                _ReadOnly = true;
-                return base.GetRuntimeObject();
-            }
 
-            protected override ConfigurationPropertyCollection Properties
-            {
-                get
-                {
-                    return _Properties;
-                }
-            }
+            protected override object GetRuntimeObject() =>  base.GetRuntimeObject();
+
+            protected override ConfigurationPropertyCollection Properties => _Properties;
 
             public JObject CustomThemes
             {
-                get
-                {
-                    return (JObject)this["CustomThemes"];
-                }
+                get => (JObject)this["CustomThemes"];
                 set
                 {
                     this["CustomThemes"] = value;
@@ -564,10 +498,8 @@ namespace rgatCore
             [LongValidator(MinValue = 1, MaxValue = 1000000, ExcludeRange = false)]
             public long MaxUsers
             {
-                get
-                {
-                    return (long)this["maxUsers"];
-                }
+                get => (long)this["maxUsers"];
+                
                 set
                 {
                     this["maxUsers"] = value;
@@ -576,10 +508,10 @@ namespace rgatCore
 
         }
 
+
         static void WriteCustomThemesToConfig()
         {
             var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            //ThemesSection sec = (ThemesSection)configFile.Sections.Get("CustomThemes");
             ThemesSection sec = (ThemesSection)configFile.GetSection("CustomThemes");
             if (sec == null)
             {

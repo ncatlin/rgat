@@ -323,7 +323,7 @@ namespace rgatCore
         public void DisplayShortcutActivation(string shortcut, string action)
         {
             //replace the keypress that activated the menu with the shortcut
-            if (_keypressCaptions.Count > 0 && (_keypressCaptions[^1].key.ToString()[0] == shortcut[0]))
+            if (_keypressCaptions.Any() && (_keypressCaptions[^1].key.ToString()[0] == shortcut[0]))
             {
                 _keypressCaptions.RemoveAt(_keypressCaptions.Count - 1);
             }

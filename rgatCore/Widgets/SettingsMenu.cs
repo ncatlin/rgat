@@ -32,9 +32,10 @@ namespace rgatCore.Widgets
             get => _pendingKeybind.active;
             set => _pendingKeybind.active = value;
         }
+
         public void AssignPendingKeybind(Tuple<Key, ModifierKeys> keybind)
         {
-            GlobalConfig.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, keybind.Item1, keybind.Item2);
+            GlobalConfig.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, keybind.Item1, keybind.Item2, true);
             _pendingKeybind.active = false;
         }
 
@@ -188,11 +189,24 @@ namespace rgatCore.Widgets
 
                 if (ImGui.Selectable($"Pintool32.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
                 {
-                    selectedSetting = "PinTool32Path";
+                    selectedSetting = "PinToolPath32";
                 }
                 ImGui.PopStyleColor();
                 ImGui.TableNextColumn();
                 ImGui.Text($"{GlobalConfig.PinToolPath32}");
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+
+                if (ImGui.Selectable($"Pintool64.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "PinToolPath64";
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.PinToolPath64}");
 
                 ImGui.EndTable();
             }
@@ -212,10 +226,13 @@ namespace rgatCore.Widgets
             switch (setting)
             {
                 case "PinPath":
-                    GlobalConfig.PinPath = path;
+                    GlobalConfig.SetBinaryPath("PinPath", path);
                     break;
-                case "PinTool32Path":
-                    GlobalConfig.PinToolPath32 = path;
+                case "PinToolPath32":
+                    GlobalConfig.SetBinaryPath("PinToolPath32", path);
+                    break;
+                case "PinToolPath64":
+                    GlobalConfig.SetBinaryPath("PinToolPath64", path);
                     break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
@@ -271,7 +288,8 @@ namespace rgatCore.Widgets
 
             if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, 110)))
+                float frameHeight = 110 + (_pendingKeybind.IsResponsive ? 20 : 0);
+                if (ImGui.BeginChildFrame(ImGui.GetID("KBPopFrame"), new Vector2(280, frameHeight)))
                 {
                     ImGui.Text("Binding: " + _pendingKeybind.actionText);
 
@@ -284,41 +302,57 @@ namespace rgatCore.Widgets
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - msgWidth / 2);
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
                     ImGui.Text(msg);
+                    if (_pendingKeybind.IsResponsive)
+                    {
+                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 15);
+                        ImGui.Separator();
+                        ImGui.Text("Note: Modifier keys are invalid for this action");
+                        ImGui.Separator();
+                    }
                     ImGui.EndChildFrame();
                 }
                 ImGui.EndPopup();
             }
 
             int index = 0;
-            ImGui.Columns(3, "kbcols", false);
-            ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
-            ImGui.SetColumnWidth(1, 150);
-            ImGui.SetColumnWidth(2, 150);
-            ImGui.Text("Action");
-            ImGui.NextColumn();
-            ImGui.Text("Keybind");
-            ImGui.NextColumn();
-            ImGui.Text("Alternate Keybind");
-            ImGui.Columns(1);
-            CreateKeybindInput("Move Graph Up", eKeybind.MoveUp, index++);
-            CreateKeybindInput("Move Graph Down", eKeybind.MoveDown, index++);
-            CreateKeybindInput("Move Graph Left", eKeybind.MoveLeft, index++);
-            CreateKeybindInput("Move Graph Right", eKeybind.MoveRight, index++);
-            CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.PitchXFwd, index++);
-            CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.PitchXBack, index++);
-            CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.RollGraphZClock, index++);
-            CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.RollGraphZAnti, index++);
-            CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.YawYRight, index++);
-            CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.YawYLeft, index++);
-            CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++);
-            CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++);
-            CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++);
-            CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++);
-            CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++);
-            CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++);
-            CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++);
-            CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++);
-            CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++);
+            ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendX 
+                | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable;
+            if (ImGui.BeginTable("KeybindSelectTable", 3, tableFlags, ImGui.GetContentRegionAvail()- new Vector2(0, 80)))
+            {
+                ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 350);
+                ImGui.TableSetupColumn("Keybind", ImGuiTableColumnFlags.WidthFixed, 150);
+                ImGui.TableSetupColumn("Alternate Keybind", ImGuiTableColumnFlags.None);
+                ImGui.TableHeadersRow();
+
+                CreateKeybindInput("Move Graph Up", eKeybind.MoveUp, index++);
+                CreateKeybindInput("Move Graph Down", eKeybind.MoveDown, index++);
+                CreateKeybindInput("Move Graph Left", eKeybind.MoveLeft, index++);
+                CreateKeybindInput("Move Graph Right", eKeybind.MoveRight, index++);
+                CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.PitchXFwd, index++);
+                CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.PitchXBack, index++);
+                CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.RollGraphZClock, index++);
+                CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.RollGraphZAnti, index++);
+                CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.YawYRight, index++);
+                CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.YawYLeft, index++);
+                CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++);
+                CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++);
+                CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++);
+                CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++);
+                CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++);
+                CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++);
+                CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++);
+                CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++);
+                CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++);
+                ImGui.EndTable();
+            }
+
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2((ImGui.GetContentRegionMax().X / 2) - 70, 17));
+            if (ImGui.Button("Restore Defaults", new Vector2(140, 34)))
+            {
+                GlobalConfig.ResetKeybinds();
+            }
+
+
         }
 
 
@@ -374,14 +408,14 @@ namespace rgatCore.Widgets
                     if (ImGui.IsItemHovered())
                     {
                         string tipDescription = $"Name: {themeName}\r\n";
-                        if (Themes.ThemeMetadata.TryGetValue("Description", out string themeDescription))  tipDescription += $"Description: {themeDescription}\r\n";   
-                        if (Themes.ThemeMetadata.TryGetValue("Author", out string auth1))  tipDescription += $"Source: {auth1}";
+                        if (Themes.ThemeMetadata.TryGetValue("Description", out string themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
+                        if (Themes.ThemeMetadata.TryGetValue("Author", out string auth1)) tipDescription += $"Source: {auth1}";
                         if (Themes.ThemeMetadata.TryGetValue("Author2", out string auth2)) tipDescription += $" ({auth2})";
-                        
+
                         ImGui.SetTooltip(tipDescription);
                     }
 
-                    
+
                 }
                 ImGui.EndCombo();
             }
@@ -389,15 +423,24 @@ namespace rgatCore.Widgets
             if (ImGui.CollapsingHeader("Manage Theme"))
             {
                 CreateJSONEditor();
-                ImGui.TreePop();
+                ImGui.NextColumn();
             }
 
-            if (!ImGui.CollapsingHeader("Customise Theme"))
+            if (ImGui.CollapsingHeader("Test Theme"))
             {
-                return;
+                CreateThemeTester();
+                ImGui.NextColumn();
             }
 
-            CreateThemeSelectors();
+            if (ImGui.CollapsingHeader("Customise Theme"))
+            {
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
+                CreateThemeSelectors();
+                ImGui.PopStyleColor(2);
+                ImGui.NextColumn();
+            }
+
 
         }
 
@@ -521,7 +564,8 @@ namespace rgatCore.Widgets
             string oldTheme = Themes.ThemeMetadata["Name"];
 
             //todo load default theme
-            if (Themes.BuiltinThemes.Count > 0) {
+            if (Themes.BuiltinThemes.Count > 0)
+            {
                 ActivateUIThemePreset(Themes.BuiltinThemes.Keys.First());
             }
             else
@@ -534,11 +578,109 @@ namespace rgatCore.Widgets
         }
 
 
+        void CreateThemeTester()
+        {
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.WindowBg));
+            if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 250), false, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
+                DrawThemeTestFrame();
+                ImGui.PopStyleColor();
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+        }
+
+        bool testCheck = true;
+        float testSlider = 25f;
+        void DrawThemeTestFrame()
+        {
+            float padding = 10;
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(padding, padding));
+
+            if (ImGui.BeginChild("#rtghw489", ImGui.GetContentRegionAvail() - new Vector2(padding * 2, padding * 2), true, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                if (ImGui.BeginTabBar("#TestTabVar"))
+                {
+                    if (ImGui.BeginTabItem("General Widgets Tab"))
+                    {
+                        ImGui.BeginGroup();
+                        {
+                            ImGui.Text("TestFrame");
+                            if (ImGui.BeginCombo("TestCombo", "Item1 (Colour: FrameBg)"))
+                            {
+                                ImGui.Selectable("Item1");
+                                ImGui.Selectable("Item2 (Colour: PopupBg)");
+                                ImGui.EndCombo();
+                            }
+                            ImGui.SameLine();
+
+                            ImGui.Checkbox("CheckBox", ref testCheck);
+                            ImGui.Separator();
+
+                            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX | ImGuiTableFlags.RowBg;
+                            if (ImGui.BeginTable("TestFrameTable", 2, tableFlags))
+                            {
+                                ImGui.TableSetupColumn("Table Column 1", ImGuiTableColumnFlags.WidthFixed, 90);
+                                ImGui.TableSetupColumn("Table Column 2", ImGuiTableColumnFlags.WidthFixed, 100);
+                                ImGui.TableHeadersRow();
+                                for (var i = 0; i < 3; i++)
+                                {
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text($"Cell{i * 2}");
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text($"Cell{i * 2 + 1}");
+                                }
+                                ImGui.EndTable();
+                            }
+                            ImGui.SameLine();
+                            ImGui.BeginGroup();
+                            ImGui.Button("Button", new Vector2(120, 25));
+                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonHovered));
+                            ImGui.Button("Button (Hovered)", new Vector2(120, 25));
+                            ImGui.PopStyleColor();
+                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonActive));
+                            ImGui.Button("Button (Active)", new Vector2(120, 25));
+                            ImGui.PopStyleColor();
+                            ImGui.EndGroup();
+
+                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100);
+                            ImGui.EndGroup();
+
+                        }
+                        ImGui.SameLine();
+                        ImGui.BeginGroup();
+                        {
+                            ImGui.EndGroup();
+                        }
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("Custom Widgets Tab"))
+                    {
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
+                ImGui.EndChild();
+            }
+        }
+
         unsafe void CreateThemeSelectors()
         {
             bool changed = false;
-            if (ImGui.TreeNode("Base Widget Colours"))
+            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY;
+            Vector2 tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 350);
+            if (ImGui.BeginTable(str_id: "##SelectorsTable", column: 2, flags: tableFlags, outer_size: tableSize))
             {
+                float halfWidth = ImGui.GetContentRegionAvail().X / 2;
+                ImGui.TableSetupColumn("General Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupColumn("Custom Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupScrollFreeze(0, 1);
+                ImGui.TableHeadersRow();
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
                 for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
                 {
                     ImGuiCol stdCol = (ImGuiCol)colI;
@@ -550,11 +692,8 @@ namespace rgatCore.Widgets
                     }
 
                 }
-                ImGui.TreePop();
-            }
 
-            if (ImGui.TreeNode("rgat Custom Colours"))
-            {
+                ImGui.TableSetColumnIndex(1);
                 for (int colI = 0; colI < (int)(Themes.ThemeColoursCustom.Count); colI++)
                 {
                     Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
@@ -566,7 +705,7 @@ namespace rgatCore.Widgets
                     }
 
                 }
-                ImGui.TreePop();
+                ImGui.EndTable();
             }
 
             if (ImGui.TreeNode("Dimensions"))
@@ -705,55 +844,47 @@ namespace rgatCore.Widgets
 
         void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex)
         {
+            uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);
 
-            if ((rowIndex % 2) == 0)
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafcc3500);
-            else
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xafdc4500);
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
 
-            if (ImGui.BeginChildFrame(ImGui.GetID(caption), new Vector2(ImGui.GetContentRegionAvail().X, 30), ImGuiWindowFlags.NoScrollbar))
+            ImGui.Text(caption);
+
+            ImGui.TableNextColumn();
+
+
+
+            string kstring = "";
+            if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
             {
-                ImGui.Columns(3, "kcols" + caption, false);
-                ImGui.SetColumnWidth(0, ImGui.GetItemRectSize().X - 300);
-                ImGui.SetColumnWidth(1, 150);
-                ImGui.SetColumnWidth(2, 150);
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text(caption);
-                ImGui.NextColumn();
-                ImGui.AlignTextToFramePadding();
-
-                string kstring = "";
-                if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
-                {
-                    if (kmval.Item2 != ModifierKeys.None)
-                        kstring += kmval.Item2.ToString() + "+";
-                    kstring += kmval.Item1;
-                }
-                else
-                {
-                    kstring = "[Click To Set]";
-                }
-                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 1);
-
-                ImGui.NextColumn();
-
-                ImGui.AlignTextToFramePadding();
-                kstring = "";
-                if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out kmval))
-                {
-                    if (kmval.Item2 != ModifierKeys.None)
-                        kstring += kmval.Item2.ToString() + "+";
-                    kstring += kmval.Item1;
-                }
-                else
-                {
-                    kstring = "[Click To Set]";
-                }
-                if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 2);
-
-                ImGui.Columns(1);
-                ImGui.EndChildFrame();
+                if (kmval.Item2 != ModifierKeys.None)
+                    kstring += kmval.Item2.ToString() + "+";
+                kstring += kmval.Item1;
             }
+            else
+            {
+                kstring = "[Click To Set]";
+            }
+            if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 1);
+
+            ImGui.TableNextColumn();
+
+
+            kstring = "";
+            if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out kmval))
+            {
+                if (kmval.Item2 != ModifierKeys.None)
+                    kstring += kmval.Item2.ToString() + "+";
+                kstring += kmval.Item1;
+            }
+            else
+            {
+                kstring = "[Click To Set]";
+            }
+            if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 2);
+
             ImGui.PopStyleColor();
         }
 
@@ -764,6 +895,8 @@ namespace rgatCore.Widgets
             _pendingKeybind.actionText = caption;
             _pendingKeybind.bindIndex = bindIndex;
             _pendingKeybind.action = action;
+
+            _pendingKeybind.IsResponsive = GlobalConfig.ResponsiveHeldActions.Contains(action);
 
             _pendingKeybind.currentKey = "";
             if (GlobalConfig.PrimaryKeybinds.TryGetValue(action, out var kmval))

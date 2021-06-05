@@ -706,14 +706,17 @@ namespace rgatCore
             ImGui.BeginGroup();
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF222200);
-                ImGui.BeginChildFrame(10, new Vector2(width, 200));
+                ImGui.BeginChildFrame(10, new Vector2(width, 280));
                 ImGui.Text("Execution Settings");
 
-                ImGui.BeginChildFrame(18, new Vector2(width, 100));
+                ImGui.BeginChildFrame(18, new Vector2(width, 50));
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text("Instrumentation Engine");
+                ImGui.Text("Instrumentation Engine: ");
+                ImGui.SameLine();
                 ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
+                ImGui.SameLine();
                 ImGui.RadioButton("Qiling", ref _selectedInstrumentationEngine, 1);
+                ImGui.SameLine();
                 ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
                 ImGui.EndChildFrame();
 
@@ -728,10 +731,11 @@ namespace rgatCore
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
+                string pintoolpath = GlobalConfig.PinToolPath32;
                 if (ImGui.Button("Start Trace"))
                 {
                     _WaitingNewTraceCount = _rgatstate.InstrumentationCount;
-                    string runargs = $"-t \"{GlobalConfig.PinToolPath32}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
+                    string runargs = $"-t \"{pintoolpath}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
                     System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
                     Console.WriteLine($"Started process id {p.Id}");
                 }
@@ -742,6 +746,21 @@ namespace rgatCore
                     {
                         _rgatstate.ActiveTarget.SetTraceConfig("PAUSE_ON_START", "TRUE");
                     }
+                }
+
+                if (GlobalConfig.BadSigners(out List<Tuple<string, string>> issues))
+                {
+                    issues = issues.Where(i => (i.Item1 == pintoolpath || i.Item1 == GlobalConfig.PinPath)).ToList();
+                    if (issues.Any())
+                    {
+                        //todo: be more specific on tooltip, but prevent a potential errordictionary reading race condition
+                        ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
+                        foreach (var issue in issues)
+                        {
+                            ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
+                        }
+                    }
+                    
                 }
                 ImGui.EndChildFrame();
                 ImGui.PopStyleColor();
@@ -787,7 +806,7 @@ namespace rgatCore
             {
                 DrawTraceTab_InstrumentationSettings(activeTarget, 400);
                 ImGui.SameLine();
-                DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X - 400);
+                DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X);
                 ImGui.EndGroup();
             }
         }
@@ -1883,7 +1902,7 @@ namespace rgatCore
 
             if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.NoScrollbar))
             {
-                string savedir = GlobalConfig.SaveDirectory;
+                string savedir = GlobalConfig.TraceSaveDirectory;
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, savedir);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
@@ -1911,5 +1930,6 @@ namespace rgatCore
         public eKeybind action;
         public int bindIndex;
         public string currentKey = "";
+        public bool IsResponsive;
     }
 }

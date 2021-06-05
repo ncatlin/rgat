@@ -80,4 +80,10 @@ namespace rgatCore
         public const int RGAT_VERSION_MINOR = 6;
         public const int RGAT_VERSION_FEATURE = 0;
     }
+
+    static class SIGNERS
+    {
+        public const string PIN_SIGNER = "Intel Corporation";
+        public const string PINTOOL_SIGNER = "rgat dev";
+    }
 }
