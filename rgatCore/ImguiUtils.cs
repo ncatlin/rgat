@@ -16,20 +16,21 @@ namespace rgatCore
 {
     class ImguiUtils
     {
-        //todo - might not be used anymore
-        public static void DrawCenteredText(String msg)
+        public static void DrawHorizCenteredText(String msg)
         {
             Vector2 textSize = ImGui.CalcTextSize(msg);
-            Vector2 textStart = new Vector2(ImGui.GetWindowSize().X * 0.5f, ImGui.GetCursorPosY());
-            textStart.X -= textSize.X / 2;
-
-            ImGui.SetCursorPos(textStart);
-
+            
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X/2) - (textSize.X/2));
             ImGui.Text(msg);
-
-            textStart = new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + textSize.Y);
-            ImGui.SetCursorPos(textStart);
         }
+
+        public static void DrawRegionCenteredText(String msg)
+        {
+            ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - ImGui.CalcTextSize(msg).X / 2);
+            ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - ImGui.CalcTextSize(msg).Y / 2);
+            ImGui.Text(msg);
+        }
+
 
         public static void HelpMarker(string desc)
         {

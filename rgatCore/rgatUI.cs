@@ -155,10 +155,14 @@ namespace rgatCore
 
         public void DrawUI()
         {
+            bool hasActiveTrace = _rgatstate.ActiveTarget != null;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             //window_flags |= ImGuiWindowFlags.NoTitleBar;
-            window_flags |= ImGuiWindowFlags.MenuBar;
+            if (hasActiveTrace)
+            {
+                window_flags |= ImGuiWindowFlags.MenuBar;
+            }
             window_flags |= ImGuiWindowFlags.DockNodeHost;
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
@@ -176,8 +180,32 @@ namespace rgatCore
 
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
             HandleUserInput();
-            DrawMainMenu();
 
+
+
+
+
+            BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+            if (activeTarget == null)
+            {
+                DrawStartSplash();
+            }
+            else
+            {
+                DrawMainMenu();
+                DrawWindowContent();
+            }
+
+
+            ResetThemeColours();
+
+            ImGui.End();
+
+        }
+
+
+        void DrawWindowContent()
+        {
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
                 DrawTargetBar();
@@ -192,12 +220,8 @@ namespace rgatCore
                 if (_show_load_trace_window) DrawTraceLoadBox();
                 ImGui.EndChild();
             }
-
-            ResetThemeColours();
-
-            ImGui.End();
-
         }
+
 
         bool DrawAlertBox()
         {
@@ -379,8 +403,8 @@ namespace rgatCore
                     {
                         if (MainGraphWidget.QuickMenuActive &&
                             (boundAction == eKeybind.QuickMenu || boundAction == eKeybind.Cancel))
-                        { 
-                            MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, eKeybind.Cancel); 
+                        {
+                            MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, eKeybind.Cancel);
                             continue;
                         }
                         if (boundAction == eKeybind.Cancel)
@@ -389,8 +413,8 @@ namespace rgatCore
 
                     //could be a menu shortcut
                     if (MainGraphWidget.AlertRawKeyPress(KeyModifierTuple)) continue;
-                   
-                    if (isKeybind) 
+
+                    if (isKeybind)
                         MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction);
 
 
@@ -760,7 +784,7 @@ namespace rgatCore
                             ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
                         }
                     }
-                    
+
                 }
                 ImGui.EndChildFrame();
                 ImGui.PopStyleColor();
@@ -769,18 +793,193 @@ namespace rgatCore
         }
 
 
+        bool _splashHeaderHover = false;
 
+        void DrawStartSplash()
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, Vector2.Zero);
 
+            float regionHeight = ImGui.GetContentRegionAvail().Y;
+            float regionWidth = ImGui.GetContentRegionAvail().X;
+            float buttonBlockWidth = Math.Min(400f, regionWidth / 2.1f);
+            float headerSize = regionHeight / 3;
+            float thirdWidth = regionWidth / 3f;
+            float blockHeight = (regionHeight * 0.95f) - headerSize;
+            float blockStart = headerSize + 40f;
 
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
 
+            bool boxBorders = false;
 
+            if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerSize), boxBorders))
+            {
+                Texture settingsIcon = _ImGuiController.GetImage("Menu");
+                GraphicsDevice gd = _ImGuiController.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon);
 
+                ImGui.SetCursorPosX((regionWidth / 2) - 25);
+                ImGui.SetCursorPosY((headerSize / 2) - 75);
 
+                ImGui.BeginGroup();
+                {
+                    Vector2 cpb4 = ImGui.GetCursorPos();
+                    ImGui.SetCursorPosY(cpb4.Y - ImGui.GetItemRectSize().Y);
+                    ImGui.Image(CPUframeBufferTextureId, new Vector2(50, 50), Vector2.Zero, Vector2.One, Vector4.One);
+                    ImGui.SetCursorPos(cpb4 - new Vector2(35, 15));
+                    ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120));
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                    {
+                        ImGui.SetTooltip("Open Settings Menu");
+                    }
+                    if (_splashHeaderHover)
+                    {
+                        ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
+                        float textw = ImGui.CalcTextSize("Settings").X;
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() - (textw - 50) / 2);
+                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 50);
+                        ImGui.Text("Settings");
+                        ImGui.PopFont();
+                    }
+                }
+                ImGui.EndGroup();
+                ImGui.EndChild();
+            }
+            _splashHeaderHover = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem | ImGuiHoveredFlags.AllowWhenBlockedByPopup);
+            ImGui.PopStyleColor();
 
+            //Run group
+            float voidspace = Math.Max(0, (regionWidth - (2 * buttonBlockWidth)) / 3);
+            float runGrpX = voidspace;
+            float iconTableYSep = 18;
 
+            ImGuiTableFlags tblflags = ImGuiTableFlags.NoHostExtendX;
+            if (boxBorders) tblflags |= ImGuiTableFlags.Borders;
 
+            ImGui.SetCursorPos(new Vector2(runGrpX, blockStart));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
+            if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
+            {
+                Texture btnIcon = _ImGuiController.GetImage("Crosshair");
+                GraphicsDevice gd = _ImGuiController.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
 
+                //ImGui.BeginGroup();
+                ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
+                float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
+                Vector2 iconsize = new Vector2(80, 80);
+                ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags);
+                float iconColumnWidth = 200;
+                float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
+                ImGui.TableSetupColumn("##BBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                ImGui.TableSetupColumn("##LoadBinBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
+                ImGui.TableSetupColumn("##BBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(1);
+                Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + iconsize.Y);
+                ImGui.Selectable("##Load Binary", false, ImGuiSelectableFlags.None, selectableSize);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
+                ImguiUtils.DrawHorizCenteredText("Load Binary");
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (iconsize.X / 2));
+                ImGui.Image(CPUframeBufferTextureId, iconsize, Vector2.Zero, Vector2.One, Vector4.One);
+                ImGui.EndTable();
+                ImGui.PopFont();
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
+                //_ImGuiController._unicodeFont.Scale = origscale;
+                Vector2 tablesz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
+                if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tablesz))
+                {
+                    ImGui.Indent(5);
+                    ImGui.TableSetupColumn("Recent Binaries");
+                    ImGui.TableSetupScrollFreeze(0, 1);
+                    ImGui.TableHeadersRow();
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("c\\etc\\etc.exe");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush2");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush3");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush4");
+                    ImGui.EndTable();
+                }
+                ImGui.PopStyleVar();
+                //ImGui.EndGroup();
+                ImGui.EndChild();
+            }
 
+            ImGui.SetCursorPosY(blockStart);
+            ImGui.SetCursorPosX(runGrpX + buttonBlockWidth + voidspace);
+            if (ImGui.BeginChild("##LoadGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
+            {
+                Texture btnIcon = _ImGuiController.GetImage("Crosshair");
+                GraphicsDevice gd = _ImGuiController.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
+
+                //ImGui.BeginGroup();
+                ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
+                float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
+                Vector2 iconsize = new Vector2(80, 80);
+                ImGui.BeginTable("##LoadBtnBox", 3, tblflags);
+                float iconColumnWidth = 200;
+                float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
+                ImGui.TableSetupColumn("##LBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                ImGui.TableSetupColumn("##LoadBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
+                ImGui.TableSetupColumn("##LBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(1);
+                Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + iconsize.Y);
+                ImGui.Selectable("##Load Trace", false, ImGuiSelectableFlags.None, selectableSize);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
+                ImguiUtils.DrawHorizCenteredText("Load Trace");
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (iconsize.X / 2));
+                ImGui.Image(CPUframeBufferTextureId, iconsize, Vector2.Zero, Vector2.One, Vector4.One);
+                ImGui.EndTable();
+                ImGui.PopFont();
+
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
+
+                //_ImGuiController._unicodeFont.Scale = origscale;
+                Vector2 tablesz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
+                if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tablesz))
+                {
+                    ImGui.TableSetupColumn("Recent Traces");
+                    ImGui.TableSetupScrollFreeze(0, 1);
+                    ImGui.TableHeadersRow();
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Indent(5);
+                    ImGui.Selectable("c\\etc\\etc");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush2");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush3");
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Selectable("Mush4");
+                    ImGui.EndTable();
+                }  //ImGui.EndGroup();
+                ImGui.PopStyleVar();
+            }
+
+            ImGui.PopStyleColor();
+
+            ImGui.PopStyleVar(5);
+            //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
+            //ImguiUtils.DrawRegionCenteredText(msg);
+        }
 
 
         private void DrawTraceTab()
@@ -789,8 +988,7 @@ namespace rgatCore
             BinaryTarget activeTarget = _rgatstate.ActiveTarget;
             if (activeTarget == null)
             {
-                String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
-                ImguiUtils.DrawCenteredText(msg);
+                DrawStartSplash();
                 return;
             }
 
@@ -1393,10 +1591,7 @@ namespace rgatCore
                 if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, controlsHeight - vpadding)))
                 {
                     string caption = "No trace to display";
-                    Vector2 captionsize = ImGui.CalcTextSize(caption);
-                    ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - captionsize.X / 2);
-                    ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - captionsize.Y / 2);
-                    ImGui.Text(caption);
+                    ImguiUtils.DrawRegionCenteredText(caption);
                     ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature}");
                     ImGui.EndChild();
                 }

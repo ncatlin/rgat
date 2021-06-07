@@ -375,9 +375,7 @@ namespace rgatCore.Widgets
             if (exceptionNodes.Length == 0)
             {
                 string caption = $"No exceptions recorded in thread ID {_ActiveGraph.tid}";
-                ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - ImGui.CalcTextSize(caption).X / 2);
-                ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - ImGui.CalcTextSize(caption).Y / 2);
-                ImGui.Text(caption);
+                ImguiUtils.DrawRegionCenteredText(caption);
                 return;
             }
 

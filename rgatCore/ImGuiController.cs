@@ -55,8 +55,11 @@ namespace ImGuiNET
 
         //private ImFontPtr _customFont = null;
         public ImFontPtr _unicodeFont = null;
+        ImFontPtr? _splashButtonFont = null;
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
+
+        public GraphicsDevice graphicsDevice => _gd;
 
         /// <summary>
         /// Constructs a new ImGuiController.
@@ -102,7 +105,7 @@ namespace ImGuiNET
             var fonts = ImGui.GetIO().Fonts;
             builder.AddRanges(fonts.GetGlyphRangesDefault());
             //builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
-            //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid
+            //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid (update: updated!)
             //builder.AddRanges(fonts.GetGlyphRangesCyrillic());
 
 
@@ -124,8 +127,16 @@ namespace ImGuiNET
             }
 
             _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
-
+            _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 40, null, ranges.Data);
             _unicodeFontLoaded = true;
+        }
+
+
+        public ImFontPtr SplashButtonFont
+        {
+            get {
+                return _splashButtonFont.Value;
+            }
         }
 
         Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
@@ -162,6 +173,9 @@ namespace ImGuiNET
             imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
             _imageTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
             _textureViews["VertCircle"] = factory.CreateTextureView(_imageTextures["VertCircle"]);
+
+
+
 
             //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
             //instead make a simple 2D texture atlas
