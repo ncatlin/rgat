@@ -23,6 +23,7 @@ namespace rgatCore
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
+        private bool _show_test_harness = false;
         private ImGuiController _ImGuiController = null;
 
         //rgat program state
@@ -37,6 +38,7 @@ namespace rgatCore
         PreviewGraphsWidget PreviewGraphWidget;
         VisualiserBar _visualiserBar;
         SettingsMenu _SettingsMenu;
+        TestHarness _testHarness;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
@@ -200,6 +202,7 @@ namespace rgatCore
             if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
             if (_show_select_exe_window) DrawFileSelectBox();
             if (_show_load_trace_window) DrawTraceLoadBox();
+            if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
 
             ResetThemeColours();
 
@@ -989,6 +992,18 @@ namespace rgatCore
             }
 
             ImGui.PopStyleVar(5);
+
+            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 40));
+            if (ImGui.BeginChild("##SplashCorner", new Vector2(80,35)))
+            {
+                if(ImGui.Selectable("rgat v0.6.0"))
+                {
+                    if (_testHarness == null) _testHarness = new TestHarness();
+                    _show_test_harness = true;
+                }
+                
+                ImGui.EndChild();
+            }
             //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
             //ImguiUtils.DrawRegionCenteredText(msg);
         }
@@ -2196,6 +2211,8 @@ namespace rgatCore
             }
         }
     }
+
+
 
     class PendingKeybind
     {

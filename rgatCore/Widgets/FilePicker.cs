@@ -454,20 +454,28 @@ namespace rgatFilePicker
                 if (OnlyAllowFolders)
                 {
                     ImGui.SameLine();
-                    if (ImGui.Button("Open", new Vector2(50, btnHeight)))
+                    if (ImGui.Button("Select Folder", new Vector2(80, btnHeight)))
                     {
                         SelectedFile = CurrentFolder;
                         ImGui.CloseCurrentPopup();
                         return PickerResult.eTrue;
                     }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Choose the current folder: " + CurrentFolder);
+                    }
                 }
                 else if (SelectedFile != null)
                 {
                     ImGui.SameLine();
-                    if (ImGui.Button("Open", new Vector2(50, btnHeight)))
+                    if (ImGui.Button("Select File", new Vector2(80, btnHeight)))
                     {
                         ImGui.CloseCurrentPopup();
                         return PickerResult.eTrue;
+                    }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Choose the selected file: " + SelectedFile);
                     }
                 }
             }

@@ -162,7 +162,8 @@ namespace rgatCore.Widgets
         void CreateOptionsPane_Files()
         {
             string selectedSetting = "";
-            uint pid = ImGui.GetID("##FilesDLG");
+            bool isFolder = false;
+
             if (ImGui.BeginTable("#PathsTable", 2))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
             {
                 ImGui.TableSetupColumn("Setting", ImGuiTableColumnFlags.WidthFixed, 180);
@@ -208,15 +209,47 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 ImGui.Text($"{GlobalConfig.PinToolPath64}");
 
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+
+                if (ImGui.Selectable($"Traces", mush, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "TraceSaveDirectory";
+                    isFolder = true;
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.TraceSaveDirectory}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+
+                if (ImGui.Selectable($"Tests", mush, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "TestsDirectory";
+                    isFolder = true;
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.TestsDirectory}");
+
                 ImGui.EndTable();
             }
 
             //doesn't seem to work inside table (ID issue?), so do it after
             if (selectedSetting.Length > 0)
             {
-                LaunchFileSelectBox(selectedSetting, "##FilesDLG");
+                if (isFolder)
+                    LaunchFileSelectBox(selectedSetting, "##FoldersDLG");
+                else
+                    LaunchFileSelectBox(selectedSetting, "##FilesDLG");
+               
             }
 
+            DrawFolderSelectBox();
             DrawFileSelectBox();
         }
 
@@ -234,6 +267,12 @@ namespace rgatCore.Widgets
                 case "PinToolPath64":
                     GlobalConfig.SetBinaryPath("PinToolPath64", path);
                     break;
+                case "TestsDirectory":
+                    GlobalConfig.SetNonBinaryPath("TestsDirectory", path);
+                    break;
+                case "TraceSaveDirectory":
+                    GlobalConfig.SetNonBinaryPath("TraceSaveDirectory", path);
+                    break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
                     break;
@@ -243,21 +282,18 @@ namespace rgatCore.Widgets
 
         void LaunchFileSelectBox(string setting, string popupID)
         {
-
             ImGui.SetNextWindowSize(new Vector2(800, 820), ImGuiCond.Appearing);
             ImGui.OpenPopup(popupID);
             _pendingPathSetting = setting;
         }
 
-
-        bool f = true;
+        bool _popupActive = true;
         private void DrawFileSelectBox()
         {
-            if (ImGui.BeginPopupModal("##FilesDLG", ref f))
+            if (ImGui.BeginPopupModal("##FilesDLG", ref _popupActive))
             {
-
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
-                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(_filePickHandle, Path.Combine(Environment.CurrentDirectory));
+                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(_filePickHandle);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
@@ -270,16 +306,43 @@ namespace rgatCore.Widgets
                         {
                             DeclareError($"Error: Path {picker.SelectedFile} does not exist");
                         }
-                        rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                        rgatFilePicker.FilePicker.RemoveFilePicker(_filePickHandle);
                     }
 
                 }
+                ImGui.EndPopup();
             }
-            ImGui.EndPopup();
 
         }
 
+        object _filePickHandle = new object();
+        object _dirPickHandle = new object();
+        private void DrawFolderSelectBox()
+        {
+            if (ImGui.BeginPopupModal("##FoldersDLG", ref _popupActive))
+            {
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(_dirPickHandle, Path.Combine(Environment.CurrentDirectory), onlyAllowFolders: true);
+                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(_dirPickHandle);
+                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
+                {
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                    {
+                        if (Directory.Exists(picker.SelectedFile))
+                        {
+                            ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
+                        }
+                        else
+                        {
+                            DeclareError($"Error: Directory {picker.SelectedFile} does not exist");
+                        }
+                        rgatFilePicker.FilePicker.RemoveFilePicker(_dirPickHandle);
+                    }
 
+                }
+                ImGui.EndPopup();
+            }
+
+        }
 
         void CreateOptionsPane_Keybinds()
         {

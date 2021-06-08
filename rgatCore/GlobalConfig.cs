@@ -228,6 +228,7 @@ namespace rgatCore.Threads
          */
         static readonly object _settingsLock = new object();
         public static string TraceSaveDirectory;
+        public static string TestsDirectory;
         public static string PinPath;
         public static string PinToolPath32;
         public static string PinToolPath64;
@@ -398,21 +399,6 @@ namespace rgatCore.Threads
         public static List<CachedPathData> RecentTraces => _cachedRecentTraces;
         public static List<CachedPathData> RecentBinaries => _cachedRecentBins;
 
-        /*
-        {
-            if (_cachedRecentPaths.TryGetValue("LoadTraces", out JToken val) && val.Type == JTokenType.Object)
-                return val.ToObject<JObject>();
-            return null;
-        }
-
-        public static List<CachedPathData> RecentBinaries()
-        {
-            if (_cachedRecentPaths.TryGetValue("RunBinaries", out JToken val) && val.Type == JTokenType.Object) 
-                return val.ToObject<JObject>();
-            return null;
-        }
-        */
-
         static void LoadRecentPaths(string pathType, ref List<CachedPathData> store)
         {
             var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -456,21 +442,21 @@ namespace rgatCore.Threads
             {
                 sec = new RecentPathSection();
                 SectionObj = new JObject();
-                SectionObj.Add("RunBinaries", new JObject());
-                SectionObj.Add("LoadTraces", new JObject());
+                SectionObj.Add("RecentBinaries", new JObject());
+                SectionObj.Add("RecentTraces", new JObject());
                 sec.RecentPaths = SectionObj;
                 configFile.Sections.Add("RecentPaths", sec);
             }
             else
             {
                 SectionObj = sec.RecentPaths;
-                if (!SectionObj.ContainsKey("RunBinaries")) SectionObj.Add("RunBinaries", new JObject());
-                if (!SectionObj.ContainsKey("LoadTraces")) SectionObj.Add("LoadTraces", new JObject());
+                if (!SectionObj.ContainsKey("RecentBinaries")) SectionObj.Add("RecentBinaries", new JObject());
+                if (!SectionObj.ContainsKey("RecentTraces")) SectionObj.Add("RecentTraces", new JObject());
             }
 
             try
             {
-                string sectionTarget = (pathType == eRecentPathType.Binary) ? "RunBinaries" : "LoadTraces";
+                string sectionTarget = (pathType == eRecentPathType.Binary) ? "RecentBinaries" : "RecentTraces";
                 JObject targetObj = (JObject)SectionObj[sectionTarget];
                 if (targetObj.TryGetValue(path, out JToken ExistingTok) && ExistingTok.Type == JTokenType.Object)
                 {
@@ -657,7 +643,7 @@ namespace rgatCore.Threads
                 };
             foreach (string dir in candidates)
             {
-                string candidate = Path.Combine(dir, "traces");
+                string candidate = Path.Combine(dir, name);
                 if (Directory.Exists(candidate))
                 {
                     return candidate;
@@ -678,7 +664,7 @@ namespace rgatCore.Threads
                     }
                     if (!Directory.Exists(dir)) continue;
                 }
-                string candidate = Path.Combine(dir, "traces");
+                string candidate = Path.Combine(dir, name);
                 try
                 {
                     Directory.CreateDirectory(candidate);
@@ -757,10 +743,28 @@ namespace rgatCore.Threads
                 }
                 else
                 {
-
                     AddUpdateAppSettings("TraceSaveDirectory", TraceSaveDirectory);
                 }
             }
+
+
+            if (GetAppSetting("TestsDirectory", out string testsdir) && Directory.Exists(testsdir))
+            {
+                TestsDirectory = testsdir;
+            }
+            else
+            {
+                TestsDirectory = GetStorageDirectoryPath("tests");
+                if (!Directory.Exists(TestsDirectory))
+                {
+                    Logging.RecordLogEvent("No tests path, can't enable tests");
+                }
+                else
+                {
+                    AddUpdateAppSettings("TestsDirectory", TestsDirectory);
+                }
+            }
+
 
             if (GetAppSetting("PinPath", out string pinexe) && File.Exists(pinexe))
             {
@@ -811,6 +815,21 @@ namespace rgatCore.Threads
 
         }
 
+        public static void SetNonBinaryPath(string setting, string path, bool save = true)
+        {
+            if (setting == "TraceSaveDirectory")
+            {
+                TraceSaveDirectory = path;
+            }
+            if (setting == "TestsDirectory")
+            {
+                TestsDirectory = path;
+            }
+            if (save)
+            {
+                AddUpdateAppSettings(setting, path);
+            }
+        }
 
         public static void SetBinaryPath(string setting, string path, bool save = true)
         {
@@ -874,8 +893,8 @@ namespace rgatCore.Threads
             LoadCustomKeybinds();
 
             InitPaths();
-            LoadRecentPaths("LoadTraces", ref _cachedRecentTraces);
-            LoadRecentPaths("RunBinaries", ref _cachedRecentBins);
+            LoadRecentPaths("RecentTraces", ref _cachedRecentTraces);
+            LoadRecentPaths("RecentBinaries", ref _cachedRecentBins);
 
             defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
