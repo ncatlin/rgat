@@ -47,7 +47,7 @@ namespace rgatCore.Threads
 
             public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
             {
-                return (destinationType == typeof(JObject)) 
+                return (destinationType == typeof(JObject))
                     || destinationType == typeof(JArray)
                     || (destinationType == typeof(string));
             }
@@ -96,6 +96,38 @@ namespace rgatCore.Threads
                 }
             }
         }
+
+
+        public sealed class RecentPathSection : ConfigurationSection
+        {
+            private static ConfigurationPropertyCollection _Properties;
+            private static readonly ConfigurationProperty _recentPathJSON = new ConfigurationProperty(
+                "RecentPaths",
+                typeof(JObject),
+                new JObject(),
+                new GlobalConfig.JSONBlobConverter(),
+                null,
+                ConfigurationPropertyOptions.None);
+
+            public RecentPathSection()
+            {
+                _Properties = new ConfigurationPropertyCollection();
+                _Properties.Add(_recentPathJSON);
+            }
+
+            protected override object GetRuntimeObject() => base.GetRuntimeObject();
+            protected override ConfigurationPropertyCollection Properties => _Properties;
+
+            public JObject RecentPaths
+            {
+                get => (JObject)this["RecentPaths"];
+                set
+                {
+                    this["RecentPaths"] = value;
+                }
+            }
+        }
+
 
         public struct SYMS_VISIBILITY
         {
@@ -201,7 +233,8 @@ namespace rgatCore.Threads
         public static string PinToolPath64;
         public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
-
+        //true => traces we save will be added to recent traces list. false => only ones we load will
+        public static bool StoreSavedTracesAsRecent = true;
 
         public static Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
@@ -352,6 +385,125 @@ namespace rgatCore.Threads
         }
 
 
+        public struct CachedPathData {
+            public string path;
+            public DateTime firstSeen;
+            public DateTime lastSeen;
+            public uint count;
+        }
+        public enum eRecentPathType { Binary, Trace };
+        static List<CachedPathData> _cachedRecentBins = new List<CachedPathData>();
+        static List<CachedPathData> _cachedRecentTraces = new List<CachedPathData>();
+
+        public static List<CachedPathData> RecentTraces => _cachedRecentTraces;
+        public static List<CachedPathData> RecentBinaries => _cachedRecentBins;
+
+        /*
+        {
+            if (_cachedRecentPaths.TryGetValue("LoadTraces", out JToken val) && val.Type == JTokenType.Object)
+                return val.ToObject<JObject>();
+            return null;
+        }
+
+        public static List<CachedPathData> RecentBinaries()
+        {
+            if (_cachedRecentPaths.TryGetValue("RunBinaries", out JToken val) && val.Type == JTokenType.Object) 
+                return val.ToObject<JObject>();
+            return null;
+        }
+        */
+
+        static void LoadRecentPaths(string pathType, ref List<CachedPathData> store)
+        {
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
+            if (sec != null && sec.RecentPaths.Type == JTokenType.Object)
+            {
+                if (sec.RecentPaths.TryGetValue(pathType, out JToken val) && val.Type == JTokenType.Object)
+                { 
+                   JObject tracesObj = val.ToObject<JObject>();
+
+                    foreach (var entry in tracesObj)
+                    {
+                        if (entry.Value.Type != JTokenType.Object) continue;
+                        JObject data = (JObject)entry.Value;
+                        if (!data.TryGetValue("OpenCount", out JToken ocountTok) || ocountTok.Type != JTokenType.Integer ||
+                            !data.TryGetValue("FirstOpen", out JToken firstOpenTok) || firstOpenTok.Type != JTokenType.Date ||
+                            !data.TryGetValue("LastOpen", out JToken lastOpenTok) || lastOpenTok.Type != JTokenType.Date)
+                            continue;
+                        CachedPathData pd = new CachedPathData
+                        {
+                            path = entry.Key,
+                            firstSeen = firstOpenTok.ToObject<DateTime>(),
+                            lastSeen = lastOpenTok.ToObject<DateTime>(),
+                            count = ocountTok.ToObject<uint>()
+                        };
+                        store.Add(pd);
+                    }
+                }
+            }
+            store = store.OrderBy(x => x.lastSeen).ToList();
+        }
+
+
+        public static void RecordRecentPath(string path, eRecentPathType pathType)
+        {
+
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
+            JObject SectionObj;
+            if (sec == null)
+            {
+                sec = new RecentPathSection();
+                SectionObj = new JObject();
+                SectionObj.Add("RunBinaries", new JObject());
+                SectionObj.Add("LoadTraces", new JObject());
+                sec.RecentPaths = SectionObj;
+                configFile.Sections.Add("RecentPaths", sec);
+            }
+            else
+            {
+                SectionObj = sec.RecentPaths;
+                if (!SectionObj.ContainsKey("RunBinaries")) SectionObj.Add("RunBinaries", new JObject());
+                if (!SectionObj.ContainsKey("LoadTraces")) SectionObj.Add("LoadTraces", new JObject());
+            }
+
+            try
+            {
+                string sectionTarget = (pathType == eRecentPathType.Binary) ? "RunBinaries" : "LoadTraces";
+                JObject targetObj = (JObject)SectionObj[sectionTarget];
+                if (targetObj.TryGetValue(path, out JToken ExistingTok) && ExistingTok.Type == JTokenType.Object)
+                {
+                    JObject ExistingPathObj = ExistingTok.ToObject<JObject>();
+                    if (ExistingPathObj.TryGetValue("OpenCount", out JToken countTok) &&
+                        countTok.Type == JTokenType.Integer)
+                    {
+                        ExistingPathObj["OpenCount"] = countTok.ToObject<uint>() + 1;
+                    }
+                    ExistingPathObj["LastOpen"] = DateTime.Now;
+                    targetObj[path] = ExistingPathObj;
+                }
+                else
+                {
+                    JObject NewPathObj = new JObject();
+                    NewPathObj.Add("OpenCount", 1);
+                    NewPathObj.Add("FirstOpen", DateTime.Now);
+                    NewPathObj.Add("LastOpen", DateTime.Now);
+
+                    targetObj.Add(path, NewPathObj);
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"exception {e.Message} storing path {pathType} - {path}", Logging.LogFilterType.TextError);
+            }
+
+            sec.RecentPaths = SectionObj;
+            sec.SectionInformation.ForceSave = true;
+            configFile.Save();
+        }
+
+
         /// <summary>
         /// Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
         /// things like graph movement and rotation clunky. Instead we read for their keypress every update instead
@@ -375,6 +527,7 @@ namespace rgatCore.Threads
 
             ResponsiveKeys = Keybinds.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
         }
+
 
         public static void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
         {
@@ -444,6 +597,7 @@ namespace rgatCore.Threads
             }
         }
 
+
         public static bool GetAppSetting(string key, out string value)
         {
             try
@@ -481,11 +635,9 @@ namespace rgatCore.Threads
                 {
                     string themesjsn = (string)dict.Value.ToString();
 
-                    Newtonsoft.Json.Linq.JArray themesListJson = new Newtonsoft.Json.Linq.JArray();
                     try
                     {
-                        themesListJson = Newtonsoft.Json.Linq.JArray.Parse(themesjsn);
-                        Themes.LoadPresetThemes(themesListJson);
+                        Themes.LoadPresetThemes(Newtonsoft.Json.Linq.JArray.Parse(themesjsn));
                     }
                     catch (Exception e)
                     {
@@ -540,6 +692,7 @@ namespace rgatCore.Threads
             return "";
         }
 
+
         public static bool BadSigners(out List<Tuple<string, string>> errors)
         {
             lock (_settingsLock)
@@ -553,6 +706,7 @@ namespace rgatCore.Threads
             errors = null;
             return false;
         }
+
 
         static bool VerifyCertificate(string path, string expectedSigner, out string error)
         {
@@ -657,6 +811,7 @@ namespace rgatCore.Threads
 
         }
 
+
         public static void SetBinaryPath(string setting, string path, bool save = true)
         {
             if (setting == "PinPath")
@@ -697,6 +852,7 @@ namespace rgatCore.Threads
             }
         }
 
+
         public static void InitDefaultConfig()
         {
             LoadResources();
@@ -718,6 +874,8 @@ namespace rgatCore.Threads
             LoadCustomKeybinds();
 
             InitPaths();
+            LoadRecentPaths("LoadTraces", ref _cachedRecentTraces);
+            LoadRecentPaths("RunBinaries", ref _cachedRecentBins);
 
             defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,

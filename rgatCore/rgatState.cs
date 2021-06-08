@@ -426,6 +426,7 @@ namespace rgatCore
             //display_only_status_message("Loading save file...", clientState);
             //updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
             trace = null;
+            if (!File.Exists(path)) return false;
             Newtonsoft.Json.Linq.JObject saveJSON = null;
             using (StreamReader file = File.OpenText(path))
             {

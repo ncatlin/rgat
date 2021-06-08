@@ -373,8 +373,7 @@ namespace rgatCore.Widgets
             ImGuiHoveredFlags flags = ImGuiHoveredFlags.AllowWhenBlockedByActiveItem |
                                       ImGuiHoveredFlags.AllowWhenOverlapped |
                                       ImGuiHoveredFlags.AllowWhenBlockedByPopup;
-            bool isHovered = ImGui.IsItemHovered(flags);
-            if (isHovered)
+            if (ImGui.IsItemHovered(flags))
             {
                 if (_activeEntry == null || _activeEntry != entry)
                 {
@@ -386,14 +385,14 @@ namespace rgatCore.Widgets
                     }
                     _activeEntry = entry;
                 }
-                ImGui.BeginTooltip();
-                ImGui.Text($"{entry.ToolTip} ({entry.Shortcut})");
-                ImGui.EndTooltip();
+                ImGui.SetTooltip($"{entry.ToolTip} ({entry.Shortcut})");
             }
             else
             {
-                if (_activeMenuPopupName == null && entry.active == false &&
-                    entry?.Popup != null && ImGui.IsPopupOpen(entry.Popup))
+                if (_activeMenuPopupName == null && 
+                    entry?.active == false &&
+                    entry?.Popup != null && 
+                    ImGui.IsPopupOpen(entry.Popup))
                 {
                     ImGui.CloseCurrentPopup();
                 }    

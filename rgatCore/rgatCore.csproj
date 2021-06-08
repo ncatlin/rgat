@@ -49,6 +49,7 @@
   <ItemGroup>
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="HexMate" Version="0.0.3" />
+    <PackageReference Include="Humanizer.Core" Version="2.11.10" />
     <PackageReference Include="Jint" Version="3.0.0-beta-2032" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

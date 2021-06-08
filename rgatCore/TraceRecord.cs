@@ -445,7 +445,7 @@ namespace rgatCore
                 return "";
             }
 
-            JsonTextWriter wr = CreateSaveFile(traceStartedTime);
+            JsonTextWriter wr = CreateSaveFile(traceStartedTime, out string path);
             if (wr == null)
             {
                 Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream",Logging.LogFilterType.TextError);
@@ -474,6 +474,10 @@ namespace rgatCore
             wr.Close();
 
             Logging.RecordLogEvent("Trace Save Complete");
+            if (GlobalConfig.StoreSavedTracesAsRecent)
+            {
+                GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Trace);
+            }
             return wr.Path;
         }
 
@@ -505,16 +509,17 @@ namespace rgatCore
         }
 
 
-        JsonTextWriter CreateSaveFile(DateTime startedTime)
+        JsonTextWriter CreateSaveFile(DateTime startedTime, out string path)
         {
             string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
             if (!Directory.Exists(GlobalConfig.TraceSaveDirectory))
             {
                 Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.TraceSaveDirectory + " does not exist", Logging.LogFilterType.TextInfo);
+                path = null;
                 return null;
             }
 
-            string path = Path.Join(GlobalConfig.TraceSaveDirectory, saveFilename);
+            path = Path.Join(GlobalConfig.TraceSaveDirectory, saveFilename);
             try
             {
                 StreamWriter sw = File.CreateText(path);
