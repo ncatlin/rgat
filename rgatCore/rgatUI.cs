@@ -895,23 +895,24 @@ namespace rgatCore
                 ImGui.EndTable();
                 ImGui.PopFont();
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
-                Vector2 tablesz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
 
-                List<GlobalConfig.CachedPathData> recentbins = GlobalConfig.RecentBinaries;
-                if (recentbins != null && recentbins.Count > 0)
+                List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
+                if (recentBins != null && recentBins.Count > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
-                    if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tablesz))
+                    if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
                     {
                         ImGui.Indent(5);
                         ImGui.TableSetupColumn("Recent Binaries");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
 
-                        foreach (var entry in recentbins)
+                        foreach (var entry in recentBins)
                         {
                             ImGui.TableNextRow();
-                            if (DrawRecentPathEntry(entry))
+                            ImGui.TableNextColumn();
+                            if (DrawRecentPathEntry(entry, false))
                             {
                                 LoadSelectedBinary(entry.path);
                             }
@@ -958,23 +959,24 @@ namespace rgatCore
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
 
-                Vector2 tablesz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
 
-                List<GlobalConfig.CachedPathData> recentbins = GlobalConfig.RecentTraces;
-                if (recentbins != null && recentbins.Count > 0)
+                List<GlobalConfig.CachedPathData> recentTraces = GlobalConfig.RecentTraces;
+                if (recentTraces?.Count > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
-                    if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tablesz))
+                    if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
                     {
                         ImGui.Indent(5);
                         ImGui.TableSetupColumn("Recent Traces");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
 
-                        foreach (var entry in recentbins)
+                        foreach (var entry in recentTraces)
                         {
                             ImGui.TableNextRow();
-                            if (DrawRecentPathEntry(entry))
+                            ImGui.TableNextColumn();
+                            if (DrawRecentPathEntry(entry, false))
                             {
                                 LoadTraceByPath(entry.path);
                             }
@@ -992,10 +994,9 @@ namespace rgatCore
         }
 
 
-        bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata)
+        bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
         {
 
-            ImGui.TableNextColumn();
             string path = pathdata.path;
             if (path.ToLower().EndsWith(".rgat"))
             {
@@ -1010,8 +1011,17 @@ namespace rgatCore
                     path = path.Truncate(50, "...", TruncateFrom.Left);
             }
 
-            ImGui.Selectable(path + agoText);
-
+            if (menu)
+            {
+                if(ImGui.MenuItem(path + agoText))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                ImGui.Selectable(path + agoText);
+            }
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -1955,7 +1965,24 @@ namespace rgatCore
                 if (ImGui.BeginMenu("Target"))
                 {
                     if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = true; }
-                    if (ImGui.MenuItem("Recent Targets")) { }
+                    var recentbins = GlobalConfig.RecentBinaries;
+                    if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
+                    {
+                        foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Count)))
+                        {
+                            if (DrawRecentPathEntry(entry, true)) LoadSelectedBinary(entry.path);
+                        }
+                        ImGui.EndMenu();
+                    }
+                    var recenttraces = GlobalConfig.RecentTraces;
+                    if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
+                    {
+                        foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Count)))
+                        {
+                            if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.path);
+                        }
+                        ImGui.EndMenu();
+                    }
                     if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true; }
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { }
