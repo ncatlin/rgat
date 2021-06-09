@@ -28,6 +28,7 @@ namespace rgatCore
             ePreviewZoomEnvelope,
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
+            eBadStateColour, eGoodStateColour,
             COUNT
         }
         public enum eThemeSize
@@ -57,6 +58,69 @@ namespace rgatCore
             }
         }
 
+        /// <summary>
+        /// Set any missing theme settings
+        /// </summary>
+        static void InitUnsetCustomColours()
+        {
+            Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>();
+
+            DefaultCustomColours[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
+            DefaultCustomColours[eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
+            DefaultCustomColours[eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint();
+            DefaultCustomColours[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
+            DefaultCustomColours[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
+            DefaultCustomColours[eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint();
+            DefaultCustomColours[eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint();
+            DefaultCustomColours[eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint();
+            DefaultCustomColours[eThemeColour.eBadStateColour] = new WritableRgbaFloat(Color.Red).ToUint();
+            DefaultCustomColours[eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint();
+
+            foreach (eThemeColour themeStyle in DefaultCustomColours.Keys)
+            {
+                if (!ThemeColoursCustom.ContainsKey(themeStyle))
+                {
+                    ThemeColoursCustom.Add(themeStyle, DefaultCustomColours[themeStyle]);
+                }
+            }
+
+
+            Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>();
+
+            DefaultCustomSizes[eThemeSize.ePreviewSelectedBorder] = 1f;
+
+            foreach (eThemeSize themeStyle in DefaultCustomSizes.Keys)
+            {
+                if (!ThemeSizesCustom.ContainsKey(themeStyle))
+                {
+                    ThemeSizesCustom.Add(themeStyle, DefaultCustomSizes[themeStyle]);
+                }
+            }
+
+
+            Dictionary<eThemeSize, Vector2> DefaultSizeLimits = new Dictionary<eThemeSize, Vector2>();
+            DefaultSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
+            foreach (eThemeSize themeStyle in DefaultSizeLimits.Keys)
+            {
+                if (!ThemeSizeLimits.ContainsKey(themeStyle))
+                {
+                    ThemeSizeLimits.Add(themeStyle, DefaultSizeLimits[themeStyle]);
+                }
+            }
+        }
+
+
 
         public static void InitFallbackTheme()
         {
@@ -67,30 +131,7 @@ namespace rgatCore
             ThemeMetadata["Author"] = "rgat fallback theme";
             ThemeMetadata["Author2"] = "https://github.com/ncatlin/rgat";
 
-            ThemeColoursCustom[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
-            ThemeColoursCustom[eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
-            ThemeColoursCustom[eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint();
-            ThemeColoursCustom[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
-            ThemeColoursCustom[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
-
-            ThemeColoursCustom[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
-            ThemeColoursCustom[eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint();
-            ThemeColoursCustom[eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint();
-            ThemeColoursCustom[eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint();
-
-
-            ThemeSizesCustom[eThemeSize.ePreviewSelectedBorder] = 1f;
-            ThemeSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
+            InitUnsetCustomColours();
             IsBuiltinTheme = true;
         }
 
@@ -137,9 +178,9 @@ namespace rgatCore
         }
 
         /*
- * This will load valid but incomplete theme data into the existing theme, but not if there
- * is any invalid data
- */
+    * This will load valid but incomplete theme data into the existing theme, but not if there
+    * is any invalid data
+    */
         static bool ActivateThemeObject(JObject theme)
         {
             Dictionary<string, string> pendingMetadata = new Dictionary<string, string>();
@@ -267,6 +308,8 @@ namespace rgatCore
             foreach (var kvp in pendingSizes) ThemeSizesCustom[kvp.Key] = kvp.Value;
 
             IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
+
+            InitUnsetCustomColours();
 
             return true;
         }
@@ -482,7 +525,7 @@ namespace rgatCore
                 _Properties.Add(_customThemeJSONs2);
             }
 
-            protected override object GetRuntimeObject() =>  base.GetRuntimeObject();
+            protected override object GetRuntimeObject() => base.GetRuntimeObject();
 
             protected override ConfigurationPropertyCollection Properties => _Properties;
 
@@ -499,7 +542,7 @@ namespace rgatCore
             public long MaxUsers
             {
                 get => (long)this["maxUsers"];
-                
+
                 set
                 {
                     this["maxUsers"] = value;
@@ -606,6 +649,7 @@ namespace rgatCore
             if (ThemeColoursStandard.Count == 0)
             {
                 InitFallbackTheme();
+                InitUnsetCustomColours();
             }
         }
 

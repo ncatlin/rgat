@@ -872,6 +872,7 @@ namespace rgatCore.Threads
         }
 
 
+
         public static void InitDefaultConfig()
         {
             LoadResources();

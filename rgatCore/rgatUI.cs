@@ -998,8 +998,7 @@ namespace rgatCore
             {
                 if(ImGui.Selectable("rgat v0.6.0"))
                 {
-                    if (_testHarness == null) _testHarness = new TestHarness();
-                    _show_test_harness = true;
+                    ToggleTestHarness();
                 }
                 
                 ImGui.EndChild();
@@ -1008,6 +1007,14 @@ namespace rgatCore
             //ImguiUtils.DrawRegionCenteredText(msg);
         }
 
+        void ToggleTestHarness()
+        {
+            if (_show_test_harness == false)
+            {
+                if (_testHarness == null) _testHarness = new TestHarness();
+            }
+            _show_test_harness = !_show_test_harness;
+        }
 
         bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
         {
@@ -2011,6 +2018,12 @@ namespace rgatCore
 
 
                 ImGui.MenuItem("Settings", null, ref _settings_window_shown);
+                ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 30);
+                bool isShown = _show_test_harness;
+                if(ImGui.MenuItem("Tests", null, ref isShown, true))
+                {
+                    ToggleTestHarness();
+                }
                 ImGui.EndMenuBar();
             }
         }
