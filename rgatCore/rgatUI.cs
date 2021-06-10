@@ -38,7 +38,7 @@ namespace rgatCore
         PreviewGraphsWidget PreviewGraphWidget;
         VisualiserBar _visualiserBar;
         SettingsMenu _SettingsMenu;
-        TestHarness _testHarness;
+        TestsWindow _testHarness;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
@@ -1011,7 +1011,7 @@ namespace rgatCore
         {
             if (_show_test_harness == false)
             {
-                if (_testHarness == null) _testHarness = new TestHarness();
+                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate);
             }
             _show_test_harness = !_show_test_harness;
         }

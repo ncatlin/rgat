@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using rgatCore.Testing;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -9,45 +10,54 @@ using System.Text;
 
 namespace rgatCore.Widgets
 {
-    enum eTestState { NotRun, Passed, Failed };
-    class TestCase
-    {
-        public eTestState state = eTestState.NotRun;
-        public string Path;
-        public string CategoryName;
-        public string TestName;
-        public bool Starred;
-        public bool Queued;
-        public bool Running;
-        public string Description;
-    }
+
     class TestCategory
     {
         public List<TestCase> Tests = new List<TestCase>();
         public string Path;
         public bool Starred;
         public string CategoryName;
-
     }
 
-
-    class TestHarness
+    class TestsWindow
     {
-        public TestHarness()
+        public TestsWindow(rgatState clientState)
         {
-            RefreshTestFiles();
+            _testingThread = new TestHarnessThread(clientState);
+            InitTestingSession();
+
         }
 
+        TestHarnessThread _testingThread;
         Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
         Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
         List<string> _orderedTestDirs = new List<string>();
         bool _testsRunning = false;
+        enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
+        int _selectedFilter = (int)eCatFilter.All;
+        string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
+            "Show Passing Tests","Show Failed Tests",
+            "Show Starred Tests", "Show Starred Categories"};
+        readonly int treeWidth = 200;
+        List<TestCase> _queuedTests = new List<TestCase>();
+        List<TestCase> _allTests = new List<TestCase>();
+        Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
 
-        public void RefreshTestFiles()
+        List<Testing.TestOutput> _outputText = new List<Testing.TestOutput>();
+
+        readonly object _TestsLock = new object();
+
+
+        public void InitTestingSession()
         {
             lock (_TestsLock)
             {
-                _foundTestsCount = 0;
+                _sessionStats = new Dictionary<string, float>();
+                _sessionStats["Loaded"] = 0;
+                _sessionStats["Passed"] = 0;
+                _sessionStats["Failed"] = 0;
+                _sessionStats["Executed"] = 0;
+
                 _testDirectories.Clear();
                 _testCategories.Clear();
                 _orderedTestDirs.Clear();
@@ -91,8 +101,12 @@ namespace rgatCore.Widgets
                 }
 
                 _orderedTestDirs = validDirs.OrderBy(x => x.Item1).Select(x => x.Item2).ToList();
+                _currentSession += 1;
+                _testingThread.InitSession(_currentSession);
             }
+            UpdateStats();
             Logging.RecordLogEvent($"Loaded {_testDirectories.Count} test directories");
+            
         }
 
         void ToggleQueued(TestCase test, bool? state = null)
@@ -125,28 +139,12 @@ namespace rgatCore.Widgets
                 t.Path = testfile;
                 t.CategoryName = category;
                 results.Add(t);
-                _foundTestsCount += 1;
+                _sessionStats["Loaded"] += 1;
             }
             return results;
         }
 
-
-        int _foundTestsCount = 0;
-        enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
-        int _selectedFilter = (int)eCatFilter.All;
-        string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
-            "Show Passing Tests","Show Failed Tests",
-            "Show Starred Tests", "Show Starred Categories"};
-        readonly int treeWidth = 200;
-        List<TestCase> _queuedTests = new List<TestCase>();
-        List<TestCase> _allTests = new List<TestCase>();
-
-        struct OutputText
-        {
-            string text;
-        }
-        List<OutputText> _outputText = new List<OutputText>();
-
+        int _currentSession = 0;
         public void Draw(ref bool openFlag)
         {
             if (ImGui.Begin("Run Tests", ref openFlag, ImGuiWindowFlags.None))
@@ -154,20 +152,7 @@ namespace rgatCore.Widgets
                 DrawTestsTree();
                 ImGui.SameLine();
                 ImGui.BeginGroup();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
-                if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 28)))
-                {
-                    ImGui.SameLine(ImGui.GetContentRegionAvail().X - 85);
-
-                    if (ImGui.Button("Reset Session", new Vector2(80, 25)))
-                    {
-                        ResetSession();
-                    }
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("Clear test results and reload tests from test directory.");
-                    ImGui.EndChild();
-                }
-                ImGui.PopStyleColor();
+                DrawStatusBanner();
                 float height = ImGui.GetContentRegionAvail().Y;
                 float controlsHeight = 75;
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff887766);
@@ -180,7 +165,74 @@ namespace rgatCore.Widgets
                 ImGui.EndGroup();
                 ImGui.End();
             }
+
+            if(_testsRunning)
+            {
+                if (_queuedTests.Count > 0 && _testingThread.FreeTestSlots > 0)
+                {
+                    lock (_TestsLock)
+                    {
+                        TestCase test = _queuedTests.First();
+                        long testID = _testingThread.RunTest(_currentSession, test);
+                        if (testID > -1)
+                        {
+                            test.Running = true;
+                            test.Queued = false;
+                            _queuedTests.Remove(test);
+                        }
+                    }
+                }
+            }
         }
+
+        void UpdateStats()
+        {
+            lock (_TestsLock)
+            {
+                _sessionStats["Passed"] = _allTests.Where(x => x.state == eTestState.Passed).Count();
+                _sessionStats["Failed"] = _allTests.Where(x => x.state == eTestState.Failed).Count();
+                _sessionStats["Remaining"] = _allTests.Where(x => x.state == eTestState.NotRun).Count();
+                _sessionStats["Executed"] = _allTests.Count - _sessionStats["Remaining"];
+            }
+        }
+
+        void DrawStatusBanner()
+        {
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
+            if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 28)))
+            {
+                if (_sessionStats["Loaded"] == 0)
+                {
+                    ImGui.Text("No tests loaded. Ensure the test path is defined in settings and contains tests (see [URL - TODO])");
+                }
+                else
+                {
+                    if (_sessionStats["Executed"] == 0)
+                    {
+                        ImGui.Text("No tests perfomed in this session. Queue tests using the list to the left or controls below and press \"Start Testing\"");
+                    }
+                    else
+                    {
+                        float exec_pct = (_sessionStats["Executed"] / _allTests.Count)*100f;
+                        float pass_pct = (_sessionStats["Passed"] / _sessionStats["Executed"]) *100f;
+                        string label = $"{_sessionStats["Executed"]}/{_allTests.Count} tests executed ({exec_pct}%)). {_sessionStats["Failed"]} failed tests ({pass_pct}% pass rate).";
+                        ImGui.Text(label);
+                    }
+
+                }
+
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - 85);
+                if (ImGui.Button("Reset Session", new Vector2(80, 25)))
+                {
+                    ResetSession();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Clear test results and reload tests from test directory.");
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleColor();
+        }
+
 
         void DrawQueueControls(float height)
         {
@@ -274,11 +326,13 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
         }
 
+
         void StartTests()
         {
             if (_testsRunning) return;
             _testsRunning = true;
         }
+
 
         void StopTests()
         {
@@ -286,14 +340,14 @@ namespace rgatCore.Widgets
             _testsRunning = false;
         }
 
+
         void ResetSession()
         {
             StopTests();
             EmptyQueue();
-            RefreshTestFiles();
+            InitTestingSession();
         }
 
-        readonly object _TestsLock = new object();
 
         void EmptyQueue()
         {
@@ -302,6 +356,8 @@ namespace rgatCore.Widgets
                 _queuedTests.Where(test => !test.Running).ToList().ForEach(test => ToggleQueued(test));
             }
         }
+
+
         void AddTestsToQueue(eCatFilter filter)
         {
             lock (_TestsLock)
@@ -353,7 +409,7 @@ namespace rgatCore.Widgets
                 if (ImGui.BeginChild("#SelectionTree", new Vector2(ImGui.GetContentRegionAvail().X, height * sizeMultiplier)))
                 {
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4);
-                    ImGui.TextWrapped($"Loaded {_foundTestsCount} Tests in {_orderedTestDirs.Count} Categories");
+                    ImGui.TextWrapped($"Loaded {_sessionStats["Loaded"]} Tests in {_orderedTestDirs.Count} Categories");
                     ImGui.Separator();
                     ImGui.Indent(10);
                     {
