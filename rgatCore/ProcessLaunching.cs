@@ -8,7 +8,7 @@ using System.Threading;
 namespace rgatCore
 {
 
-	struct RGAT_THREADS_STRUCT
+	public struct RGAT_THREADS_STRUCT
 	{
 		//could probably just put them in a map instead
 		public List<Thread> threads;

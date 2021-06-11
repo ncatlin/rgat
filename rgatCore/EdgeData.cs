@@ -5,7 +5,7 @@ using System.Text;
 
 namespace rgatCore
 {
-    class EdgeData
+    public class EdgeData
     {
         public EdgeData(int index, eEdgeNodeType sourceType)
         {

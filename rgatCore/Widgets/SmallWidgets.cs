@@ -130,5 +130,70 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
             return clicked;
         }
+
+
+
+        static Vector2 ImRotate(Vector2 v, float cos_a, float sin_a)
+        {
+            return new Vector2(v.X * cos_a - v.Y * sin_a, v.X * sin_a + v.Y * cos_a);
+        }
+
+
+        public static void DrawSpinner(ImGuiController controller, int count)
+        {
+            Texture btnIcon = controller.GetImage("ArrowSpin");
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon);
+
+            Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
+            Vector2 corner = ImGui.GetCursorScreenPos() + new Vector2(0, size.Y);
+            Vector2 center = corner + new Vector2(size.X * 0.5f, size.Y * -0.5f);
+
+            float rotation = -1 * ((float)DateTime.Now.TimeOfDay.TotalMilliseconds / 360);
+            float cos_a = (float)Math.Cos(rotation);
+            float sin_a = (float)Math.Sin(rotation);
+
+            Vector2[] pos = new Vector2[]
+            {
+                center + ImRotate(new Vector2(-size.X, -size.Y) * 0.5f, cos_a, sin_a),
+                center + ImRotate(new Vector2(+size.X, -size.Y) * 0.5f, cos_a, sin_a),
+                center + ImRotate(new Vector2(+size.X, +size.Y) * 0.5f, cos_a, sin_a),
+                center + ImRotate(new Vector2(-size.X, +size.Y) * 0.5f, cos_a, sin_a)
+            };
+
+            ImGui.GetWindowDrawList().AddImageQuad(CPUframeBufferTextureId, pos[0], pos[1], pos[2], pos[3],
+                Vector2.Zero, new Vector2(1, 0), Vector2.One, new Vector2(0, 1));
+            if (count > 1)
+            {
+                ImGui.SetCursorScreenPos(corner + new Vector2(9, -size.Y));
+                ImGui.Text($"{count}");
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
+                ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 18));
+            }
+            else
+            {
+                //tooltip hover target
+                ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 18));
+            }
+           
+            
+        }
+
+
+        public static void DrawIcon(ImGuiController controller, string name, int countCaption = 1)
+        {
+            Texture btnIcon = controller.GetImage(name);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon);
+
+            Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
+            Vector2 corner = ImGui.GetCursorScreenPos() + new Vector2(0, 0);
+            ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner+size, Vector2.Zero,  Vector2.One);
+            if (countCaption > 1)
+            {
+                ImGui.SetCursorScreenPos(corner + new Vector2(size.X * 0.8f, 5));
+                ImGui.Text($"{countCaption}");
+            }
+        }
+
+
     }
 }

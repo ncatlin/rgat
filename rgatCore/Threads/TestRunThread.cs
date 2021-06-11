@@ -8,16 +8,20 @@ namespace rgatCore.Testing
 {
     class TestRunThread
     {
-        TestCase _testCase;
+        TestCase _testCase = null;
         TestCaseRun _thisTest;
         Thread thisThread;
         rgatState _rgatState;
+        public bool Running { get; private set; } = false;
+        public bool Finished { get; private set; } = false;
+        TestHarnessThread _harness;
 
-        public TestRunThread(TestCaseRun testrun, rgatState rgatState)
+        public TestRunThread(TestCaseRun testrun, rgatState rgatState, TestHarnessThread harness)
         {
-            _testCase = testrun.TestCase;
+            _testCase = testrun.GetTestCase;
             _thisTest = testrun;
             _rgatState = rgatState;
+            _harness = harness;
         }
 
 
@@ -30,19 +34,25 @@ namespace rgatCore.Testing
 
         void TestMain(Object _)
         {
-            Console.WriteLine($"Starting test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
-            int countDown = 6;
+            Running = true;
+            _testCase.RecordRunning();
+            Console.WriteLine($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
+            int countDown = 2;
             
             while (!_rgatState.rgatIsExiting)
             {
-                Console.WriteLine($"Output {6-countDown}/6 from test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
+                Console.WriteLine($"Output {2-countDown}/2 from test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
                 Thread.Sleep(1700);
                 countDown -= 1;
                 if (countDown <= 0) break;
             }
 
 
-            Console.WriteLine($"Finished test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
+            Console.WriteLine($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
+            Finished = true;
+            Running = false;
+            _testCase.RecordFinished();
+            _harness.NotifyComplete(_thisTest.TestID);
         }
 
     }

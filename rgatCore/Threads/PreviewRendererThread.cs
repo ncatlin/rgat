@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace rgatCore.Threads
 {
-    class PreviewRendererThread
+    public class PreviewRendererThread
     {
         TraceRecord RenderedTrace;
         bool running;

@@ -9,8 +9,8 @@ using System.Text;
 
 namespace rgatCore
 {
-    enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1 };
-    class TraceChoiceSettings
+    public enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1 };
+    public class TraceChoiceSettings
     {
         public eModuleTracingMode TracingMode
         {
@@ -57,7 +57,7 @@ namespace rgatCore
         }
     }
 
-    class BinaryTarget
+    public class BinaryTarget
     {
         private string _sha1hash = "";
         private string _sha256hash = "";

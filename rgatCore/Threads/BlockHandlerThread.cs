@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    class BlockHandlerThread
+    public class BlockHandlerThread
     {
         enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
 

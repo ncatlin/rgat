@@ -4,7 +4,7 @@ using System.Text;
 
 namespace rgatCore
 {
-    class YARAScan
+    public class YARAScan
     {
 
         readonly object scansLock = new object();

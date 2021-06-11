@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace rgatCore.Threads
 {
-    class HeatRankingThread
+    public class HeatRankingThread
     {
         bool running = false;
         public rgatState rgatState = null;

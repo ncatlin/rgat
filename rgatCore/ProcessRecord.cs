@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    class ProcessRecord
+    public class ProcessRecord
     {
 
         public ProcessRecord(int binaryBitWidth)

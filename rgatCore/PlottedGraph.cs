@@ -16,7 +16,7 @@ using static rgatCore.VeldridGraphBuffers;
 
 namespace rgatCore
 {
-    class GRAPH_SCALE
+    public class GRAPH_SCALE
     {
         public float plotSize = 1000;
         public float basePlotSize = 1000;
@@ -26,7 +26,7 @@ namespace rgatCore
     };
 
 
-    class PlottedGraph
+    public class PlottedGraph
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
 

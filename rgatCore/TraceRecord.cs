@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    struct InstructionData
+    public struct InstructionData
     {
         public int DebugID;
 
@@ -49,7 +49,7 @@ namespace rgatCore
 
     }
 
-    class TraceRecord
+    public class TraceRecord
     {
         public enum eTracePurpose { eVisualiser, eFuzzer };
         public enum eTraceState { eRunning, eSuspended, eTerminated };

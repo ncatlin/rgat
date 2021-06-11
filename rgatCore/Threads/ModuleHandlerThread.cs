@@ -9,7 +9,7 @@ using static rgatCore.TraceRecord;
 
 namespace rgatCore
 {
-    class ModuleHandlerThread
+    public class ModuleHandlerThread
     {
 
         BinaryTarget target;

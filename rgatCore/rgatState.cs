@@ -15,7 +15,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    class rgatState
+    public class rgatState
     {
         public BinaryTargets targets = new BinaryTargets();
         public BinaryTarget ActiveTarget;// { get; private set; } = null;

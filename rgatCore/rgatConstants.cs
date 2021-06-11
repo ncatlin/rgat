@@ -4,24 +4,24 @@ using System.Text;
 
 namespace rgatCore
 {
-    enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
-    enum eEdgeNodeType
+    public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
+    public enum eEdgeNodeType
     {
         eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
         eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99
     };
 
-    enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals }
-    enum eHighlightType { eExternals, eAddresses, eExceptions};
+    public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals }
+    public enum eHighlightType { eExternals, eAddresses, eExceptions};
 
-    enum eConditionalType
+    public enum eConditionalType
     {
         NOTCONDITIONAL = 0, ISCONDITIONAL = 1,
         CONDFELLTHROUGH = 2, CONDTAKEN = 4,
         CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
     }
 
-    enum eGraphLayout { eCylinderLayout, eForceDirected3DNodes, eForceDirected3DBlocks, eCircle, eLayoutInvalid };
+    public enum eGraphLayout { eCylinderLayout, eForceDirected3DNodes, eForceDirected3DBlocks, eCircle, eLayoutInvalid };
 
     enum eKeybind { MoveLeft, MoveRight, MoveUp, MoveDown,
         ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock, 
@@ -29,7 +29,7 @@ namespace rgatCore
         ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu
     }
 
-    enum eSignatureType { eYARA, eDetectItEasy};
+    public enum eSignatureType { eYARA, eDetectItEasy};
 
     static class UI_Constants
     {

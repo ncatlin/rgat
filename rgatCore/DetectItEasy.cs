@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    class DetectItEasy
+    public class DetectItEasy
     {
 
         DiELibDotNet.DieLib dielib;

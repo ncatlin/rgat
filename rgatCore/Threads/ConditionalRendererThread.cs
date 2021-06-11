@@ -4,7 +4,7 @@ using System.Text;
 
 namespace rgatCore.Threads
 {
-	class ConditionalRendererThread
+	public class ConditionalRendererThread
 	{
 		TraceRecord RenderedTrace = null;
 		bool running = false;

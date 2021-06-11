@@ -8,7 +8,7 @@ using Veldrid;
 
 namespace rgatCore
 {
-    class VeldridGraphBuffers
+    public class VeldridGraphBuffers
     {
         public VeldridGraphBuffers() { }
 

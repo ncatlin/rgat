@@ -9,13 +9,13 @@ using System.Threading;
 
 namespace rgatCore
 {
-    struct EXTERNCALLDATA
+    public struct EXTERNCALLDATA
     {
         public Tuple<uint, uint> edgeIdx;
         public List<Tuple<int, string>> argList;
     };
 
-    struct ROUTINE_STRUCT
+    public struct ROUTINE_STRUCT
     {
         public List<InstructionData> inslist;
         public int globalmodnum;
@@ -27,7 +27,7 @@ namespace rgatCore
         public bool hasSymbol;
     };
 
-    struct TAG
+    public struct TAG
     {
         //come from trace
         public ulong blockaddr;
@@ -37,11 +37,11 @@ namespace rgatCore
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
     };
-    enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimUnchainedDone, eAnimExecException };
-    enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
-    enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
+    public enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimUnchainedDone, eAnimExecException };
+    public enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
+    public enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
 
-    struct ANIMATIONENTRY
+    public struct ANIMATIONENTRY
     {
         public eTraceUpdateType entryType;
         public ulong blockAddr;
@@ -53,7 +53,7 @@ namespace rgatCore
     };
 
 
-    class ProtoGraph
+    public class ProtoGraph
     {
 
         public ProtoGraph(TraceRecord runrecord, uint threadID)

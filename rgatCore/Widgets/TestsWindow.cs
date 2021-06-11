@@ -17,18 +17,22 @@ namespace rgatCore.Widgets
         public string Path;
         public bool Starred;
         public string CategoryName;
+        public string ID;
     }
 
     class TestsWindow
     {
-        public TestsWindow(rgatState clientState)
+        public TestsWindow(rgatState clientState, ImGuiController controller)
         {
+            
             _testingThread = new TestHarnessThread(clientState);
+            _controller = controller;
             InitTestingSession();
 
         }
 
         TestHarnessThread _testingThread;
+        ImGuiController _controller;
         Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
         Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
         List<string> _orderedTestDirs = new List<string>();
@@ -38,7 +42,7 @@ namespace rgatCore.Widgets
         string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
             "Show Passing Tests","Show Failed Tests",
             "Show Starred Tests", "Show Starred Categories"};
-        readonly int treeWidth = 200;
+        readonly int treeWidth = 400;
         List<TestCase> _queuedTests = new List<TestCase>();
         List<TestCase> _allTests = new List<TestCase>();
         Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
@@ -87,6 +91,7 @@ namespace rgatCore.Widgets
                             tests.Tests = FindTests(fullpath, categoryName);
                             tests.CategoryName = categoryName;
                             tests.Path = fullpath;
+                            tests.ID = categoryName+$"{_testCategories.Count}";
                             _testDirectories[fullpath] = tests;
                             _testCategories[categoryName] = tests;
                             _allTests.AddRange(tests.Tests);
@@ -108,24 +113,6 @@ namespace rgatCore.Widgets
             Logging.RecordLogEvent($"Loaded {_testDirectories.Count} test directories");
             
         }
-
-        void ToggleQueued(TestCase test, bool? state = null)
-        {
-            if (state.HasValue && test.Queued == state.Value) return;
-            lock (_TestsLock)
-            {
-                if (test.Queued)
-                {
-                    _queuedTests.Remove(test);
-                }
-                else
-                {
-                    _queuedTests.Add(test);
-                }
-            }
-            test.Queued = !test.Queued;
-        }
-
 
         static readonly string testextension = ".test.json";
         List<TestCase> FindTests(string dirpath, string category)
@@ -176,8 +163,6 @@ namespace rgatCore.Widgets
                         long testID = _testingThread.RunTest(_currentSession, test);
                         if (testID > -1)
                         {
-                            test.Running = true;
-                            test.Queued = false;
                             _queuedTests.Remove(test);
                         }
                     }
@@ -189,9 +174,9 @@ namespace rgatCore.Widgets
         {
             lock (_TestsLock)
             {
-                _sessionStats["Passed"] = _allTests.Where(x => x.state == eTestState.Passed).Count();
-                _sessionStats["Failed"] = _allTests.Where(x => x.state == eTestState.Failed).Count();
-                _sessionStats["Remaining"] = _allTests.Where(x => x.state == eTestState.NotRun).Count();
+                _sessionStats["Passed"] = _allTests.Where(x => x.LatestResult == eTestState.Passed).Count();
+                _sessionStats["Failed"] = _allTests.Where(x => x.LatestResult == eTestState.Failed).Count();
+                _sessionStats["Remaining"] = _allTests.Where(x => x.LatestResult == eTestState.NotRun).Count();
                 _sessionStats["Executed"] = _allTests.Count - _sessionStats["Remaining"];
             }
         }
@@ -209,7 +194,7 @@ namespace rgatCore.Widgets
                 {
                     if (_sessionStats["Executed"] == 0)
                     {
-                        ImGui.Text("No tests perfomed in this session. Queue tests using the list to the left or controls below and press \"Start Testing\"");
+                        ImGui.TextWrapped("No tests perfomed in this session. Queue tests using the list to the left or controls below and press \"Start Testing\"");
                     }
                     else
                     {
@@ -353,37 +338,44 @@ namespace rgatCore.Widgets
         {
             lock (_TestsLock)
             {
-                _queuedTests.Where(test => !test.Running).ToList().ForEach(test => ToggleQueued(test));
+                _queuedTests.Clear();
             }
         }
 
+        void AddTestToQueue(TestCase test)
+        {
+            lock (_TestsLock)
+            {
+                _queuedTests.Add(test);
+            }
+        }
 
         void AddTestsToQueue(eCatFilter filter)
         {
             lock (_TestsLock)
             {
-                var unQueuedTests = _allTests.Where(test => !test.Queued).ToArray();
+                var unQueuedTests = _allTests.Where(test => !_queuedTests.Contains(test)).ToArray();
                 foreach (TestCase test in unQueuedTests)
                 {
                     switch (filter)
                     {
                         case eCatFilter.All:
-                            ToggleQueued(test, true);
+                            AddTestToQueue(test);
                             break;
                         case eCatFilter.Failed:
-                            if (test.state == eTestState.Failed) ToggleQueued(test, true);
+                            if (test.LatestResult == eTestState.Failed) AddTestToQueue(test);
                             break;
                         case eCatFilter.Passing:
-                            if (test.state == eTestState.Passed) ToggleQueued(test, true);
+                            if (test.LatestResult == eTestState.Passed) AddTestToQueue(test);
                             break;
                         case eCatFilter.Remaining:
-                            if (test.state == eTestState.NotRun) ToggleQueued(test, true);
+                            if (test.LatestResult == eTestState.NotRun) AddTestToQueue(test);
                             break;
                         case eCatFilter.StarredTest:
-                            if (test.Starred) ToggleQueued(test, true);
+                            if (test.Starred) AddTestToQueue(test);
                             break;
                         case eCatFilter.StarredCat:
-                            if (_testCategories[test.CategoryName].Starred) ToggleQueued(test, true);
+                            if (_testCategories[test.CategoryName].Starred) AddTestToQueue(test);
                             break;
                         default:
                             Logging.RecordLogEvent("AddTestsToQueue has no handler for filter " + filter.ToString(), Logging.LogFilterType.TextError);
@@ -404,6 +396,7 @@ namespace rgatCore.Widgets
                 }
                 ImGui.InvisibleButton("#MoveDownTree1", new Vector2(treeWidth, 4));
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff222222);
+                ImGui.PushStyleColor(ImGuiCol.Button, 0xff222222);
                 float sizeMultiplier = 0.6f;
                 float height = ImGui.GetContentRegionAvail().Y;
                 if (ImGui.BeginChild("#SelectionTree", new Vector2(ImGui.GetContentRegionAvail().X, height * sizeMultiplier)))
@@ -430,16 +423,16 @@ namespace rgatCore.Widgets
                                         if (!testcase.Starred) failFilter = true;
                                         break;
                                     case eCatFilter.Passing:
-                                        if (testcase.state != eTestState.Passed) failFilter = true;
+                                        if (testcase.LatestResult != eTestState.Passed) failFilter = true;
                                         break;
                                     case eCatFilter.Failed:
-                                        if (testcase.state != eTestState.Failed) failFilter = true;
+                                        if (testcase.LatestResult != eTestState.Failed) failFilter = true;
                                         break;
                                     case eCatFilter.Remaining:
-                                        if (testcase.state != eTestState.NotRun) failFilter = true;
+                                        if (testcase.LatestResult != eTestState.NotRun) failFilter = true;
                                         break;
                                     case eCatFilter.Complete:
-                                        if (testcase.state == eTestState.NotRun) failFilter = true;
+                                        if (testcase.LatestResult == eTestState.NotRun) failFilter = true;
                                         break;
 
                                 }
@@ -449,48 +442,140 @@ namespace rgatCore.Widgets
                             if (!shownTests.Any()) continue;
 
 
+                            Veldrid.ResourceFactory rf = _controller.graphicsDevice.ResourceFactory;
+                            IntPtr starFullIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("StarFull"));
+                            IntPtr starEmptyIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("StarEmpty"));
+                            IntPtr addIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("GreenPlus"));
+
+                            bool starredCategory = category.Starred;
                             if (ImGui.TreeNodeEx(testDir, ImGuiTreeNodeFlags.DefaultOpen, category.CategoryName))
                             {
+                                ImGui.SameLine(ImGui.GetContentRegionAvail().X + 5 );
+                                IntPtr catstarTexture = starredCategory ? starFullIcon : starEmptyIcon;
+                                if (ImGui.ImageButton(catstarTexture, new Vector2(18, 18))){
+                                    category.Starred = !category.Starred;
+                                }
+
                                 if (ImGui.BeginPopupContextItem())
                                 {
                                     ImGui.Checkbox("Starred Category", ref category.Starred);
                                     ImGui.EndPopup();
                                 }
-                                foreach (TestCase testcase in shownTests)
+                                if (ImGui.BeginTable("#CatTable" + category.ID, 7, ImGuiTableFlags.BordersInner))
                                 {
-                                    string label = testcase.TestName;
-                                    bool coloured = false;
+                                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.None, 40);
+                                    ImGui.TableSetupColumn("Starred", ImGuiTableColumnFlags.None, 7);
+                                    ImGui.TableSetupColumn("Passed", ImGuiTableColumnFlags.None, 7);
+                                    ImGui.TableSetupColumn("Failed", ImGuiTableColumnFlags.None, 7);
+                                    ImGui.TableSetupColumn("Running", ImGuiTableColumnFlags.None, 7);
+                                    ImGui.TableSetupColumn("Add", ImGuiTableColumnFlags.None, 7);
 
-                                    switch (testcase.state)
+                                    
+                                    for(var testi = 0; testi < shownTests.Count; testi++)
                                     {
-                                        case eTestState.Passed:
-                                            ImGui.PushStyleColor(ImGuiCol.Text, 0xff00ff00);
-                                            label += " [Passed]";
-                                            coloured = true;
-                                            break;
-                                        case eTestState.Failed:
-                                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffff0000);
-                                            label += " [Failed]";
-                                            coloured = true;
-                                            break;
-                                        default:
-                                            break;
-                                    }
+                                        TestCase testcase = shownTests[testi];
+                                    
+                                        ImGui.TableNextRow();
 
-                                    bool starred = (testcase.Starred || _testCategories[testcase.CategoryName].Starred);
-                                    if (starred) label = $"**{label}**";
-                                    if (ImGui.Selectable(label, testcase.Queued))
-                                    {
-                                        ToggleQueued(testcase);
-                                    }
-                                    if (ImGui.BeginPopupContextItem())
-                                    {
-                                        ImGui.TextWrapped("Description: " + testcase.Description);
-                                        ImGui.Checkbox("Starred Test", ref testcase.Starred);
-                                        ImGui.EndPopup();
-                                    }
+                                        //test name
+                                        ImGui.TableNextColumn();
+                                        ImGui.Text(testcase.TestName);
+                                        if (ImGui.BeginPopupContextItem($"#TIDx{testi}"))
+                                        {
+                                            ImGui.TextWrapped("Description: " + testcase.Description);
+                                            ImGui.Checkbox("Starred Test", ref testcase.Starred);
+                                            ImGui.EndPopup();
+                                        }
 
-                                    if (coloured) ImGui.PopStyleColor();
+                                        //starred
+                                        //ImGui.PushStyleColor(ImGuiCol.)
+                                        ImGui.TableNextColumn();
+                                        bool starred = (testcase.Starred || starredCategory);
+                                        ImGui.PushID($"BtnStar{testi}");
+                                        IntPtr starTexture = starred ? starFullIcon : starEmptyIcon;
+                                        if (!starredCategory)
+                                        {
+                                            if (ImGui.ImageButton(starTexture, new Vector2(23, 23), Vector2.Zero, Vector2.One, 0))
+                                                testcase.Starred = !testcase.Starred;
+                                            if (ImGui.IsItemHovered())
+                                            {
+                                                ImGui.SetTooltip($"Click to {((testcase.Starred) ? "unstar" : "star")} this test");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SmallWidgets.DrawIcon(_controller, "StarFull");
+                                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff666600);
+                                        }
+                                        ImGui.PopID();
+
+                                        //pass/fail
+                                        ImGui.TableNextColumn();
+                                        if (testcase.LatestResult != eTestState.NotRun) 
+                                        {
+                                            int count = testcase.CountPassed(_currentSession);
+                                            if (count > 0)
+                                            {
+                                                ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() + new Vector2(0, 2));
+                                                SmallWidgets.DrawIcon(_controller, "Check", count); 
+                                            }
+                                        }
+
+                                        ImGui.TableNextColumn();
+                                        if (testcase.LatestResult != eTestState.NotRun)
+                                        {
+                                            int count = testcase.CountFailed(_currentSession);
+                                            if (count > 0)
+                                            {
+                                                ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() + new Vector2(0, 2));
+                                                SmallWidgets.DrawIcon(_controller, "Cross", count);
+                                            }
+                                        }
+
+                                        //running
+                                        ImGui.TableNextColumn();
+                                        if (testcase.Running > 0)
+                                        {
+                                            SmallWidgets.DrawSpinner(_controller, testcase.Running);
+                                            if (ImGui.IsItemHovered())
+                                            {
+                                                int count = testcase.Running;
+                                                ImGui.SetTooltip($"{count} instance{(count != 1 ? "s" : "")} of this test currently executing");
+                                            }
+                                        }
+
+                                        ImGui.TableNextColumn();
+                                        ImGui.PushID($"BtnAdd{testi}");
+                                        if (ImGui.ImageButton(addIcon, new Vector2(23,23))) 
+                                            AddTestToQueue(testcase);
+                                        ImGui.PopID();
+
+                                        /*
+                                        switch (testcase.state)
+                                        {
+                                            case eTestState.Passed:
+                                                ImGui.PushStyleColor(ImGuiCol.Text, 0xff00ff00);
+                                                label += " [Passed]";
+                                                coloured = true;
+                                                break;
+                                            case eTestState.Failed:
+                                                ImGui.PushStyleColor(ImGuiCol.Text, 0xffff0000);
+                                                label += " [Failed]";
+                                                coloured = true;
+                                                break;
+                                            default:
+                                                break;
+                                        }
+
+                                        if (ImGui.Selectable(label, testcase.Queued))
+                                        {
+                                            ToggleQueued(testcase);
+                                        }
+
+                                        if (coloured) ImGui.PopStyleColor();
+                                        */
+                                    }
+                                    ImGui.EndTable();
                                 }
                                 ImGui.TreePop();
                             }
@@ -498,6 +583,7 @@ namespace rgatCore.Widgets
                     }
                     ImGui.EndChild();
                 }
+                ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
 
                 ImGui.InvisibleButton("#MoveDownTree1", new Vector2(treeWidth, 8));
@@ -516,7 +602,10 @@ namespace rgatCore.Widgets
                             TestCase testcase = _queuedTests[i];
                             if (ImGui.Selectable($"{testcase.CategoryName}:{testcase.TestName}"))
                             {
-                                ToggleQueued(testcase);
+                                lock (_TestsLock)
+                                {
+                                    _queuedTests.RemoveAt(i);
+                                }
                             }
                         }
                     }

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace rgatCore
 {
-    class NodeData
+    public class NodeData
     {
 
         public NodeData() { }

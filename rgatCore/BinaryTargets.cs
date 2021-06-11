@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace rgatCore
 {
-    class BinaryTargets
+    public class BinaryTargets
     {
         private Dictionary<string, BinaryTarget> targets = new Dictionary<string, BinaryTarget>();
         public BinaryTargets() { }

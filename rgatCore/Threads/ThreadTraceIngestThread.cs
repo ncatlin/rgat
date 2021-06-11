@@ -12,7 +12,7 @@ using System.Timers;
 
 namespace rgatCore
 {
-    class ThreadTraceIngestThread
+    public class ThreadTraceIngestThread
     {
         uint TraceBufSize = GlobalConfig.TraceBufferSize;
         ProtoGraph protograph;

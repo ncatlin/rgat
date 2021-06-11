@@ -13,7 +13,7 @@ This class holds (and provides dubiously mutex guarded access to) OpenGl vertex 
 */
 namespace rgatCore
 {
-    struct WritableRgbaFloat
+    public struct WritableRgbaFloat
     {
         public WritableRgbaFloat(Color col)
         {

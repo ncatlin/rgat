@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,36 +12,92 @@ namespace rgatCore.Testing
     //metadata for a loaded test
     public class TestCase
     {
-        public eTestState state = eTestState.NotRun;
+        //the lastest test result
+        public eTestState LatestResult = eTestState.NotRun; 
         public string Path;
         public string CategoryName;
         public string TestName;
         public bool Starred;
-        public bool Queued;
-        public bool Running;
         public string Description;
+
+        public int Running { get; private set; }
+        Dictionary<int, int> _passed = new Dictionary<int, int>();
+        Dictionary<int, int> _failed = new Dictionary<int, int>();
+        readonly object _lock = new object();
+
+        public void RecordRunning() { lock (_lock) { Running++; } }
+        public void RecordFinished() { lock (_lock) { Running--; } }
+        public void RecordPassed(int sessionID) { 
+            lock (_lock) {
+                _passed.TryGetValue(sessionID, out int val);
+                _passed[sessionID] = val + 1;
+                LatestResult = eTestState.Passed;
+            } }
+        public int CountPassed(int sessionID) { lock (_lock) { _passed.TryGetValue(sessionID, out int val); return val; } }
+
+        public void RecordFailed(int sessionID) { 
+            lock (_lock) {
+                _failed.TryGetValue(sessionID, out int val);
+                _failed[sessionID] = val + 1;
+                LatestResult = eTestState.Failed;
+            } }
+        public int CountFailed(int sessionID) { lock (_lock) { _failed.TryGetValue(sessionID, out int val); return val; } }
+
     }
 
     //object associated with one execution of a testcase
     public class TestCaseRun
     {
-        public TestCaseRun(TestCase test, long session, long testID)
+        public TestCaseRun(TestCase testc, int session, long testID)
         {
             Session = session;
             TestID = testID;
-            TestCase = test;
+            _test = testc;
         }
-        public long Session;
+        public bool Complete { get; private set; }
+        public int Session;
         public long TestID;
-        public TestCase TestCase;
+        TestCase _test = null;
+        public TestCase GetTestCase => _test;
         List<TestOutput> outputs = new List<TestOutput>();
         List<TestResult> results = new List<TestResult>();
+
+        readonly object _lock = new object();
+
+        public TestOutput[] Outputs() { lock (_lock) { return outputs.ToArray(); } }
+
+
+       public void MarkFinished(ProtoGraph graph)
+        {
+            EvaluateResults(graph);
+            Complete = true;
+        }
+
+        public void AddOutput(TestOutput item)
+        {
+            lock (_lock) { outputs.Add(item); }
+        }
+
+        void EvaluateResults(ProtoGraph graph)
+        {
+            _test.RecordPassed(Session);
+            _test.RecordFailed(Session);
+        }
+
+        public TestResult[] Results()
+        {
+            if (!Complete) return null;
+            lock (_lock)
+            {
+                return results.ToArray();
+            }
+        }
     }
 
     //a collection of testcases run in a session
     public class TestSession
     {
-       public List<TestCaseRun> tests = new List<TestCaseRun>();
+        public List<TestCaseRun> tests = new List<TestCaseRun>();
     }
 
     public class TestOutput
@@ -64,9 +121,9 @@ namespace rgatCore.Testing
         Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
         Dictionary<long, TestCaseRun> _testRuns = new Dictionary<long, TestCaseRun>();
         long _currentTestID = -1;
-        List<TestRunThread> _runningTests = new List<TestRunThread>();
+        Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
         int _maxRunningTests = 5;
-        public int FreeTestSlots => _maxRunningTests - _testsQueue.Count;
+        public int FreeTestSlots => _maxRunningTests - _runningTests.Count;
         Queue<long> _testsQueue = new Queue<long>();
 
         public TestHarnessThread(rgatState clientState)
@@ -91,17 +148,18 @@ namespace rgatCore.Testing
         {
             lock (_lock)
             {
-                if (_runningTests.Count >= _maxRunningTests) return -1; 
+                if (_runningTests.Count >= _maxRunningTests) return -1;
                 _currentTestID += 1;
                 TestCaseRun testRun = new TestCaseRun(test, session, _currentTestID);
                 _testRuns[_currentTestID] = testRun;
                 _testSessions[session].tests.Add(testRun);
-                TestRunThread newThread = new TestRunThread(testRun, _rgatState);
+                TestRunThread newThread = new TestRunThread(testRun, _rgatState, this);
                 newThread.Begin("");
-                _runningTests.Add(newThread);
+                _runningTests.Add(_currentTestID, newThread);
                 return _currentTestID;
             }
         }
+
 
 
         public bool GetLatestResults(int max, out TestOutput[] results)
@@ -120,6 +178,21 @@ namespace rgatCore.Testing
             }
         }
 
+        public void NotifyComplete(long testID)
+        {
+            lock (_lock)
+            {
+                TestCaseRun tcr = _testRuns[testID];
+                TestRunThread testThread = _runningTests[testID];
+                Debug.Assert(testThread.Finished);
+                
+                if (testThread.Finished)
+                {
+                    _runningTests.Remove(testID);
+                }
+                tcr.MarkFinished(null);
+            }
+        }
 
         void Listener(Object pipenameO)
         {
@@ -128,10 +201,8 @@ namespace rgatCore.Testing
                 Thread.Sleep(1000);
                 lock (_lock)
                 {
-                    if(_testsQueue.Any())
+                    if (_testsQueue.Any())
                     {
-                      
-
                     }
                 }
             }

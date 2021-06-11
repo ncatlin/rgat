@@ -6,7 +6,7 @@ using System.Text;
 
 namespace rgatCore
 {
-    class Logging
+    public class Logging
     {
 
         public enum eLogType { TimeLine, API, Text }

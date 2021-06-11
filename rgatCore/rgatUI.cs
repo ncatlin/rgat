@@ -184,10 +184,6 @@ namespace rgatCore
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
             HandleUserInput();
 
-
-
-
-
             BinaryTarget activeTarget = _rgatstate.ActiveTarget;
             if (activeTarget == null)
             {
@@ -924,7 +920,6 @@ namespace rgatCore
                     }
                     ImGui.PopStyleVar();
                 }
-
                 ImGui.EndChild();
             }
 
@@ -993,25 +988,33 @@ namespace rgatCore
 
             ImGui.PopStyleVar(5);
 
+
+
             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 40));
-            if (ImGui.BeginChild("##SplashCorner", new Vector2(80,35)))
+            if (ImGui.BeginChild("##SplashCorner", new Vector2(80, 35)))
             {
-                if(ImGui.Selectable("rgat v0.6.0"))
+
+
+
+                if (ImGui.Selectable("rgat v0.6.0"))
                 {
                     ToggleTestHarness();
                 }
-                
+
                 ImGui.EndChild();
             }
             //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
             //ImguiUtils.DrawRegionCenteredText(msg);
         }
 
+
+
+
         void ToggleTestHarness()
         {
             if (_show_test_harness == false)
             {
-                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate);
+                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate, _ImGuiController);
             }
             _show_test_harness = !_show_test_harness;
         }
@@ -1035,7 +1038,7 @@ namespace rgatCore
 
             if (menu)
             {
-                if(ImGui.MenuItem(path + agoText))
+                if (ImGui.MenuItem(path + agoText))
                 {
                     return true;
                 }
@@ -2020,7 +2023,7 @@ namespace rgatCore
                 ImGui.MenuItem("Settings", null, ref _settings_window_shown);
                 ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 30);
                 bool isShown = _show_test_harness;
-                if(ImGui.MenuItem("Tests", null, ref isShown, true))
+                if (ImGui.MenuItem("Tests", null, ref isShown, true))
                 {
                     ToggleTestHarness();
                 }

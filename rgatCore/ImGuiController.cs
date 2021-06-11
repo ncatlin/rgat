@@ -175,6 +175,23 @@ namespace ImGuiNET
             _textureViews["VertCircle"] = factory.CreateTextureView(_imageTextures["VertCircle"]);
 
 
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\loading-arrow.png";
+            _imageTextures["ArrowSpin"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\check.png";
+            _imageTextures["Check"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\cancel.png";
+            _imageTextures["Cross"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\star_full.png";
+            _imageTextures["StarFull"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\star_empty.png";
+            _imageTextures["StarEmpty"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+
+            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\GreenPlus.png";
+            _imageTextures["GreenPlus"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
 
 
             //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
