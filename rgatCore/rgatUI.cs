@@ -755,12 +755,13 @@ namespace rgatCore
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
-                string pintoolpath = GlobalConfig.PinToolPath32;
+
+                string pintoolpath = _rgatstate.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+
                 if (ImGui.Button("Start Trace"))
                 {
                     _WaitingNewTraceCount = _rgatstate.InstrumentationCount;
-                    string runargs = $"-t \"{pintoolpath}\" -P \"f\" -- \"{ _rgatstate.ActiveTarget.FilePath}\"";
-                    System.Diagnostics.Process p = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+                    System.Diagnostics.Process p = ProcessLaunching.StartTracedProcess(pintoolpath, _rgatstate.ActiveTarget.FilePath);
                     Console.WriteLine($"Started process id {p.Id}");
                 }
                 ImGui.SameLine();
@@ -791,6 +792,7 @@ namespace rgatCore
             }
             ImGui.EndGroup();
         }
+
 
 
         bool _splashHeaderHover = false;
@@ -1187,7 +1189,7 @@ namespace rgatCore
 
             //ImGui.GetWindowDrawList().AddRectFilled(SliderRectStart, SliderRectEnd, 0xff000000);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
-            _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.internalProtoGraph);
+            _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.InternalProtoGraph);
             _visualiserBar.Draw();
 
 
@@ -1322,7 +1324,7 @@ namespace rgatCore
                 ImGui.EndGroup();
                 ImGui.SameLine();
                 //ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8);
-                DrawDiasmPreviewBox(activeGraph.internalProtoGraph, activeGraph.AnimationIndex);
+                DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, activeGraph.AnimationIndex);
 
                 ImGui.EndChild();
             }
@@ -1402,7 +1404,7 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.internalProtoGraph);
+                _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
                 _visualiserBar.Draw();
 
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
@@ -1433,7 +1435,7 @@ namespace rgatCore
                         ImGui.BeginGroup();
                         if (ImGui.Button("Kill"))
                         {
-                            graph.internalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
                         }
                         if (ImGui.IsItemHovered())
                             ImGui.SetTooltip("Terminate the process");
@@ -1448,35 +1450,35 @@ namespace rgatCore
 
                         ImGui.BeginGroup();
 
-                        if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
+                        if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
                         {
                             if (ImGui.Button("Pause/Break"))
                             {
-                                graph.internalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                                graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
                             }
                             if (ImGui.IsItemHovered())
                                 ImGui.SetTooltip("Pause all process threads");
                         }
 
-                        if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+                        if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
                         {
                             if (ImGui.Button("Continue"))
                             {
-                                graph.internalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
+                                graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
                             }
                             if (ImGui.IsItemHovered())
                                 ImGui.SetTooltip("Resume all process threads");
 
                             if (ImGui.Button("Step In"))
                             {
-                                graph.internalProtoGraph.TraceData.SendDebugStep(graph.tid);
+                                graph.InternalProtoGraph.TraceData.SendDebugStep(graph.tid);
                             }
                             if (ImGui.IsItemHovered())
                                 ImGui.SetTooltip("Step to next instruction");
 
                             if (ImGui.Button("Step Over"))
                             {
-                                graph.internalProtoGraph.TraceData.SendDebugStepOver(graph.internalProtoGraph);
+                                graph.InternalProtoGraph.TraceData.SendDebugStepOver(graph.InternalProtoGraph);
                             }
                             if (ImGui.IsItemHovered())
                                 ImGui.SetTooltip("Step past call instruction");
@@ -1488,7 +1490,7 @@ namespace rgatCore
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();
-                    DrawDiasmPreviewBox(graph.internalProtoGraph, graph.internalProtoGraph.SavedAnimationData.Count - 1);
+                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
 
 
                     ImGui.EndChild();
@@ -1609,7 +1611,7 @@ namespace rgatCore
                 ImGui.Text($"Thread ID: {graph.tid}");
 
                 ImGui.SameLine();
-                if (graph.internalProtoGraph.Terminated)
+                if (graph.InternalProtoGraph.Terminated)
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
                 else
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
@@ -1624,15 +1626,15 @@ namespace rgatCore
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
-                    ImGui.Text($"Edges: {graph.internalProtoGraph.edgeList.Count}");
-                    ImGui.Text($"Nodes: {graph.internalProtoGraph.NodeList.Count}");
-                    ImGui.Text($"Updates: {graph.internalProtoGraph.SavedAnimationData.Count}");
-                    if (graph.internalProtoGraph.TraceReader != null)
+                    ImGui.Text($"Edges: {graph.InternalProtoGraph.EdgeList.Count}");
+                    ImGui.Text($"Nodes: {graph.InternalProtoGraph.NodeList.Count}");
+                    ImGui.Text($"Updates: {graph.InternalProtoGraph.SavedAnimationData.Count}");
+                    if (graph.InternalProtoGraph.TraceReader != null)
                     {
-                        if (graph.internalProtoGraph.TraceReader.QueueSize > 0)
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                        if (graph.InternalProtoGraph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.InternalProtoGraph.TraceReader.QueueSize}");
                         else
-                            ImGui.Text($"Backlog: {graph.internalProtoGraph.TraceReader.QueueSize}");
+                            ImGui.Text($"Backlog: {graph.InternalProtoGraph.TraceReader.QueueSize}");
                     }
 
                     ImGui.EndChild();
@@ -1642,8 +1644,8 @@ namespace rgatCore
 
                 if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                 {
-                    ImGui.Text($"Instructions: {graph.internalProtoGraph.TotalInstructions}");
-                    if (graph.internalProtoGraph.PerformingUnchainedExecution)
+                    ImGui.Text($"Instructions: {graph.InternalProtoGraph.TotalInstructions}");
+                    if (graph.InternalProtoGraph.PerformingUnchainedExecution)
                     {
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
                     }
@@ -1693,7 +1695,7 @@ namespace rgatCore
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF00ff00);
                     if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI_Constants.PREVIEW_PANE_WIDTH, frameHeight)))
                     {
-                        if (!activeGraph.internalProtoGraph.Terminated)
+                        if (!activeGraph.InternalProtoGraph.Terminated)
                         {
                             DrawLiveTraceControls(frameHeight, ImGui.GetContentRegionAvail().X, activeGraph);
                         }

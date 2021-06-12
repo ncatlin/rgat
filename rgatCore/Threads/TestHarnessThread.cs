@@ -1,98 +1,15 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 
 namespace rgatCore.Testing
 {
-    public enum eTestState { NotRun, Passed, Failed };
 
-    //metadata for a loaded test
-    public class TestCase
-    {
-        //the lastest test result
-        public eTestState LatestResult = eTestState.NotRun; 
-        public string Path;
-        public string CategoryName;
-        public string TestName;
-        public bool Starred;
-        public string Description;
-
-        public int Running { get; private set; }
-        Dictionary<int, int> _passed = new Dictionary<int, int>();
-        Dictionary<int, int> _failed = new Dictionary<int, int>();
-        readonly object _lock = new object();
-
-        public void RecordRunning() { lock (_lock) { Running++; } }
-        public void RecordFinished() { lock (_lock) { Running--; } }
-        public void RecordPassed(int sessionID) { 
-            lock (_lock) {
-                _passed.TryGetValue(sessionID, out int val);
-                _passed[sessionID] = val + 1;
-                LatestResult = eTestState.Passed;
-            } }
-        public int CountPassed(int sessionID) { lock (_lock) { _passed.TryGetValue(sessionID, out int val); return val; } }
-
-        public void RecordFailed(int sessionID) { 
-            lock (_lock) {
-                _failed.TryGetValue(sessionID, out int val);
-                _failed[sessionID] = val + 1;
-                LatestResult = eTestState.Failed;
-            } }
-        public int CountFailed(int sessionID) { lock (_lock) { _failed.TryGetValue(sessionID, out int val); return val; } }
-
-    }
-
-    //object associated with one execution of a testcase
-    public class TestCaseRun
-    {
-        public TestCaseRun(TestCase testc, int session, long testID)
-        {
-            Session = session;
-            TestID = testID;
-            _test = testc;
-        }
-        public bool Complete { get; private set; }
-        public int Session;
-        public long TestID;
-        TestCase _test = null;
-        public TestCase GetTestCase => _test;
-        List<TestOutput> outputs = new List<TestOutput>();
-        List<TestResult> results = new List<TestResult>();
-
-        readonly object _lock = new object();
-
-        public TestOutput[] Outputs() { lock (_lock) { return outputs.ToArray(); } }
-
-
-       public void MarkFinished(ProtoGraph graph)
-        {
-            EvaluateResults(graph);
-            Complete = true;
-        }
-
-        public void AddOutput(TestOutput item)
-        {
-            lock (_lock) { outputs.Add(item); }
-        }
-
-        void EvaluateResults(ProtoGraph graph)
-        {
-            _test.RecordPassed(Session);
-            _test.RecordFailed(Session);
-        }
-
-        public TestResult[] Results()
-        {
-            if (!Complete) return null;
-            lock (_lock)
-            {
-                return results.ToArray();
-            }
-        }
-    }
 
     //a collection of testcases run in a session
     public class TestSession
@@ -104,12 +21,11 @@ namespace rgatCore.Testing
     {
         public string text;
     }
+
     public class TestResult
     {
         public string text;
     }
-
-
 
     class TestHarnessThread
     {
@@ -185,12 +101,10 @@ namespace rgatCore.Testing
                 TestCaseRun tcr = _testRuns[testID];
                 TestRunThread testThread = _runningTests[testID];
                 Debug.Assert(testThread.Finished);
-                
-                if (testThread.Finished)
-                {
-                    _runningTests.Remove(testID);
-                }
-                tcr.MarkFinished(null);
+
+                _runningTests.Remove(testID);
+
+                tcr.MarkFinished();
             }
         }
 

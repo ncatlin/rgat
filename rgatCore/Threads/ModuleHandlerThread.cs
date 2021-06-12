@@ -132,10 +132,10 @@ namespace rgatCore
 
             if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
             {
-                graph.internalProtoGraph.Terminated = true;
+                graph.InternalProtoGraph.Terminated = true;
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
 
-                graph.internalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, ID: TID);
+                graph.InternalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, ID: TID);
             }
             else
             {

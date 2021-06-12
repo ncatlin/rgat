@@ -212,7 +212,7 @@ namespace rgatCore
 
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
-            EdgeData newEdge = new EdgeData(edgeList.Count, lastNodeType);
+            EdgeData newEdge = new EdgeData(EdgeList.Count, lastNodeType);
             newEdge.SetExecutionCount(repeats);
 
             if (instructionIndex > 0)
@@ -419,7 +419,7 @@ namespace rgatCore
 
 
             NodeData sourceNode = safe_get_node(ProtoLastVertID);
-            EdgeData newEdge = new EdgeData(edgeList.Count, sourceNode.VertType());
+            EdgeData newEdge = new EdgeData(EdgeList.Count, sourceNode.VertType());
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             newEdge.SetExecutionCount(repeats);
             AddEdge(newEdge, sourceNode, safe_get_node(targVertID));
@@ -653,7 +653,7 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                return edgeList.ToList();
+                return EdgeList.ToList();
             }
         }
 
@@ -687,7 +687,7 @@ namespace rgatCore
             NodeData sourceNode = safe_get_node(SrcNodeIdx);
             NodeData targNode = safe_get_node(TargNodeIdx);
 
-            EdgeData newEdge = new EdgeData(edgeList.Count, sourceNode.VertType());
+            EdgeData newEdge = new EdgeData(EdgeList.Count, sourceNode.VertType());
             newEdge.SetExecutionCount(execCount);
 
             if (targNode.IsExternal)
@@ -749,7 +749,7 @@ namespace rgatCore
             lock (edgeLock)
             {
                 edgeDict.Add(edgePair, e);
-                edgeList.Add(edgePair);
+                EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
             }
 
@@ -829,7 +829,7 @@ namespace rgatCore
         public Dictionary<Tuple<uint, uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
         //todo - make this private, hide from view for thread safety
-        public List<Tuple<uint, uint>> edgeList = new List<Tuple<uint, uint>>();
+        public List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
         public List<EdgeData> edgeObjList = new List<EdgeData>();
         //light-touch list of blocks for filling in edges without locking disassembly data
         public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
@@ -843,7 +843,7 @@ namespace rgatCore
 
         public bool node_exists(uint idx) { return (NodeList.Count > idx); }
         public uint get_num_nodes() { return (uint)NodeList.Count; }
-        public uint get_num_edges() { return (uint)edgeList.Count; }
+        public uint get_num_edges() { return (uint)EdgeList.Count; }
         /*
 		public void acquireNodeReadLock() { getNodeReadLock(); }
 		public void releaseNodeReadLock() { dropNodeReadLock(); }
@@ -1031,7 +1031,7 @@ namespace rgatCore
             {
                 uint source = entry[0].ToObject<uint>();
                 uint target = entry[1].ToObject<uint>();
-                EdgeData edge = new EdgeData(entry, edgeList.Count, safe_get_node(source).VertType());
+                EdgeData edge = new EdgeData(entry, EdgeList.Count, safe_get_node(source).VertType());
                 AddEdge(edge, safe_get_node(source), safe_get_node(target));
             }
             return true;
@@ -1095,7 +1095,7 @@ namespace rgatCore
             lock (edgeLock)
             {
                 JArray edgeArray = new JArray();
-                edgeList.ForEach(edgetuple => edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
+                EdgeList.ForEach(edgetuple => edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
                 result.Add("Edges", edgeArray);
 
                 JArray blockBounds = new JArray();

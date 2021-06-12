@@ -77,6 +77,9 @@ namespace rgatCore
             _tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
         }
 
+        public long TestRunID { get; private set; }
+        public void SetTestRunID(long val) => TestRunID = val;
+
         bool _loadedFromSave = false;
         public bool WasLoadedFromSave => _loadedFromSave;
 
@@ -120,7 +123,7 @@ namespace rgatCore
                     return false;
                 }
 
-                ProtoGraphs.Add(mainplot.tid, mainplot.internalProtoGraph);
+                ProtoGraphs.Add(mainplot.tid, mainplot.InternalProtoGraph);
                 PlottedGraphs.Add(mainplot.tid, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[mainplot.tid][eRenderingMode.eStandardControlFlow] = mainplot;
 
@@ -141,19 +144,19 @@ namespace rgatCore
 
             //if (graphListLock.trylock())
             var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.internalProtoGraph.NodeList.Count > 0);
+            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
                 return graphsWithNodes.First();
             }
 
-            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.internalProtoGraph.TotalInstructions > 0);
+            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TotalInstructions > 0);
             if (graphsWithInstructions.Any())
             {
                 return graphsWithInstructions.First();
             }
 
-            var graphsWithData = MainPlottedGraphs.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
+            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader.HasPendingData());
             if (graphsWithData.Any())
             {
                 return graphsWithData.First();
@@ -168,19 +171,19 @@ namespace rgatCore
 
             //if (graphListLock.trylock())
             var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
-            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.internalProtoGraph.NodeList.Count > 0);
+            var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
                 return graphsWithNodes.Last();
             }
 
-            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.internalProtoGraph.TotalInstructions > 0);
+            var graphsWithInstructions = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TotalInstructions > 0);
             if (graphsWithInstructions.Any())
             {
                 return graphsWithInstructions.Last();
             }
 
-            var graphsWithData = MainPlottedGraphs.Where(g => g.internalProtoGraph.TraceReader.HasPendingData());
+            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader.HasPendingData());
             if (graphsWithData.Any())
             {
                 return graphsWithData.Last();
@@ -490,7 +493,7 @@ namespace rgatCore
                 foreach (var tid__mode_graph in PlottedGraphs)
                 {
                     if (tid__mode_graph.Value.Count == 0) continue;
-                    ProtoGraph protograph = tid__mode_graph.Value[0].internalProtoGraph;
+                    ProtoGraph protograph = tid__mode_graph.Value[0].InternalProtoGraph;
                     if (protograph.NodeList.Count == 0) continue;
 
                     graphsList.Add(protograph.Serialise());

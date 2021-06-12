@@ -357,7 +357,7 @@ namespace rgatCore
                     float xPadding = UI_Constants.PREVIEW_PANE_X_PADDING;
                     if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
                     {
-                        var MainGraphs = graph.internalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
@@ -411,10 +411,10 @@ namespace rgatCore
             switch (order)
             {
                 case PreviewSortMethod.InstructionCount:
-                    result = graphs.ToList().OrderByDescending(x => x.internalProtoGraph.TotalInstructions).Select(x => graphs.IndexOf(x)).ToList();
+                    result = graphs.ToList().OrderByDescending(x => x.InternalProtoGraph.TotalInstructions).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.LastUpdated:
-                    result = graphs.ToList().OrderByDescending(x => x.internalProtoGraph.LastUpdated).Select(x => graphs.IndexOf(x)).ToList();
+                    result = graphs.ToList().OrderByDescending(x => x.InternalProtoGraph.LastUpdated).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.ThreadID:
                     result = graphs.ToList().OrderBy(x => x.tid).Select(x => graphs.IndexOf(x)).ToList();
@@ -438,13 +438,13 @@ namespace rgatCore
             ImGui.BeginTooltip();
             string runningState;
             //todo a 'blocked' option when i get around to detecting/displaying the blocked state
-            if (graph.internalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+            if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
             {
                 runningState = "Suspended";
             }
             else
             {
-                if (graph.internalProtoGraph.Terminated)
+                if (graph.InternalProtoGraph.Terminated)
                 {
                     runningState = "Terminated";
                 }
@@ -460,11 +460,11 @@ namespace rgatCore
             }
             else
             {
-                if (graph.internalProtoGraph.SavedAnimationData.Count > 0)
+                if (graph.InternalProtoGraph.SavedAnimationData.Count > 0)
                 {
-                    ulong blockaddr = graph.internalProtoGraph.SavedAnimationData[0].blockAddr;
-                    int module = graph.internalProtoGraph.ProcessData.FindContainingModule(blockaddr);
-                    string path = graph.internalProtoGraph.ProcessData.GetModulePath(module);
+                    ulong blockaddr = graph.InternalProtoGraph.SavedAnimationData[0].blockAddr;
+                    int module = graph.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr);
+                    string path = graph.InternalProtoGraph.ProcessData.GetModulePath(module);
                     string pathSnip = Path.GetFileName(path);
                     if (pathSnip.Length > 50)
                         pathSnip = pathSnip.Substring(pathSnip.Length - 50, pathSnip.Length);
@@ -476,9 +476,9 @@ namespace rgatCore
 
             ImGui.Text($"Graph TID: {graph.tid} [{runningState}]");
             ImGui.Text($"Graph PID: {graph.pid}");
-            ImGui.Text($"Unique Instructions: {graph.internalProtoGraph.NodeList.Count}");
-            ImGui.Text($"Total Instructions: {graph.internalProtoGraph.TotalInstructions}");
-            ImGui.Text($"Animation Entries: {graph.internalProtoGraph.SavedAnimationData.Count}");
+            ImGui.Text($"Unique Instructions: {graph.InternalProtoGraph.NodeList.Count}");
+            ImGui.Text($"Total Instructions: {graph.InternalProtoGraph.TotalInstructions}");
+            ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.SavedAnimationData.Count}");
 
 
             ImGui.Separator();
@@ -547,11 +547,11 @@ namespace rgatCore
 
                     ImGui.Separator();
                     ImGui.Text($"Graph {PreviewPopupGraph.tid}");
-                    if (!PreviewPopupGraph.internalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
+                    if (!PreviewPopupGraph.InternalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
                     {
-                        PreviewPopupGraph.internalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.tid, "KILL");
+                        PreviewPopupGraph.InternalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.tid, "KILL");
                     }
-                    if (!PreviewPopupGraph.internalProtoGraph.Terminated && ImGui.MenuItem("Force Terminate"))
+                    if (!PreviewPopupGraph.InternalProtoGraph.Terminated && ImGui.MenuItem("Force Terminate"))
                     {
                         //todo - rgat doesn't detect this because pin threads still run, keeping pipes open
                         IntPtr handle = OpenThread(1, false, PreviewPopupGraph.tid);
@@ -682,9 +682,9 @@ namespace rgatCore
 
                 float maxVal;
                 float[] values = null;
-                if (graph.internalProtoGraph.TraceReader != null)
+                if (graph.InternalProtoGraph.TraceReader != null)
                 {
-                    values = graph.internalProtoGraph.TraceReader.RecentMessageRates();
+                    values = graph.InternalProtoGraph.TraceReader.RecentMessageRates();
                 }
                 if (values == null || values.Length == 0)
                 {
@@ -753,10 +753,10 @@ namespace rgatCore
 
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
-            if (graph.internalProtoGraph.Terminated)
+            if (graph.InternalProtoGraph.Terminated)
                 return GlobalConfig.mainColours.terminatedPreview;
 
-            switch (graph.internalProtoGraph.TraceData.TraceState)
+            switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:
                     return GlobalConfig.mainColours.terminatedPreview;
@@ -771,10 +771,10 @@ namespace rgatCore
 
         uint GetGraphBorderColour(PlottedGraph graph)
         {
-            if (graph.internalProtoGraph.Terminated)
+            if (graph.InternalProtoGraph.Terminated)
                 return 0xff0000ff;
 
-            switch (graph.internalProtoGraph.TraceData.TraceState)
+            switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:
                     return 0x4f00004f;

@@ -86,4 +86,9 @@ namespace rgatCore
         public const string PIN_SIGNER = "Intel Corporation";
         public const string PINTOOL_SIGNER = "rgat dev";
     }
+
+    static class TEST_CONSTANTS
+    {
+        public const string testextension = ".test.json";
+    }
 }

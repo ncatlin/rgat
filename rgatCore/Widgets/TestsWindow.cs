@@ -114,17 +114,14 @@ namespace rgatCore.Widgets
             
         }
 
-        static readonly string testextension = ".test.json";
         List<TestCase> FindTests(string dirpath, string category)
         {
             List<TestCase> results = new List<TestCase>();
-            string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(testextension)).ToArray();
+            string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(TEST_CONSTANTS.testextension)).ToArray();
             foreach (string testfile in tests)
             {
-                TestCase t = new TestCase();
-                t.TestName = Path.GetFileName(testfile).Split(testextension)[0];
-                t.Path = testfile;
-                t.CategoryName = category;
+                TestCase t = new TestCase(testfile, category);
+
                 results.Add(t);
                 _sessionStats["Loaded"] += 1;
             }

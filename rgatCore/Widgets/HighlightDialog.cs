@@ -58,7 +58,7 @@ namespace rgatCore.Widgets
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
-            ProtoGraph protog = _ActiveGraph?.internalProtoGraph;
+            ProtoGraph protog = _ActiveGraph?.InternalProtoGraph;
             ProcessRecord processrec = protog?.ProcessData;
 
             if (processrec == null) return;
@@ -249,9 +249,9 @@ namespace rgatCore.Widgets
         {
 
             if (_ActiveGraph == null) return;
-            if (_activeHighlights.LastExternNodeCount < _ActiveGraph.internalProtoGraph.ExternalNodesCount)
+            if (_activeHighlights.LastExternNodeCount < _ActiveGraph.InternalProtoGraph.ExternalNodesCount)
             {
-                RefreshExternHighlightData(_ActiveGraph.internalProtoGraph.copyExternalNodeList());
+                RefreshExternHighlightData(_ActiveGraph.InternalProtoGraph.copyExternalNodeList());
             }
 
             ImGui.Text("Filter");
@@ -371,7 +371,7 @@ namespace rgatCore.Widgets
 
         public void DrawExceptionSelectBox(float height)
         {
-            uint[] exceptionNodes = _ActiveGraph.internalProtoGraph.GetExceptionNodes();
+            uint[] exceptionNodes = _ActiveGraph.InternalProtoGraph.GetExceptionNodes();
             if (exceptionNodes.Length == 0)
             {
                 string caption = $"No exceptions recorded in thread ID {_ActiveGraph.tid}";

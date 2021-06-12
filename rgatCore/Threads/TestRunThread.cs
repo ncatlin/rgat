@@ -1,6 +1,8 @@
 ﻿using Humanizer;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 
@@ -34,14 +36,37 @@ namespace rgatCore.Testing
 
         void TestMain(Object _)
         {
+            if (!File.Exists(_testCase.BinaryPath))
+            {
+                Logging.RecordLogEvent($"Test {_testCase.CategoryName}{_testCase.TestName} started with missing binary {_testCase.BinaryPath}");
+                Finished = true;
+                return;
+            }
             Running = true;
             _testCase.RecordRunning();
             Console.WriteLine($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
             int countDown = 2;
-            
+
+            string pintoolpath = GlobalConfig.PinToolPath32;//_rgatstate.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+            ProcessLaunching.StartTracedProcess(pintoolpath, _testCase.BinaryPath, testID: _thisTest.TestID);
+
+            //GetTestTrace
             while (!_rgatState.rgatIsExiting)
             {
-                Console.WriteLine($"Output {2-countDown}/2 from test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
+                Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
+                if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
+                {
+                    _thisTest.SetFirstTrace(testTrace);
+                    Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
+                    break;
+                }
+                Thread.Sleep(100);
+            }
+
+
+            while (!_rgatState.rgatIsExiting)
+            {
+                Console.WriteLine($"Output {2 - countDown}/2 from test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
                 Thread.Sleep(1700);
                 countDown -= 1;
                 if (countDown <= 0) break;

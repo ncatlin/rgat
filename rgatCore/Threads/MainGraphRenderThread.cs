@@ -26,8 +26,8 @@ namespace rgatCore.Threads
 
 		void update_rendering(PlottedGraph graph)
 		{
-			ProtoGraph protoGraph = graph.internalProtoGraph;
-			if (protoGraph == null || protoGraph.edgeList.Count == 0) return;
+			ProtoGraph protoGraph = graph.InternalProtoGraph;
+			if (protoGraph == null || protoGraph.EdgeList.Count == 0) return;
 
 			//if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
 			//	return;

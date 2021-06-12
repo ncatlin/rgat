@@ -65,6 +65,8 @@ namespace rgatCore
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
         public Byte[] StartBytes = null;
         public PeNet.PeFile PEFileObj;
+        public bool IsTestBinary { get; private set; }
+        public void MarkTestBinary() => IsTestBinary = true;
 
         public int BitWidth = 0;
         public string FilePath { get; private set; } = "";
@@ -297,7 +299,6 @@ namespace rgatCore
         {
             lock (tracesLock)
             {
-
                 if (RecordedTraces.TryGetValue(timeStarted, out newRecord))
                 {
                     return false;

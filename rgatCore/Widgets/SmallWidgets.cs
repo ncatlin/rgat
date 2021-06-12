@@ -23,7 +23,6 @@ namespace rgatCore.Widgets
             Vector2 endInner = new Vector2(startInner.X + (barSize.X * progress), startInner.Y + (barSize.Y - 2 * vertPadding));
             ImGui.GetWindowDrawList().AddRectFilled(startInner, endInner, barColour);
 
-
             Vector2 textSize = ImGui.CalcTextSize(caption);
             float halfCaptionWidth = textSize.X / 2;
 

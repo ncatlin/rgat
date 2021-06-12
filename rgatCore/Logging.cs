@@ -169,6 +169,12 @@ namespace rgatCore
                 if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
                 MessageCounts[(int)filter] += 1;
             }
+
+            //todo remove after debug done
+            if (filter == LogFilterType.TextError)
+            {
+                Console.WriteLine(text);
+            }
         }
 
         public static LOG_EVENT[] GetLogMessages(bool[] filters)

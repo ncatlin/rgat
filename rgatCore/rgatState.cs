@@ -47,7 +47,7 @@ namespace rgatCore
 
         public bool rgatIsExiting { private set; get; } = false;
         public int InstrumentationCount { private set; get; } = 0;
-        public void NewInstrumentationConnection() => InstrumentationCount += 1;
+        public void RecordInstrumentationConnection() => InstrumentationCount += 1;
 
         public int AnimationStepRate = 1;
         public eGraphLayout newGraphLayout = eGraphLayout.eForceDirected3DNodes;
@@ -541,6 +541,33 @@ namespace rgatCore
         public void ExportTraceAsPajek(TraceRecord trace, uint TID)
         {
             trace.ExportPajek(TID);
+        }
+
+
+        readonly object _testDictLock = new object();
+        Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
+        public void RecordTestRunConnection(long testID, TraceRecord trace)
+        {
+            lock (_testDictLock)
+            {
+                Debug.Assert(!_testConnections.ContainsKey(testID));
+                Debug.Assert(trace != null);
+                _testConnections.Add(testID, trace);
+            }
+        }
+
+        public bool GetTestTrace(long testID, out TraceRecord trace)
+        {
+
+            lock (_testDictLock)
+            {
+                if(_testConnections.TryGetValue(testID, out trace))
+                {
+                    _testConnections.Remove(testID);
+                    return true;
+                }
+                return false;
+            }
         }
 
     }

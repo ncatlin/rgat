@@ -447,7 +447,7 @@ namespace rgatCore
                     break;
 
                 case eKeybind.RaiseForceTemperature:
-                    ActiveGraph.internalProtoGraph.TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, 0);
+                    ActiveGraph.InternalProtoGraph.TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, 0);
                     ActiveGraph.IncreaseTemperature();
                     break;
 
@@ -697,7 +697,7 @@ namespace rgatCore
                 case eRenderingMode.eConditionals:
                     break;
                 case eRenderingMode.eHeatmap:
-                    ActiveGraph.internalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
+                    ActiveGraph.InternalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
                     break;
                 default:
                     Console.WriteLine("unknown rendering mode");
@@ -1143,7 +1143,7 @@ namespace rgatCore
             float depth = 20;//todo based on count 
             float maxWidth = 200;
 
-            TraceRecord trace = ActiveGraph.internalProtoGraph.TraceData;
+            TraceRecord trace = ActiveGraph.InternalProtoGraph.TraceData;
 
             Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime);
 

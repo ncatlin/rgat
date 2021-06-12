@@ -832,7 +832,7 @@ namespace rgatCore
                 k = 100f,
                 temperature = temperature,
                 NodesTexWidth = textureSize,
-                EdgeCount = (uint)_activeGraph.internalProtoGraph.edgeList.Count,
+                EdgeCount = (uint)_activeGraph.InternalProtoGraph.EdgeList.Count,
                 fixedInternalNodes = fixedNodes
             };
             _gd.UpdateBuffer(_velocityParamsBuffer, 0, parms);
@@ -1173,10 +1173,10 @@ namespace rgatCore
             }
 
 
-            _activeTrace = newgraph.internalProtoGraph.TraceData;
+            _activeTrace = newgraph.InternalProtoGraph.TraceData;
             _computeLock.AcquireWriterLock(0);
             _activeGraph = newgraph;
-            _activeTrace = newgraph.internalProtoGraph.TraceData;
+            _activeTrace = newgraph.InternalProtoGraph.TraceData;
             LoadActivegraphComputeBuffersIntoVRAM();
             _computeLock.ReleaseWriterLock();
         }

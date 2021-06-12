@@ -44,16 +44,18 @@ namespace rgatCore.Threads
 
 				string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
 
+				//	"PID,%u,%d,%ld,%s,%ld", pid, arch, instanceID, programName, testRunID
 				string[] fields = csString.Split(',');
 				Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.TextDebug);
 
-				if (fields.Length == 5)
+				if (fields.Length == 6)
 				{
 					bool success = true;
 					if (fields[0] != "PID") success = false;
 					if (!uint.TryParse(fields[1], out uint PID)) success = false;
 					if (!int.TryParse(fields[2], out int arch)) success = false;
 					if (!long.TryParse(fields[3], out long randno)) success = false;
+					if (!long.TryParse(fields[5], out long testRunID)) success = false;
 					if (success)
 					{
 						string programName = fields[4];
@@ -62,7 +64,7 @@ namespace rgatCore.Threads
 						string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{GetBBPipeName(PID, randno)}@\x00";
 						byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
 						coordPipe.Write(outBuffer);
-						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName));
+						Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName, testRunID));
 						Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.TextDebug);
 					}
 					else
@@ -158,10 +160,16 @@ namespace rgatCore.Threads
 		}
 
 
-		private void process_new_pin_connection(uint PID, int arch, long ID, string programName)
+		private void process_new_pin_connection(uint PID, int arch, long ID, string programName, long testID = -1)
 		{
-			string shortName = Path.GetFileName(programName).Substring(0, Math.Min(programName.Length, 20));
-			string msg = $"New instrumentation connection with {arch}-bit trace: {shortName} (PID:{PID})";
+			string binaryName = Path.GetFileName(programName);
+			string shortName = binaryName.Substring(0, Math.Min(binaryName.Length, 20));
+			bool isTest = testID > -1;
+			string msg;
+			if (!isTest)
+				msg = $"New instrumentation connection with {arch}-bit trace: {shortName} (PID:{PID})";
+			else
+				msg = $"New test case connection with {arch}-bit trace: {shortName} (PID:{PID})";
 
 			Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
@@ -184,9 +192,16 @@ namespace rgatCore.Threads
 
 			//TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
 
-			_clientState.NewInstrumentationConnection();
+			_clientState.RecordInstrumentationConnection();
 
 			target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
+			if (isTest)
+            {
+				tr.SetTestRunID(testID);
+				target.MarkTestBinary();
+				_clientState.RecordTestRunConnection(testID, tr);
+            }
+
 			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
 			tr.SetModuleHandlerThread(moduleHandler);
 			moduleHandler.Begin(ID);

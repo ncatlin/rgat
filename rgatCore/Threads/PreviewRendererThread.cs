@@ -36,7 +36,7 @@ namespace rgatCore.Threads
                     if (graph == null || graph == rgatState.ActiveGraph) continue;
 
                     //check for trace data that hasn't been rendered yet
-                    ProtoGraph protoGraph = graph.internalProtoGraph;
+                    ProtoGraph protoGraph = graph.InternalProtoGraph;
 
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
                         graph.render_graph();

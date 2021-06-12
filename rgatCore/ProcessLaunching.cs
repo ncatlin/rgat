@@ -18,8 +18,21 @@ namespace rgatCore
 		public HeatRankingThread heatmapThread;
 		public ConditionalRendererThread conditionalThread;
 	};
+
+
 	class ProcessLaunching
 	{
+		public static System.Diagnostics.Process StartTracedProcess(string pintool, string targetBinary, long testID = -1)
+		{
+			string runargs = $"-t \"{pintool}\" ";
+			if (testID > -1)
+				runargs += $"-T {testID} ";
+			runargs += $"-- \"{targetBinary}\" ";
+			return System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+		}
+
+
+
 		//for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals
 		public static void launch_saved_process_threads(TraceRecord runRecord, rgatState clientState)
 		{
@@ -41,16 +54,6 @@ namespace rgatCore
 
 			runRecord.ProcessThreads = processThreads;
 		}
-
-		//for each live process we have a thread rendering graph data for previews, heatmaps and conditionals
-		//+ module data and disassembly
-
-		struct PIN_PIPES
-		{
-			public int modpipe;
-			public int bbpipe;
-			public int controlpipe;
-		};
 
 
 		public static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState)

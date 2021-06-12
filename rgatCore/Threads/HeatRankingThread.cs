@@ -23,7 +23,7 @@ namespace rgatCore.Threads
 
         static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
-            if (graph.edgeList.Count < 10) return;
+            if (graph.EdgeList.Count < 10) return;
 
             var edgeList = graph.GetEdgeObjListCopy();
 
@@ -97,10 +97,10 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                if (!graph.internalProtoGraph.HeatSolvingComplete)
+                if (!graph.InternalProtoGraph.HeatSolvingComplete)
                 {
-                    PerformEdgeHeatRanking(graph.internalProtoGraph);
-                    PerformNodeHeatRanking(graph.internalProtoGraph);
+                    PerformEdgeHeatRanking(graph.InternalProtoGraph);
+                    PerformNodeHeatRanking(graph.InternalProtoGraph);
                 }
 
 

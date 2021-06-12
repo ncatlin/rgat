@@ -64,9 +64,9 @@ namespace rgatCore
             savedForcePositions[eGraphLayout.eForceDirected3DNodes] = Array.Empty<float>();
             savedForcePositions[eGraphLayout.eForceDirected3DBlocks] = Array.Empty<float>();
 
-            internalProtoGraph = protoGraph;
+            InternalProtoGraph = protoGraph;
 
-            IsAnimated = !internalProtoGraph.Terminated;
+            IsAnimated = !InternalProtoGraph.Terminated;
             graphColours = graphColourslist;
 
             //TestLayoutSettings = new GRAPH_LAYOUT_SETTINGS();
@@ -113,7 +113,7 @@ namespace rgatCore
                 SetAnimated(true);
             }
 
-            int NewPosition = (int)(position * (float)internalProtoGraph.SavedAnimationData.Count);
+            int NewPosition = (int)(position * (float)InternalProtoGraph.SavedAnimationData.Count);
             userSelectedAnimPosition = NewPosition;
 
         }
@@ -127,7 +127,7 @@ namespace rgatCore
                 SetAnimated(true);
 
                 int selectionDiff;
-                if (userSelectedAnimPosition < 20 || internalProtoGraph.SavedAnimationData.Count < 20)
+                if (userSelectedAnimPosition < 20 || InternalProtoGraph.SavedAnimationData.Count < 20)
                 {
                     AnimationIndex = 0;
                     selectionDiff = userSelectedAnimPosition;
@@ -153,9 +153,9 @@ namespace rgatCore
             ResetAllActiveAnimatedAlphas();
 
             //darken any active drawn nodes
-            if (internalProtoGraph.NodeList.Count > 0)
+            if (InternalProtoGraph.NodeList.Count > 0)
             {
-                internalProtoGraph.set_active_node(0);
+                InternalProtoGraph.set_active_node(0);
             }
 
             //animInstructionIndex = 0;
@@ -176,8 +176,8 @@ namespace rgatCore
 
         public float GetAnimationPercent()
         {
-            if (internalProtoGraph.SavedAnimationData.Count == 0) return 0;
-            return (float)((float)AnimationIndex / (float)internalProtoGraph.SavedAnimationData.Count);
+            if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
+            return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
         }
 
         public void render_live_animation(float fadeRate)
@@ -263,18 +263,18 @@ namespace rgatCore
 
         }
 
-        public bool RenderingComplete() => DrawnEdgesCount >= internalProtoGraph.edgeList.Count;
+        public bool RenderingComplete() => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
 
         protected void render_new_blocks()
         {
-            int endIndex = internalProtoGraph.edgeList.Count;
+            int endIndex = InternalProtoGraph.EdgeList.Count;
             int drawCount = endIndex - (int)DrawnEdgesCount;
             if (drawCount <= 0) return;
             int dbglimit = 9999;
             if (DrawnEdgesCount > dbglimit) return;
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
-                var edgeNodes = internalProtoGraph.edgeList[(int)edgeIdx];
+                var edgeNodes = InternalProtoGraph.EdgeList[(int)edgeIdx];
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
                     AddNode(edgeNodes.Item1);
@@ -282,7 +282,7 @@ namespace rgatCore
 
                 if (edgeNodes.Item2 >= _graphStructureLinear.Count)
                 {
-                    EdgeData e = internalProtoGraph.edgeDict[edgeNodes];
+                    EdgeData e = InternalProtoGraph.edgeDict[edgeNodes];
                     //if (e.edgeClass == eEdgeNodeType.eEdgeException)
                     //    NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
                     AddNode(edgeNodes.Item2, e);
@@ -395,7 +395,7 @@ namespace rgatCore
 
         public float[] GetPresetPositionFloats(out bool hasPresetNodes)
         {
-            if (_presetLayoutStyle != LayoutStyle || _presetEdgeCount != internalProtoGraph.get_num_edges())
+            if (_presetLayoutStyle != LayoutStyle || _presetEdgeCount != InternalProtoGraph.get_num_edges())
                 hasPresetNodes = GeneratePresetPositions();
             else
                 hasPresetNodes = false;
@@ -414,7 +414,7 @@ namespace rgatCore
         bool GeneratePresetPositions()
         {
             _presetLayoutStyle = LayoutStyle;
-            _presetEdgeCount = internalProtoGraph.get_num_edges();
+            _presetEdgeCount = InternalProtoGraph.get_num_edges();
             switch (LayoutStyle)
             {
                 case eGraphLayout.eCylinderLayout:
@@ -513,8 +513,8 @@ namespace rgatCore
 
             for (uint i = 1; i < nodeCount; i++)
             {
-                NodeData n = internalProtoGraph.safe_get_node(i);
-                NodeData firstParent = internalProtoGraph.safe_get_node(n.parentIdx);
+                NodeData n = InternalProtoGraph.safe_get_node(i);
+                NodeData firstParent = InternalProtoGraph.safe_get_node(n.parentIdx);
 
                 if (n.IsExternal)
                 {
@@ -666,7 +666,7 @@ namespace rgatCore
             if (WireframeEnabled)
             {
                 _presetLayoutStyle = LayoutStyle;
-                _presetEdgeCount = internalProtoGraph.get_num_edges();
+                _presetEdgeCount = InternalProtoGraph.get_num_edges();
                 switch (LayoutStyle)
                 {
                     case eGraphLayout.eCylinderLayout:
@@ -684,7 +684,7 @@ namespace rgatCore
                 CreateHighlightEdges(edgeIndices, resultList);
             }
 
-            if ((IsAnimated || !internalProtoGraph.Terminated) && _liveNodeEdgeEnabled)
+            if ((IsAnimated || !InternalProtoGraph.Terminated) && _liveNodeEdgeEnabled)
             { 
                 CreateLiveNodeEdge(edgeIndices, resultList);
             }
@@ -740,9 +740,9 @@ namespace rgatCore
         void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
             uint node = _lastAnimatedVert;
-            if (internalProtoGraph.HasRecentStep)
+            if (InternalProtoGraph.HasRecentStep)
             {
-                var addrnodes = internalProtoGraph.ProcessData.GetNodesAtAddress(internalProtoGraph.RecentStepAddr, internalProtoGraph.ThreadID);
+                var addrnodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(InternalProtoGraph.RecentStepAddr, InternalProtoGraph.ThreadID);
                 if (addrnodes.Count > 0)
                     node = addrnodes[^1];
             }
@@ -955,22 +955,22 @@ namespace rgatCore
 
             int currentNodeIndex = 0;
             int edgeIndex = 0;
-            for (currentNodeIndex = 0; currentNodeIndex < internalProtoGraph.NodeList.Count; currentNodeIndex++)
+            for (currentNodeIndex = 0; currentNodeIndex < InternalProtoGraph.NodeList.Count; currentNodeIndex++)
             {
-                List<uint> neigbours = internalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
+                List<uint> neigbours = InternalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     textureArray[edgeIndex] = (int)neigbours[nidx];
-                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(internalProtoGraph.GetEdge((uint)currentNodeIndex, neigbours[nidx]));
+                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(InternalProtoGraph.GetEdge((uint)currentNodeIndex, neigbours[nidx]));
                     edgeIndex++;
                     if (edgeIndex == textureArray.Length) return textureArray;
                 }
 
-                neigbours = internalProtoGraph.NodeList[currentNodeIndex].IncomingNeighboursSet;
+                neigbours = InternalProtoGraph.NodeList[currentNodeIndex].IncomingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     textureArray[edgeIndex] = (int)neigbours[nidx];
-                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(internalProtoGraph.GetEdge(neigbours[nidx], (uint)currentNodeIndex));
+                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(InternalProtoGraph.GetEdge(neigbours[nidx], (uint)currentNodeIndex));
                     edgeIndex++;
                     if (edgeIndex == textureArray.Length) return textureArray;
                 }
@@ -1015,9 +1015,9 @@ namespace rgatCore
 
             _blockDataInts = new int[nodecount * 4];
             Dictionary<int, int> blockMiddles = new Dictionary<int, int>();
-            for (int blockIdx = 0; blockIdx < internalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
+            for (int blockIdx = 0; blockIdx < InternalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
             {
-                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[blockIdx];
+                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[blockIdx];
                 if (firstIdx_LastIdx == null) continue;
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
@@ -1036,8 +1036,8 @@ namespace rgatCore
 
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
-                NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
-                var firstIdx_LastIdx = internalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
+                NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
+                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
                 if (firstIdx_LastIdx == null) continue;
 
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
@@ -1087,7 +1087,7 @@ namespace rgatCore
             int[] sourceData = new int[textureSize * textureSize * 2];
             int current = 0;
 
-            createBlockDataBuf(Math.Min(targetArray.Count, internalProtoGraph.BlocksFirstLastNodeList.Count));
+            createBlockDataBuf(Math.Min(targetArray.Count, InternalProtoGraph.BlocksFirstLastNodeList.Count));
 
 
             for (var srcNodeIndex = 0; srcNodeIndex < targetArray.Count; srcNodeIndex++)
@@ -1208,17 +1208,17 @@ namespace rgatCore
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
 
         public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureBalanced)); }
-        public uint EdgeVertsTextureWidth() { return dataTextureSize(internalProtoGraph.edgeList.Count); }
+        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeList.Count); }
 
 
         public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode)
         {
-            if (nodeIndex >= internalProtoGraph.NodeList.Count)
+            if (nodeIndex >= InternalProtoGraph.NodeList.Count)
             {
                 return new WritableRgbaFloat(0, 0, 0, 0);
             }
 
-            NodeData n = internalProtoGraph.NodeList[nodeIndex];
+            NodeData n = InternalProtoGraph.NodeList[nodeIndex];
 
             if (n.Highlighted)
             {
@@ -1251,7 +1251,7 @@ namespace rgatCore
         public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
         {
 
-            EdgeData e = internalProtoGraph.edgeDict[edge]; //todo - thread safe dict access or caching
+            EdgeData e = InternalProtoGraph.edgeDict[edge]; //todo - thread safe dict access or caching
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1272,7 +1272,7 @@ namespace rgatCore
 
         Tuple<string, Color> createNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
-            NodeData n = internalProtoGraph.NodeList[index];
+            NodeData n = InternalProtoGraph.NodeList[index];
             if (n.label == null || n.newArgsRecorded || forceNew)
             {
                 if (n.IsExternal)
@@ -1296,7 +1296,7 @@ namespace rgatCore
                             n.label += "<";
                             foreach (int nidx in n.OutgoingNeighboursSet)
                             {
-                                EdgeData e = internalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
+                                EdgeData e = InternalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
                                 n.label += $" {nidx}:{e.executionCount}, ";
                             }
                             n.label += ">";
@@ -1304,7 +1304,7 @@ namespace rgatCore
                     }
                     if (n.ins.hasSymbol)
                     {
-                        internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
+                        InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
                         n.label += $" [{sym}]";
                     }
                     
@@ -1406,7 +1406,7 @@ namespace rgatCore
         {
             string symbolText = "";
             bool found = false;
-            if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
+            if (InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
             {
                 found = true;
             }
@@ -1416,7 +1416,7 @@ namespace rgatCore
                 ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, n.address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
                 {
-                    if (internalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address - symOffset, out symbolText))
+                    if (InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address - symOffset, out symbolText))
                     {
                         symbolText += $"+0x{symOffset}";
                         found = true;
@@ -1436,12 +1436,12 @@ namespace rgatCore
             EXTERNCALLDATA lastCall;
             if (specificCallIndex == -1)
             {
-                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
+                lastCall = InternalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
             }
             else
             {
                 Debug.Assert(n.callRecordsIndexs.Count > specificCallIndex);
-                lastCall = internalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[specificCallIndex]];
+                lastCall = InternalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[specificCallIndex]];
             }
 
             string argstring = "";
@@ -1473,7 +1473,7 @@ namespace rgatCore
             edgeIndices = new List<uint>();
             uint textureSize = LinearIndexTextureSize();
 
-            var edgeList = internalProtoGraph.GetEdgelistCopy();
+            var edgeList = InternalProtoGraph.GetEdgelistCopy();
 
             foreach (Tuple<uint, uint> edge in edgeList)
             {
@@ -1542,7 +1542,7 @@ namespace rgatCore
         //node+edge col+pos
         bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint> newnodelist)
         {
-            ProcessRecord piddata = internalProtoGraph.ProcessData;
+            ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
             List<InstructionData> block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
             if (block == null && externBlock == null)
@@ -1603,11 +1603,11 @@ namespace rgatCore
         void brighten_next_block_edge(uint blockID, ulong blockAddress, int brightTime)
         {
             ROUTINE_STRUCT? externStr = null;
-            var nextBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
+            var nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
             Tuple<uint, uint> LinkingPair = null;
             if (externStr != null)
             {
-                var callers = externStr.Value.thread_callers[internalProtoGraph.ThreadID];
+                var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];
                 uint callerIdx = callers.Find(n => n.Item1 == _lastAnimatedVert).Item2;
                 LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, callerIdx);
 
@@ -1616,7 +1616,7 @@ namespace rgatCore
             {
                 //find vert in internal code
                 InstructionData nextIns = nextBlock[0];
-                if (nextIns.threadvertIdx.TryGetValue(internalProtoGraph.ThreadID, out uint caller))
+                if (nextIns.threadvertIdx.TryGetValue(InternalProtoGraph.ThreadID, out uint caller))
                 {
                     LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, caller);
                 }
@@ -1627,7 +1627,7 @@ namespace rgatCore
             if it doesn't exist then assume it's because the user is skipping around the animation with the slider
             (there are other reasons but it helps me sleep at night)
             */
-            if (internalProtoGraph.EdgeExists(LinkingPair))
+            if (InternalProtoGraph.EdgeExists(LinkingPair))
             {
                 AddPulseActiveNode(LinkingPair.Item1);
                 AddPulseActiveNode(LinkingPair.Item2);
@@ -1644,7 +1644,7 @@ namespace rgatCore
             {
                 //Console.WriteLine($"BNL node {nodeIdx}");
 
-                if (TextEnabledLive && listOffset == 0 && internalProtoGraph.safe_get_node(nodeIdx).IsExternal)
+                if (TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
                         AddRisingExtern(nodeIdx, entry.count - 1, Anim_Constants.KEEP_BRIGHT);
@@ -1656,7 +1656,7 @@ namespace rgatCore
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
                     Tuple<uint, uint> edge = new Tuple<uint, uint>(_lastAnimatedVert, nodeIdx);
-                    if (internalProtoGraph.EdgeExists(edge))
+                    if (InternalProtoGraph.EdgeExists(edge))
                     {
                         AddPulseActiveNode(edge.Item1);
                     }
@@ -1681,7 +1681,7 @@ namespace rgatCore
         {
 
             currentUnchainedBlocks.Clear();
-            List<InstructionData> firstChainedBlock = internalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
+            List<InstructionData> firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
             _lastAnimatedVert = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
         }
@@ -1692,7 +1692,7 @@ namespace rgatCore
             //too many updates at a time damages interactivity
             //too few creates big backlogs which delays the animation (can still see realtime in Structure mode though)
             int updateLimit = LiveAnimationUpdatesPerFrame;
-            while (updateProcessingIndex < internalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
+            while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
                 if (!process_live_update()) break;
             }
@@ -1703,11 +1703,11 @@ namespace rgatCore
         //return false if we need more trace data to do further updates
         bool process_live_update()
         {
-            if (internalProtoGraph.HasRecentStep) return false;
+            if (InternalProtoGraph.HasRecentStep) return false;
 
             //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
             //internalProtoGraph.animationListsRWLOCK_.lock_shared();
-            ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[updateProcessingIndex];
+            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
             //internalProtoGraph.animationListsRWLOCK_.unlock_shared();
 
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
@@ -1773,7 +1773,7 @@ namespace rgatCore
 
         void process_replay_animation_updates(int optionalStepSize = 0)
         {
-            if (internalProtoGraph.SavedAnimationData.Count == 0)
+            if (InternalProtoGraph.SavedAnimationData.Count == 0)
             {
                 Console.WriteLine("Ending animation immediately - no animation data");
                 ReplayState = REPLAY_STATE.eEnded;
@@ -1791,8 +1791,8 @@ namespace rgatCore
             }
 
             int targetAnimIndex = AnimationIndex + stepSize;
-            if (targetAnimIndex >= internalProtoGraph.SavedAnimationData.Count)
-                targetAnimIndex = internalProtoGraph.SavedAnimationData.Count - 1;
+            if (targetAnimIndex >= InternalProtoGraph.SavedAnimationData.Count)
+                targetAnimIndex = InternalProtoGraph.SavedAnimationData.Count - 1;
 
 
             for (; AnimationIndex < targetAnimIndex; ++AnimationIndex)
@@ -1801,9 +1801,9 @@ namespace rgatCore
                 process_replay_update();
             }
 
-            internalProtoGraph.set_active_node(_lastAnimatedVert);
+            InternalProtoGraph.set_active_node(_lastAnimatedVert);
 
-            if (AnimationIndex >= internalProtoGraph.SavedAnimationData.Count - 1)
+            if (AnimationIndex >= InternalProtoGraph.SavedAnimationData.Count - 1)
             {
                 ReplayState = REPLAY_STATE.eEnded;
             }
@@ -1813,7 +1813,7 @@ namespace rgatCore
         void process_replay_update()
         {
             bool verbose = true;
-            ANIMATIONENTRY entry = internalProtoGraph.SavedAnimationData[AnimationIndex];
+            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[AnimationIndex];
 
             int stepSize = clientState.AnimationStepRate;
             if (stepSize == 0) stepSize = 1;
@@ -1822,7 +1822,7 @@ namespace rgatCore
             //todo - probably other situations we want to do this apart from a parent exec tag
             if (AnimationIndex > 0)
             {
-                ANIMATIONENTRY lastentry = internalProtoGraph.SavedAnimationData[AnimationIndex - 1];
+                ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[AnimationIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
@@ -1833,7 +1833,7 @@ namespace rgatCore
             //unchained area finished, stop highlighting it
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
-                ProcessRecord piddata = internalProtoGraph.ProcessData;
+                ProcessRecord piddata = InternalProtoGraph.ProcessData;
                 List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
@@ -1884,7 +1884,7 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
             {
                 if (verbose) Console.WriteLine($"\tUpdate eAnimLoop");
-                ProcessRecord piddata = internalProtoGraph.ProcessData;
+                ProcessRecord piddata = InternalProtoGraph.ProcessData;
                 List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
 
                 if (block == null)
@@ -1936,9 +1936,9 @@ namespace rgatCore
             //assume 10 instructions per step/frame
             ulong stepSize = (ulong)clientState.AnimationStepRate;
             if (stepSize == 0) stepSize = 1;
-            ulong frames = (internalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
+            ulong frames = (InternalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
 
-            float proportion = (float)executions / internalProtoGraph.TotalInstructions;
+            float proportion = (float)executions / InternalProtoGraph.TotalInstructions;
             ulong waitFrames = (ulong)Math.Floor(proportion * frames);
             return waitFrames;
         }
@@ -2045,7 +2045,7 @@ namespace rgatCore
                 {
                     nodeAttribArray1[nidx * 4 + 0] = 400f;  // make bigger
                     nodeAttribArray1[nidx * 4 + 3] = 1.0f;  // set target icon
-                    internalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
+                    InternalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
                 }
                 HighlightsChanged = true;
             }
@@ -2092,7 +2092,7 @@ namespace rgatCore
                         nodeAttribArray1[nidx * 4 + 0] = 200f;
                         nodeAttribArray1[nidx * 4 + 3] = 0.0f;
                     }
-                    internalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
+                    InternalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
                 }
             }
 
@@ -2116,7 +2116,7 @@ namespace rgatCore
             for (int i = 0; i < HighlightedAddresses.Count; i++)
             {
                 ulong address = HighlightedAddresses[i];
-                List<uint> nodes = internalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
+                List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
                 lock (textLock)
                 {
                     AddHighlightedNodes(nodes, eHighlightType.eAddresses);
@@ -2155,7 +2155,7 @@ namespace rgatCore
 
         public void AddRisingExtern(uint nodeIdx, ulong callIndex, int lingerFrames)
         {
-            NodeData n = internalProtoGraph.safe_get_node(nodeIdx);
+            NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
             string label = GenerateSymbolLabel(n, (int)callIndex);
             lock (animationLock)
             {
@@ -2382,7 +2382,7 @@ namespace rgatCore
 
         protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
 
-        public ProtoGraph internalProtoGraph { get; protected set; } = null;
+        public ProtoGraph InternalProtoGraph { get; protected set; } = null;
 
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
@@ -2460,7 +2460,7 @@ namespace rgatCore
         /// This is used for drawing nodes and edges
         /// </summary>
         List<List<int>> _graphStructureLinear = new List<List<int>>();
-        public int GraphNodeCount() { return internalProtoGraph.NodeList.Count; }
+        public int GraphNodeCount() { return InternalProtoGraph.NodeList.Count; }
         public int RenderedNodeCount() { return _graphStructureLinear.Count; }
 
         /// <summary>
