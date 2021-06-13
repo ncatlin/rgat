@@ -77,6 +77,15 @@ namespace rgatCore.Testing
         }
 
 
+        public TestCaseRun GetTestCaseRun (long ID)
+        {
+            lock (_lock)
+            {
+                if (_testRuns.TryGetValue(ID, out TestCaseRun testrun)) return testrun;
+                return null;
+            }
+        }
+
 
         public bool GetLatestResults(int max, out TestOutput[] results)
         {
@@ -104,6 +113,7 @@ namespace rgatCore.Testing
 
                 _runningTests.Remove(testID);
 
+                //_newResults.Add(tcr.MarkFinished());
                 tcr.MarkFinished();
             }
         }

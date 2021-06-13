@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using rgatCore.Testing;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+
 
 namespace rgatCore
 {
@@ -1099,7 +1101,7 @@ namespace rgatCore
                 result.Add("Edges", edgeArray);
 
                 JArray blockBounds = new JArray();
-                for (var i = 0; i < BlocksFirstLastNodeList.Count; i++) 
+                for (var i = 0; i < BlocksFirstLastNodeList.Count; i++)
                 {
                     var blocktuple = BlocksFirstLastNodeList[i];
                     if (blocktuple == null)
@@ -1108,7 +1110,7 @@ namespace rgatCore
                         blockBounds.Add(ProcessData.BasicBlocksList[i].Item2[^1].threadvertIdx[ThreadID]);
                     }
                     else
-                    { 
+                    {
                         blockBounds.Add(blocktuple.Item1);
                         blockBounds.Add(blocktuple.Item2);
                     }
@@ -1275,8 +1277,8 @@ namespace rgatCore
         public int GetRecentAnimationEntries(int count, out List<ANIMATIONENTRY> result)
         {
             result = new List<ANIMATIONENTRY>();
-            int sz = Math.Min(count, SavedAnimationData.Count-1);
-            int index = SavedAnimationData.Count-1;
+            int sz = Math.Min(count, SavedAnimationData.Count - 1);
+            int index = SavedAnimationData.Count - 1;
             for (var i = 0; i < sz; i++)
             {
                 result.Add(SavedAnimationData[index - i]);
@@ -1335,5 +1337,67 @@ namespace rgatCore
 
         public bool Terminated = false;
         public bool PerformingUnchainedExecution = false;
+
+
+        public Testing.REQUIREMENT_TEST_RESULTS MeetsTestRequirements(REQUIREMENTS_LIST requirements)
+        {
+            REQUIREMENT_TEST_RESULTS results = new REQUIREMENT_TEST_RESULTS();
+
+            foreach (Testing.TestRequirement req in requirements.value)
+            {
+                string error = null;
+                bool passed = false;
+                string compareValueString = "";
+                switch (req.Name)
+                {
+                    case "EdgeCount":
+                        passed = req.Compare(EdgeList.Count,  out error);
+                        compareValueString = $"{EdgeList.Count}";
+                        break;
+                    case "UniqueExceptionCount":
+                        passed = req.Compare(exceptionSet.Count, out error);
+                        compareValueString = $"{exceptionSet.Count}";
+                        break;
+                    case "NodeCount":
+                        passed = req.Compare(NodeList.Count, out error);
+                        compareValueString = $"{NodeList.Count}";
+                        break;
+                    case "ExternalNodeCount":
+                        passed = req.Compare(externalNodeList.Count, out error);
+                        compareValueString = $"{externalNodeList.Count}";
+                        break;
+                    case "InstructionExecs":
+                        passed = req.Compare(TotalInstructions, out error);
+                        compareValueString = $"{TotalInstructions}";
+                        break;
+                    default:
+                        compareValueString = "[?]";
+                        error = "Bad Thread Test Condition: " + req.Name;
+                        break;
+                }
+
+                TestResultCommentary comment = new TestResultCommentary()
+                {
+                    comparedValueString = compareValueString,
+                    result = passed ? eTestState.Passed : eTestState.Failed,
+                    requirement = req
+                };
+
+                if (passed)
+                {
+                    results.Passed.Add(comment);
+                }
+                else
+                {
+                    results.Failed.Add(comment);
+                    if (error != null)
+                    {
+                        results.Errors.Add(new Tuple<TestRequirement, string>(req, error));
+                        Logging.RecordLogEvent(error, Logging.LogFilterType.TextError);
+                    }
+                }
+            }
+            return results;
+        }
     }
 }

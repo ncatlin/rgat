@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using rgatCore.Testing;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
@@ -208,7 +209,7 @@ namespace rgatCore
         {
             if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
             {
-                Logging.RecordLogEvent("ERROR: Process data load failed",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("ERROR: Process data load failed", Logging.LogFilterType.TextError);
                 return false;
             }
 
@@ -217,7 +218,7 @@ namespace rgatCore
 
             if (!LoadProcessGraphs(saveJSON))//, colours))//.. &config.graphColours))
             {
-                Logging.RecordLogEvent("Process Graph load failed",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
                 return false;
             }
             /*
@@ -269,7 +270,7 @@ namespace rgatCore
                         _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         break;
                     default:
-                        Debug.Assert(false,"Timeline event has no assigned filter");
+                        Debug.Assert(false, "Timeline event has no assigned filter");
                         break;
                 }
             }
@@ -292,7 +293,7 @@ namespace rgatCore
                 {
                     if (_timeline[last].EventTimeMS < oldest) break;
                 }
-                for (var i = last+1; i < _timeline.Count; i++)
+                for (var i = last + 1; i < _timeline.Count; i++)
                 {
                     results.Add(_timeline[i]);
                 }
@@ -340,6 +341,7 @@ namespace rgatCore
 
         private readonly object GraphListLock = new object();
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
+        public int GraphCount => ProtoGraphs.Count;
 
         public Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>> PlottedGraphs = new Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>>();
 
@@ -362,11 +364,34 @@ namespace rgatCore
         public uint PID { get; private set; }
         public long randID { get; private set; } //to distinguish between processes with identical PIDs
 
+
+        public int CountDescendantTraces()
+        {
+            int TraceCount = 1;
+            foreach (var child in this.children)
+            {
+                TraceCount += child.CountDescendantTraces();
+            }
+            return TraceCount;
+        }
+
+
+        public int CountDescendantGraphs()
+        {
+            int GraphCount = ProtoGraphs.Count;
+            foreach (var child in this.children)
+            {
+                GraphCount += child.CountDescendantGraphs();
+            }
+            return GraphCount;
+        }
+
+
         bool LoadProcessGraphs(JObject processJSON)
         {
             if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)
             {
-                Logging.RecordLogEvent("Failed to find valid Threads in trace",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Failed to find valid Threads in trace", Logging.LogFilterType.TextError);
                 return false;
             }
 
@@ -378,7 +403,7 @@ namespace rgatCore
             {
                 if (!LoadGraph(threadObj))
                 {
-                    Logging.RecordLogEvent("Failed to load graph",Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("Failed to load graph", Logging.LogFilterType.TextError);
                     return false;
                 }
             }
@@ -391,7 +416,7 @@ namespace rgatCore
         {
             if (!jThreadObj.TryGetValue("ThreadID", out JToken tTID) || tTID.Type != JTokenType.Integer)
             {
-                Logging.RecordLogEvent("Failed to find valid ThreadID in thread",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.LogFilterType.TextError);
                 return false;
             }
 
@@ -412,7 +437,7 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message,Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message, Logging.LogFilterType.TextError);
                 return false;
             }
 
@@ -451,7 +476,7 @@ namespace rgatCore
             JsonTextWriter wr = CreateSaveFile(traceStartedTime, out string path);
             if (wr == null)
             {
-                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.LogFilterType.TextError);
                 return "";
             }
 
@@ -602,7 +627,7 @@ namespace rgatCore
         {
             if (_moduleThread == null)
             {
-                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.LogFilterType.TextError);
                 return;
             }
 
@@ -610,7 +635,7 @@ namespace rgatCore
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
             if (_moduleThread.SendCommand(buf) == -1)
             {
-                Logging.RecordLogEvent("Error sending command to control pipe",Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.TextError);
             }
         }
 
@@ -630,5 +655,92 @@ namespace rgatCore
         BlockHandlerThread _blockThread;
         public void SetModuleHandlerThread(ModuleHandlerThread moduleHandlerObj) => _moduleThread = moduleHandlerObj;
         public void SetBlockHandlerThread(BlockHandlerThread blockHandlerObj) => _blockThread = blockHandlerObj;
+
+
+        public TRACE_TEST_RESULTS EvaluateProcessTestRequirement(TraceRequirements ptreq, ref TraceTestResultCommentary resultsobj)
+        {
+            TRACE_TEST_RESULTS results = new TRACE_TEST_RESULTS();
+
+            resultsobj.traceResultsB = results;
+            foreach (TestRequirement req in ptreq.ProcessRequirements)
+            {
+                Console.WriteLine($"Evaluating process requirement {req.Name} {req.Condition} [val] ");
+                bool passed = false;
+                string error = "";
+                string compareValueString = "";
+                switch (req.Name)
+                {
+                    case "GraphCount":
+                        passed = req.Compare(ProtoGraphs.Count, out error);
+                        compareValueString = $"{ProtoGraphs.Count}";
+                        break;
+                    default:
+                        Logging.RecordLogEvent("Invalid process test requirement: " + req.Name, Logging.LogFilterType.TextError);
+                        break;
+                }
+                TestResultCommentary comment = new TestResultCommentary()
+                {
+                    comparedValueString = compareValueString,
+                    result = passed ? eTestState.Passed : eTestState.Failed,
+                    requirement = req
+                };
+                if (passed)
+                {
+                    results.ProcessResults.Passed.Add(comment);
+                }
+                else
+                {
+                    if (error != null)
+                    {
+                        string errmsg = $"Testing Error evaluating Process requirement {req.Name}: {error}";
+                        results.ProcessResults.Errors.Add(new Tuple<TestRequirement, string>(req, errmsg));
+                        Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextError);
+                    }
+                    results.ProcessResults.Failed.Add(comment);
+                }
+            }
+
+
+            foreach (REQUIREMENTS_LIST requirementList in ptreq.ThreadRequirements)
+            {
+                Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> graphResultsDict = EvaluateThreadTestRequirements(requirementList);
+                results.ThreadResults.Add(requirementList, graphResultsDict);
+                resultsobj.threadTests.Add(requirementList, graphResultsDict);
+            }
+
+
+
+
+
+            if (ptreq.ChildProcessRequirements.Any())
+            {
+                foreach (TraceRequirements childRequirements in ptreq.ChildProcessRequirements)
+                {
+                    Dictionary<TraceRecord, TRACE_TEST_RESULTS> childRequirementResults = new Dictionary<TraceRecord, TRACE_TEST_RESULTS>();
+                    foreach (TraceRecord record in children)
+                    {
+                        //TraceTestResultCommentary childComm = resultsobj.ChildProcessRequirements[0];
+                        TraceTestResultCommentary dummy = new TraceTestResultCommentary();
+                        childRequirementResults[record] = record.EvaluateProcessTestRequirement(childRequirements, ref dummy);
+                    }
+                    results.ChildResults[childRequirements] = childRequirementResults;
+                }
+            }
+            return results;
+        }
+
+
+
+        public Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> EvaluateThreadTestRequirements(REQUIREMENTS_LIST threadTestReqs)
+        {
+            Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> results = new Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>(); 
+            foreach (ProtoGraph graph in ProtoGraphs.Values)
+            {
+                results[graph] = graph.MeetsTestRequirements(threadTestReqs);
+            }
+            return results;
+        }
+
+
     }
 }

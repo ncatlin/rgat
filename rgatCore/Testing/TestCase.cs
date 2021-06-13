@@ -6,13 +6,64 @@ using System.Text;
 
 namespace rgatCore.Testing
 {
-    public enum RequirementCondition { Equals, LessThan, LessThanOrEqualTo, GreaterThan, GreaterThanOrEqualTo, Exists, Absent, INVALID };
+    public enum RequirementCondition
+    {
+        Equals, LessThan, LessThanOrEqualTo, GreaterThan,
+        GreaterThanOrEqualTo, Exists, Absent, Contains, In, INVALID
+    };
+
+    public class REQUIREMENT_TEST_RESULTS
+    {
+        public REQUIREMENT_TEST_RESULTS()
+        {
+            Passed = new List<TestResultCommentary>();
+            Failed = new List<TestResultCommentary>();
+            Errors = new List<Tuple<TestRequirement, string>>();
+        }
+        public List<TestResultCommentary> Passed;
+        public List<TestResultCommentary> Failed;
+        public List<Tuple<TestRequirement, string>> Errors;
+    }
+
+
+    public class TRACE_TEST_RESULTS
+    {
+        public REQUIREMENT_TEST_RESULTS ProcessResults = new REQUIREMENT_TEST_RESULTS();
+
+        public Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>> ThreadResults =
+            new Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>>();
+
+        public Dictionary<TraceRequirements, Dictionary<TraceRecord, TRACE_TEST_RESULTS>> ChildResults =
+            new Dictionary<TraceRequirements, Dictionary<TraceRecord, TRACE_TEST_RESULTS>>();
+    }
+
+    public struct REQUIREMENTS_LIST
+    {
+        public List<TestRequirement> value;
+    }
+
     public class TestRequirement
     {
         public TestRequirement(string name, JToken value, string condition)
         {
             Name = name;
             ExpectedValue = value;
+
+            switch (ExpectedValue.Type)
+            {
+                case JTokenType.Integer:
+                    ExpectedValueString = $"{ExpectedValue.ToObject<long>()}";
+                    break;
+                case JTokenType.String:
+                    ExpectedValueString = $"{ExpectedValue.ToObject<string>()}";
+                    break;
+                case JTokenType.Float:
+                    ExpectedValueString = $"{ExpectedValue.ToObject<float>()}";
+                    break;
+                default:
+                    ExpectedValueString = $"[{ExpectedValue.Type} value]";
+                    break;
+            }
 
             switch (condition.ToLower())
             {
@@ -59,27 +110,146 @@ namespace rgatCore.Testing
                     Condition = RequirementCondition.Absent;
                     break;
 
+                case "contains":
+                    Condition = RequirementCondition.Contains;
+                    break;
+
+                case "in":
+                    Condition = RequirementCondition.In;
+                    break;
+
                 default:
                     Condition = RequirementCondition.INVALID;
                     break;
             }
         }
+
+
+        public bool Compare(int value, out string error)
+        {
+            error = "";
+            if (ExpectedValue.Type != JTokenType.Integer)
+            {
+                error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
+                return false;
+            }
+
+            int comparedValue = ExpectedValue.ToObject<int>();
+            switch (Condition)
+            {
+                case RequirementCondition.Equals:
+                    return value == comparedValue;
+                case RequirementCondition.GreaterThan:
+                    return value > comparedValue;
+                case RequirementCondition.GreaterThanOrEqualTo:
+                    return value >= comparedValue;
+                case RequirementCondition.LessThan:
+                    return value < comparedValue;
+                case RequirementCondition.LessThanOrEqualTo:
+                    return value <= comparedValue;
+                default:
+                    error = "Bad comparison for integer value: " + Condition;
+                    return false;
+                    break;
+            }
+        }
+
+
+        public bool Compare(long value, out string error)
+        {
+            error = "";
+            if (ExpectedValue.Type != JTokenType.Integer)
+            {
+                error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
+                return false;
+            }
+            long comparedValue = ExpectedValue.ToObject<long>();
+            switch (Condition)
+            {
+                case RequirementCondition.Equals:
+                    return value == comparedValue;
+                case RequirementCondition.GreaterThan:
+                    return value > comparedValue;
+                case RequirementCondition.GreaterThanOrEqualTo:
+                    return value >= comparedValue;
+                case RequirementCondition.LessThan:
+                    return value < comparedValue;
+                case RequirementCondition.LessThanOrEqualTo:
+                    return value <= comparedValue;
+                default:
+                    error = "Bad comparison for long value: " + Condition;
+                    return false;
+                    break;
+            }
+        }
+
+
+        public bool Compare(ulong value, out string error)
+        {
+            error = "";
+            if (ExpectedValue.Type != JTokenType.Integer)
+            {
+                error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
+                return false;
+            }
+            ulong comparedValue = ExpectedValue.ToObject<ulong>();
+            switch (Condition)
+            {
+                case RequirementCondition.Equals:
+                    return value == comparedValue;
+                case RequirementCondition.GreaterThan:
+                    return value > comparedValue;
+                case RequirementCondition.GreaterThanOrEqualTo:
+                    return value >= comparedValue;
+                case RequirementCondition.LessThan:
+                    return value < comparedValue;
+                case RequirementCondition.LessThanOrEqualTo:
+                    return value <= comparedValue;
+                default:
+                    error = "Bad comparison for ulong value: " + Condition;
+                    return false;
+                    break;
+            }
+        }
+
         public string Name { get; private set; }
         public JToken ExpectedValue { get; private set; }
+        public string ExpectedValueString { get; private set; }
         public RequirementCondition Condition { get; private set; }
     }
 
-    public class ProcessTestRequirements
+    public class TraceRequirements
     {
-        public ProcessTestRequirements()
+        public TraceRequirements()
         {
 
         }
         //list of requirements the process (ie: TraceRecord) must meet
         public List<TestRequirement> ProcessRequirements = new List<TestRequirement>();
-        //list of requirements the threads (ie: ProtoGraphs) must meet
-        public List<List<TestRequirement>> ThreadRequirements = new List<List<TestRequirement>>();
+
+        //list of requirements the process threads (ie: ProtoGraphs) must meet
+        public List<REQUIREMENTS_LIST> ThreadRequirements = new List<REQUIREMENTS_LIST>();
+
+        //lsit of requirements for descendant processes
+        public List<TraceRequirements> ChildProcessRequirements = new List<TraceRequirements>();
     }
+
+    public class TraceRequirementsEvalResults
+    {
+        public TraceRequirementsEvalResults()
+        {
+
+        }
+        //list of requirements the process (ie: TraceRecord) must meet
+        public List<TestRequirement> ProcessRequirements = new List<TestRequirement>();
+
+        //list of requirements the process threads (ie: ProtoGraphs) must meet
+        public List<REQUIREMENTS_LIST> ThreadRequirements = new List<REQUIREMENTS_LIST>();
+
+        //lsit of requirements for descendant processes
+        public List<TraceRequirements> ChildProcessRequirements = new List<TraceRequirements>();
+    }
+
 
     public enum eTestState { NotRun, Passed, Failed };
     public class TestCase
@@ -93,7 +263,7 @@ namespace rgatCore.Testing
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception {e.Message} getting directory of test {jsonpath}");
+                DeclareLoadingError($"Exception {e.Message} getting directory of test {jsonpath}");
                 return;
             }
             JSONPath = jsonpath;
@@ -106,6 +276,48 @@ namespace rgatCore.Testing
             }
         }
 
+
+        bool _loadingError = false;
+
+        public List<string> LoadingErrors = new List<string>();
+        public bool Loaded { get; private set; }
+
+        //the lastest test result
+        public eTestState LatestResultState = eTestState.NotRun;
+        public TestCaseRun LatestTestRun { get; private set; }
+        public string LatestErrorReason { get; private set; }
+
+        public string JSONPath { get; private set; }
+        public string BinaryPath { get; private set; }
+        public string BinaryDirectory { get; private set; }
+        public string CategoryName { get; private set; }
+        public string TestName { get; private set; }
+        public bool Starred;
+        public string Description { get; private set; }
+        public int TestBits { get; private set; }
+        public string TestOS { get; private set; }
+
+        public long LastErrorTestID { get; private set; }
+
+        public int Running { get; private set; }
+        Dictionary<int, int> _passed = new Dictionary<int, int>();
+        Dictionary<int, int> _failed = new Dictionary<int, int>();
+
+        /// <summary>
+        /// A list of conditions met by the entire test itself
+        /// </summary>
+        List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
+
+        /// <summary>
+        /// A nested list of requirements for each thread
+        /// vague pseudo-json example [{C:6, [C:1, C:3]},{C:1, [C:7,C:12]}]
+        ///     This expects two processes, each producing 2 thread graphs
+        ///     One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
+        ///     Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
+        /// </summary>
+        TraceRequirements _TraceRequirements = new TraceRequirements();
+
+
         bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject jsnobj)
         {
             jsnobj = null;
@@ -117,7 +329,7 @@ namespace rgatCore.Testing
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error reading test specification {jsonpath}: {e.Message}", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"Error reading test specification: {e.Message}");
                 return false;
             }
 
@@ -128,11 +340,11 @@ namespace rgatCore.Testing
             }
             catch (Newtonsoft.Json.JsonReaderException e)
             {
-                Logging.RecordLogEvent($"Error parsing JSON of test specification '{jsonpath}': {e.Message}", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"Exception parsing JSON: {e.Message}");
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("Error parsing test specification: " + e.Message, Logging.LogFilterType.TextError);
+                DeclareLoadingError("Exception parsing test specification: " + e.Message);
             }
             return false;
         }
@@ -143,7 +355,7 @@ namespace rgatCore.Testing
             //mandatory for test cases to have metadata
             if (!testSpec.TryGetValue("Meta", out JToken metaTok) && metaTok.Type == JTokenType.Object)
             {
-                Logging.RecordLogEvent($"No test metadata in test specification '{JSONPath}'", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"No test metadata in test specification");
                 return false;
             }
             JObject metadata = metaTok.ToObject<JObject>();
@@ -154,7 +366,7 @@ namespace rgatCore.Testing
             {
                 if (!LoadFinalRequirements(finalReqTok.ToObject<JObject>()))
                 {
-                    Logging.RecordLogEvent($"FinalRequirements were present in '{JSONPath}' but failed to load", Logging.LogFilterType.TextError);
+                    DeclareLoadingError($"FinalRequirements were present in spec but failed to load");
                     return false;
                 }
             }
@@ -169,7 +381,7 @@ namespace rgatCore.Testing
 
             if (!metaObj.TryGetValue("BinaryName", out JToken binNameTok) || binNameTok.Type != JTokenType.String)
             {
-                Logging.RecordLogEvent($"No binary name in test specification '{JSONPath}'", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"No binary name in metadata");
                 return false;
             }
             string candidatePath = Path.Combine(BinaryDirectory, binNameTok.ToObject<string>());
@@ -179,7 +391,7 @@ namespace rgatCore.Testing
             }
             else
             {
-                Logging.RecordLogEvent($"Test binary not found '{candidatePath}' while loading test {TestName}", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"Test binary not found at '{candidatePath}'");
                 return false;
             }
 
@@ -189,7 +401,7 @@ namespace rgatCore.Testing
             }
             else
             {
-                Logging.RecordLogEvent($"No test bitwidth in test specification '{JSONPath}'", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"No test bitwidth in metadata");
                 return false;
             }
 
@@ -199,7 +411,7 @@ namespace rgatCore.Testing
             }
             else
             {
-                Logging.RecordLogEvent($"No test OS in test specification '{JSONPath}'", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"No test OS in metadata");
                 return false;
             }
 
@@ -228,29 +440,25 @@ namespace rgatCore.Testing
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Failed to load final overall test requirements from '{JSONPath}'", Logging.LogFilterType.TextError);
-                        _loadingError = true;
+                        DeclareLoadingError($"Failed to load final overall test requirements");
                         return false;
                     }
                 }
             }
 
-            if (reqsObj.TryGetValue("Process", out tok) && tok.Type == JTokenType.Array)
+            if (reqsObj.TryGetValue("Process", out tok) && tok.Type == JTokenType.Object)
             {
-                JArray items = tok.ToObject<JArray>();
-                foreach (var processReq in items)
+                JObject items = tok.ToObject<JObject>();
+                if (LoadProcessRequirements(items, out TraceRequirements requirement))
                 {
-                    if (LoadProcessRequirements(processReq, out ProcessTestRequirements requirement))
-                    {
-                        _ProcessRequirements.Add(requirement);
-                    }
-                    else
-                    {
-                        Logging.RecordLogEvent($"Failed to load final process requirements from '{JSONPath}'", Logging.LogFilterType.TextError);
-                        _loadingError = true;
-                        return false;
-                    }
+                    _TraceRequirements = requirement;
                 }
+                else
+                {
+                    DeclareLoadingError($"Failed to load final process requirements");
+                    return false;
+                }
+
             }
 
             return true;
@@ -274,7 +482,7 @@ namespace rgatCore.Testing
                 condTok.Type != JTokenType.String)
             {
                 _loadingError = true;
-                Logging.RecordLogEvent($"Requirement {name} had bad format", Logging.LogFilterType.TextError);
+                DeclareLoadingError($"Requirement {name} had bad format");
                 return false;
             }
 
@@ -282,7 +490,7 @@ namespace rgatCore.Testing
             testRequirement = new TestRequirement(name, resultValue, conditionText);
             if (testRequirement.Condition == RequirementCondition.INVALID)
             {
-                Logging.RecordLogEvent($"Invalid condition {conditionText} in requirement {name}");
+                DeclareLoadingError($"Invalid condition {conditionText} in requirement {name}");
                 _loadingError = true;
                 return false;
             }
@@ -291,62 +499,100 @@ namespace rgatCore.Testing
         }
 
 
-        bool LoadProcessRequirements(JToken procObj, out ProcessTestRequirements ptr)
+        bool LoadProcessRequirements(JToken procObj, out TraceRequirements ptr)
         {
-            ptr = new ProcessTestRequirements();
+            ptr = new TraceRequirements();
             if (procObj.Type != JTokenType.Object)
             {
-                Logging.RecordLogEvent($"Test {TestName} JSON has invalid token type {procObj.Type} for a process object");
-                _loadingError = true;
+                DeclareLoadingError($"JSON has invalid token type {procObj.Type} for a process object");
                 return false;
             }
 
             //iterate through list of process+graph requirements
             foreach (var processTok in procObj.ToObject<JObject>())
             {
-                if (processTok.Key == "Comment") continue;
-                if (processTok.Key == "GraphRequirements" && processTok.Value.Type == JTokenType.Array)
+                switch (processTok.Key)
                 {
-                    JArray graphToks = processTok.Value.ToObject<JArray>();
-                    foreach (var graphTok in graphToks)
-                    {
-                        if (LoadGraphRequirementsObject(graphTok, out List<TestRequirement> graphRequirements))
+                    case "Comment":
+                        break;
+
+                    case "ThreadRequirements":
+                        if (processTok.Value.Type == JTokenType.Array)
                         {
-                            ptr.ThreadRequirements.Add(graphRequirements);
+                            JArray graphToks = processTok.Value.ToObject<JArray>();
+                            foreach (var graphTok in graphToks)
+                            {
+                                if (LoadGraphRequirementsObject(graphTok, out REQUIREMENTS_LIST graphRequirements))
+                                {
+                                    ptr.ThreadRequirements.Add(graphRequirements);
+                                }
+                                else
+                                {
+                                    DeclareLoadingError($"JSON has invalid GraphRequirements list");
+                                    return false;
+                                }
+                            }
+                        }
+                        break;
+
+                    case "ProcessRequirements":
+                        if (processTok.Value.Type == JTokenType.Object)
+                        {
+                            JObject processToks = processTok.Value.ToObject<JObject>();
+                            foreach (var req in processToks)
+                            {
+                                if (LoadTestRequirement(req.Key, req.Value, out TestRequirement processReq))
+                                {
+                                    ptr.ProcessRequirements.Add(processReq);
+                                }
+                            }
+                        }
+                        break;
+
+                    case "ChildProcessRequirements":
+                        if (processTok.Value.Type == JTokenType.Array)
+                        {
+                            JArray items = processTok.Value.ToObject<JArray>();
+                            foreach (var childProcessReq in items)
+                            {
+                                if (LoadProcessRequirements(childProcessReq, out TraceRequirements requirement))
+                                {
+                                    ptr.ChildProcessRequirements.Add(requirement);
+                                }
+                                else
+                                {
+                                    DeclareLoadingError($"Failed to load final childprocess requirements");
+                                    return false;
+                                }
+                            }
                         }
                         else
                         {
-                            Logging.RecordLogEvent($"Test {TestName} JSON has invalid GraphRequirements list");
-                            _loadingError = true;
+                            DeclareLoadingError($"Non-array ChildProcessRequirements");
                             return false;
                         }
-                    }
-                }
-                else
-                {
-                    if (LoadTestRequirement(processTok.Key, processTok.Value, out TestRequirement processReq))
-                    {
-                        ptr.ProcessRequirements.Add(processReq);
-                    }
-                    else
-                    {
-                        Logging.RecordLogEvent($"Test {TestName} JSON has invalid ProcessRequirement {processTok.Key}");
-                        _loadingError = true;
+                        break;
+
+                    default:
+
+                        DeclareLoadingError($"JSON has invalid ProcessRequirement {processTok.Key}");
                         return false;
-                    }
+                        break;
                 }
             }
             return true;
         }
 
 
-        bool LoadGraphRequirementsObject(JToken threadReqsObj, out List<TestRequirement> graphRequirements)
+        bool LoadGraphRequirementsObject(JToken threadReqsObj, out REQUIREMENTS_LIST graphRequirements)
         {
-            graphRequirements = new List<TestRequirement>();
+            graphRequirements = new REQUIREMENTS_LIST()
+            {
+                value = new List<TestRequirement>()
+            };
             if (threadReqsObj.Type != JTokenType.Object)
             {
-                Logging.RecordLogEvent($"Test {TestName} JSON has invalid token type {threadReqsObj.Type} for a threads requirement list");
-                _loadingError = true;
+                DeclareLoadingError($"JSON has invalid token type {threadReqsObj.Type} for a threads requirement list");
                 return false;
             }
 
@@ -357,49 +603,26 @@ namespace rgatCore.Testing
 
                 if (LoadTestRequirement(reqKVP.Key, reqKVP.Value, out TestRequirement graphReq))
                 {
-                    graphRequirements.Add(graphReq);
+                    graphRequirements.value.Add(graphReq);
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Test {TestName} JSON has invalid Thread TestRequirement {reqKVP.Key}");
-                    _loadingError = true;
+                    DeclareLoadingError($"JSON has invalid Thread TestRequirement {reqKVP.Key}");
                     return false;
                 }
             }
             return true;
         }
 
+        void DeclareLoadingError(string error)
+        {
+            string log = $"Failed Loading TestCase '{JSONPath}': {error}";
+            Logging.RecordLogEvent(log);
+            LoadingErrors.Add(error);
+            _loadingError = true;
+        }
 
-        bool _loadingError = false;
-        public bool Loaded { get; private set; }
-        //the lastest test result
-        public eTestState LatestResult = eTestState.NotRun;
-        public string JSONPath { get; private set; }
-        public string BinaryPath { get; private set; }
-        public string BinaryDirectory { get; private set; }
-        public string CategoryName { get; private set; }
-        public string TestName { get; private set; }
-        public bool Starred;
-        public string Description { get; private set; }
-        public int TestBits { get; private set; }
-        public string TestOS { get; private set; }
 
-        public int Running { get; private set; }
-        Dictionary<int, int> _passed = new Dictionary<int, int>();
-        Dictionary<int, int> _failed = new Dictionary<int, int>();
-
-        /// <summary>
-        /// A nested list of requirements for each thread
-        /// vague pseudo-json example [{C:6, [C:1, C:3]},{C:1, [C:7,C:12]}]
-        ///     This expects two processes, each producing 2 thread graphs
-        ///     One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
-        ///     Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
-        /// </summary>
-        List<ProcessTestRequirements> _ProcessRequirements = new List<ProcessTestRequirements>();
-        /// <summary>
-        /// A list of conditions met by the entire test itself
-        /// </summary>
-        List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
 
         public TestRequirement[] TestRunRequirements()
         {
@@ -409,11 +632,11 @@ namespace rgatCore.Testing
             }
         }
 
-        public ProcessTestRequirements[] ProcessRequirements()
+        public TraceRequirements TraceRequirements()
         {
             lock (_lock)
             {
-                return _ProcessRequirements.ToArray();
+                return _TraceRequirements;
             }
         }
 
@@ -421,24 +644,27 @@ namespace rgatCore.Testing
 
         public void RecordRunning() { lock (_lock) { Running++; } }
         public void RecordFinished() { lock (_lock) { Running--; } }
-        public void RecordPassed(int sessionID)
+        public void RecordPassed(int sessionID, TestCaseRun testrun)
         {
             lock (_lock)
             {
                 _passed.TryGetValue(sessionID, out int val);
                 _passed[sessionID] = val + 1;
-                LatestResult = eTestState.Passed;
+                LatestResultState = eTestState.Passed;
+                LatestTestRun = testrun;
             }
         }
         public int CountPassed(int sessionID) { lock (_lock) { _passed.TryGetValue(sessionID, out int val); return val; } }
 
-        public void RecordFailed(int sessionID)
+        public void RecordFailed(int sessionID, TestCaseRun testrun, string reason)
         {
             lock (_lock)
             {
                 _failed.TryGetValue(sessionID, out int val);
                 _failed[sessionID] = val + 1;
-                LatestResult = eTestState.Failed;
+                LatestResultState = eTestState.Failed;
+                LatestTestRun = testrun;
+                LatestErrorReason = reason;
             }
         }
         public int CountFailed(int sessionID) { lock (_lock) { _failed.TryGetValue(sessionID, out int val); return val; } }
