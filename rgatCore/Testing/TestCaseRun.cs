@@ -91,6 +91,11 @@ namespace rgatCore.Testing
 
         void EvaluateResults()
         {
+            if (FirstTrace == null)
+            {
+                _test.RecordFailed(Session, this, "Didn't run");
+                return;
+            }
 
             EvaluateGeneralTestResults();
             if (FailedTestRequirements.Count > 0)

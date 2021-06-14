@@ -1343,7 +1343,7 @@ namespace rgatCore
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(10, 0));
 
-                if (lastAnimIdx >= 0)
+                if (lastAnimIdx >= 0 && lastAnimIdx > graph.SavedAnimationData.Count)
                 {
                     ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
                     ImGui.Text(lastEntry.entryType.ToString());
