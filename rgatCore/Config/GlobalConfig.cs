@@ -232,6 +232,8 @@ namespace rgatCore.Threads
         public static string PinPath;
         public static string PinToolPath32;
         public static string PinToolPath64;
+        public static string DiEScriptsDB;
+        public static string YARARulesDir;
         public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
         //true => traces we save will be added to recent traces list. false => only ones we load will
@@ -253,6 +255,20 @@ namespace rgatCore.Threads
         public static ulong SymbolSearchDistance = 4096;
         public static int ArgStorageMax = 100;
 
+        public static bool ScanFilesYARA = true;
+        public static bool ScanFilesDiE = true;
+        public static bool ScanMemoryYARA = true;
+        public static bool ScanMemoryDiE = true;
+
+
+
+
+
+
+
+        /*
+         * Keybinds config
+         */
         public static void InitDefaultKeybinds()
         {
             SetKeybind(action: eKeybind.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);

@@ -19,6 +19,8 @@ namespace rgatCore
 
         public void StartDetectItEasyScan(BinaryTarget targ)
         {
+            if (!dielib.DatabaseLoaded) return;
+
             ulong handle = 0;
             lock (scansLock)
             {
@@ -52,6 +54,8 @@ namespace rgatCore
             }
         }
 
+        public string LastError => dielib.LastError;
+
 
         public void ReloadDIEScripts()
         {
@@ -60,8 +64,11 @@ namespace rgatCore
 
         static void DetectItScanThread(object argslist)
         {
+           
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
+            if (scanner.DatabaseLoaded) return;
+
             BinaryTarget targ = (BinaryTarget)args[1];
             ulong handle = (ulong)args[2];
 

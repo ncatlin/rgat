@@ -440,61 +440,182 @@ namespace rgatCore
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            DiELibDotNet.DieScript.SCANPROGRESS progress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
+            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
 
-                if (progress.loading)
+                if (DEProgress.loading)
                 {
                     SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
                 }
-                else if (progress.running)
+                else if (DEProgress.running)
                 {
-                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    string caption = $"{progress.scriptsFinished}/{progress.scriptCount} scripts complete";
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
-                else if (progress.errored)
+                else if (DEProgress.errored)
                 {
-                    float dieProgress = progress.scriptCount == 0 ? 0f : (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    string caption = $"Scan Failed after {progress.scriptsFinished} scripts";
+                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
-                else if (progress.StopRequestFlag)
+                else if (DEProgress.StopRequestFlag)
                 {
-                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    string caption = $"Cancelled after {progress.scriptsFinished}/{progress.scriptCount} scripts";
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else
                 {
-                    float dieProgress = (float)progress.scriptsFinished / (float)progress.scriptCount;
-                    string caption = $"Scan complete ({progress.scriptsFinished} scripts)";
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
 
-                ImGui.SameLine();
-
-                if ((progress.running || progress.loading))
+                if ((DEProgress.running || DEProgress.loading))
                 {
-                    if (ImGui.Button("X")) _rgatstate.DIELib.CancelDIEScan(activeTarget);
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"{DEProgress.scriptsFinished}/{DEProgress.scriptCount} DetectItEasy scripts have been run so far");
+                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                        ImGui.Separator();
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                        ImGui.Text("Click To Cancel");
+                        ImGui.PopStyleColor();
+                        ImGui.EndTooltip();
+                    }
+                    if (ImGui.IsItemClicked())
+                    {
+                        _rgatstate.DIELib.CancelDIEScan(activeTarget);
+                    }
                 }
-                else if (!progress.running && !progress.loading)
+                else if (!DEProgress.running && !DEProgress.loading)
                 {
-                    //if (ImGui.Button("RL")) _rgatstate.DIELib.ReloadDIEScripts();  //add a button to reload scripts somewhere
-                    // ImGui.SameLine(); 
-                    if (ImGui.Button("RS")) _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        if (DEProgress.scriptCount == 0)
+                        {
+                            string lastDiEErr = _rgatstate.DIELib.LastError;
+                            if (lastDiEErr != "")
+                            {
+                                if (lastDiEErr == "No scripts configured")
+                                {
+                                    ImGui.Text($"No DetectItEasy scripts configured. Select the db path in the settings File pane");
+                                }
+                                else
+                                {
+                                    ImGui.Text($"No DetectItEasy scripts loaded: {lastDiEErr}");
+                                }
+                            }
+                            ImGui.Separator();
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                            ImGui.Text("Click To Reload");
+                            ImGui.PopStyleColor();
+                        }
+                        else
+                        {
+                            ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed");
+                            ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                            ImGui.Separator();
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                            ImGui.Text("Click To Rescan");
+                            ImGui.PopStyleColor();
+                        }
+                        ImGui.EndTooltip();
+                    }
+                    if (ImGui.IsItemClicked())
+                    {
+                        if (DEProgress.scriptCount == 0)
+                            _rgatstate.DIELib.ReloadDIEScripts();
+                        else
+                            _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
+                }
+            }
+            ImGui.EndGroup();
+        }
+
+        private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
+        {
+            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
+            ImGui.BeginGroup();
+            {
+
+                if (DEProgress.loading)
+                {
+                    SmallWidgets.ProgressBar("YaraProgBar", $"Loading Rules", 0, barSize, 0xff117711, 0xff111111);
+                }
+                else if (DEProgress.running)
+                {
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
+                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else if (DEProgress.errored)
+                {
+                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else if (DEProgress.StopRequestFlag)
+                {
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+                else
+                {
+                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                }
+
+                if ((DEProgress.running || DEProgress.loading))
+                {
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"{DEProgress.scriptsFinished}/{DEProgress.scriptCount} DetectItEasy scripts have been run so far");
+                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                        ImGui.Separator();
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                        ImGui.Text("Click To Cancel");
+                        ImGui.PopStyleColor();
+                        ImGui.EndTooltip();
+                    }
+                    if (ImGui.IsItemClicked())
+                    {
+                        _rgatstate.DIELib.CancelDIEScan(activeTarget);
+                    }
+                }
+                else if (!DEProgress.running && !DEProgress.loading)
+                {
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed");
+                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                        ImGui.Separator();
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                        ImGui.Text("Click To Rescan");
+                        ImGui.PopStyleColor();
+                        ImGui.EndTooltip();
+                    }
+                    if (ImGui.IsItemClicked())
+                    {
+                        _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
                 }
             }
             ImGui.EndGroup();
         }
 
 
-
         private void DrawSignaturesBox(BinaryTarget activeTarget)
         {
-            ImGui.Text("Signature Hits");
-            ImGui.NextColumn();
             ImGui.BeginGroup();
             {
                 string formatNotes = activeTarget.FormatSignatureHits(out bool gotYARA, out bool gotDIE);
@@ -502,8 +623,6 @@ namespace rgatCore
                 ImGui.SameLine();
 
                 ImGui.BeginGroup();
-
-                DrawDetectItEasyProgress(activeTarget, new Vector2(250, 25));
 
 
 
@@ -514,71 +633,94 @@ namespace rgatCore
 
         }
 
+
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginChildFrame(22, new Vector2(width, 300), ImGuiWindowFlags.AlwaysAutoResize);
             ImGui.BeginGroup();
             {
-                ImGui.Columns(2);
-                ImGui.SetColumnWidth(0, 120);
-                ImGui.SetColumnWidth(1, width - 120);
-                ImGui.Separator();
-
-                byte[] _dataInput = null;
-
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("File"); ImGui.NextColumn();
-                string fileStr = String.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
-                _dataInput = Encoding.UTF8.GetBytes(fileStr);
-                ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("SHA1 Hash"); ImGui.NextColumn();
-                _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
-                ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("SHA256 Hash"); ImGui.NextColumn();
-                _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
-                ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-
-                ImGui.Text("Hex Preview"); ImGui.NextColumn();
-                _hexTooltipShown = false;
-                _ImGuiController.PushOriginalFont(); //it's monospace and UTF8
+                if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, ImGui.GetContentRegionAvail()))
                 {
-                    _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
-                    ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                    _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
-                    if (ImGui.IsItemHovered())
+                    ImGui.TableSetupColumn("#FieldName", ImGuiTableColumnFlags.WidthFixed, 135);
+                    ImGui.TableSetupColumn("#FieldValue", ImGuiTableColumnFlags.WidthFixed, width - 140);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Filename (Size)");
+                    ImGui.TableNextColumn();
+                    string fileStr = String.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
+                    byte[] _dataInput = Encoding.UTF8.GetBytes(fileStr);
+                    ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("SHA1 Hash");
+                    ImGui.TableNextColumn();
+                    _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
+                    ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("SHA256 Hash");
+                    ImGui.TableNextColumn();
+                    _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
+                    ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Hex Preview");
+                    ImGui.TableNextColumn();
+                    _hexTooltipShown = false;
+                    _ImGuiController.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
-                        ShowHexPreviewTooltip(activeTarget);
+                        _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
+                        ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                        _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                        if (ImGui.IsItemHovered())
+                        {
+                            ShowHexPreviewTooltip(activeTarget);
+                        }
+                        ImGui.PopFont();
                     }
-                    ImGui.PopFont();
-                }
 
-                ImGui.Text("ASCII Preview"); ImGui.NextColumn();
-                _ImGuiController.PushOriginalFont();
-                {
-                    _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
-                    ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                    _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
-                    if (ImGui.IsItemHovered())
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("ASCII Preview");
+                    ImGui.TableNextColumn();
+                    _ImGuiController.PushOriginalFont();
                     {
-                        ShowHexPreviewTooltip(activeTarget);
+                        _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
+                        ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                        _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                        if (ImGui.IsItemHovered())
+                        {
+                            ShowHexPreviewTooltip(activeTarget);
+                        }
+                        ImGui.PopFont();
+
                     }
-                    ImGui.PopFont();
 
+                    if (!_hexTooltipShown) _hexTooltipScroll = 0;
+
+
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Signature Scan");
+                    DrawDetectItEasyProgress(activeTarget, new Vector2(120, 25));
+                    DrawYARAProgress(activeTarget, new Vector2(120, 25));
+
+
+                    ImGui.TableNextColumn();
+
+                    DrawSignaturesBox(activeTarget);
+
+                    ImGui.EndTable();
                 }
-
-                if (!_hexTooltipShown) _hexTooltipScroll = 0;
-
-                DrawSignaturesBox(activeTarget);
-
-
-                ImGui.NextColumn();
             }
 
-            ImGui.Columns(1);
+            // ImGui.Columns(1);
             ImGui.EndGroup();
             ImGui.EndChildFrame();
         }

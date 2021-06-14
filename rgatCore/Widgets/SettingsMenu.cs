@@ -48,10 +48,10 @@ namespace rgatCore.Widgets
 
             settingsNames = new List<string>();
             settingsNames.Add("Files");
-            settingsNames.Add("Setting2");
+            settingsNames.Add("Signatures");
             settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
-            settingsNames.Add("Theme - GUI");
+            settingsNames.Add("Theme");
             optionsSelectStates = new bool[settingsNames.Count];
             optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
@@ -139,13 +139,89 @@ namespace rgatCore.Widgets
                 case "Files":
                     CreateOptionsPane_Files();
                     break;
-                case "Theme - GUI":
+                case "Signatures":
+                    CreateOptionsPane_Signatures();
+                    break;
+                case "Theme":
                     CreateOptionsPane_UITheme();
                     break;
                 default:
                     Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
                     break;
             }
+        }
+
+
+        
+
+
+        void CreateOptionsPane_Signatures()
+        {
+            //available/enabled/loaded signatures pane
+            //scanning controls
+            //download more btn
+            if(ImGui.BeginChild("#SignaturesPane", ImGui.GetContentRegionAvail() - new Vector2(0, 100), false, ImGuiWindowFlags.None))
+            {
+                ImGui.Text("Available Signatures"); 
+                ImGui.SameLine(); 
+                ImGui.Button("Get More");
+               
+                if(ImGui.BeginTabBar("#SigsAvailableTab", ImGuiTabBarFlags.None))
+                {
+                    if (ImGui.BeginTabItem("YARA"))
+                    {
+
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("Detect It Easy"))
+                    {
+
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
+                ImGui.EndChild();
+            }
+            bool test = true;
+            if (ImGui.BeginChild("#SignatureOptsPane", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.None))
+            {
+                if(ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
+                {
+                    ImGui.TableSetupColumn("Format", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("Scan File On Load", ImGuiTableColumnFlags.WidthFixed, 130);
+                    ImGui.TableSetupColumn("Scan Memory", ImGuiTableColumnFlags.WidthFixed, 130);
+
+                    ImGui.TableHeadersRow();
+                    uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
+                    ImGui.Text("YARA");
+                    ImGui.TableNextColumn();
+                    int yaraFileSigsCount = 44;
+                    ImGui.Checkbox($"({yaraFileSigsCount})##fycheck", ref GlobalConfig.ScanFilesYARA);
+                    ImGui.TableNextColumn();
+                    int yaraMemSigsCount = 44;
+                    ImGui.Checkbox($"({yaraMemSigsCount})##mycheck", ref GlobalConfig.ScanMemoryYARA);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
+                    ImGui.Text("DiE");
+                    ImGui.TableNextColumn();
+                    int dieFileSigsCount = 44;
+                    ImGui.Checkbox($"({dieFileSigsCount})##fdcheck", ref GlobalConfig.ScanFilesDiE);
+                    ImGui.TableNextColumn();
+                    int dieMemSigsCount = 44;
+                    ImGui.Checkbox($"({dieMemSigsCount})##mdcheck", ref GlobalConfig.ScanMemoryDiE);
+
+                    ImGui.EndTable();
+                }
+
+
+                ImGui.EndChild();
+            }
+
         }
 
         void CreateOptionsPane_Text()

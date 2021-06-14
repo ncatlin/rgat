@@ -35,7 +35,8 @@ namespace rgatCore
             _CommandList = _cl;
             PlottedGraph.clientState = this;
             Logging.RecordLogEvent("Loading dielib", Logging.LogFilterType.TextDebug);
-            DIELib = new DetectItEasy(@"C:\Users\nia\Downloads\Detect-It-Easy-master\db");
+            //if (Directory.Exists(GlobalConfig.DiEScriptsDB))
+            DIELib = new DetectItEasy(GlobalConfig.DiEScriptsDB);
             Logging.RecordLogEvent("dielib loaded. loading yara", Logging.LogFilterType.TextDebug);
             YARALib = new YARAScan();
             Logging.RecordLogEvent("yara loaded", Logging.LogFilterType.TextDebug);
