@@ -9,7 +9,7 @@ namespace rgatCore.Widgets
 {
     class SmallWidgets
     {
-        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour)
+        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour=0, uint textColour= 0xffffffff)
         {
 
             ImGui.InvisibleButton(id, barSize);
@@ -27,7 +27,7 @@ namespace rgatCore.Widgets
             float halfCaptionWidth = textSize.X / 2;
 
             Vector2 textpos = new Vector2(startInner.X + barSize.X / 2 - halfCaptionWidth, startInner.Y);
-            ImGui.GetWindowDrawList().AddText(textpos, 0xffffffff, caption);
+            ImGui.GetWindowDrawList().AddText(textpos, textColour, caption);
         }
 
 

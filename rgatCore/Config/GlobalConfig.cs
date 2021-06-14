@@ -402,7 +402,8 @@ namespace rgatCore.Threads
         }
 
 
-        public struct CachedPathData {
+        public struct CachedPathData
+        {
             public string path;
             public DateTime firstSeen;
             public DateTime lastSeen;
@@ -422,8 +423,8 @@ namespace rgatCore.Threads
             if (sec != null && sec.RecentPaths.Type == JTokenType.Object)
             {
                 if (sec.RecentPaths.TryGetValue(pathType, out JToken val) && val.Type == JTokenType.Object)
-                { 
-                   JObject tracesObj = val.ToObject<JObject>();
+                {
+                    JObject tracesObj = val.ToObject<JObject>();
 
                     foreach (var entry in tracesObj)
                     {
@@ -746,6 +747,7 @@ namespace rgatCore.Threads
 
         static void InitPaths()
         {
+            //directories
             if (GetAppSetting("TraceSaveDirectory", out string tracedir) && Directory.Exists(tracedir))
             {
                 TraceSaveDirectory = tracedir;
@@ -780,6 +782,18 @@ namespace rgatCore.Threads
                     AddUpdateAppSettings("TestsDirectory", TestsDirectory);
                 }
             }
+
+            if (GetAppSetting("DiEScriptsDB", out string diedbpath) && Directory.Exists(testsdir))
+            {
+                DiEScriptsDB = diedbpath;
+            }
+            else
+            {
+                Logging.RecordLogEvent("No Detect-It-Easy scripts directory was configured. Configure this in the Settings->File pane to enable these scans.");
+                //todo: search in the place we distribute die sigs, appdir/sigs/die/db?
+            }
+
+            //binaries
 
 
             if (GetAppSetting("PinPath", out string pinexe) && File.Exists(pinexe))
@@ -816,9 +830,9 @@ namespace rgatCore.Threads
             }
 
 
-            if (GetAppSetting("PinToolPath64", out string pintool64) && File.Exists(pintool32))
+            if (GetAppSetting("PinToolPath64", out string pintool64) && File.Exists(pintool64))
             {
-                SetBinaryPath("PinToolPath64", pintool32, save: false);
+                SetBinaryPath("PinToolPath64", pintool64, save: false);
             }
             else
             {
@@ -833,13 +847,21 @@ namespace rgatCore.Threads
 
         public static void SetNonBinaryPath(string setting, string path, bool save = true)
         {
-            if (setting == "TraceSaveDirectory")
+            switch (setting)
             {
-                TraceSaveDirectory = path;
-            }
-            if (setting == "TestsDirectory")
-            {
-                TestsDirectory = path;
+                case "TraceSaveDirectory":
+                    TraceSaveDirectory = path;
+                    break;
+                case "TestsDirectory":
+                    TestsDirectory = path;
+                    break;
+                case "DiEScriptsDB":
+                    DiEScriptsDB = path;
+                    break;
+                default:
+                    Logging.RecordLogEvent($"Bad nonbinary path setting: {setting} => {path}", Logging.LogFilterType.TextError);
+                    return;
+                    break;
             }
             if (save)
             {

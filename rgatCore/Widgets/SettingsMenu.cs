@@ -234,11 +234,11 @@ namespace rgatCore.Widgets
         DateTime _errorExpiryTime = DateTime.MinValue;
         string _pendingPathSetting;
 
-        bool mush = false;
         void CreateOptionsPane_Files()
         {
             string selectedSetting = "";
             bool isFolder = false;
+            bool notSelected = false;
 
             if (ImGui.BeginTable("#PathsTable", 2))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
             {
@@ -250,7 +250,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
 
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
-                if (ImGui.Selectable($"Pin.exe", mush, ImGuiSelectableFlags.SpanAllColumns))
+                if (ImGui.Selectable($"Pin.exe", notSelected, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "PinPath";
                 }
@@ -264,7 +264,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
 
-                if (ImGui.Selectable($"Pintool32.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
+                if (ImGui.Selectable($"Pintool32.dll", notSelected, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "PinToolPath32";
                 }
@@ -277,7 +277,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
 
-                if (ImGui.Selectable($"Pintool64.dll", mush, ImGuiSelectableFlags.SpanAllColumns))
+                if (ImGui.Selectable($"Pintool64.dll", notSelected, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "PinToolPath64";
                 }
@@ -290,7 +290,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
 
-                if (ImGui.Selectable($"Traces", mush, ImGuiSelectableFlags.SpanAllColumns))
+                if (ImGui.Selectable($"Traces", notSelected, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "TraceSaveDirectory";
                     isFolder = true;
@@ -303,7 +303,7 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
 
-                if (ImGui.Selectable($"Tests", mush, ImGuiSelectableFlags.SpanAllColumns))
+                if (ImGui.Selectable($"Tests", notSelected, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     selectedSetting = "TestsDirectory";
                     isFolder = true;
@@ -311,6 +311,19 @@ namespace rgatCore.Widgets
                 ImGui.PopStyleColor();
                 ImGui.TableNextColumn();
                 ImGui.Text($"{GlobalConfig.TestsDirectory}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+
+                if (ImGui.Selectable($"DiE Signatures", notSelected, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    selectedSetting = "DiESigsPath";
+                    isFolder = true;
+                }
+                ImGui.PopStyleColor();
+                ImGui.TableNextColumn();
+                ImGui.Text($"{GlobalConfig.DiEScriptsDB}");
 
                 ImGui.EndTable();
             }
@@ -348,6 +361,9 @@ namespace rgatCore.Widgets
                     break;
                 case "TraceSaveDirectory":
                     GlobalConfig.SetNonBinaryPath("TraceSaveDirectory", path);
+                    break;
+                case "DiESigsPath":
+                    GlobalConfig.SetNonBinaryPath("DiEScriptsDB", path);
                     break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);

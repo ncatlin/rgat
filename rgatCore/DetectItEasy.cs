@@ -55,11 +55,12 @@ namespace rgatCore
         }
 
         public string LastError => dielib.LastError;
+        public bool ScriptsLoaded => dielib.DatabaseLoaded;
 
 
-        public void ReloadDIEScripts()
+        public void ReloadDIEScripts(string path)
         {
-            dielib.ReloadScriptDatabase();
+            dielib.ReloadScriptDatabase(path);
         }
 
         static void DetectItScanThread(object argslist)
@@ -67,7 +68,9 @@ namespace rgatCore
            
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
-            if (scanner.DatabaseLoaded) return;
+            if (!scanner.DatabaseLoaded) {
+                return; 
+            }
 
             BinaryTarget targ = (BinaryTarget)args[1];
             ulong handle = (ulong)args[2];

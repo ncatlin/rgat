@@ -51,11 +51,11 @@ namespace rgatCore
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
-            _rgatstate = new rgatState(_gd, _cl);
-            RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
             GlobalConfig.InitDefaultConfig();
             _SettingsMenu = new SettingsMenu(); //call after config init, so theme gets generated
             RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
+            _rgatstate = new rgatState(_gd, _cl);
+            RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
 
             _ImGuiController = imguicontroller;
 
@@ -72,29 +72,6 @@ namespace rgatCore
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
             Logging.RecordLogEvent("rgatUI created", Logging.LogFilterType.TextDebug);
-
-            RecordLogEvent("Signature hit: first aslert", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: RC4 detected", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Cobalt Strike", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: URL Contacted", LogFilterType.TextAlert);
-            RecordLogEvent("Signature hit: Last alert", LogFilterType.TextAlert);
 
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
@@ -443,7 +420,7 @@ namespace rgatCore
             DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
-
+                uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
                 if (DEProgress.loading)
                 {
                     SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
@@ -451,29 +428,31 @@ namespace rgatCore
                 else if (DEProgress.running)
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
+                    string caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (DEProgress.errored)
                 {
                     float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                    uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
                 }
                 else if (DEProgress.StopRequestFlag)
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                    uint cancelColor = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, cancelColor, 0xff111111, 0xff000000);
                 }
                 else
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
+                    string caption = $"DiE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
                 }
 
-                if ((DEProgress.running || DEProgress.loading))
+                if (DEProgress.running)
                 {
                     if (ImGui.IsItemHovered())
                     {
@@ -496,48 +475,60 @@ namespace rgatCore
                     if (ImGui.IsItemHovered())
                     {
                         ImGui.BeginTooltip();
-                        if (DEProgress.scriptCount == 0)
-                        {
-                            string lastDiEErr = _rgatstate.DIELib.LastError;
-                            if (lastDiEErr != "")
-                            {
-                                if (lastDiEErr == "No scripts configured")
-                                {
-                                    ImGui.Text($"No DetectItEasy scripts configured. Select the db path in the settings File pane");
-                                }
-                                else
-                                {
-                                    ImGui.Text($"No DetectItEasy scripts loaded: {lastDiEErr}");
-                                }
-                            }
-                            ImGui.Separator();
-                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                            ImGui.Text("Click To Reload");
-                            ImGui.PopStyleColor();
-                        }
-                        else
-                        {
-                            ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed");
-                            ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
-                            ImGui.Separator();
-                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                            ImGui.Text("Click To Rescan");
-                            ImGui.PopStyleColor();
-                        }
+                        ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed out of {DEProgress.scriptCount} applicable");
+                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                        ImGui.Separator();
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                        ImGui.Text("Left Click  - Rescan");
+                        ImGui.Text("Right Click - Reload & Rescan");
+                        ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (ImGui.IsItemClicked())
+                    if (_rgatstate.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        if (DEProgress.scriptCount == 0)
-                            _rgatstate.DIELib.ReloadDIEScripts();
-                        else
+                        _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiEScriptsDB);
+                        if (_rgatstate.DIELib.ScriptsLoaded)
                             _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
+                }
+                else if (DEProgress.loading)
+                {
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"Detect It Easy scripts are being loaded. This should not take long.");
+                        ImGui.EndTooltip();
                     }
                 }
             }
             ImGui.EndGroup();
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
             DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
@@ -551,7 +542,7 @@ namespace rgatCore
                 else if (DEProgress.running)
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
+                    string caption = $"YARA:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (DEProgress.errored)
@@ -569,11 +560,11 @@ namespace rgatCore
                 else
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    string caption = $"YARA:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
 
-                if ((DEProgress.running || DEProgress.loading))
+                if (DEProgress.running)
                 {
                     if (ImGui.IsItemHovered())
                     {
@@ -604,9 +595,24 @@ namespace rgatCore
                         ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (ImGui.IsItemClicked())
+                    if (_rgatstate.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
                         _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiEScriptsDB);
+                        if (_rgatstate.DIELib.ScriptsLoaded)
+                            _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                    }
+                }
+                else if (DEProgress.loading)
+                {
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"Detect It Easy scripts are being loaded. This should not take long.");
+                        ImGui.EndTooltip();
                     }
                 }
             }
@@ -708,6 +714,7 @@ namespace rgatCore
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.Text("Signature Scan");
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
                     DrawDetectItEasyProgress(activeTarget, new Vector2(120, 25));
                     DrawYARAProgress(activeTarget, new Vector2(120, 25));
 
