@@ -232,7 +232,7 @@ namespace rgatCore.Threads
         public static string PinPath;
         public static string PinToolPath32;
         public static string PinToolPath64;
-        public static string DiEScriptsDB;
+        public static string DiESigsPath;
         public static string YARARulesDir;
         public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
@@ -783,14 +783,39 @@ namespace rgatCore.Threads
                 }
             }
 
-            if (GetAppSetting("DiEScriptsDB", out string diedbpath) && Directory.Exists(testsdir))
+            if (GetAppSetting("DiESigsPath", out string diedbpath) && Directory.Exists(diedbpath))
             {
-                DiEScriptsDB = diedbpath;
+                DiESigsPath = diedbpath;
             }
             else
             {
-                Logging.RecordLogEvent("No Detect-It-Easy scripts directory was configured. Configure this in the Settings->File pane to enable these scans.");
-                //todo: search in the place we distribute die sigs, appdir/sigs/die/db?
+                DiESigsPath = GetStorageDirectoryPath("signatures\\detectiteasy");
+                if (Directory.Exists(DiESigsPath))
+                {
+                    AddUpdateAppSettings("DiESigsPath", DiESigsPath);
+                }
+                else
+                {
+                    Logging.RecordLogEvent("No Detect-It-Easy scripts directory was configured. Configure this in the Settings->File pane to enable these scans.");
+                }
+
+            }
+
+            if (GetAppSetting("YaraRulesPath", out string yaradbpath) && Directory.Exists(yaradbpath))
+            {
+                YARARulesDir = yaradbpath;
+            }
+            else
+            {
+                YARARulesDir = GetStorageDirectoryPath("signatures\\yara");
+                if (Directory.Exists(YARARulesDir))
+                {
+                    AddUpdateAppSettings("YaraRulesPath", YARARulesDir);
+                }
+                else
+                {
+                    Logging.RecordLogEvent("No YARA rules directory was configured. Configure this in the Settings->File pane to enable these scans.");
+                }
             }
 
             //binaries
@@ -845,7 +870,7 @@ namespace rgatCore.Threads
 
         }
 
-        public static void SetNonBinaryPath(string setting, string path, bool save = true)
+        public static void SetDirectoryPath(string setting, string path, bool save = true)
         {
             switch (setting)
             {
@@ -855,8 +880,11 @@ namespace rgatCore.Threads
                 case "TestsDirectory":
                     TestsDirectory = path;
                     break;
-                case "DiEScriptsDB":
-                    DiEScriptsDB = path;
+                case "DiESigsPath":
+                    DiESigsPath = path;
+                    break;
+                case "YaraRulesPath":
+                    YARARulesDir = path;
                     break;
                 default:
                     Logging.RecordLogEvent($"Bad nonbinary path setting: {setting} => {path}", Logging.LogFilterType.TextError);

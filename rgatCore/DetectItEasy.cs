@@ -1,6 +1,7 @@
 ﻿using DiELibDotNet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 
@@ -13,7 +14,29 @@ namespace rgatCore
 
         public DetectItEasy(string DBPath)
         {
-            dielib = new DiELibDotNet.DieLib(DBPath);
+            dielib = new DiELibDotNet.DieLib(GetScriptsPath(DBPath));
+        }
+
+
+        //takes a directory path. if it contains a db/_init path - returns db folder
+        //otherwise if it contains a db.zip file - returns that
+        //this allows a bit of flexibiilty if the user wants to cut down on files 
+        string GetScriptsPath(string sigsDiEPath)
+        {
+            if (Path.GetDirectoryName(sigsDiEPath) == "db")
+            {
+                string parent = Directory.GetParent(sigsDiEPath).FullName;
+                if (Directory.Exists(parent)) sigsDiEPath = parent;
+            }
+            if (File.Exists(Path.Combine(sigsDiEPath, "db", "_init")))
+            {
+                return Path.Combine(sigsDiEPath, "db");
+            }
+            if (File.Exists(Path.Combine(sigsDiEPath, "db.zip")))
+            {
+                return Path.Combine(sigsDiEPath, "db.zip");
+            }
+            return "";
         }
 
 
@@ -32,7 +55,7 @@ namespace rgatCore
                     DIEScanHandles.Add(targ, handle);
             }
 
-            List<object> args = new List<object>(){ dielib, targ, handle};
+            List<object> args = new List<object>() { dielib, targ, handle };
 
             Thread DIEThread = new Thread(new ParameterizedThreadStart(DetectItScanThread));
             DIEThread.Name = "DetectItEasy_" + targ.FileName;
@@ -60,22 +83,24 @@ namespace rgatCore
 
         public void ReloadDIEScripts(string path)
         {
-            dielib.ReloadScriptDatabase(path);
+            dielib.ReloadScriptDatabase(GetScriptsPath(path));
         }
 
         static void DetectItScanThread(object argslist)
         {
-           
+
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
-            if (!scanner.DatabaseLoaded) {
-                return; 
+            BinaryTarget targ = (BinaryTarget)args[1];
+            targ.ClearSignatureHits(eSignatureType.eDetectItEasy);
+
+            if (!scanner.DatabaseLoaded)
+            {
+                return;
             }
 
-            BinaryTarget targ = (BinaryTarget)args[1];
             ulong handle = (ulong)args[2];
 
-            targ.ClearSignatureHits(eSignatureType.eDetectItEasy);
 
             string result;
             try

@@ -111,26 +111,22 @@ namespace rgatCore
         }
 
 
-        public string FormatSignatureHits(out bool sigHitsYARA, out bool sigHitsDie)
+        public void GetSignatureHits(out Tuple<eSignatureType, string>[] hits)
         {
-            sigHitsYARA = (signatureHitsYARA != null);
-            sigHitsDie = (signatureHitsDIE != null);
-            string result = "";
-            if (sigHitsYARA)
+            List<Tuple<eSignatureType, string>> allhits = new List<Tuple<eSignatureType, string>>();
+
+            lock (signaturesLock)
             {
-                lock (signaturesLock)
+                if (signatureHitsYARA != null)
                 {
-                    foreach (string hit in signatureHitsYARA) result += $"{hit} (YARA)\n";
+                    allhits.AddRange(signatureHitsYARA.Select(hit => new Tuple<eSignatureType, string>(eSignatureType.eYARA, hit)));
+                }
+                if (signatureHitsDIE != null)
+                {
+                    allhits.AddRange(signatureHitsDIE.Select(hit => new Tuple<eSignatureType, string>(eSignatureType.eDetectItEasy, hit)));
                 }
             }
-            if (sigHitsDie)
-            {
-                lock (signaturesLock)
-                {
-                    foreach (string hit in signatureHitsDIE) result += $"{hit} (Detect It Easy)\n";
-                }
-            }
-            return result;
+            hits = allhits.ToArray();
         }
 
         private readonly Object signaturesLock = new Object();
@@ -161,7 +157,7 @@ namespace rgatCore
                     signatureHitsDIE.Add(hits);
                     break;
                 case eSignatureType.eYARA:
-                    if (signatureHitsYARA == null) signatureHitsDIE = new List<string>();
+                    if (signatureHitsYARA == null) signatureHitsYARA = new List<string>();
                     signatureHitsYARA.Add(hits);
                     break;
                 default:

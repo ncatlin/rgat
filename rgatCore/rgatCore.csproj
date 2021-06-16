@@ -66,7 +66,10 @@
       <HintPath>..\DiELibDotNet\bin\Debug\netcoreapp3.1\DiELibDotNet.dll</HintPath>
     </Reference>
     <Reference Include="dnYara">
-      <HintPath>..\..\dnYara\dnYara\bin\Debug\netcoreapp3.1\dnYara.dll</HintPath>
+      <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.dll</HintPath>
+    </Reference>
+    <Reference Include="dnYara.Interop">
+      <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.Interop.dll</HintPath>
     </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>..\..\ImGui.NET-master\bin\Debug\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>

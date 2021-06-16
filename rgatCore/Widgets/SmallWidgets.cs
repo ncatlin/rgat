@@ -9,7 +9,7 @@ namespace rgatCore.Widgets
 {
     class SmallWidgets
     {
-        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour=0, uint textColour= 0xffffffff)
+        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour = 0, uint textColour = 0xffffffff)
         {
 
             ImGui.InvisibleButton(id, barSize);
@@ -89,7 +89,7 @@ namespace rgatCore.Widgets
 
         public static bool ImageCaptionButton(IntPtr TextureId, Vector2 iconsize, float width, string caption, bool isSelected)
         {
-            
+
             bool isMouseHover = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(width, iconsize.Y));
             if (isSelected)
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x45d5d5d5);
@@ -173,19 +173,20 @@ namespace rgatCore.Widgets
                 //tooltip hover target
                 ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 18));
             }
-           
-            
+
+
         }
 
 
-        public static void DrawIcon(ImGuiController controller, string name, int countCaption = 1)
+        public static void DrawIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
         {
             Texture btnIcon = controller.GetImage(name);
             IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon);
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
-            Vector2 corner = ImGui.GetCursorScreenPos() + new Vector2(0, 0);
-            ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner+size, Vector2.Zero,  Vector2.One);
+            Vector2 corner = ImGui.GetCursorScreenPos() + offset ?? Vector2.Zero;
+
+            ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner + size, Vector2.Zero, Vector2.One);
             if (countCaption > 1)
             {
                 ImGui.SetCursorScreenPos(corner + new Vector2(size.X * 0.8f, 5));
@@ -193,6 +194,26 @@ namespace rgatCore.Widgets
             }
         }
 
+        public static void DrawClickableIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
+        {
+            Texture btnIcon = controller.GetImage(name);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon);
+
+            Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
+            Vector2 thispos = ImGui.GetCursorScreenPos();
+            ImGui.InvisibleButton($"#{name + ImGui.GetCursorPosY()}", size + new Vector2(-2, -4));
+            bool hoverred = ImGui.IsItemHovered();
+
+            uint iconcol = hoverred ? 0xaaafafaf : 0xffffffff;
+            ImGui.SetCursorScreenPos(thispos);
+            Vector2 corner = ImGui.GetCursorScreenPos() + offset ?? Vector2.Zero;
+            ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner + size, Vector2.Zero, Vector2.One, iconcol);
+            if (countCaption > 1)
+            {
+                ImGui.SetCursorScreenPos(corner + new Vector2(size.X * 0.8f, 5));
+                ImGui.Text($"{countCaption}");
+            }
+        }
 
     }
 }

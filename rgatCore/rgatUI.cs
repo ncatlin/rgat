@@ -29,6 +29,7 @@ namespace rgatCore
         //rgat program state
         private rgatState _rgatstate = null;
         private int _selectedInstrumentationEngine = 0;
+        private int _selectedInstrumentationLevel = 0;
 
         Threads.MainGraphRenderThread mainRenderThreadObj = null;
         Threads.HeatRankingThread heatRankThreadObj = null;
@@ -51,10 +52,14 @@ namespace rgatCore
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
+            Console.WriteLine("UI start step 1");
             GlobalConfig.InitDefaultConfig();
-            _SettingsMenu = new SettingsMenu(); //call after config init, so theme gets generated
+            Console.WriteLine("UI start step 2");
+            _SettingsMenu = new SettingsMenu(imguicontroller); //call after config init, so theme gets generated
+            Console.WriteLine("UI start step 3");
             RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
             _rgatstate = new rgatState(_gd, _cl);
+            Console.WriteLine("UI start step 4");
             RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
 
             _ImGuiController = imguicontroller;
@@ -63,16 +68,19 @@ namespace rgatCore
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
             //todo - conditional thread here instead of new trace
             _visualiserBar = new VisualiserBar(_gd, imguicontroller);
+            Console.WriteLine("UI start step 5");
 
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
 
+            Console.WriteLine("UI start step 6");
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
             Logging.RecordLogEvent("rgatUI created", Logging.LogFilterType.TextDebug);
 
+            Console.WriteLine("UI start step 7");
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
             _LogFilters[(int)LogFilterType.TextError] = true;
@@ -490,7 +498,7 @@ namespace rgatCore
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiEScriptsDB);
+                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
                         if (_rgatstate.DIELib.ScriptsLoaded)
                             _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
                     }
@@ -531,7 +539,8 @@ namespace rgatCore
         //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
+            /*
+            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.YARALib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
 
@@ -595,15 +604,15 @@ namespace rgatCore
                         ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (_rgatstate.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    if (_rgatstate.YARALib.RulesLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                        _rgatstate.YARALib.StartYARAScan(activeTarget);
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiEScriptsDB);
-                        if (_rgatstate.DIELib.ScriptsLoaded)
-                            _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                        _rgatstate.YARALib.ReloadYaraRules(GlobalConfig.DiEScriptsDB);
+                        if (_rgatstate.YARALib.RulesLoaded)
+                            _rgatstate.YARALib.StartYARAScan(activeTarget);
                     }
                 }
                 else if (DEProgress.loading)
@@ -617,26 +626,34 @@ namespace rgatCore
                 }
             }
             ImGui.EndGroup();
+            */
         }
 
 
-        private void DrawSignaturesBox(BinaryTarget activeTarget)
+        private void DrawSignaturesBox(BinaryTarget activeTarget, float width)
         {
-            ImGui.BeginGroup();
+            if(ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
             {
-                string formatNotes = activeTarget.FormatSignatureHits(out bool gotYARA, out bool gotDIE);
-                ImGui.InputTextMultiline("##fmtnote", ref formatNotes, 400, new Vector2(0, 160), ImGuiInputTextFlags.ReadOnly);
-                ImGui.SameLine();
+                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90);
+                ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, width - 92);
+                ImGui.TableHeadersRow();
 
-                ImGui.BeginGroup();
+                activeTarget.GetSignatureHits(out Tuple<eSignatureType, string>[] hits);
 
+                foreach (Tuple<eSignatureType, string> hit in hits)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text(hit.Item1 == eSignatureType.eYARA ? "YARA" : "DetectItEasy");
+                    ImGui.TableNextColumn();
+                    _ImGuiController.PushOriginalFont();
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text(hit.Item2);
+                    ImGui.PopFont();
+                }
 
-
-                //ImGui.ProgressBar(0.4f, new Vector2(250, 20), "YARA Scan Progress");
-                ImGui.EndGroup();
+                ImGui.EndTable();
             }
-            ImGui.EndGroup();
-
         }
 
 
@@ -721,7 +738,7 @@ namespace rgatCore
 
                     ImGui.TableNextColumn();
 
-                    DrawSignaturesBox(activeTarget);
+                    DrawSignaturesBox(activeTarget, 530);
 
                     ImGui.EndTable();
                 }
@@ -874,6 +891,7 @@ namespace rgatCore
         }
 
         bool _checkStartPausedState;
+        bool _diagnosticMode;
         private void DrawTraceTab_ExecutionSettings(float width)
         {
             ImGui.BeginGroup();
@@ -883,7 +901,8 @@ namespace rgatCore
                 ImGui.Text("Execution Settings");
 
                 ImGui.BeginChildFrame(18, new Vector2(width, 50));
-                ImGui.AlignTextToFramePadding();
+                //ImGui.AlignTextToFramePadding();
+                /*
                 ImGui.Text("Instrumentation Engine: ");
                 ImGui.SameLine();
                 ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
@@ -891,6 +910,24 @@ namespace rgatCore
                 ImGui.RadioButton("Qiling", ref _selectedInstrumentationEngine, 1);
                 ImGui.SameLine();
                 ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
+                */
+                ImGui.Text("Diagnostic Mode");
+                ImGui.SameLine();
+                if (SmallWidgets.ToggleButton("#DiagnosticModeTog", _diagnosticMode, "Will perform some diagnostic tests to see if pin can run on this"))
+                {
+                    _diagnosticMode = !_diagnosticMode;
+                }
+
+                ImGui.Text("Instrumentation Level: ");
+                ImGui.SameLine();
+                ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
+                ImGui.SameLine();
+                ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
+                ImGui.SameLine();
+                ImGui.RadioButton("Data", ref _selectedInstrumentationLevel, 2);
+
+
+
                 ImGui.EndChildFrame();
 
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998880);
@@ -1225,13 +1262,7 @@ namespace rgatCore
                 return;
             }
 
-            ImGui.BeginGroup();
-            {
-                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X - 200);
-                ImGui.SameLine();
-                DrawTraceTab_DiagnosticSettings(200);
-                ImGui.EndGroup();
-            }
+            DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
 
             ImGui.BeginGroup();
             {

@@ -36,9 +36,10 @@ namespace rgatCore
             PlottedGraph.clientState = this;
             Logging.RecordLogEvent("Loading dielib", Logging.LogFilterType.TextDebug);
             //if (Directory.Exists(GlobalConfig.DiEScriptsDB))
-            DIELib = new DetectItEasy(GlobalConfig.DiEScriptsDB);
+            DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
             Logging.RecordLogEvent("dielib loaded. loading yara", Logging.LogFilterType.TextDebug);
-            YARALib = new YARAScan();
+
+            YARALib = new YARAScan(GlobalConfig.YARARulesDir);
             Logging.RecordLogEvent("yara loaded", Logging.LogFilterType.TextDebug);
         }
 

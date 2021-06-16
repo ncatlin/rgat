@@ -16,11 +16,22 @@ namespace rgatCore.Widgets
     {
         static bool[] optionsSelectStates;
         static List<string> settingsNames = new List<string>();
+        static ImGuiController _controller;
+
         enum eSettingsCategory { eSetting1, eFiles, eText, eKeybinds, eUITheme, eGraphTheme };
 
-        public SettingsMenu()
+        public SettingsMenu(ImGuiController controller)
         {
+            _controller = controller;
             InitSettings();
+
+            settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
+            settingTips["PinToolPath32"] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
+            settingTips["PinToolPath64"] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
+            settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
+            settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
+            settingTips["DiESigsPath"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
+            settingTips["YaraRulesPath"] = "The directory containing YARA rules for file and memory scanning";
         }
 
         readonly static uint INVALID_VALUE_TEXTBOX_COLOUR = 0xcc5555ff;
@@ -152,7 +163,7 @@ namespace rgatCore.Widgets
         }
 
 
-        
+
 
 
         void CreateOptionsPane_Signatures()
@@ -160,13 +171,13 @@ namespace rgatCore.Widgets
             //available/enabled/loaded signatures pane
             //scanning controls
             //download more btn
-            if(ImGui.BeginChild("#SignaturesPane", ImGui.GetContentRegionAvail() - new Vector2(0, 100), false, ImGuiWindowFlags.None))
+            if (ImGui.BeginChild("#SignaturesPane", ImGui.GetContentRegionAvail() - new Vector2(0, 100), false, ImGuiWindowFlags.None))
             {
-                ImGui.Text("Available Signatures"); 
-                ImGui.SameLine(); 
+                ImGui.Text("Available Signatures");
+                ImGui.SameLine();
                 ImGui.Button("Get More");
-               
-                if(ImGui.BeginTabBar("#SigsAvailableTab", ImGuiTabBarFlags.None))
+
+                if (ImGui.BeginTabBar("#SigsAvailableTab", ImGuiTabBarFlags.None))
                 {
                     if (ImGui.BeginTabItem("YARA"))
                     {
@@ -185,7 +196,7 @@ namespace rgatCore.Widgets
             bool test = true;
             if (ImGui.BeginChild("#SignatureOptsPane", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.None))
             {
-                if(ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
+                if (ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
                 {
                     ImGui.TableSetupColumn("Format", ImGuiTableColumnFlags.WidthFixed, 90);
                     ImGui.TableSetupColumn("Scan File On Load", ImGuiTableColumnFlags.WidthFixed, 130);
@@ -234,109 +245,114 @@ namespace rgatCore.Widgets
         DateTime _errorExpiryTime = DateTime.MinValue;
         string _pendingPathSetting;
 
+        bool DrawPathMenuOption(string caption, string path, string tooltip, out bool clearFlag)
+        {
+            bool selected = false;
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+
+            ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+            bool notSelected = false;
+            ImGui.Text(caption);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(tooltip);
+            }
+
+            ImGui.PopStyleColor();
+            ImGui.TableNextColumn();
+            bool hasPath = (path?.Length > 0);
+            string pathTxt = hasPath ? path : "[Not Set]";
+
+            if (ImGui.Selectable(pathTxt + "##Sel" + caption, notSelected, ImGuiSelectableFlags.None))
+            {
+                selected = true;
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(tooltip);
+            }
+
+            ImGui.TableNextColumn();
+            if (hasPath)
+            {
+                SmallWidgets.DrawClickableIcon(controller: _controller, "Cross", offset: new Vector2(0, -2));
+                clearFlag = ImGui.IsItemClicked();
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Clear the path");
+                }
+            }
+            else
+            {
+                clearFlag = false;
+            }
+
+            return clearFlag || selected;
+        }
+
+        Dictionary<string, string> settingTips = new Dictionary<string, string>();
+
         void CreateOptionsPane_Files()
         {
-            string selectedSetting = "";
+            string choosePath = "";
             bool isFolder = false;
-            bool notSelected = false;
+            bool doClear = false;
 
-            if (ImGui.BeginTable("#PathsTable", 2))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
+            if (ImGui.BeginTable("#PathsTable", 3))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
             {
                 ImGui.TableSetupColumn("Setting", ImGuiTableColumnFlags.WidthFixed, 180);
                 ImGui.TableSetupColumn("Path");
+                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35);
 
                 ImGui.TableHeadersRow();
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
-                if (ImGui.Selectable($"Pin.exe", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "PinPath";
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.PinPath}");
 
 
+                if (DrawPathMenuOption("Pin.exe", GlobalConfig.PinPath, settingTips["PinPath"], out bool clearFlag))
+                { choosePath = "PinPath"; doClear |= clearFlag; }
 
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+                if (DrawPathMenuOption("Pintool32.dll", GlobalConfig.PinToolPath32, settingTips["PinToolPath32"], out clearFlag))
+                { choosePath = "PinToolPath32"; doClear |= clearFlag; }
 
-                if (ImGui.Selectable($"Pintool32.dll", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "PinToolPath32";
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.PinToolPath32}");
+                if (DrawPathMenuOption("Pintool64.dll", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
+                { choosePath = "PinToolPath64"; doClear |= clearFlag; }
 
+                if (choosePath.Length == 0) isFolder = true;
 
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+                if (DrawPathMenuOption("Saved Traces", GlobalConfig.TraceSaveDirectory, settingTips["TraceSaveDirectory"], out clearFlag))
+                { choosePath = "TraceSaveDirectory"; doClear |= clearFlag; }
 
-                if (ImGui.Selectable($"Pintool64.dll", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "PinToolPath64";
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.PinToolPath64}");
+                if (DrawPathMenuOption("Tests", GlobalConfig.TestsDirectory, settingTips["TestsDirectory"], out clearFlag))
+                { choosePath = "TestsDirectory"; doClear |= clearFlag; }
 
+                if (DrawPathMenuOption("DiE Signatures", GlobalConfig.DiESigsPath, settingTips["DiESigsPath"], out clearFlag))
+                { choosePath = "DiESigsPath"; doClear |= clearFlag; }
 
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
+                if (DrawPathMenuOption("Yara Rules", GlobalConfig.YARARulesDir, settingTips["YaraRulesPath"], out clearFlag))
+                { choosePath = "YaraRulesPath"; doClear |= clearFlag; }
 
-                if (ImGui.Selectable($"Traces", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "TraceSaveDirectory";
-                    isFolder = true;
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.TraceSaveDirectory}");
-
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
-
-                if (ImGui.Selectable($"Tests", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "TestsDirectory";
-                    isFolder = true;
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.TestsDirectory}");
-
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
-
-                if (ImGui.Selectable($"DiE Signatures", notSelected, ImGuiSelectableFlags.SpanAllColumns))
-                {
-                    selectedSetting = "DiESigsPath";
-                    isFolder = true;
-                }
-                ImGui.PopStyleColor();
-                ImGui.TableNextColumn();
-                ImGui.Text($"{GlobalConfig.DiEScriptsDB}");
 
                 ImGui.EndTable();
             }
 
-            //doesn't seem to work inside table (ID issue?), so do it after
-            if (selectedSetting.Length > 0)
+            if (choosePath.Length > 0)
             {
-                if (isFolder)
-                    LaunchFileSelectBox(selectedSetting, "##FoldersDLG");
+                if (doClear)
+                {
+                    if (isFolder)
+                        GlobalConfig.SetDirectoryPath(choosePath, "");
+                    else
+                        GlobalConfig.SetBinaryPath(choosePath, "");
+                }
                 else
-                    LaunchFileSelectBox(selectedSetting, "##FilesDLG");
-               
+                {
+                    if (isFolder)
+                        LaunchFileSelectBox(choosePath, "##FoldersDLG");
+                    else
+                        LaunchFileSelectBox(choosePath, "##FilesDLG");
+                }
             }
+
 
             DrawFolderSelectBox();
             DrawFileSelectBox();
@@ -357,13 +373,16 @@ namespace rgatCore.Widgets
                     GlobalConfig.SetBinaryPath("PinToolPath64", path);
                     break;
                 case "TestsDirectory":
-                    GlobalConfig.SetNonBinaryPath("TestsDirectory", path);
+                    GlobalConfig.SetDirectoryPath("TestsDirectory", path);
                     break;
                 case "TraceSaveDirectory":
-                    GlobalConfig.SetNonBinaryPath("TraceSaveDirectory", path);
+                    GlobalConfig.SetDirectoryPath("TraceSaveDirectory", path);
                     break;
                 case "DiESigsPath":
-                    GlobalConfig.SetNonBinaryPath("DiEScriptsDB", path);
+                    GlobalConfig.SetDirectoryPath("DiESigsPath", path);
+                    break;
+                case "YaraRulesPath":
+                    GlobalConfig.SetDirectoryPath("YaraRulesPath", path);
                     break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
@@ -470,9 +489,9 @@ namespace rgatCore.Widgets
             }
 
             int index = 0;
-            ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendX 
+            ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendX
                 | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable;
-            if (ImGui.BeginTable("KeybindSelectTable", 3, tableFlags, ImGui.GetContentRegionAvail()- new Vector2(0, 80)))
+            if (ImGui.BeginTable("KeybindSelectTable", 3, tableFlags, ImGui.GetContentRegionAvail() - new Vector2(0, 80)))
             {
                 ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 350);
                 ImGui.TableSetupColumn("Keybind", ImGuiTableColumnFlags.WidthFixed, 150);
