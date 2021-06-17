@@ -335,7 +335,7 @@ namespace rgatCore
         }
 
 
-        public static void SavePresetTheme(string name)
+        public static void SavePresetTheme(string name, bool setAsDefault)
         {
             if (name.Length == 0 || BuiltinThemes.ContainsKey(name)) return;
 
@@ -349,6 +349,9 @@ namespace rgatCore
             ThemesMetadataCatalogue[name] = ThemeMetadata;
             UnsavedTheme = false;
             WriteCustomThemesToConfig();
+
+            if (setAsDefault)
+                DefaultTheme = ThemeMetadata["Name"];
 
         }
 

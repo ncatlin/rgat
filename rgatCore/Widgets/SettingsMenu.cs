@@ -17,12 +17,14 @@ namespace rgatCore.Widgets
         static bool[] optionsSelectStates;
         static List<string> settingsNames = new List<string>();
         static ImGuiController _controller;
+        static rgatState _rgatState;
 
-        enum eSettingsCategory { eSetting1, eFiles, eText, eKeybinds, eUITheme, eGraphTheme };
+        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eGraphTheme };
 
-        public SettingsMenu(ImGuiController controller)
+        public SettingsMenu(ImGuiController controller, rgatState rgatstate)
         {
             _controller = controller;
+            _rgatState = rgatstate;
             InitSettings();
 
             settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
@@ -67,7 +69,7 @@ namespace rgatCore.Widgets
             optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
             optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
-            optionsSelectStates[(int)eSettingsCategory.eText] = false;
+            optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
         }
 
@@ -171,7 +173,8 @@ namespace rgatCore.Widgets
             //available/enabled/loaded signatures pane
             //scanning controls
             //download more btn
-            if (ImGui.BeginChild("#SignaturesPane", ImGui.GetContentRegionAvail() - new Vector2(0, 100), false, ImGuiWindowFlags.None))
+            Vector2 tabsize = ImGui.GetContentRegionAvail() - new Vector2(0, 100);
+            if (ImGui.BeginChild("#SignaturesPane", tabsize, false, ImGuiWindowFlags.None))
             {
                 ImGui.Text("Available Signatures");
                 ImGui.SameLine();
@@ -179,15 +182,76 @@ namespace rgatCore.Widgets
 
                 if (ImGui.BeginTabBar("#SigsAvailableTab", ImGuiTabBarFlags.None))
                 {
-                    if (ImGui.BeginTabItem("YARA"))
+                    if (ImGui.BeginTabItem("YARA Rules"))
                     {
+                        if(ImGui.BeginChild("YaraSigsList", ImGui.GetContentRegionAvail(), true))
+                        {
+                            var ruleList = _rgatState.YARALib.GetRuleData();
 
+                            ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
+                            if (ImGui.BeginTable("#SettsYaraRuleList", 3, flags, ImGui.GetContentRegionAvail()))//))
+                            {
+                                ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, 160);
+                                ImGui.TableSetupColumn("Collection", ImGuiTableColumnFlags.WidthFixed, 80);
+                                ImGui.TableSetupColumn("Metadata");
+                                ImGui.TableSetupScrollFreeze(0, 1);
+                                ImGui.TableHeadersRow();
+
+                                ImGui.Indent(5);
+                                foreach ( var rule in ruleList)
+                                {
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+                                    ImGui.TextWrapped(rule.Identifier);
+
+                                    ImGui.TableNextColumn();
+                                    ImGui.TextWrapped("folder 1 2 3");
+
+                                    ImGui.TableNextColumn();
+                                    foreach (var kvp in rule.Metas)
+                                    {
+                                        ImGui.TextWrapped($"{kvp.Key}: \"{kvp.Value}\"");
+                                    }
+                                    if (rule.Tags.Any())
+                                    {
+                                        ImGui.TextWrapped($"Tags: {String.Join(", ", rule.Tags)}");
+                                    }
+                                }
+                                ImGui.EndTable();
+                            }
+                            ImGui.EndChild();
+                        }
                         ImGui.EndTabItem();
                     }
-                    if (ImGui.BeginTabItem("Detect It Easy"))
+                    if (ImGui.BeginTabItem("Detect It Easy Scripts"))
                     {
+                        if (ImGui.BeginChild("DieSigsList", ImGui.GetContentRegionAvail(), true))
+                        {
+                            var ruleList = _rgatState.DIELib.GetSignatures;
 
-                        ImGui.EndTabItem();
+                            ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
+                            if (ImGui.BeginTable("#SettsDieRuleList", 2, flags, ImGui.GetContentRegionAvail()))//))
+                            {
+                                ImGui.TableSetupColumn("File Format", ImGuiTableColumnFlags.WidthFixed, 120);
+                                ImGui.TableSetupColumn("Loaded Rule");
+                                ImGui.TableSetupScrollFreeze(0, 1);
+                                ImGui.TableHeadersRow();
+
+                                ImGui.Indent(5);
+                                foreach (var rule in ruleList)
+                                {
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+                                    ImGui.TextWrapped(rule.fileType.ToString());
+
+                                    ImGui.TableNextColumn();
+                                    ImGui.TextWrapped(rule.name);
+                                }
+                                ImGui.EndTable();
+                            }
+                            ImGui.EndChild();
+                        }
+                            ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
                 }
@@ -198,33 +262,31 @@ namespace rgatCore.Widgets
             {
                 if (ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
                 {
-                    ImGui.TableSetupColumn("Format", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("Format", ImGuiTableColumnFlags.WidthFixed, 140);
                     ImGui.TableSetupColumn("Scan File On Load", ImGuiTableColumnFlags.WidthFixed, 130);
-                    ImGui.TableSetupColumn("Scan Memory", ImGuiTableColumnFlags.WidthFixed, 130);
+                    ImGui.TableSetupColumn("Scan Memory", ImGuiTableColumnFlags.WidthFixed, 90);
 
                     ImGui.TableHeadersRow();
                     uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
-                    ImGui.Text("YARA");
+                    uint yaraSigsCount = _rgatState.YARALib.LoadedRuleCount();
+                    ImGui.Text($"YARA ({yaraSigsCount} rules)");
                     ImGui.TableNextColumn();
-                    int yaraFileSigsCount = 44;
-                    ImGui.Checkbox($"({yaraFileSigsCount})##fycheck", ref GlobalConfig.ScanFilesYARA);
+                    ImGui.Checkbox($"##fycheck", ref GlobalConfig.ScanFilesYARA);
                     ImGui.TableNextColumn();
-                    int yaraMemSigsCount = 44;
-                    ImGui.Checkbox($"({yaraMemSigsCount})##mycheck", ref GlobalConfig.ScanMemoryYARA);
+                    ImGui.Checkbox($"##mycheck", ref GlobalConfig.ScanMemoryYARA);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
-                    ImGui.Text("DiE");
+                    int dieFileSigsCount = _rgatState.DIELib.NumScriptsLoaded;
+                    ImGui.Text($"DiE ({dieFileSigsCount} scripts)");
                     ImGui.TableNextColumn();
-                    int dieFileSigsCount = 44;
-                    ImGui.Checkbox($"({dieFileSigsCount})##fdcheck", ref GlobalConfig.ScanFilesDiE);
+                    ImGui.Checkbox($"##fdcheck", ref GlobalConfig.ScanFilesDiE);
                     ImGui.TableNextColumn();
-                    int dieMemSigsCount = 44;
-                    ImGui.Checkbox($"({dieMemSigsCount})##mdcheck", ref GlobalConfig.ScanMemoryDiE);
+                    ImGui.Checkbox($"##mdcheck", ref GlobalConfig.ScanMemoryDiE);
 
                     ImGui.EndTable();
                 }
@@ -558,9 +620,10 @@ namespace rgatCore.Widgets
             ImGui.SameLine();
             if (ImGui.Button("Save As Preset"))
             {
+                saveThemeboxIsOpen = true;
                 pendingPresetName = Themes.ThemeMetadata["Name"];
                 ImGui.OpenPopup("##SavePreset");
-                ImGui.SetNextWindowSize(new Vector2(300, 160));
+                ImGui.SetNextWindowSize(new Vector2(270, 130));
             }
             else
             {
@@ -569,8 +632,11 @@ namespace rgatCore.Widgets
 
             DrawSavePresetPopUp();
 
+            string activeThemeName = Themes.ThemeMetadata["Name"];
+            if (Themes.DefaultTheme == activeThemeName)
+                activeThemeName += " [Default]";
 
-            if (ImGui.BeginCombo("Preset Themes", Themes.ThemeMetadata["Name"]))
+            if (ImGui.BeginCombo("Preset Themes", activeThemeName))
             {
                 foreach (string themeName in Themes.ThemesMetadataCatalogue.Keys)
                 {
@@ -618,9 +684,11 @@ namespace rgatCore.Widgets
 
         }
 
+        bool doSetThemeDefaultOnSave = true;
+        bool saveThemeboxIsOpen = false;
         void DrawSavePresetPopUp()
         {
-            if (ImGui.BeginPopupModal("##SavePreset"))
+            if (ImGui.BeginPopupModal("##SavePreset", ref saveThemeboxIsOpen))
             {
                 bool validName = !Themes.BuiltinThemes.ContainsKey(pendingPresetName) && !pendingPresetName.Contains('"');
 
@@ -634,18 +702,24 @@ namespace rgatCore.Widgets
                 ImGui.Text("Theme Name");
                 if (ImGui.InputText("", ref pendingPresetName, 255, ImGuiInputTextFlags.EnterReturnsTrue) && validName)
                 {
-                    Themes.SavePresetTheme(pendingPresetName);
+                    Themes.SavePresetTheme(pendingPresetName, doSetThemeDefaultOnSave);
                     ImGui.CloseCurrentPopup();
                 }
+                ImGui.SameLine();
                 if (validName && ImGui.Button("Save"))
                 {
-                    Themes.SavePresetTheme(pendingPresetName);
+                    Themes.SavePresetTheme(pendingPresetName, doSetThemeDefaultOnSave);
                     ImGui.CloseCurrentPopup();
                 }
                 if (!validName)
                 {
                     ImGui.Text("Invalid name");
                     ImGui.PopStyleColor(4);
+                }
+                ImGui.Checkbox("Set As Default", ref doSetThemeDefaultOnSave);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("This theme will be set as the startup theme");
                 }
                 ImGui.EndPopup();
             }

@@ -43,6 +43,7 @@ namespace rgatCore
         public void StartDetectItEasyScan(BinaryTarget targ)
         {
             if (!dielib.DatabaseLoaded) return;
+            if (!File.Exists(targ.FilePath)) return;
 
             ulong handle = 0;
             lock (scansLock)
@@ -79,6 +80,8 @@ namespace rgatCore
 
         public string LastError => dielib.LastError;
         public bool ScriptsLoaded => dielib.DatabaseLoaded;
+        public int NumScriptsLoaded => dielib.CountScriptsLoaded;
+        public DieScriptEngine.SIGNATURE_RECORD[] GetSignatures => dielib.GetSignatures;
 
 
         public void ReloadDIEScripts(string path)
@@ -126,7 +129,8 @@ namespace rgatCore
             {
                 result = "DIElib Scan failed with exeption: " + e.Message;
             }
-            targ.AddSignatureHits(result, eSignatureType.eDetectItEasy);
+            Console.WriteLine("Die result: " + result);
+            targ.AddDiESignatureHit(result);
         }
 
 

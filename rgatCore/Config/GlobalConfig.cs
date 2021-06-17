@@ -260,7 +260,9 @@ namespace rgatCore.Threads
         public static bool ScanMemoryYARA = true;
         public static bool ScanMemoryDiE = true;
 
-
+        //~~user customised signature scan locations, to restrict certain signatures to scanning disk/mem/none. non-presence => scan all.~~
+        // -> this idea is shelved for the foreseeable future, see https://trello.com/c/ShIWBywy/141-specify-rule-rule-group-exec-conditions-file-mem
+        //public static Dictionary<string, eSigScanLocation> SignatureScanLimits = new Dictionary<string, eSigScanLocation>();
 
 
 

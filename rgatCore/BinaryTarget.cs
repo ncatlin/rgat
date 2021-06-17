@@ -92,8 +92,8 @@ namespace rgatCore
             return _hexTooltip;
         }
 
-        List<string> signatureHitsDIE = null;
-        List<string> signatureHitsYARA = null;
+        List<string> signatureHitsDIE = new List<string>();
+        List<dnYara.ScanResult> signatureHitsYARA = new List<dnYara.ScanResult>();
 
         Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
@@ -111,23 +111,20 @@ namespace rgatCore
         }
 
 
-        public void GetSignatureHits(out Tuple<eSignatureType, string>[] hits)
+        public bool GetYaraHits(out dnYara.ScanResult[] hits)
         {
-            List<Tuple<eSignatureType, string>> allhits = new List<Tuple<eSignatureType, string>>();
-
-            lock (signaturesLock)
-            {
-                if (signatureHitsYARA != null)
-                {
-                    allhits.AddRange(signatureHitsYARA.Select(hit => new Tuple<eSignatureType, string>(eSignatureType.eYARA, hit)));
-                }
-                if (signatureHitsDIE != null)
-                {
-                    allhits.AddRange(signatureHitsDIE.Select(hit => new Tuple<eSignatureType, string>(eSignatureType.eDetectItEasy, hit)));
-                }
-            }
-            hits = allhits.ToArray();
+            hits = signatureHitsYARA.ToArray();
+            return hits.Length > 0;
         }
+
+
+        public bool GetDieHits(out string[] hits)
+        {
+            hits = signatureHitsDIE.ToArray();
+            return hits.Length > 0;
+        }
+
+
 
         private readonly Object signaturesLock = new Object();
         public void ClearSignatureHits(eSignatureType sigType)
@@ -147,24 +144,16 @@ namespace rgatCore
             }
         }
 
-        //todo, json format, seperate lists for scan types, signature display
-        public void AddSignatureHits(string hits, eSignatureType sigType)
-        {
-            switch (sigType)
-            {
-                case eSignatureType.eDetectItEasy:
-                    if (signatureHitsDIE == null) signatureHitsDIE = new List<string>();
-                    signatureHitsDIE.Add(hits);
-                    break;
-                case eSignatureType.eYARA:
-                    if (signatureHitsYARA == null) signatureHitsYARA = new List<string>();
-                    signatureHitsYARA.Add(hits);
-                    break;
-                default:
-                    Console.WriteLine("AddSignatureHits: Bad signature type " + sigType);
-                    break;
 
-            }
+        public void AddDiESignatureHit(string hits)
+        {
+            signatureHitsDIE.Add(hits);
+        }
+
+
+        public void AddYaraSignatureHit(dnYara.ScanResult hit)
+        {
+            signatureHitsYARA.Add(hit);
         }
 
 

@@ -54,13 +54,15 @@ namespace rgatCore
             Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
             Console.WriteLine("UI start step 1");
             GlobalConfig.InitDefaultConfig();
-            Console.WriteLine("UI start step 2");
-            _SettingsMenu = new SettingsMenu(imguicontroller); //call after config init, so theme gets generated
-            Console.WriteLine("UI start step 3");
             RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
+
+            Console.WriteLine("UI start step 2");
             _rgatstate = new rgatState(_gd, _cl);
-            Console.WriteLine("UI start step 4");
             RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
+
+            Console.WriteLine("UI start step 3");
+            _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
+            Console.WriteLine("UI start step 4");
 
             _ImGuiController = imguicontroller;
 
@@ -444,7 +446,7 @@ namespace rgatCore
                     float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
                 }
                 else if (DEProgress.StopRequestFlag)
                 {
@@ -539,94 +541,63 @@ namespace rgatCore
         //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            /*
-            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.YARALib.GetDIEScanProgress(activeTarget);
-            ImGui.BeginGroup();
+            YARAScan.eYaraScanProgress progress = _rgatstate.YARALib.Progress(activeTarget);
+            string caption;
+            float progressAmount = 0;
+            uint barColour = 0;
+            switch (progress)
             {
-
-                if (DEProgress.loading)
-                {
-                    SmallWidgets.ProgressBar("YaraProgBar", $"Loading Rules", 0, barSize, 0xff117711, 0xff111111);
-                }
-                else if (DEProgress.running)
-                {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"YARA:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
-                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-                }
-                else if (DEProgress.errored)
-                {
-                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-                }
-                else if (DEProgress.StopRequestFlag)
-                {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("YaraProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-                }
-                else
-                {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"YARA:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-                }
-
-                if (DEProgress.running)
-                {
-                    if (ImGui.IsItemHovered())
+                case YARAScan.eYaraScanProgress.eNotStarted:
+                    caption = "YARA: No Scan";
+                    break;
+                case YARAScan.eYaraScanProgress.eComplete:
                     {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"{DEProgress.scriptsFinished}/{DEProgress.scriptCount} DetectItEasy scripts have been run so far");
-                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
-                        ImGui.Separator();
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                        ImGui.Text("Click To Cancel");
-                        ImGui.PopStyleColor();
-                        ImGui.EndTooltip();
+                        uint rulecount = _rgatstate.YARALib.LoadedRuleCount();
+                        caption = $"YARA:{rulecount}/{rulecount} rules scanned"; //wrong if reloaded?
+                        barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                        progressAmount = 1;
+                        break;
                     }
-                    if (ImGui.IsItemClicked())
-                    {
-                        _rgatstate.DIELib.CancelDIEScan(activeTarget);
-                    }
-                }
-                else if (!DEProgress.running && !DEProgress.loading)
-                {
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed");
-                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
-                        ImGui.Separator();
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                        ImGui.Text("Click To Rescan");
-                        ImGui.PopStyleColor();
-                        ImGui.EndTooltip();
-                    }
-                    if (_rgatstate.YARALib.RulesLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
-                    {
-                        _rgatstate.YARALib.StartYARAScan(activeTarget);
-                    }
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    {
-                        _rgatstate.YARALib.ReloadYaraRules(GlobalConfig.DiEScriptsDB);
-                        if (_rgatstate.YARALib.RulesLoaded)
-                            _rgatstate.YARALib.StartYARAScan(activeTarget);
-                    }
-                }
-                else if (DEProgress.loading)
-                {
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"Detect It Easy scripts are being loaded. This should not take long.");
-                        ImGui.EndTooltip();
-                    }
-                }
+                case YARAScan.eYaraScanProgress.eFailed:
+                    caption = "YARA: Error";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    progressAmount = 0;
+                    break;
+                case YARAScan.eYaraScanProgress.eRunning:
+                    caption = "YARA: Scanning...";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                    progressAmount = 0.5f;
+                    break;
+                default:
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    caption = "Bad State";
+                    progressAmount = 0;
+                    break;
             }
-            ImGui.EndGroup();
-            */
+          
+            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, barColour, 0xff111111);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text($"{caption} with {_rgatstate.YARALib.LoadedRuleCount()} loaded rules");
+                ImGui.Separator();
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                ImGui.Text("Left Click  - Rescan");
+                ImGui.Text("Right Click - Reload & Rescan");
+                ImGui.PopStyleColor();
+                ImGui.EndTooltip();
+            }
+            if (_rgatstate.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            {
+                _rgatstate.YARALib.StartYARATargetScan(activeTarget);
+            }
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                _rgatstate.YARALib.RefreshRules(forceRecompile: true);
+                if (_rgatstate.YARALib.LoadedRuleCount() > 0)
+                    _rgatstate.YARALib.StartYARATargetScan(activeTarget);
+            }
+
         }
 
 
@@ -638,22 +609,109 @@ namespace rgatCore
                 ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, width - 92);
                 ImGui.TableHeadersRow();
 
-                activeTarget.GetSignatureHits(out Tuple<eSignatureType, string>[] hits);
-
-                foreach (Tuple<eSignatureType, string> hit in hits)
+                if (activeTarget.GetDieHits(out string[] diehits))
                 {
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text(hit.Item1 == eSignatureType.eYARA ? "YARA" : "DetectItEasy");
-                    ImGui.TableNextColumn();
-                    _ImGuiController.PushOriginalFont();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text(hit.Item2);
-                    ImGui.PopFont();
+                    foreach (string hit in diehits)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("DetectItEasy");
+                        ImGui.TableNextColumn();
+                        _ImGuiController.PushOriginalFont();
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text(hit);
+                        ImGui.PopFont();
+                    }
+                }
+
+                if (activeTarget.GetYaraHits(out dnYara.ScanResult[] yarahits))
+                {
+                    foreach (dnYara.ScanResult hit in yarahits)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("YARA");
+                        ImGui.TableNextColumn();
+                        _ImGuiController.PushOriginalFont();
+                        ImGui.AlignTextToFramePadding();
+                        int strCount = hit.Matches.Values.Count;
+                        string label = hit.MatchingRule.Identifier;
+                        if (strCount > 0)
+                        {
+                            label += $" ({strCount} string{((strCount != 1) ? "s" : "")})";
+                        }
+                        ImGui.Text(label);
+                        ImGui.PopFont();
+                        if (ImGui.IsItemHovered())
+                        {
+                            DrawYaraTooltip(hit);
+                        }
+                    }
                 }
 
                 ImGui.EndTable();
             }
+        }
+
+
+        private void DrawYaraTooltip(dnYara.ScanResult hit)
+        {
+            ImGui.BeginTooltip();
+
+            string idTags = "Rule: " + hit.MatchingRule.Identifier;
+
+            foreach (string tag in hit.MatchingRule.Tags)
+                idTags += $" [{tag}]";
+            ImGui.Text(idTags);
+
+            foreach (var kvp in hit.MatchingRule.Metas)
+                ImGui.Text($"\"{kvp.Key}\": \"{kvp.Value}\"");
+
+            if (hit.Matches.Count > 0)
+            {
+                if (ImGui.BeginTable("#YaraHitTablToolTip", 4, ImGuiTableFlags.Borders))
+                {
+                    ImGui.TableSetupColumn("String Name");
+                    ImGui.TableSetupColumn("Offset");
+                    ImGui.TableSetupColumn("Size");
+                    ImGui.TableSetupColumn("Match Data");
+                    ImGui.TableHeadersRow();
+
+                    foreach (var matchList in hit.Matches)
+                    {
+                        foreach (var match in matchList.Value)
+                        {
+                            ImGui.TableNextRow();
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"{matchList.Key}");
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"0x{(match.Base + match.Offset):X}");
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"{match.Data.Length}");
+
+                            ImGui.TableNextColumn();
+
+                            int maxlen = 16;
+                            int previewLen = Math.Min(match.Data.Length, maxlen);
+                            string strillus = "";
+                            strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
+                            if (previewLen < maxlen)
+                                strillus += "...";
+                            strillus += "  {";
+                            strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
+                            strillus += "}";
+
+                            ImGui.Text($"{strillus}");
+                        }
+                    }
+                    ImGui.EndTable();
+                }
+                
+            }
+            ImGui.EndTooltip();
         }
 
 
@@ -687,7 +745,7 @@ namespace rgatCore
                     ImGui.Text("SHA256 Hash");
                     ImGui.TableNextColumn();
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
-                    ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+                    ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
 
                     ImGui.TableNextRow();
@@ -1059,7 +1117,7 @@ namespace rgatCore
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
 
                 //ImGui.BeginGroup();
-                ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
+                ImGui.PushFont(_ImGuiController.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
                 Vector2 iconsize = new Vector2(80, 80);
                 ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags);
@@ -1120,7 +1178,7 @@ namespace rgatCore
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
 
                 //ImGui.BeginGroup();
-                ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
+                ImGui.PushFont(_ImGuiController.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
                 Vector2 iconsize = new Vector2(80, 80);
                 ImGui.BeginTable("##LoadBtnBox", 3, tblflags);
@@ -2365,10 +2423,16 @@ namespace rgatCore
             GlobalConfig.RecordRecentPath(filepath, GlobalConfig.eRecentPathType.Trace);
             if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
 
+            BinaryTarget target = trace.binaryTarg;
+
+            //todo only if signatures not stored in trace + file exists on disk
+            _rgatstate.DIELib.StartDetectItEasyScan(target);
+            _rgatstate.YARALib.StartYARATargetScan(target);
+
             launch_all_trace_threads(trace, _rgatstate);
 
-            _rgatstate.ActiveTarget = trace.binaryTarg;
-            _rgatstate.SelectActiveTrace(trace.binaryTarg.GetFirstTrace());
+            _rgatstate.ActiveTarget = target;
+            _rgatstate.SelectActiveTrace(target.GetFirstTrace());
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);

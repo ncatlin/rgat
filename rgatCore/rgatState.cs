@@ -72,7 +72,7 @@ namespace rgatCore
         {
             BinaryTarget targ = targets.AddTargetByPath(path, arch);
             DIELib.StartDetectItEasyScan(targ);
-            YARALib.StartYARAScan(targ);
+            YARALib.StartYARATargetScan(targ);
 
             if (makeActive)
             {
