@@ -618,6 +618,7 @@ namespace ImGuiNET
             draw_data.ScaleClipRects(io.DisplayFramebufferScale);
         }
 
+
         private void LoadCommandBuffers(ImDrawDataPtr draw_data, CommandList cl)
         {
             uint vertexOffsetInVertices = 0;
@@ -626,6 +627,7 @@ namespace ImGuiNET
             {
                 ImDrawListPtr cmd_list = draw_data.CmdListsRange[i];
 
+                //crash here... possibly just when restoring from computer sleep?
                 cl.UpdateBuffer(
                     _vertexBuffer,
                     vertexOffsetInVertices * (uint)Unsafe.SizeOf<ImDrawVert>(),
@@ -642,6 +644,7 @@ namespace ImGuiNET
                 indexOffsetInElements += (uint)cmd_list.IdxBuffer.Size;
             }
         }
+
 
         // Render command lists
         private void DrawCommands(ImDrawDataPtr draw_data, CommandList cl)

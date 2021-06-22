@@ -620,7 +620,7 @@ inline ThreadBlockInfo* GetThreadBlockInfo(threadObject* threadObj, BLOCKDATA* b
 }
 
 
-VOID inline outputUnchained(threadObject* threadObj)
+VOID inline outputUnchained(threadObject* threadObj, BLOCK_IDENTIFIER finalBlock)
 {
 	//output all the blocks/edges that were executed in the area
 	for each (BLOCKDATA * busyBlock in threadObj->busyBlocks)
@@ -637,6 +637,10 @@ VOID inline outputUnchained(threadObject* threadObj)
 		fprintf(threadObj->threadpipeFILE, "%s\x01", threadObj->BXbuffer);
 	}
 
+	
+    fprintf(threadObj->threadpipeFILE, REINSTRUMENTED_MARKER",%lx\x01", threadObj->newEdgeSourceBlk);
+	
+	
 	fflush(threadObj->threadpipeFILE);
 	threadObj->busyBlocks.clear();
 	threadObj->hasBusyBlocks = false;
@@ -668,6 +672,8 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 {
 	ThreadBlockInfo* blockStats = GetThreadBlockInfo(threadObj, sourceBlock);
 
+	//printf("recordedge. src_%d -> targ 0x%lx blk->execs[%d] blck->act[%d] thread->act[%d]\n", sourceBlock->blockID, targblockAddr,
+	//	blockStats->execCount, blockStats->activityLevel, threadObj->activityLevel);
 	//PART 1: Do basic count for every block
 	//record block execution and increase block activity
 	blockStats->execCount += 1;
@@ -680,19 +686,23 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 		{
 			if (blockStats->activityLevel == (threadObj->activityLevel + 1)) //thread is one behind busy blocks
 			{
+				//printf("__recordedge1 b>t [blkact == threadact+1] => threadact++\n");
 				threadObj->activityLevel += 1; //bump thread activity level to match
 			}
 			else
 			{
+				//printf("__recordedge1 b>t [blkact != threadact+1] => blkact = threadact\n");
 				blockStats->activityLevel = threadObj->activityLevel; //cool block down to thread activity level
 			}
 		}
 		else
 		{
+			//printf("__recordedge1 b<t => t=b\n");
 			threadObj->activityLevel = blockStats->activityLevel; //busy thread moved to a lower activity block, lower thread busy level
 			if (threadObj->hasBusyBlocks && threadObj->activityLevel < DEINSTRUMENTATION_LIMIT) //did this take us out of a busy area?
 			{
-				outputUnchained(threadObj); //output everything that happened while deinstrumented
+				//printf("____recordedge1 hasbusy+ta<LIM => oe\n");
+				outputUnchained(threadObj, sourceBlock->blockID); //output everything that happened while deinstrumented
 			}
 		}
 	}
@@ -711,24 +721,41 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 				}
 			}
 			if (i == blockStats->targets.size()) { //new edge
+				//0 because a seperate trace tag is used to record the edge
+				//printf("__recordedge2 abovelim targs new edge [0x%lx]\n",targblockAddr);
 				blockStats->targets.push_back(std::make_pair(targblockAddr, 1));
+				//go back to instrumented mode because we don't know if the next block has been seen yet
+				//there might be some performance gains to be had by doing more logic/data storage around this - or performance losses.
+				threadObj->activityLevel = blockStats->activityLevel;
+				threadObj->newEdgeSourceBlk = sourceBlock->blockID;
+				
+			}
+			else {
+
+				//printf("__recordedge2 abovelim targs old edge [0x%lx]\n", targblockAddr);
 			}
 		}
 		else
 		{
+			//printf("__recordedge2 abovelim targs first edge [0x%lx]\n", targblockAddr);
 			// record the edge
-			threadObj->busyBlocks.push_back(sourceBlock); //todo - add stat as well in tuple?
+			threadObj->busyBlocks.push_back(sourceBlock);
 			blockStats->targets.push_back(std::make_pair(targblockAddr, 1));
 			// tell rgat this block is busy 
 			fprintf(threadObj->threadpipeFILE, UNCHAIN_MARKER",%lx\x01", sourceBlock->blockID);
 			fflush(threadObj->threadpipeFILE);
+			threadObj->newEdgeSourceBlk = sourceBlock->blockID;
 			threadObj->hasBusyBlocks = true;
 		}
 	}
 	else
 	{
+
+		//printf("__recordedge2 targs belowlim edge [0x%lx]\n", targblockAddr);
+		// 
 		//tell rgat about execution of this block and where the branch led to
 		//todo - tag cache
+		//printf("Full Instrumented Add Blockid %d \n", sourceBlock->blockID);
 		fprintf(threadObj->threadpipeFILE, TRACE_TAG_MARKER"%lx,%lx\x01", sourceBlock->blockID, targblockAddr);
 		fflush(threadObj->threadpipeFILE);
 	}
@@ -806,7 +833,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		PIN_ExitThread(0);
 	}
 
-	printf("IN INSTRUMENTNEW TRACE\n");
 	int dbg_blockct = -1;
 
 	bool pendingThreadBreakpoints = thread->HasPendingBreakpoints();
@@ -819,7 +845,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		++uniqueBBCountIns;
 
 		ADDRINT blockAddress = BBL_Address(bbl);
-		std::cout << "\t TraceBlock " << std::dec << blockCounter << " generated at 0x" << std::hex << blockAddress << std::endl;
+		//std::cout << "\t TraceBlock " << std::dec << blockCounter << " generated at 0x" << std::hex << blockAddress << std::endl;
 		unsigned int bufpos = 0;
 
 		basicBlockBuffer[bufpos++] = 'B';
@@ -858,10 +884,10 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			bufpos += (unsigned int)INS_Size(ins);
 
 
-			if (INS_Address(ins) < 0x10000000)
-			{
-				std::cout << "\t[pingatnewTrace]Blk " << dbg_blockct << " Ins 0x" << std::hex << INS_Address(ins) << std::endl;
-			}
+			//if (INS_Address(ins) < 0x10000000)
+		//	{
+			//	std::cout << "\t[pingatnewTrace]Blk " << dbg_blockct << " Ins 0x" << std::hex << INS_Address(ins) << std::endl;
+		//	}
 
 
 			if (bufpos >= (BB_BUF_SIZE - 1))
@@ -878,7 +904,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 					InsertSinglestepFunc(thread, ins, block_data);
 					//hit breakpoint, going into broken mode, adorn the rest of the instructions in the block with single steps
 					SetProcessBrokenState(true);
-					debuggingActive = true; 
+					debuggingActive = true;
 				}
 				else
 				{
@@ -1107,7 +1133,7 @@ VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 
 	if (threaddata->hasBusyBlocks) //did this take us out of a busy area?
 	{
-		outputUnchained(threaddata);
+		outputUnchained(threaddata, 0);
 	}
 
 
@@ -1194,80 +1220,108 @@ void getSetupString(std::string programName, char* buf, int bufSize)
 	long testRunID = -1;
 	if (testArgValue != "-1") {
 		testRunID = std::strtol(testArgValue.c_str(), NULL, 0);
-		if (testRunID < 0 || testRunID >= LONG_MAX) 
+		if (testRunID < 0 || testRunID >= LONG_MAX)
 			testRunID = -1;
 	}
 	snprintf_s(buf, bufSize, "PID,%u,%d,%ld,%s,%ld", pid, arch, instanceID, programName.c_str(), testRunID);
 }
 
 
-bool extract_pipes(std::string programname, std::string& cmdPipe, std::string& cmdResponsePipe, std::string& bbName)
+DWORD connect_coordinator_pipe(std::wstring coordinatorName, NATIVE_FD& coordinatorPipe)
 {
-	std::wstring coordinatorName = L"\\\\.\\pipe\\rgatCoordinator";
-	NATIVE_FD coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
+	coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
 		GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
 		NULL);
 
-	if (coordinatorPipe == -1)
+	if (coordinatorPipe != -1) return 0;
+
+	DWORD lastErr = WINDOWS::GetLastError();
+
+	if (lastErr == ERROR_PIPE_BUSY) {
+		int remaining = 10;
+		do {
+			coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
+				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
+				NULL);
+			if (coordinatorPipe != -1) 
+			{
+				return 0;
+			}
+			DWORD lastErr = WINDOWS::GetLastError();
+			PIN_Sleep(remaining);
+			remaining += 30;
+		} while (lastErr == ERROR_PIPE_BUSY && remaining < 2500);
+	}
+	return lastErr;
+}
+
+DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& cmdResponsePipe, std::string& bbName)
+{
+	NATIVE_FD coordinatorPipe;
+	const std::wstring coordinatorName = L"\\\\.\\pipe\\rgatCoordinator";
+	DWORD lastErr = connect_coordinator_pipe(coordinatorName, coordinatorPipe);
+	if (lastErr != 0)
 	{
-		if (WINDOWS::GetLastError() == 2) {
+		if (lastErr == 2)
+		{
 			wprintf(L"%s", "[pingat]Unable to connect to rgat coordinator, is rgat running?\n");
-			return false;
 		}
-		wprintf(L"[pingat]Failed to connect to %S, error: 0x%x\n", coordinatorName.c_str(), WINDOWS::GetLastError());
+		else
+		{
+			wprintf(L"[pingat]Failed to connect to %S, error: 0x%x\n", coordinatorName.c_str(), lastErr);
+		}
+		return false;
+	}
+
+	char msg[1024];
+	memset(msg, 0, sizeof(msg));
+	getSetupString(programname, msg, 1024);
+	USIZE count = sizeof(msg);
+
+	OS_RETURN_CODE result = OS_WriteFD(coordinatorPipe, msg, &count);
+	if (result.generic_err != OS_RETURN_CODE_NO_ERROR)
+	{
+		wprintf(L"[pingat]Failed to send data to coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
 		return false;
 	}
 	else
 	{
-		char msg[1024];
-		memset(msg, 0, sizeof(msg));
-		getSetupString(programname, msg, 1024);
-		USIZE count = sizeof(msg);
-
-		OS_RETURN_CODE result = OS_WriteFD(coordinatorPipe, msg, &count);
+		result = OS_ReadFD(coordinatorPipe, &count, msg);
 		if (result.generic_err != OS_RETURN_CODE_NO_ERROR)
 		{
-			wprintf(L"[pingat]Failed to send data to coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
-			return false;
+			wprintf(L"[pingat]Failed to read data from coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
 		}
 		else
 		{
-			result = OS_ReadFD(coordinatorPipe, &count, msg);
-			if (result.generic_err != OS_RETURN_CODE_NO_ERROR)
-			{
-				wprintf(L"[pingat]Failed to read data from coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
-			}
-			else
-			{
-				wprintf(L"[pingat]Got [%d] bytes of pipe info from rgat!, msg: 0x%s\n", count, msg);
-				char* marker = strtok(msg, "@");
-				if (marker == NULL) return false;
-				char* cmdPipeName = strtok(NULL, "@");
-				if (cmdPipeName == NULL) return false;
-				if (strlen(marker) < 2 || marker[0] != 'C' || marker[1] != 'M') return false;
+			wprintf(L"[pingat]Got [%d] bytes of pipe info from rgat!, msg: 0x%s\n", count, msg);
+			char* marker = strtok(msg, "@");
+			if (marker == NULL) return false;
+			char* cmdPipeName = strtok(NULL, "@");
+			if (cmdPipeName == NULL) return false;
+			if (strlen(marker) < 2 || marker[0] != 'C' || marker[1] != 'M') return false;
 
-				marker = strtok(NULL, "@");
-				if (marker == NULL) return false;
-				char* responsePipeName = strtok(NULL, "@");
-				if (responsePipeName == NULL) return false;
-				if (strlen(marker) < 2 || marker[0] != 'C' || marker[1] != 'R') return false;
+			marker = strtok(NULL, "@");
+			if (marker == NULL) return false;
+			char* responsePipeName = strtok(NULL, "@");
+			if (responsePipeName == NULL) return false;
+			if (strlen(marker) < 2 || marker[0] != 'C' || marker[1] != 'R') return false;
 
-				marker = strtok(NULL, "@");
-				if (marker == NULL) return false;
-				char* bbPipeName = strtok(NULL, "@");
-				if (bbPipeName == NULL) return false;
-				if (strlen(marker) < 2 || marker[0] != 'B' || marker[1] != 'B') return false;
+			marker = strtok(NULL, "@");
+			if (marker == NULL) return false;
+			char* bbPipeName = strtok(NULL, "@");
+			if (bbPipeName == NULL) return false;
+			if (strlen(marker) < 2 || marker[0] != 'B' || marker[1] != 'B') return false;
 
 
-				bbName = "\\\\.\\pipe\\" + std::string(bbPipeName);
-				cmdPipe = "\\\\.\\pipe\\" + std::string(cmdPipeName);
-				cmdResponsePipe = "\\\\.\\pipe\\" + std::string(responsePipeName);
+			bbName = "\\\\.\\pipe\\" + std::string(bbPipeName);
+			cmdPipe = "\\\\.\\pipe\\" + std::string(cmdPipeName);
+			cmdResponsePipe = "\\\\.\\pipe\\" + std::string(responsePipeName);
 
-				wprintf(L"[pingat]Got pipenames. Cmd: %s, Response: %s, BB: %s\n", cmdPipeName, responsePipeName, bbPipeName);
+			wprintf(L"[pingat]Got pipenames. Cmd: %s, Response: %s, BB: %s\n", cmdPipeName, responsePipeName, bbPipeName);
 
-			}
 		}
 	}
+
 
 	return true;
 }
@@ -1380,7 +1434,7 @@ void OutputAllThreads()
 			threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadID));
 			if (threadObj->hasBusyBlocks) //did this take us out of a busy area?
 			{
-				outputUnchained(threadObj);
+				outputUnchained(threadObj, 0);
 			}
 		}
 	}

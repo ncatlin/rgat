@@ -188,7 +188,7 @@ namespace rgatCore.Widgets
             ResourceSetDescription rsrc_rsd = new ResourceSetDescription(_rsrcLayout, _paramsBuffer, _gd.PointSampler, _iconsTextureView);
             _rsrcs?.Dispose();
             _rsrcs = _factory.CreateResourceSet(rsrc_rsd);
-
+           
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
@@ -220,6 +220,7 @@ namespace rgatCore.Widgets
             _gd.SubmitCommands(_cl);
             _gd.WaitForIdle();
             _cl.Dispose();
+            _rsrcs.Dispose();
 
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
@@ -582,9 +583,17 @@ namespace rgatCore.Widgets
                         foreach (var edge in ae.edgeCounts)
                         {
                             ulong block = edge.Item1;
-                            var nodeRange = graph.BlocksFirstLastNodeList[(int)block];
-                            uint blockInsCt = (nodeRange.Item2 - nodeRange.Item1) + 1;
-                            tagInsCount += blockInsCt * edge.Item2;
+                            if ((int)block < graph.BlocksFirstLastNodeList.Count)
+                            {
+                               
+                                var nodeRange = graph.BlocksFirstLastNodeList[(int)block];
+                                if (nodeRange != null)
+                                {
+                                    uint blockInsCt = (nodeRange.Item2 - nodeRange.Item1) + 1;
+                                    tagInsCount += blockInsCt * edge.Item2;
+                                }
+                            }
+                            else break;
                         }
                         break;
                 }

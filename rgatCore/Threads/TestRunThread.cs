@@ -48,6 +48,7 @@ namespace rgatCore.Testing
             int countDown = 2;
 
             string pintoolpath = GlobalConfig.PinToolPath32;//_rgatstate.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+            Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
             ProcessLaunching.StartTracedProcess(pintoolpath, _testCase.BinaryPath, testID: _thisTest.TestID);
 
             //GetTestTrace

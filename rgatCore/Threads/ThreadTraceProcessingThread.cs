@@ -24,7 +24,8 @@ namespace rgatCore.Threads
             //public ulong blockaddr;
             public uint blockID;
             public ulong repeatCount;
-            public List<Tuple<ulong, ulong>> targEdges; //BlockID_Count
+            public List<Tuple<uint, ulong>> targEdges; //BlockID_Count
+            public List<Tuple<ulong, ulong>> targExternEdges; //Addr_Count
             public List<InstructionData> blockInslist;
         };
 
@@ -79,16 +80,60 @@ namespace rgatCore.Threads
 
                 if (brep.blockInslist == null)
                 {
-                    if (brep.blockID >= protograph.BlocksFirstLastNodeList.Count ||
-                        protograph.BlocksFirstLastNodeList[(int)brep.blockID] == null)
+                    if (brep.blockID >= protograph.ProcessData.BasicBlocksList.Count)
                     {
                         continue;
                     }
                     brep.blockInslist = protograph.ProcessData.BasicBlocksList[(int)brep.blockID].Item2;
                 }
 
-                //first record execution of each instruction
+                bool needWait = false;
+                foreach (var targblockID_Count in brep.targEdges)
+                {
+                    if (targblockID_Count.Item1 >= protograph.ProcessData.BasicBlocksList.Count)
+                    {
+                        needWait = true; 
+                        break;
+                    }
+                    if (!protograph.ProcessData.BasicBlocksList[(int)targblockID_Count.Item1].Item2[0].threadvertIdx.ContainsKey(protograph.ThreadID))
+                    {
+                        needWait = true;
+                        break;
+                    }
+                }
+                if (needWait) continue;
+
                 InstructionData lastIns = brep.blockInslist[^1];
+                if (brep.targExternEdges != null)
+                {
+                    uint lastNodeIdx = lastIns.threadvertIdx[protograph.ThreadID];
+                    NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
+
+                    foreach (var addr_Count in brep.targExternEdges)
+                    {
+                        ulong targetAddr = addr_Count.Item1;
+                        ulong execCount = addr_Count.Item2;
+
+                        bool found = false;
+                        foreach (var x in lastNode.OutgoingNeighboursSet)
+                        {
+                            NodeData outn = protograph.safe_get_node(x);
+                            if (outn.IsExternal && outn.address == targetAddr)
+                            {
+                                outn.IncreaseExecutionCount(execCount);
+                                protograph.GetEdge(lastNodeIdx, outn.index).IncreaseExecutionCount(execCount);
+                                found = true;
+                                break;
+                            }
+                        }
+                        Debug.Assert(found);
+                    }
+                }
+
+
+
+
+                //first record execution of each instruction
                 foreach (InstructionData ins in brep.blockInslist)
                 {
                     n = protograph.safe_get_node(ins.threadvertIdx[protograph.ThreadID]);
@@ -99,33 +144,47 @@ namespace rgatCore.Threads
                     {
                         uint targID = n.OutgoingNeighboursSet[0];
                         EdgeData targEdge = protograph.GetEdge(n.index, targID);
+                        Console.WriteLine($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs");
                         targEdge.IncreaseExecutionCount(brep.repeatCount);
                     }
                 }
 
-                NodeData lastNode = n;
+
                 //create any new edges between unchained nodes
                 foreach (var targblockID_Count in brep.targEdges)
                 {
                     int targetBlockID = (int)targblockID_Count.Item1;
                     ulong execCount = targblockID_Count.Item2;
+                    uint targNodeID = 0;
                     if (targetBlockID >= protograph.BlocksFirstLastNodeList.Count || protograph.BlocksFirstLastNodeList[targetBlockID] == null)
                     {
-                        protograph.addBlockToGraph((uint)targetBlockID, execCount);
+                        var il = protograph.ProcessData.getDisassemblyBlock((uint)targetBlockID);
+                        targNodeID = il[0].threadvertIdx[protograph.ThreadID];
                     }
                     else
                     {
-                        uint targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
+                        targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
+                    }
+                    
+                        //issue here with simpleloops being messed up
+                        
                         if (!n.OutgoingNeighboursSet.Contains(targNodeID))
                         {
-                            protograph.AddEdge(n.index, targNodeID, execCount);
+                            //again let new tag execution handle it
+                           protograph.AddEdge(n.index, targNodeID, execCount); 
+                           Console.WriteLine($"Blockrepeat adding edge {n.index},{targNodeID} with {execCount} execs");
+
                         }
                         else
                         {
-                            protograph.GetEdge(n.index, targNodeID).IncreaseExecutionCount(execCount);
+                            EdgeData edge = protograph.GetEdge(n.index, targNodeID);
+                            Console.WriteLine($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount+execCount}");
+                            edge.IncreaseExecutionCount(execCount);
                         }
-                    }
                 }
+
+
+
                 blockRepeatQueue.RemoveAt(i);
             }
         }
@@ -195,7 +254,11 @@ namespace rgatCore.Threads
             }
             else
             {
-                protograph.handle_tag(thistag);
+                protograph.handle_tag(thistag, dontcountnextedge);
+                if (dontcountnextedge)
+                {
+                    dontcountnextedge = false;
+                }
             }
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
             animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
@@ -340,7 +403,7 @@ namespace rgatCore.Threads
             Debug.Assert(protograph.BlocksFirstLastNodeList.Count > src_blockID, "Bad src block id in unlinking update");
 
 
-            //Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
+            Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
 
 
 
@@ -436,6 +499,26 @@ namespace rgatCore.Threads
         }
 
 
+        void AddReinstrumentedUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 2);
+
+            ANIMATIONENTRY animUpdate;
+            animUpdate.entryType = eTraceUpdateType.eAnimReinstrument;
+            animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            animUpdate.targetAddr = 0;
+            animUpdate.targetID = 0;
+            animUpdate.count = 0;
+            animUpdate.edgeCounts = null;
+            animUpdate.blockAddr = 0;
+            protograph.PushAnimUpdate(animUpdate);
+
+            protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
+            
+            protograph.ProtoLastVertID = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID].Item2;
+        }
+
         void AddUnchainedUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
@@ -452,8 +535,16 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
 
 
+            protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
+            protograph.ProtoLastVertID = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID].Item1;
+            if (protograph.PerformingUnchainedExecution == false)
+            {
+                protograph.GetEdge(protograph.ProtoLastLastVertID, protograph.ProtoLastVertID).IncreaseExecutionCount(1);
+                protograph.PerformingUnchainedExecution = true;
+
+            }
+
             //Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
-            protograph.PerformingUnchainedExecution = true;
         }
 
 
@@ -466,9 +557,10 @@ namespace rgatCore.Threads
 
             BLOCKREPEAT newRepeat;
             newRepeat.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
-            newRepeat.targEdges = new List<Tuple<ulong, ulong>>();
+            newRepeat.targEdges = new List<Tuple<uint, ulong>>();
+            newRepeat.targExternEdges = null;
 
-            //Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID }");
+            Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID}");
 
             string[] edgeCounts = entries[2].Split(',');
 
@@ -482,14 +574,18 @@ namespace rgatCore.Threads
 
                 if (targBlock == ulong.MaxValue)
                 {
-                    ProcessExtern(targAddr, newRepeat.blockID);
+                    if (newRepeat.targExternEdges == null)
+                    {
+                        newRepeat.targExternEdges = new List<Tuple<ulong, ulong>>();
+                    }
+                    newRepeat.targExternEdges.Add(new Tuple<ulong, ulong>(targAddr, edgeExecCount));
                 }
                 else
                 {
-                    newRepeat.targEdges.Add(new Tuple<ulong, ulong>(targBlock, edgeExecCount));
+                    newRepeat.targEdges.Add(new Tuple<uint, ulong>((uint)targBlock, edgeExecCount));
                 }
                 blockExecs += edgeExecCount;
-                //Console.WriteLine($"\t +targ {targblockID} ");
+                Console.WriteLine($"\t +targ {targBlock}x{edgeExecCount}");
             }
             newRepeat.repeatCount = blockExecs;
             newRepeat.blockInslist = null;
@@ -597,6 +693,7 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
         }
 
+        bool dontcountnextedge = false;
 
         private readonly Object debug_tag_lock = new Object();
         void Processor()
@@ -612,7 +709,7 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                //Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 lock (debug_tag_lock)
                 {
                     switch (msg[0])
@@ -623,8 +720,14 @@ namespace rgatCore.Threads
                         case (byte)'A':
                             HandleArg(msg);
                             break;
+                            /*
                         case (byte)'U':
                             UnchainedLinkingUpdate(msg);
+                            break;*/
+                        case (byte)'R':
+                            dontcountnextedge = true; 
+                            protograph.PerformingUnchainedExecution = false;
+                            AddReinstrumentedUpdate(msg);
                             break;
                         case (byte)'u':
                             AddUnchainedUpdate(msg);
@@ -642,6 +745,7 @@ namespace rgatCore.Threads
                             AddSingleStepUpdate(msg);
                             break;
                         default:
+                            Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
                             Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                             break;

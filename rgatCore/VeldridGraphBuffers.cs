@@ -68,6 +68,7 @@ namespace rgatCore
             //public float baseAlpha; //the base alpha to override it with
         }
 
+        //todo unused?
         public void InitPipelines(GraphicsDevice _gd, ShaderSetDescription shaders, Framebuffer frmbuf, bool wireframe = false)
         {
             ResourceFactory factory = _gd.ResourceFactory;

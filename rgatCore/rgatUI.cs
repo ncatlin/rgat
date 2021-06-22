@@ -52,37 +52,44 @@ namespace rgatCore
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
-            Console.WriteLine("UI start step 1");
+            Console.WriteLine("UI start step 1 - initing config");
+            Logging.RecordLogEvent("Startup: Initing/Loading Config", Logging.LogFilterType.TextDebug);
             GlobalConfig.InitDefaultConfig();
             RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
 
-            Console.WriteLine("UI start step 2");
+            Console.WriteLine("UI start step 2 - initing state");
+            Logging.RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
             _rgatstate = new rgatState(_gd, _cl);
             RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
 
-            Console.WriteLine("UI start step 3");
+            Console.WriteLine("UI start step 3 - initing settings menu");
+            Logging.RecordLogEvent("Startup: Initing Settings Window", Logging.LogFilterType.TextDebug);
             _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
-            Console.WriteLine("UI start step 4");
+            Console.WriteLine("UI start step 4 - initing graph threads");
+            Logging.RecordLogEvent("Startup: Initing graph threads", Logging.LogFilterType.TextDebug);
 
             _ImGuiController = imguicontroller;
 
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
             //todo - conditional thread here instead of new trace
-            _visualiserBar = new VisualiserBar(_gd, imguicontroller);
-            Console.WriteLine("UI start step 5");
-
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
 
+            Console.WriteLine("UI start step 5 - initing graph widgets");
+            Logging.RecordLogEvent("Startup: Initing graph widgets", Logging.LogFilterType.TextDebug);
+
+            _visualiserBar = new VisualiserBar(_gd, imguicontroller);
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
 
-            Console.WriteLine("UI start step 6");
+            Console.WriteLine("UI start step 6 - initing layout engines");
+            Logging.RecordLogEvent("Startup: Initing layout engines", Logging.LogFilterType.TextDebug);
+
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
+
             Logging.RecordLogEvent("rgatUI created", Logging.LogFilterType.TextDebug);
 
-            Console.WriteLine("UI start step 7");
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
             _LogFilters[(int)LogFilterType.TextError] = true;
@@ -553,7 +560,7 @@ namespace rgatCore
                 case YARAScan.eYaraScanProgress.eComplete:
                     {
                         uint rulecount = _rgatstate.YARALib.LoadedRuleCount();
-                        caption = $"YARA:{rulecount}/{rulecount} rules scanned"; //wrong if reloaded?
+                        caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
                         barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
                         progressAmount = 1;
                         break;
@@ -2001,11 +2008,12 @@ namespace rgatCore
 
         private void DrawAnalysisTab()
         {
-            ImGui.Text("Trace start stuff here");
+            ImGui.Text("Trace analysis stuff here");
         }
-        private void DrawCompareTab()
+
+        private void DrawMemDataTab()
         {
-            ImGui.Text("Trace start stuff here");
+            ImGui.Text("Memory data stuff here");
         }
 
 
@@ -2353,9 +2361,9 @@ namespace rgatCore
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Graph Comparison"))
+                if (ImGui.BeginTabItem("Memory Activity"))
                 {
-                    DrawCompareTab();
+                    DrawMemDataTab();
                     ImGui.EndTabItem();
                 }
 

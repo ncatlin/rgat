@@ -447,7 +447,6 @@ namespace rgatCore
                     break;
 
                 case eKeybind.RaiseForceTemperature:
-                    ActiveGraph.InternalProtoGraph.TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, 0);
                     ActiveGraph.IncreaseTemperature();
                     break;
 
@@ -1081,6 +1080,8 @@ namespace rgatCore
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
             _isInputTarget = ImGui.IsItemActive();
             _cl.Dispose();
+            _crs_core?.Dispose();
+            _crs_nodesEdges?.Dispose();
         }
 
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
@@ -1483,9 +1484,10 @@ namespace rgatCore
                 {
                     if (f.A == 1) //mouse is over a node
                     {
-                        if (f.R != _mouseoverNodeID) //mouse is over a different node
+                        if (f.R != _mouseoverNodeID && f.R < ActiveGraph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
                         {
-                            Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R},{f.G},{f.B}");
+                            NodeData n = this.ActiveGraph.InternalProtoGraph.NodeList[(int)f.R];
+                            Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}");
                             _mouseoverNodeID = (int)f.R;
                         }
                         hit = true;

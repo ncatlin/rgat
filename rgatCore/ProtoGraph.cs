@@ -39,7 +39,7 @@ namespace rgatCore
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
     };
-    public enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimUnchainedDone, eAnimExecException };
+    public enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimUnchainedDone, eAnimExecException };
     public enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
     public enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
 
@@ -48,7 +48,7 @@ namespace rgatCore
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
-        public List<Tuple<ulong, ulong>> edgeCounts;
+        public List<Tuple<uint, ulong>> edgeCounts;
         public ulong count;
         public ulong targetAddr;
         public uint targetID;
@@ -140,10 +140,10 @@ namespace rgatCore
                 JArray edgecounts = (JArray)animFields[6];
                 if (edgecounts.Count > 0)
                 {
-                    entry.edgeCounts = new List<Tuple<ulong, ulong>>();
+                    entry.edgeCounts = new List<Tuple<uint, ulong>>();
                     for (int i = 0; i < edgecounts.Count; i += 2)
                     {
-                        entry.edgeCounts.Add(new Tuple<ulong, ulong>(edgecounts[i].ToObject<ulong>(), edgecounts[i + 1].ToObject<ulong>()));
+                        entry.edgeCounts.Add(new Tuple<uint, ulong>(edgecounts[i].ToObject<uint>(), edgecounts[i + 1].ToObject<ulong>()));
                     }
                 }
                 else
@@ -193,68 +193,75 @@ namespace rgatCore
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
                 //Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
-                return (instruction.threadvertIdx.TryGetValue(ThreadID, out targVertID));
+                if(instruction.threadvertIdx.TryGetValue(ThreadID, out uint targetID))
+                {
+                    targVertID = targetID;
+                    return true;
+                }
+                return false;
             }
         }
 
 
 
         ///todo is this needed
+        ///yes. yes it is.
         private void AddEdge_LastToTargetVert(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
-            //Console.WriteLine($"\AddEdge_LastToTargetVert {lastVertID} -> {targVertID}");
-            if (EdgeExists(edgeIDPair, out EdgeData edgeD))
+            Console.WriteLine($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
+
+            if (EdgeExists(edgeIDPair, out EdgeData edgeObj))
             {
-                edgeD.IncreaseExecutionCount(repeats);
+                edgeObj.IncreaseExecutionCount(repeats);
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
                 return;
             }
 
             if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
 
-            EdgeData newEdge = new EdgeData(EdgeList.Count, lastNodeType);
-            newEdge.SetExecutionCount(repeats);
-
-            if (instructionIndex > 0)
-                newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
-            else
-            {
-                if (alreadyExecuted)
-                    newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
-                else
-                    switch (lastNodeType)
-                    {
-                        case eEdgeNodeType.eNodeReturn:
-                            newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
-                            break;
-                        case eEdgeNodeType.eNodeException:
-                            newEdge.edgeClass = eEdgeNodeType.eEdgeException;
-                            break;
-                        case eEdgeNodeType.eNodeCall:
-                            newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
-                            break;
-                        default:
-                            newEdge.edgeClass = eEdgeNodeType.eEdgeNew;
-                            break;
-                    }
-            }
 
 
             NodeData sourcenode = safe_get_node(ProtoLastVertID);
             //make API calls leaf nodes, rather than part of the chain
-            if (sourcenode.IsExternal)
-                sourcenode = safe_get_node(ProtoLastLastVertID);
+            //if (sourcenode.IsExternal)
+            //    sourcenode = safe_get_node(ProtoLastLastVertID);
 
             if (!EdgeExists(new Tuple<uint, uint>(sourcenode.index, targVertID)))
             {
+                EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: lastNodeType, execCount: repeats);
+
+                if (instructionIndex > 0)
+                    newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
+                else
+                {
+                    if (alreadyExecuted)
+                        newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+                    else
+                        switch (lastNodeType)
+                        {
+                            case eEdgeNodeType.eNodeReturn:
+                                newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+                                break;
+                            case eEdgeNodeType.eNodeException:
+                                newEdge.edgeClass = eEdgeNodeType.eEdgeException;
+                                break;
+                            case eEdgeNodeType.eNodeCall:
+                                newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+                                break;
+                            default:
+                                newEdge.edgeClass = eEdgeNodeType.eEdgeNew;
+                                break;
+                        }
+                }
+
+                Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
                 AddEdge(newEdge, sourcenode, safe_get_node(targVertID));
             }
 
 
         }
-
 
         public bool HasRecentStep { private set; get; } = false;
         public ulong RecentStepAddr { private set; get; }
@@ -421,9 +428,8 @@ namespace rgatCore
 
 
             NodeData sourceNode = safe_get_node(ProtoLastVertID);
-            EdgeData newEdge = new EdgeData(EdgeList.Count, sourceNode.VertType());
+            EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats);
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
-            newEdge.SetExecutionCount(repeats);
             AddEdge(newEdge, sourceNode, safe_get_node(targVertID));
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
@@ -684,13 +690,21 @@ namespace rgatCore
             }
         }
 
+        public EdgeData GetEdge(Tuple<uint, uint> srcTarg)
+        {
+
+            lock (edgeLock)
+            {
+                return edgeDict[srcTarg];
+            }
+        }
+
         public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx, ulong execCount)
         {
             NodeData sourceNode = safe_get_node(SrcNodeIdx);
             NodeData targNode = safe_get_node(TargNodeIdx);
 
-            EdgeData newEdge = new EdgeData(EdgeList.Count, sourceNode.VertType());
-            newEdge.SetExecutionCount(execCount);
+            EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: execCount);
 
             if (targNode.IsExternal)
             {
@@ -793,14 +807,14 @@ namespace rgatCore
         }
 
 
-        public void handle_tag(TAG thistag, ulong repeats = 1)
+        public void handle_tag(TAG thistag, bool skipFirstEdge=false)
         {
 
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
-                //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} inscount {thistag.insCount}");
+                Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
 
-                addBlockToGraph(thistag.blockID, repeats);
+                addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
                 set_active_node(ProtoLastVertID);
             }
 
@@ -809,7 +823,7 @@ namespace rgatCore
                 if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
-                if (RunExternal(thistag.blockaddr, repeats, out Tuple<uint, uint> resultPair))
+                if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair)) //todo skipfirstedge
                 {
                     ProcessIncomingCallArguments(); //todo - does this ever achieve anything here?
                     set_active_node(resultPair.Item2);
@@ -884,10 +898,11 @@ namespace rgatCore
         }
 
 
-        public void addBlockToGraph(uint blockID, ulong repeats)
+        public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
+            Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
@@ -895,7 +910,7 @@ namespace rgatCore
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
-
+                Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
@@ -913,17 +928,17 @@ namespace rgatCore
                 if (!alreadyExecuted)
                 {
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
-                    Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
+                    Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                    Console.WriteLine($"\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
+                    Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
                 if (instructionIndex == 0) firstVert = targVertID;
 
-                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, repeats);
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, (ulong)( (recordEdge || instructionIndex > 0) ? repeats : 0) );
 
                 //setup conditions for next instruction
                 switch (instruction.itype)
@@ -944,8 +959,13 @@ namespace rgatCore
                         lastNodeType = eEdgeNodeType.eNodeNonFlow;
                         break;
                 }
-                ProtoLastLastVertID = ProtoLastVertID;
-                ProtoLastVertID = targVertID;
+
+                if (setLastID)
+                {
+                    ProtoLastLastVertID = ProtoLastVertID;
+                    ProtoLastVertID = targVertID;
+                    Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+                }
             }
 
 
@@ -1033,7 +1053,8 @@ namespace rgatCore
             {
                 uint source = entry[0].ToObject<uint>();
                 uint target = entry[1].ToObject<uint>();
-                EdgeData edge = new EdgeData(entry, EdgeList.Count, safe_get_node(source).VertType());
+                EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: safe_get_node(source).VertType());
+                //todo: edge count?
                 AddEdge(edge, safe_get_node(source), safe_get_node(target));
             }
             return true;
@@ -1304,7 +1325,31 @@ namespace rgatCore
 
         //important state variables!
         public uint targVertID = 0; //new vert we are creating
-        public uint ProtoLastVertID = 0; //the vert that led to new instruction
+
+        //temp debug setup for breakpointing
+        /*
+        uint _internalTargVertID = 0;
+        public uint targVertID
+        {
+            get { return _internalTargVertID; }
+            set
+            {
+                _internalTargVertID = value;
+            }
+        }*/
+
+        uint _pplvid = 0;
+
+        public uint ProtoLastVertID
+        {
+            get { return _pplvid; }
+            set
+            {
+                _pplvid = value;
+            }
+        }
+
+        //public uint ProtoLastVertID = 0; //the vert that led to new instruction
         public uint ProtoLastLastVertID = 0; //the vert that led to the previous instruction
 
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
@@ -1351,7 +1396,7 @@ namespace rgatCore
                 switch (req.Name)
                 {
                     case "EdgeCount":
-                        passed = req.Compare(EdgeList.Count,  out error);
+                        passed = req.Compare(EdgeList.Count, out error);
                         compareValueString = $"{EdgeList.Count}";
                         break;
                     case "UniqueExceptionCount":
@@ -1369,6 +1414,9 @@ namespace rgatCore
                     case "InstructionExecs":
                         passed = req.Compare(TotalInstructions, out error);
                         compareValueString = $"{TotalInstructions}";
+                        break;
+                    case "Edges":
+                        passed = ValidateEdgeTestList(req.ExpectedValue.ToObject<JArray>(), out compareValueString);
                         break;
                     default:
                         compareValueString = "[?]";
@@ -1398,6 +1446,73 @@ namespace rgatCore
                 }
             }
             return results;
+        }
+
+        bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
+        {
+            foreach (JToken testedge in testedges)
+            {
+                if (testedge.Type != JTokenType.Object)
+                {
+                    Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge.ToString()}", Logging.LogFilterType.TextError);
+                    failedComparison = "Bad Test";
+                    return false;
+                }
+                JObject edgeTestObj = testedge.ToObject<JObject>();
+                if (!edgeTestObj.TryGetValue("Source", out JToken srcTok) || srcTok.Type != JTokenType.Integer || 
+                    !edgeTestObj.TryGetValue("Target", out JToken targTok) || targTok.Type != JTokenType.Integer)
+                {
+                    Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge.ToString()}", Logging.LogFilterType.TextError);
+                    failedComparison = "Bad Test";
+                    return false;
+                }
+
+                uint src = srcTok.ToObject<uint>();
+                uint targ = targTok.ToObject<uint>();
+                Tuple<uint, uint> edgeTuple = new Tuple<uint, uint>(src, targ);
+                if (!EdgeExists(edgeTuple))
+                {
+                    //pass a 0 count to assert the edge does not exist
+                    if (!GetTestEdgeCount(edgeTestObj, out ulong count) || count != 0)
+                    {
+                        failedComparison = $"Edge {src},{targ} exists";
+                        return false;
+                    }   
+                }
+
+                //listing the edge without the count => just assert the edge exists
+                if (GetTestEdgeCount(edgeTestObj, out ulong requiredExecCount))
+                {
+                    EdgeData edge = GetEdge(edgeTuple);
+
+                    //just assume we want equals. could do a condition if anyone cares.
+                    if (edge.executionCount != requiredExecCount)
+                    {
+                        failedComparison = $"Edge {src},{targ} executed {edge.executionCount} times (!= {requiredExecCount}) ";
+                        return false;
+                    }
+                }
+            }
+
+            failedComparison = "";
+            return true;
+        }
+
+        bool GetTestEdgeCount(JObject edgeObj, out ulong count)
+        {
+            if(edgeObj.TryGetValue("Count", out JToken countTok))
+            {
+                if (countTok.Type != JTokenType.Integer)
+                {
+                    count = 0;
+                    Logging.RecordLogEvent($"EdgeTestObject Count must be integer, not {countTok.Type}", Logging.LogFilterType.TextError);
+                    return false;
+                }
+                count = countTok.ToObject<ulong>();
+                return true;
+            }
+            count = 0;
+            return false;
         }
     }
 }

@@ -60,6 +60,8 @@ namespace rgatCore.Testing
                 case JTokenType.Float:
                     ExpectedValueString = $"{ExpectedValue.ToObject<float>()}";
                     break;
+                case JTokenType.Array:
+                    break;
                 default:
                     ExpectedValueString = $"[{ExpectedValue.Type} value]";
                     break;

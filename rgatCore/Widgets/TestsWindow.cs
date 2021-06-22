@@ -170,7 +170,7 @@ namespace rgatCore.Widgets
                             {
                                 DrawTestResultsExplainTree(testcase);
                                 ImGui.EndTable();
-                            
+
                             }
                         }
                     }
@@ -208,7 +208,7 @@ namespace rgatCore.Widgets
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
                 var wholeTestReqs = testcase.TestRunRequirements();
-                
+
                 if (ImGui.TreeNodeEx($"{wholeTestReqs.Length} Whole Test Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
                 {
                     foreach (var wholeTestReq in wholeTestReqs)
@@ -319,19 +319,19 @@ namespace rgatCore.Widgets
                 ImGui.TableNextColumn();
                 if (ImGui.TreeNodeEx($"{wholeTestReqs.Length} Whole Test Requirements", headerflags)) //toto plural/singular
                 {
-                        foreach (var wholeTestReq in wholeTestReqs)
-                        {
-                            TestResultCommentary comments = resultsCommentary.generalTests[wholeTestReq];
+                    foreach (var wholeTestReq in wholeTestReqs)
+                    {
+                        TestResultCommentary comments = resultsCommentary.generalTests[wholeTestReq];
 
-                            ImGui.TableNextRow();
-                            if (comments.result == eTestState.Passed)
-                                ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
-                            else
-                                ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
-                            ImGui.TableNextColumn();
-                            ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{comments.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
-                        }
-        
+                        ImGui.TableNextRow();
+                        if (comments.result == eTestState.Passed)
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
+                        else
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{comments.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
+                    }
+
                     ImGui.TreePop();
                 }
 
@@ -355,30 +355,30 @@ namespace rgatCore.Widgets
 
             TRACE_TEST_RESULTS comments = commentary.traceResultsB;
 
-                ImGui.TableNextRow();
-                ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, 0);
-                ImGui.TableNextColumn();
-                if (ImGui.TreeNodeEx($"{processRequirements.Count} Process Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            ImGui.TableNextRow();
+            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, 0);
+            ImGui.TableNextColumn();
+            if (ImGui.TreeNodeEx($"{processRequirements.Count} Process Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            {
+                foreach (var comm in comments.ProcessResults.Passed)
                 {
-                    foreach (var comm in comments.ProcessResults.Passed)
-                    {
-                        ImGui.TableNextRow();
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
-                        ImGui.TableNextColumn();
-                        TestRequirement req = comm.requirement;
-                        ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
-                    }
-                    foreach (var comm in comments.ProcessResults.Failed)
-                    {
-                        ImGui.TableNextRow();
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
-                        ImGui.TableNextColumn();
-                        TestRequirement req = comm.requirement;
-                        ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
-                    }
-
-                    ImGui.TreePop();
+                    ImGui.TableNextRow();
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
+                    ImGui.TableNextColumn();
+                    TestRequirement req = comm.requirement;
+                    ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
                 }
+                foreach (var comm in comments.ProcessResults.Failed)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
+                    ImGui.TableNextColumn();
+                    TestRequirement req = comm.requirement;
+                    ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
+                }
+
+                ImGui.TreePop();
+            }
 
             ImGui.TableNextRow();
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, 0);
@@ -399,28 +399,42 @@ namespace rgatCore.Widgets
                     {
                         foreach (ProtoGraph graph in commentsDict.Keys)
                         {
-                            REQUIREMENT_TEST_RESULTS graphScores = commentsDict[graph]; 
+                            REQUIREMENT_TEST_RESULTS graphScores = commentsDict[graph];
                             ImGui.TableNextRow();
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, (graphScores.Failed.Count == 0) ? passHighlight : failHighlight);
                             ImGui.TableNextColumn();
-                            if (ImGui.TreeNodeEx($"Graph TID {graph.ThreadID}: {graphScores.Passed.Count}/{graphScores.Passed.Count + graphScores.Failed.Count}"))
+                            bool hasFailed = graphScores.Failed.Any();
+                            ImGuiTreeNodeFlags flags = hasFailed ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None;
+                            string treeLabel = $"Graph TID {graph.ThreadID}: {graphScores.Passed.Count}/{graphScores.Passed.Count + graphScores.Failed.Count}";
+
+                            if (ImGui.TreeNodeEx(treeLabel, flags))
                             {
-                                    foreach (var comm in graphScores.Passed)
+                                foreach (var comm in graphScores.Passed)
+                                {
+                                    ImGui.TableNextRow();
+                                    ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
+                                    ImGui.TableNextColumn();
+                                    TestRequirement req = comm.requirement;
+                                    string testtext = $"Thread Requirement: {req.Name} ({comm.comparedValueString})";
+                                    if (req.ExpectedValueString != null)
                                     {
-                                        ImGui.TableNextRow();
-                                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
-                                        ImGui.TableNextColumn();
-                                        TestRequirement req = comm.requirement;
-                                        ImGui.Text($"Thread Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
+                                        testtext += $" {req.Condition} {req.ExpectedValueString}";
                                     }
-                                    foreach (var comm in graphScores.Failed)
+                                    ImGui.Text(testtext);
+                                }
+                                foreach (var comm in graphScores.Failed)
+                                {
+                                    ImGui.TableNextRow();
+                                    ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
+                                    ImGui.TableNextColumn();
+                                    TestRequirement req = comm.requirement;
+                                    string testtext = $"Thread Requirement: {req.Name} ({comm.comparedValueString})";
+                                    if (req.ExpectedValueString != null)
                                     {
-                                        ImGui.TableNextRow();
-                                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
-                                        ImGui.TableNextColumn();
-                                        TestRequirement req = comm.requirement;
-                                        ImGui.Text($"Thread Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
+                                        testtext += $" {req.Condition} {req.ExpectedValueString}";
                                     }
+                                    ImGui.Text(testtext);
+                                }
                                 ImGui.TreePop();
                             }
                         }
@@ -562,7 +576,7 @@ namespace rgatCore.Widgets
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
-                if(ImGui.BeginChild("FilterChecks",  new Vector2(120, ImGui.GetContentRegionAvail().Y)))
+                if (ImGui.BeginChild("FilterChecks", new Vector2(120, ImGui.GetContentRegionAvail().Y)))
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 1));
                     ImGui.Checkbox("Untested", ref testSpecsShowUntested);

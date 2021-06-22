@@ -173,6 +173,7 @@ namespace rgatCore
             }
         }
 
+        //todo broke on replay with extern modules
         public int FindContainingModule(ulong address)
         {
             int numModules = LoadedModuleBounds.Count;

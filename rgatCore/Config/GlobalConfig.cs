@@ -447,7 +447,7 @@ namespace rgatCore.Threads
                     }
                 }
             }
-            store = store.OrderBy(x => x.lastSeen).ToList();
+            store = store.OrderByDescending(x => x.lastSeen).ToList();
         }
 
 

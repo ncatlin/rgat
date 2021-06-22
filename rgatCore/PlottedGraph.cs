@@ -622,7 +622,7 @@ namespace rgatCore
         }
 
         float CYLINDER_RADIUS = 5000f;
-        float CYLINDER_PIXELS_PER_B = 10f;
+        float CYLINDER_PIXELS_PER_B = 30f;
         float CYLINDER_PIXELS_PER_A = 60f;
         void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
@@ -961,7 +961,15 @@ namespace rgatCore
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     textureArray[edgeIndex] = (int)neigbours[nidx];
-                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(InternalProtoGraph.GetEdge((uint)currentNodeIndex, neigbours[nidx]));
+                    if(InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData edge))
+                    {
+                        _edgeStrengthFloats[edgeIndex] = GetAttractionForce(edge);
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"Edge A {currentNodeIndex},{neigbours[nidx]} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
+                        _edgeStrengthFloats[edgeIndex] = 0.5f;
+                    }
                     edgeIndex++;
                     if (edgeIndex == textureArray.Length) return textureArray;
                 }
@@ -970,7 +978,15 @@ namespace rgatCore
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     textureArray[edgeIndex] = (int)neigbours[nidx];
-                    _edgeStrengthFloats[edgeIndex] = GetAttractionForce(InternalProtoGraph.GetEdge(neigbours[nidx], (uint)currentNodeIndex));
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData edge))
+                    {
+                        _edgeStrengthFloats[edgeIndex] = GetAttractionForce(edge);
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"Edge B {neigbours[nidx]},{currentNodeIndex} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
+                        _edgeStrengthFloats[edgeIndex] = 0.5f;
+                    }
                     edgeIndex++;
                     if (edgeIndex == textureArray.Length) return textureArray;
                 }
@@ -1430,7 +1446,7 @@ namespace rgatCore
 
             if (n.callRecordsIndexs.Count == 0)
             {
-                return $"{symbolText}()";
+                return $"{symbolText}() [x{n.executionCount}]";
             }
 
             EXTERNCALLDATA lastCall;

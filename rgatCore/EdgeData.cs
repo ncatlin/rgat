@@ -7,10 +7,11 @@ namespace rgatCore
 {
     public class EdgeData
     {
-        public EdgeData(int index, eEdgeNodeType sourceType)
+        public EdgeData(int index, eEdgeNodeType sourceType, ulong execCount = 0)
         {
             EdgeIndex = (uint)index;
             sourceNodeType = sourceType;
+            executionCount = execCount;
         }
 
         public EdgeData(JArray serialised, int index, eEdgeNodeType sourceType)
@@ -39,9 +40,13 @@ namespace rgatCore
         public eEdgeNodeType sourceNodeType;
 
         public ulong executionCount { get; private set; } = 0;
-        public void SetExecutionCount(ulong value) { executionCount = value; }
+        public void SetExecutionCount(ulong value) {
+            executionCount = value; 
+        }
 
-        public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
+        public void IncreaseExecutionCount(ulong value) {
+            SetExecutionCount(executionCount + value); 
+        }
 
         public bool heatComplete = false;
 

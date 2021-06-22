@@ -10,6 +10,7 @@
 #define UNLINK_MARKER "U"
 #define UNCHAIN_MARKER "u"
 #define EXECUTECOUNT_MARKER "B"
+#define REINSTRUMENTED_MARKER "R"
 #define SATISFY_MARKER "s"
 #define EXCEPTION_MARKER "X"
 #define THREAD_END_MARKER "Z"
@@ -40,6 +41,8 @@ public:
 		blocksIndex = -1;
 		uniqueThreadID = uniqThreadID;
 		hasBusyBlocks = false;
+		skipNextEdge = false;
+		newEdgeSourceBlk = 0;
 		PIN_MutexInit(&mutex);
 	};
 
@@ -111,6 +114,9 @@ public:
 	char BXbuffer[TAGCACHESIZE]; //buffer unchaining data for output
 
 	bool hasBusyBlocks;
+	bool skipNextEdge;
+
+	ADDRINT newEdgeSourceBlk;
 
 	BLOCKDATA *lastBlock;
 	BLOCK_IDENTIFIER lastBlock_expected_targID;
