@@ -184,7 +184,7 @@ namespace rgatCore.Widgets
             IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon);
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
-            Vector2 corner = ImGui.GetCursorScreenPos() + offset ?? Vector2.Zero;
+            Vector2 corner = ImGui.GetCursorScreenPos() + (offset ?? Vector2.Zero);
 
             ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner + size, Vector2.Zero, Vector2.One);
             if (countCaption > 1)

@@ -248,6 +248,8 @@ namespace rgatCore
         readonly object _logLock = new object();
         List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
         Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
+        int runningProcesses = 0;
+        int runningThreads = 0;
         public void RecordTimelineEvent(Logging.eTimelineEvent type, ulong ID, ulong parentID = ulong.MaxValue)
         {
             Logging.TIMELINE_EVENT tlevent = new Logging.TIMELINE_EVENT(type);
@@ -260,12 +262,24 @@ namespace rgatCore
                 switch (type)
                 {
                     case Logging.eTimelineEvent.ProcessStart:
+                        runningProcesses += 1;
+                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                        _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        break;
                     case Logging.eTimelineEvent.ProcessEnd:
+                        runningProcesses -= 1;
+                        if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
                         _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
                         _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                         break;
                     case Logging.eTimelineEvent.ThreadStart:
+                        runningThreads += 1;
+                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                        _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        break;
                     case Logging.eTimelineEvent.ThreadEnd:
+                        runningThreads -= 1;
+                        if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
                         _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                         _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         break;
@@ -652,6 +666,7 @@ namespace rgatCore
         public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
         ModuleHandlerThread _moduleThread;
+        public bool ProcessingRemaining => _moduleThread.IsRunning;
         BlockHandlerThread _blockThread;
         public void SetModuleHandlerThread(ModuleHandlerThread moduleHandlerObj) => _moduleThread = moduleHandlerObj;
         public void SetBlockHandlerThread(BlockHandlerThread blockHandlerObj) => _blockThread = blockHandlerObj;

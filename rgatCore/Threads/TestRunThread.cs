@@ -3,6 +3,7 @@ using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -52,31 +53,31 @@ namespace rgatCore.Testing
             ProcessLaunching.StartTracedProcess(pintoolpath, _testCase.BinaryPath, testID: _thisTest.TestID);
 
             //GetTestTrace
-            while (!_rgatState.rgatIsExiting)
+            while (!_rgatState.rgatIsExiting && !Finished)
             {
                 Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
                 if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
                 {
                     _thisTest.SetFirstTrace(testTrace);
                     Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
-                    break;
+
+                    while (!_rgatState.rgatIsExiting && !Finished)
+                    {
+                        Thread.Sleep(100);
+                        if (!testTrace.IsRunning && !testTrace.ProcessingRemaining) 
+                            Finished = true;
+                    }
                 }
-                Thread.Sleep(100);
+                else { Thread.Sleep(100); }
             }
 
-
-            while (!_rgatState.rgatIsExiting)
-            {
-                Console.WriteLine($"Output {2 - countDown}/2 from test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
-                Thread.Sleep(1700);
-                countDown -= 1;
-                if (countDown <= 0) break;
-            }
 
 
             Console.WriteLine($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
-            Finished = true;
+
             Running = false;
+
+
             _testCase.RecordFinished();
             _harness.NotifyComplete(_thisTest.TestID);
         }

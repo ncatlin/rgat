@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using static rgatCore.TraceRecord;
@@ -19,6 +20,7 @@ namespace rgatCore
         NamedPipeServerStream commandPipe = null;
         NamedPipeServerStream eventPipe = null;
         Thread listenerThread = null;
+        public bool IsRunning = false;
 
 
         public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState)
@@ -83,8 +85,9 @@ namespace rgatCore
 
             newProtoGraph.TraceReader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
 
-            ThreadTraceProcessingThread graph_builder = new ThreadTraceProcessingThread(newProtoGraph);
+            newProtoGraph.TraceProcessor = new ThreadTraceProcessingThread(newProtoGraph);
 
+            newProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, ID: TID);
             if (!trace.InsertNewThread(MainGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
@@ -100,6 +103,8 @@ namespace rgatCore
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
             uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
             Console.WriteLine($"Thread {TID} started!");
+
+
 
             switch (trace.TraceType)
             {
@@ -209,8 +214,8 @@ namespace rgatCore
                 List<string> tracedFiles = target.traceChoices.GetTracedFiles();
 
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
-                { 
-                    Logging.RecordLogEvent("Warning: Exclude mode with nothing included. Nothing will be instrumented.");         
+                {
+                    Logging.RecordLogEvent("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
                 }
 
                 foreach (string name in tracedDirs)
@@ -323,7 +328,7 @@ namespace rgatCore
                     HandleNewThread(buf);
                     return;
                 }
-                
+
                 if (buf[1] == 'Z')
                 {
                     HandleTerminatedThread(buf);
@@ -378,6 +383,7 @@ namespace rgatCore
 
         void ControlEventListener(object instanceID)
         {
+            IsRunning = true;
             string cmdPipeName = GetCommandPipeName(this.trace.PID, (long)instanceID);
             string eventPipeName = GetEventPipeName(this.trace.PID, (long)instanceID);
 
@@ -392,6 +398,7 @@ namespace rgatCore
             {
                 Logging.RecordLogEvent("IO Exception on ModuleHandlerThreadListener: " + e.Message);
                 eventPipe = null;
+                IsRunning = false;
                 return;
             }
 
@@ -429,9 +436,20 @@ namespace rgatCore
                 }
             }
 
+
             eventPipe.Dispose();
             trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace.PID);
+
+            bool alldone = false;
+            while (!_clientState.rgatIsExiting && !alldone)
+            {
+                var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.IsRunning);
+                if (!alldone) Thread.Sleep(35);
+            }
+
             Logging.RecordLogEvent($"ControlHandler Listener thread exited for PID {trace.PID}", trace: trace);
+            IsRunning = false;
         }
 
     }

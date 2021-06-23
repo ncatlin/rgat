@@ -3,6 +3,7 @@ using rgatCore.Testing;
 using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -115,6 +116,7 @@ namespace rgatCore.Widgets
 
         }
 
+
         List<TestCase> FindTests(string dirpath, string category)
         {
             List<TestCase> results = new List<TestCase>();
@@ -128,6 +130,7 @@ namespace rgatCore.Widgets
             }
             return results;
         }
+
 
         int _currentSession = 0;
         public void Draw(ref bool openFlag)
@@ -145,35 +148,53 @@ namespace rgatCore.Widgets
                 if (ImGui.BeginChild("#TestsOutputWindow", new Vector2(ImGui.GetContentRegionAvail().X, height - controlsHeight)))
                 {
                     var i = 0;
-                    foreach (var testcase in _allTests)
+                    if (testSpecsShowUntested)
                     {
-                        switch (testcase.LatestResultState)
+                        foreach (var testcase in _allTests)
                         {
-                            case eTestState.Failed:
-                                if (!testSpecsShowFailed) continue;
-                                break;
-                            case eTestState.Passed:
-                                if (!testSpecsShowPassed) continue;
-                                break;
-                            case eTestState.NotRun:
-                                if (!testSpecsShowUntested) continue;
-                                break;
-                        }
-                        if (testcase.LatestResultState == eTestState.NotRun)
-                        {
-                            DrawTestSpecExplainTree(testcase);
-                        }
-                        else
-                        {
-
-                            if (ImGui.BeginTable($"#RunTree{i++}", 1, ImGuiTableFlags.RowBg))
+                            if (testcase.LatestResultState == eTestState.NotRun)
                             {
-                                DrawTestResultsExplainTree(testcase);
-                                ImGui.EndTable();
-
+                                DrawTestSpecExplainTree(testcase);
                             }
                         }
                     }
+
+                    TestSession session = _testingThread.GetTestSession(this._currentSession);
+                    if (session != null)
+                    {
+                        foreach (var testcaserun in session.tests)
+                        {
+                            if (!testcaserun.Complete) continue;
+                            if (testcaserun.ResultCommentary.result == eTestState.Passed)
+                            {
+                                if (testSpecsShowPassed)
+                                {
+                                    if (ImGui.BeginTable($"#RunTree{i++}", 1, ImGuiTableFlags.RowBg))
+                                    {
+                                        DrawTestResultsExplainTree(testcaserun);
+                                        ImGui.EndTable();
+                                    }
+                                }
+                            }
+                            else if (testcaserun.ResultCommentary.result == eTestState.Failed)
+                            {
+                                if (testSpecsShowFailed)
+                                {
+                                    if (ImGui.BeginTable($"#RunTree{i++}", 1, ImGuiTableFlags.RowBg))
+                                    {
+                                        DrawTestResultsExplainTree(testcaserun);
+
+                                        ImGui.EndTable();
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Debug.Assert(false);
+                            }
+                        }
+                    }
+
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -184,7 +205,11 @@ namespace rgatCore.Widgets
 
             if (_testsRunning)
             {
-                if (_queuedTests.Count > 0 && _testingThread.FreeTestSlots > 0)
+                if (autoStopOnFailure && _sessionStats["Failed"] > 0)
+                {
+                    _testsRunning = false;
+                }
+                else if (_queuedTests.Count > 0 && _testingThread.FreeTestSlots > 0)
                 {
                     lock (_TestsLock)
                     {
@@ -193,6 +218,10 @@ namespace rgatCore.Widgets
                         if (testID > -1)
                         {
                             _queuedTests.Remove(test);
+                            if (autoRequeue)
+                            {
+                                AddTestToQueue(test);
+                            }
                         }
                     }
                 }
@@ -272,12 +301,24 @@ namespace rgatCore.Widgets
 
 
 
-        void DrawTestResultsExplainTree(TestCase testcase)
+        void DrawTestResultsExplainTree(TestCaseRun testcaserun)
         {
-            string stateString;
-            ImGuiTreeNodeFlags headerflags;
 
-            switch (testcase.LatestResultState)
+            //todo - list of test results, not latest
+
+            eTestState activeState;
+            /*
+            if (autoStopOnFailure && testcase.CountFailed(_currentSession) > 0)
+            {
+                activeState = eTestState.Failed;
+            }
+            else
+            {
+                activeState = testcase.LatestResultState;
+            }
+
+
+            switch (activeState)
             {
                 case eTestState.Failed:
                     stateString = "Failed";
@@ -295,15 +336,21 @@ namespace rgatCore.Widgets
                     headerflags = ImGuiTreeNodeFlags.None;
                     stateString = "Bad state";
                     break;
-            }
+            }*/
 
-            TraceTestResultCommentary resultsCommentary = testcase.LatestTestRun.ResultCommentary;
+
+
+            TraceTestResultCommentary resultsCommentary = testcaserun.ResultCommentary;
+            TestCase testcase = testcaserun.GetTestCase;
+            string stateString = resultsCommentary.result == eTestState.Passed ? "Passed" : "Failed";
+            ImGuiTreeNodeFlags headerflags = resultsCommentary.result == eTestState.Passed ? ImGuiTreeNodeFlags.None : ImGuiTreeNodeFlags.DefaultOpen;
+
 
             uint passHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour).ToUint(0x30);
             uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(0x30);
 
             ImGui.TableNextRow();
-            if (testcase.LatestResultState == eTestState.Passed)
+            if (resultsCommentary.result == eTestState.Passed)
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
             else
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
@@ -497,7 +544,7 @@ namespace rgatCore.Widgets
                     {
                         float exec_pct = (_sessionStats["Executed"] / _allTests.Count);
                         float pass_pct = (_sessionStats["Passed"] / _sessionStats["Executed"]);
-                        string label = $"{_sessionStats["Executed"]} of {_allTests.Count} tests executed ({exec_pct:P0}%). {_sessionStats["Failed"]} failed tests ({pass_pct:P0}% pass rate).";
+                        string label = $"{_sessionStats["Executed"]} of {_allTests.Count} tests executed ({exec_pct:P0}%). {_sessionStats["Failed"]} failed tests ({pass_pct:P0}% pass rate for most recent run of each test).";
                         ImGui.Text(label);
                     }
 
@@ -518,7 +565,8 @@ namespace rgatCore.Widgets
         static bool testSpecsShowUntested = true;
         static bool testSpecsShowFailed = true;
         static bool testSpecsShowPassed = true;
-
+        static bool autoRequeue = false;
+        static bool autoStopOnFailure = false;
         void DrawQueueControls(float height)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff333333);
@@ -604,18 +652,45 @@ namespace rgatCore.Widgets
                 }
                 else
                 {
-
-                    if (!_queuedTests.Any())
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                    else
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour));
-                    if (ImGui.Button("Start Testing", new Vector2(80, buttonSize)))
+                    if (autoStopOnFailure && _sessionStats["Failed"] > 0)
                     {
-                        StartTests();
+                        ImGui.PushStyleColor(ImGuiCol.Button, 0xaaaaaaff);
+                        ImGui.Button("Testing Stopped", new Vector2(80, buttonSize));
+                        ImGui.PopStyleColor();
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("A test has failed. Begin a new session or disable stop on failure");
+                        }
                     }
-                    ImGui.PopStyleColor();
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("Begin executing tests from the queue");
+                    else
+                    {
+                        if (!_queuedTests.Any())
+                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                        else
+                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour));
+                        if (ImGui.Button("Start Testing", new Vector2(80, buttonSize)))
+                        {
+                            StartTests();
+                        }
+                        ImGui.PopStyleColor();
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip("Begin executing tests from the queue");
+                    }
+                }
+
+
+                ImGui.EndGroup();
+                ImGui.SameLine();
+                ImGui.BeginGroup();
+                ImGui.Checkbox("Loop tests", ref autoRequeue);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Immediately requeue tests after execution for continuous repeated tests");
+                }
+                ImGui.Checkbox("Stop on Failure", ref autoStopOnFailure);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Stop executing new tests if a test fails");
                 }
                 ImGui.EndGroup();
             }
@@ -877,7 +952,7 @@ namespace rgatCore.Widgets
                                         IntPtr starTexture = starred ? starFullIcon : starEmptyIcon;
                                         if (!starredCategory)
                                         {
-                                            if (ImGui.ImageButton(starTexture, new Vector2(23, 23), Vector2.Zero, Vector2.One, 0))
+                                            if (ImGui.ImageButton(starTexture, new Vector2(23, 23), Vector2.Zero, Vector2.One, 0)) //todo valign
                                                 testcase.Starred = !testcase.Starred;
                                             if (ImGui.IsItemHovered())
                                             {

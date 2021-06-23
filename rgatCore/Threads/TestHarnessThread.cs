@@ -31,7 +31,6 @@ namespace rgatCore.Testing
     {
 
         Thread thisThread = null;
-        List<TestOutput> _newResults = new List<TestOutput>();
         readonly object _lock = new object();
         rgatState _rgatState;
         Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
@@ -76,7 +75,7 @@ namespace rgatCore.Testing
             }
         }
 
-
+        
         public TestCaseRun GetTestCaseRun (long ID)
         {
             lock (_lock)
@@ -86,7 +85,16 @@ namespace rgatCore.Testing
             }
         }
 
+        public TestSession GetTestSession (int ID)
+        {
+            lock (_lock)
+            {
+                if (_testSessions.TryGetValue(ID, out TestSession session)) return session;
+                return null;
+            }
+        }
 
+        /*
         public bool GetLatestResults(int max, out TestOutput[] results)
         {
             if (_newResults.Count == 0)
@@ -102,6 +110,7 @@ namespace rgatCore.Testing
                 return true;
             }
         }
+        */
 
         public void NotifyComplete(long testID)
         {
@@ -109,7 +118,7 @@ namespace rgatCore.Testing
             {
                 TestCaseRun tcr = _testRuns[testID];
                 TestRunThread testThread = _runningTests[testID];
-                Debug.Assert(testThread.Finished);
+                Debug.Assert(testThread.Finished || _rgatState.rgatIsExiting);
 
                 _runningTests.Remove(testID);
 

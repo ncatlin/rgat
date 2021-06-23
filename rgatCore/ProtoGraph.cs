@@ -68,6 +68,7 @@ namespace rgatCore
         public uint ThreadID = 0;
 
         public ThreadTraceIngestThread TraceReader { set; get; } = null;
+        public ThreadTraceProcessingThread TraceProcessor { set; get; } = null;
         public ProcessRecord ProcessData { private set; get; } = null;
         public TraceRecord TraceData { private set; get; } = null;
 

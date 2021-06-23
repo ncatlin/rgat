@@ -10,14 +10,14 @@ using System.Threading.Tasks;
 
 namespace rgatCore.Threads
 {
-    class ThreadTraceProcessingThread
+   public class ThreadTraceProcessingThread
     {
         ProtoGraph protograph;
         Thread runningThread;
         bool IrregularTimerFired = false;
         System.Timers.Timer IrregularActionTimer = null;
 
-
+        public bool IsRunning => runningThread.IsAlive;
 
         struct BLOCKREPEAT
         {
@@ -501,6 +501,9 @@ namespace rgatCore.Threads
 
         void AddReinstrumentedUpdate(byte[] entry)
         {
+            dontcountnextedge = true; // the edge from deinstrumented -> instrumented is already recorded
+            protograph.PerformingUnchainedExecution = false;
+
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 2);
 
@@ -515,9 +518,9 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            
             protograph.ProtoLastVertID = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID].Item2;
         }
+
 
         void AddUnchainedUpdate(byte[] entry)
         {
@@ -694,6 +697,7 @@ namespace rgatCore.Threads
         }
 
         bool dontcountnextedge = false;
+       
 
         private readonly Object debug_tag_lock = new Object();
         void Processor()
@@ -720,13 +724,7 @@ namespace rgatCore.Threads
                         case (byte)'A':
                             HandleArg(msg);
                             break;
-                            /*
-                        case (byte)'U':
-                            UnchainedLinkingUpdate(msg);
-                            break;*/
                         case (byte)'R':
-                            dontcountnextedge = true; 
-                            protograph.PerformingUnchainedExecution = false;
                             AddReinstrumentedUpdate(msg);
                             break;
                         case (byte)'u':
@@ -760,7 +758,7 @@ namespace rgatCore.Threads
 
             IrregularActionTimer.Stop();
             PerformIrregularActions();
-
+            
             Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
         }
 
