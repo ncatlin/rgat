@@ -206,7 +206,7 @@ namespace rgatCore.Threads
 			tr.SetModuleHandlerThread(moduleHandler);
 			moduleHandler.Begin(ID);
 
-			tr.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, PID);
+			tr.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, tr);
 
 
 			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);

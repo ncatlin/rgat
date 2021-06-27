@@ -132,9 +132,10 @@ namespace rgatCore
                 if (externBlockaddr != 0 || blockID == uint.MaxValue)
                 {
                     int moduleNo = FindContainingModule(externBlockaddr);
-                    if (ModuleTraceStates.Count <= moduleNo)
+                    if (ModuleTraceStates.Count <= moduleNo || moduleNo == -1)
                     {
                         Console.WriteLine($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                        externBlock = null;
                         return null;
                     }
                     if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
@@ -597,9 +598,27 @@ namespace rgatCore
             }
             else if (insdata.mnemonic == "jmp")
             {
+
                 insdata.itype = eNodeType.eInsJump;
-                try { insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
-                catch { insdata.branchAddress = 0; }
+
+                if (insn.Operand.Contains("["))
+                {
+                    
+                    try {
+                        int idxAddrStart = insn.Operand.IndexOf('[') + 1;
+                        int addrSize = (insn.Operand.IndexOf(']') - idxAddrStart);
+                        string targMemAddr = insn.Operand.Substring(idxAddrStart, addrSize);
+                        insdata.branchAddress = Convert.ToUInt64(targMemAddr, 16);
+                        insdata.PossibleidataThunk = true;
+                    } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+                    catch { insdata.branchAddress = 0; }
+
+                }
+                else
+                {
+                    try { insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+                    catch { insdata.branchAddress = 0; }
+                }
 
                 if (insdata.branchAddress == (address + (ulong)insdata.numbytes))
                 {

@@ -63,7 +63,9 @@ namespace rgatCore.Testing
         {
             lock (_lock)
             {
-                if (_runningTests.Count >= _maxRunningTests) return -1;
+                if (_runningTests.Count >= _maxRunningTests) 
+                    return -1;
+
                 _currentTestID += 1;
                 TestCaseRun testRun = new TestCaseRun(test, session, _currentTestID);
                 _testRuns[_currentTestID] = testRun;
@@ -94,23 +96,6 @@ namespace rgatCore.Testing
             }
         }
 
-        /*
-        public bool GetLatestResults(int max, out TestOutput[] results)
-        {
-            if (_newResults.Count == 0)
-            {
-                results = null;
-                return false;
-            }
-
-            lock (_lock)
-            {
-                results = _newResults.Take(Math.Min(max, _newResults.Count)).ToArray();
-                _newResults.Clear();
-                return true;
-            }
-        }
-        */
 
         public void NotifyComplete(long testID)
         {
@@ -126,6 +111,7 @@ namespace rgatCore.Testing
                 tcr.MarkFinished();
             }
         }
+
 
         void Listener(Object pipenameO)
         {

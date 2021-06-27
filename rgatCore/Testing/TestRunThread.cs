@@ -64,7 +64,7 @@ namespace rgatCore.Testing
                     while (!_rgatState.rgatIsExiting && !Finished)
                     {
                         Thread.Sleep(100);
-                        if (!testTrace.IsRunning && !testTrace.ProcessingRemaining) 
+                        if (!testTrace.ProcessingRemaining) 
                             Finished = true;
                     }
                 }

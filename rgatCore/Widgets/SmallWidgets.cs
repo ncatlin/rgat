@@ -215,5 +215,12 @@ namespace rgatCore.Widgets
             }
         }
 
+        public static void MouseoverText(string text)
+        {
+            if (text?.Length > 0 && ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(text);
+            }
+        }
     }
 }

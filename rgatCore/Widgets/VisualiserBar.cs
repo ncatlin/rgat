@@ -188,7 +188,7 @@ namespace rgatCore.Widgets
             ResourceSetDescription rsrc_rsd = new ResourceSetDescription(_rsrcLayout, _paramsBuffer, _gd.PointSampler, _iconsTextureView);
             _rsrcs?.Dispose();
             _rsrcs = _factory.CreateResourceSet(rsrc_rsd);
-           
+
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
             _cl.SetFramebuffer(_outputFramebuffer);
@@ -358,12 +358,17 @@ namespace rgatCore.Widgets
                 bool drawPlotLine;
                 //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 0) });
                 //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 50) });
-                if ((int)ae.blockID != -1)
-                {
-                    var blockFirstLast = graph.BlocksFirstLastNodeList[(int)ae.blockID];
-                    uint insCount = (blockFirstLast.Item2 - blockFirstLast.Item1) + 1;
-                    CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
-                }
+                int blkID = (int)ae.blockID;
+
+                if (blkID < 0 || blkID >= graph.BlocksFirstLastNodeList.Count) continue;
+
+                var blockFirstLast = graph.BlocksFirstLastNodeList[blkID];
+
+
+                if (blockFirstLast == null) continue; //happens on .idata jump thunks
+                uint insCount = (blockFirstLast.Item2 - blockFirstLast.Item1) + 1;
+                CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
+
 
                 switch (ae.entryType)
                 {
@@ -396,6 +401,10 @@ namespace rgatCore.Widgets
                         }
                         break;
 
+                    case eTraceUpdateType.eAnimReinstrument:
+                        //TODO
+                        break;
+
                     default:
                         lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset, 2) });
                         lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
@@ -409,46 +418,45 @@ namespace rgatCore.Widgets
 
                 //Draw Heatmap visualisation
 
-                if ((int)ae.blockID != -1)
+
+                int blockTailIdx = (int) blockFirstLast.Item2;
+                WritableRgbaFloat heatColour;
+                if (graph.NodeList.Count > blockTailIdx)
                 {
-                    int blockTailIdx = (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2;
-                    WritableRgbaFloat heatColour;
-                    if (graph.NodeList.Count > blockTailIdx)
+                    // colour from heat ranking of final node
+                    NodeData node = graph.NodeList[blockTailIdx];
+                    Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+                    heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
+
+                    CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
+
+                    // plot line from edge counts
+                    if (graph.BusiestBlockExecCount > 0)
                     {
-                        // colour from heat ranking of final node
-                        NodeData node = graph.NodeList[blockTailIdx];
-                        Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-                        heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
-
-                        CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
-
-                        // plot line from edge counts
-                        if (graph.BusiestBlockExecCount > 0)
+                        //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
+                        //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
+                        float ecountprop = 1 - ((float)ae.count / (float)graph.BusiestBlockExecCount);
+                        if (busyCountLinePoints.Count > 0)
                         {
-                            //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
-                            //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
-                            float ecountprop = 1 - ((float)ae.count / (float)graph.BusiestBlockExecCount);
-                            if (busyCountLinePoints.Count > 0)
-                            {
-                                busyCountLinePoints.Add(busyCountLinePoints[^1]);
-                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
-                            }
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
+                            busyCountLinePoints.Add(busyCountLinePoints[^1]);
+                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
                         }
+                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
+                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
                     }
-                    else
-                    {
-                        CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
-                    }
-
+                }
+                else
+                {
+                    CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
                 }
 
 
-                //Draw API icon
-                if ((int)ae.blockID == -1)
+
+
+                //Draw API icon - todo above i guess as it wont get here?
+                if (blkID == -1)
                 {
                     bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
                     if (found)
@@ -523,7 +531,7 @@ namespace rgatCore.Widgets
         Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
 
         void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
-            out Dictionary<int, double> pixCumul, 
+            out Dictionary<int, double> pixCumul,
             out Dictionary<int, double> pixAvg,
             out List<MODULE_SEGMENT> modSegs
             )
@@ -574,7 +582,8 @@ namespace rgatCore.Widgets
                                 name = "todo"
                             });
 
-
+                            if (ae.blockID >= graph.BlocksFirstLastNodeList.Count)
+                                continue;
                             tagInsCount = (graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2 -
                                 graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1) + 1;
                         }
@@ -585,7 +594,7 @@ namespace rgatCore.Widgets
                             ulong block = edge.Item1;
                             if ((int)block < graph.BlocksFirstLastNodeList.Count)
                             {
-                               
+
                                 var nodeRange = graph.BlocksFirstLastNodeList[(int)block];
                                 if (nodeRange != null)
                                 {
@@ -625,8 +634,8 @@ namespace rgatCore.Widgets
                 pixAvg[pix] = pixAvg[pix] / highestSegmentAvg;
             }
 
-            
-            
+
+
 
             if (graph.Terminated)
             {
@@ -640,7 +649,7 @@ namespace rgatCore.Widgets
         //todo lots of opportunity for caching here
         public void GenerateReplay(float width, float height, ProtoGraph graph)
         {
-            
+
             if (width != _width || height != _height)
             {
                 CreateTextures(width, height);
@@ -660,7 +669,7 @@ namespace rgatCore.Widgets
             //Draw cumulative instruction count plot
             ulong cumulativeInsCount = 0;
             int lastPlotXPixel = -1;
-            float thirdHeight = (float)Math.Floor(height/3);
+            float thirdHeight = (float)Math.Floor(height / 3);
             Vector2 lastCumuLinePos = new Vector2(0, thirdHeight);
             Vector2 lastAvgLinePos = new Vector2(0, thirdHeight);
 
@@ -713,7 +722,13 @@ namespace rgatCore.Widgets
                 ANIMATIONENTRY sample = animationData[entryIdx];
                 if ((int)sample.blockID != -1)
                 {
-                    int blockTailIdx = (int)graph.BlocksFirstLastNodeList[(int)sample.blockID].Item2;
+                    if (sample.blockID >= graph.BlocksFirstLastNodeList.Count) continue;
+                    Tuple<uint, uint> blockNodes = graph.BlocksFirstLastNodeList[(int)sample.blockID];
+                    if (blockNodes == null)
+                    {
+                        continue; //.idata thunk
+                    }
+                    int blockTailIdx = (int)blockNodes.Item2;
                     if (graph.NodeList.Count > blockTailIdx)
                     {
                         // colour from heat ranking of final node
@@ -737,7 +752,7 @@ namespace rgatCore.Widgets
                 }
             }
 
-            float baseThirdStart = thirdHeight*2 + 1;
+            float baseThirdStart = thirdHeight * 2 + 1;
             float baseThirdEnd = height - 2;
 
             foreach (MODULE_SEGMENT seg in modsegs)
@@ -762,7 +777,7 @@ namespace rgatCore.Widgets
                 MODULE_LABEL label = new MODULE_LABEL
                 {
                     startX = startX + 2,
-                    endX = endX -2,
+                    endX = endX - 2,
                     modID = seg.modID,
                     name = seg.name
                 };

@@ -1146,7 +1146,7 @@ namespace rgatCore
 
             TraceRecord trace = ActiveGraph.InternalProtoGraph.TraceData;
 
-            Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime);
+            Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime, max: 5);
 
             float currentY = depth;
             ImGui.SetCursorScreenPos(new Vector2(pos.X - maxWidth, pos.Y + currentY));

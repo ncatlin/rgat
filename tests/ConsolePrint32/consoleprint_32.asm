@@ -3,10 +3,6 @@
         .model flat, stdcall           ;use C naming convention (stdcall is default)
 
 ;       include C libraries
-        includelib      msvcrtd
-        includelib      oldnames
-        includelib      kernel32
-        includelib      legacy_stdio_definitions.lib    ;for scanf, printf, ...
 
         .data                   ;initialized data
 message     db      "drgat test 1 32 bit",0dh,0ah,0
@@ -30,15 +26,18 @@ message_end db 0
 
 main:    
 
-        ;basic blocks 0-2
-	    ;sequential nodes 0-2
+        ;basic block 0
+	    ;5x nodes [0-3 + extern]
         mov     ebp, esp
         sub     esp, 4	
         push    -11
-        call   GetStdHandle ;call node 3 + jump node 4 + external node 5
+        ;this is technically 2 instructions but the .idata thunk is ignored for layout readability
+        ; it is 2 nodes, however - the call and the GetStdHandle extern
+        call   GetStdHandle 
 	
-	    ;basic blocks 3-6
-	    ;sequential nodes 6-12
+
+	    ;basic block 2 (the GetStdHandle .idata thunk is block 1)
+	    ;9x nodes [5-12 + writefile]
         mov     ebx, eax    
         push    0
         lea     eax, [ebp-4]
@@ -46,17 +45,39 @@ main:
         push    (message_end - message)
         push    offset  message
         push    ebx
-        call    writefile ;call node 13 + jump node 14 + external node 15
+        call    writefile
 
-        ;basic blocks 7-9
-	    ;sequential node 16
+        ;basic block 4
+        ; 3x nodes [14,15,GetStdHandle]
+        push    -11
+        call   GetStdHandle
+
+
+        ;basic block 6
+	    ;9x nodes [17-24 + writefile]
+        mov     ebx, eax    
         push    0
-        call    ExitProcess ;call node 17 + jump node 18 + external node 19 [20th node, connected by 19th edge]
+        lea     eax, [ebp-4]
+        push    eax
+        push    (message_end - message)
+        push    offset  message
+        push    ebx
+        call    writefile
 
-        ; never here
-        hlt
 
+        ;basic blocks 8
+	    ;3x nodes [26,27, exitprocess]
+        push    0
+        call    ExitProcess 
 
+        ;stats 
+        ; 29 nodes (including node 0)
+        ; 28 edges
+        ; 0 exceptions
+        ; 5 seperate external nodes
+        ; 24 instructions [29 nodes - 5 externals]
+        ;   29 instructions would also be acceptable, as that would be counting the jmp dword ptr [xxxx] thunks
+        
 
 end main
 

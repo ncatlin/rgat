@@ -100,7 +100,7 @@ namespace rgatCore.Widgets
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Ignoring badly formatted test directory {testdir}",
+                        Logging.RecordLogEvent($"Unhandled exception parsing tests in directory {testdir}: {e.Message}",
                             Logging.LogFilterType.TextDebug);
                         continue;
                     }
@@ -123,9 +123,16 @@ namespace rgatCore.Widgets
             string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(TEST_CONSTANTS.testextension)).ToArray();
             foreach (string testfile in tests)
             {
-                TestCase t = new TestCase(testfile, category);
-
-                results.Add(t);
+                try
+                {
+                    TestCase t = new TestCase(testfile, category);
+                    results.Add(t);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Unhandled Exception parsing test file {testfile}: {e.Message}");
+                    continue;
+                }
                 _sessionStats["Loaded"] += 1;
             }
             return results;
@@ -143,7 +150,7 @@ namespace rgatCore.Widgets
                 ImGui.BeginGroup();
                 DrawStatusBanner();
                 float height = ImGui.GetContentRegionAvail().Y;
-                float controlsHeight = 75;
+                float controlsHeight = 90;
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff887766);
                 if (ImGui.BeginChild("#TestsOutputWindow", new Vector2(ImGui.GetContentRegionAvail().X, height - controlsHeight)))
                 {
@@ -198,7 +205,7 @@ namespace rgatCore.Widgets
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
-                DrawQueueControls(controlsHeight);
+                DrawQueueControls(controlsHeight );
                 ImGui.EndGroup();
                 ImGui.End();
             }
@@ -236,6 +243,9 @@ namespace rgatCore.Widgets
 
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
+                if (testcase.Comment?.Length > 0)
+                    SmallWidgets.MouseoverText($"Description: {testcase.Comment}");
+
                 var wholeTestReqs = testcase.TestRunRequirements();
 
                 if (ImGui.TreeNodeEx($"{wholeTestReqs.Length} Whole Test Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
@@ -243,6 +253,7 @@ namespace rgatCore.Widgets
                     foreach (var wholeTestReq in wholeTestReqs)
                     {
                         ImGui.Text($"Test run Requirement: {wholeTestReq.Name} {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
+                        SmallWidgets.MouseoverText(wholeTestReq.Comment);
                     }
                     ImGui.TreePop();
                 }
@@ -253,6 +264,8 @@ namespace rgatCore.Widgets
 
                 ImGui.TreePop();
             }
+            if (testcase.Comment?.Length > 0)
+                SmallWidgets.MouseoverText($"Description: {testcase.Comment}");
         }
 
         void DrawTraceSpecExplainTreeNodes(TraceRequirements traceRequirements)
@@ -266,6 +279,7 @@ namespace rgatCore.Widgets
                 foreach (var req in processRequirements)
                 {
                     ImGui.Text($"Process Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
+                    SmallWidgets.MouseoverText(req.Comment);
                 }
                 ImGui.TreePop();
             }
@@ -279,6 +293,7 @@ namespace rgatCore.Widgets
                         foreach (var req in threadsReqList.value)
                         {
                             ImGui.Text($"Thread Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
+                            SmallWidgets.MouseoverText(req.Comment);
                         }
 
                         ImGui.TreePop();
@@ -368,15 +383,16 @@ namespace rgatCore.Widgets
                 {
                     foreach (var wholeTestReq in wholeTestReqs)
                     {
-                        TestResultCommentary comments = resultsCommentary.generalTests[wholeTestReq];
+                        TestResultCommentary results = resultsCommentary.generalTests[wholeTestReq];
 
                         ImGui.TableNextRow();
-                        if (comments.result == eTestState.Passed)
+                        if (results.result == eTestState.Passed)
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
                         else
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{comments.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
+                        ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{results.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
+                        SmallWidgets.MouseoverText(wholeTestReq.Comment);
                     }
 
                     ImGui.TreePop();
@@ -414,6 +430,7 @@ namespace rgatCore.Widgets
                     ImGui.TableNextColumn();
                     TestRequirement req = comm.requirement;
                     ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
+                    SmallWidgets.MouseoverText(req.Comment);
                 }
                 foreach (var comm in comments.ProcessResults.Failed)
                 {
@@ -422,6 +439,7 @@ namespace rgatCore.Widgets
                     ImGui.TableNextColumn();
                     TestRequirement req = comm.requirement;
                     ImGui.Text($"Process Requirement: {req.Name} ({comm.comparedValueString}) {req.Condition} {req.ExpectedValueString}");
+                    SmallWidgets.MouseoverText(req.Comment);
                 }
 
                 ImGui.TreePop();
@@ -468,6 +486,7 @@ namespace rgatCore.Widgets
                                         testtext += $" {req.Condition} {req.ExpectedValueString}";
                                     }
                                     ImGui.Text(testtext);
+                                    SmallWidgets.MouseoverText(req.Comment);
                                 }
                                 foreach (var comm in graphScores.Failed)
                                 {
@@ -481,6 +500,7 @@ namespace rgatCore.Widgets
                                         testtext += $" {req.Condition} {req.ExpectedValueString}";
                                     }
                                     ImGui.Text(testtext);
+                                    SmallWidgets.MouseoverText(req.Comment);
                                 }
                                 ImGui.TreePop();
                             }
@@ -569,14 +589,12 @@ namespace rgatCore.Widgets
         static bool autoStopOnFailure = false;
         void DrawQueueControls(float height)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff333333);
-
             if (ImGui.BeginChild("#TestsControls", new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
                 ImGui.Indent(10);
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff222222);
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 3f);
-                if (ImGui.BeginChild("#QueueControlsFrame", new Vector2(340, 70), true, ImGuiWindowFlags.MenuBar))
+                if (ImGui.BeginChild("#QueueControlsFrame", new Vector2(340, 75), true, ImGuiWindowFlags.MenuBar))
                 {
                     if (ImGui.BeginMenuBar())
                     {
@@ -624,7 +642,7 @@ namespace rgatCore.Widgets
                 }
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
-                if (ImGui.BeginChild("FilterChecks", new Vector2(120, ImGui.GetContentRegionAvail().Y)))
+                if (ImGui.BeginChild("FilterChecks", new Vector2(120, ImGui.GetContentRegionAvail().Y), true))
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 1));
                     ImGui.Checkbox("Untested", ref testSpecsShowUntested);
@@ -682,19 +700,15 @@ namespace rgatCore.Widgets
                 ImGui.EndGroup();
                 ImGui.SameLine();
                 ImGui.BeginGroup();
+                ImGui.InvisibleButton("#paddingBy3", new Vector2(4, 12));
                 ImGui.Checkbox("Loop tests", ref autoRequeue);
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip("Immediately requeue tests after execution for continuous repeated tests");
-                }
+                SmallWidgets.MouseoverText("Immediately requeue tests after execution for continuous repeated tests");
+
                 ImGui.Checkbox("Stop on Failure", ref autoStopOnFailure);
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip("Stop executing new tests if a test fails");
-                }
+                SmallWidgets.MouseoverText("Stop executing new tests if a test fails");
                 ImGui.EndGroup();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
         }
 
 
@@ -782,8 +796,8 @@ namespace rgatCore.Widgets
             ImGui.Text("OS: " + testcase.TestOS);
             ImGui.Text("Bits: " + testcase.TestBits.ToString());
 
-            if (testcase.Description != null)
-                ImGui.Text("Description: " + testcase.Description);
+            if (testcase.Comment != null)
+                ImGui.Text("Description: " + testcase.Comment);
             else
                 ImGui.Text("No Description");
 

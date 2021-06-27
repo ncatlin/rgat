@@ -211,7 +211,16 @@ namespace rgatCore
                     //raise the tabs up so the alert box nestles into the space
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
                 }
-                DrawTabs();
+
+                BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+                if (activeTarget == null)
+                {
+                    DrawStartSplash();
+                }
+                else
+                {
+                    DrawTabs();
+                }
                 ImGui.EndChild();
             }
         }
@@ -581,7 +590,7 @@ namespace rgatCore
                     progressAmount = 0;
                     break;
             }
-          
+
             SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, barColour, 0xff111111);
             if (ImGui.IsItemHovered())
             {
@@ -610,7 +619,7 @@ namespace rgatCore
 
         private void DrawSignaturesBox(BinaryTarget activeTarget, float width)
         {
-            if(ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
+            if (ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
             {
                 ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90);
                 ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, width - 92);
@@ -716,7 +725,7 @@ namespace rgatCore
                     }
                     ImGui.EndTable();
                 }
-                
+
             }
             ImGui.EndTooltip();
         }
@@ -1317,24 +1326,20 @@ namespace rgatCore
         }
 
 
-        private void DrawTraceTab()
+        private void DrawTraceTab(BinaryTarget activeTarget)
         {
-
-            BinaryTarget activeTarget = _rgatstate.ActiveTarget;
-            if (activeTarget == null)
+            if (ImGui.BeginTabItem("Start Trace"))
             {
-                DrawStartSplash();
-                return;
-            }
+                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
 
-            DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
-
-            ImGui.BeginGroup();
-            {
-                DrawTraceTab_InstrumentationSettings(activeTarget, 400);
-                ImGui.SameLine();
-                DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X);
-                ImGui.EndGroup();
+                ImGui.BeginGroup();
+                {
+                    DrawTraceTab_InstrumentationSettings(activeTarget, 400);
+                    ImGui.SameLine();
+                    DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X);
+                    ImGui.EndGroup();
+                }
+                ImGui.EndTabItem();
             }
         }
 
@@ -2004,16 +2009,96 @@ namespace rgatCore
 
             DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 13) - controlsHeight);
             DrawVisualiserControls(controlsHeight);
+            ImGui.EndTabItem();
         }
 
-        private void DrawAnalysisTab()
+        private void DrawAnalysisTab(TraceRecord activeTrace)
         {
-            ImGui.Text("Trace analysis stuff here");
+
+            if (activeTrace == null || !ImGui.BeginTabItem("Timeline")) return;
+
+            float height = ImGui.GetContentRegionAvail().Y;
+            float width = ImGui.GetContentRegionAvail().X;
+            float sidePaneWidth = 300;
+
+
+            if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
+            {
+                ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth);
+                ImGui.TableSetupColumn("#TaTTChart", ImGuiTableColumnFlags.NoDirectResize, width - 2 * sidePaneWidth);
+                ImGui.TableSetupColumn("#TaTTControlsFocus", ImGuiTableColumnFlags.NoDirectResize, sidePaneWidth);
+
+                ImGui.TableNextRow();
+
+                ImGui.TableNextColumn();
+                //ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff99ff77);
+                ImGui.Text("Full Listing");
+
+
+                TIMELINE_EVENT[] events = activeTrace.GetTimeLineEntries();
+                if (ImGui.BeginTable("#TaTTFullList", 3, ImGuiTableFlags.Borders))
+                {
+                    ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
+                    ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
+                    ImGui.TableHeadersRow();
+                    ImGui.TableSetupScrollFreeze(0, 1);
+
+                    int i = 0;
+                    foreach (TIMELINE_EVENT TLevent in events)
+                    {
+                        i += 1;
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable(i.ToString(), false, ImGuiSelectableFlags.SpanAllColumns);
+                        ImGui.TableNextColumn();
+                        ImGui.Text(TLevent.TimelineEventType.ToString());
+                        ImGui.TableNextColumn();
+                        ImGui.Text(TLevent.Label());
+
+                    }
+                    ImGui.EndTable();
+                }
+
+
+
+                ImGui.TableNextColumn();
+                ImGui.Text("Sandbox View");
+                ImGui.TableNextColumn();
+
+                float tr_height = (height / 2) - 4;
+                float tb_height = (height / 2) - 4;
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
+                if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
+                {
+
+                    ImGui.Text("Filters");
+                    ImGui.EndChild();
+                }
+                ImGui.PopStyleColor();
+
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x8f48009f);
+                if (ImGui.BeginChild("#SandboxTabbaseRightPane", new Vector2(sidePaneWidth, tb_height)))
+                {
+
+                    ImGui.Text("Selected item info");
+                    ImGui.EndChild();
+                }
+                ImGui.PopStyleColor();
+
+                ImGui.EndTable();
+            }
+
+            ImGui.EndTabItem();
         }
 
         private void DrawMemDataTab()
         {
-            ImGui.Text("Memory data stuff here");
+            if (ImGui.BeginTabItem("Memory Activity"))
+            {
+                ImGui.Text("Memory data stuff here");
+                ImGui.EndTabItem();
+            }
         }
 
 
@@ -2155,7 +2240,7 @@ namespace rgatCore
                 bool TlThreadShown = _LogFilters[(int)Logging.LogFilterType.TimelineThread];
                 if (TlProcessShown || TlThreadShown)
                 {
-                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
+                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries(max: 5);
                     foreach (TIMELINE_EVENT ev in TLmsgs)
                     {
                         if (_LogFilters[(int)ev.Filter]) shownMsgs.Add(ev);
@@ -2228,6 +2313,7 @@ namespace rgatCore
                 }
                 ImGui.EndChildFrame();
             }
+            ImGui.EndTabItem();
         }
 
 
@@ -2336,12 +2422,9 @@ namespace rgatCore
 
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
-                if (ImGui.BeginTabItem("Start Trace"))
-                {
-                    DrawTraceTab();
-                    ImGui.EndTabItem();
-                }
+                DrawTraceTab(_rgatstate.ActiveTarget);
 
+                //is there a better way to do this?
                 if (_SwitchToVisualiserTab)
                 {
                     tabDrawn = ImGui.BeginTabItem("Visualiser", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
@@ -2352,20 +2435,14 @@ namespace rgatCore
                 if (tabDrawn)
                 {
                     DrawVisTab();
-                    ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Trace Analysis"))
-                {
-                    DrawAnalysisTab();
-                    ImGui.EndTabItem();
-                }
 
-                if (ImGui.BeginTabItem("Memory Activity"))
-                {
-                    DrawMemDataTab();
-                    ImGui.EndTabItem();
-                }
+                DrawAnalysisTab(_rgatstate.ActiveTrace);
+
+
+                DrawMemDataTab();
+
 
                 if (_SwitchToLogsTab)
                 {
@@ -2377,7 +2454,6 @@ namespace rgatCore
                 if (tabDrawn)
                 {
                     DrawLogsTab();
-                    ImGui.EndTabItem();
                 }
 
                 ImGui.EndTabBar();

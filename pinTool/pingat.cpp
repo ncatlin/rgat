@@ -774,11 +774,17 @@ VOID at_unconditional_branch(BLOCKDATA* block_data, ADDRINT targetBlockAddress, 
 	RecordEdge(thread, block_data, targetBlockAddress);
 }
 
-VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAdderss, THREADID threadid)
+VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
 {
 	//std::cout << "at_conditional_branch hit block " << block_data->blockID << " address 0x"<<std::hex<<block_data->appc << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
-	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAdderss);
+	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
+}
+
+VOID at_non_branch(BLOCKDATA* block_data, UINT32 instructionSize, THREADID threadid)
+{
+	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	RecordEdge(thread, block_data, block_data->appc + instructionSize);
 }
 
 
@@ -944,9 +950,18 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
 			std::cout << "syscall end" << std::endl;
 		}
+		else if (INS_IsHalt(lastins))
+		{
+			INS_InsertCall(lastins, IPOINT_BEFORE, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				IARG_PTR, block_data, IARG_UINT32, INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+		}
 		else
 		{
+			std::cout << "------------------------------" << std::endl;
+			std::cout << "------------------------------" << std::endl;
 			std::cout << "WARNING: non branch/call/syscall block end at " << std::hex << block_data->lastInsAddress << std::endl;
+			std::cout << "------------------------------" << std::endl;
+			std::cout << "------------------------------" << std::endl;
 		}
 	}
 }

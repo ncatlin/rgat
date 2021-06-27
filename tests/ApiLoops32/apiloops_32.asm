@@ -28,75 +28,94 @@ main:
 
 	; exec count now 0
 	; block 0, node 0, execs once
-	mov ecx, 15; 100 
+	mov ecx, 100 
 	mov esi, ecx
 
 	push -12
 
-	; exec count now 1
-	;block 1, nodes 1-5, execs 100 times 
+	;block 6
+	;this tests how api calls are handled inside a deinstrumented loop
 loop1:
-	mov eax, 20 ;node 1
+	mov eax, 20 ;node 3
 	mov ebx, 10
 	xchg eax, ebx
 
-	        push    -11
-        call   GetStdHandle ;call node 3 + jump node 4 + external node 5
+	push    -11
+    call   GetStdHandle ;7,8.  block 1 is the thunk here
 	
-	    ;basic blocks 3-6
-	    ;sequential nodes 6-12
-        mov     ebx, eax    
-        push    0
-        lea     eax, [ebp-4]
-        push    eax
-        push    (message_end - message)
-        push    offset  message
-        push    ebx
-        call    writefile ;call node 13 + jump node 14 + external node 15
+	;block 2
+	;
+    mov     ebx, eax    ;9 
+    push    0
+    lea     eax, [ebp-4] ;11
+    push    eax
+    push    (message_end - message)
+    push    offset  message
+    push    ebx ;15
+    call    writefile ;16,17      block 3 is the thunk here
 
-		mov ecx, esi
-		dec ecx
-		mov esi, ecx
-
-
-	;dec ecx
+	;block 4
+	mov ecx, esi
+	dec ecx
+	mov esi, ecx
 	jnz loop1 ;node 5, [->1 (x99), ->6 (x1)]
 	
-	call GetStdHandle
+	call GetStdHandle ;block 5
 
+	;block 7
 	; exec count now 501
 	mov ecx, 1000 ;node 6
-	
-	ret ;dbgonly
-	
+	push ecx
 	
 	jmp loop2
 
-	
+	;block 8
 	; exec count now 503
 	;node 8-12, execs 1000 times
+	;test how api calls are handled at the base of a deinstrumented loop
 loop2:
+
+	pop ecx
+	dec ecx
+	jz loop2end ;node 12, [->8 (x999), ->13 (x1)]       
+
+
+	;block 9
 	mov eax, 20 
 	mov ebx, 10
 	xchg eax, ebx
-	dec ecx
-	jnz loop2  ;node 12, [->8 (x999), ->13 (x1)]             
 	
+	push ecx
+	push 1
+	call GetStdHandle ;block 10 in here 
+
+	jmp loop2        
+	
+loop2end:
 	; exec count now 5503
 	mov ecx, 10000
+	push ecx
+	push 2
 	jmp loop3
 
 
 	
 	; exec count now 5505
 	;node 15-19, execs 10000 times
+	; this tests how api calls are handed at the top of a deinstrumented loop
 loop3:
+	call GetStdHandle 
 	mov eax, 20
 	mov ebx, 10
 	xchg eax, ebx
+	pop ecx
 	dec ecx
+	push ecx
+	
+	push 2
 	jnz loop3  ;node 19 [->15 (x9999), ->20 (x1)]  
 	
+	pop eax
 	; exec count now 55505
 	mov ecx, 100000
 	jmp loop4

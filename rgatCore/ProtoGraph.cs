@@ -39,7 +39,7 @@ namespace rgatCore
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
     };
-    public enum eTraceUpdateType { eAnimExecTag, eAnimLoop, eAnimLoopLast, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimUnchainedDone, eAnimExecException };
+    public enum eTraceUpdateType { eAnimExecTag, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimExecException };
     public enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
     public enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
 
@@ -211,7 +211,7 @@ namespace rgatCore
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
-            Console.WriteLine($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
+            //Console.WriteLine($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
 
             if (EdgeExists(edgeIDPair, out EdgeData edgeObj))
             {
@@ -225,6 +225,8 @@ namespace rgatCore
 
 
             NodeData sourcenode = safe_get_node(ProtoLastVertID);
+            if (sourcenode.ThunkCaller) return;
+
             //make API calls leaf nodes, rather than part of the chain
             //if (sourcenode.IsExternal)
             //    sourcenode = safe_get_node(ProtoLastLastVertID);
@@ -257,7 +259,7 @@ namespace rgatCore
                         }
                 }
 
-                Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
+                //Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
                 AddEdge(newEdge, sourcenode, safe_get_node(targVertID));
             }
 
@@ -344,7 +346,7 @@ namespace rgatCore
             if (lastNode.IsExternal) { resultPair = null; return false; }
             Debug.Assert(lastNode.ins.numbytes > 0);
 
-            //if caller is also external then we are not interested in this
+            //if caller is also external then we are not interested in this (does this happen?)
             if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
 
 
@@ -381,10 +383,14 @@ namespace rgatCore
 
                     NodeData targNode = safe_get_node(targVertID);
                     targNode.IncreaseExecutionCount(repeats);
+
+                    TraceData.RecordAPICall(targNode, targNode.currentCallIndex, repeats); //todo this should be done in a BG thread
+
                     targNode.currentCallIndex += repeats;
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
                     resultPair = caller;
+
                     return true;
                 }
                 //not found: thread has already called it, but from a different place
@@ -426,6 +432,7 @@ namespace rgatCore
 
             InsertNode(targVertID, newTargNode);
 
+            TraceData.RecordAPICall(newTargNode, 0, repeats);
 
 
             NodeData sourceNode = safe_get_node(ProtoLastVertID);
@@ -684,7 +691,7 @@ namespace rgatCore
 
         public EdgeData GetEdge(uint src, uint targ)
         {
-
+            Console.WriteLine($"Getedge {src}->{targ}");
             lock (edgeLock)
             {
                 return edgeDict[new Tuple<uint, uint>(src, targ)];
@@ -813,7 +820,7 @@ namespace rgatCore
 
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
-                Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
+                //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
 
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
                 set_active_node(ProtoLastVertID);
@@ -903,7 +910,7 @@ namespace rgatCore
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
-            Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+           // Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
@@ -911,7 +918,7 @@ namespace rgatCore
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
-                Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
+               //Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
@@ -929,11 +936,11 @@ namespace rgatCore
                 if (!alreadyExecuted)
                 {
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
-                    Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
+                   // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                    Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
+                   // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
@@ -965,7 +972,7 @@ namespace rgatCore
                 {
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
-                    Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+                   // Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
                 }
             }
 
@@ -1065,6 +1072,7 @@ namespace rgatCore
 
         public void PushAnimUpdate(ANIMATIONENTRY entry)
         {
+            //Console.WriteLine($"Pushed anim update with block addr {entry.blockAddr} id {entry.blockID}");
             lock (AnimDataLock)
             {
                 SavedAnimationData.Add(entry);
@@ -1515,5 +1523,14 @@ namespace rgatCore
             count = 0;
             return false;
         }
+
+
+        public class APITHUNK
+        {
+            public Dictionary<int, int> callerNodes = new Dictionary<int, int>();
+        }
+
+        public Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
+
     }
 }

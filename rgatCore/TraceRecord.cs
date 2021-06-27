@@ -34,6 +34,7 @@ namespace rgatCore
         public bool conditional;
         public bool dataEx;
         public bool hasSymbol;
+        public bool PossibleidataThunk;
 
         public ulong address;
         public ulong branchAddress;
@@ -250,45 +251,68 @@ namespace rgatCore
         Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
         int runningProcesses = 0;
         int runningThreads = 0;
-        public void RecordTimelineEvent(Logging.eTimelineEvent type, ulong ID, ulong parentID = ulong.MaxValue)
-        {
-            Logging.TIMELINE_EVENT tlevent = new Logging.TIMELINE_EVENT(type);
-            tlevent.SetIDs(ID: ID, parentID: parentID);
 
+        public void RecordTimelineEvent(Logging.eTimelineEvent type, TraceRecord trace = null, ProtoGraph graph = null)
+        {
             lock (_logLock)
             {
                 int currentCount;
-                _timeline.Add(tlevent);
                 switch (type)
                 {
                     case Logging.eTimelineEvent.ProcessStart:
-                        runningProcesses += 1;
-                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                        _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        {
+                            Debug.Assert(trace != null);
+                            _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
+                            runningProcesses += 1;
+                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        }
                         break;
                     case Logging.eTimelineEvent.ProcessEnd:
-                        runningProcesses -= 1;
-                        if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
-                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                        _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        {
+                            Debug.Assert(trace != null);
+
+                            _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
+                            runningProcesses -= 1;
+                            if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
+                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                        }
                         break;
                     case Logging.eTimelineEvent.ThreadStart:
-                        runningThreads += 1;
-                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
-                        _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        {
+                            Debug.Assert(graph != null);
+                            _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
+                            runningThreads += 1;
+                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        }
                         break;
                     case Logging.eTimelineEvent.ThreadEnd:
-                        runningThreads -= 1;
-                        if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
-                        _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
-                        _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        {
+                            Debug.Assert(graph != null);
+                            _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
+                            runningThreads -= 1;
+                            if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
+                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                        }
                         break;
                     default:
                         Debug.Assert(false, "Timeline event has no assigned filter");
                         break;
                 }
             }
+        }        
+       
+
+        public void RecordAPICall(NodeData node, ulong callIndex, ulong repeats)
+        {
+            Logging.APICALL call = new Logging.APICALL { index = callIndex, node = node, repeats = repeats };
+            _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
+
         }
+
 
 
         /// <summary>
@@ -297,8 +321,9 @@ namespace rgatCore
         /// <param name="oldest">The oldest event to return</param>
         /// <param name="max">The most events to return. Default 5.</param>
         /// <returns>And array of TIMELINE_EVENT objects</returns>
-        public Logging.TIMELINE_EVENT[] GetTimeLineEntries(long oldest = 0, int max = 5)
+        public Logging.TIMELINE_EVENT[] GetTimeLineEntries(long oldest = 0, int max = -1)
         {
+            if (max == -1) max = _timeline.Count;
             List<Logging.TIMELINE_EVENT> results = new List<Logging.TIMELINE_EVENT>();
             lock (_logLock)
             {
@@ -748,7 +773,7 @@ namespace rgatCore
 
         public Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> EvaluateThreadTestRequirements(REQUIREMENTS_LIST threadTestReqs)
         {
-            Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> results = new Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>(); 
+            Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> results = new Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>();
             foreach (ProtoGraph graph in ProtoGraphs.Values)
             {
                 results[graph] = graph.MeetsTestRequirements(threadTestReqs);

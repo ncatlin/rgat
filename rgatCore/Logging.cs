@@ -24,22 +24,35 @@ namespace rgatCore
             public LogFilterType Filter;
         }
 
+        public struct APICALL
+        {
+            public NodeData node;
+            public ulong index;
+            public ulong repeats;
+        }
 
-        public enum eTimelineEvent { ProcessStart, ProcessEnd, ThreadStart, ThreadEnd }
+
+        public enum eTimelineEvent { ProcessStart, ProcessEnd, ThreadStart, ThreadEnd, APICall }
         public class TIMELINE_EVENT : LOG_EVENT
         {
-            public TIMELINE_EVENT(eTimelineEvent timelineEventType) : base(eLogType.TimeLine)
+            public TIMELINE_EVENT(eTimelineEvent timelineEventType, object item) : base(eLogType.TimeLine)
             {
                 _eventType = timelineEventType;
+                _item = item;
                 switch (_eventType)
                 {
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
+                        SetIDs(ID: ((TraceRecord)item).PID);
                         Filter = LogFilterType.TimelineProcess;
                         break;
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
+                        SetIDs(ID: ((ProtoGraph)item).ThreadID);
                         Filter = LogFilterType.TimelineThread;
+                        break;
+                    case eTimelineEvent.APICall:
+                        Filter = LogFilterType.APIFile;
                         break;
                     default:
                         Debug.Assert(false, "Bad timeline event");
@@ -47,15 +60,61 @@ namespace rgatCore
                 }
             }
 
+            public string Label()
+            {
+                switch (_eventType)
+                {
+                    case eTimelineEvent.ProcessStart:
+                        {
+                            TraceRecord trace = (TraceRecord)_item;
+                            return $"Process ({trace.PID}) Started";
+                        }
+                        break;
+                    case eTimelineEvent.ProcessEnd:
+                        {
+                            TraceRecord trace = (TraceRecord)_item;
+                            return $"Process ({trace.PID}) Ended";
+                        }
+                        break;
+                    case eTimelineEvent.ThreadStart:
+                        {
+                            ProtoGraph graph = (ProtoGraph)_item;
+                            return $"Thread ({graph.ThreadID}) Started";
+                        }
+                        break;
+                    case eTimelineEvent.ThreadEnd:
+                        {
+                            ProtoGraph graph = (ProtoGraph)_item;
+                            return $"Thread ({graph.ThreadID}) Ended";
+                        }
+                        break;
+                    case eTimelineEvent.APICall:
+                        {
+                            Logging.APICALL call = (Logging.APICALL)_item;
+                            NodeData n = call.node;
+
+                            return $"API call: ({n.label})";
+                        }
+                        break;
+                    default:
+                        Debug.Assert(false, "Bad timeline event");
+                        return "Bad event";
+                        break;
+                }
+
+            }
+
             //process/thread ID of event source. parent ID optional, depending on context
             public void SetIDs(ulong ID, ulong parentID = ulong.MaxValue) { _ID = ID; _parentID = parentID; }
             public eTimelineEvent TimelineEventType => _eventType;
             public ulong ID => _ID;
             public ulong Parent => _parentID;
+            public object Item => _item;
 
             eTimelineEvent _eventType;
             ulong _ID;
             ulong _parentID;
+            object _item;
         }
 
 
@@ -86,13 +145,13 @@ namespace rgatCore
 
 
 
-        public static int GetAlerts(int max, out LOG_EVENT[] alerts) 
-        { 
-            lock (_messagesLock) 
+        public static int GetAlerts(int max, out LOG_EVENT[] alerts)
+        {
+            lock (_messagesLock)
             {
                 alerts = _alertNotifications.Take(Math.Min(max, _alertNotifications.Count)).ToArray();
                 return _alertNotifications.Count;
-            } 
+            }
         }
 
         public static void ClearAlertsBox()

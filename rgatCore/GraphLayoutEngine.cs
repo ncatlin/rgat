@@ -202,14 +202,18 @@ namespace rgatCore
             }
         }
 
-        public void InvalidateCache(PlottedGraph graph)
+        public void InvalidateCache(PlottedGraph graph, bool nested = true)
         {
             lock (_computeLock)
             {
                 _cachedVersions[graph] = 0; //invalidate everything in VRAM
-                foreach (GraphLayoutEngine engine in GetParallelLayoutEngines())
+                if (nested)
                 {
-                    engine.InvalidateCache(graph);
+                    foreach (GraphLayoutEngine engine in GetParallelLayoutEngines())
+                    {
+                        if (engine != this)
+                            engine.InvalidateCache(graph, false);
+                    }
                 }
             }
         }

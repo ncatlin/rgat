@@ -87,7 +87,7 @@ namespace rgatCore
 
             newProtoGraph.TraceProcessor = new ThreadTraceProcessingThread(newProtoGraph);
 
-            newProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, ID: TID);
+            newProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: newProtoGraph);
             if (!trace.InsertNewThread(MainGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
@@ -129,18 +129,19 @@ namespace rgatCore
 
         void HandleTerminatedThread(byte[] buf)
         {
-            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
-            uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
-
-
+            if(!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
+            {
+                Logging.RecordLogEvent("Bad thread termination buffer: " + Encoding.ASCII.GetString(buf));
+                return;
+            }
 
             if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
             {
                 graph.InternalProtoGraph.Terminated = true;
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
 
-                graph.InternalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, ID: TID);
+                graph.InternalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, graph: graph.InternalProtoGraph);
             }
             else
             {
@@ -438,7 +439,7 @@ namespace rgatCore
 
 
             eventPipe.Dispose();
-            trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace.PID);
+            trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
 
             bool alldone = false;
             while (!_clientState.rgatIsExiting && !alldone)

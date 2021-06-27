@@ -213,6 +213,8 @@ namespace rgatCore
         public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
         public InstructionData ins;
         public bool IsExternal { get; set; } = false;
+        public bool ThunkCaller = false;
+
         bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
         public int GlobalModuleID;
 
@@ -237,7 +239,9 @@ namespace rgatCore
             }
             executionCount = value;
         }
-        public void IncreaseExecutionCount(ulong value) { SetExecutionCount(executionCount + value); }
+        public void IncreaseExecutionCount(ulong value) { 
+            SetExecutionCount(executionCount + value);
+        }
 
         public float heatRank = 0; //0-9 least to most busy
 

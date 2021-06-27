@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace rgatCore.Threads
 {
-   public class ThreadTraceProcessingThread
+    public class ThreadTraceProcessingThread
     {
         ProtoGraph protograph;
         Thread runningThread;
@@ -68,7 +68,8 @@ namespace rgatCore.Threads
         //update nodes with cached execution counts and new edges from unchained runs
         //also updates graph with delayed edge notifications
         void AssignBlockRepeats()
-        {
+        { 
+
             int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
             //List<BLOCKREPEAT> remainingRepeats = new List<BLOCKREPEAT>();
             for (var i = blockRepeatQueue.Count - 1; i >= 0; i--)
@@ -90,13 +91,27 @@ namespace rgatCore.Threads
                 bool needWait = false;
                 foreach (var targblockID_Count in brep.targEdges)
                 {
-                    if (targblockID_Count.Item1 >= protograph.ProcessData.BasicBlocksList.Count)
+                    int edgeblock = (int)targblockID_Count.Item1;
+                    if (edgeblock >= protograph.ProcessData.BasicBlocksList.Count)
                     {
-                        needWait = true; 
+                        //block has not been processed yet
+                        needWait = true;
                         break;
                     }
-                    if (!protograph.ProcessData.BasicBlocksList[(int)targblockID_Count.Item1].Item2[0].threadvertIdx.ContainsKey(protograph.ThreadID))
+                    if (edgeblock >= protograph.BlocksFirstLastNodeList.Count ||
+                        (protograph.BlocksFirstLastNodeList[edgeblock] == null &&
+                        !protograph.ApiThunks.ContainsKey(edgeblock)))
                     {
+                        if (protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].PossibleidataThunk)
+                        {
+                            //block has not been processed (and its probably (...) not a thunk)
+                            needWait = true;
+                            break;
+                        }
+                    }
+                    if (!protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].threadvertIdx.ContainsKey(protograph.ThreadID))
+                    {
+                        //block has not been placed on graph
                         needWait = true;
                         break;
                     }
@@ -104,7 +119,7 @@ namespace rgatCore.Threads
                 if (needWait) continue;
 
                 InstructionData lastIns = brep.blockInslist[^1];
-                if (brep.targExternEdges != null)
+                if (brep.targExternEdges != null && (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1)) //todo - increase execs of the extern when the thunk caller brep is done
                 {
                     uint lastNodeIdx = lastIns.threadvertIdx[protograph.ThreadID];
                     NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
@@ -128,6 +143,10 @@ namespace rgatCore.Threads
                         }
                         Debug.Assert(found);
                     }
+                }
+                else
+                {
+
                 }
 
 
@@ -158,29 +177,55 @@ namespace rgatCore.Threads
                     uint targNodeID = 0;
                     if (targetBlockID >= protograph.BlocksFirstLastNodeList.Count || protograph.BlocksFirstLastNodeList[targetBlockID] == null)
                     {
-                        var il = protograph.ProcessData.getDisassemblyBlock((uint)targetBlockID);
-                        targNodeID = il[0].threadvertIdx[protograph.ThreadID];
+                        if (protograph.ApiThunks.TryGetValue(targetBlockID, out ProtoGraph.APITHUNK thunkData))
+                        {
+                            if (thunkData.callerNodes.TryGetValue((int)n.index, out int targNd))
+                            {
+                                targNodeID = (uint)targNd;
+                                //protograph.NodeList[targNd].IncreaseExecutionCount(brep.repeatCount);
+                            }
+                            else
+                            {
+                                Debug.Assert(false);
+                            }
+                        }
+                        else
+                        {
+                            //sometimes blocks get a new id
+                            InstructionData altIns = protograph.ProcessData.BasicBlocksList[targetBlockID].Item2[0];
+                            if (altIns.threadvertIdx.TryGetValue(protograph.ThreadID, out uint altFirstNodeIdx))
+                            {
+                                targNodeID = altFirstNodeIdx;
+                            }
+                            else
+                            {
+
+                                Debug.Assert(false);
+                            }
+                        }
+                        //var il = protograph.ProcessData.getDisassemblyBlock((uint)targetBlockID);
+                        //targNodeID = il[0].threadvertIdx[protograph.ThreadID];
                     }
                     else
                     {
                         targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
                     }
-                    
-                        //issue here with simpleloops being messed up
-                        
-                        if (!n.OutgoingNeighboursSet.Contains(targNodeID))
-                        {
-                            //again let new tag execution handle it
-                           protograph.AddEdge(n.index, targNodeID, execCount); 
-                           Console.WriteLine($"Blockrepeat adding edge {n.index},{targNodeID} with {execCount} execs");
 
-                        }
-                        else
-                        {
-                            EdgeData edge = protograph.GetEdge(n.index, targNodeID);
-                            Console.WriteLine($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount+execCount}");
-                            edge.IncreaseExecutionCount(execCount);
-                        }
+                    //issue here with simpleloops being messed up
+
+                    if (!n.OutgoingNeighboursSet.Contains(targNodeID))
+                    {
+                        //again let new tag execution handle it
+                        protograph.AddEdge(n.index, targNodeID, execCount);
+                        Console.WriteLine($"Blockrepeat adding edge {n.index},{targNodeID} with {execCount} execs");
+
+                    }
+                    else
+                    {
+                        EdgeData edge = protograph.GetEdge(n.index, targNodeID);
+                        Console.WriteLine($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount + execCount}");
+                        edge.IncreaseExecutionCount(execCount);
+                    }
                 }
 
 
@@ -229,6 +274,9 @@ namespace rgatCore.Threads
         bool _ignore_next_tag = false;
         uint _ignored_tag_blockID = 0;
 
+
+
+
         public void ProcessTraceTag(byte[] entry)
         {
             TAG thistag;
@@ -240,6 +288,12 @@ namespace rgatCore.Threads
             thistag.blockaddr = protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID);
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
+            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
+            animUpdate.blockAddr = thistag.blockaddr;
+            animUpdate.blockID = thistag.blockID;
+            protograph.PushAnimUpdate(animUpdate);
+
             int addrstart = ++tokenpos;
             nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, entry.Length - addrstart), NumberStyles.HexNumber);
 
@@ -247,38 +301,86 @@ namespace rgatCore.Threads
             thistag.foundExtern = null;
             thistag.insCount = 0; //meaningless here
 
-            if (_ignore_next_tag)
-            {
-                Debug.Assert(thistag.blockID == _ignored_tag_blockID); //todo - happens singlestepping past call then continuing in functions test
-                _ignore_next_tag = false;
-            }
-            else
-            {
-                protograph.handle_tag(thistag, dontcountnextedge);
-                if (dontcountnextedge)
-                {
-                    dontcountnextedge = false;
-                }
-            }
-            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-            animUpdate.blockAddr = thistag.blockaddr;
-            animUpdate.blockID = thistag.blockID;
-            protograph.PushAnimUpdate(animUpdate);
 
             //fallen through/failed conditional jump
-            if (nextBlockAddress == 0) return;
+            if (_ignore_next_tag)
+            {
+                if (_ignore_next_tag)
+                {
+                    Debug.Assert(thistag.blockID == _ignored_tag_blockID); //todo - happens singlestepping past call then continuing in functions test
+                    _ignore_next_tag = false;
+                }
+                return;
+            }
 
+
+            //this messy bit of code deals with unistrumented APi code that has been called from a "jmp ptr [addr]" instruction
             eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
+            if (modType == eCodeInstrumentation.eUninstrumentedCode)
+            {
+                List<InstructionData> preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
+                if (preExternBlock.Count == 1 && preExternBlock[0].PossibleidataThunk)
+                {
+                    InstructionData thunkInstruction = preExternBlock[0];
+                    ProcessExtern(nextBlockAddress, thistag.blockID);
+
+                    bool firstCallByThisNode = false;
+                    if (protograph.ApiThunks.TryGetValue((int)thistag.blockID, out ProtoGraph.APITHUNK thunkinfo))
+                    {
+                        if (!thunkinfo.callerNodes.ContainsKey((int)protograph.ProtoLastLastVertID))
+                        {
+                            firstCallByThisNode = true;
+                            thunkinfo.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
+                        }
+                    }
+                    else
+                    {
+                        firstCallByThisNode = true;
+                        ProtoGraph.APITHUNK thunkData = new ProtoGraph.APITHUNK();
+                        thunkData.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
+                        protograph.ApiThunks.Add((int)thistag.blockID, thunkData);
+                    }
+
+                    if (firstCallByThisNode)
+                    {
+                        thunkInstruction.threadvertIdx[protograph.ThreadID] = protograph.ProtoLastVertID;
+                        protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+                    }
+
+                    uint calleridx = protograph.ProtoLastLastVertID;
+                    NodeData apinode = protograph.NodeList[(int)protograph.ProtoLastVertID];
+                    if (!apinode.IncomingNeighboursSet.Contains(calleridx))
+                        apinode.IncomingNeighboursSet.Add(calleridx);
+
+                    if (thistag.blockID == protograph.BlocksFirstLastNodeList.Count)
+                    {
+                        protograph.BlocksFirstLastNodeList.Add(null);
+                    }
+                    else if (thistag.blockID < protograph.BlocksFirstLastNodeList.Count && protograph.BlocksFirstLastNodeList[(int)thistag.blockID] != null)
+                    {
+                        Debug.Assert(false, "Panik");
+                    }
+
+                    return;
+                }
+            }
+
+            protograph.handle_tag(thistag, dontcountnextedge);
+            if (dontcountnextedge)
+            {
+                dontcountnextedge = false;
+            }
+
+
             if (modType == eCodeInstrumentation.eInstrumentedCode)
             {
                 if (protograph.exeModuleID == -1 && protograph.NodeList.Count != 0)
                     protograph.AssignModulePath();
-
-                return;
             }
-
-            ProcessExtern(nextBlockAddress, thistag.blockID);
+            else
+            {
+                ProcessExtern(nextBlockAddress, thistag.blockID);
+            }
         }
 
         void AddSingleStepUpdate(byte[] entry)
@@ -290,7 +392,7 @@ namespace rgatCore.Threads
                 uint blockID = uint.Parse(entries[0], NumberStyles.HexNumber);
                 ulong stepAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
                 ulong nextAddr = uint.Parse(entries[2], NumberStyles.HexNumber);
-                if(!protograph.SetRecentStep(blockID, stepAddr, nextAddr))
+                if (!protograph.SetRecentStep(blockID, stepAddr, nextAddr))
                 {
                     _ignore_next_tag = true;
                     _ignored_tag_blockID = blockID;
@@ -361,143 +463,6 @@ namespace rgatCore.Threads
 
         }
 
-        /*
-         Adds a link between previously unlinked instructions that are within an unchained area
-         */
-        bool UnchainedLinkingUpdate(byte[] entry)
-        {
-            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
-            string[] entries = msg.Split(',', 8);
-
-            ulong sourceAddr = ulong.Parse(entries[1], NumberStyles.HexNumber);
-            uint src_blockID = (uint)ulong.Parse(entries[2], NumberStyles.HexNumber);
-            uint src_numins = (uint)ulong.Parse(entries[3], NumberStyles.HexNumber);
-            ulong targetAddr = ulong.Parse(entries[7], NumberStyles.HexNumber);
-
-
-
-            protograph.PerformingUnchainedExecution = false;
-
-            List<InstructionData> lastBB = protograph.ProcessData.getDisassemblyBlock(src_blockID);
-            InstructionData lastIns = lastBB[^1];
-            bool found = lastIns.threadvertIdx.TryGetValue(protograph.ThreadID, out uint srcidx);
-            if (!found)
-            {
-                Console.WriteLine($"AddUnlinkingUpdate Error: Unable to find node for instruction 0x{lastIns.address:X}: {lastIns.ins_text} in thread {protograph.ThreadID}");
-                return false;
-            }
-
-            protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            protograph.ProtoLastVertID = srcidx;
-
-
-            TAG thistag;
-            thistag.blockaddr = ulong.Parse(entries[4], NumberStyles.HexNumber);
-            thistag.blockID = (uint)ulong.Parse(entries[5], NumberStyles.HexNumber);
-            thistag.insCount = (uint)ulong.Parse(entries[6], NumberStyles.HexNumber);
-            thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
-            thistag.foundExtern = null;
-            protograph.handle_tag(thistag);
-
-
-            Debug.Assert(protograph.BlocksFirstLastNodeList.Count > src_blockID, "Bad src block id in unlinking update");
-
-
-            Console.WriteLine($"Processing UnchainedLinkingUpdate source 0x{sourceAddr:X} inscount {src_numins} currentaddr 0x{thistag.blockaddr:X}");
-
-
-
-            if (protograph.TraceData.FindContainingModule(targetAddr, out int modnum) == eCodeInstrumentation.eUninstrumentedCode)
-            {
-                protograph.ProcessData.get_extern_at_address(targetAddr, modnum, out ROUTINE_STRUCT foundExtern);
-
-                bool targetFound = false;
-                lock (protograph.ProcessData.ExternCallerLock)
-                {
-                    if (foundExtern.thread_callers.TryGetValue(protograph.ThreadID, out List<Tuple<uint, uint>> callList))
-                    {
-                        foreach (Tuple<uint, uint> edge in callList)
-                        {
-                            if (edge.Item1 == protograph.targVertID)
-                            {
-                                targetFound = true;
-                                protograph.ProtoLastVertID = foundExtern.thread_callers[protograph.ThreadID][0].Item2;
-                                NodeData lastnode = protograph.safe_get_node(protograph.ProtoLastVertID);
-                                lastnode.IncreaseExecutionCount(1);
-                                break;
-                            }
-                        }
-                        if (!targetFound)
-                        {
-                            Console.WriteLine($"[rgat]Warning: 0x{targetAddr:X} in {protograph.ProcessData.LoadedModulePaths[foundExtern.globalmodnum]} not found. Heatmap accuracy may suffer.");
-                        }
-                    }
-                    else
-                    {
-                        /*
-                        i've only seen this fail when unlinking happens at the end of a program. eg:
-                            int main()
-                            {
-                                for (many iterations){ do a thing; }
-                                return 0;  <- targ2 points to address outside program... can't draw an edge to it
-                            }
-                        which is not a problem. this happens in the nestedloops tests
-
-                        Could come up with a way to only warn if the thread continues (eg: if anything at all comes after this from the trace pipe).
-                        For now as it hasn't been a problem i've improvised by checking if we return to code after the BaseThreadInitThunk symbol,
-                            but this is not reliable outside of my runtime environment
-                        */
-
-
-                        bool foundsym = false;
-                        string sym = "";
-                        ulong offset;
-
-                        if (foundExtern.globalmodnum != -1)
-                        {
-                            offset = targetAddr - protograph.ProcessData.LoadedModuleBounds[foundExtern.globalmodnum].Item1;
-
-                            //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
-
-                            for (int i = 0; i < 4096; i++)
-                            {
-                                if (protograph.ProcessData.GetSymbol(foundExtern.globalmodnum, offset - (ulong)i, out sym))
-                                {
-                                    foundsym = true;
-                                    break;
-                                }
-                            }
-                            if (!foundsym) sym = "Unknown Symbol";
-
-                            if (sym != "BaseThreadInitThunk")
-                            {
-                                string modulepath = protograph.ProcessData.LoadedModulePaths[foundExtern.globalmodnum];
-                                Console.WriteLine($"[rgat]Warning,  unseen code executed after a busy block. (Module:{modulepath}+0x{offset:X}): '{sym}'");
-                                Console.WriteLine("\t If this happened at a thread exit it is not a problem and can be ignored");
-                            }
-                        }
-                        else
-                        {
-
-                            Console.WriteLine($"[rgat]Warning, unknown module with addr 0x{targetAddr:X}");
-                        }
-                    }
-                }
-
-            }
-
-            ANIMATIONENTRY animUpdate;
-            animUpdate.blockAddr = thistag.blockaddr;
-            animUpdate.blockID = thistag.blockID;
-            animUpdate.entryType = eTraceUpdateType.eAnimUnchainedDone;
-            animUpdate.count = 0;
-            animUpdate.targetAddr = 0;
-            animUpdate.targetID = 0;
-            animUpdate.edgeCounts = null;
-            protograph.PushAnimUpdate(animUpdate);
-            return true;
-        }
-
 
         void AddReinstrumentedUpdate(byte[] entry)
         {
@@ -518,9 +483,34 @@ namespace rgatCore.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            protograph.ProtoLastVertID = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID].Item2;
+            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID];
+
+            if (blockNodes != null)
+            { protograph.ProtoLastVertID = blockNodes.Item2; }
+            else
+            {
+                //protograph.ProtoLastVertID = prto
+                //don't bother setting the last vert id?
+                /*
+                if (protograph.ApiThunks.TryGetValue((int)animUpdate.blockID, out ProtoGraph.APITHUNK thunkInfo))
+                {
+
+                    
+                    if (thunkInfo.callerNodes.TryGetValue((int)protograph.ProtoLastVertID, out int callervert))
+                    {
+
+                        Console.WriteLine("dxde");
+                    }
+
+                    Console.WriteLine("xde");
+                    return;
+                }*/
+                //Debug.Assert(false, $"Block {animUpdate.blockID} has null entry but is not a thunk");
+            }
+            currentUnchainedBlocks.Clear(); //todo dont need this
         }
 
+        List<uint> currentUnchainedBlocks = new List<uint>();
 
         void AddUnchainedUpdate(byte[] entry)
         {
@@ -537,15 +527,42 @@ namespace rgatCore.Threads
             animUpdate.blockAddr = 0;
             protograph.PushAnimUpdate(animUpdate);
 
+            currentUnchainedBlocks.Add(animUpdate.blockID);
 
+
+
+            uint lastlastlast = protograph.ProtoLastLastVertID;
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            protograph.ProtoLastVertID = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID].Item1;
-            if (protograph.PerformingUnchainedExecution == false)
-            {
-                protograph.GetEdge(protograph.ProtoLastLastVertID, protograph.ProtoLastVertID).IncreaseExecutionCount(1);
-                protograph.PerformingUnchainedExecution = true;
+            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID];
 
+            if (blockNodes == null)
+            {
+                if (protograph.ApiThunks.TryGetValue((int)animUpdate.blockID, out ProtoGraph.APITHUNK thunkInfo))
+                {
+                    if (thunkInfo.callerNodes.TryGetValue((int)protograph.ProtoLastVertID, out int thunkTargetAPINodeIdx))
+                    {
+                        if (protograph.PerformingUnchainedExecution == false)
+                        {
+                            protograph.GetEdge(protograph.ProtoLastVertID, (uint)thunkTargetAPINodeIdx).IncreaseExecutionCount(1);
+                            protograph.PerformingUnchainedExecution = true;
+                        }
+                        return;
+                    }
+                    Debug.Assert(false, $"Bad thunk state, node {protograph.ProtoLastVertID} does not call this thunk");
+                }
+                Debug.Assert(false, $"Bad thunk state, block {animUpdate.blockID} has null listing but is not a thunk");
             }
+
+            if (!protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller)
+            {
+                if (protograph.PerformingUnchainedExecution == false)
+                {
+                    protograph.GetEdge(protograph.ProtoLastLastVertID, blockNodes.Item1).IncreaseExecutionCount(1);
+                    protograph.PerformingUnchainedExecution = true;
+                }
+            }
+
+            protograph.ProtoLastVertID = blockNodes.Item2;
 
             //Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
         }
@@ -697,7 +714,7 @@ namespace rgatCore.Threads
         }
 
         bool dontcountnextedge = false;
-       
+
 
         private readonly Object debug_tag_lock = new Object();
         void Processor()
@@ -713,7 +730,9 @@ namespace rgatCore.Threads
                     continue;
                 }
 
-                Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                if (msg[0] != 'A')
+                    Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+
                 lock (debug_tag_lock)
                 {
                     switch (msg[0])
@@ -758,9 +777,9 @@ namespace rgatCore.Threads
 
             IrregularActionTimer.Stop();
             PerformIrregularActions();
-            
-            Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
-        }
 
+            Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
+            Debug.Assert(blockRepeatQueue.Count == 0);
+        }
     }
 }

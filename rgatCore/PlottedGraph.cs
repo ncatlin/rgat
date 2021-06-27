@@ -163,6 +163,7 @@ namespace rgatCore
             AnimationIndex = 0;
 
             unchainedWaitFrames = 0;
+            remove_unchained_from_animation();
             currentUnchainedBlocks.Clear();
             animBuildingLoop = false;
             IsAnimated = false;
@@ -224,6 +225,10 @@ namespace rgatCore
         public void SetAnimated(bool newState)
         {
             IsAnimated = newState;
+            if (!newState)
+            {
+                remove_unchained_from_animation();
+            }
         }
 
 
@@ -1697,6 +1702,7 @@ namespace rgatCore
         {
 
             currentUnchainedBlocks.Clear();
+            remove_unchained_from_animation();
             List<InstructionData> firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
             _lastAnimatedVert = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
 
@@ -1726,25 +1732,24 @@ namespace rgatCore
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
             //internalProtoGraph.animationListsRWLOCK_.unlock_shared();
 
+            /*
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
             {
                 Console.WriteLine("Live update: eAnimLoopLast");
                 ++updateProcessingIndex;
                 return true;
-            }
+            }*/
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
                 Console.WriteLine($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times");
-                remove_unchained_from_animation();
-
                 ++updateProcessingIndex;
                 return true;
             }
 
-            if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
+            if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                Console.WriteLine("Live update: eAnimUnchainedDone");
+                Console.WriteLine("Live update: eAnimReinstrument");
                 end_unchained(entry);
                 ++updateProcessingIndex;
                 return true;
@@ -1862,9 +1867,9 @@ namespace rgatCore
             }
 
             //all consecutive unchained areas finished, wait until animation paused appropriate frames
-            if (entry.entryType == eTraceUpdateType.eAnimUnchainedDone)
+            if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchainedDone");
+                if (verbose) Console.WriteLine($"\tUpdate eAnimReinstrument");
                 if (unchainedWaitFrames-- > 1) return;
 
                 remove_unchained_from_animation();
@@ -1872,6 +1877,7 @@ namespace rgatCore
                 return;
             }
 
+            /*
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
             {
                 if (verbose) Console.WriteLine($"\tUpdate eAnimLoopLast");
@@ -1881,7 +1887,7 @@ namespace rgatCore
                 currentUnchainedBlocks.Clear();
                 animBuildingLoop = false;
                 return;
-            }
+            }*/
 
 
 
@@ -1889,7 +1895,6 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
                 if (verbose) Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
-                currentUnchainedBlocks.Add(entry);
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
@@ -1897,6 +1902,7 @@ namespace rgatCore
                 brightTime = GlobalConfig.animationLingerFrames;
             }
 
+            /*
             if (entry.entryType == eTraceUpdateType.eAnimLoop)
             {
                 if (verbose) Console.WriteLine($"\tUpdate eAnimLoop");
@@ -1913,7 +1919,7 @@ namespace rgatCore
                     unchainedWaitFrames = maxWait;
 
                 animBuildingLoop = true;
-            }
+            }*/
 
 
             if (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out List<uint> nodeIDList) &&
@@ -2164,6 +2170,7 @@ namespace rgatCore
             {
                 risingExterns = _RisingExterns.ToList();
                 _RisingExterns.Clear();
+                
                 risingLingering = _RisingExternsLingering.ToList();
             }
         }
@@ -2226,6 +2233,7 @@ namespace rgatCore
             {
                 _DeactivatedNodes = _LingeringActiveNodes.ToArray();
                 _LingeringActiveNodes.Clear();
+                _RisingExternsLingering.Clear();
             }
         }
 

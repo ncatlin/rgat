@@ -9,7 +9,7 @@ namespace rgatCore.Testing
     public enum RequirementCondition
     {
         Equals, LessThan, LessThanOrEqualTo, GreaterThan,
-        GreaterThanOrEqualTo, Exists, Absent, Contains, In, INVALID
+        GreaterThanOrEqualTo, Exists, Absent, Contains, OneOf, INVALID
     };
 
     public class REQUIREMENT_TEST_RESULTS
@@ -61,6 +61,29 @@ namespace rgatCore.Testing
                     ExpectedValueString = $"{ExpectedValue.ToObject<float>()}";
                     break;
                 case JTokenType.Array:
+                    ExpectedValueString = "[";
+                    JArray items = ExpectedValue.ToObject<JArray>();
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        if (i > 0) ExpectedValueString += ",";
+                        JToken arrayItem = items[i];
+                        switch(arrayItem.Type)
+                        {
+                            case JTokenType.Integer:
+                                ExpectedValueString += $"{arrayItem.ToObject<long>()}";
+                                break;
+                            case JTokenType.String:
+                                ExpectedValueString += $"{arrayItem.ToObject<string>()}";
+                                break;
+                            case JTokenType.Float:
+                                ExpectedValueString += $"{arrayItem.ToObject<float>()}";
+                                break;
+                            default:
+                                ExpectedValueString += "?";
+                                break;
+                        }
+                    }
+                    ExpectedValueString += "]";
                     break;
                 default:
                     ExpectedValueString = $"[{ExpectedValue.Type} value]";
@@ -117,7 +140,8 @@ namespace rgatCore.Testing
                     break;
 
                 case "in":
-                    Condition = RequirementCondition.In;
+                case "oneof":
+                    Condition = RequirementCondition.OneOf;
                     break;
 
                 default:
@@ -130,13 +154,29 @@ namespace rgatCore.Testing
         public bool Compare(int value, out string error)
         {
             error = "";
+            if (Condition == RequirementCondition.OneOf)
+            {
+                if (ExpectedValue.Type != JTokenType.Array)
+                {
+                    error = $"int 'OneOf' comparison requires array token, but token was of type {ExpectedValue.Type}";
+                    return false;
+                }
+                foreach(JToken arrayItem in ExpectedValue.ToObject<JArray>())
+                {
+                    if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<int>() == value) return true;
+                }
+                return false;
+            }
+
+
             if (ExpectedValue.Type != JTokenType.Integer)
             {
-                error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
+                error = $"int comparison requires Integer expected value, but token was of type {ExpectedValue.Type}";
                 return false;
             }
 
             int comparedValue = ExpectedValue.ToObject<int>();
+
             switch (Condition)
             {
                 case RequirementCondition.Equals:
@@ -149,6 +189,8 @@ namespace rgatCore.Testing
                     return value < comparedValue;
                 case RequirementCondition.LessThanOrEqualTo:
                     return value <= comparedValue;
+                case RequirementCondition.OneOf:
+                    return value <= comparedValue;
                 default:
                     error = "Bad comparison for integer value: " + Condition;
                     return false;
@@ -160,6 +202,20 @@ namespace rgatCore.Testing
         public bool Compare(long value, out string error)
         {
             error = "";
+            if (Condition == RequirementCondition.OneOf)
+            {
+                if (ExpectedValue.Type != JTokenType.Array)
+                {
+                    error = $"long 'OneOf' comparison requires array token, but token was of type {ExpectedValue.Type}";
+                    return false;
+                }
+                foreach (JToken arrayItem in ExpectedValue.ToObject<JArray>())
+                {
+                    if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<long>() == value) return true;
+                }
+                return false;
+            }
+
             if (ExpectedValue.Type != JTokenType.Integer)
             {
                 error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
@@ -189,6 +245,20 @@ namespace rgatCore.Testing
         public bool Compare(ulong value, out string error)
         {
             error = "";
+            if (Condition == RequirementCondition.OneOf)
+            {
+                if (ExpectedValue.Type != JTokenType.Array)
+                {
+                    error = $"long 'OneOf' comparison requires array token, but token was of type {ExpectedValue.Type}";
+                    return false;
+                }
+                foreach (JToken arrayItem in ExpectedValue.ToObject<JArray>())
+                {
+                    if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<ulong>() == value) return true;
+                }
+                return false;
+            }
+
             if (ExpectedValue.Type != JTokenType.Integer)
             {
                 error = $"Comparison requires Integer token, but token was of type {ExpectedValue.Type}";
@@ -214,7 +284,10 @@ namespace rgatCore.Testing
             }
         }
 
+        public void SetComment(string value) { Comment = "Comment: " + value; }
+
         public string Name { get; private set; }
+        public string Comment { get; private set; }
         public JToken ExpectedValue { get; private set; }
         public string ExpectedValueString { get; private set; }
         public RequirementCondition Condition { get; private set; }
@@ -273,8 +346,25 @@ namespace rgatCore.Testing
 
             lock (_lock)
             {
-                if (!ParseTestSpec(jsonpath, out JObject jsonObj)) return;
-                Loaded = LoadTestCase(jsonObj);
+                JObject jsonObj;
+                try
+                {
+                    if (!ParseTestSpec(jsonpath, out jsonObj)) return;
+                }
+                catch (Exception e)
+                {
+                    DeclareLoadingError($"Exception {e.Message} parsing spec of test {jsonpath}");
+                    return;
+                }
+                try
+                {
+                    Loaded = LoadTestCase(jsonObj);
+                }
+                catch (Exception e)
+                {
+                    DeclareLoadingError($"Exception {e.Message} loading test {jsonpath}");
+                    return;
+                }
             }
         }
 
@@ -295,7 +385,7 @@ namespace rgatCore.Testing
         public string CategoryName { get; private set; }
         public string TestName { get; private set; }
         public bool Starred;
-        public string Description { get; private set; }
+        public string Comment { get; private set; }
         public int TestBits { get; private set; }
         public string TestOS { get; private set; }
 
@@ -418,9 +508,9 @@ namespace rgatCore.Testing
             }
 
             //optional fields
-            if (metaObj.TryGetValue("Description", out JToken descTok) && descTok.Type == JTokenType.String)
+            if (metaObj.TryGetValue("Comment", out JToken descTok) && descTok.Type == JTokenType.String)
             {
-                Description = descTok.ToObject<string>();
+                Comment = descTok.ToObject<string>();
             }
             return true;
         }
@@ -488,6 +578,8 @@ namespace rgatCore.Testing
                 return false;
             }
 
+
+
             string conditionText = condTok.ToObject<string>();
             testRequirement = new TestRequirement(name, resultValue, conditionText);
             if (testRequirement.Condition == RequirementCondition.INVALID)
@@ -496,6 +588,13 @@ namespace rgatCore.Testing
                 _loadingError = true;
                 return false;
             }
+
+            string commentText = "";
+            if (requirement.TryGetValue("Comment", out JToken commentTok) && commentTok.Type == JTokenType.String)
+            {
+                testRequirement.SetComment(commentTok.ToString());
+            }
+
 
             return true;
         }
@@ -652,7 +751,7 @@ namespace rgatCore.Testing
             {
                 _passed.TryGetValue(sessionID, out int val);
                 _passed[sessionID] = val + 1;
-                
+
                 LatestResultState = eTestState.Passed;
                 testrun.ResultCommentary.result = eTestState.Passed;
                 LatestTestRun = testrun;
