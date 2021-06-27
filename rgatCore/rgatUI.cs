@@ -14,6 +14,8 @@ using rgatCore.Widgets;
 using System.Linq;
 using static rgatCore.Logging;
 using Humanizer;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace rgatCore
 {
@@ -49,56 +51,77 @@ namespace rgatCore
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
+        double _UIstartupProgress = 0;
+
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
-            Logging.RecordLogEvent("Constructing rgatUI", Logging.LogFilterType.TextDebug);
-            Console.WriteLine("UI start step 1 - initing config");
-            Logging.RecordLogEvent("Startup: Initing/Loading Config", Logging.LogFilterType.TextDebug);
-            GlobalConfig.InitDefaultConfig();
-            RecordLogEvent("Config Inited", Logging.LogFilterType.TextDebug);
-
-            Console.WriteLine("UI start step 2 - initing state");
-            Logging.RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
-            _rgatstate = new rgatState(_gd, _cl);
-            RecordLogEvent("State created", Logging.LogFilterType.TextDebug);
-
-            Console.WriteLine("UI start step 3 - initing settings menu");
-            Logging.RecordLogEvent("Startup: Initing Settings Window", Logging.LogFilterType.TextDebug);
-            _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
-            Console.WriteLine("UI start step 4 - initing graph threads");
-            Logging.RecordLogEvent("Startup: Initing graph threads", Logging.LogFilterType.TextDebug);
-
             _ImGuiController = imguicontroller;
+            Task.Run(() => LoadingThread(imguicontroller, _gd, _cl));
+            _UIstartupProgress = 0.1;
+        }
 
+
+        void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
+        {
+            RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
+            double currentUIProgress = _UIstartupProgress;
+            Task confloader = Task.Run(() => GlobalConfig.InitDefaultConfig());
+            while (!confloader.IsCompleted)
+            {
+                _UIstartupProgress = currentUIProgress + 0.3 * GlobalConfig.LoadProgress;
+                Thread.Sleep(10);
+            }
+
+            RecordLogEvent("Startup: Config Inited", LogFilterType.TextDebug);
+            _UIstartupProgress = 0.4;
+
+            RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
+            _rgatstate = new rgatState(_gd, _cl);  //~400 ms
+            
+            RecordLogEvent("Startup: State created", LogFilterType.TextDebug);
+            _UIstartupProgress = 0.5;
+
+            RecordLogEvent("Startup: Initing Settings Window", LogFilterType.TextDebug);
+            _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
+            _UIstartupProgress = 0.55;
+
+            RecordLogEvent("Startup: Initing graph threads", LogFilterType.TextDebug);
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
             //todo - conditional thread here instead of new trace
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
+            _UIstartupProgress = 0.6;
 
-            Console.WriteLine("UI start step 5 - initing graph widgets");
-            Logging.RecordLogEvent("Startup: Initing graph widgets", Logging.LogFilterType.TextDebug);
+            RecordLogEvent("Startup: Initing graph widgets", LogFilterType.TextDebug);
 
-            _visualiserBar = new VisualiserBar(_gd, imguicontroller);
-            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500));
-            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate);
+            _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
 
-            Console.WriteLine("UI start step 6 - initing layout engines");
-            Logging.RecordLogEvent("Startup: Initing layout engines", Logging.LogFilterType.TextDebug);
+            _UIstartupProgress = 0.7;
+            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500)); //1000~ ms
+
+            _UIstartupProgress = 0.9;
+            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate); //350~ ms
+
+            RecordLogEvent("Startup: Initing layout engines", LogFilterType.TextDebug);
+            _UIstartupProgress = 0.99;
 
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
 
-            Logging.RecordLogEvent("rgatUI created", Logging.LogFilterType.TextDebug);
+            RecordLogEvent("Startup: rgatUI created", LogFilterType.TextDebug);
 
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
             _LogFilters[(int)LogFilterType.TextError] = true;
             _LogFilters[(int)LogFilterType.TextAlert] = true;
+            _UIstartupProgress = 1;
+
         }
+
 
         public void Exit()
         {
-            _rgatstate.ShutdownRGAT();
+            _rgatstate?.ShutdownRGAT();
         }
 
 
@@ -152,7 +175,7 @@ namespace rgatCore
 
         public void DrawUI()
         {
-            bool hasActiveTrace = _rgatstate.ActiveTarget != null;
+            bool hasActiveTrace = _rgatstate?.ActiveTarget != null;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             //window_flags |= ImGuiWindowFlags.NoTitleBar;
@@ -178,7 +201,7 @@ namespace rgatCore
             WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
             HandleUserInput();
 
-            BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+            BinaryTarget activeTarget = _rgatstate?.ActiveTarget;
             if (activeTarget == null)
             {
                 DrawStartSplash();
@@ -336,6 +359,7 @@ namespace rgatCore
 
         void HandleUserInput()
         {
+            if (_UIstartupProgress < 1) return;
             if (_hexTooltipShown && _mouseWheelDelta != 0)
             {
                 _hexTooltipScroll -= _mouseWheelDelta * 60;
@@ -344,7 +368,7 @@ namespace rgatCore
                 return;
             }
 
-            bool MouseInMainWidget = MainGraphWidget.MouseInWidget();
+            bool MouseInMainWidget = MainGraphWidget != null && MainGraphWidget.MouseInWidget();
             lock (_inputLock)
             {
 
@@ -1072,6 +1096,14 @@ namespace rgatCore
             float blockHeight = (regionHeight * 0.95f) - headerSize;
             float blockStart = headerSize + 40f;
 
+
+            if (_UIstartupProgress < 1)
+            {
+                float ypos = ImGui.GetCursorPosY();
+                ImGui.ProgressBar((float)_UIstartupProgress, new Vector2(-1, 4f));
+                ImGui.SetCursorPosY(ypos);
+            }
+
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
 
@@ -1094,7 +1126,10 @@ namespace rgatCore
                     ImGui.SetCursorPos(cpb4 - new Vector2(35, 15));
                     if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
                     {
-                        _settings_window_shown = true;
+                        if (_SettingsMenu != null)
+                        { 
+                            _settings_window_shown = true; 
+                        }
                     }
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
                     {
@@ -1159,7 +1194,7 @@ namespace rgatCore
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
 
                 List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
-                if (recentBins != null && recentBins.Count > 0)
+                if (recentBins?.Count > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
                     if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
@@ -1181,6 +1216,13 @@ namespace rgatCore
                         ImGui.EndTable();
                     }
                     ImGui.PopStyleVar();
+                }
+                else
+                {
+                    if (GlobalConfig.LoadProgress < 1)
+                    {
+                        ImGui.ProgressBar((float)GlobalConfig.LoadProgress, new Vector2(300, 3));
+                    }
                 }
                 ImGui.EndChild();
             }
@@ -1245,11 +1287,17 @@ namespace rgatCore
                     }
                     ImGui.PopStyleVar();
                 }
+                else
+                {
+                    if (GlobalConfig.LoadProgress < 1)
+                    {
+                        ImGui.ProgressBar((float)GlobalConfig.LoadProgress, new Vector2(300, 3));
+                    }
+                }
                 ImGui.EndChild();
             }
 
             ImGui.PopStyleVar(5);
-
 
 
             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 40));
@@ -2494,8 +2542,8 @@ namespace rgatCore
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue && LoadSelectedBinary(picker.SelectedFile))
                     {
                         rgatFilePicker.FilePicker.RemoveFilePicker(this);
-                        _show_select_exe_window = false;
                     }
+                    _show_select_exe_window = false;
                 }
 
                 ImGui.EndPopup();

@@ -939,11 +939,13 @@ namespace rgatCore.Threads
             }
         }
 
-
+        public static double LoadProgress { get; private set; } = 0;
 
         public static void InitDefaultConfig()
         {
+            LoadProgress = 0;
             LoadResources();
+            LoadProgress = 0.3;
             try
             {
                 Themes.LoadCustomThemes();
@@ -953,6 +955,7 @@ namespace rgatCore.Threads
                 Logging.RecordLogEvent($"Error loading custom themes: {e.Message}", Logging.LogFilterType.TextError);
             }
             Themes.ActivateDefaultTheme();
+            LoadProgress = 0.5;
 
             //load base keybinds
             InitDefaultKeybinds();
@@ -961,10 +964,13 @@ namespace rgatCore.Threads
             //overwrite with any user configured binds
             LoadCustomKeybinds();
 
+            LoadProgress = 0.7;
+
             InitPaths();
             LoadRecentPaths("RecentTraces", ref _cachedRecentTraces);
             LoadRecentPaths("RecentBinaries", ref _cachedRecentBins);
 
+            LoadProgress = 0.9;
             defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
@@ -1020,6 +1026,8 @@ namespace rgatCore.Threads
                 fullPaths = true, //label for targets of calls/jmps
                 extraDetail = true //only show control flow
             };
+
+            LoadProgress = 1;
         }
     }
 }
