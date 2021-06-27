@@ -127,7 +127,7 @@ namespace rgatCore
 
         private bool LoadAnimationData(JArray animationArray)
         {
-            Console.WriteLine($"Loading {animationArray.Count} items");
+            Logging.RecordLogEvent($"LoadAnimationData Loading {animationArray.Count} trace entries for graph {ThreadID}");
             foreach (JArray animFields in animationArray)
             {
                 if (animFields.Count != 7) return false;

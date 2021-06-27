@@ -87,14 +87,14 @@ namespace rgatCore
             _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
             _UIstartupProgress = 0.55;
 
-            RecordLogEvent("Startup: Initing graph threads", LogFilterType.TextDebug);
+            RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
             heatRankThreadObj = new HeatRankingThread(_rgatstate);
             //todo - conditional thread here instead of new trace
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
             _UIstartupProgress = 0.6;
 
-            RecordLogEvent("Startup: Initing graph widgets", LogFilterType.TextDebug);
+            RecordLogEvent("Startup: Initing graph display widgets", LogFilterType.TextDebug);
 
             _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
 
@@ -2049,12 +2049,15 @@ namespace rgatCore
 
         private void DrawVisTab()
         {
-            ManageActiveGraph();
+            if(MainGraphWidget != null && PreviewGraphWidget != null)
+            {
+                ManageActiveGraph();
 
-            float controlsHeight = 230;
+                float controlsHeight = 230;
 
-            DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 13) - controlsHeight);
-            DrawVisualiserControls(controlsHeight);
+                DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 13) - controlsHeight);
+                DrawVisualiserControls(controlsHeight);
+            }
             ImGui.EndTabItem();
         }
 
@@ -2556,8 +2559,8 @@ namespace rgatCore
             BinaryTarget target = trace.binaryTarg;
 
             //todo only if signatures not stored in trace + file exists on disk
-            _rgatstate.DIELib.StartDetectItEasyScan(target);
-            _rgatstate.YARALib.StartYARATargetScan(target);
+            _rgatstate.DIELib?.StartDetectItEasyScan(target);
+            _rgatstate.YARALib?.StartYARATargetScan(target);
 
             launch_all_trace_threads(trace, _rgatstate);
 
