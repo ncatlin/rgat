@@ -63,6 +63,8 @@ namespace rgatCore
 
         void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
+            _rgatstate = new rgatState(_gd, _cl);  
+
             RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _UIstartupProgress;
             Task confloader = Task.Run(() => GlobalConfig.InitDefaultConfig());
@@ -76,7 +78,7 @@ namespace rgatCore
             _UIstartupProgress = 0.4;
 
             RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
-            _rgatstate = new rgatState(_gd, _cl);  //~400 ms
+
             
             RecordLogEvent("Startup: State created", LogFilterType.TextDebug);
             _UIstartupProgress = 0.5;
@@ -109,6 +111,10 @@ namespace rgatCore
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
 
             RecordLogEvent("Startup: rgatUI created", LogFilterType.TextDebug);
+
+            _rgatstate.LoadSignatures();
+
+            RecordLogEvent("Startup: Signatures Loaded", LogFilterType.TextDebug);
 
             _LogFilters[(int)LogFilterType.TextDebug] = true;
             _LogFilters[(int)LogFilterType.TextInfo] = true;
@@ -467,6 +473,11 @@ namespace rgatCore
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
+            if (_rgatstate.DIELib == null)
+            {
+                ImGui.Text("Not Loaded");
+                return;
+            }
             DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
@@ -560,27 +571,14 @@ namespace rgatCore
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
+            if (_rgatstate.YARALib == null)
+            {
+                ImGui.Text("Not Loaded");
+                return;
+            }
             YARAScan.eYaraScanProgress progress = _rgatstate.YARALib.Progress(activeTarget);
             string caption;
             float progressAmount = 0;

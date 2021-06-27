@@ -34,15 +34,17 @@ namespace rgatCore
             _GraphicsDevice = _gd;
             _CommandList = _cl;
             PlottedGraph.clientState = this;
-            Logging.RecordLogEvent("Loading dielib", Logging.LogFilterType.TextDebug);
-            //if (Directory.Exists(GlobalConfig.DiEScriptsDB))
-            DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
-            Logging.RecordLogEvent("dielib loaded. loading yara", Logging.LogFilterType.TextDebug);
-
-            YARALib = new YARAScan(GlobalConfig.YARARulesDir);
-            Logging.RecordLogEvent("yara loaded", Logging.LogFilterType.TextDebug);
         }
 
+        public void LoadSignatures()
+        {
+            Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
+            DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
+            Logging.RecordLogEvent("DiELib loaded. loading YARA", Logging.LogFilterType.TextDebug);
+
+            YARALib = new YARAScan(GlobalConfig.YARARulesDir);
+            Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
+        }
 
 
         public PlottedGraph SwitchGraph = null;
@@ -71,8 +73,8 @@ namespace rgatCore
         public BinaryTarget AddTargetByPath(string path, int arch = 0, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, arch);
-            DIELib.StartDetectItEasyScan(targ);
-            YARALib.StartYARATargetScan(targ);
+            DIELib?.StartDetectItEasyScan(targ);
+            YARALib?.StartYARATargetScan(targ);
 
             if (makeActive)
             {
