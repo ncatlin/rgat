@@ -63,7 +63,7 @@ namespace rgatCore
 
         void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
-            _rgatstate = new rgatState(_gd, _cl);  
+            _rgatstate = new rgatState(_gd, _cl);
 
             RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _UIstartupProgress;
@@ -79,7 +79,7 @@ namespace rgatCore
 
             RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
 
-            
+
             RecordLogEvent("Startup: State created", LogFilterType.TextDebug);
             _UIstartupProgress = 0.5;
 
@@ -539,6 +539,11 @@ namespace rgatCore
                         ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed out of {DEProgress.scriptCount} applicable");
                         ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
                         ImGui.Separator();
+                        if (DEProgress.errored && DEProgress.error.Length > 0)
+                        {
+                            ImGui.Text(DEProgress.error);
+                            ImGui.Separator();
+                        }
                         ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
                         ImGui.Text("Left Click  - Rescan");
                         ImGui.Text("Right Click - Reload & Rescan");
@@ -849,21 +854,24 @@ namespace rgatCore
         bool _hexTooltipShown;
         private void ShowHexPreviewTooltip(BinaryTarget target)
         {
-            ImGui.SetNextWindowSize(new Vector2(530, 300));
-            ImGui.BeginTooltip();
-
             string hexline = target.HexTooltip();
+            if (hexline != null)
+            {
+                ImGui.SetNextWindowSize(new Vector2(530, 300));
+                ImGui.BeginTooltip();
 
 
-            ImGuiInputTextFlags flags = ImGuiInputTextFlags.ReadOnly;
-            flags |= ImGuiInputTextFlags.Multiline;
-            flags |= ImGuiInputTextFlags.NoHorizontalScroll;
-            ImGui.SetScrollY(_hexTooltipScroll);
-            ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530, 845), flags);
-            if (_hexTooltipScroll > ImGui.GetScrollMaxY())
-                _hexTooltipScroll = ImGui.GetScrollMaxY();
+                ImGuiInputTextFlags flags = ImGuiInputTextFlags.ReadOnly;
+                flags |= ImGuiInputTextFlags.Multiline;
+                flags |= ImGuiInputTextFlags.NoHorizontalScroll;
+                ImGui.SetScrollY(_hexTooltipScroll);
+                float BoxSize = Math.Max(ImGui.GetContentRegionAvail().Y, (hexline.Length / 4608f) * 845f);
+                ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530, BoxSize), flags);
+                if (_hexTooltipScroll > ImGui.GetScrollMaxY())
+                    _hexTooltipScroll = ImGui.GetScrollMaxY();
 
-            ImGui.EndTooltip();
+                ImGui.EndTooltip();
+            }
         }
 
 
@@ -1125,8 +1133,8 @@ namespace rgatCore
                     if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
                     {
                         if (_SettingsMenu != null)
-                        { 
-                            _settings_window_shown = true; 
+                        {
+                            _settings_window_shown = true;
                         }
                     }
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
@@ -2049,7 +2057,7 @@ namespace rgatCore
 
         private void DrawVisTab()
         {
-            if(MainGraphWidget != null && PreviewGraphWidget != null)
+            if (MainGraphWidget != null && PreviewGraphWidget != null)
             {
                 ManageActiveGraph();
 

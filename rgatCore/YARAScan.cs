@@ -41,7 +41,6 @@ namespace rgatCore
         public void StartYARATargetScan(BinaryTarget targ)
         {
             if (!File.Exists(targ.FilePath)) return;
-            targetScanProgress[targ] = eYaraScanProgress.eRunning;
 
             List<object> args = new List<object>() { targ };
 
@@ -258,6 +257,9 @@ namespace rgatCore
                 lock (_scanLock)
                 {
                     if (LoadedRuleCount() == 0) return;
+                    if (targ.PEFileObj == null) return;
+
+                    targetScanProgress[targ] = eYaraScanProgress.eRunning;
                     byte[] fileContentsBuf = targ.PEFileObj.RawFile.ToArray();
 
                     // Initialize the scanner

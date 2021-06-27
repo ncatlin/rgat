@@ -82,11 +82,13 @@ namespace rgatCore
             for (var i = 0; i < 64; i++)
             {
                 fragment = StartBytes.Skip(i * 16).Take(16).ToArray();
-                if (fragment.Length == 0) break;
+                int fragLen = Math.Min(16, fragment.Length);
+                if (fragLen == 0) break;
+
                 _hexTooltip += $"{i * 16:X3}  ";
-                _hexTooltip += BitConverter.ToString(fragment, 0, 16).Replace("-", " ");
+                _hexTooltip += BitConverter.ToString(fragment, 0, fragLen).Replace("-", " ");
                 _hexTooltip += " | ";
-                _hexTooltip += TextUtils.IllustrateASCIIBytesCompact(fragment, 16);
+                _hexTooltip += TextUtils.IllustrateASCIIBytesCompact(fragment, fragLen);
                 _hexTooltip += $"\n";
             }
             return _hexTooltip;

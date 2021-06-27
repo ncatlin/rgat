@@ -115,13 +115,21 @@ namespace rgatCore
                 options.deepScan = false; //very slow
                 while (true)
                 {
-                    result = scanner.ScanFile(handle, targ.FilePath, options);
+                    result = scanner.ScanFile(handle, targ.FilePath, options, out string error);
                     if (result == "Reload In Progress")
                     {
                         Thread.Sleep(100);
                         continue;
                     }
-                    else break;
+                    else
+                    { 
+                        if (error?.Length > 0)
+                        {
+
+                            Logging.RecordLogEvent($"DetectItEasy error: '{error}' for target {targ.FilePath}");
+                        }
+                        break; 
+                    }
                 }
                 scanner.CloseScanHandle(handle);
             }
@@ -129,7 +137,8 @@ namespace rgatCore
             {
                 result = "DIElib Scan failed with exeption: " + e.Message;
             }
-            Console.WriteLine("Die result: " + result);
+            
+            Logging.RecordLogEvent($"DetectItEasy result {result} for target {targ.FilePath}", Logging.LogFilterType.TextDebug);
             targ.AddDiESignatureHit(result);
         }
 
