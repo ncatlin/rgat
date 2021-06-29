@@ -66,8 +66,8 @@ namespace rgatCore
         public void ShutdownRGAT()
         {
             rgatIsExiting = true;
-            DIELib.CancelAllScans();
-            YARALib.CancelAllScans();
+            DIELib?.CancelAllScans();
+            YARALib?.CancelAllScans();
         }
 
         public BinaryTarget AddTargetByPath(string path, int arch = 0, bool makeActive = true)
