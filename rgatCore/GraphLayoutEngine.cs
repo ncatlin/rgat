@@ -223,7 +223,7 @@ namespace rgatCore
             TraceRecord trace = _activeTrace;
             if (trace != null)
             {
-                var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                var graphs = trace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                 foreach (PlottedGraph graph in graphs)
                 {
                     StoreVRAMGraphDataToGraphObj(graph);
@@ -349,7 +349,7 @@ namespace rgatCore
         {
             TraceRecord trace = _activeTrace;
             if (trace == null) return;
-            var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var graphs = trace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
 
             var engines = GetParallelLayoutEngines();
             foreach (PlottedGraph graph in graphs)
@@ -1136,7 +1136,7 @@ namespace rgatCore
         public void LayoutPreviewGraphs(PlottedGraph IgnoreGraph)
         {
             if (_activeTrace == null) return;
-            var graphs = _activeTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var graphs = _activeTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
             foreach (PlottedGraph graph in graphs)
             {
                 if (graph != null && graph != IgnoreGraph)

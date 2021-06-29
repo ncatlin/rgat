@@ -338,7 +338,7 @@ namespace rgatCore
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
-            DrawnPreviewGraphs = activeTrace.GetPlottedGraphsList(mode: eRenderingMode.eStandardControlFlow);
+            DrawnPreviewGraphs = activeTrace.GetPlottedGraphs(mode: eRenderingMode.eStandardControlFlow);
             List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
             uint captionBackgroundcolor = Themes.ThemeColoursCustom[Themes.eThemeColour.ePreviewTextBackground];
 
@@ -357,7 +357,7 @@ namespace rgatCore
                     float xPadding = UI_Constants.PREVIEW_PANE_X_PADDING;
                     if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
                     {
-                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))

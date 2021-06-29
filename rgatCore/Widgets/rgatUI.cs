@@ -1906,7 +1906,7 @@ namespace rgatCore
                     {
                         selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
                         uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
-                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                         if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
@@ -2094,6 +2094,8 @@ namespace rgatCore
             if (activeTrace == null || !ImGui.BeginTabItem("Timeline")) return;
             _currentTab = "Timeline";
 
+            chart.InitChartFromTrace(activeTrace);
+
             float height = ImGui.GetContentRegionAvail().Y;
             float width = ImGui.GetContentRegionAvail().X;
             float sidePaneWidth = 300;
@@ -2113,7 +2115,7 @@ namespace rgatCore
 
 
                 TIMELINE_EVENT[] events = activeTrace.GetTimeLineEntries();
-                if (ImGui.BeginTable("#TaTTFullList", 3, ImGuiTableFlags.Borders))
+                if (ImGui.BeginTable("#TaTTFullList", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY))
                 {
                     ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
                     ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 90);
@@ -2601,6 +2603,7 @@ namespace rgatCore
 
             _rgatstate.ActiveTarget = target;
             _rgatstate.SelectActiveTrace(target.GetFirstTrace());
+            
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);

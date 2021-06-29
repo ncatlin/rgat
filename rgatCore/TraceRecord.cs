@@ -145,7 +145,7 @@ namespace rgatCore
             if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-            var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var MainPlottedGraphs = GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
             var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
@@ -172,7 +172,7 @@ namespace rgatCore
             if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-            var MainPlottedGraphs = GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+            var MainPlottedGraphs = GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
             var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
@@ -313,7 +313,7 @@ namespace rgatCore
 
         }
 
-
+        public int TimelineItemsCount => _timeline.Count;
 
         /// <summary>
         /// Fetches an array of the newest timeline events for the trace
@@ -380,11 +380,19 @@ namespace rgatCore
 
         private readonly object GraphListLock = new object();
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
+
+        public List<ProtoGraph> GetProtoGraphs()
+        {
+            lock (GraphListLock)
+            {
+                return ProtoGraphs.Values.ToList();
+            }
+        }
         public int GraphCount => ProtoGraphs.Count;
 
         public Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>> PlottedGraphs = new Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>>();
 
-        public List<PlottedGraph> GetPlottedGraphsList(eRenderingMode mode)
+        public List<PlottedGraph> GetPlottedGraphs(eRenderingMode mode)
         {
             lock (GraphListLock)
             {
@@ -396,6 +404,16 @@ namespace rgatCore
 
         public TraceRecord ParentTrace = null;
         public List<TraceRecord> children = new List<TraceRecord>();
+
+        //returns a copy of the child trace list
+        public List<TraceRecord> GetChildren()
+        {
+            lock (GraphListLock)
+            {
+                return children.ToList();
+            }
+        }
+
 
         public RGAT_THREADS_STRUCT ProcessThreads;
         //void* fuzzRunPtr = null;

@@ -39,29 +39,75 @@ namespace rgatCore.Widgets
         {
             chartSize = ImGui.GetContentRegionAvail();
 
-            itemNode n1 = new itemNode() { label = "Node1" };
-            sbgraph.AddVertex(n1);
-            sbgraph.AddVertex(new itemNode() { label = "Node2" });
-            sbgraph.AddVertex(new itemNode() { label = "Node3" });
-
-            sbgraph.AddEdge(new Edge<itemNode>(sbgraph.Vertices.ToList()[0], sbgraph.Vertices.ToList()[1]));
-            sbgraph.AddEdge(new Edge<itemNode>(sbgraph.Vertices.ToList()[1], sbgraph.Vertices.ToList()[2]));
-
             KKLayoutParameters layoutParams = new KKLayoutParameters()
             {
                 Height = chartSize.Y - (2 * padding),
                 Width = chartSize.X - (2 * padding),
                 LengthFactor = 1,
-                DisconnectedMultiplier = 2
+                DisconnectedMultiplier = 2,
+                ExchangeVertices = true
             };
 
             layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
-
-            layout.VerticesPositions[n1] = new GraphShape.Point(89, 177);
-
             layout.Compute();
+        }
+
+        TraceRecord _rootTrace = null;
+        int timelineItemsOnChartDraw = 0;
+        public void InitChartFromTrace(TraceRecord trace, bool force = false)
+        {
+            if (force || trace != _rootTrace || trace.TimelineItemsCount != timelineItemsOnChartDraw)
+            {
+
+                Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
+                timelineItemsOnChartDraw = entries.Length;
+                StopLayout();
+                sbgraph.Clear();
+                layout.VerticesPositions.Clear();
+
+                _rootTrace = trace;
+                AddThreadItems(null, trace);
+
+                KKLayoutParameters layoutParams = new KKLayoutParameters()
+                {
+                    Height = chartSize.Y - (2 * padding),
+                    Width = chartSize.X - (2 * padding),
+                    LengthFactor = 1,
+                    DisconnectedMultiplier = 2,
+                    ExchangeVertices = true
+                };
+                //layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
+
+                Task.Run(() => { layout.Compute(); });
+            }
+        }
+
+        void AddThreadItems(itemNode? parentProcess, TraceRecord trace)
+        {
+
+            itemNode startProcess = new itemNode() { label = $"PID_{trace.PID}_PATH..." };
+            sbgraph.AddVertex(startProcess);
+            if (parentProcess.HasValue)
+            {
+                sbgraph.AddEdge(new Edge<itemNode>(parentProcess.Value, startProcess));
+            }
+
+
+            var threads = trace.GetProtoGraphs();
+            foreach (var thread in threads)
+            {
+                itemNode threadNode = new itemNode() { label = $"TID_{thread.ThreadID}_StartModule..." };
+                sbgraph.AddVertex(threadNode);
+                sbgraph.AddEdge(new Edge<itemNode>(startProcess, threadNode));
+            }
+            foreach (var child in trace.GetChildren())
+            {
+                AddThreadItems(startProcess, child);
+            }
 
         }
+
+
 
         Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
         Vector2 chartOffset = Vector2.Zero;
@@ -149,7 +195,7 @@ namespace rgatCore.Widgets
 
                 itemNode nn = new itemNode() { label = $"node{sbgraph.VertexCount}" };
                 sbgraph.AddVertex(nn);
-                Edge<itemNode> vedge = new Edge<itemNode>(nn, sbgraph.Vertices.ToList()[1]);
+                Edge<itemNode> vedge = new Edge<itemNode>(nn, sbgraph.Vertices.ToList()[0]);
                 sbgraph.AddEdge(vedge);
 
 
@@ -157,16 +203,10 @@ namespace rgatCore.Widgets
             }
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Middle))
             {
-                StopLayout();
-                Vector2 mousepos = ImGui.GetMousePos() - pos;
-                Console.WriteLine($"Mouseclink: {mousepos.X},{mousepos.Y}");
-
-                itemNode nn = new itemNode() { label = $"node{sbgraph.VertexCount}" };
-                sbgraph.AddVertex(nn);
-                Edge<itemNode> vedge = new Edge<itemNode>(nn, sbgraph.Vertices.ToList()[4]);
-                sbgraph.AddEdge(vedge);
-
-                Task.Run(() => { layout.Compute(); });
+                if (_rootTrace != null)
+                {
+                    InitChartFromTrace(_rootTrace, force: true);
+                }
             }
         }
 
@@ -185,6 +225,7 @@ namespace rgatCore.Widgets
 
         public void ApplyZoom(float delta)
         {
+            if (!MouseOverWidget) return;
             double newScaleX = _scaleX + (delta / 25);
 
             if (newScaleX != _scaleX && newScaleX > 0)
@@ -228,9 +269,9 @@ namespace rgatCore.Widgets
 
             //find how far we need to move them to fit - ideal is to make these all zero
             double leftDifference = Xleft;
-            double rightDifference = layout.Parameters.Width - (Xright + padding*2);
+            double rightDifference = layout.Parameters.Width - (Xright + padding * 2);
             double topDifference = yTop;
-            double baseDifference = layout.Parameters.Height - (yBase + padding*2);
+            double baseDifference = layout.Parameters.Height - (yBase + padding * 2);
 
             //first center the chart
             double XAdder = (rightDifference - leftDifference) / 2;
@@ -259,11 +300,13 @@ namespace rgatCore.Widgets
             {
                 //zoom out by shrinking edges
                 _scaleX = _scaleX - ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.2 : 0.02);
+                if (_scaleX < 0)
+                    _scaleX = 0.01;
                 layout.Parameters.LengthFactor = _scaleX;
                 layout.Compute();
             }
             else if (minvalue > 15)
-            { 
+            {
                 //zoom in by growing edges
                 _scaleX = _scaleX + ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.1 : 0.01);
                 layout.Parameters.LengthFactor = _scaleX;

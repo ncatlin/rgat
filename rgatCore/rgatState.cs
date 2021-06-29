@@ -263,7 +263,7 @@ namespace rgatCore
             if (LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
             {
                 bool found = false;
-                List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                 if (traceGraphs.Contains(foundGraph))
                 {
                     SwitchToGraph(foundGraph);

@@ -444,7 +444,7 @@ namespace rgatCore
             bool alldone = false;
             while (!_clientState.rgatIsExiting && !alldone)
             {
-                var graphs = trace.GetPlottedGraphsList(eRenderingMode.eStandardControlFlow);
+                var graphs = trace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                 alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.IsRunning);
                 if (!alldone) Thread.Sleep(35);
             }
