@@ -392,21 +392,26 @@ namespace rgatCore
                 }
 
 
-                if (MouseInMainWidget)
+
+                if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
                 {
-                    if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
+                    if (ImGui.GetIO().KeyAlt)
                     {
-                        if (ImGui.GetIO().KeyAlt)
-                        {
-                            MainGraphWidget.ApplyMouseRotate(_mouseDragDelta);
-                        }
-                        else
+                        if (MouseInMainWidget) MainGraphWidget.ApplyMouseRotate(_mouseDragDelta);
+                    }
+                    else
+                    {
+                        if (MouseInMainWidget)
                         {
                             MainGraphWidget.ApplyMouseDrag(_mouseDragDelta);
                         }
-
-                        _mouseDragDelta = new Vector2(0, 0);
+                        else if (currentTabTimeline)
+                        {
+                            chart.ApplyMouseDrag(_mouseDragDelta);
+                        }
                     }
+
+                    _mouseDragDelta = new Vector2(0, 0);
                 }
 
 

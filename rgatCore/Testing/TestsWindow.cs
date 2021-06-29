@@ -675,10 +675,8 @@ namespace rgatCore.Widgets
                         ImGui.PushStyleColor(ImGuiCol.Button, 0xaaaaaaff);
                         ImGui.Button("Testing Stopped", new Vector2(80, buttonSize));
                         ImGui.PopStyleColor();
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.SetTooltip("A test has failed. Begin a new session or disable stop on failure");
-                        }
+
+                        SmallWidgets.MouseoverText("A test has failed. Begin a new session or disable stop on failure");
                     }
                     else
                     {
@@ -691,8 +689,7 @@ namespace rgatCore.Widgets
                             StartTests();
                         }
                         ImGui.PopStyleColor();
-                        if (ImGui.IsItemHovered())
-                            ImGui.SetTooltip("Begin executing tests from the queue");
+                        SmallWidgets.MouseoverText("Begin executing tests from the queue");
                     }
                 }
 

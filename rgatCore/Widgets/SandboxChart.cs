@@ -67,13 +67,14 @@ namespace rgatCore.Widgets
         Vector2 chartOffset = Vector2.Zero;
         public void Draw()
         {
-            Vector2 size = ImGui.GetContentRegionAvail();
-            if (size != chartSize && chartSize.X > 50 && chartSize.Y > 50)
+            Vector2 availArea = ImGui.GetContentRegionAvail();
+            Vector2 targetSize = availArea - new Vector2(0, 6);
+            if (targetSize != chartSize && targetSize.X > 50 && targetSize.Y > 50)
             {
                 StopLayout();
-                chartSize = size;
-                layout.Parameters.Width = chartSize.X;
-                layout.Parameters.Height = chartSize.Y;
+                chartSize = targetSize;
+                layout.Parameters.Width = targetSize.X;
+                layout.Parameters.Height = targetSize.Y;
                 FitNodesToChart();
             }
             if (_fittingActive)
@@ -87,14 +88,10 @@ namespace rgatCore.Widgets
             Vector2 pos = ImGui.GetCursorScreenPos() + chartOffset + new Vector2(padding, padding);
             if (ImGui.BeginChild("ChartFrame", chartSize))
             {
-                if (ImGui.IsMouseHoveringRect(pos, pos + chartSize))
+                MouseOverWidget = ImGui.IsMouseHoveringRect(pos, pos + chartSize);
+                if (MouseOverWidget)
                 {
-                    HandleInput();
-                }
-
-                if (_fittingActive)
-                {
-                    ImGui.GetWindowDrawList().AddText(ImGui.GetCursorScreenPos() + new Vector2(chartSize.X/2 + 8, 20), 0xff000000, "Centering...");
+                    HandleMouseInput();
                 }
 
                 var edges = sbgraph.Edges;
@@ -114,9 +111,18 @@ namespace rgatCore.Widgets
 
                     Vector2 nCenter = pos + Point2Vec(node.Value);
                     DrawNode(node.Key, nCenter);
-
                 }
 
+                ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() + chartSize - new Vector2(30, 30));
+
+                if (!_fittingActive)
+                {
+                    if (ImGui.Button("[C]"))
+                    {
+                        FitNodesToChart();
+                    }
+                    SmallWidgets.MouseoverText("Center graph");
+                }
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
@@ -131,7 +137,7 @@ namespace rgatCore.Widgets
         }
 
 
-        void HandleInput()
+        void HandleMouseInput()
         {
             Vector2 pos = ImGui.GetCursorScreenPos() + chartOffset;
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
@@ -162,14 +168,8 @@ namespace rgatCore.Widgets
 
                 Task.Run(() => { layout.Compute(); });
             }
-
-
-
-            if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-            {
-                chartOffset += ImGui.GetMouseDragDelta() * 0.01f;
-            }
         }
+
 
         void StopLayout()
         {
@@ -187,17 +187,14 @@ namespace rgatCore.Widgets
         {
             double newScaleX = _scaleX + (delta / 25);
 
-            if (newScaleX == _scaleX || newScaleX <= 0)
-                return;
+            if (newScaleX != _scaleX && newScaleX > 0)
+            {
+                _scaleX += (delta / 25);
 
-            Console.WriteLine($"Changing scale from {_scaleX} to {newScaleX}");
-            _scaleX += (delta / 25);
-
-
-            StopLayout();
-            layout.Parameters.LengthFactor = _scaleX;
-            layout.Compute();
-
+                StopLayout();
+                layout.Parameters.LengthFactor = _scaleX;
+                Task.Run(() => { layout.Compute(); });
+            }
         }
 
         bool _fittingActive = false;
@@ -275,19 +272,28 @@ namespace rgatCore.Widgets
             else
             {
                 _fittingActive = false;
-                return;
             }
 
-            fittingAttempts += 1;
-            if (fittingAttempts > 50)
+            if (_fittingActive)
             {
-                _fittingActive = false;
-                Logging.RecordLogEvent($"Ending chart zoom to frame after {fittingAttempts} cycles. XDifference: {Xleft}, YDifference: {yTop}", Logging.LogFilterType.TextDebug);
+                fittingAttempts += 1;
+                if (fittingAttempts > 50)
+                {
+                    _fittingActive = false;
+                    Logging.RecordLogEvent($"Ending chart zoom to frame after {fittingAttempts} cycles. XDifference: {Xleft}, YDifference: {yTop}", Logging.LogFilterType.TextDebug);
+                }
             }
         }
 
         bool LayoutRunning => layout.State == QuikGraph.Algorithms.ComputationState.Running ||
                 layout.State == QuikGraph.Algorithms.ComputationState.PendingAbortion;
+
+        bool MouseOverWidget = false;
+        public void ApplyMouseDrag(Vector2 delta)
+        {
+            if (MouseOverWidget)
+                chartOffset -= delta;
+        }
 
 
         public void AlertKeybindPressed(Tuple<Veldrid.Key, Veldrid.ModifierKeys> keyPressed, eKeybind boundAction)
