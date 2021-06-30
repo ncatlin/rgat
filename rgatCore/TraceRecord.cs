@@ -433,6 +433,41 @@ namespace rgatCore
         }
 
 
+        public TraceRecord GetTraceByID(ulong traceID)
+        {
+            if (PID == traceID) return this;
+
+            lock (GraphListLock)
+            {
+                foreach (var child in children)
+                {
+                    TraceRecord rec = child.GetTraceByID(traceID);
+                    if (rec != null) return rec;
+                }
+            }
+            return null;
+        }
+
+
+        public ProtoGraph GetProtoGraphByID(ulong graphID)
+        {
+            lock (GraphListLock)
+            {
+                foreach(ProtoGraph graph in ProtoGraphs.Values)
+                {
+                    if (graph.ThreadID == graphID) return graph;
+                }
+                foreach (var child in children)
+                {
+                    ProtoGraph graph = child.GetProtoGraphByID(graphID);
+                    if (graph != null) return graph;
+                }
+            }
+            return null;
+        }
+
+
+
         public int CountDescendantGraphs()
         {
             int GraphCount = ProtoGraphs.Count;

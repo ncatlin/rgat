@@ -206,6 +206,43 @@ namespace rgatCore.Widgets
                 ScreenPosition.Y < (chartSize.Y + nodeSize));
         }
 
+        public void SelectEventNode(Logging.TIMELINE_EVENT evt)
+        {
+            if (_rootTrace == null) return;
+
+            switch(evt.TimelineEventType)
+            {
+                case Logging.eTimelineEvent.ProcessStart:
+                case Logging.eTimelineEvent.ProcessEnd:
+                    TraceRecord trace = _rootTrace.GetTraceByID(evt.ID);
+                    if (trace == null) return;
+                    foreach( var node in sbgraph.Vertices)
+                    {
+                        if (node.reference == trace)
+                        {
+                            _selectedNode = node;
+                        }
+                    }    
+                    break;
+                case Logging.eTimelineEvent.ThreadStart:
+                case Logging.eTimelineEvent.ThreadEnd:
+                    ProtoGraph graph = _rootTrace.GetProtoGraphByID(evt.ID);
+                    if (graph == null) return;
+                    foreach (var node in sbgraph.Vertices)
+                    {
+                        if (node.reference == graph)
+                        {
+                            _selectedNode = node;
+                        }
+                    }
+                    break;
+
+                case Logging.eTimelineEvent.APICall:
+                    Console.WriteLine("Api selection not supported yet");
+                    break;
+            }
+        }
+
 
         void HandleMouseInput()
         {

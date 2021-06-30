@@ -2147,7 +2147,10 @@ namespace rgatCore
                                     break;
                             }
                         }
-                        ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns);
+                        if(ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
+                        {
+                            chart.SelectEventNode(TLevent);
+                        }
                         ImGui.TableNextColumn();
                         ImGui.Text(TLevent.TimelineEventType.ToString());
                         ImGui.TableNextColumn();
