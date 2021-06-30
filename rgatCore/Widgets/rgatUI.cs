@@ -2101,6 +2101,7 @@ namespace rgatCore
             float sidePaneWidth = 300;
 
 
+            SandboxChart.itemNode selectedNode = chart.GetSelectedNode;
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
             {
                 ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth);
@@ -2129,7 +2130,24 @@ namespace rgatCore
                         i += 1;
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Selectable(i.ToString(), false, ImGuiSelectableFlags.SpanAllColumns);
+                        bool selected = false;
+                        if (selectedNode != null)
+                        {
+                            switch (TLevent.TimelineEventType)
+                            {
+                                case eTimelineEvent.ProcessStart:
+                                case eTimelineEvent.ProcessEnd:
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && 
+                                        TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
+                                    break;
+                                case eTimelineEvent.ThreadStart:
+                                case eTimelineEvent.ThreadEnd:
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && 
+                                        TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                    break;
+                            }
+                        }
+                        ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns);
                         ImGui.TableNextColumn();
                         ImGui.Text(TLevent.TimelineEventType.ToString());
                         ImGui.TableNextColumn();
@@ -2163,7 +2181,26 @@ namespace rgatCore
                 if (ImGui.BeginChild("#SandboxTabbaseRightPane", new Vector2(sidePaneWidth, tb_height)))
                 {
 
-                    ImGui.Text("Selected item info");
+                    if (selectedNode != null)
+                    {
+                        switch (selectedNode.TLtype)
+                        {
+                            case eTimelineEvent.ProcessStart:
+                                DrawProcessNodeTable((TraceRecord)selectedNode.reference);
+                                break;
+
+                            case eTimelineEvent.ThreadStart:
+                                DrawThreadNodeTable((ProtoGraph)selectedNode.reference);
+                                break;
+
+                            case eTimelineEvent.APICall:
+                                ImGui.Text("Api call (not handled yet)");
+                                break;
+                            default:
+                                ImGui.Text($"We don't do {selectedNode.TLtype} here");
+                                break;
+                        }
+                    }
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -2172,6 +2209,76 @@ namespace rgatCore
             }
 
             ImGui.EndTabItem();
+        }
+
+        void DrawProcessNodeTable(TraceRecord trace)
+        {
+            if (ImGui.BeginTable("#ProcSelTl", 2))
+            {
+                ImGui.TableSetupColumn("#Field", ImGuiTableColumnFlags.WidthFixed, 80);
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Process ID");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{trace.PID}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Path");
+                ImGui.TableNextColumn();
+                ImGui.TextWrapped($"{trace.binaryTarg.FilePath}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"State");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{trace.TraceState}");
+                ImGui.TableNextColumn();
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Started");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{trace.launchedTime.ToLocalTime()}");
+                ImGui.EndTable();
+            }
+        }
+
+
+        void DrawThreadNodeTable(ProtoGraph thread)
+        {
+            if (ImGui.BeginTable("#ThreadSelTl", 2))
+            {
+                ImGui.TableSetupColumn("#Field", ImGuiTableColumnFlags.WidthFixed, 80);
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Thread ID");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{thread.ThreadID}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Started");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{thread.ConstructedTime}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Terminated");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{thread.Terminated}");
+                ImGui.TableNextColumn();
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Instructions");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{thread.TotalInstructions}");
+
+                ImGui.EndTable();
+            }
         }
 
         private void DrawMemDataTab()

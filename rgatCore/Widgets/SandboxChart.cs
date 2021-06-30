@@ -2,22 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 using System.Threading.Tasks;
 using GraphShape.Algorithms.Layout;
 using ImGuiNET;
-/*
-using Microsoft.Msagl;
-using Microsoft.Msagl.Core;
-using Microsoft.Msagl.Core.Geometry;
-using Microsoft.Msagl.Core.Geometry.Curves;
-using Microsoft.Msagl.Core.Layout;
-using Microsoft.Msagl.Layout.Incremental;
-using Microsoft.Msagl.Layout.Initial;
-using Microsoft.Msagl.Layout.MDS;
-using Microsoft.Msagl.Miscellaneous;
-using Microsoft.Msagl.Prototype.Ranking;
-*/
 using QuikGraph;
 
 namespace rgatCore.Widgets
@@ -25,15 +12,25 @@ namespace rgatCore.Widgets
     class SandboxChart
     {
 
-        struct itemNode
+        public class itemNode
         {
+            public itemNode(string caption, Logging.eTimelineEvent eventType, object item)
+            {
+                label = caption;
+                TLtype = eventType;
+                reference = item;
+            }
             public string label;
+            public Logging.eTimelineEvent TLtype;
+            public object reference;
         }
         QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>> sbgraph = new BidirectionalGraph<itemNode, Edge<itemNode>>();
         GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>>> layout;
         Vector2 chartSize;
         float padding = 15;
         double _scaleX = 1;
+
+        float nodeSize = 8;
 
         public SandboxChart()
         {
@@ -82,21 +79,21 @@ namespace rgatCore.Widgets
             }
         }
 
-        void AddThreadItems(itemNode? parentProcess, TraceRecord trace)
+        void AddThreadItems(itemNode parentProcess, TraceRecord trace)
         {
 
-            itemNode startProcess = new itemNode() { label = $"PID_{trace.PID}_PATH..." };
+            itemNode startProcess = new itemNode($"PID_{trace.PID}_PATH...", Logging.eTimelineEvent.ProcessStart, trace);
             sbgraph.AddVertex(startProcess);
-            if (parentProcess.HasValue)
+            if (parentProcess != null)
             {
-                sbgraph.AddEdge(new Edge<itemNode>(parentProcess.Value, startProcess));
+                sbgraph.AddEdge(new Edge<itemNode>(parentProcess, startProcess));
             }
 
 
             var threads = trace.GetProtoGraphs();
             foreach (var thread in threads)
             {
-                itemNode threadNode = new itemNode() { label = $"TID_{thread.ThreadID}_StartModule..." };
+                itemNode threadNode = new itemNode($"TID_{thread.ThreadID}_StartModule...", Logging.eTimelineEvent.ThreadStart, thread);
                 sbgraph.AddVertex(threadNode);
                 sbgraph.AddEdge(new Edge<itemNode>(startProcess, threadNode));
             }
@@ -107,7 +104,7 @@ namespace rgatCore.Widgets
 
         }
 
-
+        public itemNode GetSelectedNode => _selectedNode;
 
         Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
         Vector2 chartOffset = Vector2.Zero;
@@ -131,10 +128,11 @@ namespace rgatCore.Widgets
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
 
 
-            Vector2 pos = ImGui.GetCursorScreenPos() + chartOffset + new Vector2(padding, padding);
-            if (ImGui.BeginChild("ChartFrame", chartSize))
+            Vector2 cursorPos = ImGui.GetCursorScreenPos();
+            Vector2 chartPos = cursorPos + chartOffset + new Vector2(padding, padding);
+            if (ImGui.BeginChild("ChartFrame", chartSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-                MouseOverWidget = ImGui.IsMouseHoveringRect(pos, pos + chartSize);
+                MouseOverWidget = ImGui.IsMouseHoveringRect(cursorPos, cursorPos + chartSize);
                 if (MouseOverWidget)
                 {
                     HandleMouseInput();
@@ -148,18 +146,19 @@ namespace rgatCore.Widgets
                     if (positions.TryGetValue(edge.Source, out GraphShape.Point srcPoint) &&
                     positions.TryGetValue(edge.Target, out GraphShape.Point targPoint))
                     {
-                        ImGui.GetWindowDrawList().AddLine(pos + Point2Vec(srcPoint), pos + Point2Vec(targPoint), 0xffff00ff);
+                        ImGui.GetWindowDrawList().AddLine(chartPos + Point2Vec(srcPoint), chartPos + Point2Vec(targPoint), 0xffff00ff);
                     }
                 }
 
+
                 foreach (var node in positions)
                 {
-
-                    Vector2 nCenter = pos + Point2Vec(node.Value);
+                    Vector2 nCenter = chartPos + Point2Vec(node.Value);
                     DrawNode(node.Key, nCenter);
                 }
 
-                ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() + chartSize - new Vector2(30, 30));
+
+                ImGui.SetCursorScreenPos(cursorPos + chartSize - new Vector2(30, 30));
 
                 if (!_fittingActive)
                 {
@@ -169,38 +168,54 @@ namespace rgatCore.Widgets
                     }
                     SmallWidgets.MouseoverText("Center graph");
                 }
+                ImGui.SetCursorScreenPos(cursorPos);
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
         }
 
+        itemNode _selectedNode = null;
         void DrawNode(itemNode node, Vector2 position)
         {
+            Vector2 cursor = ImGui.GetCursorScreenPos();
+            if (!InFrame(position - cursor)) return;
+
             var DrawList = ImGui.GetWindowDrawList();
-            DrawList.AddCircleFilled(position, 8, 0xff0000ff);
+            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
+            if (node == _selectedNode)
+            {
+                DrawList.AddCircle(position, 12, 0xff000000);
+            }
+            ImGui.SetCursorScreenPos(position - new Vector2(12, 12));
+            ImGui.InvisibleButton($"##{position.X}-{position.Y}", new Vector2(25, 25));
+            if (ImGui.IsItemClicked())
+            {
+                _selectedNode = node;
+            }
+
             DrawList.AddRectFilled(position, position + new Vector2(20, 8), 0xddffffff);
             DrawList.AddText(position + new Vector2(2, -2), 0xff000000, (string)node.label);
+            ImGui.SetCursorScreenPos(cursor);
+        }
+
+        bool InFrame(Vector2 ScreenPosition)
+        {
+            return (ScreenPosition.X > 5 &&
+                ScreenPosition.X < (chartSize.X + nodeSize) &&
+                ScreenPosition.Y > 5 &&
+                ScreenPosition.Y < (chartSize.Y + nodeSize));
         }
 
 
         void HandleMouseInput()
         {
+            /*
             Vector2 pos = ImGui.GetCursorScreenPos() + chartOffset;
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
 
-                StopLayout();
-                Vector2 mousepos = ImGui.GetMousePos() - pos;
-                Console.WriteLine($"Mouseclink: {mousepos.X},{mousepos.Y}");
-
-                itemNode nn = new itemNode() { label = $"node{sbgraph.VertexCount}" };
-                sbgraph.AddVertex(nn);
-                Edge<itemNode> vedge = new Edge<itemNode>(nn, sbgraph.Vertices.ToList()[0]);
-                sbgraph.AddEdge(vedge);
-
-
-                Task.Run(() => { layout.Compute(); });
             }
+            */
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Middle))
             {
                 if (_rootTrace != null)
@@ -296,7 +311,7 @@ namespace rgatCore.Widgets
                 layout.Parameters.LengthFactor = _scaleX;
                 layout.Compute();
             }
-            else if (minvalue < 5)
+            else if (minvalue < 50)
             {
                 //zoom out by shrinking edges
                 _scaleX = _scaleX - ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.2 : 0.02);
@@ -305,7 +320,7 @@ namespace rgatCore.Widgets
                 layout.Parameters.LengthFactor = _scaleX;
                 layout.Compute();
             }
-            else if (minvalue > 15)
+            else if (minvalue > 75)
             {
                 //zoom in by growing edges
                 _scaleX = _scaleX + ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.1 : 0.01);
