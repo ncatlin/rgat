@@ -1183,6 +1183,8 @@ VOID process_exit_event(INT32 code, VOID* v)
 	UINT64 endTime;
 	OS_Time(&endTime);
 
+	writeEventPipe("PX@%ld@");
+
 	processExiting = true;
 
 	std::cout << "===============================================" << std::endl;

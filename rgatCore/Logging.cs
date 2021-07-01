@@ -22,6 +22,8 @@ namespace rgatCore
             long _eventTimeMS;
             eLogType _type;
             public LogFilterType Filter;
+            public ProtoGraph _graph;
+            public TraceRecord Trace;
         }
 
         public struct APICALL
@@ -29,6 +31,8 @@ namespace rgatCore
             public NodeData node;
             public ulong index;
             public ulong repeats;
+            public ulong uniqID;
+            public LogFilterType ApiType;
         }
 
 
@@ -121,7 +125,7 @@ namespace rgatCore
         public enum LogFilterType
         {
             TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
-            APIFile, APIReg, APINetwork, APIProcess, APIOther, COUNT
+            APIFile, APIReg, APINetwork, APIProcess, APIAlgos, APIOther, COUNT
         };
         static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
@@ -168,6 +172,9 @@ namespace rgatCore
             {
                 _filter = filter;
                 _text = text;
+                Filter = filter;
+                /*
+
                 switch (filter)
                 {
                     case LogFilterType.TextDebug:
@@ -186,19 +193,20 @@ namespace rgatCore
                         Debug.Assert(false, "Bad text log event");
                         break;
                 }
+                */
             }
 
             public void SetAssociatedGraph(ProtoGraph graph)
             {
                 _graph = graph;
-                _trace = graph.TraceData;
+                Trace = graph.TraceData;
             }
-            public void SetAssociatedTrace(TraceRecord trace) => _trace = trace;
+
+
+            public void SetAssociatedTrace(TraceRecord trace) => Trace = trace;
             public LogFilterType _filter;
             public string _text;
             //public uint? colour;
-            public ProtoGraph _graph;
-            public TraceRecord _trace;
         }
 
 
@@ -217,7 +225,7 @@ namespace rgatCore
         /// <param name="colour">Optional colour, otherwise default will be used</param>
 
         public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo,
-            ProtoGraph graph = null, TraceRecord trace = null, WritableRgbaFloat? colour = null)
+            ProtoGraph graph = null, TraceRecord trace = null, WritableRgbaFloat? colour = null, Logging.APICALL? apicall = null)
         {
             TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }
@@ -236,11 +244,15 @@ namespace rgatCore
             }
         }
 
-        public static LOG_EVENT[] GetLogMessages(bool[] filters)
+        public static LOG_EVENT[] GetLogMessages(TraceRecord trace, bool[] filters)
         {
             lock (_messagesLock)
             {
-                return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
+                if (trace == null) return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
+                else
+                {
+                    return _logMessages.Where(x => x.Trace == trace).Where(x => filters[(int)x.Filter] == true).ToArray();
+                }
             }
         }
 

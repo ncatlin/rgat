@@ -271,12 +271,32 @@ namespace rgatCore
                     case Logging.eTimelineEvent.ProcessEnd:
                         {
                             Debug.Assert(trace != null);
+                            //might have been terminated by other means
+                            if (trace.TraceState != eTraceState.eTerminated)
+                            {
+                                _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
+                                runningProcesses -= 1;
+                                SetTraceState(eTraceState.eTerminated);
 
-                            _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
-                            runningProcesses -= 1;
-                            if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
-                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                                if (runningThreads != 0)
+                                {
+                                    Logging.RecordLogEvent("Got process terminate event with running threads. Forcing state to terminated");
+                                    var graphs = trace.GetProtoGraphs();
+                                    foreach (ProtoGraph pgraph in graphs)
+                                    {
+                                        if (!pgraph.Terminated)
+                                        {
+
+                                            Logging.RecordLogEvent($"Setting state of TID{pgraph.ThreadID}, PID{pgraph.TraceData.PID} to terminated");
+                                            pgraph.SetTerminated();
+                                        }
+                                    }
+
+                                }
+
+                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                                _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                            }
                         }
                         break;
                     case Logging.eTimelineEvent.ThreadStart:
@@ -303,13 +323,22 @@ namespace rgatCore
                         break;
                 }
             }
-        }        
-       
+        }
 
-        public void RecordAPICall(NodeData node, ulong callIndex, ulong repeats)
+        ulong uniqAPICallIdx = 0;
+
+        public void RecordAPICall(NodeData node, ProtoGraph graph, ulong callIndex, ulong repeats)
         {
-            Logging.APICALL call = new Logging.APICALL { index = callIndex, node = node, repeats = repeats };
+            Logging.APICALL call = new Logging.APICALL {  
+                index = callIndex, 
+                node = node, 
+                repeats = repeats,
+                uniqID = uniqAPICallIdx++,
+                ApiType = DisassemblyData.GetAPIType(node.GlobalModuleID, node.address)                
+            };
+
             _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
+            Logging.RecordLogEvent("Api call: "+node.label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
 
         }
 
@@ -381,6 +410,7 @@ namespace rgatCore
         private readonly object GraphListLock = new object();
         Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
 
+        //get a copy of the protographs list
         public List<ProtoGraph> GetProtoGraphs()
         {
             lock (GraphListLock)
@@ -453,7 +483,7 @@ namespace rgatCore
         {
             lock (GraphListLock)
             {
-                foreach(ProtoGraph graph in ProtoGraphs.Values)
+                foreach (ProtoGraph graph in ProtoGraphs.Values)
                 {
                     if (graph.ThreadID == graphID) return graph;
                 }
@@ -516,7 +546,7 @@ namespace rgatCore
             Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.LogFilterType.TextDebug);
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
-            ProtoGraph protograph = new ProtoGraph(this, GraphThreadID);
+            ProtoGraph protograph = new ProtoGraph(this, GraphThreadID, terminated: true);
             lock (GraphListLock)
             {
                 ProtoGraphs.Add(GraphThreadID, protograph);
@@ -543,7 +573,7 @@ namespace rgatCore
                 PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
             }
-            protograph.Terminated = true;
+            
             protograph.AssignModulePath();
 
             return true;

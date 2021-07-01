@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -51,18 +52,22 @@ namespace rgatCore.Widgets
 
         TraceRecord _rootTrace = null;
         int timelineItemsOnChartDraw = 0;
-        public void InitChartFromTrace(TraceRecord trace, bool force = false)
+        public void InitChartFromTrace(TraceRecord trace)
         {
-            if (force || trace != _rootTrace || trace.TimelineItemsCount != timelineItemsOnChartDraw)
+            if (trace != _rootTrace)
+            {
+                sbgraph.Clear();
+                layout.VerticesPositions.Clear();
+                _rootTrace = trace;
+                addedNodes.Clear();
+            }
+
+            if (trace.TimelineItemsCount != timelineItemsOnChartDraw)
             {
 
                 Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
                 timelineItemsOnChartDraw = entries.Length;
                 StopLayout();
-                sbgraph.Clear();
-                layout.VerticesPositions.Clear();
-
-                _rootTrace = trace;
                 AddThreadItems(null, trace);
 
                 KKLayoutParameters layoutParams = new KKLayoutParameters()
@@ -79,23 +84,36 @@ namespace rgatCore.Widgets
             }
         }
 
+        Dictionary<string, itemNode> addedNodes = new Dictionary<string, itemNode>();
+
         void AddThreadItems(itemNode parentProcess, TraceRecord trace)
         {
 
-            itemNode startProcess = new itemNode($"PID_{trace.PID}_PATH...", Logging.eTimelineEvent.ProcessStart, trace);
-            sbgraph.AddVertex(startProcess);
-            if (parentProcess != null)
+            string nodeName = $"PID_{trace.PID}_PATH...";
+            itemNode startProcess = null;
+            if (!addedNodes.TryGetValue(nodeName, out startProcess))
             {
-                sbgraph.AddEdge(new Edge<itemNode>(parentProcess, startProcess));
+                startProcess = new itemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
+                sbgraph.AddVertex(startProcess);
+                addedNodes[nodeName] = startProcess;
+                if (parentProcess != null)
+                {
+                    sbgraph.AddEdge(new Edge<itemNode>(parentProcess, startProcess));
+                }
             }
 
 
             var threads = trace.GetProtoGraphs();
             foreach (var thread in threads)
             {
-                itemNode threadNode = new itemNode($"TID_{thread.ThreadID}_StartModule...", Logging.eTimelineEvent.ThreadStart, thread);
-                sbgraph.AddVertex(threadNode);
-                sbgraph.AddEdge(new Edge<itemNode>(startProcess, threadNode));
+                string threadName = $"TID_{thread.ThreadID}_StartModule...";
+                if (!addedNodes.ContainsKey(threadName))
+                {
+                    itemNode threadNode = new itemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
+                    sbgraph.AddVertex(threadNode);
+                    sbgraph.AddEdge(new Edge<itemNode>(startProcess, threadNode));
+                    addedNodes[threadName] = threadNode;
+                }
             }
             foreach (var child in trace.GetChildren())
             {
@@ -174,6 +192,7 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
         }
 
+
         itemNode _selectedNode = null;
         void DrawNode(itemNode node, Vector2 position)
         {
@@ -181,7 +200,52 @@ namespace rgatCore.Widgets
             if (!InFrame(position - cursor)) return;
 
             var DrawList = ImGui.GetWindowDrawList();
-            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
+
+            switch (node.TLtype)
+            {
+                case Logging.eTimelineEvent.ProcessStart:
+                case Logging.eTimelineEvent.ProcessEnd:
+                    {
+                        TraceRecord rec = (TraceRecord)node.reference;
+                        if (rec.TraceState == TraceRecord.eTraceState.eTerminated)
+                        {
+                            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
+                        }
+                        else if (rec.TraceState == TraceRecord.eTraceState.eRunning)
+                        {
+                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ff00);
+                        }
+                        else if (rec.TraceState == TraceRecord.eTraceState.eSuspended)
+                        {
+                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ffff);
+                        }
+                        else
+                        {
+                            Debug.Assert(false, "Bad trace state");
+                        }
+                    }
+                    break;
+                case Logging.eTimelineEvent.ThreadStart:
+                case Logging.eTimelineEvent.ThreadEnd:
+                    {
+                        ProtoGraph graph = (ProtoGraph)node.reference;
+                        if (graph.Terminated)
+                        {
+                            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
+                        }
+                        else
+                        {
+                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ff00);
+                        }
+                    }
+                    break;
+                default:
+                    DrawList.AddCircleFilled(position, nodeSize, 0xff000000);
+                    break;
+
+            }
+
+
             if (node == _selectedNode)
             {
                 DrawList.AddCircle(position, 12, 0xff000000);
@@ -198,6 +262,7 @@ namespace rgatCore.Widgets
             ImGui.SetCursorScreenPos(cursor);
         }
 
+
         bool InFrame(Vector2 ScreenPosition)
         {
             return (ScreenPosition.X > 5 &&
@@ -206,23 +271,24 @@ namespace rgatCore.Widgets
                 ScreenPosition.Y < (chartSize.Y + nodeSize));
         }
 
+
         public void SelectEventNode(Logging.TIMELINE_EVENT evt)
         {
             if (_rootTrace == null) return;
 
-            switch(evt.TimelineEventType)
+            switch (evt.TimelineEventType)
             {
                 case Logging.eTimelineEvent.ProcessStart:
                 case Logging.eTimelineEvent.ProcessEnd:
                     TraceRecord trace = _rootTrace.GetTraceByID(evt.ID);
                     if (trace == null) return;
-                    foreach( var node in sbgraph.Vertices)
+                    foreach (var node in sbgraph.Vertices)
                     {
                         if (node.reference == trace)
                         {
                             _selectedNode = node;
                         }
-                    }    
+                    }
                     break;
                 case Logging.eTimelineEvent.ThreadStart:
                 case Logging.eTimelineEvent.ThreadEnd:
@@ -257,7 +323,7 @@ namespace rgatCore.Widgets
             {
                 if (_rootTrace != null)
                 {
-                    InitChartFromTrace(_rootTrace, force: true);
+                    InitChartFromTrace(_rootTrace);//, force: true);
                 }
             }
         }

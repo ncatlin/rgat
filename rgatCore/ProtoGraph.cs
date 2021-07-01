@@ -58,11 +58,12 @@ namespace rgatCore
     public class ProtoGraph
     {
 
-        public ProtoGraph(TraceRecord runrecord, uint threadID)
+        public ProtoGraph(TraceRecord runrecord, uint threadID, bool terminated = false)
         {
             TraceData = runrecord;
             ProcessData = runrecord.DisassemblyData;
             ThreadID = threadID;
+            Terminated = terminated;
         }
 
         public uint ThreadID = 0;
@@ -77,6 +78,13 @@ namespace rgatCore
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
 
         public bool HeatSolvingComplete = false;
+
+        public void SetTerminated()
+        {
+            TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ThreadEnd, graph: this);
+            Terminated = true;
+        }
+
 
         private bool LoadNodes(JArray NodesArray, Dictionary<ulong, List<InstructionData>> disassembly)
         {
@@ -384,7 +392,7 @@ namespace rgatCore
                     NodeData targNode = safe_get_node(targVertID);
                     targNode.IncreaseExecutionCount(repeats);
 
-                    TraceData.RecordAPICall(targNode, targNode.currentCallIndex, repeats); //todo this should be done in a BG thread
+                    TraceData.RecordAPICall(targNode, this, targNode.currentCallIndex, repeats); //todo this should be done in a BG thread
 
                     targNode.currentCallIndex += repeats;
                     ProtoLastLastVertID = ProtoLastVertID;
@@ -432,7 +440,7 @@ namespace rgatCore
 
             InsertNode(targVertID, newTargNode);
 
-            TraceData.RecordAPICall(newTargNode, 0, repeats);
+            TraceData.RecordAPICall(newTargNode, this, 0, repeats);
 
 
             NodeData sourceNode = safe_get_node(ProtoLastVertID);
@@ -1389,7 +1397,7 @@ namespace rgatCore
         //void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
         //void stop_edgeL_iteration();
 
-        public bool Terminated = false;
+        public bool Terminated { get; private set; } = false;
         public bool PerformingUnchainedExecution = false;
 
 

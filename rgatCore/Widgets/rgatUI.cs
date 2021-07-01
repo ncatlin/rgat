@@ -1412,6 +1412,10 @@ namespace rgatCore
                 }
                 ImGui.EndTabItem();
             }
+            else
+            {
+                _hexTooltipShown = false;
+            }
         }
 
 
@@ -2301,7 +2305,7 @@ namespace rgatCore
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("logtableframe"), ImGui.GetContentRegionAvail()))
             {
-                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(_LogFilters);
+                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
                 int activeCount = _LogFilters.Where(x => x == true).Count();
 
                 string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
@@ -2380,16 +2384,25 @@ namespace rgatCore
                             _LogFilters[(int)LogFilterType.APIOther] = rowLastSelected[2];
                         }
 
+                        
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("File", ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
+                        int apicounts = msgs.Count(x => x.Filter == LogFilterType.APIAlgos);
+                        ImGui.Selectable($"Data ({apicounts})", ref _LogFilters[(int)LogFilterType.APIAlgos], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Network", ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
+                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIFile);
+                        ImGui.Selectable($"File ({apicounts})", ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Registry", ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
+                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APINetwork);
+                        ImGui.Selectable($"Network ({apicounts})", ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Process", ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
+                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIProcess);
+                        ImGui.Selectable($"Process ({apicounts})", ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("Other", ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
+                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIReg);
+                        ImGui.Selectable($"Registry ({apicounts})", ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
+                        ImGui.TableNextColumn();
+                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIOther);
+                        ImGui.Selectable($"Other ({apicounts})", ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
                         ImGui.EndTable();
                     }
 

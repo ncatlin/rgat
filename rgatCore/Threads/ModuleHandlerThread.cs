@@ -130,7 +130,7 @@ namespace rgatCore
         void HandleTerminatedThread(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
-            if(!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
+            if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
             {
                 Logging.RecordLogEvent("Bad thread termination buffer: " + Encoding.ASCII.GetString(buf));
                 return;
@@ -138,16 +138,37 @@ namespace rgatCore
 
             if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
             {
-                graph.InternalProtoGraph.Terminated = true;
+                graph.InternalProtoGraph.SetTerminated();
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
-
-                graph.InternalProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadEnd, graph: graph.InternalProtoGraph);
             }
             else
             {
                 Logging.RecordLogEvent($"Thread {TID} terminated (no graph)");
             }
+
+
         }
+        void HandleTerminatedProcess(byte[] buf)
+        {
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
+            if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint PID))
+            {
+                Logging.RecordLogEvent("Bad process termination buffer: " + Encoding.ASCII.GetString(buf));
+                return;
+            }
+
+            TraceRecord termTrace = this.trace.GetTraceByID(PID);
+            if (termTrace != null)
+            {
+                termTrace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
+            }
+            else
+            {
+                Logging.RecordLogEvent($"Process {PID} terminated (no trace)");
+            }
+        }
+
+
 
 
         //There is scope to randomise these in case it becomes a detection method, but 
@@ -369,6 +390,11 @@ namespace rgatCore
                 return;
             }
 
+            if (buf[0] == 'P' && buf[1] == 'X')
+            {
+                HandleTerminatedProcess(buf);
+                return;
+            }
 
             if (buf[0] == '!')
             {

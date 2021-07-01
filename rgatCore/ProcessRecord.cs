@@ -206,6 +206,8 @@ namespace rgatCore
                 int globalModID = LoadedModuleCount; //index into our module lists
 
                 LoadedModulePaths.Add(path);
+                ModuleEnums.Add(WinAPIDetails.ResolveModuleEnum(path));
+                APITypes.Add(globalModID, new Dictionary<ulong, Logging.LogFilterType>());
                 //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
                 if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
@@ -230,6 +232,12 @@ namespace rgatCore
             lock (SymbolsLock)
             {
                 int modnum = modIDTranslationVec[localModnum];
+                while (modnum == -1 && modnum <= APITypes.Count)
+                {
+                    Thread.Sleep(3);
+                    modnum = modIDTranslationVec[localModnum];
+                }
+                Debug.Assert(modnum != -1);
 
                 if (!modsymsPlain.ContainsKey(modnum))
                 {
@@ -238,10 +246,17 @@ namespace rgatCore
 
                 if (modsymsPlain[modnum].ContainsKey(offset))
                 {
-                    modsymsPlain[modnum][offset] += "/" + name;
+                    modsymsPlain[modnum][offset] += "/" + name; //some addresses have multiple symbols
                 }
                 else
+                { 
                     modsymsPlain[modnum].Add(offset, name);
+                    WinAPIDetails.APIModule moduleEnum = ModuleEnums[modnum];
+                    if (moduleEnum != WinAPIDetails.APIModule.Other)
+                    {
+                        APITypes[modnum].Add(offset, WinAPIDetails.ResolveAPI(moduleEnum, name));
+                    }
+                }
 
             }
         }
@@ -379,6 +394,7 @@ namespace rgatCore
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
+        public List<WinAPIDetails.APIModule> ModuleEnums = new List<WinAPIDetails.APIModule>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
         public List<eCodeInstrumentation> ModuleTraceStates = new List<eCodeInstrumentation>();
 
@@ -391,6 +407,20 @@ namespace rgatCore
 
         private readonly object SymbolsLock = new object();
         private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
+
+        private Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
+
+
+        public Logging.LogFilterType GetAPIType(int module, ulong address)
+        {
+            if (module >= modsymsPlain.Count) return Logging.LogFilterType.APIOther;
+            if (ModuleEnums[module] == WinAPIDetails.APIModule.Other) return Logging.LogFilterType.APIOther;
+            if (APITypes[module].TryGetValue(address -LoadedModuleBounds[module].Item1, out Logging.LogFilterType apitype)) return apitype; 
+            return Logging.LogFilterType.APIOther;
+
+        }
+
+
 
         public bool GetInstructionBefore(ulong addr, out ulong result)
         {
