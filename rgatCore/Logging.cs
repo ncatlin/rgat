@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -38,13 +39,14 @@ namespace rgatCore
 
 
         public enum eTimelineEvent { ProcessStart, ProcessEnd, ThreadStart, ThreadEnd, APICall }
+
         public class TIMELINE_EVENT : LOG_EVENT
         {
             public TIMELINE_EVENT(eTimelineEvent timelineEventType, object item) : base(eLogType.TimeLine)
             {
                 _eventType = timelineEventType;
                 _item = item;
-                switch (_eventType)
+                switch (timelineEventType)
                 {
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
@@ -63,7 +65,112 @@ namespace rgatCore
                         Debug.Assert(false, "Bad timeline event");
                         break;
                 }
+                Inited = true;
             }
+
+
+            public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogType.TimeLine)
+            {
+                if (!jobj.TryGetValue("EvtType", out JToken evtType) || evtType.Type != JTokenType.Integer)
+                {
+                    Logging.RecordLogEvent("Bad timeline event type in saved timeline");
+                    return;
+                }
+
+                _eventType = evtType.ToObject<eTimelineEvent>();
+
+                if (_eventType == eTimelineEvent.APICall)
+                {
+                    JToken tok;
+                    APICALL apic = new APICALL();
+                    if (jobj.TryGetValue("Graph", out tok) && tok.Type == JTokenType.Date)
+                    {
+                        apic.graph = trace.GetProtoGraphByTime(tok.ToObject<DateTime>());
+                        if (apic.graph == null) return;
+                    }
+                    if (jobj.TryGetValue("Node", out tok) && tok.Type == JTokenType.Integer)
+                    {
+                        int idx = tok.ToObject<int>();
+                        if (idx >= apic.graph.NodeList.Count) return;
+                        apic.node = apic.graph.NodeList[idx];
+                    }
+                    if (jobj.TryGetValue("Idx", out tok) && tok.Type == JTokenType.Integer)
+                    {
+                        apic.index = tok.ToObject<ulong>();
+                    }
+                    if (jobj.TryGetValue("Repeats", out tok) && tok.Type == JTokenType.Integer)
+                    {
+                        apic.repeats = tok.ToObject<ulong>();
+                    }
+                    if (jobj.TryGetValue("uniqID", out tok) && tok.Type == JTokenType.Integer)
+                    {
+                        apic.uniqID = tok.ToObject<ulong>();
+                    }
+                    if (jobj.TryGetValue("Filter", out tok) && tok.Type == JTokenType.Integer)
+                    {
+                        apic.ApiType = (LogFilterType)tok.ToObject<int>();
+                    }
+                    _item = apic;
+
+                    Inited = true;
+                    return;
+                }
+
+                JToken idtok, pidtok;
+                if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
+                    !jobj.TryGetValue("PID", out pidtok) || pidtok.Type != JTokenType.Integer)
+                {
+                    Logging.RecordLogEvent("Bad timeline id/parent id in saved timeline");
+                    return;
+                }
+
+                //_item = item;
+                switch (_eventType)
+                {
+                    case eTimelineEvent.ProcessStart:
+                    case eTimelineEvent.ProcessEnd:
+                        SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
+                        Filter = LogFilterType.TimelineProcess;
+                        _item = trace.GetTraceByID(ID);
+                        Inited = true;
+                        break;
+                    case eTimelineEvent.ThreadStart:
+                    case eTimelineEvent.ThreadEnd:
+                        SetIDs(ID: idtok.ToObject<ulong>());
+                        Filter = LogFilterType.TimelineThread;
+                        _item = trace.GetProtoGraphByID(ID);
+                        Inited = true;
+                        break;
+                    default:
+                        Debug.Assert(false, "Bad timeline event");
+                        break;
+                }
+
+            }
+
+            public JObject Serialise()
+            {
+                JObject obj = new JObject();
+                obj.Add("EvtType", (int)TimelineEventType);
+
+                if (_eventType == eTimelineEvent.APICall)
+                {
+                    APICALL apic = (Logging.APICALL)_item;
+                    obj.Add("Node", apic.node.index);
+                    obj.Add("Idx", apic.index);
+                    obj.Add("Repeats", apic.repeats);
+                    obj.Add("uniqID", apic.uniqID);
+                    obj.Add("Graph", apic.graph.ConstructedTime);
+                    obj.Add("Filter", (int)apic.ApiType);
+                }
+                else
+                {
+                    obj.Add("ID", ID);
+                    obj.Add("PID", Parent);
+                }
+                return obj;
+            }
+
 
             public string Label()
             {
@@ -119,10 +226,13 @@ namespace rgatCore
             public ulong Parent => _parentID;
             public object Item => _item;
 
+            public bool Inited { get; private set; }
+
             eTimelineEvent _eventType;
             ulong _ID;
             ulong _parentID;
             object _item;
+            bool _inited;
         }
 
 
@@ -284,4 +394,5 @@ namespace rgatCore
         }
         */
     }
+
 }

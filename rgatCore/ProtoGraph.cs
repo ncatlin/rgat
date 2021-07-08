@@ -134,6 +134,13 @@ namespace rgatCore
                 return false;
             }
             TotalInstructions = jTotal.ToObject<ulong>();
+
+            if (!graphData.TryGetValue("ConstructedTime", out JToken timeTok) || timeTok.Type != JTokenType.Date)
+            {
+                return false;
+            }
+            ConstructedTime = timeTok.ToObject<DateTime>();
+
             return true;
         }
 
@@ -1190,6 +1197,7 @@ namespace rgatCore
             result.Add("ExternCalls", externCalls);
 
             result.Add("TotalInstructions", TotalInstructions);
+            result.Add("ConstructedTime", ConstructedTime);
 
             JArray replayDataArr = new JArray();
             lock (AnimDataLock)
@@ -1219,7 +1227,6 @@ namespace rgatCore
                 }
             }
             result.Add("ReplayData", replayDataArr);
-
 
 
             return result;

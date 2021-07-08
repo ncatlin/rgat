@@ -1562,7 +1562,7 @@ namespace rgatCore
         }
 
 
-        void brighten_next_block_edge(uint blockID, ulong blockAddress, int brightTime)
+        void brighten_next_block_edge(uint blockID, ulong blockAddress)
         {
             ROUTINE_STRUCT? externStr = null;
             var nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
@@ -1608,10 +1608,7 @@ namespace rgatCore
 
                 if (TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
-                    if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                        AddRisingExtern(nodeIdx, (int)entry.count - 1, Anim_Constants.KEEP_BRIGHT);
-                    else
-                        AddRisingExtern(nodeIdx, (int)entry.count - 1, GlobalConfig.ExternAnimDisplayFrames);
+                    AddRisingExtern(nodeIdx, (int)entry.count - 1, brightTime);
                 }
 
 
@@ -1710,7 +1707,7 @@ namespace rgatCore
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
-                brightTime = 0;
+                brightTime = GlobalConfig.ExternAnimDisplayFrames;
 
             //break if block not rendered yet
             if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDList))
@@ -1726,7 +1723,7 @@ namespace rgatCore
 
             //also add brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
-                brighten_next_block_edge(entry.blockID, entry.blockAddr, brightTime);
+                brighten_next_block_edge(entry.blockID, entry.blockAddr);
 
             ++updateProcessingIndex;
             return true;
@@ -1788,7 +1785,7 @@ namespace rgatCore
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
-                    brighten_next_block_edge(entry.blockID, entry.blockAddr, GlobalConfig.animationLingerFrames);
+                    brighten_next_block_edge(entry.blockID, entry.blockAddr);
                 }
             }
 
@@ -1884,7 +1881,7 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
                 if (verbose) Console.WriteLine($"\tUpdate eAnimUnchained");
-                brighten_next_block_edge(entry.targetID, entry.targetAddr, brightTime);
+                brighten_next_block_edge(entry.targetID, entry.targetAddr);
             }
 
         }

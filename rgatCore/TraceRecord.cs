@@ -222,13 +222,15 @@ namespace rgatCore
                 Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
                 return false;
             }
-            /*
-			if (!loadTimeline(saveJSON))
-			{
-				Console.WriteLine("[rgat]Timeline load failed");
-				return false;
-			}
-			*/
+
+
+            if (!LoadTimeline(saveJSON))
+
+            {
+                Console.WriteLine("[rgat]Timeline load failed");
+                return false;
+            }
+
             _loadedFromSave = true;
             TraceState = eTraceState.eTerminated;
             return true;
@@ -330,13 +332,14 @@ namespace rgatCore
 
         public void RecordAPICall(NodeData node, ProtoGraph graph, ulong callIndex, ulong repeats)
         {
-            Logging.APICALL call = new Logging.APICALL {  
-                index = callIndex, 
-                node = node, 
+            Logging.APICALL call = new Logging.APICALL
+            {
+                index = callIndex,
+                node = node,
                 repeats = repeats,
                 uniqID = uniqAPICallIdx++,
                 graph = graph,
-                ApiType = DisassemblyData.GetAPIType(node.GlobalModuleID, node.address)                
+                ApiType = DisassemblyData.GetAPIType(node.GlobalModuleID, node.address)
             };
             lock (_logLock)
             {
@@ -381,12 +384,12 @@ namespace rgatCore
             {
                 result = new Dictionary<Logging.LogFilterType, int>(_tlFilterCounts);
             }
-            for (var i = 0; i < (int) Logging.LogFilterType.COUNT; i++)
+            for (var i = 0; i < (int)Logging.LogFilterType.COUNT; i++)
             {
                 if (!result.ContainsKey((Logging.LogFilterType)i))
                 {
                     result.Add((Logging.LogFilterType)i, 0);
-                } 
+                }
             }
             return result;
         }
@@ -507,6 +510,23 @@ namespace rgatCore
             return null;
         }
 
+        public ProtoGraph GetProtoGraphByTime(DateTime time)
+        {
+            lock (GraphListLock)
+            {
+                foreach (ProtoGraph graph in ProtoGraphs.Values)
+                {
+                    if (graph.ConstructedTime == time) return graph;
+                }
+                foreach (var child in children)
+                {
+                    ProtoGraph graph = child.GetProtoGraphByTime(time);
+                    if (graph != null) return graph;
+                }
+            }
+            return null;
+        }
+
 
 
         public int CountDescendantGraphs()
@@ -584,7 +604,7 @@ namespace rgatCore
                 PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
                 PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
             }
-            
+
             protograph.AssignModulePath();
 
             return true;
@@ -662,10 +682,17 @@ namespace rgatCore
         }
 
 
-        JObject SerialiseTimeline()
+        JArray SerialiseTimeline()
         {
 
-            JObject timeline = new JObject();
+            JArray timeline = new JArray();
+
+            for (var i = 0; i < _timeline.Count; i++)
+            {
+                Logging.TIMELINE_EVENT evt = _timeline[i];
+                timeline.Add(evt.Serialise());
+            }
+
             return timeline;
         }
 
@@ -701,7 +728,32 @@ namespace rgatCore
             return null;
         }
 
-        //private bool loadTimeline(const rapidjson::Value& saveJSON);
+        private bool LoadTimeline(JObject saveJSON)
+        {
+            if (!saveJSON.TryGetValue("Timeline", out JToken arrTok) || arrTok.Type != JTokenType.Array)
+            {
+                Logging.RecordLogEvent($"\tWarning: Missing or bad timeline in trace save", Logging.LogFilterType.TextInfo);
+                return false;
+            }
+            _timeline = new List<Logging.TIMELINE_EVENT>();
+            JArray arr = arrTok.ToObject<JArray>();
+            foreach(JToken tlTok in arr)
+            {
+                if (tlTok.Type != JTokenType.Object)
+                {
+                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", Logging.LogFilterType.TextInfo);
+                    return false;
+                }
+                Logging.TIMELINE_EVENT evt = new Logging.TIMELINE_EVENT(tlTok.ToObject<JObject>(), this);
+                if (!evt.Inited)
+                {
+                    Logging.RecordLogEvent($"\tWarning: Invalid timeline item in trace save", Logging.LogFilterType.TextInfo);
+                    return false;
+                }
+                _timeline.Add(evt);
+            }
+            return true;
+        }
 
 
         public void ExportPajek(uint TID)
