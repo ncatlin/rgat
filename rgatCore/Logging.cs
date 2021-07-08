@@ -32,6 +32,7 @@ namespace rgatCore
             public ulong index;
             public ulong repeats;
             public ulong uniqID;
+            public ProtoGraph graph;
             public LogFilterType ApiType;
         }
 
@@ -96,8 +97,11 @@ namespace rgatCore
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
                             NodeData n = call.node;
-
-                            return $"API call: ({n.label})";
+                            if (n.Label == null)
+                            {
+                                n.GenerateSymbolLabel(call.graph, (int)call.index);
+                            }
+                            return $"API call: ({n.Label})";
                         }
                         break;
                     default:

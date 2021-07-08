@@ -81,8 +81,12 @@ namespace rgatCore
 
         public void SetTerminated()
         {
-            TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ThreadEnd, graph: this);
-            Terminated = true;
+
+            if (!Terminated)
+            {
+                TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ThreadEnd, graph: this);
+                Terminated = true;
+            }
         }
 
 
@@ -202,7 +206,7 @@ namespace rgatCore
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
                 //Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
-                if(instruction.threadvertIdx.TryGetValue(ThreadID, out uint targetID))
+                if (instruction.threadvertIdx.TryGetValue(ThreadID, out uint targetID))
                 {
                     targVertID = targetID;
                     return true;
@@ -490,7 +494,6 @@ namespace rgatCore
         {
             //todo
             //Console.WriteLine("todo reenable incoming areguments after crashes stop");
-            return;
 
             if (_unprocessedCallArguments.Count == 0) return;
 
@@ -552,8 +555,8 @@ namespace rgatCore
                         callRecord.edgeIdx = threadCalls[i];
                         callRecord.argList = argStringsList;
 
+                        functionNode.callRecordsIndexs.Add((ulong)ExternCallRecords.Count);
                         ExternCallRecords.Add(callRecord);
-                        functionNode.callRecordsIndexs.Add((ulong)ExternCallRecords.Count - 1);
 
                         // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
@@ -823,7 +826,7 @@ namespace rgatCore
         }
 
 
-        public void handle_tag(TAG thistag, bool skipFirstEdge=false)
+        public void handle_tag(TAG thistag, bool skipFirstEdge = false)
         {
 
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
@@ -918,7 +921,7 @@ namespace rgatCore
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
-           // Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+            // Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
@@ -926,7 +929,7 @@ namespace rgatCore
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
-               //Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
+                //Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
@@ -944,17 +947,17 @@ namespace rgatCore
                 if (!alreadyExecuted)
                 {
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
-                   // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
+                    // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                   // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
+                    // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
                 if (instructionIndex == 0) firstVert = targVertID;
 
-                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, (ulong)( (recordEdge || instructionIndex > 0) ? repeats : 0) );
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, (ulong)((recordEdge || instructionIndex > 0) ? repeats : 0));
 
                 //setup conditions for next instruction
                 switch (instruction.itype)
@@ -980,7 +983,7 @@ namespace rgatCore
                 {
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
-                   // Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+                    // Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
                 }
             }
 
@@ -1476,7 +1479,7 @@ namespace rgatCore
                     return false;
                 }
                 JObject edgeTestObj = testedge.ToObject<JObject>();
-                if (!edgeTestObj.TryGetValue("Source", out JToken srcTok) || srcTok.Type != JTokenType.Integer || 
+                if (!edgeTestObj.TryGetValue("Source", out JToken srcTok) || srcTok.Type != JTokenType.Integer ||
                     !edgeTestObj.TryGetValue("Target", out JToken targTok) || targTok.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge.ToString()}", Logging.LogFilterType.TextError);
@@ -1494,7 +1497,7 @@ namespace rgatCore
                     {
                         failedComparison = $"Edge {src},{targ} exists";
                         return false;
-                    }   
+                    }
                 }
 
                 //listing the edge without the count => just assert the edge exists
@@ -1517,7 +1520,7 @@ namespace rgatCore
 
         bool GetTestEdgeCount(JObject edgeObj, out ulong count)
         {
-            if(edgeObj.TryGetValue("Count", out JToken countTok))
+            if (edgeObj.TryGetValue("Count", out JToken countTok))
             {
                 if (countTok.Type != JTokenType.Integer)
                 {

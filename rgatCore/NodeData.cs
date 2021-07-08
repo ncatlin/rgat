@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json.Linq;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -177,6 +179,72 @@ namespace rgatCore
             return _nodeType;
         }
 
+
+        public void GenerateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
+        {
+            string symbolText = "";
+            bool found = false;
+            if (graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
+            {
+                found = true;
+            }
+            else
+            {
+                //search back from the instruction to try and find symbol of a function it may (or may not) be part of
+                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, address);
+                for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
+                {
+                    if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))
+                    {
+                        symbolText += $"+0x{symOffset}";
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found) {
+                Label = $"[No Symbol]0x{address:x}";
+                return;
+            }
+
+
+            if (callRecordsIndexs.Count == 0)
+            {
+                Label = $"{symbolText}() [x{executionCount}]";
+                return;
+            }
+
+            EXTERNCALLDATA lastCall;
+            if (specificCallIndex == -1)
+            {
+                lastCall = graph.ExternCallRecords[(int)callRecordsIndexs[^1]];
+            }
+            else
+            {
+                Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
+                lastCall = graph.ExternCallRecords[(int)callRecordsIndexs[specificCallIndex]];
+            }
+
+            string argstring = "";
+            for (var i = 0; i < lastCall.argList.Count; i++)
+            {
+                Tuple<int, string> arg = lastCall.argList[i];
+                argstring += $"{arg.Item1}:{arg.Item2}";
+                if (i < (lastCall.argList.Count - 1)) argstring += ", ";
+            }
+
+            if (callRecordsIndexs.Count == 1)
+            {
+                Label = $"{symbolText}({argstring})";
+            }
+            else
+            {
+                Label = $"{symbolText}({argstring}) +{callRecordsIndexs.Count - 1} saved";
+            }
+        }
+
+
         /*
         void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
         {
@@ -239,7 +307,8 @@ namespace rgatCore
             }
             executionCount = value;
         }
-        public void IncreaseExecutionCount(ulong value) { 
+        public void IncreaseExecutionCount(ulong value)
+        {
             SetExecutionCount(executionCount + value);
         }
 
@@ -249,7 +318,18 @@ namespace rgatCore
         public List<uint> IncomingNeighboursSet = new List<uint>();
         public List<uint> OutgoingNeighboursSet = new List<uint>();
         eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
-        public string label;
+        string _label;
+        public string Label
+        {
+            get
+            {
+                return _label;
+            }
+            set
+            {
+                _label = value;
+            }
+        }
         public bool placeholder = false;
     }
 }

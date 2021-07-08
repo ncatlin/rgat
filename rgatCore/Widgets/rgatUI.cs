@@ -2322,7 +2322,7 @@ namespace rgatCore
                     var textFilterCounts = Logging.GetTextFilterCounts();
                     var timelineCounts = _rgatstate.ActiveTrace?.GetTimeLineFilterCounts();
 
-                    if (ImGui.BeginTable("LogFilterTable", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(440, 100)))
+                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(600, 100)))
                     {
                         ImGui.TableNextRow();
 
@@ -2354,55 +2354,59 @@ namespace rgatCore
                         ImGui.Selectable($"Error ({textFilterCounts[LogFilterType.TextError]})",
                             ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
 
-                        ImGui.TableNextRow();
-                        ImGui.TableSetColumnIndex(0);
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
-                        if (ImGui.Selectable("Timeline", false, flags, marginSize))
+                        if (timelineCounts != null)
                         {
-                            rowLastSelected[1] = !rowLastSelected[1];
-                            _LogFilters[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
-                            _LogFilters[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
+                            ImGui.TableNextRow();
+                            ImGui.TableSetColumnIndex(0);
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                            if (ImGui.Selectable("Timeline", false, flags, marginSize))
+                            {
+                                rowLastSelected[1] = !rowLastSelected[1];
+                                _LogFilters[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
+                                _LogFilters[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
+                            }
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Process ({timelineCounts[LogFilterType.TimelineProcess]})",
+                                ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
+
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Thread ({timelineCounts[LogFilterType.TimelineThread]})",
+                                ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
+
+                            ImGui.TableNextRow();
+                            ImGui.TableSetColumnIndex(0);
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                            if (ImGui.Selectable("API", false, flags, marginSize))
+                            {
+                                rowLastSelected[2] = !rowLastSelected[2];
+                                _LogFilters[(int)LogFilterType.APIFile] = rowLastSelected[2];
+                                _LogFilters[(int)LogFilterType.APINetwork] = rowLastSelected[2];
+                                _LogFilters[(int)LogFilterType.APIReg] = rowLastSelected[2];
+                                _LogFilters[(int)LogFilterType.APIProcess] = rowLastSelected[2];
+                                _LogFilters[(int)LogFilterType.APIOther] = rowLastSelected[2];
+                            }
+
+
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Data ({timelineCounts[LogFilterType.APIAlgos]})",
+                                ref _LogFilters[(int)LogFilterType.APIAlgos], flags, boxSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"File ({timelineCounts[LogFilterType.APIFile]})",
+                                ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Network ({timelineCounts[LogFilterType.APINetwork]})",
+                                ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Process ({timelineCounts[LogFilterType.APIProcess]})",
+                                ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Registry ({timelineCounts[LogFilterType.APIReg]})",
+                                ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Selectable($"Other ({timelineCounts[LogFilterType.APIOther]})",
+                                ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
+
                         }
-                        ImGui.TableNextColumn();
-                        int processCounts = timelineCounts != null ? timelineCounts[LogFilterType.TimelineProcess] : 0;
-                        ImGui.Selectable($"Process ({processCounts})", ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
-
-                        ImGui.TableNextColumn();
-                        int threadCounts = timelineCounts != null ? timelineCounts[LogFilterType.TimelineThread] : 0;
-                        ImGui.Selectable($"Thread ({threadCounts})", ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
-
-                        ImGui.TableNextRow();
-                        ImGui.TableSetColumnIndex(0);
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
-                        if (ImGui.Selectable("API", false, flags, marginSize))
-                        {
-                            rowLastSelected[2] = !rowLastSelected[2];
-                            _LogFilters[(int)LogFilterType.APIFile] = rowLastSelected[2];
-                            _LogFilters[(int)LogFilterType.APINetwork] = rowLastSelected[2];
-                            _LogFilters[(int)LogFilterType.APIReg] = rowLastSelected[2];
-                            _LogFilters[(int)LogFilterType.APIProcess] = rowLastSelected[2];
-                            _LogFilters[(int)LogFilterType.APIOther] = rowLastSelected[2];
-                        }
-
-                        
-                        ImGui.TableNextColumn();
-                        int apicounts = msgs.Count(x => x.Filter == LogFilterType.APIAlgos);
-                        ImGui.Selectable($"Data ({apicounts})", ref _LogFilters[(int)LogFilterType.APIAlgos], flags, boxSize);
-                        ImGui.TableNextColumn();
-                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIFile);
-                        ImGui.Selectable($"File ({apicounts})", ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
-                        ImGui.TableNextColumn();
-                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APINetwork);
-                        ImGui.Selectable($"Network ({apicounts})", ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
-                        ImGui.TableNextColumn();
-                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIProcess);
-                        ImGui.Selectable($"Process ({apicounts})", ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
-                        ImGui.TableNextColumn();
-                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIReg);
-                        ImGui.Selectable($"Registry ({apicounts})", ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
-                        ImGui.TableNextColumn();
-                        apicounts = msgs.Count(x => x.Filter == LogFilterType.APIOther);
-                        ImGui.Selectable($"Other ({apicounts})", ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
                         ImGui.EndTable();
                     }
 

@@ -708,6 +708,8 @@ namespace rgatCore
 
         static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
         {
+            if (inputString == null)
+                return;
 
             float xPos = 0;
             float yPos = 50;

@@ -311,6 +311,7 @@ namespace rgatCore
                     case Logging.eTimelineEvent.ThreadEnd:
                         {
                             Debug.Assert(graph != null);
+                            Debug.Assert(runningThreads > 0);
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads -= 1;
                             if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
@@ -334,11 +335,15 @@ namespace rgatCore
                 node = node, 
                 repeats = repeats,
                 uniqID = uniqAPICallIdx++,
+                graph = graph,
                 ApiType = DisassemblyData.GetAPIType(node.GlobalModuleID, node.address)                
             };
-
-            _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
-            Logging.RecordLogEvent("Api call: "+node.label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
+            lock (_logLock)
+            {
+                _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
+                _tlFilterCounts[call.ApiType] = _tlFilterCounts.GetValueOrDefault(call.ApiType, 0) + 1;
+            }
+            //Logging.RecordLogEvent("Api call: "+node.Label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
 
         }
 
@@ -371,13 +376,19 @@ namespace rgatCore
 
         public Dictionary<Logging.LogFilterType, int> GetTimeLineFilterCounts()
         {
-            Dictionary<Logging.LogFilterType, int> result = new Dictionary<Logging.LogFilterType, int>();
+            Dictionary<Logging.LogFilterType, int> result = null;
             lock (_logLock)
             {
-                result[Logging.LogFilterType.TimelineProcess] = _tlFilterCounts[Logging.LogFilterType.TimelineProcess];
-                result[Logging.LogFilterType.TimelineThread] = _tlFilterCounts[Logging.LogFilterType.TimelineThread];
-                return result;
+                result = new Dictionary<Logging.LogFilterType, int>(_tlFilterCounts);
             }
+            for (var i = 0; i < (int) Logging.LogFilterType.COUNT; i++)
+            {
+                if (!result.ContainsKey((Logging.LogFilterType)i))
+                {
+                    result.Add((Logging.LogFilterType)i, 0);
+                } 
+            }
+            return result;
         }
 
 

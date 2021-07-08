@@ -1294,46 +1294,46 @@ namespace rgatCore
         Tuple<string, Color> createNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
-            if (n.label == null || n.newArgsRecorded || forceNew)
+            if (n.Label == null || n.newArgsRecorded || forceNew)
             {
                 if (n.IsExternal)
                 {
-                    n.newArgsRecorded = false;
-                    n.label = GenerateSymbolLabel(n);
+                    n.GenerateSymbolLabel(this.InternalProtoGraph);
+                    n.newArgsRecorded = false; 
                 }
                 else
                 {
                     if (!TextEnabledIns && !n.ins.hasSymbol) {
-                        n.label = null;
+                        n.Label = null;
                         return null;
                     };
 
-                    n.label = $"{index}: {n.ins.ins_text}";
+                    string label = $"{index}: {n.ins.ins_text}";
                     if (renderingMode == eRenderingMode.eHeatmap)
                     {
-                        n.label += $" [x{n.executionCount}] ";
+                        label += $" [x{n.executionCount}] ";
                         if (n.OutgoingNeighboursSet.Count > 1)
                         {
-                            n.label += "<";
+                            label += "<";
                             foreach (int nidx in n.OutgoingNeighboursSet)
                             {
                                 EdgeData e = InternalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
-                                n.label += $" {nidx}:{e.executionCount}, ";
+                                label += $" {nidx}:{e.executionCount}, ";
                             }
-                            n.label += ">";
+                            label += ">";
                         }
                     }
                     if (n.ins.hasSymbol)
                     {
                         InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
-                        n.label += $" [{sym}]";
+                        label += $" [{sym}]";
                     }
-                    
+                    n.Label = label;
                 }
             }
 
             Color color = n.IsExternal ? Color.SpringGreen : Color.White;
-            return new Tuple<string, Color>(n.label, color);
+            return new Tuple<string, Color>(n.Label, color);
         }
 
         void RegenerateLabels() => _newLabels = true;
@@ -1423,65 +1423,6 @@ namespace rgatCore
         }
 
 
-        string GenerateSymbolLabel(NodeData n, int specificCallIndex = -1)
-        {
-            string symbolText = "";
-            bool found = false;
-            if (InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out symbolText))
-            {
-                found = true;
-            }
-            else
-            {
-                //search back from the instruction to try and find symbol of a function it may (or may not) be part of
-                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, n.address);
-                for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
-                {
-                    if (InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address - symOffset, out symbolText))
-                    {
-                        symbolText += $"+0x{symOffset}";
-                        found = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!found) return $"[No Symbol]0x{n.address:x}";
-
-
-            if (n.callRecordsIndexs.Count == 0)
-            {
-                return $"{symbolText}() [x{n.executionCount}]";
-            }
-
-            EXTERNCALLDATA lastCall;
-            if (specificCallIndex == -1)
-            {
-                lastCall = InternalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[^1]];
-            }
-            else
-            {
-                Debug.Assert(n.callRecordsIndexs.Count > specificCallIndex);
-                lastCall = InternalProtoGraph.ExternCallRecords[(int)n.callRecordsIndexs[specificCallIndex]];
-            }
-
-            string argstring = "";
-            for (var i = 0; i < lastCall.argList.Count; i++)
-            {
-                Tuple<int, string> arg = lastCall.argList[i];
-                argstring += $"{arg.Item1}:{arg.Item2}";
-                if (i < (lastCall.argList.Count - 1)) argstring += ", ";
-            }
-
-            if (n.callRecordsIndexs.Count == 1)
-            {
-                return $"{symbolText}({argstring})";
-            }
-            else
-            {
-                return $"{symbolText}({argstring}) +{n.callRecordsIndexs.Count - 1} saved";
-            }
-        }
 
 
         public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
@@ -1629,7 +1570,7 @@ namespace rgatCore
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];
-                uint callerIdx = callers.Find(n => n.Item1 == _lastAnimatedVert).Item2;
+                uint callerIdx = callers.Find(n => n.Item2 == _lastAnimatedVert).Item2;
                 LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, callerIdx);
 
             }
@@ -1668,9 +1609,9 @@ namespace rgatCore
                 if (TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).IsExternal)
                 {
                     if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                        AddRisingExtern(nodeIdx, entry.count - 1, Anim_Constants.KEEP_BRIGHT);
+                        AddRisingExtern(nodeIdx, (int)entry.count - 1, Anim_Constants.KEEP_BRIGHT);
                     else
-                        AddRisingExtern(nodeIdx, entry.count - 1, GlobalConfig.ExternAnimDisplayFrames);
+                        AddRisingExtern(nodeIdx, (int)entry.count - 1, GlobalConfig.ExternAnimDisplayFrames);
                 }
 
 
@@ -2176,20 +2117,20 @@ namespace rgatCore
         }
 
 
-        public void AddRisingExtern(uint nodeIdx, ulong callIndex, int lingerFrames)
+        public void AddRisingExtern(uint nodeIdx, int callIndex, int lingerFrames)
         {
             NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
-            string label = GenerateSymbolLabel(n, (int)callIndex);
+            if (n.Label == null) n.GenerateSymbolLabel(this.InternalProtoGraph, callIndex);
             lock (animationLock)
             {
                 if (lingerFrames == Anim_Constants.KEEP_BRIGHT)
                 {
-                    _RisingExternsLingering.Add(new Tuple<uint, string>(nodeIdx, label));
+                    _RisingExternsLingering.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
                 else
                 {
-                    Console.WriteLine($"Adding new rising: node {nodeIdx}:'{label}'");
-                    _RisingExterns.Add(new Tuple<uint, string>(nodeIdx, label));
+                    Console.WriteLine($"Adding new rising: node {nodeIdx}:'{n.Label}'");
+                    _RisingExterns.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
             }
         }

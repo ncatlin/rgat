@@ -263,7 +263,8 @@ namespace rgatCore
                     if (bytesread == 0 || threadpipe.IsConnected == false)
                     {
                         PipeBroke = true;
-                        protograph.SetTerminated();
+                            protograph.SetTerminated();
+                        
                     }
                     else
                     {
