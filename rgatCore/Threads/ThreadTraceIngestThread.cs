@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.IO.Pipes;
 using System.Linq;
@@ -262,9 +263,9 @@ namespace rgatCore
                     int bytesread = threadpipe.EndRead(ar);
                     if (bytesread == 0 || threadpipe.IsConnected == false)
                     {
+                        Debug.Assert(bytesread == 0);
                         PipeBroke = true;
-                            protograph.SetTerminated();
-                        
+                        protograph.SetTerminated();
                     }
                     else
                     {
@@ -285,7 +286,7 @@ namespace rgatCore
         {
             if (!threadpipe.IsConnected)
             {
-                Console.WriteLine("Error - ThreadTraceIngestThread expected a connected thread pipe");
+                Logging.RecordLogEvent("Error - ThreadTraceIngestThread expected a connected thread pipe", filter: Logging.LogFilterType.TextError);
                 return;
             }
 
@@ -308,7 +309,7 @@ namespace rgatCore
                     catch (Exception e)
                     {
                         //todo: Exception on threadreader read : Adding the specified count to the semaphore would cause it to exceed its maximum count.
-                        Console.WriteLine("Exception on threadreader read : " + e.Message);
+                        Logging.RecordLogEvent("Exception on threadreader read: " + e.Message);
                     };
                 }
             }

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using static rgatCore.Logging;
 
 namespace rgatCore
 {
@@ -586,7 +587,9 @@ namespace rgatCore
             try
             {
                 if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
+                {
                     return false;
+                }
             }
             catch (Exception e)
             {
@@ -737,7 +740,7 @@ namespace rgatCore
             }
             _timeline = new List<Logging.TIMELINE_EVENT>();
             JArray arr = arrTok.ToObject<JArray>();
-            foreach(JToken tlTok in arr)
+            foreach (JToken tlTok in arr)
             {
                 if (tlTok.Type != JTokenType.Object)
                 {
@@ -751,6 +754,45 @@ namespace rgatCore
                     return false;
                 }
                 _timeline.Add(evt);
+
+                if (evt.LogType == Logging.eLogType.TimeLine)
+                {
+                    switch (evt.TimelineEventType)
+                    {
+                        case Logging.eTimelineEvent.ProcessStart:
+                        case Logging.eTimelineEvent.ProcessEnd:
+                            {
+                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out int currentCountp);
+                                _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCountp + 1;
+                            }
+                            break;
+                        case Logging.eTimelineEvent.ThreadStart:
+                        case Logging.eTimelineEvent.ThreadEnd:
+                            {
+                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out int currentCountt);
+                                _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCountt + 1;
+                            }
+                            break;
+                        case eTimelineEvent.APICall:
+                            Logging.LogFilterType ftype = ((APICALL)(evt.Item)).ApiType;
+                            _tlFilterCounts.TryGetValue(ftype, out int currentCount);
+                            _tlFilterCounts[ftype] = currentCount + 1;
+                            break;
+                        default:
+                            Debug.Assert(false, "Timeline event has no assigned filter");
+                            break;
+                    }
+                }
+                else if (evt.LogType == Logging.eLogType.API)
+                {
+
+                    Debug.Assert(false, "Should not have this event type here");
+                }
+                else
+                {
+                    Debug.Assert(false,"Should not have this event type here");
+                }
+
             }
             return true;
         }

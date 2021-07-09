@@ -59,7 +59,7 @@ namespace rgatCore
                         Filter = LogFilterType.TimelineThread;
                         break;
                     case eTimelineEvent.APICall:
-                        Filter = LogFilterType.APIFile;
+                        Filter = ((APICALL)(item)).ApiType;
                         break;
                     default:
                         Debug.Assert(false, "Bad timeline event");
@@ -109,6 +109,7 @@ namespace rgatCore
                     if (jobj.TryGetValue("Filter", out tok) && tok.Type == JTokenType.Integer)
                     {
                         apic.ApiType = (LogFilterType)tok.ToObject<int>();
+                        this.Filter = apic.ApiType;
                     }
                     _item = apic;
 
@@ -181,25 +182,21 @@ namespace rgatCore
                             TraceRecord trace = (TraceRecord)_item;
                             return $"Process ({trace.PID}) Started";
                         }
-                        break;
                     case eTimelineEvent.ProcessEnd:
                         {
                             TraceRecord trace = (TraceRecord)_item;
                             return $"Process ({trace.PID}) Ended";
                         }
-                        break;
                     case eTimelineEvent.ThreadStart:
                         {
                             ProtoGraph graph = (ProtoGraph)_item;
                             return $"Thread ({graph.ThreadID}) Started";
                         }
-                        break;
                     case eTimelineEvent.ThreadEnd:
                         {
                             ProtoGraph graph = (ProtoGraph)_item;
                             return $"Thread ({graph.ThreadID}) Ended";
                         }
-                        break;
                     case eTimelineEvent.APICall:
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
@@ -210,7 +207,6 @@ namespace rgatCore
                             }
                             return $"API call: ({n.Label})";
                         }
-                        break;
                     default:
                         Debug.Assert(false, "Bad timeline event");
                         return "Bad event";

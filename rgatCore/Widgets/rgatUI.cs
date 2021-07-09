@@ -2447,12 +2447,13 @@ namespace rgatCore
                 List<LOG_EVENT> shownMsgs = new List<LOG_EVENT>(msgs);
                 bool TlProcessShown = _LogFilters[(int)Logging.LogFilterType.TimelineProcess];
                 bool TlThreadShown = _LogFilters[(int)Logging.LogFilterType.TimelineThread];
-                if (TlProcessShown || TlThreadShown)
+                if (_LogFilters.Any(f => f == true))
                 {
-                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries(max: 5);
+                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
                     foreach (TIMELINE_EVENT ev in TLmsgs)
                     {
-                        if (_LogFilters[(int)ev.Filter]) shownMsgs.Add(ev);
+                        if (_LogFilters[(int)ev.Filter]) 
+                            shownMsgs.Add(ev);
                     }
                 }
 
