@@ -2312,7 +2312,7 @@ namespace rgatCore
                 bool isOpen = ImGui.TreeNode("##FiltersTree", label);
                 if (isOpen)
                 {
-                    Vector2 boxSize = new Vector2(64, 40);
+                    Vector2 boxSize = new Vector2(75, 40);
                     Vector2 marginSize = new Vector2(70, 40);
 
                     ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
@@ -2322,7 +2322,7 @@ namespace rgatCore
                     var textFilterCounts = Logging.GetTextFilterCounts();
                     var timelineCounts = _rgatstate.ActiveTrace?.GetTimeLineFilterCounts();
 
-                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(600, 100)))
+                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders , new Vector2(boxSize.X * 7, 100)))
                     {
                         ImGui.TableNextRow();
 
@@ -2491,7 +2491,7 @@ namespace rgatCore
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
                                     sourceString = $"{tl_evt.Filter}";
-                                    msgString = tl_evt.ID.ToString();
+                                    msgString = tl_evt.Label();
                                     break;
                                 }
                             default:

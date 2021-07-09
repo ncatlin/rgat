@@ -753,7 +753,6 @@ namespace rgatCore
                     Logging.RecordLogEvent($"\tWarning: Invalid timeline item in trace save", Logging.LogFilterType.TextInfo);
                     return false;
                 }
-                _timeline.Add(evt);
 
                 if (evt.LogType == Logging.eLogType.TimeLine)
                 {
@@ -764,6 +763,7 @@ namespace rgatCore
                             {
                                 _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out int currentCountp);
                                 _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCountp + 1;
+                                _timeline.Add(evt);
                             }
                             break;
                         case Logging.eTimelineEvent.ThreadStart:
@@ -771,12 +771,33 @@ namespace rgatCore
                             {
                                 _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out int currentCountt);
                                 _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCountt + 1;
+                                _timeline.Add(evt);
                             }
                             break;
                         case eTimelineEvent.APICall:
-                            Logging.LogFilterType ftype = ((APICALL)(evt.Item)).ApiType;
-                            _tlFilterCounts.TryGetValue(ftype, out int currentCount);
-                            _tlFilterCounts[ftype] = currentCount + 1;
+                            APICALL apic = (APICALL)(evt.Item);
+                            if(apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
+                            {
+                                try
+                                {
+                                    //resolve the api type again in case the api type list has been updated
+                                    string modulePath = apic.graph.ProcessData.GetModulePath(apic.node.GlobalModuleID);
+                                    var moduleEnum = WinAPIDetails.ResolveModuleEnum(modulePath);
+                                    Logging.LogFilterType ftype = WinAPIDetails.ResolveAPI(moduleEnum, sym);
+                                    _tlFilterCounts.TryGetValue(ftype, out int currentCountA);
+                                    _tlFilterCounts[ftype] = currentCountA + 1;
+                                    apic.ApiType = ftype;
+                                    evt.ReplaceItem(apic);
+                                    evt.Filter = ftype;
+                                    _timeline.Add(evt);
+                                    continue;
+                                }
+                                catch{}
+
+                                _tlFilterCounts.TryGetValue(apic.ApiType, out int currentCountB);
+                                _tlFilterCounts[apic.ApiType] = currentCountB + 1;
+                                _timeline.Add(evt);
+                            }    
                             break;
                         default:
                             Debug.Assert(false, "Timeline event has no assigned filter");

@@ -215,6 +215,12 @@ namespace rgatCore
 
             }
 
+            public void ReplaceItem(object newitem)
+            {
+                Debug.Assert(newitem.GetType() == _item.GetType());
+                _item = newitem;
+            }
+
             //process/thread ID of event source. parent ID optional, depending on context
             public void SetIDs(ulong ID, ulong parentID = ulong.MaxValue) { _ID = ID; _parentID = parentID; }
             public eTimelineEvent TimelineEventType => _eventType;

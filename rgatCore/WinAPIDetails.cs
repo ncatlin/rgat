@@ -55,7 +55,8 @@ namespace rgatCore
             {
                 APIModule.Kernel32,
                 new Dictionary<string, Logging.LogFilterType>() {
-                    { "writefile", Logging.LogFilterType.APIFile}
+                    { "writefile", Logging.LogFilterType.APIFile},
+                    { "exitprocess", Logging.LogFilterType.APIProcess}
                 }
             },
             {
@@ -113,6 +114,7 @@ namespace rgatCore
 
         public static Logging.LogFilterType ResolveAPI(APIModule modenum, string symbolname)
         {
+            symbolname = symbolname.ToLower();
             if (_configuredSymbols[modenum].TryGetValue(symbolname, out Logging.LogFilterType filterType)) return filterType;
 
             //some libraries are specific enough that pretty much all of the offerings fall in a single category
