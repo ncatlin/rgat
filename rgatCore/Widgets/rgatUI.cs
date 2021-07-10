@@ -55,6 +55,7 @@ namespace rgatCore
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
+            Logging.RecordLogEvent("rgatUI is starting in imgui mode", Logging.LogFilterType.TextDebug);
             _ImGuiController = imguicontroller;
             Task.Run(() => LoadingThread(imguicontroller, _gd, _cl));
             _UIstartupProgress = 0.1;
@@ -2301,6 +2302,7 @@ namespace rgatCore
         static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
         static bool[] rowLastSelected = new bool[3];
         static byte[] textFilterValue = new byte[500];
+        static string _logSort = "Time<";
         private void DrawLogsTab()
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("logtableframe"), ImGui.GetContentRegionAvail()))
@@ -2322,7 +2324,7 @@ namespace rgatCore
                     var textFilterCounts = Logging.GetTextFilterCounts();
                     var timelineCounts = _rgatstate.ActiveTrace?.GetTimeLineFilterCounts();
 
-                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders , new Vector2(boxSize.X * 7, 100)))
+                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders, new Vector2(boxSize.X * 7, 100)))
                     {
                         ImGui.TableNextRow();
 
@@ -2452,18 +2454,43 @@ namespace rgatCore
                     var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
                     foreach (TIMELINE_EVENT ev in TLmsgs)
                     {
-                        if (_LogFilters[(int)ev.Filter]) 
+                        if (_LogFilters[(int)ev.Filter])
                             shownMsgs.Add(ev);
                     }
                 }
 
-                var sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS);
+                List<LOG_EVENT> sortedMsgs = shownMsgs;
+
                 int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
                 string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
 
-
-                if (ImGui.BeginTable("LogsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
+                ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable | ImGuiTableFlags.SortMulti;
+                if (ImGui.BeginTable("LogsTable", 3, tableFlags, ImGui.GetContentRegionAvail()))
                 {
+                    var ss = ImGui.TableGetSortSpecs();
+                    //if (ss.SpecsDirty) //todo - caching
+                    {
+                        switch (ss.Specs.ColumnIndex)
+                        {
+                            case 0:
+                                if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
+                                    sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).ToList();
+                                else
+                                    sortedMsgs = shownMsgs.OrderByDescending(o => o.EventTimeMS).ToList();
+                                break;
+                            case 1:
+                                if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
+                                    sortedMsgs = shownMsgs.OrderBy(o => o.Filter).ToList();
+                                else
+                                    sortedMsgs = shownMsgs.OrderByDescending(o => o.Filter).ToList();
+                                break;
+                            case 2:
+                                //todo - caching
+                                break;
+                        }
+                        ss.SpecsDirty = false;
+                    }
+
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 90);
                     ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 100);

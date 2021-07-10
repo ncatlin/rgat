@@ -776,7 +776,7 @@ namespace rgatCore
                             break;
                         case eTimelineEvent.APICall:
                             APICALL apic = (APICALL)(evt.Item);
-                            if(apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
+                            if (apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
                             {
                                 try
                                 {
@@ -784,20 +784,19 @@ namespace rgatCore
                                     string modulePath = apic.graph.ProcessData.GetModulePath(apic.node.GlobalModuleID);
                                     var moduleEnum = WinAPIDetails.ResolveModuleEnum(modulePath);
                                     Logging.LogFilterType ftype = WinAPIDetails.ResolveAPI(moduleEnum, sym);
-                                    _tlFilterCounts.TryGetValue(ftype, out int currentCountA);
-                                    _tlFilterCounts[ftype] = currentCountA + 1;
+
+                                    _tlFilterCounts[ftype] = _tlFilterCounts.GetValueOrDefault(ftype, 0) + 1;
                                     apic.ApiType = ftype;
                                     evt.ReplaceItem(apic);
                                     evt.Filter = ftype;
                                     _timeline.Add(evt);
                                     continue;
                                 }
-                                catch{}
+                                catch { }
 
-                                _tlFilterCounts.TryGetValue(apic.ApiType, out int currentCountB);
-                                _tlFilterCounts[apic.ApiType] = currentCountB + 1;
-                                _timeline.Add(evt);
-                            }    
+                            }
+                            _tlFilterCounts[apic.ApiType] = _tlFilterCounts.GetValueOrDefault(apic.ApiType, 0) + 1;
+                            _timeline.Add(evt);
                             break;
                         default:
                             Debug.Assert(false, "Timeline event has no assigned filter");
@@ -811,7 +810,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    Debug.Assert(false,"Should not have this event type here");
+                    Debug.Assert(false, "Should not have this event type here");
                 }
 
             }

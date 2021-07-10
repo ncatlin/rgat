@@ -56,6 +56,9 @@ namespace ImGuiNET
 
         private static void Setup()
         {
+
+            Logging.RecordLogEvent("rgat is starting", Logging.LogFilterType.TextDebug);
+
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
             debug: true,
             swapchainDepthFormat: PixelFormat.R32_Float,
