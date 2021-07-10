@@ -16,7 +16,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Veldrid;
 
-namespace rgatCore.Threads
+namespace rgatCore
 {
     class GlobalConfig
     {
@@ -238,6 +238,7 @@ namespace rgatCore.Threads
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
         //true => traces we save will be added to recent traces list. false => only ones we load will
         public static bool StoreSavedTracesAsRecent = true;
+        public static bool BulkLogging = false;
 
         public static Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Keybinds = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
         public static Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
@@ -939,13 +940,24 @@ namespace rgatCore.Threads
             }
         }
 
+        static void LoadSettings()
+        {
+            if (GetAppSetting("BulkLogging", out string bulklogging))
+            {
+                BulkLogging = (bulklogging.ToLower() == "true");
+            }
+        }
+
         public static double LoadProgress { get; private set; } = 0;
 
-        public static void InitDefaultConfig()
+        public static void LoadConfig()
         {
             LoadProgress = 0;
             LoadResources();
             LoadProgress = 0.3;
+
+            LoadSettings();
+
             try
             {
                 Themes.LoadCustomThemes();

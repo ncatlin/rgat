@@ -826,11 +826,13 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, PIN_ThreadId()));
 
+	/*
 	if (TRACE_Address(trace) < 0x10000000)
 	{
 		std::cout << "New Trace Generated - 0x" << std::hex << TRACE_Address(trace) <<
 			std::dec << " [" << TRACE_NumIns(trace) << " instructions, " << TRACE_NumBbl(trace) << " blocks]" << std::endl;
 	}
+	*/
 	bool isInstrumented = address_is_in_targets_v1(traceStartAddr);
 
 	if (!isInstrumented) { return; }

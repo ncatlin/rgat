@@ -136,18 +136,25 @@ namespace rgatCore
                 return;
             }
 
-            if (trace.PlottedGraphs[TID].TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
+            ProtoGraph protoGraph = trace.GetProtoGraphByID(TID);
+            if (protoGraph != null)
             {
-                graph.InternalProtoGraph.SetTerminated();
-                graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
-            }
-            else
-            {
-                Logging.RecordLogEvent($"Thread {TID} terminated (no graph)");
+                protoGraph.SetTerminated();
             }
 
+            //shouldn't be needed - plotter should get this from the graph
+            if (trace.PlottedGraphs.TryGetValue(TID, out Dictionary<eRenderingMode, PlottedGraph> graphdict))
+            {
+                if (graphdict.TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
+                {
+                    graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+                    return;
+                }
+            }
 
+            Logging.RecordLogEvent($"Thread {TID} terminated (no plotted graph)");
         }
+
         void HandleTerminatedProcess(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
@@ -353,7 +360,8 @@ namespace rgatCore
 
                 if (buf[1] == 'Z')
                 {
-                    HandleTerminatedThread(buf);
+                    if (!_clientState.rgatIsExiting) HandleTerminatedThread(buf);
+
                     return;
                 }
             }

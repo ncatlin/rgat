@@ -53,7 +53,7 @@ namespace rgatCore
                 if (ThemesMetadataCatalogue.ContainsKey(value))
                 {
                     _defaultTheme = value;
-                    Threads.GlobalConfig.AddUpdateAppSettings("DefaultTheme", value);
+                    GlobalConfig.AddUpdateAppSettings("DefaultTheme", value);
                 }
             }
         }

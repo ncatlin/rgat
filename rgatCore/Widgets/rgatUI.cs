@@ -68,7 +68,7 @@ namespace rgatCore
 
             RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _UIstartupProgress;
-            Task confloader = Task.Run(() => GlobalConfig.InitDefaultConfig());
+            Task confloader = Task.Run(() => GlobalConfig.LoadConfig());
             while (!confloader.IsCompleted)
             {
                 _UIstartupProgress = currentUIProgress + 0.3 * GlobalConfig.LoadProgress;

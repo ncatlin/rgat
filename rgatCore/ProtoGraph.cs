@@ -928,7 +928,16 @@ namespace rgatCore
         {
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
-            // Console.WriteLine($"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+
+            if (GlobalConfig.BulkLogging)
+            {
+                Logging.RecordLogEvent(
+                    $"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
+                    trace: this.TraceData,
+                    graph: this,
+                    filter: Logging.LogFilterType.BulkDebugLogFile);
+            }
+
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
@@ -1004,6 +1013,7 @@ namespace rgatCore
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
                     BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
+                    //todo - major unresolved assert
                     Debug.Assert(firstVert <= ProtoLastVertID, "Mismatch between top and bottom of a block. The trace is probably missing a tag.");
                 }
             }

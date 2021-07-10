@@ -241,7 +241,7 @@ namespace rgatCore
         public enum LogFilterType
         {
             TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
-            APIFile, APIReg, APINetwork, APIProcess, APIAlgos, APIOther, COUNT
+            APIFile, APIReg, APINetwork, APIProcess, APIAlgos, APIOther, BulkDebugLogFile, COUNT
         };
         static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
@@ -346,11 +346,19 @@ namespace rgatCore
             TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }
             if (trace != null) { log.SetAssociatedTrace(trace); }
+
             lock (_messagesLock)
             {
-                _logMessages.Add(log);
-                if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
-                MessageCounts[(int)filter] += 1;
+                if (filter == LogFilterType.BulkDebugLogFile)
+                {
+                    WriteToDebugFile(log);
+                }
+                else
+                {
+                    _logMessages.Add(log);
+                    if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
+                    MessageCounts[(int)filter] += 1;
+                }
             }
 
             //todo remove after debug done
@@ -358,6 +366,17 @@ namespace rgatCore
             {
                 Console.WriteLine(text);
             }
+        }
+
+        static System.IO.StreamWriter _logFile = null;
+        static void WriteToDebugFile(TEXT_LOG_EVENT log)
+        {
+            if (_logFile == null)
+            {
+                _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.TraceSaveDirectory, "DebugLog.txt"));
+            }
+            _logFile.WriteLine($"{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
+
         }
 
         public static LOG_EVENT[] GetLogMessages(TraceRecord trace, bool[] filters)

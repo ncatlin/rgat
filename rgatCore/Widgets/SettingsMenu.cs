@@ -19,7 +19,7 @@ namespace rgatCore.Widgets
         static ImGuiController _controller;
         static rgatState _rgatState;
 
-        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eGraphTheme };
+        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eGraphTheme };
 
         public SettingsMenu(ImGuiController controller, rgatState rgatstate)
         {
@@ -65,12 +65,14 @@ namespace rgatCore.Widgets
             settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
             settingsNames.Add("Theme");
+            settingsNames.Add("Miscellaneous");
             optionsSelectStates = new bool[settingsNames.Count];
             optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
             optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
             optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
+            optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
         }
 
         void DeclareError(string msg, long MSDuration = 5500)
@@ -157,6 +159,9 @@ namespace rgatCore.Widgets
                     break;
                 case "Theme":
                     CreateOptionsPane_UITheme();
+                    break;
+                case "Miscellaneous":
+                    CreateOptionsPane_Miscellaneous();
                     break;
                 default:
                     Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
@@ -725,6 +730,19 @@ namespace rgatCore.Widgets
             }
 
         }
+
+
+        void CreateOptionsPane_Miscellaneous()
+        {
+            bool debglog = GlobalConfig.BulkLogging;
+            if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
+            {
+                GlobalConfig.BulkLogging = debglog;
+                GlobalConfig.AddUpdateAppSettings("BulkLogging", debglog ? "True" : "False");
+            }
+        }
+
+
 
         void CreateJSONEditor()
         {
