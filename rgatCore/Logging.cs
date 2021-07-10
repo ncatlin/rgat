@@ -349,11 +349,12 @@ namespace rgatCore
 
             lock (_messagesLock)
             {
-                if (filter == LogFilterType.BulkDebugLogFile)
+                if (GlobalConfig.BulkLogging)
                 {
                     WriteToDebugFile(log);
                 }
-                else
+
+                if (filter != LogFilterType.BulkDebugLogFile)
                 {
                     _logMessages.Add(log);
                     if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
@@ -374,8 +375,11 @@ namespace rgatCore
             if (_logFile == null)
             {
                 _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.TraceSaveDirectory, "DebugLog.txt"));
+                _logFile.WriteLine($"Opened new rgat debug logfile at {DateTime.Now.ToLocalTime().ToLongDateString()}");
+                _logFile.WriteLine($"Uncheck bulk logging in settings->misc to disable this");
             }
             _logFile.WriteLine($"{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
+            _logFile.Flush();
 
         }
 

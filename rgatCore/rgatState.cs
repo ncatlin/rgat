@@ -287,7 +287,8 @@ namespace rgatCore
             PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
-                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, 
+                    Logging.LogFilterType.TextDebug, trace: firstgraph.InternalProtoGraph.TraceData);
                 SwitchToGraph(firstgraph);
                 //firstgraph->decrease_thread_references(33);
             }

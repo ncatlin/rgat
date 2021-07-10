@@ -68,7 +68,7 @@ namespace rgatCore.Threads
         //update nodes with cached execution counts and new edges from unchained runs
         //also updates graph with delayed edge notifications
         void AssignBlockRepeats()
-        { 
+        {
 
             int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
             //List<BLOCKREPEAT> remainingRepeats = new List<BLOCKREPEAT>();
@@ -109,7 +109,7 @@ namespace rgatCore.Threads
                             break;
                         }
                     }
-                    if (!protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].threadvertIdx.ContainsKey(protograph.ThreadID))
+                    if (!protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].InThread(protograph.ThreadID))
                     {
                         //block has not been placed on graph
                         needWait = true;
@@ -118,10 +118,14 @@ namespace rgatCore.Threads
                 }
                 if (needWait) continue;
 
+                List<Tuple<NodeData, ulong>> increaseNodes = new List<Tuple<NodeData, ulong>>();
+                List<Tuple<EdgeData, ulong>> increaseEdges = new List<Tuple<EdgeData, ulong>>();
+
                 InstructionData lastIns = brep.blockInslist[^1];
-                if (brep.targExternEdges != null && (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1)) //todo - increase execs of the extern when the thunk caller brep is done
+                //todo - increase execs of the extern when the thunk caller brep is done
+                if (brep.targExternEdges != null && (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1))
                 {
-                    uint lastNodeIdx = lastIns.threadvertIdx[protograph.ThreadID];
+                    lastIns.GetThreadVert(protograph.ThreadID, out uint lastNodeIdx);
                     NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
 
                     foreach (var addr_Count in brep.targExternEdges)
@@ -133,41 +137,69 @@ namespace rgatCore.Threads
                         foreach (var x in lastNode.OutgoingNeighboursSet)
                         {
                             NodeData outn = protograph.safe_get_node(x);
+                            if (outn == null) continue;
                             if (outn.IsExternal && outn.address == targetAddr)
                             {
-                                outn.IncreaseExecutionCount(execCount);
-                                protograph.GetEdge(lastNodeIdx, outn.index).IncreaseExecutionCount(execCount);
+                                EdgeData e = protograph.GetEdge(lastNodeIdx, outn.index);
+                                if (e == null) continue;
+                                //outn.IncreaseExecutionCount(execCount);
+                                //e.IncreaseExecutionCount(execCount);
+                                increaseNodes.Add(new Tuple<NodeData, ulong>(outn, execCount));
+                                increaseEdges.Add(new Tuple<EdgeData, ulong>(e, execCount));
                                 found = true;
                                 break;
                             }
                         }
-                        Debug.Assert(found);
+                        if (!found) continue;
                     }
                 }
                 else
                 {
-
+                    continue;
                 }
-
-
 
 
                 //first record execution of each instruction
                 foreach (InstructionData ins in brep.blockInslist)
                 {
-                    n = protograph.safe_get_node(ins.threadvertIdx[protograph.ThreadID]);
-                    n.IncreaseExecutionCount(brep.repeatCount);
-                    protograph.TotalInstructions += brep.repeatCount;
+                    if (!ins.GetThreadVert(protograph.ThreadID, out uint vert))
+                    {
+                        needWait = true;
+                        break;
+                    }
+                    n = protograph.safe_get_node(vert);
+                    if (n == null)
+                    {
+                        needWait = true;
+                        break;
+                    }
+                    increaseNodes.Add(new Tuple<NodeData, ulong>(n, brep.repeatCount));
 
                     if (ins.address != lastIns.address)
                     {
                         uint targID = n.OutgoingNeighboursSet[0];
                         EdgeData targEdge = protograph.GetEdge(n.index, targID);
+                        if (targEdge == null)
+                        {
+                            needWait = true;
+                            break;
+                        }
                         Console.WriteLine($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs");
-                        targEdge.IncreaseExecutionCount(brep.repeatCount);
                     }
                 }
-
+                if (needWait)
+                {
+                    continue;
+                }
+                foreach (var nodeInc in increaseNodes)
+                {
+                    nodeInc.Item1.IncreaseExecutionCount(nodeInc.Item2);
+                    protograph.TotalInstructions += nodeInc.Item2;
+                }
+                foreach (var edgeInc in increaseEdges)
+                {
+                    edgeInc.Item1.IncreaseExecutionCount(edgeInc.Item2);
+                }
 
                 //create any new edges between unchained nodes
                 foreach (var targblockID_Count in brep.targEdges)
@@ -193,7 +225,7 @@ namespace rgatCore.Threads
                         {
                             //sometimes blocks get a new id
                             InstructionData altIns = protograph.ProcessData.BasicBlocksList[targetBlockID].Item2[0];
-                            if (altIns.threadvertIdx.TryGetValue(protograph.ThreadID, out uint altFirstNodeIdx))
+                            if (altIns.GetThreadVert(protograph.ThreadID, out uint altFirstNodeIdx))
                             {
                                 targNodeID = altFirstNodeIdx;
                             }
@@ -343,7 +375,7 @@ namespace rgatCore.Threads
 
                     if (firstCallByThisNode)
                     {
-                        thunkInstruction.threadvertIdx[protograph.ThreadID] = protograph.ProtoLastVertID;
+                        thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
                         protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
                     }
 
@@ -402,6 +434,20 @@ namespace rgatCore.Threads
             {
                 Console.WriteLine($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
             }
+        }
+
+
+        //show a REP prefixed instruction has executed at least once (ie: with ecx > 0)
+        void AddRepExecUpdate(byte[] entry)
+        {
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 2);
+
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
+            animUpdate.entryType = eTraceUpdateType.eAnimRepExec;
+            animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            protograph.PushAnimUpdate(animUpdate);
+            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160");
         }
 
 
@@ -557,7 +603,16 @@ namespace rgatCore.Threads
             {
                 if (protograph.PerformingUnchainedExecution == false)
                 {
-                    protograph.GetEdge(protograph.ProtoLastLastVertID, blockNodes.Item1).IncreaseExecutionCount(1);
+                    EdgeData e = protograph.GetEdge(protograph.ProtoLastLastVertID, blockNodes.Item1);
+                    if (e != null)
+                    {
+                        e.IncreaseExecutionCount(1);
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"Error: AddUnchainedUpdate for missing edge {protograph.ProtoLastLastVertID},{blockNodes.Item1}",
+                            filter: Logging.LogFilterType.TextError);
+                    }
                     protograph.PerformingUnchainedExecution = true;
                 }
             }
@@ -760,6 +815,9 @@ namespace rgatCore.Threads
                         case (byte)'S':
                             AddSingleStepUpdate(msg);
                             break;
+                        case (byte)'r':
+                            AddRepExecUpdate(msg);
+                            break;
                         default:
                             Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
@@ -778,7 +836,7 @@ namespace rgatCore.Threads
             PerformIrregularActions();
 
             Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
-            Debug.Assert(blockRepeatQueue.Count == 0);
+            Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);
         }
     }
 }

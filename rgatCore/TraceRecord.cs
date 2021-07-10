@@ -14,7 +14,7 @@ using static rgatCore.Logging;
 
 namespace rgatCore
 {
-    public struct InstructionData
+    public class InstructionData
     {
         public int DebugID;
 
@@ -40,7 +40,7 @@ namespace rgatCore
         public ulong address;
         public ulong branchAddress;
         public ulong condDropAddress;
-        public Dictionary<uint, uint> threadvertIdx; //was an unordered dictionary in the C++ version
+        List<Tuple<uint, uint>> threadvertIdx; //was an unordered dictionary in the C++ version
         public int globalmodnum;
         public int mutationIndex;
 
@@ -49,7 +49,45 @@ namespace rgatCore
         //this was added later, might be worth ditching other stuff in exchange
         public byte[] opcodes;
         public int numbytes;
+        public List<Tuple<uint, uint>> ThreadVerts => threadvertIdx.ToList();
 
+        public bool GetThreadVert(uint TID, out uint vert)
+        {
+            if (threadvertIdx == null)
+            { 
+                vert = uint.MaxValue;
+                return false;
+            }
+
+            for (var i = 0; i < threadvertIdx.Count; i++)
+            {
+                if (threadvertIdx[i].Item1 == TID) { vert = threadvertIdx[i].Item2; return true; }
+            }
+            vert = uint.MaxValue;
+            return false;
+        }
+
+        public bool InThread(uint TID)
+        {
+            if (threadvertIdx == null)
+            {
+                return false;
+            }
+            for (var i = 0; i < threadvertIdx.Count; i++)
+            {
+                if (threadvertIdx[i].Item1 == TID) { return true; }
+            }
+            return false;
+        }
+
+        public void AddThreadVert(uint TID, uint vert)
+        {
+            if (threadvertIdx == null)
+            {
+                threadvertIdx = new List<Tuple<uint, uint>>();
+            }
+            threadvertIdx.Add(new Tuple<uint, uint>(TID, vert));
+        }
     }
 
     public class TraceRecord

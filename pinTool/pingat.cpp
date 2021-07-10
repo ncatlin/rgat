@@ -637,10 +637,10 @@ VOID inline outputUnchained(threadObject* threadObj, BLOCK_IDENTIFIER finalBlock
 		fprintf(threadObj->threadpipeFILE, "%s\x01", threadObj->BXbuffer);
 	}
 
-	
-    fprintf(threadObj->threadpipeFILE, REINSTRUMENTED_MARKER",%lx\x01", threadObj->newEdgeSourceBlk);
-	
-	
+
+	fprintf(threadObj->threadpipeFILE, REINSTRUMENTED_MARKER",%lx\x01", threadObj->newEdgeSourceBlk);
+
+
 	fflush(threadObj->threadpipeFILE);
 	threadObj->busyBlocks.clear();
 	threadObj->hasBusyBlocks = false;
@@ -728,7 +728,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 				//there might be some performance gains to be had by doing more logic/data storage around this - or performance losses.
 				threadObj->activityLevel = blockStats->activityLevel;
 				threadObj->newEdgeSourceBlk = sourceBlock->blockID;
-				
+
 			}
 			else {
 
@@ -781,11 +781,42 @@ VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBloc
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 }
 
-VOID at_non_branch(BLOCKDATA* block_data, UINT32 instructionSize, THREADID threadid)
+VOID at_non_branch(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 {
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
-	RecordEdge(thread, block_data, block_data->appc + instructionSize);
+	RecordEdge(thread, block_data, nextIns); 
 }
+
+
+
+VOID single_ins_block(BLOCKDATA* block_data, ADDRINT afterAddress, THREADID threadid)
+{
+
+	writeEventPipe("!At single insinstruction 0x%lx. ", block_data->appc);// repCountBefore);
+
+	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	RecordEdge(thread, block_data, afterAddress);
+}
+
+
+
+ADDRINT at_first_rep(BLOCKDATA* block_data, bool isFirst, bool isExec, ADDRINT nextIns, THREADID threadid)
+{
+	threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	if (isFirst && isExec && !block_data->repexec)
+	{
+		block_data->repexec = true;
+		fprintf(threadObj->threadpipeFILE, REP_EXEC_MARKER",%lx\x01", block_data->blockID);
+		fflush(threadObj->threadpipeFILE);
+	}
+
+	RecordEdge(threadObj, block_data, nextIns);
+	return true;
+}
+
+
+
+
 
 
 /*
@@ -946,19 +977,46 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 
 			}
 		}
+		else if (INS_RepPrefix(lastins) || INS_RepnePrefix(lastins))
+		{
+			block_data->repexec = false;
+			//https://trello.com/c/I89DMjjh/160-repxx-handling-with-ecx-0
+			INS_InsertCall(lastins,
+				IPOINT_AFTER,
+				(AFUNPTR)at_first_rep,
+				IARG_PTR, block_data,
+				IARG_FIRST_REP_ITERATION,
+				IARG_EXECUTING,
+				IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins),
+				//IARG_REG_VALUE, INS_RepCountRegister(lastins),
+				IARG_THREAD_ID,
+				IARG_END);
+			/*
+			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins),  IARG_THREAD_ID, IARG_END);
+				*/
+		}
 		else if (INS_IsSyscall(lastins))
 		{
+			std::string disas = INS_Disassemble(lastins);
+			writeEventPipe("!Error: Unhandled block end syscall instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
 			//COUNTER *pedg = Lookup(EDGE(INS_Address(ins), ADDRINT(~0), INS_NextAddress(ins), ETYPE_SYSCALL));
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
 			std::cout << "syscall end" << std::endl;
 		}
-		else if (INS_IsHalt(lastins))
+		else if (!INS_IsBranch(lastins))
 		{
-			INS_InsertCall(lastins, IPOINT_BEFORE, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
-				IARG_PTR, block_data, IARG_UINT32, INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			std::string disas = INS_Disassemble(lastins);
+			writeEventPipe("!Non branch block end instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
+			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
 		else
 		{
+			printf("------------HALP------------------\n");
+			printf("------------%x------------------\n", &lastins);
+			std::string disas = INS_Disassemble(lastins);
+			writeEventPipe("!Error: Unhandled block end instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
 			std::cout << "------------------------------" << std::endl;
 			std::cout << "------------------------------" << std::endl;
 			std::cout << "WARNING: non branch/call/syscall block end at " << std::hex << block_data->lastInsAddress << std::endl;
@@ -1185,7 +1243,9 @@ VOID process_exit_event(INT32 code, VOID* v)
 	UINT64 endTime;
 	OS_Time(&endTime);
 
-	writeEventPipe("PX@%ld@");
+	NATIVE_PID pid;
+	OS_GetPid(&pid);
+	writeEventPipe("PX@%ld@", pid);
 
 	processExiting = true;
 
@@ -1262,7 +1322,7 @@ DWORD connect_coordinator_pipe(std::wstring coordinatorName, NATIVE_FD& coordina
 			coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
 				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
 				NULL);
-			if (coordinatorPipe != -1) 
+			if (coordinatorPipe != -1)
 			{
 				return 0;
 			}

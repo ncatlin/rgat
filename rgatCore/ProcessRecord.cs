@@ -467,8 +467,16 @@ namespace rgatCore
         {
             lock (InstructionsLock)
             {
-                if (!disassembly.TryGetValue(addr, out List<InstructionData> ins)) return new List<uint>();
-                return ins.Where(i => i.threadvertIdx.ContainsKey(TID)).Select(i => i.threadvertIdx[TID]).ToList();
+                if (!disassembly.TryGetValue(addr, out List<InstructionData> inslist)) return new List<uint>();
+                var result = new List<uint>();
+                foreach (var ins in inslist)
+                {
+                    if (ins.GetThreadVert(TID, out uint vert))
+                    {
+                        result.Add(vert);
+                    }
+                }
+                return result;
             }
         }
 
@@ -705,7 +713,6 @@ namespace rgatCore
 
                 JArray threadNodes = (JArray)mutation[1];
 
-                ins.threadvertIdx = new Dictionary<uint, uint>();
                 foreach (JArray entry in threadNodes.Children())
                 {
                     if (entry.Count != 2 || entry[0].Type != JTokenType.Integer || entry[1].Type != JTokenType.Integer)
@@ -716,7 +723,7 @@ namespace rgatCore
 
                     uint excutingThread = entry[0].ToObject<uint>();
                     uint GraphVertID = entry[1].ToObject<uint>();
-                    ins.threadvertIdx.Add(excutingThread, GraphVertID);
+                    ins.AddThreadVert(excutingThread, GraphVertID);
                 }
 
                 opcodeVariants.Add(ins);
@@ -970,11 +977,12 @@ namespace rgatCore
                     mutationData.Add(opcodestring);
 
                     JArray threadsUsingInstruction = new JArray();
-                    foreach (KeyValuePair<uint, uint> thread_node in mutation.threadvertIdx)
+                    List<Tuple<uint, uint>> threadVerts = mutation.ThreadVerts;
+                    foreach (Tuple<uint, uint> thread_node in threadVerts)
                     {
                         JArray threadNodeMappings = new JArray();
-                        threadNodeMappings.Add(thread_node.Key);
-                        threadNodeMappings.Add(thread_node.Value);
+                        threadNodeMappings.Add(thread_node.Item1);
+                        threadNodeMappings.Add(thread_node.Item2);
                         threadsUsingInstruction.Add(threadNodeMappings);
                     }
                     mutationData.Add(threadsUsingInstruction);

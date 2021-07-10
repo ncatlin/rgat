@@ -39,6 +39,7 @@ struct BLOCKDATA {
 	//std::vector<BLOCK_IDENTIFIER> *targets;
 	unsigned long busyCounter;
 	bool unchained;
+	bool repexec;
 	unsigned long unchainedRepeats;
 	ThreadBlockInfo ** threadRecords;
 };

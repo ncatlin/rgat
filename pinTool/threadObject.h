@@ -14,6 +14,7 @@
 #define SATISFY_MARKER "s"
 #define EXCEPTION_MARKER "X"
 #define THREAD_END_MARKER "Z"
+#define REP_EXEC_MARKER "r"
 #define PIPE_SEP "\x01"
 
 

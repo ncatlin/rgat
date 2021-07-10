@@ -128,6 +128,9 @@ namespace rgatCore
 
         public void Exit()
         {
+            if (GlobalConfig.BulkLogging) 
+                Logging.RecordLogEvent("rgat Exit() triggered", LogFilterType.BulkDebugLogFile);
+
             _rgatstate?.ShutdownRGAT();
         }
 

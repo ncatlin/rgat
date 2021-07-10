@@ -690,10 +690,10 @@ namespace rgatCore
             }
 
             if ((IsAnimated || !InternalProtoGraph.Terminated) && _liveNodeEdgeEnabled)
-            { 
+            {
                 CreateLiveNodeEdge(edgeIndices, resultList);
             }
-            
+
 
             return resultList.ToArray();
         }
@@ -718,7 +718,7 @@ namespace rgatCore
                         edgeColour = new WritableRgbaFloat(customColour.Value);
                     else
                         edgeColour = defaultColour;
-                }   
+                }
                 else
                 {
                     edgeColour = defaultColour;
@@ -966,7 +966,7 @@ namespace rgatCore
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     textureArray[edgeIndex] = (int)neigbours[nidx];
-                    if(InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData edge))
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData edge))
                     {
                         _edgeStrengthFloats[edgeIndex] = GetAttractionForce(edge);
                     }
@@ -1063,7 +1063,7 @@ namespace rgatCore
 
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
                 int blockID = (int)n.BlockID;
-                if (!blockMiddles.ContainsKey(blockID)) 
+                if (!blockMiddles.ContainsKey(blockID))
                     continue;
                 int blockMid = blockMiddles[blockID];
 
@@ -1299,11 +1299,12 @@ namespace rgatCore
                 if (n.IsExternal)
                 {
                     n.GenerateSymbolLabel(this.InternalProtoGraph);
-                    n.newArgsRecorded = false; 
+                    n.newArgsRecorded = false;
                 }
                 else
                 {
-                    if (!TextEnabledIns && !n.ins.hasSymbol) {
+                    if (!TextEnabledIns && !n.ins.hasSymbol)
+                    {
                         n.Label = null;
                         return null;
                     };
@@ -1552,10 +1553,13 @@ namespace rgatCore
 
 
             newnodelist = new List<uint>();
-            foreach (InstructionData ins in block)
+            lock (InternalProtoGraph.TraceData.DisassemblyData.InstructionsLock)
             {
-                if (!ins.threadvertIdx.TryGetValue(tid, out uint val)) return false;
-                newnodelist.Add(val);
+                foreach (InstructionData ins in block)
+                {
+                    if (!ins.GetThreadVert(tid, out uint val)) return false;
+                    newnodelist.Add(val);
+                }
             }
 
             return true;
@@ -1578,7 +1582,7 @@ namespace rgatCore
             {
                 //find vert in internal code
                 InstructionData nextIns = nextBlock[0];
-                if (nextIns.threadvertIdx.TryGetValue(InternalProtoGraph.ThreadID, out uint caller))
+                if (nextIns.GetThreadVert(InternalProtoGraph.ThreadID, out uint caller))
                 {
                     LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, caller);
                 }
@@ -1642,7 +1646,9 @@ namespace rgatCore
             currentUnchainedBlocks.Clear();
             remove_unchained_from_animation();
             List<InstructionData> firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            _lastAnimatedVert = firstChainedBlock[^1].threadvertIdx[tid]; //should this be front()?
+            bool found = firstChainedBlock[^1].GetThreadVert(tid, out uint vertID);
+            Debug.Assert(found);
+            _lastAnimatedVert = vertID; //should this be front()?
 
         }
 
@@ -2108,7 +2114,7 @@ namespace rgatCore
             {
                 risingExterns = _RisingExterns.ToList();
                 _RisingExterns.Clear();
-                
+
                 risingLingering = _RisingExternsLingering.ToList();
             }
         }
@@ -2246,25 +2252,30 @@ namespace rgatCore
         public bool EdgesVisible = true;
 
         bool _textEnabled = true;
-        public bool TextEnabled {
+        public bool TextEnabled
+        {
             get => _textEnabled;
-            set {
+            set
+            {
                 _textEnabled = value;
                 if (_textEnabled) RegenerateLabels();
             }
         }
 
         bool _textEnabledIns = true;
-        public bool TextEnabledIns {
+        public bool TextEnabledIns
+        {
             get => _textEnabledIns;
-            set {
+            set
+            {
                 _textEnabledIns = value;
                 RegenerateLabels();
             }
         }
 
         bool _textEnabledLive = true;
-        public bool TextEnabledLive {
+        public bool TextEnabledLive
+        {
             get => _textEnabledLive;
             set => _textEnabledLive = value;
         }
@@ -2330,11 +2341,11 @@ namespace rgatCore
 
             Vector3 clickWorldCoord = GraphicsMaths.ScreenToWorldCoord(pos, NDC.Z, ClipAfterProj.W, invVWP, invPrevProj, previewSize);
             Vector2 clickMainViewCoord = GraphicsMaths.WorldToScreenCoord(clickWorldCoord, worldMain * viewMain, projMain, mainGraphWidgetSize);
-            
+
             float XDiff = (mainGraphWidgetSize.X / 2f) - clickMainViewCoord.X;
             float YDiff = (mainGraphWidgetSize.Y / 2f) - clickMainViewCoord.Y;
 
-            CameraXOffset += XDiff; 
+            CameraXOffset += XDiff;
             CameraYOffset += YDiff;
         }
 
@@ -2402,7 +2413,7 @@ namespace rgatCore
 
 
         public static rgatState clientState;
-                public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
+        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
 
         public ulong vertResizeIndex = 0;
         public int userSelectedAnimPosition = -1;

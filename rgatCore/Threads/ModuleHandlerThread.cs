@@ -137,7 +137,7 @@ namespace rgatCore
             }
 
             ProtoGraph protoGraph = trace.GetProtoGraphByID(TID);
-            if (protoGraph != null)
+            if (protoGraph != null && !protoGraph.Terminated)
             {
                 protoGraph.SetTerminated();
             }
@@ -406,8 +406,9 @@ namespace rgatCore
 
             if (buf[0] == '!')
             {
-                string text = ASCIIEncoding.ASCII.GetString(buf);
+                string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesread).ToArray());
                 Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
+                Console.WriteLine($"!Log from instrumentation: '{text}'");
                 return;
             }
 

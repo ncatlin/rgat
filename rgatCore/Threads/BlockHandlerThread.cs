@@ -184,7 +184,6 @@ namespace rgatCore
                     instruction.ContainingBlockIDs = new List<uint>();
                     instruction.ContainingBlockIDs.Add(blockID);
                     instruction.hasSymbol = trace.DisassemblyData.SymbolExists(globalModNum, insaddr);
-                    instruction.threadvertIdx = new Dictionary<uint, uint>();
 
                     if (dbginscount == 0)// || buf[bufPos] != '@')
                     {

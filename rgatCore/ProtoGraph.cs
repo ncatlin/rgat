@@ -39,7 +39,7 @@ namespace rgatCore
         public eCodeInstrumentation jumpModifier;
         public ROUTINE_STRUCT? foundExtern;
     };
-    public enum eTraceUpdateType { eAnimExecTag, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimExecException };
+    public enum eTraceUpdateType { eAnimExecTag, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimRepExec, eAnimExecException };
     public enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
     public enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
 
@@ -213,7 +213,7 @@ namespace rgatCore
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
                 //Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
-                if (instruction.threadvertIdx.TryGetValue(ThreadID, out uint targetID))
+                if (instruction.GetThreadVert(ThreadID, out uint targetID))
                 {
                     targVertID = targetID;
                     return true;
@@ -307,14 +307,20 @@ namespace rgatCore
 
         private void run_faulting_BB(TAG tag)
         {
+            Logging.RecordLogEvent($"Faulting Block recorded: block:{tag.blockID} 0x{tag.blockaddr:X} lastvid:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
+                Logging.LogFilterType.TextError);
+
+
             ROUTINE_STRUCT? foundExtern = null;
             List<InstructionData> block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
             if (block == null)
             {
+                Logging.RecordLogEvent($"Faulting Block {tag.blockID} 0x{tag.blockaddr:X} not recorded in disassembly");
+                Debug.Assert(false);
                 if (foundExtern != null)
                     Console.WriteLine($"[rgat]Warning - faulting block was in uninstrumented code at 0x{tag.blockaddr}");
                 else
-                    Console.WriteLine($"[rgat]Warning - failed to ged disassebly for faulting block at 0x{tag.blockaddr}");
+                    Console.WriteLine($"[rgat]Warning - failed to get disassembly for faulting block at 0x{tag.blockaddr}");
 
                 return;
             }
@@ -360,6 +366,11 @@ namespace rgatCore
 
         private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint, uint>? resultPair)
         {
+            if (GlobalConfig.BulkLogging)
+            {
+                Logging.RecordLogEvent($"RunExternal: targaddr:0x{targaddr:X} repeats:{repeats}, lastvid:{ProtoLastVertID}, lastlast:{ProtoLastLastVertID}", Logging.LogFilterType.BulkDebugLogFile);
+            }
+
             //start by examining our caller
             NodeData lastNode = safe_get_node(ProtoLastVertID);
             if (lastNode.IsExternal) { resultPair = null; return false; }
@@ -398,7 +409,14 @@ namespace rgatCore
                     targVertID = caller.Item2;
 
                     EdgeData e = GetEdge(caller.Item1, caller.Item2);
-                    e.IncreaseExecutionCount(repeats);
+                    if (e != null)
+                    {
+                        e.IncreaseExecutionCount(repeats);
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"Bad edge in RunExternal: {caller.Item1},{caller.Item2} in thread {this.ThreadID}, module {this.ProcessData.GetModulePath(modnum)}");
+                    }
 
                     NodeData targNode = safe_get_node(targVertID);
                     targNode.IncreaseExecutionCount(repeats);
@@ -709,10 +727,13 @@ namespace rgatCore
 
         public EdgeData GetEdge(uint src, uint targ)
         {
-            Console.WriteLine($"Getedge {src}->{targ}");
             lock (edgeLock)
             {
-                return edgeDict[new Tuple<uint, uint>(src, targ)];
+                if (edgeDict.TryGetValue(new Tuple<uint, uint>(src, targ), out EdgeData result))
+                {
+                    return result;
+                }
+                return null;
             }
         }
 
@@ -910,7 +931,7 @@ namespace rgatCore
 
             lock (TraceData.DisassemblyData.InstructionsLock)
             {
-                instruction.threadvertIdx.Add(ThreadID, targVertID);
+                instruction.AddThreadVert(ThreadID, targVertID);
             }
 
             //lastVertID = targVertID;
@@ -1013,8 +1034,30 @@ namespace rgatCore
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
                     BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
-                    //todo - major unresolved assert
+                    if (firstVert > ProtoLastVertID)
+                    {
+                        //todo - major unresolved assert
+
+                        //ulong addr = ProcessData.BasicBlocksList[blockID].Item1;
+                        NodeData n1 = safe_get_node(firstVert);
+                        NodeData n2 = safe_get_node(ProtoLastVertID);
+                        string lab1;
+                        if (n1.IsExternal)
+                            lab1 = "external";
+                        else
+                            lab1 = $"0x{n1.address:X}:{n1.ins.ins_text}";
+                        string lab2;
+                        if (n2.IsExternal)
+                            lab2 = "external";
+                        else
+                            lab2 = $"0x{n2.address:X}:{n2.ins.ins_text}";
+                        Logging.RecordLogEvent($"Bad block {blockID}: block first vert {firstVert}[{lab1}] > last vert ID {ProtoLastVertID}[{lab2}]",
+                            graph: this,
+                            trace: this.TraceData,
+                            filter: Logging.LogFilterType.BulkDebugLogFile);
+                    }
                     Debug.Assert(firstVert <= ProtoLastVertID, "Mismatch between top and bottom of a block. The trace is probably missing a tag.");
+
                 }
             }
 
@@ -1164,8 +1207,10 @@ namespace rgatCore
                     var blocktuple = BlocksFirstLastNodeList[i];
                     if (blocktuple == null)
                     {
-                        blockBounds.Add(ProcessData.BasicBlocksList[i].Item2[0].threadvertIdx[ThreadID]);
-                        blockBounds.Add(ProcessData.BasicBlocksList[i].Item2[^1].threadvertIdx[ThreadID]);
+                        ProcessData.BasicBlocksList[i].Item2[0].GetThreadVert(ThreadID, out uint startVert);
+                        ProcessData.BasicBlocksList[i].Item2[^1].GetThreadVert(ThreadID, out uint endVert);
+                        blockBounds.Add(startVert);
+                        blockBounds.Add(endVert);
                     }
                     else
                     {
