@@ -54,6 +54,7 @@ namespace ImGuiNET
             Cleanup();
         }
 
+
         private static void Setup()
         {
 
@@ -153,6 +154,7 @@ namespace ImGuiNET
             _cl.Dispose();
             _gd.Dispose();
         }
+
 
         private static unsafe void SubmitDemoUI()
         {

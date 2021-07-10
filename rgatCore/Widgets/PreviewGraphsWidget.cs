@@ -351,10 +351,11 @@ namespace rgatCore
             {
                 foreach (int graphIdx in indexes)
                 {
-                    ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
                     PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
                     float xPadding = UI_Constants.PREVIEW_PANE_X_PADDING;
+                    if (graph == null || graph.GraphNodeCount() == 0) continue;
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
                     if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
                     {
                         var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
@@ -420,7 +421,7 @@ namespace rgatCore
                     result = graphs.ToList().OrderBy(x => x.tid).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.StartOrder:
-                    result = Enumerable.Repeat(0, DrawnPreviewGraphs.Count).ToList();
+                    result = Enumerable.Range(0, DrawnPreviewGraphs.Count).ToList();
                     break;
                 default:
                     Logging.RecordLogEvent($"Bad preview sort order: {order.ToString()}");
