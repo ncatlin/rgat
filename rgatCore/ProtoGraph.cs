@@ -953,7 +953,7 @@ namespace rgatCore
             if (GlobalConfig.BulkLogging)
             {
                 Logging.RecordLogEvent(
-                    $"Adding block {blockID} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
+                    $"Adding block {blockID}:0x{block[0].address:X} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
                     trace: this.TraceData,
                     graph: this,
                     filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1034,29 +1034,6 @@ namespace rgatCore
                 if (BlocksFirstLastNodeList[(int)blockID] == null)
                 {
                     BlocksFirstLastNodeList[(int)blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
-                    if (firstVert > ProtoLastVertID)
-                    {
-                        //todo - major unresolved assert
-
-                        //ulong addr = ProcessData.BasicBlocksList[blockID].Item1;
-                        NodeData n1 = safe_get_node(firstVert);
-                        NodeData n2 = safe_get_node(ProtoLastVertID);
-                        string lab1;
-                        if (n1.IsExternal)
-                            lab1 = "external";
-                        else
-                            lab1 = $"0x{n1.address:X}:{n1.ins.ins_text}";
-                        string lab2;
-                        if (n2.IsExternal)
-                            lab2 = "external";
-                        else
-                            lab2 = $"0x{n2.address:X}:{n2.ins.ins_text}";
-                        Logging.RecordLogEvent($"Bad block {blockID}: block first vert {firstVert}[{lab1}] > last vert ID {ProtoLastVertID}[{lab2}]",
-                            graph: this,
-                            trace: this.TraceData,
-                            filter: Logging.LogFilterType.BulkDebugLogFile);
-                    }
-                    Debug.Assert(firstVert <= ProtoLastVertID, "Mismatch between top and bottom of a block. The trace is probably missing a tag.");
 
                 }
             }

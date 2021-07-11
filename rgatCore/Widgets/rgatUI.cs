@@ -90,7 +90,13 @@ namespace rgatCore
 
             RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
             mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
-            heatRankThreadObj = new HeatRankingThread(_rgatstate);
+            
+            
+            
+            heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);
+            
+            
+            
             //todo - conditional thread here instead of new trace
             processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
             _UIstartupProgress = 0.6;
@@ -1217,7 +1223,7 @@ namespace rgatCore
                 ImGui.EndTable();
                 ImGui.PopFont();
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
-                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y-25);
 
                 List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
                 if (recentBins?.Count > 0)
@@ -1287,7 +1293,7 @@ namespace rgatCore
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
 
-                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y);
+                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
                 List<GlobalConfig.CachedPathData> recentTraces = GlobalConfig.RecentTraces;
                 if (recentTraces?.Count > 0)
@@ -1868,8 +1874,8 @@ namespace rgatCore
         private void DrawTraceSelector(float frameHeight, float frameWidth)
         {
 
-            PlottedGraph graph = _rgatstate.ActiveGraph;
-            if (graph == null)
+            PlottedGraph plot = _rgatstate.ActiveGraph;
+            if (plot == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
                 {
@@ -1878,7 +1884,7 @@ namespace rgatCore
                 }
                 return;
             }
-
+            ProtoGraph graph = plot.InternalProtoGraph;
 
             float vpadding = 4;
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
@@ -1891,7 +1897,7 @@ namespace rgatCore
                 if (_rgatstate.ActiveTarget != null)
                 {
                     var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
-                    string selString = (_rgatstate.ActiveGraph != null) ? "PID " + _rgatstate.ActiveGraph.pid : "";
+                    string selString = "PID " + graph.TraceData.PID;
                     if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
                     {
                         foreach (var timepid in tracelist)
@@ -1912,8 +1918,7 @@ namespace rgatCore
 
                     if (_rgatstate.ActiveTrace != null)
                     {
-                        selString = (_rgatstate.ActiveGraph != null) ? "TID " + _rgatstate.ActiveGraph.tid : "";
-                        uint activeTID = (_rgatstate.ActiveGraph != null) ? +_rgatstate.ActiveGraph.tid : 0;
+                        selString = "TID " + graph.ThreadID;
                         List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
                         if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
                         {
@@ -1921,9 +1926,9 @@ namespace rgatCore
                             {
                                 string caption = "TID " + selectablegraph.tid;
                                 int nodeCount = selectablegraph.GraphNodeCount();
-                                if (nodeCount == 0) caption += " [No Data]";
+                                if (nodeCount == 0) caption += " [Uninstrumented]";
                                 else caption += $" [{nodeCount} nodes]";
-                                if (ImGui.Selectable(caption, activeTID == selectablegraph.tid))
+                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid))
                                 {
                                     SetActiveGraph(selectablegraph);
                                 }
@@ -1937,10 +1942,10 @@ namespace rgatCore
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
 
-                ImGui.Text($"Thread ID: {graph.tid}");
+                ImGui.Text($"Thread ID: {graph.ThreadID}");
 
                 ImGui.SameLine();
-                if (graph.InternalProtoGraph.Terminated)
+                if (graph.Terminated)
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
                 else
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
@@ -1955,15 +1960,15 @@ namespace rgatCore
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
-                    ImGui.Text($"Edges: {graph.InternalProtoGraph.EdgeList.Count}");
-                    ImGui.Text($"Nodes: {graph.InternalProtoGraph.NodeList.Count}");
-                    ImGui.Text($"Updates: {graph.InternalProtoGraph.SavedAnimationData.Count}");
-                    if (graph.InternalProtoGraph.TraceReader != null)
+                    ImGui.Text($"Edges: {graph.EdgeList.Count}");
+                    ImGui.Text($"Nodes: {graph.NodeList.Count}");
+                    ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
+                    if (graph.TraceReader != null)
                     {
-                        if (graph.InternalProtoGraph.TraceReader.QueueSize > 0)
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.InternalProtoGraph.TraceReader.QueueSize}");
+                        if (graph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
                         else
-                            ImGui.Text($"Backlog: {graph.InternalProtoGraph.TraceReader.QueueSize}");
+                            ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
                     }
 
                     ImGui.EndChild();
@@ -1973,16 +1978,16 @@ namespace rgatCore
 
                 if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                 {
-                    ImGui.Text($"Instructions: {graph.InternalProtoGraph.TotalInstructions}");
-                    if (graph.InternalProtoGraph.PerformingUnchainedExecution)
+                    ImGui.Text($"Instructions: {graph.TotalInstructions}");
+                    if (graph.PerformingUnchainedExecution)
                     {
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
                     }
                     else
                         ImGui.Text("Busy: False");
 
-                    ImGui.Text("Z: 496");
-                    ImGui.Text("Q: 41");
+                    ImGui.Text($"BRepQu: {_rgatstate.ActiveGraph.InternalProtoGraph.TraceProcessor.PendingBlockRepeats}");
+                    ImGui.Text($"BRTime: {_rgatstate.ActiveGraph.InternalProtoGraph.TraceProcessor.LastBlockRepeatsTime}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();

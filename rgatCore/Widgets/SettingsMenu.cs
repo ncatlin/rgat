@@ -402,6 +402,20 @@ namespace rgatCore.Widgets
                 ImGui.EndTable();
             }
 
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0099ff);
+            if (ImGui.BeginChild("#FileSettsFrame", new Vector2(ImGui.GetContentRegionMax().X - 8, 150), true))
+            {
+                ImGui.BeginGroup();
+                ImGui.AlignTextToFramePadding();
+                ImGui.Text("Max Recent Paths"); ImGui.SameLine();
+                ImGui.SetNextItemWidth(100);
+                ImGui.InputInt("##MaxRecentPaths", ref GlobalConfig.MaxStoredRecentPaths);
+                ImGui.EndGroup();
+                SmallWidgets.MouseoverText("The number of recently opened samples/traces to store");
+                ImGui.EndChildFrame();
+            }
+            //ImGui.PopStyleColor();
+
             if (choosePath.Length > 0)
             {
                 if (doClear)

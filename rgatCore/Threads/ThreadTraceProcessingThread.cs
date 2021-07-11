@@ -30,6 +30,8 @@ namespace rgatCore.Threads
         };
 
         List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
+        public int PendingBlockRepeats => blockRepeatQueue.Count;
+        public double LastBlockRepeatsTime = 0;
 
         struct NEW_EDGE_BLOCKDATA
         {
@@ -69,6 +71,8 @@ namespace rgatCore.Threads
         //also updates graph with delayed edge notifications
         void AssignBlockRepeats()
         {
+            Stopwatch ABRtime = new System.Diagnostics.Stopwatch();
+            ABRtime.Start();
 
             int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
             //List<BLOCKREPEAT> remainingRepeats = new List<BLOCKREPEAT>();
@@ -123,40 +127,45 @@ namespace rgatCore.Threads
 
                 InstructionData lastIns = brep.blockInslist[^1];
                 //todo - increase execs of the extern when the thunk caller brep is done
-                if (brep.targExternEdges != null && (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1))
+                if (brep.targExternEdges != null)
                 {
-                    lastIns.GetThreadVert(protograph.ThreadID, out uint lastNodeIdx);
-                    NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
-
-                    foreach (var addr_Count in brep.targExternEdges)
+                    if (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1)
                     {
-                        ulong targetAddr = addr_Count.Item1;
-                        ulong execCount = addr_Count.Item2;
+                        lastIns.GetThreadVert(protograph.ThreadID, out uint lastNodeIdx);
+                        NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
 
-                        bool found = false;
-                        foreach (var x in lastNode.OutgoingNeighboursSet)
+                        foreach (var addr_Count in brep.targExternEdges)
                         {
-                            NodeData outn = protograph.safe_get_node(x);
-                            if (outn == null) continue;
-                            if (outn.IsExternal && outn.address == targetAddr)
+                            ulong targetAddr = addr_Count.Item1;
+                            ulong execCount = addr_Count.Item2;
+
+                            bool found = false;
+                            foreach (var x in lastNode.OutgoingNeighboursSet)
                             {
-                                EdgeData e = protograph.GetEdge(lastNodeIdx, outn.index);
-                                if (e == null) continue;
-                                //outn.IncreaseExecutionCount(execCount);
-                                //e.IncreaseExecutionCount(execCount);
-                                increaseNodes.Add(new Tuple<NodeData, ulong>(outn, execCount));
-                                increaseEdges.Add(new Tuple<EdgeData, ulong>(e, execCount));
-                                found = true;
-                                break;
+                                NodeData outn = protograph.safe_get_node(x);
+                                if (outn == null) continue;
+                                if (outn.IsExternal && outn.address == targetAddr)
+                                {
+                                    EdgeData e = protograph.GetEdge(lastNodeIdx, outn.index);
+                                    if (e == null) continue;
+                                    //outn.IncreaseExecutionCount(execCount);
+                                    //e.IncreaseExecutionCount(execCount);
+                                    increaseNodes.Add(new Tuple<NodeData, ulong>(outn, execCount));
+                                    increaseEdges.Add(new Tuple<EdgeData, ulong>(e, execCount));
+                                    found = true;
+                                    break;
+                                }
                             }
+                            if (!found)
+                            {
+                                needWait = true;
+                                break;
+                            
+                            };
                         }
-                        if (!found) continue;
                     }
                 }
-                else
-                {
-                    continue;
-                }
+                if (needWait) continue;
 
 
                 //first record execution of each instruction
@@ -184,7 +193,11 @@ namespace rgatCore.Threads
                             needWait = true;
                             break;
                         }
-                        Console.WriteLine($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs");
+                        Logging.RecordLogEvent($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs",
+                            graph: protograph,
+                            trace: protograph.TraceData,
+                            filter: Logging.LogFilterType.BulkDebugLogFile);
+
                     }
                 }
                 if (needWait)
@@ -249,13 +262,15 @@ namespace rgatCore.Threads
                     {
                         //again let new tag execution handle it
                         protograph.AddEdge(n.index, targNodeID, execCount);
-                        Console.WriteLine($"Blockrepeat adding edge {n.index},{targNodeID} with {execCount} execs");
+                        Logging.RecordLogEvent($"Blockrepeat adding edge {n.index},{targNodeID} with {execCount} execs",
+                           Logging.LogFilterType.BulkDebugLogFile);
 
                     }
                     else
                     {
                         EdgeData edge = protograph.GetEdge(n.index, targNodeID);
-                        Console.WriteLine($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount + execCount}");
+                        Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount + execCount}",
+                           Logging.LogFilterType.BulkDebugLogFile);
                         edge.IncreaseExecutionCount(execCount);
                     }
                 }
@@ -264,6 +279,8 @@ namespace rgatCore.Threads
 
                 blockRepeatQueue.RemoveAt(i);
             }
+            ABRtime.Stop();
+            LastBlockRepeatsTime = ABRtime.Elapsed.TotalMilliseconds;
         }
 
 
@@ -635,7 +652,13 @@ namespace rgatCore.Threads
             newRepeat.targEdges = new List<Tuple<uint, ulong>>();
             newRepeat.targExternEdges = null;
 
-            Console.WriteLine($"Processing AddExecCountUpdate block {newRepeat.blockID}");
+            if (GlobalConfig.BulkLogging)
+            {
+                Logging.RecordLogEvent($"Processing AddExecCountUpdate block {newRepeat.blockID}",
+                    trace: protograph.TraceData,
+                    graph: protograph,
+                    filter: Logging.LogFilterType.BulkDebugLogFile);
+            }
 
             string[] edgeCounts = entries[2].Split(',');
 
@@ -660,7 +683,14 @@ namespace rgatCore.Threads
                     newRepeat.targEdges.Add(new Tuple<uint, ulong>((uint)targBlock, edgeExecCount));
                 }
                 blockExecs += edgeExecCount;
-                Console.WriteLine($"\t +targ {targBlock}x{edgeExecCount}");
+
+                if (GlobalConfig.BulkLogging)
+                {
+                    Logging.RecordLogEvent($"\t +targ {targBlock}x{edgeExecCount}",
+                        trace: protograph.TraceData,
+                        graph: protograph,
+                        filter: Logging.LogFilterType.BulkDebugLogFile);
+                }
             }
             newRepeat.repeatCount = blockExecs;
             newRepeat.blockInslist = null;

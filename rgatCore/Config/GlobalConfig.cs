@@ -234,6 +234,7 @@ namespace rgatCore
         public static string PinToolPath64;
         public static string DiESigsPath;
         public static string YARARulesDir;
+        public static int MaxStoredRecentPaths = 10;
         public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
         //true => traces we save will be added to recent traces list. false => only ones we load will
@@ -448,7 +449,7 @@ namespace rgatCore
                     }
                 }
             }
-            store = store.OrderByDescending(x => x.lastSeen).ToList();
+            store = store.OrderByDescending(x => x.lastSeen).Take(MaxStoredRecentPaths).ToList();
         }
 
 
@@ -497,6 +498,21 @@ namespace rgatCore
                     NewPathObj.Add("LastOpen", DateTime.Now);
 
                     targetObj.Add(path, NewPathObj);
+                    if (targetObj.Count > MaxStoredRecentPaths)
+                    {
+                        List<Tuple<string, DateTime>> oldestPaths = new List<Tuple<string, DateTime>>();
+                        foreach(var recentPath in targetObj)
+                        {
+                            var x = recentPath.Value;
+                            JObject xval = x.ToObject<JObject>();
+                            oldestPaths.Add(new Tuple<string, DateTime>(recentPath.Key, xval["LastOpen"].ToObject<DateTime>()));
+                        }
+                        var excessPaths = oldestPaths.OrderByDescending(x => x.Item2).Skip(MaxStoredRecentPaths);
+                        foreach(var pathtime in excessPaths)
+                        {
+                            targetObj.Remove(pathtime.Item1);
+                        }
+                    }
                 }
             }
             catch (Exception e)

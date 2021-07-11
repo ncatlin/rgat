@@ -411,7 +411,7 @@ namespace rgatCore.Widgets
                         lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 2) });
                         lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + pSep, 12f) });
 
-                        Console.WriteLine($"Unhandled tag type {ae.entryType}");
+                        Logging.RecordLogEvent($"VisualiserBar:Live:Unhandled tag type {ae.entryType}");
                         break;
                 }
 

@@ -265,7 +265,6 @@ namespace rgatCore
                     {
                         Debug.Assert(bytesread == 0);
                         PipeBroke = true;
-                        protograph.SetTerminated();
                     }
                     else
                     {
@@ -329,6 +328,8 @@ namespace rgatCore
 
             Console.WriteLine(runningThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 
+            if (!protograph.Terminated)
+                protograph.SetTerminated();
         }
 
 

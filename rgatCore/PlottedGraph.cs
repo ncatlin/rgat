@@ -1686,14 +1686,16 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
-                Console.WriteLine($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times");
+                Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times", 
+                    Logging.LogFilterType.BulkDebugLogFile);
                 ++updateProcessingIndex;
                 return true;
             }
 
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                Console.WriteLine("Live update: eAnimReinstrument");
+                Logging.RecordLogEvent($"Live update: eAnimReinstrument.",
+                    Logging.LogFilterType.BulkDebugLogFile);
                 end_unchained(entry);
                 ++updateProcessingIndex;
                 return true;
@@ -1708,7 +1710,8 @@ namespace rgatCore
                     foreach (int x in nodeIDListFFF) s += $"{x},";
                 }
 
-                Console.WriteLine($"Live update: eAnimUnchained block {entry.blockID}: " + s);
+                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s,
+                Logging.LogFilterType.BulkDebugLogFile);
                 currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
