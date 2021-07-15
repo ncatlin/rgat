@@ -194,7 +194,6 @@ namespace rgatCore.Testing
                 default:
                     error = "Bad comparison for integer value: " + Condition;
                     return false;
-                    break;
             }
         }
 
@@ -237,7 +236,6 @@ namespace rgatCore.Testing
                 default:
                     error = "Bad comparison for long value: " + Condition;
                     return false;
-                    break;
             }
         }
 
@@ -280,7 +278,6 @@ namespace rgatCore.Testing
                 default:
                     error = "Bad comparison for ulong value: " + Condition;
                     return false;
-                    break;
             }
         }
 
@@ -678,7 +675,6 @@ namespace rgatCore.Testing
 
                         DeclareLoadingError($"JSON has invalid ProcessRequirement {processTok.Key}");
                         return false;
-                        break;
                 }
             }
             return true;

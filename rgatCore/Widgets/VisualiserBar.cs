@@ -84,6 +84,11 @@ namespace rgatCore.Widgets
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleList;
             _triPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
+
+
+            ResourceSetDescription rsrc_rsd = new ResourceSetDescription(_rsrcLayout, _paramsBuffer, _gd.PointSampler, _iconsTextureView);
+            //_rsrcs?.Dispose();
+            _rsrcs = _factory.CreateResourceSet(rsrc_rsd);
         }
 
 
@@ -106,11 +111,10 @@ namespace rgatCore.Widgets
         {
             _width = Math.Max(50, width);
             _height = Math.Max(50, height);
-            _outputTexture?.Dispose();
+            VeldridGraphBuffers.DoDispose(_outputTexture);
+            VeldridGraphBuffers.DoDispose(_outputFramebuffer);
             _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
-
-            _outputFramebuffer?.Dispose();
             _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
         }
 
@@ -119,9 +123,9 @@ namespace rgatCore.Widgets
             uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
             if (_pointsVertexBuffer.SizeInBytes < requiredSize)
             {
-                _pointsVertexBuffer?.Dispose();
+                VeldridGraphBuffers.DoDispose(_pointsVertexBuffer);
+                VeldridGraphBuffers.DoDispose(_pointsIndexBuffer);
                 _pointsVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _pointsIndexBuffer?.Dispose();
                 _pointsIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_pointVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
 
             }
@@ -129,22 +133,23 @@ namespace rgatCore.Widgets
             requiredSize = (uint)_lineVerts.Length * Position2DColour.SizeInBytes;
             if (_linesVertexBuffer.SizeInBytes < requiredSize)
             {
-                _linesVertexBuffer?.Dispose();
+                VeldridGraphBuffers.DoDispose(_linesVertexBuffer);
+                VeldridGraphBuffers.DoDispose(_linesIndexBuffer);
                 _linesVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _linesIndexBuffer?.Dispose();
                 _linesIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_lineVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
             }
 
             requiredSize = (uint)_triangleVerts.Length * Position2DColour.SizeInBytes;
             if (_trisVertexBuffer.SizeInBytes < requiredSize)
             {
-                _trisVertexBuffer?.Dispose();
+                VeldridGraphBuffers.DoDispose(_trisVertexBuffer);
+                VeldridGraphBuffers.DoDispose(_trisIndexBuffer);
                 _trisVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _trisIndexBuffer?.Dispose();
                 _trisIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_triangleVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
             }
         }
 
+        //this should not be in UI thread TODO
         public void Draw()
         {
 
@@ -155,45 +160,28 @@ namespace rgatCore.Widgets
                 width = _width,
                 height = _height
             };
-            _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
-            _gd.WaitForIdle();
+
 
             MaintainBuffers();
 
-            _gd.UpdateBuffer(_pointsVertexBuffer, 0, _pointVerts);
-            _gd.WaitForIdle();
-
-            int[] pointIndices = Enumerable.Range(0, _pointVerts.Length).Select(i => (int)i).ToArray();
-            _gd.UpdateBuffer(_pointsIndexBuffer, 0, pointIndices);
-            _gd.WaitForIdle();
-
-
-            _gd.UpdateBuffer(_linesVertexBuffer, 0, _lineVerts);
-            _gd.WaitForIdle();
-
-            int[] lineIndices = Enumerable.Range(0, _lineVerts.Length).Select(i => (int)i).ToArray();
-            _gd.UpdateBuffer(_linesIndexBuffer, 0, lineIndices);
-            _gd.WaitForIdle();
-
-
-            _gd.UpdateBuffer(_trisVertexBuffer, 0, _triangleVerts);
-            _gd.WaitForIdle();
-
-            int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => (int)i).ToArray();
-            _gd.UpdateBuffer(_trisIndexBuffer, 0, triIndices);
-            _gd.WaitForIdle();
-
-
-
-            ResourceSetDescription rsrc_rsd = new ResourceSetDescription(_rsrcLayout, _paramsBuffer, _gd.PointSampler, _iconsTextureView);
-            _rsrcs?.Dispose();
-            _rsrcs = _factory.CreateResourceSet(rsrc_rsd);
-
             CommandList _cl = _factory.CreateCommandList();
             _cl.Begin();
+
+            _cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
+            _cl.UpdateBuffer(_pointsVertexBuffer, 0, _pointVerts);
+
+            int[] pointIndices = Enumerable.Range(0, _pointVerts.Length).Select(i => (int)i).ToArray();
+            _cl.UpdateBuffer(_pointsIndexBuffer, 0, pointIndices);
+            _cl.UpdateBuffer(_linesVertexBuffer, 0, _lineVerts);
+
+            int[] lineIndices = Enumerable.Range(0, _lineVerts.Length).Select(i => (int)i).ToArray();
+            _cl.UpdateBuffer(_linesIndexBuffer, 0, lineIndices);
+            _cl.UpdateBuffer(_trisVertexBuffer, 0, _triangleVerts);
+
+            int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => (int)i).ToArray();
+            _cl.UpdateBuffer(_trisIndexBuffer, 0, triIndices);
             _cl.SetFramebuffer(_outputFramebuffer);
             _cl.ClearColorTarget(0, new WritableRgbaFloat(Themes.GetThemeColourUINT(Themes.eThemeColour.eVisBarBg)).ToRgbaFloat());
-
 
             _cl.SetPipeline(_triPipeline);
             _cl.SetGraphicsResourceSet(0, _rsrcs);
@@ -220,7 +208,7 @@ namespace rgatCore.Widgets
             _gd.SubmitCommands(_cl);
             _gd.WaitForIdle();
             _cl.Dispose();
-            _rsrcs.Dispose();
+            //_rsrcs.Dispose();
 
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
@@ -403,6 +391,10 @@ namespace rgatCore.Widgets
 
                     case eTraceUpdateType.eAnimReinstrument:
                         //TODO
+                        break;
+                        
+                    case eTraceUpdateType.eAnimRepExec:
+                        //probably not worth drawing
                         break;
 
                     default:

@@ -268,8 +268,32 @@ namespace rgatCore
                     }
                     else
                     {
-                        RawQueue.Enqueue(new Tuple<byte[], int>(buf, bytesread));
-                        RawIngestCompleteEvent.Set();
+                        if (bytesread < 1024)
+                        {
+
+                            if (pendingBuf != null)
+                            {
+                                bytesread = pendingBuf.Length + bytesread;
+                                buf = pendingBuf.Concat(buf).ToArray();
+                                pendingBuf = null;
+                            }
+                            //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
+
+                            RawQueue.Enqueue(new Tuple<byte[], int>(buf, bytesread));
+                            RawIngestCompleteEvent.Set();
+                        }
+                        else
+                        {
+                            if (pendingBuf == null)
+                            {
+                                pendingBuf = buf;
+                            }
+                            else
+                            {
+                                pendingBuf = pendingBuf.Concat(buf).ToArray();
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -278,6 +302,8 @@ namespace rgatCore
                 Console.WriteLine("TraceIngest Readcall back exception " + e.Message);
             }
         }
+
+        byte[] pendingBuf = null;
 
 
         //thread handler to build graph for a thread
@@ -297,7 +323,7 @@ namespace rgatCore
 
             while (!StopFlag && !PipeBroke)
             {
-                const int TAGCACHESIZE = 1024 ^ 2;
+                const int TAGCACHESIZE = 1024;
                 byte[] TagReadBuffer = new byte[TAGCACHESIZE];
                 IAsyncResult res = threadpipe.BeginRead(TagReadBuffer, 0, TAGCACHESIZE, new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
                 WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 1500); //timeout so we can check for rgat exit

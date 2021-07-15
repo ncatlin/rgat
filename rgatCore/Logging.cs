@@ -210,7 +210,6 @@ namespace rgatCore
                     default:
                         Debug.Assert(false, "Bad timeline event");
                         return "Bad event";
-                        break;
                 }
 
             }
@@ -378,7 +377,7 @@ namespace rgatCore
                 _logFile.WriteLine($"Opened new rgat debug logfile at {DateTime.Now.ToLocalTime().ToLongDateString()}");
                 _logFile.WriteLine($"Uncheck bulk logging in settings->misc to disable this");
             }
-            _logFile.WriteLine($"{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
+            _logFile.WriteLine($"{System.Threading.Thread.CurrentThread.Name}:{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
             _logFile.Flush();
 
         }

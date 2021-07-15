@@ -83,9 +83,6 @@ namespace rgatCore.Threads
         public void ThreadProc()
         {
             running = true;
-            List<PlottedGraph> graphlist;
-            int StopTimer = -1;
-            bool moreRenderingNeeded = false;
 
             while (!rgatState.rgatIsExiting)
             {

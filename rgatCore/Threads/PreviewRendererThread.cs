@@ -10,11 +10,13 @@ namespace rgatCore.Threads
         TraceRecord RenderedTrace;
         bool running;
         public rgatState rgatState;
+        PreviewGraphsWidget _graphWidget;
 
         public PreviewRendererThread(TraceRecord _renderedTrace, rgatState _clientState)
         {
             RenderedTrace = _renderedTrace;
             rgatState = _clientState;
+            _graphWidget = _clientState.PreviewWidget;
         }
 
         public void ThreadProc()
@@ -33,15 +35,19 @@ namespace rgatCore.Threads
                 moreRenderingNeeded = false;
                 foreach (PlottedGraph graph in graphlist)
                 {
-                    if (graph == null || graph == rgatState.ActiveGraph) continue;
-
-                    //check for trace data that hasn't been rendered yet
-                    ProtoGraph protoGraph = graph.InternalProtoGraph;
+                    if (graph == null) continue;
+                    if (graph != rgatState.ActiveGraph)
+                    {
+                        //check for trace data that hasn't been rendered yet
+                        ProtoGraph protoGraph = graph.InternalProtoGraph;
 
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
                         graph.render_graph();
                         if (!graph.RenderingComplete())
-                            moreRenderingNeeded = true;
+                            moreRenderingNeeded = true; 
+                    }
+
+                    _graphWidget.GeneratePreviewGraph(graph);
 
                     if (!running) break;
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);

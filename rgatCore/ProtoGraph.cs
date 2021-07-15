@@ -81,11 +81,13 @@ namespace rgatCore
 
         public void SetTerminated()
         {
-
-            if (!Terminated)
+            lock (AnimDataLock)
             {
-                TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ThreadEnd, graph: this);
-                Terminated = true;
+                if (!Terminated)
+                {
+                    TraceData.RecordTimelineEvent(Logging.eTimelineEvent.ThreadEnd, graph: this);
+                    Terminated = true;
+                }
             }
         }
 
@@ -663,8 +665,7 @@ namespace rgatCore
         {
             lock (nodeLock)
             {
-                if (NodeList.Count > 0)
-                    Debug.Assert(targVertID == NodeList[NodeList.Count - 1].index + 1);
+                Debug.Assert((NodeList.Count == 0) || (targVertID == NodeList[^1].index + 1));
 
                 if (node.IsExternal)
                 {
@@ -688,7 +689,7 @@ namespace rgatCore
         {
             lock (edgeLock)
             {
-                return edgeDict.ContainsKey(edge);
+                return _edgeDict.ContainsKey(edge);
             }
         }
 
@@ -696,7 +697,7 @@ namespace rgatCore
         {
             lock (edgeLock)
             {
-                return edgeDict.TryGetValue(edge, out edged);
+                return _edgeDict.TryGetValue(edge, out edged);
             }
         }
 
@@ -729,7 +730,7 @@ namespace rgatCore
         {
             lock (edgeLock)
             {
-                if (edgeDict.TryGetValue(new Tuple<uint, uint>(src, targ), out EdgeData result))
+                if (_edgeDict.TryGetValue(new Tuple<uint, uint>(src, targ), out EdgeData result))
                 {
                     return result;
                 }
@@ -742,7 +743,7 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                return edgeDict[srcTarg];
+                return _edgeDict[srcTarg];
             }
         }
 
@@ -811,7 +812,7 @@ namespace rgatCore
 
             lock (edgeLock)
             {
-                edgeDict.Add(edgePair, e);
+                _edgeDict.Add(edgePair, e);
                 EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
             }
@@ -889,7 +890,7 @@ namespace rgatCore
 
         private readonly object edgeLock = new object();
         //node id pairs to edge data
-        public Dictionary<Tuple<uint, uint>, EdgeData> edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
+        Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
         //todo - make this private, hide from view for thread safety
         public List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
@@ -1175,7 +1176,7 @@ namespace rgatCore
             lock (edgeLock)
             {
                 JArray edgeArray = new JArray();
-                EdgeList.ForEach(edgetuple => edgeArray.Add(edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
+                EdgeList.ForEach(edgetuple => edgeArray.Add(_edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
                 result.Add("Edges", edgeArray);
 
                 JArray blockBounds = new JArray();
@@ -1424,8 +1425,6 @@ namespace rgatCore
         //number of times an external function has been called. used to Dictionary arguments to calls
         public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
 
-        bool updated = true;
-
         List<uint> exceptionSet = new List<uint>();
 
         public uint[] GetExceptionNodes()
@@ -1513,7 +1512,7 @@ namespace rgatCore
             {
                 if (testedge.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge.ToString()}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge}", Logging.LogFilterType.TextError);
                     failedComparison = "Bad Test";
                     return false;
                 }
@@ -1521,7 +1520,7 @@ namespace rgatCore
                 if (!edgeTestObj.TryGetValue("Source", out JToken srcTok) || srcTok.Type != JTokenType.Integer ||
                     !edgeTestObj.TryGetValue("Target", out JToken targTok) || targTok.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge.ToString()}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge}", Logging.LogFilterType.TextError);
                     failedComparison = "Bad Test";
                     return false;
                 }

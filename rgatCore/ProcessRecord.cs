@@ -92,6 +92,7 @@ namespace rgatCore
 
 
         //returns address once it does
+        //todo - failure on limit excess
         public ulong EnsureBlockExistsGetAddress(uint blockID)
         {
             int timewaited = 0;
@@ -229,6 +230,7 @@ namespace rgatCore
 
         public void AddSymbol(int localModnum, ulong offset, string name)
         {
+            int attempts = 10;
             lock (SymbolsLock)
             {
                 int modnum = modIDTranslationVec[localModnum];
@@ -236,6 +238,12 @@ namespace rgatCore
                 {
                     Thread.Sleep(3);
                     modnum = modIDTranslationVec[localModnum];
+                    attempts -= 1;
+                    if (attempts == 0)
+                    {
+                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter: Logging.LogFilterType.TextError);
+                        return;
+                    }
                 }
                 Debug.Assert(modnum != -1);
 

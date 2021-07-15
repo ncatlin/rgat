@@ -27,22 +27,20 @@ namespace rgatCore
     {
         public PlottedGraph ActiveGraph { get; private set; }
 
-        System.Timers.Timer _IrregularActionTimer;
-        bool _IrregularActionTimerFired;
 
         QuickMenu _QuickMenu;
         ImGuiController _controller;
-        readonly ReaderWriterLock renderLock = new ReaderWriterLock();
 
         GraphLayoutEngine _layoutEngine;
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
-
+        public bool Exiting = false;
 
         GraphicsDevice _gd;
         ResourceFactory _factory;
         Vector2 _graphWidgetSize;
 
         TextureView _imageTextureView;
+        ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
 
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, Vector2? initialSize = null)
         {
@@ -52,12 +50,8 @@ namespace rgatCore
             _QuickMenu = new QuickMenu(_gd, controller);
 
             _graphWidgetSize = initialSize ?? new Vector2(400, 400);
-            _IrregularActionTimer = new System.Timers.Timer(600);
-            _IrregularActionTimer.Elapsed += FireIrregularTimer;
-            _IrregularActionTimer.AutoReset = true;
-            _IrregularActionTimer.Start();
 
-            _layoutEngine = new GraphLayoutEngine(gdev, controller);
+            _layoutEngine = new GraphLayoutEngine(gdev, controller, "Main");
             _imageTextureView = controller.IconTexturesView;
             SetupRenderingResources();
 
@@ -66,64 +60,61 @@ namespace rgatCore
 
         public void Dispose()
         {
-            if (_IrregularActionTimer != null) _IrregularActionTimer.Dispose();
+            _graphLock.EnterWriteLock();
         }
 
 
         public void SetActiveGraph(PlottedGraph graph)
         {
-            if (graph == ActiveGraph) return;
-
-
-            //todo - grab lock
-            if (graph == null)
+            _graphLock.EnterWriteLock();
             {
-                renderLock.AcquireWriterLock(0);
-                ActiveGraph = null;
-                renderLock.ReleaseWriterLock();
-                return;
+                if (graph == null)
+                {
+                    ActiveGraph = null;
+                }
+                else if (graph != ActiveGraph)
+                {
+                    ActiveGraph = graph;
+                    _layoutEngine.Set_activeGraph(ActiveGraph);
+                    RecreateGraphicsBuffers();
+                }
             }
-
-            renderLock.AcquireWriterLock(0);
-            ActiveGraph = graph;
-            _layoutEngine.Set_activeGraph(ActiveGraph);
-            RecreateGraphicsBuffers();
-            renderLock.ReleaseWriterLock();
+            _graphLock.ExitWriteLock();
         }
 
 
+        /// <summary>
+        /// Must have write lock to call
+        /// </summary>
         private void RecreateGraphicsBuffers()
         {
-            _EdgeVertBuffer?.Dispose();
+            VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
+            VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
+            VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
+            VeldridGraphBuffers.DoDispose(_NodePickingBuffer);
+
             _EdgeVertBuffer = _factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            _EdgeIndexBuffer?.Dispose();
             _EdgeIndexBuffer = _factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
 
             BufferDescription vbDescription = new BufferDescription(1, BufferUsage.VertexBuffer);
-            _NodeVertexBuffer?.Dispose();
             _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
-            _NodePickingBuffer?.Dispose();
             _NodePickingBuffer = _factory.CreateBuffer(vbDescription);
         }
 
 
-        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
 
         public void ApplyZoom(float delta)
         {
-            if (ActiveGraph != null)
-            {
-                ActiveGraph.ApplyMouseWheelDelta(delta);
-            }
+            ActiveGraph?.ApplyMouseWheelDelta(delta);
         }
 
         bool _isInputTarget = false;
         public void ApplyMouseDrag(Vector2 delta)
         {
-            if (ActiveGraph != null && _isInputTarget)
+            if (_isInputTarget)
             {
-                ActiveGraph.ApplyMouseDragDelta(delta);
+                ActiveGraph?.ApplyMouseDragDelta(delta);
             }
         }
         public void ApplyMouseRotate(Vector2 delta)
@@ -163,9 +154,16 @@ namespace rgatCore
 
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
+        /// Must have read lock to call
         /// </summary>
         bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null)
+            {
+                MaxRemaining = 0;
+                return false;
+            }
             if (_centeringInFrame == 1) _centeringSteps += 1;
 
 
@@ -181,7 +179,7 @@ namespace rgatCore
             {
                 delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
                 float maxdelta = Math.Max(delta, 35);
-                ActiveGraph.CameraZoom -= maxdelta;
+                graph.CameraZoom -= maxdelta;
                 MaxRemaining = maxdelta;
                 return false;
             }
@@ -196,7 +194,7 @@ namespace rgatCore
 
                 if (delta > 50)
                 {
-                    ActiveGraph.CameraZoom -= delta;
+                    graph.CameraZoom -= delta;
                     MaxRemaining = Math.Abs(delta);
                     return false;
                 }
@@ -268,23 +266,23 @@ namespace rgatCore
 
             float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
             if (xdelta > 0)
-                ActiveGraph.CameraXOffset += actualXdelta;
+                graph.CameraXOffset += actualXdelta;
             else
-                ActiveGraph.CameraXOffset -= actualXdelta;
+                graph.CameraXOffset -= actualXdelta;
 
             float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
             if (ydelta > 0)
-                ActiveGraph.CameraYOffset += actualYdelta;
+                graph.CameraYOffset += actualYdelta;
             else
-                ActiveGraph.CameraYOffset -= actualYdelta;
+                graph.CameraYOffset -= actualYdelta;
 
             float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
             if (zdelta > 0)
-                ActiveGraph.CameraZoom += actualZdelta;
+                graph.CameraZoom += actualZdelta;
             else
             {
                 if (zdelta < 0) actualZdelta *= 10;
-                ActiveGraph.CameraZoom -= actualZdelta;
+                graph.CameraZoom -= actualZdelta;
             }
 
             //weight the offsets higher
@@ -320,7 +318,7 @@ namespace rgatCore
 
         List<KEYPRESS_CAPTION> _keypressCaptions = new List<KEYPRESS_CAPTION>();
 
-        public void DisplayShortcutActivation(string shortcut, string action)
+        void DisplayShortcutActivation(string shortcut, string action)
         {
             //replace the keypress that activated the menu with the shortcut
             if (_keypressCaptions.Any() && (_keypressCaptions[^1].key.ToString()[0] == shortcut[0]))
@@ -361,8 +359,14 @@ namespace rgatCore
 
         public void AlertKeybindPressed(Tuple<Key, ModifierKeys> keyPressed, eKeybind boundAction)
         {
-            PlottedGraph activeGraph = ActiveGraph;
-            if (activeGraph == null) return;
+            _graphLock.EnterReadLock();
+
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null)
+            {
+                _graphLock.ExitReadLock();
+                return; 
+            }
 
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
@@ -378,25 +382,25 @@ namespace rgatCore
                 case eKeybind.MoveUp:
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraYOffset += delta;
+                    graph.CameraYOffset += delta;
                     break;
 
                 case eKeybind.MoveDown:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraYOffset -= delta;
+                    graph.CameraYOffset -= delta;
                     break;
 
                 case eKeybind.MoveLeft:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraXOffset -= delta;
+                    graph.CameraXOffset -= delta;
                     break;
 
                 case eKeybind.MoveRight:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    ActiveGraph.CameraXOffset += delta;
+                    graph.CameraXOffset += delta;
                     break;
 
                 case eKeybind.RollGraphZAnti:
@@ -447,19 +451,19 @@ namespace rgatCore
                     break;
 
                 case eKeybind.RaiseForceTemperature:
-                    ActiveGraph.IncreaseTemperature();
+                    graph.IncreaseTemperature();
                     break;
 
                 case eKeybind.ToggleAllText:
-                    ActiveGraph.TextEnabled = !ActiveGraph.TextEnabled;
+                    graph.TextEnabled = !graph.TextEnabled;
                     break;
 
                 case eKeybind.ToggleInsText:
-                    ActiveGraph.TextEnabledIns = !ActiveGraph.TextEnabledIns;
+                    graph.TextEnabledIns = !graph.TextEnabledIns;
                     break;
 
                 case eKeybind.ToggleLiveText:
-                    ActiveGraph.TextEnabledLive = !ActiveGraph.TextEnabledLive;
+                    graph.TextEnabledLive = !graph.TextEnabledLive;
                     break;
 
                 case eKeybind.Cancel:
@@ -477,6 +481,8 @@ namespace rgatCore
 
             if (GlobalConfig.ShowKeystrokes)
                 DisplayKeyPress(keyPressed, boundAction.ToString());
+
+            _graphLock.ExitReadLock();
         }
 
 
@@ -484,10 +490,25 @@ namespace rgatCore
 
         private float _pitchDelta, _yawDelta, _rollDelta = 0;
 
+        /// <summary>
+        /// Must hold read lock
+        /// </summary>
+        /// <param name="proj"></param>
+        /// <param name="view"></param>
+        /// <param name="world"></param>
         void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
-            if (ActiveGraph.CameraClippingFar <= ActiveGraph.CameraClippingNear) ActiveGraph.CameraClippingFar = ActiveGraph.CameraClippingNear + 1;
-            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)_graphWidgetSize.X / _graphWidgetSize.Y, ActiveGraph.CameraClippingNear, ActiveGraph.CameraClippingFar);
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null)
+            {
+                proj = Matrix4x4.Identity;
+                view = Matrix4x4.Identity;
+                world = Matrix4x4.Identity;
+                return;
+            }
+
+            if (graph.CameraClippingFar <= graph.CameraClippingNear) graph.CameraClippingFar = graph.CameraClippingNear + 1;
+            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)_graphWidgetSize.X / _graphWidgetSize.Y, graph.CameraClippingNear, graph.CameraClippingFar);
 
             Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
             Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
@@ -496,29 +517,28 @@ namespace rgatCore
 
             Matrix4x4 offsetRotation = pitch * yaw * roll;
 
-            world = ActiveGraph.RotationMatrix * offsetRotation;
+            world = graph.RotationMatrix * offsetRotation;
 
-            view = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
-            ActiveGraph.RotationMatrix = world;
+            view = Matrix4x4.CreateTranslation(new Vector3(graph.CameraXOffset, graph.CameraYOffset, graph.CameraZoom));
+            graph.RotationMatrix = world;
         }
 
 
         public void Draw(Vector2 graphSize)
         {
-            renderLock.AcquireReaderLock(200);
-            if (_IrregularActionTimerFired)
-                PerformIrregularActions();
+            _graphLock.EnterReadLock();
 
             if (ActiveGraph != null)
             {
-                DrawGraph();
+                DrawGraphImage();
             }
 
             drawHUD(graphSize);
-            renderLock.ReleaseReaderLock();
+
+            _graphLock.ExitReadLock();
         }
 
-        Framebuffer _outputFramebuffer, _pickingFrameBuffer;
+        Framebuffer _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
         bool processingAnimatedGraph;
 
         /// <summary>
@@ -529,17 +549,60 @@ namespace rgatCore
         /// </summary>
         Pipeline _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
-        Texture _outputTexture, _testPickingTexture, _pickingStagingTexture;
+        Texture _outputTexture1, _outputTexture2, _testPickingTexture, _pickingStagingTexture;
 
         //vert/frag rendering buffers
-        ResourceSet _crs_core, _crs_nodesEdges, _crs_font;
+        //ResourceSet _crs_core, _crs_nodesEdges, _crs_font;
+        ResourceSet  _crs_font;
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
         DeviceBuffer _FontVertBuffer, _FontIndexBuffer;
         DeviceBuffer _paramsBuffer;
 
-        public DeviceBuffer _animBuffer { get; private set; }
+
+        int latestWrittenTexture = 1;
+        //must hold upgradable read lock
+        void GetOutputFramebuffer(out Framebuffer drawtarget)
+        {
+            _graphLock.EnterWriteLock();
+            if (latestWrittenTexture == 1)
+            {
+                Logging.RecordLogEvent($"GetLatestTexture setting draw target to texture 2 --->", Logging.LogFilterType.BulkDebugLogFile);
+                drawtarget = _outputFramebuffer2;
+            }
+            else
+            {
+                Logging.RecordLogEvent("GetLatestTexture setting draw target to texture 1 --->", Logging.LogFilterType.BulkDebugLogFile);
+                drawtarget = _outputFramebuffer1;
+            }
+            _graphLock.ExitWriteLock();
+        }
+
+        void ReleaseOutputFramebuffer()
+        {
+            _graphLock.EnterWriteLock();
+            latestWrittenTexture = (latestWrittenTexture == 1) ? 2 : 1;
+            Logging.RecordLogEvent($"ReleaseOutputFramebuffer set latest written graph texture to {latestWrittenTexture} <----", Logging.LogFilterType.BulkDebugLogFile);
+
+            _graphLock.ExitWriteLock();
+        }
+
+        void GetLatestTexture(out Texture graphtexture)
+        {
+            if (latestWrittenTexture == 1)
+            {
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
+                graphtexture = _outputTexture1;
+            }
+            else
+            {
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
+                graphtexture = _outputTexture2;
+            }
+        }
+
+
 
         public unsafe void SetupRenderingResources()
         {
@@ -569,12 +632,12 @@ namespace rgatCore
             pipelineDescription.ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout };
             pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_factory, out _NodeVertexBuffer, out _NodeIndexBuffer);
 
-            Debug.Assert(_outputTexture == null);
-            Debug.Assert(_outputFramebuffer == null);
+            Debug.Assert(_outputTexture1 == null && _outputFramebuffer1 == null);
+            Debug.Assert(_outputTexture2 == null && _outputFramebuffer2 == null);
 
             RecreateOutputTextures();
 
-            pipelineDescription.Outputs = _outputFramebuffer.OutputDescription;
+            pipelineDescription.Outputs = _outputFramebuffer1.OutputDescription;
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
             _pointsPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
@@ -614,31 +677,43 @@ namespace rgatCore
                 new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, true, true),
                 PrimitiveTopology.TriangleList, fontshader,
                 new ResourceLayout[] { _coreRsrcLayout, _fontRsrcLayout },
-                _outputFramebuffer.OutputDescription);
+                _outputFramebuffer1.OutputDescription);
             _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
         }
 
 
         void RecreateOutputTextures()
         {
-            _outputTexture?.Dispose();
-            _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+
+            Logging.RecordLogEvent("RecreateOutputTextures DISPOSING ALL", Logging.LogFilterType.BulkDebugLogFile);
+            _graphLock.EnterWriteLock();
+            VeldridGraphBuffers.DoDispose(_outputTexture1);
+            VeldridGraphBuffers.DoDispose(_outputFramebuffer1);
+            VeldridGraphBuffers.DoDispose(_outputTexture2);
+            VeldridGraphBuffers.DoDispose(_outputFramebuffer2);
+            VeldridGraphBuffers.DoDispose(_testPickingTexture);
+            VeldridGraphBuffers.DoDispose(_pickingFrameBuffer);
+            VeldridGraphBuffers.DoDispose(_pickingStagingTexture);
+
+            _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+            _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
 
-            _outputFramebuffer?.Dispose();
-            _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+            _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+            _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
 
-            _testPickingTexture?.Dispose();
+
             _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
-            _pickingFrameBuffer?.Dispose();
             _pickingFrameBuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
 
-            _pickingStagingTexture?.Dispose();
             _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                     PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
+            _graphLock.ExitWriteLock();
+            Logging.RecordLogEvent("RecreateOutputTextures recreated", Logging.LogFilterType.BulkDebugLogFile);
         }
 
 
@@ -745,24 +820,23 @@ namespace rgatCore
         }
 
 
-        GraphShaderParams updateShaderParams(uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world)
+        GraphShaderParams updateShaderParams(PlottedGraph graph, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
         {
             GraphShaderParams shaderParams = new GraphShaderParams
             {
                 TexWidth = textureSize,
                 pickingNode = _mouseoverNodeID,
-                isAnimated = ActiveGraph.IsAnimated
+                isAnimated = graph.IsAnimated
             };
 
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(ActiveGraph.CameraXOffset, ActiveGraph.CameraYOffset, ActiveGraph.CameraZoom));
+            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(graph.CameraXOffset, graph.CameraYOffset, graph.CameraZoom));
 
             shaderParams.proj = projection;
             shaderParams.view = view;
             shaderParams.world = world;
             shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation);
 
-            _gd.UpdateBuffer(_paramsBuffer, 0, shaderParams);
-            _gd.WaitForIdle();
+            cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
 
             return shaderParams;
         }
@@ -792,6 +866,7 @@ namespace rgatCore
                 BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
                 _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
             }
+
             _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
             _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
             _gd.WaitForIdle();
@@ -820,8 +895,10 @@ namespace rgatCore
         void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null) return;
 
-            ActiveGraph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
+            graph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
                 out List<Tuple<uint, string>> currentLingeringExternLabels);
 
             //remove any lingering (ie - no expiry time) rising labvels which are no longer current
@@ -895,7 +972,10 @@ namespace rgatCore
         List<fontStruc> renderGraphText(List<Tuple<string, Color>> captions)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
-            if (!ActiveGraph.TextEnabled) return stringVerts;
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null) return stringVerts;
+            if (!graph.TextEnabled) return stringVerts;
+
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
                 if (captions[nodeIdx] == null) continue;
@@ -913,27 +993,34 @@ namespace rgatCore
         }
 
 
-        public void renderGraph(DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
+        public void renderGraph(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
+            if (drawnEdgeCount == 0) return;
 
+            Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
+            //todo - thread safe persistent commandlist
+            CommandList _cl = _factory.CreateCommandList();
+            _cl.Begin();
 
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _imageTextureView);
 
-            _crs_nodesEdges?.Dispose();
-            _crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
+            //VeldridGraphBuffers.DoDispose(_crs_nodesEdges);
+            ResourceSet crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
             //rotval += 0.01f; //autorotate
-            var textureSize = ActiveGraph.LinearIndexTextureSize();
+            var textureSize = graph.LinearIndexTextureSize();
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
-            updateShaderParams(textureSize, proj, view, world);
+            updateShaderParams(graph, textureSize, proj, view, world, _cl);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
-            _crs_core?.Dispose();
-            _crs_core = _factory.CreateResourceSet(crs_core_rsd);
+            //VeldridGraphBuffers.DoDispose(_crs_core);
+            //_crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
+            ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
 
-            Position2DColour[] NodeVerts = ActiveGraph.GetMaingraphNodeVerts(_renderingMode,
+            Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
             out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out _furthestX, out _furthestY, out _furthestZ);
@@ -941,43 +1028,40 @@ namespace rgatCore
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
-                _NodeVertexBuffer.Dispose();
-                _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
-                _NodePickingBuffer.Dispose();
-                _NodePickingBuffer = _factory.CreateBuffer(vbDescription);
+                VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
+                VeldridGraphBuffers.DoDispose(_NodePickingBuffer);
+                VeldridGraphBuffers.DoDispose(_NodeIndexBuffer);
 
+                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
+                _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
+                _NodePickingBuffer = _factory.CreateBuffer(vbDescription);
                 BufferDescription ibDescription = new BufferDescription((uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer);
-                _NodeIndexBuffer.Dispose();
                 _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
             }
 
+
             //todo - only do this on changes
-            _gd.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
-            _gd.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
-            _gd.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
+            _cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
+            _cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
+            _cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-            Position2DColour[] EdgeLineVerts = ActiveGraph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
 
-            if (drawnEdgeCount == 0) return;
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
-                _EdgeVertBuffer.Dispose();
+                VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
                 BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
-                _EdgeIndexBuffer.Dispose();
+                VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
                 BufferDescription eibDescription = new BufferDescription((uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer);
                 _EdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
             }
 
             //todo - only do this on changes
-            _gd.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            _gd.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
-            _gd.WaitForIdle();
+            _cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
+            _cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
-
-
+            Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
             List<fontStruc> stringVerts;
             if (_mouseoverNodeID == -1)
             {
@@ -993,56 +1077,56 @@ namespace rgatCore
             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
 
+            GetOutputFramebuffer(out Framebuffer drawtarget);
+
             //draw nodes and edges
-            CommandList _cl = _factory.CreateCommandList();
-            _cl.Begin();
-            _cl.SetFramebuffer(_outputFramebuffer);
+            _cl.SetFramebuffer(drawtarget);
             _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
 
-            if (ActiveGraph.NodesVisible)
+            if (graph.NodesVisible)
             {
                 _cl.SetPipeline(_pointsPipeline);
-                _cl.SetGraphicsResourceSet(0, _crs_core);
-                _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+                _cl.SetGraphicsResourceSet(0, crs_core);
+                _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
                 _cl.SetVertexBuffer(0, _NodeVertexBuffer);
                 _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
                 _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             }
 
-            if (ActiveGraph.EdgesVisible)
+            if (graph.EdgesVisible)
             {
                 _cl.SetPipeline(_edgesPipelineRelative);
-                _cl.SetGraphicsResourceSet(0, _crs_core);
-                _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+                _cl.SetGraphicsResourceSet(0, crs_core);
+                _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
                 _cl.SetVertexBuffer(0, _EdgeVertBuffer);
                 _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
                 _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             }
 
-            GeomPositionColour[] IllustrationEdges = ActiveGraph.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
+            GeomPositionColour[] IllustrationEdges = graph.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
 
             if (IllustrationEdges.Length > 0)
             {
 
                 if (_RawEdgeIndexBuffer == null || ((IllustrationEdges.Length * GeomPositionColour.SizeInBytes) > _RawEdgeIndexBuffer.SizeInBytes))
                 {
-                    _RawEdgeVertBuffer?.Dispose();
+                    VeldridGraphBuffers.DoDispose(_RawEdgeVertBuffer);
                     BufferDescription tvbDescription = new BufferDescription((uint)IllustrationEdges.Length * GeomPositionColour.SizeInBytes * 4, BufferUsage.VertexBuffer);
                     _RawEdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
 
-                    _RawEdgeIndexBuffer?.Dispose();
+                    VeldridGraphBuffers.DoDispose(_RawEdgeIndexBuffer);
                     BufferDescription eibDescription = new BufferDescription((uint)illusEdgeDrawIndexes.Count * sizeof(uint) * 4, BufferUsage.IndexBuffer);
                     _RawEdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
                 }
 
                 //todo - only do this on changes
-                _gd.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
-                _gd.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
+                _cl.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
+                _cl.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
 
                 _cl.SetPipeline(_edgesPipelineRaw);
-                _cl.SetGraphicsResourceSet(0, _crs_core);
+                _cl.SetGraphicsResourceSet(0, crs_core);
                 _cl.SetVertexBuffer(0, _RawEdgeVertBuffer);
                 _cl.SetIndexBuffer(_RawEdgeIndexBuffer, IndexFormat.UInt32);
                 _cl.DrawIndexed(indexCount: (uint)illusEdgeDrawIndexes.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
@@ -1050,23 +1134,24 @@ namespace rgatCore
 
 
             //draw text
-            if (ActiveGraph.TextEnabled)
+            if (graph.TextEnabled)
             {
                 _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
                 _cl.SetPipeline(_fontPipeline);
                 _cl.SetVertexBuffer(0, _FontVertBuffer);
                 _cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt16);
-                _cl.SetGraphicsResourceSet(0, _crs_core);
+                _cl.SetGraphicsResourceSet(0, crs_core);
                 _cl.SetGraphicsResourceSet(1, _crs_font);
+
                 _cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
 
             //update the picking framebuffer
             _cl.SetPipeline(_pickingPipeline);
-            _cl.SetGraphicsResourceSet(0, _crs_core);
-            _cl.SetGraphicsResourceSet(1, _crs_nodesEdges);
+            _cl.SetGraphicsResourceSet(0, crs_core);
+            _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
             _cl.SetVertexBuffer(0, _NodePickingBuffer);
             _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
             _cl.SetFramebuffer(_pickingFrameBuffer);
@@ -1080,18 +1165,40 @@ namespace rgatCore
             _gd.SubmitCommands(_cl);
             _gd.WaitForIdle();
 
+            ReleaseOutputFramebuffer();
 
-            //now draw the output to the screen
+            _cl.Dispose();
+            crs_core.Dispose();
+            crs_nodesEdges.Dispose();
+            Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
+        }
+
+
+        //draw the output to the screen
+        public void DrawGraphImage()
+        {
+            Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
+            if (currentRegionSize != _graphWidgetSize)
+            {
+                if (_newGraphSize == null || _newGraphSize != currentRegionSize)
+                    _newGraphSize = currentRegionSize;
+            }
+
+            _WidgetPos = ImGui.GetCursorScreenPos();
+            _MousePos = ImGui.GetMousePos();
+
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture);
+
+            GetLatestTexture(out Texture outputTexture);
+
+            Debug.Assert(!outputTexture.IsDisposed);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture);
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
-                p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
+                p_max: new Vector2(pos.X + outputTexture.Width, pos.Y + outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
+
             _isInputTarget = ImGui.IsItemActive();
-            _cl.Dispose();
-            _crs_core?.Dispose();
-            _crs_nodesEdges?.Dispose();
         }
 
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
@@ -1148,13 +1255,14 @@ namespace rgatCore
 
         public void DisplayEventMessages(Vector2 pos)
         {
-            if (ActiveGraph == null) return;
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null) return;
 
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             float depth = 20;//todo based on count 
             float maxWidth = 200;
 
-            TraceRecord trace = ActiveGraph.InternalProtoGraph.TraceData;
+            TraceRecord trace = graph.InternalProtoGraph.TraceData;
 
             Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime, max: 5);
 
@@ -1214,12 +1322,13 @@ namespace rgatCore
             Vector2 bottomLeft = new Vector2(topLeft.X, topLeft.Y + widgetSize.Y);
             Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y);
 
-            PlottedGraph activeGraph = ActiveGraph;
+            PlottedGraph graph = ActiveGraph;
 
-            if (activeGraph != null)
-                DrawLayoutSelector(bottomRight, 0.25f);
-
-            if (activeGraph == null)
+            if (graph != null)
+            {
+                DrawLayoutSelector(bottomRight, 0.25f, graph.LayoutStyle);
+            }
+            else
             {
                 msg = "No active graph to display";
                 Vector2 screenMiddle = new Vector2(bottomLeft.X + ((widgetSize.X / 2) - (ImGui.CalcTextSize(msg).X / 2)), bottomLeft.Y - (widgetSize.Y / 2));
@@ -1230,11 +1339,11 @@ namespace rgatCore
 
             if (GlobalConfig.ShowKeystrokes) DrawKeystrokes(topLeft);
 
-            _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
+            _QuickMenu.Draw(bottomLeft, 0.25f, graph);
 
 
             Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y / 2);
-            //DrawDisasmPreview(activeGraph, midRight);
+            //DrawDisasmPreview(graph, midRight);
         }
 
 
@@ -1283,7 +1392,7 @@ namespace rgatCore
 
 
 
-        void DrawLayoutSelector(Vector2 position, float scale)
+        void DrawLayoutSelector(Vector2 position, float scale, eGraphLayout layout)
         {
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
@@ -1294,7 +1403,7 @@ namespace rgatCore
 
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(getLayoutIcon(ActiveGraph.LayoutStyle), iconSize);
+            ImGui.ImageButton(getLayoutIcon(layout), iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
@@ -1338,73 +1447,56 @@ namespace rgatCore
 
         void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null) return;
             float buttonWidth = 150f;
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DNodes),
-                iconSize, buttonWidth, "Force Directed Nodes", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes))
+                iconSize, buttonWidth, "Force Directed Nodes", graph.LayoutStyle == eGraphLayout.eForceDirected3DNodes))
             {
-                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DNodes)) { _layoutEngine.ChangePreset(); }
+                if (!snappingToPreset && graph.SetLayout(eGraphLayout.eForceDirected3DNodes)) { _layoutEngine.ChangePreset(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eForceDirected3DBlocks),
-                iconSize, buttonWidth, "Force Directed Blocks", ActiveGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks))
+                iconSize, buttonWidth, "Force Directed Blocks", graph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks))
             {
-                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eForceDirected3DBlocks)) { _layoutEngine.ChangePreset(); }
+                if (!snappingToPreset && graph.SetLayout(eGraphLayout.eForceDirected3DBlocks)) { _layoutEngine.ChangePreset(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eCylinderLayout),
-                iconSize, buttonWidth, "Cylinder", ActiveGraph.LayoutStyle == eGraphLayout.eCylinderLayout))
+                iconSize, buttonWidth, "Cylinder", graph.LayoutStyle == eGraphLayout.eCylinderLayout))
             {
-                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCylinderLayout)) { _layoutEngine.ChangePreset(); }
+                if (!snappingToPreset && graph.SetLayout(eGraphLayout.eCylinderLayout)) { _layoutEngine.ChangePreset(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(eGraphLayout.eCircle),
-                iconSize, buttonWidth, "Circle", ActiveGraph.LayoutStyle == eGraphLayout.eCircle))
+                iconSize, buttonWidth, "Circle", graph.LayoutStyle == eGraphLayout.eCircle))
             {
-                if (!snappingToPreset && ActiveGraph.SetLayout(eGraphLayout.eCircle)) { _layoutEngine.ChangePreset(); }
+                if (!snappingToPreset && graph.SetLayout(eGraphLayout.eCircle)) { _layoutEngine.ChangePreset(); }
             }
         }
 
 
+        Vector2? _newGraphSize = null;
 
 
-        void HandleGraphUpdates()
+
+        /// <summary>
+        /// Converts the node/edge positions computed by the layout engine into a rendered image of points and lines
+        /// </summary>
+        public unsafe void GenerateMainGraph()
         {
-            Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
-            if (currentRegionSize != _graphWidgetSize)
-            {
-                _graphWidgetSize = currentRegionSize;
-                RecreateOutputTextures();
-            }
+            _graphLock.EnterUpgradeableReadLock();
 
-            bool newAttribs = false;
-            if (processingAnimatedGraph && !ActiveGraph.IsAnimated)
-            {
-                newAttribs = true;
-                processingAnimatedGraph = false;
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null || Exiting) {
+                _graphLock.ExitUpgradeableReadLock();
+                return; 
             }
-            else if (!processingAnimatedGraph && ActiveGraph.IsAnimated)
-            {
-                processingAnimatedGraph = true;
-            }
-            if (ActiveGraph.HighlightsChanged)
-            {
-                newAttribs = true;
-            }
-
-            if (newAttribs)
-            {
-                _layoutEngine.ResetNodeAttributes(ActiveGraph);
-                ActiveGraph.HighlightsChanged = false;
-            }
-        }
-
-        public unsafe void DrawGraph()
-        {
 
             HandleGraphUpdates();
 
-            _layoutEngine.Compute((uint)ActiveGraph.DrawnEdgesCount, _mouseoverNodeID, ActiveGraph.IsAnimated);
+            _layoutEngine.Compute(graph, _mouseoverNodeID, graph.IsAnimated);
 
             doPicking(_gd);
 
@@ -1438,17 +1530,60 @@ namespace rgatCore
                 }
             }
 
-
-            bool doDispose = FetchNodeBuffers(ActiveGraph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
-            renderGraph(positionBuf, nodeAttributesBuffer: attribBuf);
+            Logging.RecordLogEvent("GenerateMainGraph Starting fetchnodebuffers", filter: Logging.LogFilterType.BulkDebugLogFile);
+            bool doDispose = FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
+            Logging.RecordLogEvent("GenerateMainGraph Starting rendergra", filter: Logging.LogFilterType.BulkDebugLogFile);
+            renderGraph(graph, positionBuf, nodeAttributesBuffer: attribBuf);
             if (doDispose)
             {
-                positionBuf?.Dispose();
-                attribBuf?.Dispose();
+                Logging.RecordLogEvent("GenerateMainGraph disposing", filter: Logging.LogFilterType.BulkDebugLogFile);
+                VeldridGraphBuffers.DoDispose(positionBuf);
+                VeldridGraphBuffers.DoDispose(attribBuf);
             }
 
-            ActiveGraph.UpdatePreviewVisibleRegion(_graphWidgetSize);
+            Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
+            graph.UpdatePreviewVisibleRegion(_graphWidgetSize);
+            _graphLock.ExitUpgradeableReadLock();
         }
+
+
+        /// <summary>
+        /// must hold upgradable reader lock
+        /// </summary>
+        void HandleGraphUpdates()
+        {
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null || Exiting) return;
+            if (_newGraphSize != null)
+            {
+                Logging.RecordLogEvent($"Remaking textures as newgraphsize {_newGraphSize.Value} != current size {_graphWidgetSize}");
+                _graphWidgetSize = _newGraphSize.Value;
+                RecreateOutputTextures();
+                _newGraphSize = null;
+            }
+
+            bool newAttribs = false;
+            if (processingAnimatedGraph && !graph.IsAnimated)
+            {
+                newAttribs = true;
+                processingAnimatedGraph = false;
+            }
+            else if (!processingAnimatedGraph && graph.IsAnimated)
+            {
+                processingAnimatedGraph = true;
+            }
+            if (graph.HighlightsChanged)
+            {
+                newAttribs = true;
+            }
+
+            if (newAttribs)
+            {
+                _layoutEngine.ResetNodeAttributes(graph);
+                graph.HighlightsChanged = false;
+            }
+        }
+
 
 
         /*
@@ -1461,29 +1596,39 @@ namespace rgatCore
         {
             if (_layoutEngine.GetPositionsBuffer(graph, out posBuffer) && _layoutEngine.GetNodeAttribsBuffer(graph, out attribBuffer))
             {
+                Logging.RecordLogEvent("Fetchnodebuffs Got pos+atts from layout engine", filter: Logging.LogFilterType.BulkDebugLogFile);
                 return false;
             }
             else
             {
+                Logging.RecordLogEvent("Fetchnodebuffs posBuffer", filter: Logging.LogFilterType.BulkDebugLogFile);
                 posBuffer = CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
                 attribBuffer = CreateFloatsDeviceBuffer(graph.GetNodeAttribFloats(), _gd);
+                Logging.RecordLogEvent("Fetchnodebuffs done", filter: Logging.LogFilterType.BulkDebugLogFile);
                 return true;
             }
         }
 
+        Vector2 _WidgetPos;
+        Vector2 _MousePos;
 
         int _mouseoverNodeID = -1;
+        /// <summary>
+        /// Must hold read lock
         //Check if the mouse position corresponds to a node ID in the picking texture
         //If so - the mouse is over that nod
+        /// </summary>
+        /// <param name="_gd"></param>
         void doPicking(GraphicsDevice _gd)
         {
-            Vector2 WidgetPos = ImGui.GetCursorScreenPos();
-            Vector2 mpos = ImGui.GetMousePos();
-            float mouseX = (mpos.X - WidgetPos.X);
-            float mouseY = (WidgetPos.Y + _pickingStagingTexture.Height) - mpos.Y;
+
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null || Exiting) return;
+
+            float mouseX = (_MousePos.X - _WidgetPos.X);
+            float mouseY = (_WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;
 
             bool hit = false;
-
             //mouse is in graph widget
             if (mouseX > 0 && mouseY > 0 && mouseX < _pickingStagingTexture.Width && mouseY < _pickingStagingTexture.Height)
             {
@@ -1494,9 +1639,9 @@ namespace rgatCore
                 {
                     if (f.A == 1) //mouse is over a node
                     {
-                        if (f.R != _mouseoverNodeID && f.R < ActiveGraph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
+                        if (f.R != _mouseoverNodeID && f.R < graph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
                         {
-                            NodeData n = this.ActiveGraph.InternalProtoGraph.NodeList[(int)f.R];
+                            NodeData n = graph.InternalProtoGraph.NodeList[(int)f.R];
                             Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}");
                             _mouseoverNodeID = (int)f.R;
                         }
@@ -1512,19 +1657,29 @@ namespace rgatCore
         }
 
 
-        private void PerformIrregularActions()
+        public void PerformIrregularActions()
         {
-            if (ActiveGraph == null)
-                return;
 
+            if (!_graphLock.TryEnterReadLock(100)) return;
+
+
+            PlottedGraph graph = ActiveGraph;
+            if (graph == null || Exiting)
+            {
+                _graphLock.ExitReadLock();
+                return;
+            }
             //store latest positions for the preview graphs
 
-            _layoutEngine.LayoutPreviewGraphs(IgnoreGraph: ActiveGraph);
-
-            _layoutEngine.SaveComputeBuffers();
+            //_layoutEngine.LayoutPreviewGraphs(IgnoreGraph: graph);
+            //_layoutEngine.SaveComputeBuffers();
+            //_layoutEngine.Set_activeGraph(graph);
 
             //highlight new nodes with highlighted address
-            ActiveGraph.DoHighlightAddresses();
+            graph.DoHighlightAddresses();
+
+
+            _graphLock.ExitReadLock();
         }
 
 

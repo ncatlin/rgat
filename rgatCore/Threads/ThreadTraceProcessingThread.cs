@@ -193,10 +193,12 @@ namespace rgatCore.Threads
                             needWait = true;
                             break;
                         }
+                        /*
                         Logging.RecordLogEvent($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs",
                             graph: protograph,
                             trace: protograph.TraceData,
                             filter: Logging.LogFilterType.BulkDebugLogFile);
+                        */
 
                     }
                 }
@@ -392,8 +394,17 @@ namespace rgatCore.Threads
 
                     if (firstCallByThisNode)
                     {
+                        
                         thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
-                        protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+                        //todo this can be bad idx
+                        if (protograph.ProtoLastLastVertID > protograph.NodeList.Count)
+                        {
+                            protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+                        }
+                        else
+                        {
+                            Logging.RecordLogEvent($"Error - thunk caller index {protograph.ProtoLastLastVertID} not available", Logging.LogFilterType.TextError);
+                        }
                     }
 
                     uint calleridx = protograph.ProtoLastLastVertID;
@@ -815,7 +826,10 @@ namespace rgatCore.Threads
                     continue;
                 }
 
+
+
                 //if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 lock (debug_tag_lock)
                 {
@@ -849,9 +863,13 @@ namespace rgatCore.Threads
                             AddRepExecUpdate(msg);
                             break;
                         default:
+                            Logging.RecordLogEvent($"Bad trace tag {(char)msg[0]}", filter: Logging.LogFilterType.BulkDebugLogFile);
+
                             Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
                             Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                            protograph.TraceReader.StopFlag = true;
+
                             break;
                     }
                 }

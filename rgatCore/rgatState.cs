@@ -26,6 +26,8 @@ namespace rgatCore
         public DetectItEasy DIELib;
         public YARAScan YARALib;
 
+        public PreviewGraphsWidget PreviewWidget;
+
 
         private readonly object statelock = new object();
 
@@ -389,9 +391,9 @@ namespace rgatCore
         {
 
             bool valid = true;
-            valid = valid & saveJSON.TryGetValue("PID", out JToken jPID);
-            valid = valid & saveJSON.TryGetValue("PID_ID", out JToken jID);
-            valid = valid & saveJSON.TryGetValue("StartTime", out JToken jTime);
+            valid &= saveJSON.TryGetValue("PID", out JToken jPID);
+            valid &= saveJSON.TryGetValue("PID_ID", out JToken jID);
+            valid &= saveJSON.TryGetValue("StartTime", out JToken jTime);
 
             if (valid == false || jPID.Type != JTokenType.Integer ||
                 jID.Type != JTokenType.Integer)

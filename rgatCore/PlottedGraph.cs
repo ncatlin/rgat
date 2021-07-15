@@ -81,10 +81,7 @@ namespace rgatCore
 
         public void render_graph()
         {
-            lock (RenderingLock)
-            {
                 render_new_blocks();
-            }
         }
 
         //for tracking how big the graph gets
@@ -287,7 +284,8 @@ namespace rgatCore
 
                 if (edgeNodes.Item2 >= _graphStructureLinear.Count)
                 {
-                    EdgeData e = InternalProtoGraph.edgeDict[edgeNodes];
+                    EdgeData e = InternalProtoGraph.GetEdge(edgeNodes);
+                    Debug.Assert(e != null); //may just need to wait
                     //if (e.edgeClass == eEdgeNodeType.eEdgeException)
                     //    NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
                     AddNode(edgeNodes.Item2, e);
@@ -310,11 +308,35 @@ namespace rgatCore
             Debug.Assert(newVersion != ulong.MaxValue);
             renderFrameVersion = newVersion;
         }
-        public void UpdateRenderFrameVersion()
+        
+        public void BufferDownloadComplete(ulong newVersion)
         {
-            renderFrameVersion++;
+            textureLock.EnterWriteLock();
+            renderFrameVersion = newVersion;
+            BufferDownloadActive = false;
+            textureLock.ExitWriteLock();
         }
 
+        public bool BufferDownloadActive { get; private set; } = false;
+        public bool StartUpdateIfNewVersion(ulong newVersion)
+        {
+            if (newVersion <= renderFrameVersion) return false;
+
+            bool startDownload = false;
+            textureLock.EnterUpgradeableReadLock();
+            if (newVersion > renderFrameVersion)
+            {
+                textureLock.EnterWriteLock();
+                if (BufferDownloadActive == false)
+                {
+                    startDownload = true;
+                    BufferDownloadActive = true;
+                }
+                textureLock.ExitWriteLock();
+            }
+            textureLock.ExitUpgradeableReadLock();
+            return startDownload;
+        }
 
         float GetAttractionForce(EdgeData edge)
         {
@@ -339,55 +361,67 @@ namespace rgatCore
                     Console.WriteLine($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeIndex}");
                     return 1f;
             }
-
-            return 1f;
         }
 
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions)
         {
-            lock (RenderingLock)
+            Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{tid} size from {positionsArray1.Length} to {newPositions.Count}");
+            textureLock.EnterWriteLock();
             {
-                int floatCount = _computeBufferNodeCount * 4; //xyzw
+                int floatCount = newPositions.Count;//xyzw
                 if (positionsArray1.Length < floatCount)
-                    positionsArray1 = new float[floatCount];
+                    positionsArray1 = new float[floatCount]; //todo upgrade?
 
                 for (var i = 0; i < floatCount; i++)
                 {
                     positionsArray1[i] = newPositions[i];
                 }
             }
+            textureLock.ExitWriteLock();
 
         }
 
         //This is assumed to never shrink
         public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, uint count)
         {
-            lock (this.RenderingLock)
+            Logging.RecordLogEvent($"UpdateNodeVelocities called changing grp_{tid} velsize from {velocityArray1.Length} to {count}");
+            textureLock.EnterWriteLock();
             {
                 if (velocityArray1.Length < count)
                     velocityArray1 = new float[count];
                 for (var i = 0; i < count; i++)
                     velocityArray1[i] = newVelocities[i];
             }
+            textureLock.ExitWriteLock();
         }
 
 
         public float[] GetVelocityFloats()
         {
             //Console.WriteLine($"Getvelocity floats returning {velocityArray1.Length} floats");
-            lock (RenderingLock)
-            {
-                return velocityArray1.ToArray();
-            }
+            textureLock.EnterReadLock();
+            if (BufferDownloadActive)
+                WaitforBufferDownload();
+
+                Debug.Assert(!BufferDownloadActive);
+
+                var result = velocityArray1.ToArray();
+                textureLock.ExitReadLock();
+                return result;
         }
+
         public float[] GetPositionFloats()
         {
             //Console.WriteLine($"GetPositionFloats floats returning {positionsArray1.Length} floats");
-            lock (RenderingLock)
-            {
-                return positionsArray1.ToArray();
-            }
+            textureLock.EnterReadLock();
+            if (BufferDownloadActive)
+                WaitforBufferDownload();
+                Debug.Assert(!BufferDownloadActive);
+
+                var result = positionsArray1.ToArray();
+                textureLock.ExitReadLock();
+                return result;
 
         }
         public float[] GetNodeAttribFloats()
@@ -450,7 +484,6 @@ namespace rgatCore
                         Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
                         return false;
                     }
-                    break;
             }
         }
 
@@ -865,6 +898,9 @@ namespace rgatCore
                     newVelocityArr1[i] = velocityArray1[i];
                     newPositionsArr1[i] = positionsArray1[i];
                     newAttsArr1[i] = nodeAttribArray1[i];
+                }
+                for (var i = 0; i < presetPositionsArray.Length; i++)
+                {
                     newPresetsArray[i] = presetPositionsArray[i];
                 }
             }
@@ -885,11 +921,24 @@ namespace rgatCore
 
         }
 
-
+        void WaitforBufferDownload()
+        {
+            while (BufferDownloadActive)
+            {
+                textureLock.ExitReadLock();
+                Thread.Sleep(4);
+                textureLock.EnterReadLock();
+            }
+        }
 
         unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
         {
             Debug.Assert(nodeIdx == _graphStructureLinear.Count);
+
+            textureLock.EnterReadLock();
+            if (BufferDownloadActive)
+                WaitforBufferDownload();
+
 
             var bounds = 1000;
             var bounds_half = bounds / 2;
@@ -902,12 +951,21 @@ namespace rgatCore
 
             uint currentOffset = (futureCount - 1) * 4;
 
-            if (bufferSize > oldVelocityArraySize || currentOffset >= oldVelocityArraySize) //todo this is bad
+            Debug.Assert(!BufferDownloadActive);
+            Debug.Assert(positionsArray1.Length == velocityArray1.Length);
+            Debug.Assert(nodeAttribArray1.Length == positionsArray1.Length);
+
+            if (bufferSize > oldVelocityArraySize ||
+                currentOffset >= oldVelocityArraySize || 
+                presetPositionsArray.Length != positionsArray1.Length
+                ) //todo this is bad
             {
                 uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
                 Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.LogFilterType.TextDebug);
                 EnlargeRAMDataBuffers(newSize);
             }
+
+            Debug.Assert(presetPositionsArray.Length == velocityArray1.Length);
 
             //possible todo here - shift Y down as the index increases
             Random rnd = new Random();
@@ -944,6 +1002,7 @@ namespace rgatCore
                 _graphStructureLinear.Add(connectedNodeIDs);
                 _graphStructureBalanced.Add(connectedNodeIDs);
             }
+            textureLock.ExitReadLock();
         }
 
 
@@ -1047,12 +1106,16 @@ namespace rgatCore
                 }
                 else
                 {
-                    Debug.Assert(firstIdx_LastIdx.Item1 < firstIdx_LastIdx.Item2);
-                    uint centerNodeID = firstIdx_LastIdx.Item1 + (uint)Math.Ceiling((double)(firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) / 2.0);
+                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[blockIdx].Item2;
+                    int midIdx = (int)Math.Ceiling((block.Count - 1.0) / 2.0);
+                    var middleIns = block[midIdx];
+                    if (!middleIns.GetThreadVert(tid, out uint centerNodeID))
+                    {
+                        centerNodeID = 0; //?
+                        Debug.Assert(false);
+                    }
                     blockMiddles[blockIdx] = (int)centerNodeID;
                 }
-
-                Debug.Assert(blockMiddles[blockIdx] >= firstIdx_LastIdx.Item1 && blockMiddles[blockIdx] <= firstIdx_LastIdx.Item2);
             }
 
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
@@ -1272,7 +1335,10 @@ namespace rgatCore
         public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
         {
 
-            EdgeData e = InternalProtoGraph.edgeDict[edge]; //todo - thread safe dict access or caching
+            if (!InternalProtoGraph.EdgeExists(edge, out EdgeData? e))
+            {
+                return new WritableRgbaFloat(0f, 0f, 0f, 1);
+            }
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1318,8 +1384,9 @@ namespace rgatCore
                             label += "<";
                             foreach (int nidx in n.OutgoingNeighboursSet)
                             {
-                                EdgeData e = InternalProtoGraph.edgeDict[new Tuple<uint, uint>(n.index, (uint)nidx)];
-                                label += $" {nidx}:{e.executionCount}, ";
+                                EdgeData targEdge = InternalProtoGraph.GetEdge(n.index, (uint)nidx);
+                                if (targEdge != null)
+                                    label += $" {nidx}:{targEdge.executionCount}, ";
                             }
                             label += ">";
                         }
@@ -1363,6 +1430,7 @@ namespace rgatCore
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
+
             for (uint y = 0; y < textureSize; y++)
             {
                 for (uint x = 0; x < textureSize; x++)
@@ -1574,8 +1642,12 @@ namespace rgatCore
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];
-                uint callerIdx = callers.Find(n => n.Item2 == _lastAnimatedVert).Item2;
+                var caller = callers.Find(n => n.Item2 == _lastAnimatedVert);
+                if (caller == null) return;
+
+                uint callerIdx = caller.Item2;
                 LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, callerIdx);
+
 
             }
             else
@@ -1686,7 +1758,7 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
-                Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times", 
+                Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times",
                     Logging.LogFilterType.BulkDebugLogFile);
                 ++updateProcessingIndex;
                 return true;
@@ -1949,21 +2021,26 @@ namespace rgatCore
 
         public void InitPreviewTexture(Vector2 size, GraphicsDevice _gd)
         {
-            if (_previewTexture != null)
+            if (_previewTexture1 != null)
             {
-                if (_previewTexture.Width != size.X || _previewTexture.Height != size.Y)
+                if (_previewTexture1.Width == size.X && _previewTexture1.Height == size.Y)
                 {
-                    _previewFramebuffer.Dispose();
-                    _previewTexture.Dispose();
-                }
-                else
                     return;
+                }
+                _previewFramebuffer1.Dispose();
+                _previewTexture1.Dispose();
+                _previewFramebuffer2.Dispose();
+                _previewTexture2.Dispose();
             }
 
-            _previewTexture = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+            _previewTexture1 = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
                                 width: (uint)size.X, height: (uint)size.Y, mipLevels: 1, arrayLayers: 1,
                                 format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _previewFramebuffer = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture));
+            _previewFramebuffer1 = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture1));
+            _previewTexture2 = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+                                width: (uint)size.X, height: (uint)size.Y, mipLevels: 1, arrayLayers: 1,
+                                format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
+            _previewFramebuffer2 = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture2));
         }
 
         public bool HighlightsChanged;
@@ -2101,8 +2178,10 @@ namespace rgatCore
             lock (animationLock)
             {
                 pulseNodes = _PulseActiveNodes.ToList();
+
                 _PulseActiveNodes.Clear();
                 lingerNodes = _LingeringActiveNodes.ToList();
+                lingerNodes.Add(_lastAnimatedVert);//make the most recent node pulse, useful for blocking api calls
                 deactivatedNodes = _DeactivatedNodes.ToArray();
                 _DeactivatedNodes = Array.Empty<uint>();
 
@@ -2372,9 +2451,45 @@ namespace rgatCore
         public float[] presetPositionsArray = Array.Empty<float>();
         public ulong renderFrameVersion;
 
+        ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
+        Veldrid.Texture _previewTexture1, _previewTexture2;
+        public Veldrid.Framebuffer _previewFramebuffer1, _previewFramebuffer2;
 
-        public Veldrid.Texture _previewTexture;
-        public Veldrid.Framebuffer _previewFramebuffer;
+        int latestWrittenTexture = 1;
+        public void GetPreviewFramebuffer(out Framebuffer drawtarget)
+        {
+            textureLock.EnterWriteLock();
+            if (latestWrittenTexture == 1)
+            {
+                drawtarget = _previewFramebuffer2;
+            }
+            else
+            {
+                drawtarget = _previewFramebuffer1;
+            }
+            textureLock.ExitWriteLock();
+        }
+
+        public void ReleasePreviewFramebuffer()
+        {
+            textureLock.EnterWriteLock();
+            latestWrittenTexture = latestWrittenTexture == 1 ? 2 : 1;
+            textureLock.ExitWriteLock();
+        }
+
+        public void GetLatestTexture(out Texture graphtexture)
+        {
+            textureLock.EnterReadLock();
+            if (latestWrittenTexture == 1)
+            {
+                graphtexture = _previewTexture1;
+            }
+            else
+            {
+                graphtexture = _previewTexture2;
+            }
+            textureLock.ExitReadLock();
+        }
 
         //todo - methods
         public float CameraZoom = -5000;
@@ -2388,9 +2503,6 @@ namespace rgatCore
         public float CameraClippingFar = 60000;
         public float CameraClippingNear = 1; //extern jut
         public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
-
-
-        public readonly Object RenderingLock = new Object();
 
         public uint pid { get; private set; }
         public uint tid { get; private set; }

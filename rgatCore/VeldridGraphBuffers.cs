@@ -14,29 +14,12 @@ namespace rgatCore
 
         //LineStrip
         Pipeline _linesPipeline;
-        Position2DColour[] _EdgeLineVertices;
-        DeviceBuffer _EdgeLineVertexBuffer;
-        DeviceBuffer _EdgeLineIndexBuffer;
-
         //LineList
         Pipeline _IllustrationLinePipeline;
-        Position2DColour[] _IllustrationLineVertices;
-        DeviceBuffer _IllustrationLineVertexBuffer;
-        DeviceBuffer _IllustrationLineIndexBuffer;
-
         //Nodes
         Pipeline _pointsPipeline;
-        Position2DColour[] _PointVertices;
-        DeviceBuffer _PointVertexBuffer;
-        DeviceBuffer _PointIndexBuffer;
-
-
         //Triangles
         Pipeline _trianglesPipeline;
-        Position2DColour[] _TriangleVertices;
-        DeviceBuffer _TriangleVertexBuffer;
-        DeviceBuffer _TriangleIndexBuffer;
-        
 
         ResourceSet _projViewSet;
         public DeviceBuffer _viewBuffer { get; private set; }
@@ -169,19 +152,41 @@ namespace rgatCore
             return readback;
         }
 
+        public static void DoDispose(Texture tx)
+        {
+            if (tx != null && tx.IsDisposed == false) tx.Dispose();
+        }
+        public static void DoDispose(Framebuffer fb)
+        {
+            if (fb != null && fb.IsDisposed == false) fb.Dispose();
+        }
+        public static void DoDispose(ResourceSet rs)
+        {
+            if (rs != null && rs.IsDisposed == false) rs.Dispose();
+        }
+        public static void DoDispose(DeviceBuffer db)
+        {
+            if (db != null && db.IsDisposed == false) db.Dispose();
+        }
 
         public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev)
         {
             BufferDescription bd = new BufferDescription((uint)floats.Length * sizeof(float), BufferUsage.StructuredBufferReadWrite, 4);
-            DeviceBuffer newBuffer = gdev.ResourceFactory.CreateBuffer(bd);
+            DeviceBuffer buffer = gdev.ResourceFactory.CreateBuffer(bd);
 
+            Logging.RecordLogEvent($"CreateFloatsDevBuf {buffer.SizeInBytes}, {floats.Length * sizeof(float)}");
             fixed (float* dataPtr = floats)
             {
-                gdev.UpdateBuffer(newBuffer, 0, (IntPtr)dataPtr, (uint)floats.Length * sizeof(float));
+                CommandList cl = gdev.ResourceFactory.CreateCommandList();
+                cl.Begin();
+                cl.UpdateBuffer(buffer, 0, (IntPtr)dataPtr, buffer.SizeInBytes);
+                cl.End();
+                gdev.SubmitCommands(cl);
                 gdev.WaitForIdle();
+                cl.Dispose();
             }
 
-            return newBuffer;
+            return buffer;
         }
 
 

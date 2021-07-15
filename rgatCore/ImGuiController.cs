@@ -324,6 +324,7 @@ namespace ImGuiNET
         {
             if (!_autoViewsByTexture.TryGetValue(texture, out TextureView textureView))
             {
+                Debug.Assert(!texture.IsDisposed);
                 textureView = factory.CreateTextureView(texture);
                 _autoViewsByTexture.Add(texture, textureView);
                 _ownedResources.Add(textureView);
@@ -392,19 +393,20 @@ namespace ImGuiNET
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
 
-            using (Stream s = assembly.GetManifestResourceStream(resourceName))
+            using Stream resourceStream = assembly.GetManifestResourceStream(resourceName);
+            if (resourceStream == null)
             {
-                if (s == null)
-                {
-                    String[] rns = assembly.GetManifestResourceNames();
-                    String[] rns2 = Assembly.GetExecutingAssembly().GetManifestResourceNames();
-                    Console.WriteLine("ERROR: Failed to find resource " + resourceName);
-                }
-                byte[] ret = new byte[s.Length];
-                s.Read(ret, 0, (int)s.Length);
+                Logging.RecordLogEvent("ERROR: Failed to find resource " + resourceName, filter: Logging.LogFilterType.TextError);
+                return null;
+            }
+            else
+            {
+                byte[] ret = new byte[resourceStream.Length];
+                resourceStream.Read(ret, 0, (int)resourceStream.Length);
                 return ret;
             }
         }
+
 
         /// <summary>
         /// Recreates the device texture used to render text.
@@ -605,7 +607,7 @@ namespace ImGuiNET
         }
 
 
-        private void SetupUIProjection(ImDrawDataPtr draw_data)
+        private void SetupUIProjection(ImDrawDataPtr draw_data, CommandList cl)
         {
             // Setup orthographic projection matrix into our constant buffer
             ImGuiIOPtr io = ImGui.GetIO();
@@ -613,7 +615,7 @@ namespace ImGuiNET
             const float far = 1.0f;
             Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(0f, io.DisplaySize.X, io.DisplaySize.Y, 0.0f, near, far);
 
-            _gd.UpdateBuffer(_projMatrixBuffer, 0, ref mvp);
+            cl.UpdateBuffer(_projMatrixBuffer, 0, ref mvp);
 
             draw_data.ScaleClipRects(io.DisplayFramebufferScale);
         }
@@ -704,7 +706,7 @@ namespace ImGuiNET
 
             LoadCommandBuffers(draw_data, cl);
 
-            SetupUIProjection(draw_data);
+            SetupUIProjection(draw_data, cl);
 
             cl.SetVertexBuffer(0, _vertexBuffer);
             cl.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);

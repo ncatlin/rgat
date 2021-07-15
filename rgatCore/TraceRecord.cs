@@ -54,7 +54,7 @@ namespace rgatCore
         public bool GetThreadVert(uint TID, out uint vert)
         {
             if (threadvertIdx == null)
-            { 
+            {
                 vert = uint.MaxValue;
                 return false;
             }
@@ -276,11 +276,6 @@ namespace rgatCore
         }
 
 
-
-        /*
-		void serialiseThreads(rapidjson::Writer<rapidjson::FileWriteStream> &writer);
-		void serialiseTimeline(rapidjson::Writer<rapidjson::FileWriteStream> &writer) { runtimeline.serialise(writer); };
-		*/
         void killTraceProcess() { if (IsRunning) { killed = true; } }
         bool should_die() { return killed; }
 
@@ -295,76 +290,87 @@ namespace rgatCore
 
         public void RecordTimelineEvent(Logging.eTimelineEvent type, TraceRecord trace = null, ProtoGraph graph = null)
         {
-            lock (_logLock)
+            int currentCount;
+            switch (type)
             {
-                int currentCount;
-                switch (type)
-                {
-                    case Logging.eTimelineEvent.ProcessStart:
+                case Logging.eTimelineEvent.ProcessStart:
+                    {
+                        Debug.Assert(trace != null);
+
+                        lock (_logLock)
                         {
-                            Debug.Assert(trace != null);
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
                             runningProcesses += 1;
                             _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
                             _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                         }
-                        break;
-                    case Logging.eTimelineEvent.ProcessEnd:
+                    }
+                    break;
+                case Logging.eTimelineEvent.ProcessEnd:
+                    {
+                        Debug.Assert(trace != null);
+                        //might have been terminated by other means
+                        if (trace.TraceState != eTraceState.eTerminated)
                         {
-                            Debug.Assert(trace != null);
-                            //might have been terminated by other means
-                            if (trace.TraceState != eTraceState.eTerminated)
+                            runningProcesses -= 1;
+                            SetTraceState(eTraceState.eTerminated);
+
+                            if (runningThreads != 0)
                             {
-                                _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
-                                runningProcesses -= 1;
-                                SetTraceState(eTraceState.eTerminated);
-
-                                if (runningThreads != 0)
+                                Logging.RecordLogEvent("Got process terminate event with running threads. Forcing state to terminated");
+                                var graphs = trace.GetProtoGraphs();
+                                foreach (ProtoGraph pgraph in graphs)
                                 {
-                                    Logging.RecordLogEvent("Got process terminate event with running threads. Forcing state to terminated");
-                                    var graphs = trace.GetProtoGraphs();
-                                    foreach (ProtoGraph pgraph in graphs)
+                                    if (!pgraph.Terminated)
                                     {
-                                        if (!pgraph.Terminated)
-                                        {
 
-                                            Logging.RecordLogEvent($"Setting state of TID{pgraph.ThreadID}, PID{pgraph.TraceData.PID} to terminated");
-                                            pgraph.SetTerminated();
-                                        }
+                                        Logging.RecordLogEvent($"Setting state of TID{pgraph.ThreadID}, PID{pgraph.TraceData.PID} to terminated");
+                                        pgraph.SetTerminated();
                                     }
-
                                 }
 
+                            }
+
+                            lock (_logLock)
+                            {
+                                _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
                                 _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
                                 _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                             }
                         }
-                        break;
-                    case Logging.eTimelineEvent.ThreadStart:
+                    }
+                    break;
+                case Logging.eTimelineEvent.ThreadStart:
+                    {
+                        Debug.Assert(graph != null);
+                        lock (_logLock)
                         {
-                            Debug.Assert(graph != null);
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads += 1;
                             _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                             _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
-                        break;
-                    case Logging.eTimelineEvent.ThreadEnd:
+                    }
+                    break;
+                case Logging.eTimelineEvent.ThreadEnd:
+                    {
+                        Debug.Assert(graph != null);
+                        Debug.Assert(runningThreads > 0);
+                        lock (_logLock)
                         {
-                            Debug.Assert(graph != null);
-                            Debug.Assert(runningThreads > 0);
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads -= 1;
                             if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
                             _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                             _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
-                        break;
-                    default:
-                        Debug.Assert(false, "Timeline event has no assigned filter");
-                        break;
-                }
+                    }
+                    break;
+                default:
+                    Debug.Assert(false, "Timeline event has no assigned filter");
+                    break;
             }
+
         }
 
         ulong uniqAPICallIdx = 0;
@@ -730,7 +736,7 @@ namespace rgatCore
 
             for (var i = 0; i < _timeline.Count; i++)
             {
-                Logging.TIMELINE_EVENT evt = _timeline[i];
+                TIMELINE_EVENT evt = _timeline[i];
                 timeline.Add(evt.Serialise());
             }
 
@@ -758,14 +764,11 @@ namespace rgatCore
             catch (UnauthorizedAccessException e)
             {
                 Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.LogFilterType.TextInfo);
-                return null;
             }
             catch
             {
                 Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.LogFilterType.TextInfo);
-                return null;
             }
-
             return null;
         }
 
@@ -776,13 +779,13 @@ namespace rgatCore
                 Logging.RecordLogEvent($"\tWarning: Missing or bad timeline in trace save", Logging.LogFilterType.TextInfo);
                 return false;
             }
-            _timeline = new List<Logging.TIMELINE_EVENT>();
+            _timeline = new List<TIMELINE_EVENT>();
             JArray arr = arrTok.ToObject<JArray>();
             foreach (JToken tlTok in arr)
             {
                 if (tlTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", Logging.LogFilterType.TextInfo);
+                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", LogFilterType.TextInfo);
                     return false;
                 }
                 Logging.TIMELINE_EVENT evt = new Logging.TIMELINE_EVENT(tlTok.ToObject<JObject>(), this);
@@ -799,16 +802,16 @@ namespace rgatCore
                         case Logging.eTimelineEvent.ProcessStart:
                         case Logging.eTimelineEvent.ProcessEnd:
                             {
-                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out int currentCountp);
-                                _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCountp + 1;
+                                _tlFilterCounts.TryGetValue(LogFilterType.TimelineProcess, out int currentCountp);
+                                _tlFilterCounts[LogFilterType.TimelineProcess] = currentCountp + 1;
                                 _timeline.Add(evt);
                             }
                             break;
                         case Logging.eTimelineEvent.ThreadStart:
                         case Logging.eTimelineEvent.ThreadEnd:
                             {
-                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out int currentCountt);
-                                _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCountt + 1;
+                                _tlFilterCounts.TryGetValue(LogFilterType.TimelineThread, out int currentCountt);
+                                _tlFilterCounts[LogFilterType.TimelineThread] = currentCountt + 1;
                                 _timeline.Add(evt);
                             }
                             break;

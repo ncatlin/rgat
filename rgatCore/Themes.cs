@@ -206,11 +206,11 @@ namespace rgatCore
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key.ToString()}"); return false;
+                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
                     }
                     if (customcolType >= eThemeColour.COUNT)
                     {
-                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key.ToString()}"); return false;
+                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}"); return false;
                     }
                     if (item.Value.Type != JTokenType.Integer)
                     {
@@ -235,7 +235,7 @@ namespace rgatCore
                     }
                     if (stdcolType >= ImGuiCol.COUNT)
                     {
-                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key}"); return false;
                     }
                     if (item.Value.Type != JTokenType.Integer)
                     {
@@ -256,11 +256,11 @@ namespace rgatCore
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key.ToString()}"); return false;
+                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
                     }
                     if (sizeType >= eThemeSize.COUNT)
                     {
-                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key.ToString()}"); return false;
+                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
                     }
                     if (item.Value.Type != JTokenType.Float)
                     {

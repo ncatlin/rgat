@@ -61,7 +61,6 @@ namespace rgatCore
                     }
                 }
                 throw new NotImplementedException($"ConvertTo can't convert type {value.GetType()} to {destinationType}");
-                return null;
             }
         }
 
@@ -908,7 +907,6 @@ namespace rgatCore
                 default:
                     Logging.RecordLogEvent($"Bad nonbinary path setting: {setting} => {path}", Logging.LogFilterType.TextError);
                     return;
-                    break;
             }
             if (save)
             {

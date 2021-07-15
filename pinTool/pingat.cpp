@@ -1434,7 +1434,7 @@ bool establishRGATConnection(std::string programName)
 					GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
 					NULL);
 
-				if (bbpipe == -1 && time > 1600 & (time % 600 == 0))
+				if (bbpipe == -1 && time > 1600 && (time % 600 == 0))
 				{
 					std::cout << "Failing to connect to block pipe [" << bbpipename << "]. Error:";
 					int err = WINDOWS::GetLastError();

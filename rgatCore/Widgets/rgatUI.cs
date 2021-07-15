@@ -52,6 +52,7 @@ namespace rgatCore
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
         double _UIstartupProgress = 0;
+        List<double> _lastFrameTimeMS = new List<double>();
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
@@ -88,28 +89,29 @@ namespace rgatCore
             _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
             _UIstartupProgress = 0.55;
 
-            RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
-            mainRenderThreadObj = new MainGraphRenderThread(_rgatstate);
-            
-            
-            
-            heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);
-            
-            
-            
-            //todo - conditional thread here instead of new trace
-            processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
-            _UIstartupProgress = 0.6;
 
             RecordLogEvent("Startup: Initing graph display widgets", LogFilterType.TextDebug);
 
             _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
 
-            _UIstartupProgress = 0.7;
+            _UIstartupProgress = 0.60;
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500)); //1000~ ms
 
             _UIstartupProgress = 0.9;
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate); //350~ ms
+            _rgatstate.PreviewWidget = PreviewGraphWidget;
+
+
+            RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
+            mainRenderThreadObj = new MainGraphRenderThread(_rgatstate, MainGraphWidget);
+
+            heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
+
+            //todo - conditional thread here instead of new trace
+            processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
+            _UIstartupProgress = 0.95;
+
+
 
             RecordLogEvent("Startup: Initing layout engines", LogFilterType.TextDebug);
             _UIstartupProgress = 0.99;
@@ -137,6 +139,7 @@ namespace rgatCore
             if (GlobalConfig.BulkLogging) 
                 Logging.RecordLogEvent("rgat Exit() triggered", LogFilterType.BulkDebugLogFile);
 
+            MainGraphWidget?.Dispose();
             _rgatstate?.ShutdownRGAT();
         }
 
@@ -191,6 +194,9 @@ namespace rgatCore
 
         public void DrawUI()
         {
+            var timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+
             bool hasActiveTrace = _rgatstate?.ActiveTarget != null;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
@@ -237,6 +243,10 @@ namespace rgatCore
 
             ImGui.End();
 
+            timer.Stop();
+            _lastFrameTimeMS.Add(timer.ElapsedMilliseconds);
+            if (_lastFrameTimeMS.Count > 10)
+                _lastFrameTimeMS = _lastFrameTimeMS.Skip(1).Take(10).ToList();
         }
 
 
@@ -1453,7 +1463,6 @@ namespace rgatCore
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-
                 PreviewGraphWidget.DrawWidget();
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
@@ -1522,9 +1531,8 @@ namespace rgatCore
             }
 
 
-            //ImGui.GetWindowDrawList().AddRectFilled(SliderRectStart, SliderRectEnd, 0xff000000);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
-            _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.InternalProtoGraph);
+            _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.InternalProtoGraph); //todo remove from ui thread
             _visualiserBar.Draw();
 
 
@@ -1903,7 +1911,7 @@ namespace rgatCore
                         foreach (var timepid in tracelist)
                         {
                             TraceRecord selectableTrace = timepid.Item2;
-                            if (ImGui.Selectable("PID " + selectableTrace.PID, _rgatstate.ActiveGraph?.pid == selectableTrace.PID))
+                            if (ImGui.Selectable("PID " + selectableTrace.PID, graph.TraceData.PID == selectableTrace.PID))
                             {
                                 _rgatstate.SelectActiveTrace(selectableTrace);
                             }
@@ -1963,13 +1971,7 @@ namespace rgatCore
                     ImGui.Text($"Edges: {graph.EdgeList.Count}");
                     ImGui.Text($"Nodes: {graph.NodeList.Count}");
                     ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
-                    if (graph.TraceReader != null)
-                    {
-                        if (graph.TraceReader.QueueSize > 0)
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
-                        else
-                            ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
-                    }
+                    ImGui.Text($"Instructions: {graph.TotalInstructions}");
 
                     ImGui.EndChild();
                 }
@@ -1978,16 +1980,56 @@ namespace rgatCore
 
                 if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                 {
-                    ImGui.Text($"Instructions: {graph.TotalInstructions}");
+                    if (graph.TraceReader != null)
+                    {
+                        if (graph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
+                        else
+                            ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
+                    }
+
                     if (graph.PerformingUnchainedExecution)
                     {
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
                     }
                     else
-                        ImGui.Text("Busy: False");
+                    { 
+                        ImGui.Text("Busy: False"); 
+                    }
+                    SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
 
-                    ImGui.Text($"BRepQu: {_rgatstate.ActiveGraph.InternalProtoGraph.TraceProcessor.PendingBlockRepeats}");
-                    ImGui.Text($"BRTime: {_rgatstate.ActiveGraph.InternalProtoGraph.TraceProcessor.LastBlockRepeatsTime}");
+                    ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
+                    string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                    if (traceProcessor.PendingBlockRepeats > 0)
+                    {
+                        BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                    }
+                    ImGui.Text($"BRepQu: {BrQlab}");
+
+                    double uifps = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
+
+
+                    if (uifps >= 100)
+                    { 
+                        ImGui.Text($"UI FPS: 100+"); 
+                    }
+                    else
+                    {
+                        uint fpscol;
+                        if (uifps >= 40)
+                            fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                        else if (uifps < 40 && uifps >= 10)
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                        else
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+
+                        ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
+                        ImGui.Text($"UI FPS: {uifps:0.#}");
+                        ImGui.PopStyleColor();
+                    }
+                    SmallWidgets.MouseoverText("How many frames the UI can render in one second");
+                    //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
+
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -1998,6 +2040,7 @@ namespace rgatCore
             }
             ImGui.PopStyleColor();
         }
+
 
         private unsafe void DrawVisualiserControls(float controlsHeight)
         {
