@@ -6,20 +6,19 @@ using System.Threading;
 
 namespace rgatCore.Threads
 {
-    public class HeatRankingThread
+    public class HeatRankingThread : TraceProcessorWorker
     {
-        bool running = false;
-        public rgatState rgatState = null;
-        private Thread runningThread = null;
-
-        public HeatRankingThread(rgatState _clientState)
+        public HeatRankingThread()
         {
-            rgatState = _clientState;
-            runningThread = new Thread(ThreadProc);
-            runningThread.Name = "HeakRanking";
-            runningThread.Start();
         }
 
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(ThreadProc);
+            WorkerThread.Name = $"HeakRankingWorker";
+            WorkerThread.Start();
+        }
 
         static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
@@ -82,12 +81,10 @@ namespace rgatCore.Threads
 
         public void ThreadProc()
         {
-            running = true;
-
-            while (!rgatState.rgatIsExiting)
+            while (!_clientState.rgatIsExiting)
             {
 
-                PlottedGraph graph = rgatState.ActiveGraph;
+                PlottedGraph graph = _clientState.ActiveGraph;
                 if (graph == null)
                 {
                     Thread.Sleep(200);
@@ -101,7 +98,7 @@ namespace rgatCore.Threads
                 }
 
 
-                TraceRecord activeTrace = rgatState.ActiveTrace;
+                TraceRecord activeTrace = _clientState.ActiveTrace;
 
                 if (activeTrace == null)
                 {
@@ -109,7 +106,7 @@ namespace rgatCore.Threads
                 }
 
             }
-            running = false;
+            Finished();
         }
     }
 }

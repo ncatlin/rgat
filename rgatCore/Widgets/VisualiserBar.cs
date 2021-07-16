@@ -120,6 +120,7 @@ namespace rgatCore.Widgets
 
         void MaintainBuffers()
         {
+            //todo pointverts can be null?
             uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
             if (_pointsVertexBuffer.SizeInBytes < requiredSize)
             {

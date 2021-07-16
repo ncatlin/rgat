@@ -366,7 +366,7 @@ namespace rgatCore
 
         public void UpdateNodePositions(MappedResourceView<float> newPositions)
         {
-            Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{tid} size from {positionsArray1.Length} to {newPositions.Count}");
+            Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{tid} size from {positionsArray1.Length} to {newPositions.Count}", Logging.LogFilterType.BulkDebugLogFile);
             textureLock.EnterWriteLock();
             {
                 int floatCount = newPositions.Count;//xyzw
@@ -417,11 +417,11 @@ namespace rgatCore
             textureLock.EnterReadLock();
             if (BufferDownloadActive)
                 WaitforBufferDownload();
-                Debug.Assert(!BufferDownloadActive);
+            Debug.Assert(!BufferDownloadActive);
 
-                var result = positionsArray1.ToArray();
-                textureLock.ExitReadLock();
-                return result;
+            var result = positionsArray1.ToArray();
+            textureLock.ExitReadLock();
+            return result;
 
         }
         public float[] GetNodeAttribFloats()

@@ -9,16 +9,16 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace rgatCore
 {
-    public class ThreadTraceIngestThread
+    public class ThreadTraceIngestThread : TraceProcessorWorker
     {
         uint TraceBufSize = GlobalConfig.TraceBufferSize;
         ProtoGraph protograph;
         NamedPipeServerStream threadpipe;
-        Thread runningThread;
         Thread splittingThread;
         ulong PendingDataSize = 0;
         ulong ProcessedDataSize = 0;
@@ -26,8 +26,8 @@ namespace rgatCore
         public bool StopFlag = false;
         bool PipeBroke = false;
 
-        public ManualResetEvent TagDataReadyEvent = new ManualResetEvent(false);
-        public ManualResetEvent RawIngestCompleteEvent = new ManualResetEvent(false);
+        public ManualResetEventSlim TagDataReadyEvent = new ManualResetEventSlim(false);
+        public ManualResetEventSlim RawIngestCompleteEvent = new ManualResetEventSlim(false);
         bool WakeupRequested = false;
 
         public bool HasPendingData() { return PendingDataSize != 0; }
@@ -50,8 +50,10 @@ namespace rgatCore
         private List<float> _updateRates = new List<float>();
         private readonly Object _statsLock = new Object();
         int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
-       
 
+
+        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        public CancellationToken CancelToken => cancelTokens.Token;
 
         public ThreadTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe)
         {
@@ -61,12 +63,7 @@ namespace rgatCore
             List<byte[]> ReadingQueue = FirstQueue;
             List<byte[]> WritingQueue = SecondQueue;
 
-            runningThread = new Thread(Reader);
-            runningThread.Name = "TraceReader" + this.protograph.ThreadID;
-            runningThread.Start();
-            splittingThread = new Thread(MessageSplitterThread);
-            splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
-            splittingThread.Start();
+
 
             _updateRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();
 
@@ -75,6 +72,20 @@ namespace rgatCore
             StatsTimer.AutoReset = true;
             StatsTimer.Start();
         }
+
+
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(Reader);
+            WorkerThread.Name = "TraceReader" + this.protograph.ThreadID;
+            WorkerThread.Start();
+
+            splittingThread = new Thread(MessageSplitterThread);
+            splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
+            splittingThread.Start();
+        }
+
 
         /*
          * The purpose of this is for plotting a little thread activity graph on the
@@ -175,7 +186,6 @@ namespace rgatCore
             Console.WriteLine("Trace Buffer maxed out, waiting for reader to catch up");
             do
             {
-
                 Thread.Sleep(1000);
                 Console.WriteLine($"Trace queue has {WritingQueue.Count}/{GlobalConfig.TraceBufferSize} items");
                 if (WritingQueue.Count < (GlobalConfig.TraceBufferSize / 2))
@@ -183,7 +193,7 @@ namespace rgatCore
                     Console.WriteLine("Resuming ingest...");
                     break;
                 }
-            } while (!StopFlag);
+            } while (!StopFlag && !_clientState.rgatIsExiting);
 
             lock (QueueSwitchLock)
             {
@@ -209,11 +219,18 @@ namespace rgatCore
          */
         void MessageSplitterThread()
         {
-            while (threadpipe.IsConnected || RawQueue.Count > 0)
+            while (!_clientState.rgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
             {
                 if (!RawQueue.TryDequeue(out Tuple<byte[], int> buf_sz))
                 {
-                    RawIngestCompleteEvent.WaitOne();
+                    try
+                    {
+                        RawIngestCompleteEvent.Wait(-1, CancelToken);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                     RawIngestCompleteEvent.Reset();
                     continue;
                 }
@@ -251,63 +268,21 @@ namespace rgatCore
             }
         }
 
-
-
-        void IncomingMessageCallback(IAsyncResult ar)
+        public void Terminate()
         {
-            byte[] buf = (byte[])ar.AsyncState;
-            try
+            if (!StopFlag)
             {
-                lock (RawQueueLock)
-                {
-                    int bytesread = threadpipe.EndRead(ar);
-                    if (bytesread == 0 || threadpipe.IsConnected == false)
-                    {
-                        Debug.Assert(bytesread == 0);
-                        PipeBroke = true;
-                    }
-                    else
-                    {
-                        if (bytesread < 1024)
-                        {
-
-                            if (pendingBuf != null)
-                            {
-                                bytesread = pendingBuf.Length + bytesread;
-                                buf = pendingBuf.Concat(buf).ToArray();
-                                pendingBuf = null;
-                            }
-                            //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
-
-                            RawQueue.Enqueue(new Tuple<byte[], int>(buf, bytesread));
-                            RawIngestCompleteEvent.Set();
-                        }
-                        else
-                        {
-                            if (pendingBuf == null)
-                            {
-                                pendingBuf = buf;
-                            }
-                            else
-                            {
-                                pendingBuf = pendingBuf.Concat(buf).ToArray();
-                            }
-                        }
-                        
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("TraceIngest Readcall back exception " + e.Message);
+                StopFlag = true;
+                RawIngestCompleteEvent.Set();
+                cancelTokens.Cancel();
             }
         }
 
-        byte[] pendingBuf = null;
+        byte[] pendingBuf;
 
 
         //thread handler to build graph for a thread
-        void Reader()
+        async void Reader()
         {
             if (!threadpipe.IsConnected)
             {
@@ -325,23 +300,41 @@ namespace rgatCore
             {
                 const int TAGCACHESIZE = 1024;
                 byte[] TagReadBuffer = new byte[TAGCACHESIZE];
-                IAsyncResult res = threadpipe.BeginRead(TagReadBuffer, 0, TAGCACHESIZE, new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
-                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 1500); //timeout so we can check for rgat exit
-
-                if (!res.IsCompleted)
+                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, TAGCACHESIZE, CancelToken);// new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
+                
+                if (bytesRead < 1024)
                 {
-                    try { threadpipe.EndRead(res); }
-                    catch (Exception e)
+                    if (pendingBuf != null)
                     {
-                        //todo: Exception on threadreader read : Adding the specified count to the semaphore would cause it to exceed its maximum count.
-                        Logging.RecordLogEvent("Exception on threadreader read: " + e.Message);
-                    };
+                        //this is multipart, tack it onto the next fragment
+                        bytesRead = pendingBuf.Length + bytesRead;
+                        TagReadBuffer = pendingBuf.Concat(TagReadBuffer).ToArray();
+                        pendingBuf = null;
+                    }
+                    //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
+                    if (bytesRead > 0)
+                    {
+                        RawQueue.Enqueue(new Tuple<byte[], int>(TagReadBuffer, bytesRead));
+                        RawIngestCompleteEvent.Set();
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
+                else
+                {
+                    //multi-part message, queue this for reassembly
+                    pendingBuf = (pendingBuf == null) ? 
+                        TagReadBuffer : 
+                        pendingBuf.Concat(TagReadBuffer).ToArray();
+                }                
             }
 
             threadpipe.Disconnect();
             threadpipe.Dispose();
 
+            //wait for the queue to be empty before destroying self
             while ((RawQueue.Count > 0 || FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
             {
                 if (WakeupRequested) TagDataReadyEvent.Set();
@@ -352,10 +345,11 @@ namespace rgatCore
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
 
-            Console.WriteLine(runningThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
+            Console.WriteLine(WorkerThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 
             if (!protograph.Terminated)
                 protograph.SetTerminated();
+            Finished();
         }
 
 

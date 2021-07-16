@@ -66,6 +66,7 @@ namespace rgatCore
         void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             _rgatstate = new rgatState(_gd, _cl);
+            TraceProcessorWorker.SetRgatState(_rgatstate);
 
             RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _UIstartupProgress;
@@ -103,12 +104,14 @@ namespace rgatCore
 
 
             RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
-            mainRenderThreadObj = new MainGraphRenderThread(_rgatstate, MainGraphWidget);
+            mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
+            mainRenderThreadObj.Begin();
 
             heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
 
             //todo - conditional thread here instead of new trace
-            processCoordinatorThreadObj = new ProcessCoordinatorThread(_rgatstate);
+            processCoordinatorThreadObj = new ProcessCoordinatorThread();
+            processCoordinatorThreadObj.Begin();
             _UIstartupProgress = 0.95;
 
 
@@ -139,8 +142,11 @@ namespace rgatCore
             if (GlobalConfig.BulkLogging) 
                 Logging.RecordLogEvent("rgat Exit() triggered", LogFilterType.BulkDebugLogFile);
 
-            MainGraphWidget?.Dispose();
             _rgatstate?.ShutdownRGAT();
+            
+            MainGraphWidget?.Dispose();
+            PreviewGraphWidget?.Dispose();
+
         }
 
 

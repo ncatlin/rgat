@@ -4,16 +4,13 @@ using System.Text;
 
 namespace rgatCore.Threads
 {
-	public class ConditionalRendererThread
+	public class ConditionalRendererThread : TraceProcessorWorker
 	{
 		TraceRecord RenderedTrace = null;
-		bool running = false;
-		public rgatState rgatState = null;
 
-		public ConditionalRendererThread(TraceRecord _renderedTrace, rgatState _clientState)
+		public ConditionalRendererThread(TraceRecord _renderedTrace)
 		{
 			RenderedTrace = _renderedTrace;
-			rgatState = _clientState;
 		}
 
 		public void ThreadProc()

@@ -5,28 +5,33 @@ using System.Threading;
 
 namespace rgatCore.Threads
 {
-    public class PreviewRendererThread
+    public class PreviewRendererThread : TraceProcessorWorker
     {
         TraceRecord RenderedTrace;
-        bool running;
-        public rgatState rgatState;
         PreviewGraphsWidget _graphWidget;
 
-        public PreviewRendererThread(TraceRecord _renderedTrace, rgatState _clientState)
+        public PreviewRendererThread(TraceRecord _renderedTrace)
         {
             RenderedTrace = _renderedTrace;
-            rgatState = _clientState;
             _graphWidget = _clientState.PreviewWidget;
+        }
+
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(ThreadProc);
+            WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.binaryTarg.TracesCount}";
+            WorkerThread.Start();
         }
 
         public void ThreadProc()
         {
-            running = true;
+
             List<PlottedGraph> graphlist;
             int StopTimer = -1;
-            bool moreRenderingNeeded = false;
+            bool moreRenderingNeeded;
 
-            while (!rgatState.rgatIsExiting)
+            while (!_clientState.rgatIsExiting)
             {
                 //only write we are protecting against happens while creating new threads
                 //so not important to release this quickly
@@ -36,7 +41,7 @@ namespace rgatCore.Threads
                 foreach (PlottedGraph graph in graphlist)
                 {
                     if (graph == null) continue;
-                    if (graph != rgatState.ActiveGraph)
+                    if (graph != _clientState.ActiveGraph)
                     {
                         //check for trace data that hasn't been rendered yet
                         ProtoGraph protoGraph = graph.InternalProtoGraph;
@@ -49,14 +54,14 @@ namespace rgatCore.Threads
 
                     _graphWidget.GeneratePreviewGraph(graph);
 
-                    if (!running) break;
+                    if (_clientState.rgatIsExiting) break;
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);
                 }
 
                 graphlist.Clear();
 
                 int waitForNextIt = 0;
-                while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && running)
+                while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !_clientState.rgatIsExiting)
                 {
                     Thread.Sleep(50);
                     waitForNextIt += 50;
@@ -68,7 +73,7 @@ namespace rgatCore.Threads
                     StopTimer--;
 
             }
-            running = false;
+            Finished();
         }
 
     }

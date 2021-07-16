@@ -16,24 +16,25 @@ using Vulkan;
 
 namespace rgatCore.Threads
 {
-    class ProcessCoordinatorThread
-    {
-		private Thread runningThread = null;
-		rgatState _clientState = null;
+    class ProcessCoordinatorThread : TraceProcessorWorker
+	{
 		byte[] buf = new byte[1024];
 		NamedPipeServerStream coordPipe = null;
 
 
-		public ProcessCoordinatorThread(rgatState _rgatstate) 
+		public ProcessCoordinatorThread() 
 		{
-			_clientState = _rgatstate;
-			runningThread = new Thread(Listener);
-			runningThread.Name = "ProcessCoordinator";
-			runningThread.Start();
 		}
 
+        public override void Begin()
+        {
+			base.Begin();
+			WorkerThread = new Thread(Listener);
+			WorkerThread.Name = $"Coordinator";
+			WorkerThread.Start();
+		}
 
-		void GotMessage(IAsyncResult ir)
+        void GotMessage(IAsyncResult ir)
         {
 
 			int bytesRead = coordPipe.EndRead(ir);
@@ -130,7 +131,11 @@ namespace rgatCore.Threads
 
 				while (!coordPipe.IsConnected)
 				{
-					if (_clientState.rgatIsExiting) return;
+					if (_clientState.rgatIsExiting) 
+					{
+						Finished();
+						return; 
+					}
 					Thread.Sleep(100);
 				}
 
@@ -147,10 +152,11 @@ namespace rgatCore.Threads
 				{
 					Logging.RecordLogEvent("Warning: Read timeout for coordinator connection, abandoning");
 				}
-				while (coordPipe.IsConnected) Thread.Sleep(5);
+				while (coordPipe.IsConnected && !_clientState.rgatIsExiting) Thread.Sleep(5);
 			}
+			Finished();
 
-        }
+		}
 
 
 
@@ -202,18 +208,16 @@ namespace rgatCore.Threads
 				_clientState.RecordTestRunConnection(testID, tr);
             }
 
-			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, _clientState);
-			tr.SetModuleHandlerThread(moduleHandler);
-			moduleHandler.Begin(ID);
+			ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr);
+			tr.ProcessThreads.Register(moduleHandler);
+			moduleHandler.Begin();
 
 			tr.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, tr);
 
 
-			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, _clientState);
-			tr.SetBlockHandlerThread(blockHandler);
-			blockHandler.Begin(GetBBPipeName(PID, ID));
-
-			//_clientState.SwitchTrace = tr;
+			BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, GetBBPipeName(PID, ID));
+			tr.ProcessThreads.Register(blockHandler);
+			blockHandler.Begin();
 
 			ProcessLaunching.launch_new_visualiser_threads(target, tr, _clientState);
 		}

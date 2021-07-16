@@ -70,6 +70,29 @@ namespace rgatCore
             rgatIsExiting = true;
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
+
+            foreach(BinaryTarget targ in this.targets.GetBinaryTargets())
+            {
+                foreach (TraceRecord trace in targ.GetTracesList())
+                {
+                    List<ProtoGraph> graphs = trace.GetProtoGraphs();
+                    for (var i = 0; i < graphs.Count; i++)
+                    {
+                        graphs[i]?.TraceReader?.Terminate();
+                    }
+                    trace.ProcessThreads.modThread.Terminate();
+                    trace.ProcessThreads.BBthread.Terminate();
+
+                    while (trace.GetProtoGraphs().Exists(p => p.TraceProcessor.Running || p.TraceReader.Running))
+                    { 
+                        Thread.Sleep(10);
+                    }
+                    while (trace.ProcessThreads.Running())
+                    {
+                        Thread.Sleep(10);
+                    }
+                }
+            }
         }
 
         public BinaryTarget AddTargetByPath(string path, int arch = 0, bool makeActive = true)

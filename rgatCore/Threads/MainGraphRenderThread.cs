@@ -7,31 +7,35 @@ using System.Timers;
 
 namespace rgatCore.Threads
 {
-    class MainGraphRenderThread
+    class MainGraphRenderThread : TraceProcessorWorker
     {
-        private Thread runningThread = null;
-        public MainGraphRenderThread(rgatState _clientState, GraphPlotWidget maingraphwidget)
+        public MainGraphRenderThread(GraphPlotWidget maingraphwidget)
         {
-            rgatState = _clientState;
             _graphWidget = maingraphwidget;
-            runningThread = new Thread(ThreadProc);
-            runningThread.Name = "MainGraphRender";
-            runningThread.Start();
 
             _IrregularActionTimer = new System.Timers.Timer(600);
             _IrregularActionTimer.Elapsed += FireIrregularTimer;
             _IrregularActionTimer.AutoReset = true;
-            _IrregularActionTimer.Start();
 
+        }
+
+
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(ThreadProc);
+            WorkerThread.Name = $"MainGraphRenderer";
+            WorkerThread.Start();
+            _IrregularActionTimer.Start();
         }
 
         public void Dispose()
         {
-            if (_IrregularActionTimer != null) _IrregularActionTimer.Dispose();
+            _IrregularActionTimer?.Stop();
+            _IrregularActionTimer?.Dispose();
+
         }
 
-        private rgatState rgatState = null;
-        public bool running = true;
         GraphPlotWidget _graphWidget;
         int _nextReplayStep = 0;
         int _FramesBetweenAnimationUpdates = 2;
@@ -82,32 +86,34 @@ namespace rgatCore.Threads
         public void ThreadProc()
         {
             PlottedGraph activeGraph = null;
-            running = true;
 
-            while (!rgatState.rgatIsExiting)
+            while (!_clientState.rgatIsExiting)
             {
 
-                activeGraph = rgatState.getActiveGraph(false);
+                activeGraph = _clientState.getActiveGraph(false);
                 while (activeGraph == null)
                 {
                     Thread.Sleep(50);
-                    if (rgatState.rgatIsExiting) return;
-                    activeGraph = rgatState.getActiveGraph(false);
+                    if (_clientState.rgatIsExiting)
+                    {
+                        Finished();
+                        return;
+                    }
+                    activeGraph = _clientState.getActiveGraph(false);
                     continue;
                 }
 
                 update_rendering(activeGraph);
 
                 if (_IrregularActionTimerFired)
-                  _graphWidget.PerformIrregularActions();
+                    _graphWidget.PerformIrregularActions();
 
                 _graphWidget.GenerateMainGraph();
 
                 //todo get rid of this 1000 after testing
                 //Thread.Sleep(GlobalConfig.renderFrequency + 100);
             }
-
-            running = false;
+            Finished();
         }
     }
 }

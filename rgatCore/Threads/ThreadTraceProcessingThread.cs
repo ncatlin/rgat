@@ -10,14 +10,11 @@ using System.Threading.Tasks;
 
 namespace rgatCore.Threads
 {
-    public class ThreadTraceProcessingThread
+    public class ThreadTraceProcessingThread : TraceProcessorWorker
     {
         ProtoGraph protograph;
-        Thread runningThread;
         bool IrregularTimerFired = false;
         System.Timers.Timer IrregularActionTimer = null;
-
-        public bool IsRunning => runningThread.IsAlive;
 
         struct BLOCKREPEAT
         {
@@ -46,10 +43,16 @@ namespace rgatCore.Threads
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
+        }
 
-            runningThread = new Thread(Processor);
-            runningThread.Name = "TraceProcessor" + this.protograph.ThreadID;
-            runningThread.Start();
+
+        public override void Begin()
+        {
+            base.Begin();
+
+            WorkerThread = new Thread(Processor);
+            WorkerThread.Name = "TraceProcessor" + this.protograph.ThreadID;
+            WorkerThread.Start();
 
             IrregularActionTimer = new System.Timers.Timer(800);
             IrregularActionTimer.Elapsed += (sender, args) => IrregularTimerFired = true;
@@ -60,7 +63,7 @@ namespace rgatCore.Threads
 
         void PerformIrregularActions()
         {
-            //if (PendingEdges.Count > 0)     SatisfyPendingEdges();
+            if (_clientState.rgatIsExiting) return;
             if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
             if (protograph.hasPendingArguments()) protograph.ProcessIncomingCallArguments();
             IrregularActionTimer.Start();
@@ -160,7 +163,7 @@ namespace rgatCore.Threads
                             {
                                 needWait = true;
                                 break;
-                            
+
                             };
                         }
                     }
@@ -394,7 +397,7 @@ namespace rgatCore.Threads
 
                     if (firstCallByThisNode)
                     {
-                        
+
                         thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
                         //todo this can be bad idx
                         if (protograph.ProtoLastLastVertID > protograph.NodeList.Count)
@@ -815,14 +818,23 @@ namespace rgatCore.Threads
         private readonly Object debug_tag_lock = new Object();
         void Processor()
         {
-            while (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData())
+            //process traces until program exits or the trace ingest stops + the queues are empty
+            while (!_clientState.rgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData()))
             {
                 byte[] msg = protograph.TraceReader.DeQueueData();
                 if (msg == null)
                 {
                     AssignBlockRepeats();
                     protograph.TraceReader.RequestWakeupOnData();
-                    protograph.TraceReader.TagDataReadyEvent.WaitOne();
+                    if (_clientState.rgatIsExiting || protograph.TraceReader.StopFlag) { continue; }
+                    try {
+                        protograph.TraceReader.TagDataReadyEvent.Wait(-1, cancellationToken: protograph.TraceReader.CancelToken);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                    
                     continue;
                 }
 
@@ -831,7 +843,7 @@ namespace rgatCore.Threads
                 //if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
 
-                lock (debug_tag_lock)
+                lock (debug_tag_lock) //todo dont forget to remove this
                 {
                     switch (msg[0])
                     {
@@ -883,8 +895,10 @@ namespace rgatCore.Threads
             IrregularActionTimer.Stop();
             PerformIrregularActions();
 
-            Console.WriteLine($"{runningThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
+            Console.WriteLine($"{WorkerThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
             Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);
+
+            Finished();
         }
     }
 }

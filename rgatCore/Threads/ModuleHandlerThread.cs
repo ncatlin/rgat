@@ -10,26 +10,27 @@ using static rgatCore.TraceRecord;
 
 namespace rgatCore
 {
-    public class ModuleHandlerThread
+    public class ModuleHandlerThread : TraceProcessorWorker
     {
 
         BinaryTarget target;
         TraceRecord trace;
-        rgatState _clientState;
-        int threadsCount = 0;
         NamedPipeServerStream commandPipe = null;
         NamedPipeServerStream eventPipe = null;
-        Thread listenerThread = null;
-        public bool IsRunning = false;
 
-
-        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState)
+        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord)
         {
             target = binaryTarg;
             trace = runrecord;
-            _clientState = clientState;
         }
 
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(ControlEventListener);
+            WorkerThread.Name = $"TraceWorker_{trace.PID}_{trace.randID}";
+            WorkerThread.Start();
+        }
 
         private string GetTracePipeName(ulong TID)
         {
@@ -84,8 +85,9 @@ namespace rgatCore
             }
 
             newProtoGraph.TraceReader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
-
             newProtoGraph.TraceProcessor = new ThreadTraceProcessingThread(newProtoGraph);
+            newProtoGraph.TraceReader.Begin();
+            newProtoGraph.TraceProcessor.Begin();
 
             newProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: newProtoGraph);
             if (!trace.InsertNewThread(MainGraph))
@@ -178,24 +180,8 @@ namespace rgatCore
 
 
 
-        //There is scope to randomise these in case it becomes a detection method, but 
-        //there are so many other potential ones I'll wait and see if its needed first
-        public static string GetCommandPipeName(uint PID, long instanceID)
-        {
-            return "CM" + PID.ToString() + instanceID.ToString();
-        }
 
-        public static string GetEventPipeName(uint PID, long instanceID)
-        {
-            return "CR" + PID.ToString() + instanceID.ToString();
-        }
 
-        public void Begin(long traceID)
-        {
-            listenerThread = new Thread(new ParameterizedThreadStart(ControlEventListener));
-            listenerThread.Name = "ControlThread";
-            listenerThread.Start(traceID);
-        }
 
 
         public int SendCommand(byte[] cmd)
@@ -325,23 +311,12 @@ namespace rgatCore
         }
 
 
-        void ReadCallback(IAsyncResult ar)
+        void ProcessMessage(byte[] buf, int bytesRead)
         {
-            int bytesread = 0;
-            byte[] buf = (byte[])ar.AsyncState;
-            try
-            {
-                bytesread = eventPipe.EndRead(ar);
-            }
-            catch (Exception e)
-            {
-                Logging.RecordLogEvent($"MH:ReadCallback() Readcall back exception " + e.Message);
-                return;
-            }
 
-            if (bytesread < 3) //probably pipe ended
+            if (bytesRead < 3) //probably pipe ended
             {
-                if (bytesread != 0)
+                if (bytesRead != 0)
                 {
                     Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.TextError);
                 }
@@ -378,7 +353,7 @@ namespace rgatCore
                 return;
             }
 
-            if (bytesread >= 4 && buf[0] == 'D' && buf[1] == 'B' && buf[2] == 'G')
+            if (bytesRead >= 4 && buf[0] == 'D' && buf[1] == 'B' && buf[2] == 'G')
             {
                 char dbgCmd = (char)buf[3];
                 switch (dbgCmd)
@@ -406,7 +381,7 @@ namespace rgatCore
 
             if (buf[0] == '!')
             {
-                string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesread).ToArray());
+                string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesRead).ToArray());
                 Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
                 Console.WriteLine($"!Log from instrumentation: '{text}'");
                 return;
@@ -416,12 +391,33 @@ namespace rgatCore
             Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextError, trace: trace);
         }
 
-
-        void ControlEventListener(object instanceID)
+        //There is scope to randomise these in case it becomes a detection method, but 
+        //there are so many other potential ones I'll wait and see if its needed first
+        public static string GetCommandPipeName(uint PID, long randID)
         {
-            IsRunning = true;
-            string cmdPipeName = GetCommandPipeName(this.trace.PID, (long)instanceID);
-            string eventPipeName = GetEventPipeName(this.trace.PID, (long)instanceID);
+            return "CM" + PID.ToString() + randID.ToString();
+        }
+
+        public static string GetEventPipeName(uint PID, long randID)
+        {
+            return "CR" + PID.ToString() + randID.ToString();
+        }
+
+        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+
+        public void Terminate()
+        {
+            cancelTokens.Cancel();
+            if (commandPipe != null && commandPipe.IsConnected)
+                commandPipe.Disconnect();
+            if (eventPipe != null && eventPipe.IsConnected)
+                eventPipe.Disconnect();
+        }
+
+        async void ControlEventListener(object instanceID)
+        {
+            string cmdPipeName = GetCommandPipeName(trace.PID, trace.randID);
+            string eventPipeName = GetEventPipeName(trace.PID, trace.randID);
 
             try
             {
@@ -434,7 +430,7 @@ namespace rgatCore
             {
                 Logging.RecordLogEvent("IO Exception on ModuleHandlerThreadListener: " + e.Message);
                 eventPipe = null;
-                IsRunning = false;
+                Finished();
                 return;
             }
 
@@ -457,35 +453,61 @@ namespace rgatCore
                 SendTraceSettings();
             }
 
+
+            byte[] pendingBuf = null;
+            const int BufMax = 4096;
+            int bytesRead = 0;
             while (!_clientState.rgatIsExiting && eventPipe.IsConnected)
             {
-                byte[] buf = new byte[4096 * 4];
+                byte[] buf = new byte[BufMax];
                 //controlPipe.Read(buf);
-
-                IAsyncResult res = eventPipe.BeginRead(buf, 0, 4096 * 4, new AsyncCallback(ReadCallback), buf);
-
-                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
-
-                if (!res.IsCompleted)
+                try
                 {
-                    eventPipe.EndRead(res);
+                    bytesRead = await eventPipe.ReadAsync(buf, 0, BufMax, cancelTokens.Token);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (bytesRead < 1024)
+                {
+                    if (pendingBuf != null)
+                    {
+                        //this is multipart, tack it onto the next fragment
+                        bytesRead = pendingBuf.Length + bytesRead;
+                        buf = pendingBuf.Concat(buf).ToArray();
+                        pendingBuf = null;
+                    }
+                    //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
+                    if (bytesRead > 0)
+                    {
+                        ProcessMessage(buf, bytesRead);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    //multi-part message, queue this for reassembly
+                    pendingBuf = (pendingBuf == null) ?  buf : pendingBuf.Concat(buf).ToArray();
                 }
             }
 
-
-            eventPipe.Dispose();
             trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
 
             bool alldone = false;
             while (!_clientState.rgatIsExiting && !alldone)
             {
                 var graphs = trace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
-                alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.IsRunning);
+                alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.Running);
                 if (!alldone) Thread.Sleep(35);
             }
 
             Logging.RecordLogEvent($"ControlHandler Listener thread exited for PID {trace.PID}", trace: trace);
-            IsRunning = false;
+            Finished();
         }
 
     }

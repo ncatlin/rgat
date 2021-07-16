@@ -163,6 +163,7 @@ namespace rgatCore
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
+        public int TracesCount => TraceRecordsList.Count;
 
         public void DeleteTrace(DateTime timestarted)
         {
@@ -188,6 +189,14 @@ namespace rgatCore
                 }
             }
             return uilist;
+        }
+
+        public List<TraceRecord> GetTracesList()
+        {
+            lock (tracesLock)
+            {
+                return RecordedTraces.Values.ToList();
+            }
         }
 
 

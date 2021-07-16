@@ -1,5 +1,6 @@
 ﻿using Gee.External.Capstone;
 using Gee.External.Capstone.X86;
+using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,37 +11,34 @@ using System.Threading;
 
 namespace rgatCore
 {
-    public class BlockHandlerThread
+    public class BlockHandlerThread : TraceProcessorWorker
     {
         enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
 
-
         BinaryTarget target;
         TraceRecord trace;
-        rgatState _clientState;
-        int threadsCount = 0;
         NamedPipeServerStream blockPipe = null;
-        Thread listenerThread = null;
         int bitWidth;
         CapstoneX86Disassembler disassembler;
+        string _controlPipeName;
 
-        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, rgatState clientState)
+        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, string pipename)
         {
             target = binaryTarg;
             trace = runrecord;
             bitWidth = target.BitWidth;
-            _clientState = clientState;
+            _controlPipeName = pipename;
 
             X86DisassembleMode disasMode = (bitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
             disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
         }
 
-        public void Begin(string controlPipeName)
+        public override void Begin()
         {
-
-            listenerThread = new Thread(new ParameterizedThreadStart(Listener));
-            listenerThread.Name = "Block" + trace.PID;
-            listenerThread.Start(controlPipeName);
+            base.Begin();
+            WorkerThread = new Thread(new ParameterizedThreadStart(Listener));
+            WorkerThread.Name = "Block" + trace.PID;
+            WorkerThread.Start(_controlPipeName);
         }
 
         void ConnectCallback(IAsyncResult ar)
@@ -58,44 +56,16 @@ namespace rgatCore
 
 
 
-        void ReadCallback(IAsyncResult ar)
+        void IngestBlock(byte[] buf, int bytesRead)
         {
-
-            int bytesread = 0;
-            byte[] buf = (byte[])ar.AsyncState;
-            try
-            {
-                bytesread = blockPipe.EndRead(ar);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("BlockHandler Read callback exception " + e.Message);
-                return;
-            }
-
-            if (bytesread == 0)
-            {
-                Console.WriteLine($"WARNING: BlockHandler pipe read 0 bytes from PID {trace.PID}");
-                return;
-            }
-
-
-            buf[bytesread] = 0;
+            buf[bytesRead] = 0;
             if (buf[0] != 'B')
             {
                 Console.WriteLine("BlockHandler pipe read unhandled entry from PID {trace.PID}");
                 Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
                 return;
             }
-            //Console.WriteLine("ProcBlock " + System.Text.ASCIIEncoding.ASCII.GetString(buf));
 
-
-            IngestBlock(buf);
-
-        }
-
-        void IngestBlock(byte[] buf)
-        {
             int pointerSize = (bitWidth / 8);
             int bufPos = 1;
             ulong BlockAddress = (bitWidth == 32) ? BitConverter.ToUInt32(buf, 1) : BitConverter.ToUInt64(buf, 1);
@@ -203,7 +173,7 @@ namespace rgatCore
                     //Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
-                    { 
+                    {
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                     instruction.mutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
@@ -223,8 +193,16 @@ namespace rgatCore
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
+        CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
-        void Listener(Object pipenameO)
+        public void Terminate()
+        {
+            cancelTokens.Cancel();
+            if (blockPipe != null && blockPipe.IsConnected)
+                blockPipe.Disconnect();
+        }
+
+        async void Listener(Object pipenameO)
         {
             string name = (string)pipenameO;
             blockPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
@@ -246,47 +224,51 @@ namespace rgatCore
             }
 
 
+            byte[] pendingBuf = null;
+            const int BufMax = 4096; //todo experiment for perfomance
+            int bytesRead = 0;
             while (!_clientState.rgatIsExiting && blockPipe.IsConnected)
             {
-                byte[] buf = new byte[14096 * 4];
-                IAsyncResult res = blockPipe.BeginRead(buf, 0, 2000, new AsyncCallback(ReadCallback), buf);
-                WaitHandle.WaitAny(new WaitHandle[] { res.AsyncWaitHandle }, 2000);
-                if (!res.IsCompleted)
-                {
-                    try { blockPipe.EndRead(res); }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Exception on blockreader read : " + e.Message);
-                    };
-                }
-            }
-
-
-            /*
-            while (!_clientState.rgatIsExiting && blockPipe.IsConnected)
-            {
-                
-
-                
-                Thread.Sleep(1000);
+                byte[] buf = new byte[BufMax];
                 try
                 {
-                    blockPipe.Write(System.Text.Encoding.Unicode.GetBytes("@HB@\x00\x00"));
-                } catch (Exception e)
+                    bytesRead = await blockPipe.ReadAsync(buf, 0, BufMax, cancelTokens.Token);
+                }
+                catch
                 {
-                    if (e.Message != "Pipe is broken.") {
-                        Console.WriteLine($"Blockhandler heartbeat stopped: {e.Message}");
-                   }
+                    continue;
+                }
+
+                if (bytesRead < 1024)
+                {
+                    if (pendingBuf != null)
+                    {
+                        //this is multipart, tack it onto the next fragment
+                        bytesRead = pendingBuf.Length + bytesRead;
+                        buf = pendingBuf.Concat(buf).ToArray();
+                        pendingBuf = null;
+                    }
+                    //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
+                    if (bytesRead > 0)
+                    {
+                        IngestBlock(buf, bytesRead);
+                    }
                     else
                     {
-                        Console.WriteLine("Blockhandler pipe broke");
                         break;
                     }
                 }
+                else
+                {
+                    //multi-part message, queue this for reassembly
+                    pendingBuf = (pendingBuf == null) ? buf : pendingBuf.Concat(buf).ToArray();
+                }
             }
-            */
+
+
 
             blockPipe.Dispose();
+            Finished();
             Console.WriteLine($"BlockHandler Listener thread exited for PID {trace.PID}");
         }
 

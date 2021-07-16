@@ -40,7 +40,7 @@ namespace rgatCore
 
         public float EachGraphWidth = UI_Constants.PREVIEW_PANE_WIDTH - (2 * UI_Constants.PREVIEW_PANE_X_PADDING + 2); //-2 for border
         public float EachGraphHeight = UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT;
-
+        bool Exiting = false;
         public uint selectedGraphTID;
         public PlottedGraph clickedGraph { get; private set; }
 
@@ -48,6 +48,7 @@ namespace rgatCore
         GraphicsDevice _gd;
         ResourceFactory _factory;
         rgatState _rgatState;
+
 
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
         ResourceSet _crs_core, _crs_nodesEdges;
@@ -79,7 +80,11 @@ namespace rgatCore
 
         public void Dispose()
         {
+            Exiting = true;
+            IrregularTimer.Stop();
         }
+
+
         private void FireTimer(object sender, ElapsedEventArgs e) { IrregularTimerFired = true; }
 
         public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
@@ -804,7 +809,7 @@ namespace rgatCore
 
         void renderPreview(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
-            if (graph == null || positionsBuffer == null || nodeAttributesBuffer == null) return;
+            if (graph == null || positionsBuffer == null || nodeAttributesBuffer == null || Exiting) return;
             if (graph._previewFramebuffer1 == null)
             {
                 graph.InitPreviewTexture(new Vector2(EachGraphWidth, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
@@ -917,10 +922,13 @@ namespace rgatCore
 
 
             _cl.End();
-            _gd.SubmitCommands(_cl);
+            if (!Exiting)
+            {
+                _gd.SubmitCommands(_cl);
+                Logging.RecordLogEvent("render preview 5", filter: Logging.LogFilterType.BulkDebugLogFile);
+                _gd.WaitForIdle(); //needed?
+            }
 
-            Logging.RecordLogEvent("render preview 5", filter: Logging.LogFilterType.BulkDebugLogFile);
-            _gd.WaitForIdle(); //needed?
             graph.ReleasePreviewFramebuffer();
             _cl.Dispose();
 

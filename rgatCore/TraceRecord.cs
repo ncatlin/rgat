@@ -504,7 +504,7 @@ namespace rgatCore
         }
 
 
-        public RGAT_THREADS_STRUCT ProcessThreads;
+        public TraceProcessorWorkers ProcessThreads = new TraceProcessorWorkers();
         //void* fuzzRunPtr = null;
 
         public uint PID { get; private set; }
@@ -913,7 +913,7 @@ namespace rgatCore
 
         public void SendDebugCommand(uint threadID, string command)
         {
-            if (_moduleThread == null)
+            if (ProcessThreads.modThread == null)
             {
                 Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.LogFilterType.TextError);
                 return;
@@ -921,7 +921,7 @@ namespace rgatCore
 
 
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
-            if (_moduleThread.SendCommand(buf) == -1)
+            if (ProcessThreads.modThread.SendCommand(buf) == -1)
             {
                 Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.TextError);
             }
@@ -939,11 +939,7 @@ namespace rgatCore
 
         public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
-        ModuleHandlerThread _moduleThread;
-        public bool ProcessingRemaining => _moduleThread.IsRunning;
-        BlockHandlerThread _blockThread;
-        public void SetModuleHandlerThread(ModuleHandlerThread moduleHandlerObj) => _moduleThread = moduleHandlerObj;
-        public void SetBlockHandlerThread(BlockHandlerThread blockHandlerObj) => _blockThread = blockHandlerObj;
+        public bool ProcessingRemaining => ProcessThreads.modThread.Running;
 
 
         public TRACE_TEST_RESULTS EvaluateProcessTestRequirement(TraceRequirements ptreq, ref TraceTestResultCommentary resultsobj)

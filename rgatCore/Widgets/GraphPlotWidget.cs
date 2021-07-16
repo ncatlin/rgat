@@ -60,7 +60,10 @@ namespace rgatCore
 
         public void Dispose()
         {
+            Exiting = true;
             _graphLock.EnterWriteLock();
+            _graphLock.ExitWriteLock();
+            _graphLock.Dispose();
         }
 
 
@@ -854,7 +857,7 @@ namespace rgatCore
 
         void uploadFontVerts(List<fontStruc> stringVerts)
         {
-            ushort[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (ushort)i).ToArray();
+            uint[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (uint)i).ToArray();
 
             if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
             {
@@ -863,13 +866,18 @@ namespace rgatCore
                 _FontVertBuffer = _factory.CreateBuffer(tfontvDescription);
 
                 _FontIndexBuffer.Dispose();
-                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(ushort), BufferUsage.IndexBuffer);
+                BufferDescription tfontIdxDescription = new BufferDescription((uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer);
                 _FontIndexBuffer = _factory.CreateBuffer(tfontIdxDescription);
             }
 
-            _gd.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
-            _gd.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+            CommandList cl = _factory.CreateCommandList();
+            cl.Begin();
+            cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
+            cl.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+            cl.End();
+            _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
+            cl.Dispose();
         }
 
         List<fontStruc> RenderHighlightedNodeText(List<Tuple<string, Color>> captions, int nodeIdx = -1)
@@ -996,7 +1004,7 @@ namespace rgatCore
         public void renderGraph(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
-            if (drawnEdgeCount == 0) return;
+            if (drawnEdgeCount == 0 || Exiting) return;
 
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
@@ -1140,7 +1148,7 @@ namespace rgatCore
 
                 _cl.SetPipeline(_fontPipeline);
                 _cl.SetVertexBuffer(0, _FontVertBuffer);
-                _cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt16);
+                _cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt32);
                 _cl.SetGraphicsResourceSet(0, crs_core);
                 _cl.SetGraphicsResourceSet(1, _crs_font);
 
@@ -1659,9 +1667,14 @@ namespace rgatCore
 
         public void PerformIrregularActions()
         {
-
-            if (!_graphLock.TryEnterReadLock(100)) return;
-
+            try
+            {
+                if (!_graphLock.TryEnterReadLock(100)) return;
+            }
+            catch(Exception e)
+            {
+                return;
+            }
 
             PlottedGraph graph = ActiveGraph;
             if (graph == null || Exiting)

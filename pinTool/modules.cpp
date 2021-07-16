@@ -60,7 +60,9 @@ bool writeEventPipe(char *logText, ...)
 	{
 		printf("[pingat]Failed to write msg %s to control pipe ", str);
 
-		if (osretcd.os_specific_err == 0xC00000B1 || osretcd.os_specific_err == 0xC000014B) //pipe closing/closed
+		if (osretcd.os_specific_err == 0xC00000B0 || 
+			osretcd.os_specific_err == 0xC00000B1 ||
+			osretcd.os_specific_err == 0xC000014B) //pipe disconnected/closing/broken
 		{
 			printf("because pipe closed. Did RGAT terminate?\n");
 			PIN_ExitProcess(-1);
