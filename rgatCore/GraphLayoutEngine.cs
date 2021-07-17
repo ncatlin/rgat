@@ -120,10 +120,9 @@ namespace rgatCore
 
             Logging.RecordLogEvent("LoadActivegraphComputeBuffersIntoVRAM creations", filter: Logging.LogFilterType.BulkDebugLogFile);
             _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPresetPositionFloats(out _activatingPreset), _gd);
-            _blockDataBuffer = CreateBlockDataBuffer(graph); 
-            _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer(graph);
-            _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer(graph);
-            _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer(graph);
+            _blockDataBuffer = CreateBlockMetadataBuffer(graph);
+
+            CreateEdgeDataBuffers(graph, out _edgesConnectionDataBuffer, out _edgeStrengthDataBuffer, out _edgesConnectionDataOffsetsBuffer);
             Logging.RecordLogEvent("LoadActivegraphComputeBuffersIntoVRAM complete", filter: Logging.LogFilterType.BulkDebugLogFile);
 
         }
@@ -215,7 +214,7 @@ namespace rgatCore
                         Download_NodeVelocity_VRAM_to_Graph(graph);
                         graph.BufferDownloadComplete(currentRenderVersion);
                         Logging.RecordLogEvent($"{graph.tid} layout {this.EngineID} version updated", Logging.LogFilterType.BulkDebugLogFile);
-                        
+
                     }
                 }
             }
@@ -243,6 +242,8 @@ namespace rgatCore
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             graph.UpdateNodePositions(destinationReadView);
             _gd.Unmap(destinationReadback);
+
+            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished");
         }
 
         /// <summary>
@@ -691,100 +692,68 @@ namespace rgatCore
         }
 
 
-        //Texture describes how many nodes each node is linked to
-        unsafe DeviceBuffer CreateEdgesConnectionDataOffsetsBuffer(PlottedGraph graph)
+        /// <summary>
+        /// This buffer list the index of every node each node is connected to
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <returns></returns>
+        unsafe bool CreateEdgeDataBuffers(PlottedGraph graph, out DeviceBuffer EdgeTargetsBuf, out DeviceBuffer EdgeStrengthsBuf,
+            out DeviceBuffer EdgeOffsetsBuf)
         {
-            Logging.RecordLogEvent($"CreateEdgesConnectionDataOffsetsBuffer  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            int[] targetArray = graph.GetNodeNeighbourDataOffsets();
-            uint textureSize = PlottedGraph.indexTextureSize(targetArray.Length);
-            uint intCount = textureSize * textureSize;
-            BufferDescription bd = new BufferDescription(intCount * sizeof(int), BufferUsage.StructuredBufferReadWrite, sizeof(int));
-            DeviceBuffer newBuffer = _factory.CreateBuffer(bd);
+            Logging.RecordLogEvent($"CreateEdgeDataBuffers  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
 
-            fixed (int* dataPtr = targetArray)
+            if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
             {
-                CommandList cl = _factory.CreateCommandList();
-                cl.Begin();
-                Debug.Assert(newBuffer.SizeInBytes >= (targetArray.Length * sizeof(int)));
-                cl.UpdateBuffer(newBuffer, 0, (IntPtr)(dataPtr), (uint)targetArray.Length * sizeof(int));
-                cl.End();
-                _gd.SubmitCommands(cl);
-                _gd.WaitForIdle();
-                cl.Dispose();
-            }
-
-            return newBuffer;
-        }
-
-
-        unsafe DeviceBuffer CreateEdgesConnectionDataBuffer(PlottedGraph graph)
-        {
-            Logging.RecordLogEvent($"CreateEdgesConnectionDataBuffer  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-
-            int[] edgeDataInts = graph.GetEdgeDataInts();
-            if (edgeDataInts.Length == 0)
-            {
-                Logging.RecordLogEvent($"CreateEdgesConnectionDataBuffer zerobuf", Logging.LogFilterType.BulkDebugLogFile);
-                return _factory.CreateBuffer(new BufferDescription(4, BufferUsage.StructuredBufferReadOnly, 4)); 
+                Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
+                EdgeTargetsBuf = _factory.CreateBuffer(new BufferDescription(4, BufferUsage.StructuredBufferReadOnly, 4));
+                EdgeStrengthsBuf = _factory.CreateBuffer(new BufferDescription(4, BufferUsage.StructuredBufferReadOnly, 4));
+                EdgeOffsetsBuf = _factory.CreateBuffer(new BufferDescription(4, BufferUsage.StructuredBufferReadOnly, 4));
+                return false;
             }
 
 
-            BufferDescription bd = new BufferDescription((uint)edgeDataInts.Length * sizeof(int), 
+            BufferDescription bd = new BufferDescription((uint)edgeTargets.Length * sizeof(int),
                 BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
-            DeviceBuffer newBuffer = _factory.CreateBuffer(bd);
+            EdgeTargetsBuf = _factory.CreateBuffer(bd);
 
+            bd = new BufferDescription((uint)edgeStrengths.Length * sizeof(float),
+                BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
+            EdgeStrengthsBuf = _factory.CreateBuffer(bd);
 
-            Logging.RecordLogEvent($"CreateEdgesConnectionDataBuffer processing {edgeDataInts.Length * sizeof(int)} bufsize {newBuffer.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
-            fixed (int* dataPtr = edgeDataInts)
+            bd = new BufferDescription((uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadWrite, sizeof(int));
+            EdgeOffsetsBuf = _factory.CreateBuffer(bd);
+
+            Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
+            fixed (int* targsPtr = edgeTargets)
             {
-                CommandList cl = _factory.CreateCommandList();
-                cl.Begin();
-                Debug.Assert(newBuffer.SizeInBytes >= (edgeDataInts.Length * sizeof(int)));
-                cl.UpdateBuffer(newBuffer, 0, (IntPtr)dataPtr, (uint)edgeDataInts.Length * sizeof(int));
-                cl.End();
-                _gd.SubmitCommands(cl);
-                _gd.WaitForIdle();
-                cl.Dispose();
-            }
-
-            Logging.RecordLogEvent($"CreateEdgesConnectionDataBuffer done", Logging.LogFilterType.BulkDebugLogFile);
-            //PrintBufferArray(textureArray, "Created data texture:");
-            return newBuffer;
-        }
-
-
-
-        unsafe DeviceBuffer CreateEdgeStrengthDataBuffer(PlottedGraph graph)
-        {
-
-            Logging.RecordLogEvent($"CreateEdgeStrengthDataBuffer  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            var textureSize = graph.EdgeTextureWidth();
-            DeviceBuffer newBuffer = null;
-            if (textureSize > 0)
-            {
-                float[] attractions = graph.GetEdgeStrengthFloats();
-                BufferDescription bd = new BufferDescription((uint)attractions.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4);
-                newBuffer = _factory.CreateBuffer(bd);
-
-                fixed (float* dataPtr = attractions)
+                fixed (float* strengthsPtr = edgeStrengths)
                 {
-                    CommandList cl = _factory.CreateCommandList();
-                    cl.Begin();
-                    Debug.Assert(newBuffer.SizeInBytes >= (attractions.Length * sizeof(int)));
-                    cl.UpdateBuffer(newBuffer, 0, (IntPtr)dataPtr, (uint)attractions.Length * 4);
-                    cl.End();
-                    _gd.SubmitCommands(cl);
-                    _gd.WaitForIdle();
-                    cl.Dispose();
+                    fixed (int* offsetsPtr = edgeMetaOffsets)
+                    {
+                        CommandList cl = _factory.CreateCommandList();
+                        cl.Begin();
+                        Debug.Assert(EdgeOffsetsBuf.SizeInBytes >= (edgeMetaOffsets.Length * sizeof(int)));
+                        Debug.Assert(EdgeTargetsBuf.SizeInBytes >= (edgeTargets.Length * sizeof(int)));
+                        Debug.Assert(EdgeStrengthsBuf.SizeInBytes >= (edgeStrengths.Length * sizeof(float)));
+                        cl.UpdateBuffer(EdgeTargetsBuf, 0, (IntPtr)targsPtr, (uint)edgeTargets.Length * sizeof(int));
+                        cl.UpdateBuffer(EdgeStrengthsBuf, 0, (IntPtr)strengthsPtr, (uint)edgeStrengths.Length * sizeof(float));
+                        cl.UpdateBuffer(EdgeOffsetsBuf, 0, (IntPtr)offsetsPtr, (uint)edgeMetaOffsets.Length * sizeof(int));
+                        cl.End();
+                        _gd.SubmitCommands(cl);
+                        _gd.WaitForIdle();
+                        cl.Dispose();
+                    }
                 }
             }
 
+            Logging.RecordLogEvent($"CreateEdgeDataBuffers done", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
-            return newBuffer;
+            return true;
         }
 
 
-        unsafe DeviceBuffer CreateBlockDataBuffer(PlottedGraph graph)
+        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        unsafe DeviceBuffer CreateBlockMetadataBuffer(PlottedGraph graph)
         {
 
             Logging.RecordLogEvent($"CreateBlockDataBuffer  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -792,12 +761,12 @@ namespace rgatCore
             DeviceBuffer newBuffer = null;
             if (textureSize > 0)
             {
-                int[] blockdats = graph.GetNodeBlockData();
+                int[] blockdats = graph.GetBlockRenderingMetadata();
                 if (blockdats == null)
                     blockdats = new int[] { 0 };
                 BufferDescription bd = new BufferDescription((uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int));
                 newBuffer = _factory.CreateBuffer(bd);
-                if (blockdats.Length == 0) return newBuffer; //todo check this is destroyed
+                if (blockdats.Length == 0) return newBuffer;
 
                 fixed (int* dataPtr = blockdats)
                 {
@@ -867,6 +836,7 @@ namespace rgatCore
                 _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer, destinationBuffer);
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
 
+            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
@@ -877,7 +847,7 @@ namespace rgatCore
             cl.End();
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
-
+            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done", Logging.LogFilterType.BulkDebugLogFile);
             //DebugPrintOutputFloatBuffer(destinationBuffer, "Velocity Computation Done. Result: ", 1500);
 
 
@@ -1229,7 +1199,7 @@ namespace rgatCore
         bool _activatingPreset;
         public ulong Compute(PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
         {
-            ulong newversion = 0;
+            ulong newversion;
             _computeLock.EnterUpgradeableReadLock();
             if (_activeGraph != graph || graph.DrawnEdgesCount == 0)
             {
@@ -1246,7 +1216,8 @@ namespace rgatCore
                 SetupComputeResources();
             }
 
-            if (edgesCount > graph.RenderedEdgeCount)
+            Debug.Assert(edgesCount >= graph.DrawnEdgesCount);
+            if (edgesCount > graph.RenderedEdgeCount || (new Random()).Next(0, 100) == 1)
             {
                 _computeLock.EnterWriteLock();
                 RegenerateEdgeDataBuffers(graph);
@@ -1317,10 +1288,9 @@ namespace rgatCore
             VeldridGraphBuffers.DoDispose(_edgeStrengthDataBuffer);
             VeldridGraphBuffers.DoDispose(_blockDataBuffer);
 
-            _edgesConnectionDataBuffer = CreateEdgesConnectionDataBuffer(graph);
-            _edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer(graph);
-            _edgeStrengthDataBuffer = CreateEdgeStrengthDataBuffer(graph);
-            _blockDataBuffer = CreateBlockDataBuffer(graph);
+            CreateEdgeDataBuffers(graph, out _edgesConnectionDataBuffer, out _edgeStrengthDataBuffer, out _edgesConnectionDataOffsetsBuffer);
+            //_edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer(graph);
+            _blockDataBuffer = CreateBlockMetadataBuffer(graph);
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {this.EngineID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 

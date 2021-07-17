@@ -11,7 +11,7 @@ namespace rgatCore
         eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99
     };
 
-    public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals }
+    public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
     public enum eHighlightType { eExternals, eAddresses, eExceptions};
 
     public enum eConditionalType

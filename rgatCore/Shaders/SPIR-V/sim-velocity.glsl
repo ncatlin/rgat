@@ -10,7 +10,7 @@ See included licence: METASTACK ANALYTICS LICENSE
 */
 
 /*
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatCore\rgatCore\Shaders\SPIR-V\sim-velocity.glsl -o sim-velocity.spv -S comp
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-velocity.glsl -o sim-velocity.spv -S comp
 */
 
 #version 450
@@ -45,8 +45,8 @@ layout(set = 0, binding=4) buffer bufedgeIndices {
     ivec2 edgeIndices[];
 };
 //edge data 
-layout(set = 0, binding=5) buffer bufedgeData {   
-    uint edgeData[];
+layout(set = 0, binding=5) buffer bufedgeTargets {   
+    uint edgeTargets[];
 };
 layout(set = 0, binding=6) buffer bufEdgeStrengths {   
     float edgeStrengths[];
@@ -176,117 +176,130 @@ void main()	{
                 if (fieldParams.fixedInternalNodes == 0 )
                 {
     
-                // force-directed n-body simulation
+                    // force-directed n-body simulation
 
-                //first repel every node away from each other
-                //todo ditch this double loop
-                for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
-                {
-                    for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
+                    //first repel every node away from each other
+                    //todo ditch this double loop
+                    for(uint nodeTexY = 0; nodeTexY < fieldParams.nodesTexWidth; nodeTexY++)
                     {
-                    
-                        compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
-                        // note: double ifs work.  using continues do not work for all GPUs.
-                        if (compareNodePosition.w >= 0) 
+                        uint texRow = nodeTexY*fieldParams.nodesTexWidth;
+                        for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
                         {
-                            //if distance below threshold, repel every node from every single node
-                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
+                    
+                            compareNodePosition = positions[texRow + x];
+                            // note: double ifs work.  using continues do not work for all GPUs.
+                            if (compareNodePosition.w >= 0) 
                             {
-                                //field_Destination[index*5 + y*fieldParams.nodesTexWidth + x] = vec4(index, float( y*fieldParams.nodesTexWidth + x), -2,-2);
-                                velocity += addRepulsion(selfPosition, compareNodePosition, 1);
+                                //if distance below threshold, repel every node from every single node
+                                if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
+                                {
+                                    //field_Destination[index*5 + y*fieldParams.nodesTexWidth + x] = vec4(index, float( y*fieldParams.nodesTexWidth + x), -2,-2);
+                                    velocity += addRepulsion(selfPosition, compareNodePosition, 1);
+                                }
                             }
                         }
-                    }
-		        }
+		            }
             
-                //now iterate over each edge, attracting every connected node towards each other
-                vec2 selfEdgeIndices = edgeIndices[index];
-                float start = selfEdgeIndices.x;
-                float end = selfEdgeIndices.y;
+                    //now iterate over each edge, attracting every connected node towards each other
+                    vec2 selfEdgeIndices = edgeIndices[index];
+                    float start = selfEdgeIndices.x;
+                    float end = selfEdgeIndices.y;
 
-                if(start != -1)
-                {
-                    for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-                    {
-                        uint neighbour = edgeData[edgeIndex];
-                        nodePosition = positions[neighbour];
-                        velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    
-                    }
-                }
-        
-            } else {
-        
-        
-                //first repel 
-                //todo ditch this double loop
-                for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
-                {
-                    for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
-                    {
-                        compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
-                        // note: double ifs work.  using continues do not work for all GPUs.
-                        if (compareNodePosition.w >= 0) 
-                        {
-                            //if distance below threshold, repel every node from every single node
-                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                            {
-                                velocity += addRepulsion(selfPosition, compareNodePosition, 6);
-                            }
-                        }
-                    }
-		        }
-
-                //now attract
-                vec2 selfEdgeIndices = edgeIndices[index];
-                float start = selfEdgeIndices.x;
-                float end = selfEdgeIndices.y;
-                ivec4 selfBlockData = blockData[index];
-
-                if (selfBlockData.z != -1)
-                { 
-                    //attract any blocks linked to the base node towards this center node
-                    vec2 baseEdgeIndices = edgeIndices[selfBlockData.z];
-                    float start = baseEdgeIndices.x;
-                    float end = baseEdgeIndices.y;
-                    if(start != -1)
+                    if(start != -1) //todo: get rid of this by making start == end?
                     {
                         for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
                         {
-                            uint neighbourID = edgeData[edgeIndex];
-                            nodePosition = positions[neighbourID];
-                            vec4 neighborBlockData = blockData[neighbourID];
-                            //attract center to another block
-                            if (neighborBlockData.x != selfBlockData.x)
-                            {
-                                vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                                velocity -= resvel;
-                            }
+                            uint neighbour = edgeTargets[edgeIndex];
+                            nodePosition = positions[neighbour];
+                            velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                    
                         }
                     }
+        
+                } 
+
+                else 
+
+                {
+        
+                    // force-directed blocks
+        
+                    //first repel 
+                    //todo ditch this double loop
+                    for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
+                    {
+                        for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
+                        {
+                            compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
+                            // note: double ifs work.  using continues do not work for all GPUs.
+                            if (compareNodePosition.w >= 0) 
+                            {
+                                //if distance below threshold, repel every node from every single node
+                                if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
+                                {
+                                    velocity += addRepulsion(selfPosition, compareNodePosition, 6);
+                                }
+                            }
+                        }
+		            }
+
+                    //now attract
+                    //vec2 selfEdgeIndices = edgeIndices[index];
+                    //float start = selfEdgeIndices.x;
+                    //float end = selfEdgeIndices.y;
+                    ivec4 selfBlockData = blockData[index];
+
+                    /*
+                    blockdata.x = index of block
+                    blockdata.y = nodes from this node to center of block node
+                    blockdata.z = first node in block  [set only for mid node]
+                    blockdata.w = last node in block [set only for mid node]
+                    */
+
+                    if (selfBlockData.z != -1) //if this node is middle of block 
+                    { 
+                        //attract any blocks linked to the base node towards this center node
+                        vec2 baseEdgeIndices = edgeIndices[selfBlockData.z];
+                        float start = baseEdgeIndices.x;
+                        float end = baseEdgeIndices.y;
+                        if(start != -1)
+                        {
+                            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
+                            {
+                                uint neighbourID = edgeTargets[edgeIndex];
+                                nodePosition = positions[neighbourID];
+                                vec4 neighborBlockData = blockData[neighbourID];
+                                //attract center to another block
+                                if (neighborBlockData.x != selfBlockData.x)
+                                {
+                                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                                    velocity -= resvel;
+                                }
+                            }
+                        }
                                
                               
-                    //attract any blocks linked to the top node towards this center node 
-                    vec2 topEdgeIndices = edgeIndices[selfBlockData.w];
-                    start = topEdgeIndices.x;
-                    end = topEdgeIndices.y;
-                    if(start != -1)
-                    {
-                        for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
+                        //attract any blocks linked to the top node towards this center node 
+                        vec2 topEdgeIndices = edgeIndices[selfBlockData.w];
+                        start = topEdgeIndices.x;
+                        end = topEdgeIndices.y;
+                        if(start != -1)
                         {
-                            uint neighbourID = edgeData[edgeIndex];
-                            nodePosition = positions[neighbourID];
-                            vec4 neighborBlockData = blockData[neighbourID];
-                            //attract center to another block
-                            if (neighborBlockData.x != selfBlockData.x)
+                            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
                             {
-                                vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                                velocity -= resvel;
+                                uint neighbourID = edgeTargets[edgeIndex];
+                                nodePosition = positions[neighbourID];
+                                vec4 neighborBlockData = blockData[neighbourID];
+                                //attract center to another block
+                                if (neighborBlockData.x != selfBlockData.x)
+                                {
+                                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                                    velocity -= resvel;
+                                }
                             }
                         }
-                    }
 
-                }
+                    }
             }
 
 

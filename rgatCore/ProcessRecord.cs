@@ -623,7 +623,11 @@ namespace rgatCore
             insdata.mnemonic = insn.Mnemonic;
             insdata.op_str = insn.Operand;
             insdata.ins_text = insdata.mnemonic + " " + insdata.op_str;
-
+            if (insn.Bytes[0] == 0xf2 && insdata.mnemonic.StartsWith("bnd"))
+            {
+                insdata.mnemonic = insn.Mnemonic.Substring(4);
+                insdata.IsMPX = true;
+            }
             if (insdata.mnemonic == "call")
             {
                 try

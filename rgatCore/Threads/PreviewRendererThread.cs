@@ -18,6 +18,7 @@ namespace rgatCore.Threads
 
         public override void Begin()
         {
+            return;//disabled until crashing fixed
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.binaryTarg.TracesCount}";

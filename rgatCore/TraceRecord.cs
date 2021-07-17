@@ -36,6 +36,7 @@ namespace rgatCore
         public bool dataEx;
         public bool hasSymbol;
         public bool PossibleidataThunk;
+        public bool IsMPX = false; //https://en.wikipedia.org/wiki/Intel_MPX
 
         public ulong address;
         public ulong branchAddress;

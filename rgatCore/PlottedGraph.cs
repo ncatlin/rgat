@@ -340,27 +340,58 @@ namespace rgatCore
 
         float GetAttractionForce(EdgeData edge)
         {
+            //don't attract node to other nodes with lots of connections.
+            //todo: do this at edge creation time, add a flag to the edgedata class
+            //GlobalConfig.NodeClumpLimit = 1;
+            if (GlobalConfig.NodeClumpLimit > 0)
+            {
+                var edgenodes = InternalProtoGraph.EdgeList[edge.EdgeListIndex];
+                var sourceNode = InternalProtoGraph.NodeList[(int)edgenodes.Item1];
+                var targNode = InternalProtoGraph.NodeList[(int)edgenodes.Item2];
+                if (sourceNode.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (targNode.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (sourceNode.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (targNode.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+            }
+
+            //return 5000;
+
+            float force;
             switch (edge.edgeClass)
             {
                 case eEdgeNodeType.eEdgeNew:
                     if (edge.sourceNodeType == eEdgeNodeType.eNodeJump)
-                        return 0.4f;
+                        force = 0.4f;
                     else
-                        return 1f;
+                        force = 1f;
+                    break;
                 case eEdgeNodeType.eEdgeLib:
-                    return 1f;
+                    force = 1f;
+                    break;
                 case eEdgeNodeType.eEdgeCall:
-                    return 0.4f;
+                    force = 0.4f;
+                    break;
                 case eEdgeNodeType.eEdgeOld:
-                    return 0.3f;
+                    force = 0.3f;
+                    break;
                 case eEdgeNodeType.eEdgeReturn:
-                    return 0.2f;
+                    force = 0.2f;
+                    break;
                 case eEdgeNodeType.eEdgeException:
-                    return 2f;
+                    force = 2f;
+                    break;
                 default:
-                    Console.WriteLine($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeIndex}");
-                    return 1f;
+                    Console.WriteLine($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeListIndex}");
+                    force = 1f;
+                    break;
             }
+
+            /*
+            if (edgenodes.Item1 == 910 || edgenodes.Item2 == 910)
+            {
+                Console.WriteLine($"{edgenodes.Item1}->{edgenodes.Item2} force {force}");
+            }*/
+            return force;
         }
 
 
@@ -1005,96 +1036,198 @@ namespace rgatCore
             textureLock.ExitReadLock();
         }
 
-
-        public unsafe int[] GetEdgeDataInts()
+        /// <summary>
+        /// Create an array listing the index of every neighbour of every node
+        /// Also initialises the edge strength array, 
+        /// </summary>
+        /// <returns></returns>
+        public bool GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargetIndexes, out int[] edgeIndexLookups)
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
             List<List<int>> targetArray = _graphStructureBalanced;
-            var textureSize = countDataArrayItems(targetArray) * 2;
-            int[] textureArray = new int[textureSize];
-
-            _edgeStrengthFloats = new float[textureSize];
-            if (textureSize == 0) return textureArray;
+            var textureSize =  (int) countDataArrayItems(targetArray)*  2; //A->B + B->A
 
 
-            int currentNodeIndex = 0;
-            int edgeIndex = 0;
-            for (currentNodeIndex = 0; currentNodeIndex < InternalProtoGraph.NodeList.Count; currentNodeIndex++)
+            if (textureSize == 0) {
+                edgeStrengths = new float[] { 0 };
+                edgeTargetIndexes = new int[] { 1 };
+                edgeIndexLookups = new int[] { 1 };
+                return false;
+            }
+
+            int nodeCount = InternalProtoGraph.NodeList.Count;
+            edgeTargetIndexes = new int[textureSize];
+            edgeStrengths = new float[textureSize];
+
+            List<List<int>> nodeNeighboursArray = null;
+            lock (animationLock)
             {
+                nodeNeighboursArray = _graphStructureBalanced.ToList();
+            }
+            var textureSize2 = indexTextureSize(nodeCount*2);
+            edgeIndexLookups = new int[textureSize2 * textureSize2];// * textureSize2 * 2];
+
+            int currentNodeIndex;
+            int edgeIndex = 0;
+            for (currentNodeIndex = 0; currentNodeIndex < nodeCount; currentNodeIndex++)
+            {
+                edgeIndexLookups[currentNodeIndex * 2] = edgeIndex;
                 List<uint> neigbours = InternalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
-                    textureArray[edgeIndex] = (int)neigbours[nidx];
+                    edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData edge))
                     {
-                        _edgeStrengthFloats[edgeIndex] = GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
                     else
                     {
                         Logging.RecordLogEvent($"Edge A {currentNodeIndex},{neigbours[nidx]} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
-                        _edgeStrengthFloats[edgeIndex] = 0.5f;
+                        edgeStrengths[edgeIndex] = 0.5f;
                     }
                     edgeIndex++;
-                    if (edgeIndex == textureArray.Length) return textureArray;
+                    if (edgeIndex == edgeTargetIndexes.Length) {
+                        edgeIndexLookups[currentNodeIndex*2 + 1] = edgeIndex;
+                        return true; 
+                    }
                 }
 
                 neigbours = InternalProtoGraph.NodeList[currentNodeIndex].IncomingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
-                    textureArray[edgeIndex] = (int)neigbours[nidx];
+                    edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData edge))
                     {
-                        _edgeStrengthFloats[edgeIndex] = GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
                     else
                     {
                         Logging.RecordLogEvent($"Edge B {neigbours[nidx]},{currentNodeIndex} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
-                        _edgeStrengthFloats[edgeIndex] = 0.5f;
+                        edgeStrengths[edgeIndex] = 0.5f;
                     }
                     edgeIndex++;
-                    if (edgeIndex == textureArray.Length) return textureArray;
+                    if (edgeIndex == edgeTargetIndexes.Length)
+                    {
+                        edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
+                        return true;
+                    }
                 }
+
+                edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
             }
 
-            /*
-            var currentIndex = 0;
-            for (var i = 0; i < targetArray.Count; i++)
-            {
-                for (var j = 0; j < targetArray[i].Count; j++)
-                {
-                    textureArray[currentIndex] = targetArray[i][j];
-                    currentIndex++;
-                }
-            }*/
 
-            for (var i = edgeIndex; i < textureArray.Length; i++)
+            for (var i = edgeIndex; i < edgeTargetIndexes.Length; i++)
             {
                 //fill unused RGBA slots with -1
-                textureArray[i] = -1;
-                _edgeStrengthFloats[edgeIndex] = -1;
+                edgeTargetIndexes[i] = -1;
+                edgeStrengths[edgeIndex] = -1;
+            }
+            
+            for (var i = InternalProtoGraph.NodeList.Count*2; i < edgeIndexLookups.Length; i++)
+            {
+                //fill unused RGBA slots with -1
+                edgeIndexLookups[i] = -1;
+            }
+            return true;
+        }
+
+
+        /// <summary>
+        /// Lists the first and last+1 edge index that this node is connected to
+        /// usage:
+        ///   selfedgei = edgeindices[index]
+        ///   firstedge, endedge = selfedgei.x, selfedgei.y
+        //	  uint neighbour = edgeData[firstedge to endedge-1];
+        //    nodePosition = positions[neighbour];
+        /// </summary>
+        /// <returns></returns>
+        public unsafe int[] GetNodeNeighbourDataOffsets()
+        {
+            //list of neighbours for each node:
+            //eg a graph like 0->1, 0->3, 1->2
+            // would result in be
+            //   0     1    2   3
+            //[[1,3],[0,2],[1],[0]]
+
+            List<List<int>> nodeNeighboursArray = null;
+            lock (animationLock)
+            {
+                nodeNeighboursArray = _graphStructureBalanced.ToList();
             }
 
-            return textureArray;
+            //create the basic block metadata here for no good reason
+            _blockRenderingMetadata = CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count));
+
+            var textureSize = indexTextureSize(nodeNeighboursArray.Count);
+
+            int[] sourceData = new int[textureSize * textureSize * 2];
+            int edgeIndex = 0;
+
+            for (var srcNodeIndex = 0; srcNodeIndex < nodeNeighboursArray.Count; srcNodeIndex++)
+            {
+
+                //keep track of the beginning of the array for this node
+                int start = edgeIndex;
+
+                foreach (int destNodeID in nodeNeighboursArray[srcNodeIndex])
+                {
+                    edgeIndex++;
+                }
+
+                //write the two sets of texture indices out.  We'll fill up an entire pixel on each pass
+
+                if (start != edgeIndex)
+                {
+                    sourceData[srcNodeIndex * 2] = start;
+                    sourceData[srcNodeIndex * 2 + 1] = edgeIndex;
+                }
+                else
+                {
+
+                    sourceData[srcNodeIndex * 2] = -1;
+                    sourceData[srcNodeIndex * 2 + 1] = -1;
+                }
+
+            }
+
+            for (var i = nodeNeighboursArray.Count * 2; i < sourceData.Length; i++)
+            {
+
+                // fill unused RGBA slots with -1
+                sourceData[i] = -1;
+            }
+            //Console.WriteLine($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
+            return sourceData;
         }
 
-        float[] _edgeStrengthFloats;
-        public unsafe float[] GetEdgeStrengthFloats()
+
+        int[] _blockRenderingMetadata;
+
+        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        public unsafe int[] GetBlockRenderingMetadata()
         {
-            return _edgeStrengthFloats;
+            return _blockRenderingMetadata;
         }
 
-        int[] _blockDataInts;
-        bool _blockDataIncomplete;
-        public unsafe int[] GetNodeBlockData()
-        {
-            return _blockDataInts;
-        }
 
-        void createBlockDataBuf(int nodecount)
+        /// <summary>
+        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        /// item[0] = blockID
+        /// item[1] = offsetFromCenter; number of nodes ahead the center node is
+        /// item[2] = centerPseudoBlockTopID; top of the block this node is in
+        /// item[3] = centerPseudoBlockBaseID; base of the block this node is in
+        /// </summary>
+        /// <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
+        /// it may be intended for a texture of a certain size</param>
+        int[] CreateBlockMetadataBuf(int nodecount)
         {
-
-            _blockDataInts = new int[nodecount * 4];
+           
+            int [] blockDataInts = new int[nodecount * 4];
             Dictionary<int, int> blockMiddles = new Dictionary<int, int>();
+
+            //step 1: find the center node of each block
+            //  todo: cache
             for (int blockIdx = 0; blockIdx < InternalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
             {
                 var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[blockIdx];
@@ -1102,7 +1235,7 @@ namespace rgatCore
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
-                    blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1;
+                    blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
                 }
                 else
                 {
@@ -1118,14 +1251,15 @@ namespace rgatCore
                 }
             }
 
+            //step 2:
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
-                NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
+                NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);  //todo - this grabs a lot of locks. improve it
                 var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
                 if (firstIdx_LastIdx == null) continue;
 
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
-                int blockID = (int)n.BlockID;
+                int blockID = (int)n.BlockID; 
                 if (!blockMiddles.ContainsKey(blockID))
                     continue;
                 int blockMid = blockMiddles[blockID];
@@ -1149,68 +1283,15 @@ namespace rgatCore
                     centerPseudoBlockBaseID = (int)firstIdx_LastIdx.Item2;
                 }
 
-
-
-                _blockDataInts[nodeIdx * 4] = blockID;
-                _blockDataInts[nodeIdx * 4 + 1] = offsetFromCenter;
-                _blockDataInts[nodeIdx * 4 + 2] = centerPseudoBlockTopID;
-                _blockDataInts[nodeIdx * 4 + 3] = centerPseudoBlockBaseID;
+                blockDataInts[nodeIdx * 4] = blockID;
+                blockDataInts[nodeIdx * 4 + 1] = offsetFromCenter;
+                blockDataInts[nodeIdx * 4 + 2] = centerPseudoBlockTopID;
+                blockDataInts[nodeIdx * 4 + 3] = centerPseudoBlockBaseID;
             }
+
+            return blockDataInts;
         }
 
-
-        public unsafe int[] GetNodeNeighbourDataOffsets()
-        {
-            List<List<int>> targetArray = null;
-            lock (animationLock)
-            {
-                targetArray = _graphStructureBalanced.ToList(); //eg: [[1,3],[0,2],[1],[0]]
-            }
-            var textureSize = indexTextureSize(targetArray.Count);
-
-            int[] sourceData = new int[textureSize * textureSize * 2];
-            int current = 0;
-
-            createBlockDataBuf(Math.Min(targetArray.Count, InternalProtoGraph.BlocksFirstLastNodeList.Count));
-
-
-            for (var srcNodeIndex = 0; srcNodeIndex < targetArray.Count; srcNodeIndex++)
-            {
-
-
-                //keep track of the beginning of the array for this node
-                int start = current;
-
-                foreach (int destNodeID in targetArray[srcNodeIndex])
-                {
-                    current++;
-                }
-
-                //write the two sets of texture indices out.  We'll fill up an entire pixel on each pass
-
-                if (start != current)
-                {
-                    sourceData[srcNodeIndex * 2] = start;
-                    sourceData[srcNodeIndex * 2 + 1] = current;
-                }
-                else
-                {
-
-                    sourceData[srcNodeIndex * 2] = -1;
-                    sourceData[srcNodeIndex * 2 + 1] = -1;
-                }
-
-            }
-
-            for (var i = targetArray.Count * 2; i < sourceData.Length; i++)
-            {
-
-                // fill unused RGBA slots with -1
-                sourceData[i] = -1;
-            }
-            //Console.WriteLine($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
-            return sourceData;
-        }
 
 
         public int DrawnEdgesCount = 0;
@@ -1339,6 +1420,10 @@ namespace rgatCore
             {
                 return new WritableRgbaFloat(0f, 0f, 0f, 1);
             }
+
+
+
+
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1351,6 +1436,21 @@ namespace rgatCore
                     }
                 case eRenderingMode.eConditionals:
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
+
+                case eRenderingMode.eDegree:
+                    if (InternalProtoGraph.NodeList[(int)edge.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+
+                    if (InternalProtoGraph.NodeList[(int)edge.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+
+                    if (InternalProtoGraph.NodeList[(int)edge.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+
+                    if (InternalProtoGraph.NodeList[(int)edge.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+
+                    return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eBadStateColour]);
                 default:
                     return graphColours[(int)e.edgeClass];
             }

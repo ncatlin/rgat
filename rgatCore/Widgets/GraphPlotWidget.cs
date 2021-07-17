@@ -1650,7 +1650,7 @@ namespace rgatCore
                         if (f.R != _mouseoverNodeID && f.R < graph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
                         {
                             NodeData n = graph.InternalProtoGraph.NodeList[(int)f.R];
-                            Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}");
+                            Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}. Out:{n.OutgoingNeighboursSet.Count} In:{n.IncomingNeighboursSet.Count}");
                             _mouseoverNodeID = (int)f.R;
                         }
                         hit = true;

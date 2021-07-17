@@ -188,6 +188,8 @@ namespace rgatCore
         public static int VisMessageFadeStartTime = 500;
         public static bool ShowVisMessages = true;
 
+        public static int NodeClumpLimit = 50;
+        public static float NodeClumpForce = 0.01f;
 
         public static class mainColours
         {

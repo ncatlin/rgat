@@ -9,14 +9,14 @@ namespace rgatCore
     {
         public EdgeData(int index, eEdgeNodeType sourceType, ulong execCount = 0)
         {
-            EdgeIndex = (uint)index;
+            EdgeListIndex = index;
             sourceNodeType = sourceType;
             executionCount = execCount;
         }
 
         public EdgeData(JArray serialised, int index, eEdgeNodeType sourceType)
         {
-            EdgeIndex = (uint)index;
+            EdgeListIndex = index;
             edgeClass = (eEdgeNodeType)serialised[2].ToObject<uint>();
             executionCount = serialised[3].ToObject<ulong>();
             sourceNodeType = sourceType;
@@ -50,7 +50,7 @@ namespace rgatCore
 
         public bool heatComplete = false;
 
-        public uint EdgeIndex = 0;
+        public int EdgeListIndex = 0;
         public float heatRank = 0; //0-9 least to most busy
     }
 }
