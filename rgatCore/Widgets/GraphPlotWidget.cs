@@ -700,11 +700,16 @@ namespace rgatCore
 
             _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+            _outputTexture1.Name = "OutTex1" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
+            _outputFramebuffer1.Name = $"OPFB1_" + _outputTexture1.Name;
 
             _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+            _outputTexture2.Name = "OutTex2" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
+            _outputFramebuffer2.Name = $"OPFB2_" + _outputTexture2.Name;
+
 
 
             _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
@@ -1001,7 +1006,7 @@ namespace rgatCore
         }
 
 
-        public void renderGraph(PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
+        public void renderGraph(CommandList cl, PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
         {
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || Exiting) return;
@@ -1009,8 +1014,7 @@ namespace rgatCore
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
             //todo - thread safe persistent commandlist
-            CommandList _cl = _factory.CreateCommandList();
-            _cl.Begin();
+            cl.Begin();
 
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _imageTextureView);
 
@@ -1021,7 +1025,8 @@ namespace rgatCore
             var textureSize = graph.LinearIndexTextureSize();
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
-            updateShaderParams(graph, textureSize, proj, view, world, _cl);
+            updateShaderParams(graph, textureSize, proj, view, world, cl);
+
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
             //VeldridGraphBuffers.DoDispose(_crs_core);
@@ -1049,9 +1054,9 @@ namespace rgatCore
 
 
             //todo - only do this on changes
-            _cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
-            _cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
-            _cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
+            cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
+            cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
+            cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
 
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
@@ -1059,15 +1064,14 @@ namespace rgatCore
                 VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
                 BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
                 _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
-
                 VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
                 BufferDescription eibDescription = new BufferDescription((uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer);
                 _EdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
             }
 
             //todo - only do this on changes
-            _cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            _cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
+            cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
+            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
             Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
             List<fontStruc> stringVerts;
@@ -1088,28 +1092,28 @@ namespace rgatCore
             GetOutputFramebuffer(out Framebuffer drawtarget);
 
             //draw nodes and edges
-            _cl.SetFramebuffer(drawtarget);
-            _cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
+            cl.SetFramebuffer(drawtarget);
+            cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
 
             if (graph.NodesVisible)
             {
-                _cl.SetPipeline(_pointsPipeline);
-                _cl.SetGraphicsResourceSet(0, crs_core);
-                _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
-                _cl.SetVertexBuffer(0, _NodeVertexBuffer);
-                _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-                _cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.SetPipeline(_pointsPipeline);
+                cl.SetGraphicsResourceSet(0, crs_core);
+                cl.SetGraphicsResourceSet(1, crs_nodesEdges);
+                cl.SetVertexBuffer(0, _NodeVertexBuffer);
+                cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
+                cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             }
 
             if (graph.EdgesVisible)
             {
-                _cl.SetPipeline(_edgesPipelineRelative);
-                _cl.SetGraphicsResourceSet(0, crs_core);
-                _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
-                _cl.SetVertexBuffer(0, _EdgeVertBuffer);
-                _cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-                _cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.SetPipeline(_edgesPipelineRelative);
+                cl.SetGraphicsResourceSet(0, crs_core);
+                cl.SetGraphicsResourceSet(1, crs_nodesEdges);
+                cl.SetVertexBuffer(0, _EdgeVertBuffer);
+                cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
+                cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             }
 
@@ -1123,59 +1127,57 @@ namespace rgatCore
                     VeldridGraphBuffers.DoDispose(_RawEdgeVertBuffer);
                     BufferDescription tvbDescription = new BufferDescription((uint)IllustrationEdges.Length * GeomPositionColour.SizeInBytes * 4, BufferUsage.VertexBuffer);
                     _RawEdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
-
                     VeldridGraphBuffers.DoDispose(_RawEdgeIndexBuffer);
                     BufferDescription eibDescription = new BufferDescription((uint)illusEdgeDrawIndexes.Count * sizeof(uint) * 4, BufferUsage.IndexBuffer);
                     _RawEdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
                 }
 
                 //todo - only do this on changes
-                _cl.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
-                _cl.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
+                cl.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
+                cl.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
 
-                _cl.SetPipeline(_edgesPipelineRaw);
-                _cl.SetGraphicsResourceSet(0, crs_core);
-                _cl.SetVertexBuffer(0, _RawEdgeVertBuffer);
-                _cl.SetIndexBuffer(_RawEdgeIndexBuffer, IndexFormat.UInt32);
-                _cl.DrawIndexed(indexCount: (uint)illusEdgeDrawIndexes.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.SetPipeline(_edgesPipelineRaw);
+                cl.SetGraphicsResourceSet(0, crs_core);
+                cl.SetVertexBuffer(0, _RawEdgeVertBuffer);
+                cl.SetIndexBuffer(_RawEdgeIndexBuffer, IndexFormat.UInt32);
+                cl.DrawIndexed(indexCount: (uint)illusEdgeDrawIndexes.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
 
             //draw text
             if (graph.TextEnabled)
             {
-                _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
+                cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
 
-                _cl.SetPipeline(_fontPipeline);
-                _cl.SetVertexBuffer(0, _FontVertBuffer);
-                _cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt32);
-                _cl.SetGraphicsResourceSet(0, crs_core);
-                _cl.SetGraphicsResourceSet(1, _crs_font);
+                cl.SetPipeline(_fontPipeline);
+                cl.SetVertexBuffer(0, _FontVertBuffer);
+                cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt32);
+                cl.SetGraphicsResourceSet(0, crs_core);
+                cl.SetGraphicsResourceSet(1, _crs_font);
 
-                _cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
 
             //update the picking framebuffer
-            _cl.SetPipeline(_pickingPipeline);
-            _cl.SetGraphicsResourceSet(0, crs_core);
-            _cl.SetGraphicsResourceSet(1, crs_nodesEdges);
-            _cl.SetVertexBuffer(0, _NodePickingBuffer);
-            _cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            _cl.SetFramebuffer(_pickingFrameBuffer);
+            cl.SetPipeline(_pickingPipeline);
+            cl.SetGraphicsResourceSet(0, crs_core);
+            cl.SetGraphicsResourceSet(1, crs_nodesEdges);
+            cl.SetVertexBuffer(0, _NodePickingBuffer);
+            cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
+            cl.SetFramebuffer(_pickingFrameBuffer);
 
-            _cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
-            _cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
-            _cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
-            _cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
+            cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
+            cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
+            cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
 
-            _cl.End();
-            _gd.SubmitCommands(_cl);
+            cl.End();
+            _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
             ReleaseOutputFramebuffer();
 
-            _cl.Dispose();
             crs_core.Dispose();
             crs_nodesEdges.Dispose();
             Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1200,8 +1202,10 @@ namespace rgatCore
 
             GetLatestTexture(out Texture outputTexture);
 
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture, "GraphMainPlot"+ outputTexture.Name);
+
             Debug.Assert(!outputTexture.IsDisposed);
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture);
+
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
                 p_max: new Vector2(pos.X + outputTexture.Width, pos.Y + outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
@@ -1393,7 +1397,7 @@ namespace rgatCore
                     break;
             }
 
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex, "LayoutIcon");
             return CPUframeBufferTextureId;
         }
 
@@ -1402,6 +1406,11 @@ namespace rgatCore
 
         void DrawLayoutSelector(Vector2 position, float scale, eGraphLayout layout)
         {
+
+
+
+
+
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
@@ -1455,6 +1464,11 @@ namespace rgatCore
 
         void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
+
+
+
+
+
             PlottedGraph graph = ActiveGraph;
             if (graph == null) return;
             float buttonWidth = 150f;
@@ -1492,7 +1506,7 @@ namespace rgatCore
         /// <summary>
         /// Converts the node/edge positions computed by the layout engine into a rendered image of points and lines
         /// </summary>
-        public unsafe void GenerateMainGraph()
+        public unsafe void GenerateMainGraph(CommandList cl)
         {
             _graphLock.EnterUpgradeableReadLock();
 
@@ -1504,7 +1518,7 @@ namespace rgatCore
 
             HandleGraphUpdates();
 
-            _layoutEngine.Compute(graph, _mouseoverNodeID, graph.IsAnimated);
+            _layoutEngine.Compute(cl, graph,  _mouseoverNodeID, graph.IsAnimated);
 
             doPicking(_gd);
 
@@ -1540,8 +1554,12 @@ namespace rgatCore
 
             Logging.RecordLogEvent("GenerateMainGraph Starting fetchnodebuffers", filter: Logging.LogFilterType.BulkDebugLogFile);
             bool doDispose = FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
+
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positionBuf));
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, attribBuf));
+
             Logging.RecordLogEvent("GenerateMainGraph Starting rendergra", filter: Logging.LogFilterType.BulkDebugLogFile);
-            renderGraph(graph, positionBuf, nodeAttributesBuffer: attribBuf);
+            renderGraph(cl, graph, positionBuf, nodeAttributesBuffer: attribBuf);
             if (doDispose)
             {
                 Logging.RecordLogEvent("GenerateMainGraph disposing", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1682,11 +1700,7 @@ namespace rgatCore
                 _graphLock.ExitReadLock();
                 return;
             }
-            //store latest positions for the preview graphs
 
-            //_layoutEngine.LayoutPreviewGraphs(IgnoreGraph: graph);
-            //_layoutEngine.SaveComputeBuffers();
-            //_layoutEngine.Set_activeGraph(graph);
 
             //highlight new nodes with highlighted address
             graph.DoHighlightAddresses();

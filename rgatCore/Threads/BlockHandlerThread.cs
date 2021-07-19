@@ -98,7 +98,7 @@ namespace rgatCore
 
             uint blockID = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
 
-            Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
+            //Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
 
             if (!instrumented) //should no longer happen
             {
@@ -197,9 +197,13 @@ namespace rgatCore
 
         public void Terminate()
         {
-            cancelTokens.Cancel();
-            if (blockPipe != null && blockPipe.IsConnected)
-                blockPipe.Disconnect();
+            try
+            {
+                cancelTokens.Cancel();
+                if (blockPipe != null && blockPipe.IsConnected)
+                    blockPipe.Disconnect();
+            }
+            catch { return; }
         }
 
         async void Listener(Object pipenameO)

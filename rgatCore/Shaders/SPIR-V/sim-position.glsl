@@ -42,10 +42,13 @@ layout(set = 0, binding=4) buffer resultData
 
 };
 
+
+layout (local_size_x = 256) in;
+
 void main()	{
 
     uvec3 id = gl_GlobalInvocationID;    
-    uint index = id.y * fieldParams.nodesTexWidth + id.x;
+    uint index = id.x;// id.y * 256 + id.x;
     vec4 selfPosition = positions[index];    
     vec4 res;
 
@@ -77,6 +80,8 @@ void main()	{
 
 
     }
+
+
 
     field_Destination[index] = res;
 

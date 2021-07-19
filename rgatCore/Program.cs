@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Veldrid;
 using Veldrid.Sdl2;
 //using Veldrid.SPIRV;
@@ -41,6 +43,8 @@ namespace ImGuiNET
         static void SetThing(out float i, float val) { i = val; }
         static List<Key> HeldResponsiveKeys = new List<Key>();
 
+        static System.Timers.Timer _housekeepingTimer;
+        static bool _housekeepingTimerFired;
 
         static void Main(string[] args)
         {
@@ -54,6 +58,8 @@ namespace ImGuiNET
             Cleanup();
         }
 
+
+        private static void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
         private static void Setup()
         {
@@ -118,6 +124,11 @@ namespace ImGuiNET
             };
 
 
+            _housekeepingTimer = new System.Timers.Timer(60000);
+            _housekeepingTimer.Elapsed += FireTimer;
+            _housekeepingTimer.AutoReset = false;
+            _housekeepingTimer.Start();
+
 
             //probably not going to have movable windows at all
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
@@ -134,7 +145,7 @@ namespace ImGuiNET
 
             _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
             SubmitUI();
-
+            _gd.WaitForIdle();
             _cl.Begin();
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
@@ -143,6 +154,17 @@ namespace ImGuiNET
 
             _gd.SubmitCommands(_cl);
             _gd.SwapBuffers(_gd.MainSwapchain);
+
+            _gd.WaitForIdle();
+
+           
+            
+            if (_housekeepingTimerFired)
+            {
+                _controller.ClearCachedImageResources();
+                _housekeepingTimerFired = false;
+                _housekeepingTimer.Start();
+            }
         }
 
         private static void Cleanup()
@@ -289,6 +311,7 @@ namespace ImGuiNET
             SubmitDemoUI();
 
             _rgatui.DrawUI();
+
         }
     }
 }

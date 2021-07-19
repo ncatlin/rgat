@@ -109,6 +109,7 @@ namespace rgatCore
 
             }
 
+
             //data which is always more uptodate in the graph
             //not sure it's worth cacheing
             Logging.RecordLogEvent($"LoadActivegraphComputeBuffersIntoVRAM {EngineID} disposals", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -125,6 +126,7 @@ namespace rgatCore
             CreateEdgeDataBuffers(graph, out _edgesConnectionDataBuffer, out _edgeStrengthDataBuffer, out _edgesConnectionDataOffsetsBuffer);
             Logging.RecordLogEvent("LoadActivegraphComputeBuffersIntoVRAM complete", filter: Logging.LogFilterType.BulkDebugLogFile);
 
+ ;
         }
 
 
@@ -475,7 +477,7 @@ namespace rgatCore
         //todo - only dispose and recreate if too small
         void UploadGraphDataToVRAM(PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAM Start {graph.tid} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"UploadGraphDataToVRAM Start {graph.tid} layout {Thread.CurrentThread.Name}-{this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             if (_cachedPositionBuffers.ContainsKey(graph))
             {
                 Logging.RecordLogEvent($"UploadGraphDataToVRAM disposing", Logging.LogFilterType.BulkDebugLogFile);
@@ -525,65 +527,6 @@ namespace rgatCore
 
         }
 
-        /*
-         * 
-         * 
-         * the math works, need to fix the buffers/mem/cache positions for previews
-         * 
-         * 
-         * 
-         * */
-        /*
-        void InitPreviewPositionBuffers(PlottedGraph graph)
-        {
-
-            if (!_cachedPositionBuffers.ContainsKey(graph))
-            {
-                DeviceBuffer pos1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
-                DeviceBuffer pos2 = _factory.CreateBuffer(new BufferDescription { SizeInBytes = pos1.SizeInBytes, Usage = pos1.Usage, StructureByteStride = 4 });
-                _cachedPositionBuffers[graph] = new Tuple<DeviceBuffer, DeviceBuffer>(pos1, pos2);
-
-                CommandList cl = _factory.CreateCommandList();
-                cl.Begin();
-                cl.CopyBuffer(pos1, 0, pos2, 0, pos1.SizeInBytes);
-                cl.End();
-                _gd.SubmitCommands(cl);
-                _gd.WaitForIdle();
-                cl.Dispose();
-            }
-            else
-            {
-                DeviceBuffer pos1 = _cachedPositionBuffers[graph].Item1;
-                DeviceBuffer pos2 = _cachedPositionBuffers[graph].Item1;
-
-                float[] newPositions = graph.GetPositionFloats();
-
-                uint oldSize = pos1.SizeInBytes;
-                int currentSize = sizeof(float) * newPositions.Length;
-
-                if (true)//currentSize > oldSize) //todo!
-                {
-                    pos1.Dispose();
-                    pos2.Dispose();
-                    pos1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
-                    pos2 = _factory.CreateBuffer(new BufferDescription { SizeInBytes = pos1.SizeInBytes, Usage = pos1.Usage, StructureByteStride = 4 });
-                    _cachedPositionBuffers[graph] = new Tuple<DeviceBuffer, DeviceBuffer>(pos1, pos2);
-
-                    CommandList cl = _factory.CreateCommandList();
-                    cl.Begin();
-                    cl.CopyBuffer(pos1, 0, pos2, 0, pos1.SizeInBytes);
-                    cl.End();
-                    _gd.SubmitCommands(cl);
-                    _gd.WaitForIdle();
-                    cl.Dispose();
-                }
-
-            }
-
-
-
-        }
-        */
 
         unsafe void SetupComputeResources()
         {
@@ -618,7 +561,7 @@ namespace rgatCore
 
 
             byte[] positionShaderBytes = _controller.LoadEmbeddedShaderCode(_factory, "sim-position", ShaderStages.Vertex);
-            _positionShader = _factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS"));
+            _positionShader = _factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS")); //todo ... not fragment
 
             ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionComputeLayout, 16, 16, 1);
             _positionComputePipeline = _factory.CreateComputePipeline(PositionCPD);
@@ -653,24 +596,23 @@ namespace rgatCore
         void resizeComputeBuffers(PlottedGraph graph, uint bufferSize)
         {
 
-            Logging.RecordLogEvent($"resizeComputeBuffers {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"resizeComputeBuffers {Thread.CurrentThread.Name}-{this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
-            DeviceBuffer velocityBuffer1B = _factory.CreateBuffer(bd);
-            DeviceBuffer positionsBuffer1B = _factory.CreateBuffer(bd);
-            DeviceBuffer velocityBuffer2B = _factory.CreateBuffer(bd);
-            DeviceBuffer positionsBuffer2B = _factory.CreateBuffer(bd);
-            DeviceBuffer attribsBuffer1B = _factory.CreateBuffer(bd);
-            DeviceBuffer attribsBuffer2B = _factory.CreateBuffer(bd);
-
+            DeviceBuffer velocityBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activeVelocityBuffer1.SizeInBytes));
+            DeviceBuffer positionsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activeVelocityBuffer1.SizeInBytes));
+            DeviceBuffer velocityBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activePositionsBuffer1.SizeInBytes));
+            DeviceBuffer positionsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activePositionsBuffer1.SizeInBytes));
+            DeviceBuffer attribsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activeNodeAttribBuffer1.SizeInBytes));
+            DeviceBuffer attribsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, Math.Min(bufferSize, _activeNodeAttribBuffer1.SizeInBytes));
 
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();
-            cl.CopyBuffer(_activeVelocityBuffer1, 0, velocityBuffer1B, 0, Math.Min(velocityBuffer1B.SizeInBytes, _activeVelocityBuffer1.SizeInBytes));
-            cl.CopyBuffer(_activeVelocityBuffer2, 0, velocityBuffer2B, 0, Math.Min(velocityBuffer2B.SizeInBytes, _activeVelocityBuffer1.SizeInBytes));
-            cl.CopyBuffer(_activePositionsBuffer1, 0, positionsBuffer1B, 0, Math.Min(positionsBuffer1B.SizeInBytes, _activePositionsBuffer1.SizeInBytes));
-            cl.CopyBuffer(_activePositionsBuffer2, 0, positionsBuffer2B, 0, Math.Min(positionsBuffer2B.SizeInBytes, _activePositionsBuffer1.SizeInBytes));
-            cl.CopyBuffer(_activeNodeAttribBuffer1, 0, attribsBuffer1B, 0, Math.Min(attribsBuffer1B.SizeInBytes, _activeNodeAttribBuffer1.SizeInBytes));
-            cl.CopyBuffer(_activeNodeAttribBuffer2, 0, attribsBuffer2B, 0, Math.Min(attribsBuffer2B.SizeInBytes, _activeNodeAttribBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activeVelocityBuffer1, 0, velocityBuffer1B, 0, Math.Min(bufferSize, _activeVelocityBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activeVelocityBuffer2, 0, velocityBuffer2B, 0, Math.Min(bufferSize, _activeVelocityBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activePositionsBuffer1, 0, positionsBuffer1B, 0, Math.Min(bufferSize, _activePositionsBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activePositionsBuffer2, 0, positionsBuffer2B, 0, Math.Min(bufferSize, _activePositionsBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activeNodeAttribBuffer1, 0, attribsBuffer1B, 0, Math.Min(bufferSize, _activeNodeAttribBuffer1.SizeInBytes));
+            cl.CopyBuffer(_activeNodeAttribBuffer2, 0, attribsBuffer2B, 0, Math.Min(bufferSize, _activeNodeAttribBuffer1.SizeInBytes));
             cl.End();
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
@@ -712,24 +654,22 @@ namespace rgatCore
             }
 
 
-            BufferDescription bd = new BufferDescription((uint)edgeTargets.Length * sizeof(int),
-                BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
+            BufferDescription bd = new BufferDescription((uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
             EdgeTargetsBuf = _factory.CreateBuffer(bd);
-
-            bd = new BufferDescription((uint)edgeStrengths.Length * sizeof(float),
-                BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
+            bd = new BufferDescription((uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, structureByteStride: 4);
             EdgeStrengthsBuf = _factory.CreateBuffer(bd);
-
-            bd = new BufferDescription((uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadWrite, sizeof(int));
+            bd = new BufferDescription((uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, structureByteStride: sizeof(int));
             EdgeOffsetsBuf = _factory.CreateBuffer(bd);
 
-            Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
+
+            //Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (int* targsPtr = edgeTargets)
             {
                 fixed (float* strengthsPtr = edgeStrengths)
                 {
                     fixed (int* offsetsPtr = edgeMetaOffsets)
                     {
+
                         CommandList cl = _factory.CreateCommandList();
                         cl.Begin();
                         Debug.Assert(EdgeOffsetsBuf.SizeInBytes >= (edgeMetaOffsets.Length * sizeof(int)));
@@ -742,9 +682,11 @@ namespace rgatCore
                         _gd.SubmitCommands(cl);
                         _gd.WaitForIdle();
                         cl.Dispose();
+
                     }
                 }
             }
+
 
             Logging.RecordLogEvent($"CreateEdgeDataBuffers done", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
@@ -766,6 +708,7 @@ namespace rgatCore
                     blockdats = new int[] { 0 };
                 BufferDescription bd = new BufferDescription((uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int));
                 newBuffer = _factory.CreateBuffer(bd);
+
                 if (blockdats.Length == 0) return newBuffer;
 
                 fixed (int* dataPtr = blockdats)
@@ -780,6 +723,10 @@ namespace rgatCore
                 }
             }
 
+
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, newBuffer));
+
+            Logging.RecordLogEvent($"CreateBlockDataBuffer  {this.EngineID} complete", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
             return newBuffer;
         }
@@ -801,20 +748,19 @@ namespace rgatCore
             public float k;
             public float temperature;
             public uint NodesTexWidth;
+
             public uint EdgeCount;
             public uint fixedInternalNodes;
+            public uint debugVal;
 
             private readonly uint _padding1; //must be multiple of 16
-            private readonly uint _padding2; //must be multiple of 16
         }
 
 
 
         //todo : everything in here should be class variables defined once
-        unsafe void RenderVelocity(PlottedGraph graph, DeviceBuffer positions, DeviceBuffer velocities,
-            DeviceBuffer destinationBuffer, float delta, float temperature)
+        unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
-
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             var textureSize = graph.LinearIndexTextureSize();
             uint fixedNodes = 0;
@@ -825,71 +771,59 @@ namespace rgatCore
                 delta = delta,
                 k = 100f,
                 temperature = temperature,
-                NodesTexWidth = textureSize,
+                NodesTexWidth = (uint)Math.Sqrt(_activePositionsBuffer1.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
-                fixedInternalNodes = fixedNodes
+                fixedInternalNodes = fixedNodes,
+                debugVal = _activeVelocityBuffer1.SizeInBytes
             };
 
 
-            ResourceSetDescription velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
-                _velocityParamsBuffer, positions, _PresetLayoutFinalPositionsBuffer, velocities, _edgesConnectionDataOffsetsBuffer,
-                _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer, destinationBuffer);
-            ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positions));
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
+            //Debug.Assert(positions.SizeInBytes == velocities.SizeInBytes);
+            //Debug.Assert((parms.NodesTexWidth * parms.NodesTexWidth) * 4 <= velocities.SizeInBytes);
+
+
+
 
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
-            CommandList cl = _factory.CreateCommandList();
-            cl.Begin();
+
+            //cl.Begin();
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
 
             cl.SetPipeline(_velocityComputePipeline);
-            cl.SetComputeResourceSet(0, velocityComputeResourceSet);
-            cl.Dispatch(textureSize, textureSize, 1); //todo, really?
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
+            cl.SetComputeResourceSet(0, resources);
+            cl.Dispatch(_activePositionsBuffer1.SizeInBytes / (256 * 4 * 4), 1, 1); //todo, really?
+            //cl.End();
+            //_gd.SubmitCommands(cl);
+            //_gd.WaitForIdle();
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done", Logging.LogFilterType.BulkDebugLogFile);
             //DebugPrintOutputFloatBuffer(destinationBuffer, "Velocity Computation Done. Result: ", 1500);
 
 
-            if (_activatingPreset)
-            {
-                float highest = FindHighXYZ(textureSize, destinationBuffer, 0.005f);
-                if (highest < 0.05)
-                {
-                    if (PlottedGraph.LayoutIsForceDirected(graph.LayoutStyle))
-                    {
-                        graph.InitBlankPresetLayout();
-                        float[] presetPosFloats = graph.GetPresetPositionFloats(out bool hasPresets);
-                        VeldridGraphBuffers.DoDispose(_PresetLayoutFinalPositionsBuffer);
-                        _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPosFloats, _gd);
-                    }
-                    _activatingPreset = false;
-                }
-            }
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, destinationBuffer));
 
-            velocityComputeResourceSet.Dispose();
-            cl.Dispose();
+
         }
 
         public bool ActivatingPreset => _activatingPreset == true;
 
         /// <summary>
         /// Must have read lock to call
-        /// See if any velocities in a velocity texture are below maxLimit
+        /// Find fastest node speed
         /// </summary>
         /// <param name="textureSize"></param>
         /// <param name="buf"></param>
         /// <param name="maxLimit"></param>
         /// <returns></returns>
-        float FindHighXYZ(uint textureSize, DeviceBuffer buf, float maxLimit)
+        float FindHighXYZ(DeviceBuffer buf)
         {
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             float highest = 0f;
-            for (uint index = 0; index < textureSize * textureSize * 4; index += 4)
+            for (uint index = 0; index < destinationReadView.Count; index += 4)
             {
-                if (index >= destinationReadView.Count) break;
                 if (destinationReadView[index + 3] != 1.0f) break; //past end of nodes
                 if (Math.Abs(destinationReadView[index]) > highest) highest = Math.Abs(destinationReadView[index]);
                 if (Math.Abs(destinationReadView[index + 1]) > highest) highest = Math.Abs(destinationReadView[index + 1]);
@@ -922,8 +856,13 @@ namespace rgatCore
 
 
         //todo : everything in here should be class variables defined once
-        unsafe void RenderPosition(PlottedGraph graph, DeviceBuffer positions, DeviceBuffer velocities, DeviceBuffer output, float delta)
+        unsafe void RenderPosition(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta)
         {
+
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positions));
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
+
+
             Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             var textureSize = graph.LinearIndexTextureSize();
 
@@ -943,24 +882,34 @@ namespace rgatCore
 
             //Console.WriteLine($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
 
-            ResourceSet crs = _factory.CreateResourceSet(
-                new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer, positions, velocities, _blockDataBuffer, output));
-
-            CommandList cl = _factory.CreateCommandList();
-            cl.Begin();
+            //cl.Begin();
             cl.UpdateBuffer(_positionParamsBuffer, 0, parms);
             cl.SetPipeline(_positionComputePipeline);
-            cl.SetComputeResourceSet(0, crs);
-            cl.Dispatch(width, height, 1);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
+            cl.SetComputeResourceSet(0, resources);
+            cl.Dispatch(_activeVelocityBuffer1.SizeInBytes / (256*4*4), 1, 1);
+            //cl.End();
+            //_gd.SubmitCommands(cl);
+            //_gd.WaitForIdle();
 
-            //DebugPrintOutputFloatBuffer(output, "Position Computation Done. Result: ", 50);
 
-            cl.Dispose();
-            crs.Dispose();
+            //DebugPrintOutputFloatBuffer(output, $"output possz: {positions.SizeInBytes}/{positions.SizeInBytes/16} vec4s: grp{positions.SizeInBytes/256}", 0);
+
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, output));
+            /*
+            doDbgPrinting = DetectNaN(positions) || DetectNaN(velocities) || DetectNaN(output);
+
+            if (doDbgPrinting)
+            {
+                Console.WriteLine("Nans detected.");
+                DebugPrintOutputFloatBuffer(positions, "Positions ", 0);
+                DebugPrintOutputFloatBuffer(velocities, "velocities ", 0);
+                DebugPrintOutputFloatBuffer(output, "output : ", 0);
+                Console.WriteLine("printed");
+            }
+            */
         }
+
+        bool doDbgPrinting = false;
 
 
         /*
@@ -984,7 +933,8 @@ namespace rgatCore
         }
 
 
-        unsafe void RenderNodeAttribs(PlottedGraph graph, DeviceBuffer attribBufIn, DeviceBuffer attribBufOut, float delta, int mouseoverNodeID, bool useAnimAttribs)
+        unsafe void RenderNodeAttribs(CommandList cl, PlottedGraph graph, DeviceBuffer inputAttributes,
+            ResourceSet resources, float delta, int mouseoverNodeID, bool useAnimAttribs)
         {
             Logging.RecordLogEvent($"RenderNodeAttribs  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             uint textureSize = graph.LinearIndexTextureSize();
@@ -1002,13 +952,11 @@ namespace rgatCore
             graph.GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
 
 
-            ResourceSetDescription attRSD = new ResourceSetDescription(_nodeAttribComputeLayout,
-                _attribsParamsBuffer, attribBufIn, _edgesConnectionDataOffsetsBuffer, _edgesConnectionDataBuffer, attribBufOut);
-            ResourceSet attribComputeResourceSet = _factory.CreateResourceSet(attRSD);
+
+            
 
             Logging.RecordLogEvent($"RenderNodeAttribs creaters  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            CommandList cl = _factory.CreateCommandList();
-            cl.Begin();
+
             cl.UpdateBuffer(_attribsParamsBuffer, 0, parms);
 
 
@@ -1016,15 +964,15 @@ namespace rgatCore
             foreach (uint idx in pulseNodes)
             {
                 if (idx >= graph.RenderedNodeCount()) break;
-                if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
 
                 valArray[0] = 300f; //start big
                 valArray[1] = 1.0f; //full alpha
                 valArray[2] = 1.0f; //pulse
                 fixed (float* dataPtr = valArray)
                 {
-                    Debug.Assert((idx * 4 * sizeof(float) + valArray.Length * sizeof(float)) < attribBufIn.SizeInBytes);
-                    cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float), (IntPtr)dataPtr, (uint)valArray.Length * sizeof(float));
+                    Debug.Assert((idx * 4 * sizeof(float) + valArray.Length * sizeof(float)) < inputAttributes.SizeInBytes);
+                    cl.UpdateBuffer(inputAttributes, idx * 4 * sizeof(float), (IntPtr)dataPtr, (uint)valArray.Length * sizeof(float));
                 }
             }
 
@@ -1032,45 +980,34 @@ namespace rgatCore
             foreach (uint idx in lingerNodes)
             {
                 if (idx >= graph.RenderedNodeCount()) break;
-                if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
 
                 valArray[0] = 2.0f + currentPulseAlpha;
                 fixed (float* dataPtr = valArray)
                 {
-                    Debug.Assert((idx * 4 * sizeof(float) + (2 * sizeof(float)) + sizeof(float)) < attribBufIn.SizeInBytes);
-                    cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
+                    Debug.Assert((idx * 4 * sizeof(float) + (2 * sizeof(float)) + sizeof(float)) < inputAttributes.SizeInBytes);
+                    cl.UpdateBuffer(inputAttributes, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
                 }
             }
 
             foreach (uint idx in deactivatedNodes)
             {
                 if (idx >= graph.RenderedNodeCount()) break;
-                if (attribBufIn.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
                 valArray[0] = 0.8f;
                 fixed (float* dataPtr = valArray)
                 {
-                    Debug.Assert((idx * 4 * sizeof(float) + (2 * sizeof(float)) + sizeof(float)) < attribBufIn.SizeInBytes);
-                    cl.UpdateBuffer(attribBufIn, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
+                    Debug.Assert((idx * 4 * sizeof(float) + (2 * sizeof(float)) + sizeof(float)) < inputAttributes.SizeInBytes);
+                    cl.UpdateBuffer(inputAttributes, idx * 4 * sizeof(float) + (2 * sizeof(float)), (IntPtr)dataPtr, sizeof(float));
                 }
             }
 
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
-
-
-            cl.Begin();
             cl.SetPipeline(_nodeAttribComputePipeline);
-            cl.SetComputeResourceSet(0, attribComputeResourceSet);
-            cl.Dispatch(textureSize, textureSize, 1);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
+            cl.SetComputeResourceSet(0, resources);
+            cl.Dispatch(inputAttributes.SizeInBytes / (256 * 4 * 4), 1, 1);
 
             //DebugPrintOutputFloatBuffer((int)textureSize, attribBufOut, "attrib Computation Done. Result: ", 32);
 
-            cl.Dispose();
-            attribComputeResourceSet.Dispose();
         }
 
 
@@ -1092,6 +1029,7 @@ namespace rgatCore
                     Usage = _activeNodeAttribBuffer1.Usage,
                     StructureByteStride = 4
                 });
+
             _cachedNodeAttribBuffers[argGraph] = new Tuple<DeviceBuffer, DeviceBuffer>(_activeNodeAttribBuffer1, _activeNodeAttribBuffer2);
             argGraph.flipflop = true; //process attribs buffer 1 first into buffer 2
 
@@ -1134,23 +1072,6 @@ namespace rgatCore
             }
             attribBuf = null;
             return false;
-        }
-
-
-        public void LayoutPreviewGraphs(PlottedGraph IgnoreGraph)
-        {
-            if (_activeTrace == null) return;
-            Logging.RecordLogEvent($"LayoutPreviewGraphs", Logging.LogFilterType.BulkDebugLogFile);
-            var graphs = _activeTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
-            foreach (PlottedGraph graph in graphs)
-            {
-                if (graph != null && graph != IgnoreGraph)
-                {
-                    Set_activeGraph(graph);
-                    Compute(graph, -1, false);
-                    Download_VRAM_Buffers_To_Graph(_activeGraph);
-                }
-            }
         }
 
 
@@ -1197,11 +1118,18 @@ namespace rgatCore
 
 
         bool _activatingPreset;
-        public ulong Compute(PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
+        public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
         {
+
+            //_computationActive = false;
+            //_computationPosVelActive = false;
+
             ulong newversion;
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+
             _computeLock.EnterUpgradeableReadLock();
-            if (_activeGraph != graph || graph.DrawnEdgesCount == 0)
+            if (_activeGraph != graph || graph.DrawnEdgesCount == 0 || !GlobalConfig.LayoutComputeEnabled)
             {
                 newversion = _cachedVersions.GetValueOrDefault(graph, (ulong)0);
                 _computeLock.ExitUpgradeableReadLock();
@@ -1216,9 +1144,9 @@ namespace rgatCore
                 SetupComputeResources();
             }
 
-            Debug.Assert(edgesCount >= graph.DrawnEdgesCount);
             if (edgesCount > graph.RenderedEdgeCount || (new Random()).Next(0, 100) == 1)
             {
+
                 _computeLock.EnterWriteLock();
                 RegenerateEdgeDataBuffers(graph);
                 _computeLock.ExitWriteLock();
@@ -1241,27 +1169,117 @@ namespace rgatCore
             graph.lastRenderTime = now;
             float _activeGraphTemperature = graph.temperature;
 
+            ResourceSet attribComputeResourceSet = null;
+            ResourceSet velocityComputeResourceSet = null;
+            ResourceSet posRS = null;
+            cl.Begin();
             if (graph.flipflop)
             {
-                if (_activeGraphTemperature > 0.1)
+                if (_activeGraphTemperature > 0.1)// && _computationPosVelActive)
                 {
-                    RenderVelocity(graph, _activePositionsBuffer1, _activeVelocityBuffer1, _activeVelocityBuffer2, delta, _activeGraphTemperature);
-                    RenderPosition(graph, _activePositionsBuffer1, _activeVelocityBuffer1, _activePositionsBuffer2, delta);
-                    _cachedVersions[graph]++;
+
+                    if (GlobalConfig.LayoutPositionsActive)
+                    {
+                        //todo unified resource layout
+                        ResourceSetDescription velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,  _velocityParamsBuffer,
+                            _activePositionsBuffer1, _PresetLayoutFinalPositionsBuffer, _activeVelocityBuffer1, _edgesConnectionDataOffsetsBuffer,
+                        _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer, _activeVelocityBuffer2);
+                        velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
+
+
+                        RenderVelocity(cl, graph, velocityComputeResourceSet, delta, _activeGraphTemperature);
+
+
+                        posRS = _factory.CreateResourceSet(
+                            new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer, 
+                            _activePositionsBuffer1, _activeVelocityBuffer1, _blockDataBuffer, _activePositionsBuffer2));
+
+
+                        RenderPosition(cl, graph, posRS, delta);
+
+  
+
+                        _cachedVersions[graph]++;
+                    }
                 }
-                RenderNodeAttribs(graph, _activeNodeAttribBuffer1, _activeNodeAttribBuffer2, delta, mouseoverNodeID, useAnimAttribs);
+
+                if (GlobalConfig.LayoutAttribsActive)
+                {
+                    ResourceSetDescription attRSD = new ResourceSetDescription(_nodeAttribComputeLayout,
+                        _attribsParamsBuffer, _activeNodeAttribBuffer1, _edgesConnectionDataOffsetsBuffer, 
+                        _edgesConnectionDataBuffer, _activeNodeAttribBuffer2);
+                    attribComputeResourceSet = _factory.CreateResourceSet(attRSD);
+                    RenderNodeAttribs(cl, graph, _activeNodeAttribBuffer1, attribComputeResourceSet, delta, mouseoverNodeID, useAnimAttribs);
+                }
             }
             else
             {
-                if (_activeGraphTemperature > 0.1)
+                if (_activeGraphTemperature > 0.1)// && _computationPosVelActive)
                 {
-                    RenderVelocity(graph, _activePositionsBuffer2, _activeVelocityBuffer2, _activeVelocityBuffer1, delta, _activeGraphTemperature);
-                    RenderPosition(graph, _activePositionsBuffer2, _activeVelocityBuffer1, _activePositionsBuffer1, delta);
-                    _cachedVersions[graph]++;
+                    if (GlobalConfig.LayoutPositionsActive)
+                    {
+                        ResourceSetDescription velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
+                        _velocityParamsBuffer, _activePositionsBuffer2, _PresetLayoutFinalPositionsBuffer, _activeVelocityBuffer2, _edgesConnectionDataOffsetsBuffer,
+                        _edgesConnectionDataBuffer, _edgeStrengthDataBuffer, _blockDataBuffer, _activeVelocityBuffer2);
+                        velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
+                        RenderVelocity(cl, graph, velocityComputeResourceSet, delta, _activeGraphTemperature);
 
+     
+
+
+                        posRS = _factory.CreateResourceSet(
+                         new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer,
+                         _activePositionsBuffer2, _activeVelocityBuffer2, _blockDataBuffer, _activePositionsBuffer1));
+
+                        RenderPosition(cl, graph, posRS, delta);
+                        _cachedVersions[graph]++;
+
+      
+
+                    }
                 }
-                RenderNodeAttribs(graph, _activeNodeAttribBuffer2, _activeNodeAttribBuffer1, delta, mouseoverNodeID, useAnimAttribs);
+                if (GlobalConfig.LayoutAttribsActive)
+                {
+                    ResourceSetDescription attRSD = new ResourceSetDescription(_nodeAttribComputeLayout,
+                        _attribsParamsBuffer, _activeNodeAttribBuffer2, _edgesConnectionDataOffsetsBuffer, 
+                        _edgesConnectionDataBuffer, _activeNodeAttribBuffer1);
+                    attribComputeResourceSet = _factory.CreateResourceSet(attRSD);
+                    RenderNodeAttribs(cl, graph, _activeNodeAttribBuffer2, attribComputeResourceSet, delta, mouseoverNodeID, useAnimAttribs);
+                }
             }
+
+
+
+
+            cl.End();
+            _gd.SubmitCommands(cl);
+            _gd.WaitForIdle();
+
+
+            if (_activatingPreset)
+            {
+                float highest = FindHighXYZ(_activeVelocityBuffer2);
+                if (highest < 0.05)
+                {
+                    if (PlottedGraph.LayoutIsForceDirected(graph.LayoutStyle))
+                    {
+                        graph.InitBlankPresetLayout();
+                        float[] presetPosFloats = graph.GetPresetPositionFloats(out bool hasPresets);
+                        VeldridGraphBuffers.DoDispose(_PresetLayoutFinalPositionsBuffer);
+                        _PresetLayoutFinalPositionsBuffer = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPosFloats, _gd);
+                    }
+                    _activatingPreset = false;
+                }
+            }
+
+
+
+            if (attribComputeResourceSet != null)
+                attribComputeResourceSet.Dispose();
+            if (velocityComputeResourceSet != null)
+                velocityComputeResourceSet.Dispose();
+            if (posRS != null)
+                posRS.Dispose();
 
             graph.flipflop = !graph.flipflop;
             if (_activeGraphTemperature > 0.1)
@@ -1269,13 +1287,24 @@ namespace rgatCore
             else
                 graph.temperature = 0;
 
+
             newversion = _cachedVersions.GetValueOrDefault(graph, (ulong)0);
 
             _computeLock.ExitUpgradeableReadLock();
 
+            timer.Stop();
+            lastComputeMS.Add(timer.ElapsedMilliseconds);
+            if (lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                lastComputeMS = lastComputeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+            AverageComputeTime = lastComputeMS.Average();
+
             Logging.RecordLogEvent($"Compute end {EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             return newversion;
         }
+
+        List<long> lastComputeMS = new List<long>() { 0 };
+        public double AverageComputeTime { get; private set; } = 0;
+
 
         /// <summary>
         /// Must hold writer lock before calling
@@ -1285,12 +1314,12 @@ namespace rgatCore
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {this.EngineID} start", Logging.LogFilterType.BulkDebugLogFile);
             VeldridGraphBuffers.DoDispose(_edgesConnectionDataBuffer);
             VeldridGraphBuffers.DoDispose(_edgesConnectionDataOffsetsBuffer);
-            VeldridGraphBuffers.DoDispose(_edgeStrengthDataBuffer);
             VeldridGraphBuffers.DoDispose(_blockDataBuffer);
+            VeldridGraphBuffers.DoDispose(_edgeStrengthDataBuffer);
 
             CreateEdgeDataBuffers(graph, out _edgesConnectionDataBuffer, out _edgeStrengthDataBuffer, out _edgesConnectionDataOffsetsBuffer);
-            //_edgesConnectionDataOffsetsBuffer = CreateEdgesConnectionDataOffsetsBuffer(graph);
             _blockDataBuffer = CreateBlockMetadataBuffer(graph);
+
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {this.EngineID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 
@@ -1320,6 +1349,7 @@ namespace rgatCore
 
                 _computeLock.EnterWriteLock();
                 resizeComputeBuffers(graph, bufferSize);
+
                 _computeLock.ExitWriteLock();
             }
 
@@ -1352,6 +1382,10 @@ namespace rgatCore
             _gd.WaitForIdle();
             cl.Dispose();
 
+
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, _activeVelocityBuffer1));
+            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, _activeVelocityBuffer2));
+
             graph.ComputeBufferNodeCount = finalCount;
         }
 
@@ -1374,6 +1408,7 @@ namespace rgatCore
 
         static void PrintBufferArray<T>(T[] sourceData, string premsg, int limit = 0)
         {
+
             Console.WriteLine(premsg);
             for (var i = 0; i < sourceData.Length; i += 4)
             {

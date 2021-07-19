@@ -4,7 +4,6 @@
  *and https://github.com/ocornut/imgui/blob/fed80b95375f716536ceaa3c5e8b21c96e150bff/imgui_widgets.cpp
  */
 using ImGuiNET;
-using SharpDX.D3DCompiler;
 using System;
 using System.Collections.Generic;
 using System.Drawing;

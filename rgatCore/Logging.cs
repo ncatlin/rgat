@@ -371,6 +371,8 @@ namespace rgatCore
         static System.IO.StreamWriter _logFile = null;
         static void WriteToDebugFile(TEXT_LOG_EVENT log)
         {
+            if (System.Threading.Thread.CurrentThread.Name != null && System.Threading.Thread.CurrentThread.Name.Contains("TracePro")) return;
+
             if (_logFile == null)
             {
                 _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.TraceSaveDirectory, "DebugLog.txt"));

@@ -272,9 +272,16 @@ namespace rgatCore
         {
             if (!StopFlag)
             {
-                StopFlag = true;
-                RawIngestCompleteEvent.Set();
-                cancelTokens.Cancel();
+                try
+                {
+                    StopFlag = true;
+                    RawIngestCompleteEvent.Set();
+                    cancelTokens.Cancel();
+                }
+                catch
+                {
+                    return;
+                }
             }
         }
 

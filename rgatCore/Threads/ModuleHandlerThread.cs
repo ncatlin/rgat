@@ -407,11 +407,16 @@ namespace rgatCore
 
         public void Terminate()
         {
-            cancelTokens.Cancel();
-            if (commandPipe != null && commandPipe.IsConnected)
-                commandPipe.Disconnect();
-            if (eventPipe != null && eventPipe.IsConnected)
-                eventPipe.Disconnect();
+            try
+            {
+                cancelTokens.Cancel();
+                if (commandPipe != null && commandPipe.IsConnected)
+                    commandPipe.Disconnect();
+                if (eventPipe != null && eventPipe.IsConnected)
+                    eventPipe.Disconnect();
+            }
+            catch { return; }
+
         }
 
         async void ControlEventListener(object instanceID)
@@ -492,7 +497,7 @@ namespace rgatCore
                 else
                 {
                     //multi-part message, queue this for reassembly
-                    pendingBuf = (pendingBuf == null) ?  buf : pendingBuf.Concat(buf).ToArray();
+                    pendingBuf = (pendingBuf == null) ? buf : pendingBuf.Concat(buf).ToArray();
                 }
             }
 

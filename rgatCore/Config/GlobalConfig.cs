@@ -189,7 +189,11 @@ namespace rgatCore
         public static bool ShowVisMessages = true;
 
         public static int NodeClumpLimit = 50;
-        public static float NodeClumpForce = 0.01f;
+        public static float NodeClumpForce = 880.01f;
+
+        public static bool LayoutComputeEnabled = true; 
+        public static bool LayoutPositionsActive = true; 
+        public static bool LayoutAttribsActive = true; 
 
         public static class mainColours
         {
@@ -248,6 +252,7 @@ namespace rgatCore
         public static List<Key> ResponsiveKeys = new List<Key>();
         public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
 
+        public static int StatisticsTimeAvgWindow = 10; //how many timing values to store for calculating recent average
 
         /*
          * Trace related config
@@ -276,6 +281,7 @@ namespace rgatCore
          */
         public static void InitDefaultKeybinds()
         {
+            
             SetKeybind(action: eKeybind.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);
             SetKeybind(action: eKeybind.MoveUp, bindIndex: 2, Key.Up, ModifierKeys.None);
             SetKeybind(action: eKeybind.MoveDown, bindIndex: 1, Key.S, ModifierKeys.None);

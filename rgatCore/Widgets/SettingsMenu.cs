@@ -627,20 +627,21 @@ namespace rgatCore.Widgets
 
         unsafe void CreateOptionsPane_UITheme()
         {
+            Themes.GetMetadataValue("Name", out string activeThemeName);
             if (Themes.UnsavedTheme)
             {
-                ImGui.Text($"Current Theme: {Themes.ThemeMetadata["Name"]} [Modified - Unsaved]. Save as a preset to keep changes.");
+                ImGui.Text($"Current Theme: {activeThemeName} [Modified - Unsaved]. Save as a preset to keep changes.");
             }
             else
             {
-                ImGui.Text($"Current Theme: {Themes.ThemeMetadata["Name"]}");
+                ImGui.Text($"Current Theme: {activeThemeName}");
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Save As Preset"))
             {
                 saveThemeboxIsOpen = true;
-                pendingPresetName = Themes.ThemeMetadata["Name"];
+                pendingPresetName = activeThemeName;
                 ImGui.OpenPopup("##SavePreset");
                 ImGui.SetNextWindowSize(new Vector2(270, 130));
             }
@@ -651,7 +652,6 @@ namespace rgatCore.Widgets
 
             DrawSavePresetPopUp();
 
-            string activeThemeName = Themes.ThemeMetadata["Name"];
             if (Themes.DefaultTheme == activeThemeName)
                 activeThemeName += " [Default]";
 
@@ -667,9 +667,9 @@ namespace rgatCore.Widgets
                     if (ImGui.IsItemHovered())
                     {
                         string tipDescription = $"Name: {themeName}\r\n";
-                        if (Themes.ThemeMetadata.TryGetValue("Description", out string themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
-                        if (Themes.ThemeMetadata.TryGetValue("Author", out string auth1)) tipDescription += $"Source: {auth1}";
-                        if (Themes.ThemeMetadata.TryGetValue("Author2", out string auth2)) tipDescription += $" ({auth2})";
+                        if (Themes.GetMetadataValue("Description", out string themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
+                        if (Themes.GetMetadataValue("Author", out string auth1)) tipDescription += $"Source: {auth1}";
+                        if (Themes.GetMetadataValue("Author2", out string auth2)) tipDescription += $" ({auth2})";
 
                         ImGui.SetTooltip(tipDescription);
                     }
@@ -703,6 +703,8 @@ namespace rgatCore.Widgets
 
         }
 
+
+
         bool doSetThemeDefaultOnSave = true;
         bool saveThemeboxIsOpen = false;
         void DrawSavePresetPopUp()
@@ -713,7 +715,7 @@ namespace rgatCore.Widgets
 
                 if (!validName)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, INVALID_VALUE_TEXTBOX_COLOUR);
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
                     ImGui.PushStyleColor(ImGuiCol.Button, 0xff333333);
                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff333333);
                     ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff333333);
@@ -811,12 +813,13 @@ namespace rgatCore.Widgets
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
-            if (Themes.DefaultTheme != Themes.ThemeMetadata["Name"])
+            Themes.GetMetadataValue("Name", out string activeThemeName);
+            if (activeThemeName != Themes.DefaultTheme)
             {
                 ImGui.SameLine();
                 if (ImGui.Button("Set As Default"))
                 {
-                    Themes.DefaultTheme = Themes.ThemeMetadata["Name"];
+                    Themes.DefaultTheme = activeThemeName;
                 }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
             }
@@ -841,8 +844,7 @@ namespace rgatCore.Widgets
 
         void DeleteCurrentTheme()
         {
-            string oldTheme = Themes.ThemeMetadata["Name"];
-
+            Themes.GetMetadataValue("Name", out string oldTheme);
             //todo load default theme
             if (Themes.BuiltinThemes.Count > 0)
             {
@@ -948,100 +950,7 @@ namespace rgatCore.Widgets
 
         unsafe void CreateThemeSelectors()
         {
-            bool changed = false;
-            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY;
-            Vector2 tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 350);
-            if (ImGui.BeginTable(str_id: "##SelectorsTable", column: 2, flags: tableFlags, outer_size: tableSize))
-            {
-                float halfWidth = ImGui.GetContentRegionAvail().X / 2;
-                ImGui.TableSetupColumn("General Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
-                ImGui.TableSetupColumn("Custom Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
-                ImGui.TableSetupScrollFreeze(0, 1);
-                ImGui.TableHeadersRow();
-
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
-                {
-                    ImGuiCol stdCol = (ImGuiCol)colI;
-                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourImGui(stdCol)).ToVec4();
-                    if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
-                    {
-                        changed = true;
-                        Themes.ThemeColoursStandard[stdCol] = new WritableRgbaFloat(colval).ToUint();
-                    }
-
-                }
-
-                ImGui.TableSetColumnIndex(1);
-                for (int colI = 0; colI < (int)(Themes.ThemeColoursCustom.Count); colI++)
-                {
-                    Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
-                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
-                    if (ImGui.ColorEdit4(Enum.GetName(typeof(Themes.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
-                    {
-                        changed = true;
-                        Themes.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
-                    }
-
-                }
-                ImGui.EndTable();
-            }
-
-            if (ImGui.TreeNode("Dimensions"))
-            {
-                for (int dimI = 0; dimI < (int)(Themes.ThemeSizesCustom.Count); dimI++)
-                {
-                    Themes.eThemeSize sizeEnum = (Themes.eThemeSize)dimI;
-                    int size = (int)Themes.GetThemeSize(sizeEnum);
-                    Vector2 sizelimit = Themes.ThemeSizeLimits[sizeEnum];
-                    if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
-                    {
-                        changed = true;
-                        Themes.ThemeSizesCustom[sizeEnum] = (float)size;
-                    }
-
-                }
-                ImGui.TreePop();
-            }
-
-            if (ImGui.TreeNode("Metadata"))
-            {
-                Tuple<string, string>? changedVal = null;
-                Dictionary<string, string> currentMetadata = new Dictionary<string, string>(Themes.ThemeMetadata);
-                foreach (KeyValuePair<string, string> kvp in currentMetadata)
-                {
-                    string value = kvp.Value;
-                    bool validValue = true;
-                    if (badFields.Contains(kvp.Key))
-                        validValue = false;
-
-                    if (!validValue)
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.FrameBg, INVALID_VALUE_TEXTBOX_COLOUR);
-                    }
-                    ImGuiInputTextCallbackData d = new ImGuiInputTextCallbackData();
-                    ImGuiInputTextCallbackDataPtr dp = new ImGuiInputTextCallbackDataPtr();
-                    IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
-
-                    ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
-                    ImGui.InputText(kvp.Key, ref value, 1024, flags, (ImGuiInputTextCallback)settingTextCheckValid, p);
-
-                    if (!validValue)
-                    {
-                        ImGui.PopStyleColor();
-                    }
-
-                }
-                if (changedVal != null)
-                {
-                    Themes.ThemeMetadata[changedVal.Item1] = changedVal.Item2;
-                }
-                ImGui.TreePop();
-            }
-
-
-
+            bool changed = Themes.DrawColourSelectors();
             if (changed)
             {
                 Themes.UnsavedTheme = true;
@@ -1049,41 +958,6 @@ namespace rgatCore.Widgets
             }
         }
 
-        static List<string> badFields = new List<string>();
-
-        //this is terrible
-        static unsafe int settingTextCheckValid(ImGuiInputTextCallbackData* p)
-        {
-            ImGuiInputTextCallbackData cb = *p;
-            byte[] currentValue = new byte[cb.BufTextLen];
-            Marshal.Copy((IntPtr)cb.Buf, currentValue, 0, p->BufTextLen);
-            string actualCurrentValue = Encoding.ASCII.GetString(currentValue);
-
-            string? keyname = Marshal.PtrToStringAuto((IntPtr)cb.UserData);
-            if (keyname != null)
-            {
-                bool validValue = true;
-
-                if (keyname == "Name" && Themes.BuiltinThemes.ContainsKey(actualCurrentValue)) validValue = false;
-                if (actualCurrentValue.Contains('"')) validValue = true;
-
-                if (badFields.Contains(keyname) && validValue)
-                {
-                    badFields.Remove(keyname);
-                }
-                else if (!badFields.Contains(keyname) && !validValue)
-                {
-                    badFields.Add(keyname);
-                }
-                if (validValue)
-                {
-                    Themes.SaveMetadataChange(keyname, actualCurrentValue);
-                }
-            }
-
-            Marshal.FreeHGlobal((IntPtr)cb.UserData);
-            return 0;
-        }
 
 
         void RegenerateUIThemeJSON()

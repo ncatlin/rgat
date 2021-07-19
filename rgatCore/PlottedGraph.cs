@@ -1432,25 +1432,25 @@ namespace rgatCore
                     {
                         Debug.Assert(e.heatRank >= 0 && e.heatRank <= 9);
                         Themes.eThemeColour heatColEnum = (Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + e.heatRank);
-                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[heatColEnum]);
+                        return Themes.GetThemeColourWRF(heatColEnum);
                     }
                 case eRenderingMode.eConditionals:
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
 
                 case eRenderingMode.eDegree:
                     if (InternalProtoGraph.NodeList[(int)edge.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                        return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eGoodStateColour]);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
 
-                    return new WritableRgbaFloat(Themes.ThemeColoursCustom[Themes.eThemeColour.eBadStateColour]);
+                    return Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
                 default:
                     return graphColours[(int)e.edgeClass];
             }

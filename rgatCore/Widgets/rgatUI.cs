@@ -16,6 +16,7 @@ using static rgatCore.Logging;
 using Humanizer;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace rgatCore
 {
@@ -53,6 +54,8 @@ namespace rgatCore
 
         double _UIstartupProgress = 0;
         List<double> _lastFrameTimeMS = new List<double>();
+        double _UIDrawFPS = 0;
+        bool _frameTimerFired = false;
 
         public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
@@ -60,7 +63,115 @@ namespace rgatCore
             _ImGuiController = imguicontroller;
             Task.Run(() => LoadingThread(imguicontroller, _gd, _cl));
             _UIstartupProgress = 0.1;
+
+            System.Timers.Timer FrameStatTimer = new System.Timers.Timer(500);
+            FrameStatTimer.Elapsed += FireTimer;
+            FrameStatTimer.AutoReset = true;
+            FrameStatTimer.Start();
+
+            /*
+            VeldridGraphBuffers.SetupZeroFillshader(imguicontroller);
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            //10000 in 30s, gross
+            for (var i = 0; i < 1000; i++)
+            {
+                Console.Write($"[i:{i}],");
+                trashmem(i, 10000);
+                dotest(i, 10000);
+            }
+            sw.Stop();
+            Console.WriteLine($"1 Done in {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+            //10000 in 30s, gross
+            for (var i = 0; i < 1000; i++)
+            {
+                Console.Write($"{i},");
+
+                trashmem(i, 10000);
+                dotest2(i, 10000);
+            }
+            sw.Stop();
+            Console.WriteLine($"2 Done in {sw.ElapsedMilliseconds} ms");
+            */
+
         }
+
+
+        unsafe void trashmem(int ri, int size)
+        {
+            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
+            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
+            CommandList cl = _ImGuiController.graphicsDevice.ResourceFactory.CreateCommandList();
+
+            int[] bbb = new int[size];
+
+            for (int i = 0; i < size; i += 1) { bbb[i] = -1; }
+
+
+            cl.Begin();
+            fixed (int* dataPtr = bbb)
+            {
+                cl.UpdateBuffer(buffer, 0, (IntPtr)dataPtr, (uint)size * 4);
+                cl.End();
+                _ImGuiController.graphicsDevice.SubmitCommands(cl);
+                _ImGuiController.graphicsDevice.WaitForIdle();
+                cl.Dispose();
+            }
+            buffer.Dispose();
+        }
+
+        unsafe void dotest(int ri, int size)
+        {
+            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
+            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
+
+            VeldridGraphBuffers.ZeroFillBuffers(new List<DeviceBuffer>() { buffer }, _ImGuiController.graphicsDevice);
+            System.Diagnostics.Debug.Assert(!VeldridGraphBuffers.DetectNaN(_ImGuiController.graphicsDevice, buffer));
+            buffer.Dispose();
+
+        }
+
+
+
+        unsafe void dotest2(int ri, int size)
+        {
+            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
+            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
+
+            CommandList cl = _ImGuiController.graphicsDevice.ResourceFactory.CreateCommandList();
+
+            int[] ccc = new int[size];
+
+            for (int i = 0; i < size; i += 1) { ccc[i] = 0; }
+
+
+            fixed (int* fillPtr = ccc)
+            {
+                cl.Begin();
+                cl.UpdateBuffer(buffer, 0, (IntPtr)fillPtr, (uint)size * 4);
+                cl.End();
+                _ImGuiController.graphicsDevice.SubmitCommands(cl);
+                _ImGuiController.graphicsDevice.WaitForIdle();
+                cl.Dispose();
+            }
+
+            System.Diagnostics.Debug.Assert(!VeldridGraphBuffers.DetectNaN(_ImGuiController.graphicsDevice, buffer));
+            buffer.Dispose();
+
+
+            /*
+    cl.UpdateBuffer(buffer, 0, (IntPtr)dataPtr, (uint)size * 4);
+    //cl.UpdateBuffer(buffer, 0, (IntPtr)fillPtr, (uint)size * 4);
+    cl.End();
+    _ImGuiController.graphicsDevice.SubmitCommands(cl);
+    _ImGuiController.graphicsDevice.WaitForIdle();
+    cl.Dispose();*/
+        }
+
+
+        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
 
 
         void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
@@ -139,11 +250,11 @@ namespace rgatCore
 
         public void Exit()
         {
-            if (GlobalConfig.BulkLogging) 
+            if (GlobalConfig.BulkLogging)
                 Logging.RecordLogEvent("rgat Exit() triggered", LogFilterType.BulkDebugLogFile);
 
             _rgatstate?.ShutdownRGAT();
-            
+
             MainGraphWidget?.Dispose();
             PreviewGraphWidget?.Dispose();
 
@@ -222,7 +333,7 @@ namespace rgatCore
             //ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Appearing);
             ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
-            ApplyThemeColours();
+            Themes.ApplyThemeColours();
             ImGui.Begin("rgat Primary Window", window_flags);
 
 
@@ -245,14 +356,19 @@ namespace rgatCore
             if (_show_load_trace_window) DrawTraceLoadBox();
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
 
-            ResetThemeColours();
+            Themes.ResetThemeColours();
 
             ImGui.End();
 
             timer.Stop();
             _lastFrameTimeMS.Add(timer.ElapsedMilliseconds);
-            if (_lastFrameTimeMS.Count > 10)
-                _lastFrameTimeMS = _lastFrameTimeMS.Skip(1).Take(10).ToList();
+            if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                _lastFrameTimeMS = _lastFrameTimeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+            if (_frameTimerFired)
+            {
+                _frameTimerFired = false;
+                _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
+            }
         }
 
 
@@ -373,21 +489,7 @@ namespace rgatCore
             return true;
         }
 
-        static int _appliedThemeCount = 0;
-        static void ApplyThemeColours()
-        {
-            var themes = Themes.ThemeColoursStandard.ToList();
-            foreach (KeyValuePair<ImGuiCol, uint> kvp in themes)
-            {
-                ImGui.PushStyleColor(kvp.Key, kvp.Value);
-            }
-            _appliedThemeCount = themes.Count;
-        }
 
-        static void ResetThemeColours()
-        {
-            ImGui.PopStyleColor(_appliedThemeCount);
-        }
 
 
         void HandleUserInput()
@@ -1161,7 +1263,7 @@ namespace rgatCore
             {
                 Texture settingsIcon = _ImGuiController.GetImage("Menu");
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon);
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "SettingsIcon");
 
                 ImGui.SetCursorPosX((regionWidth / 2) - 25);
                 ImGui.SetCursorPosY((headerSize / 2) - 75);
@@ -1213,7 +1315,7 @@ namespace rgatCore
             {
                 Texture btnIcon = _ImGuiController.GetImage("Crosshair");
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "CrossHairIcon");
 
                 //ImGui.BeginGroup();
                 ImGui.PushFont(_ImGuiController.SplashButtonFont);
@@ -1239,7 +1341,7 @@ namespace rgatCore
                 ImGui.EndTable();
                 ImGui.PopFont();
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
-                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y-25);
+                Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
                 List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
                 if (recentBins?.Count > 0)
@@ -1281,7 +1383,7 @@ namespace rgatCore
             {
                 Texture btnIcon = _ImGuiController.GetImage("Crosshair");
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon);
+                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "LoadGrpIcon");
 
                 //ImGui.BeginGroup();
                 ImGui.PushFont(_ImGuiController.SplashButtonFont);
@@ -1588,7 +1690,7 @@ namespace rgatCore
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
             {
-                DrawReplaySlider(width: width, height: 50);
+                //DrawReplaySlider(width: width, height: 50);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
@@ -1645,10 +1747,14 @@ namespace rgatCore
                                 isanimed = true;
                             }
                             ImGui.SameLine();
-                            if (ImGui.Button(bt, new Vector2(36, 36)))
+                            if (ImGui.Button(bt, new Vector2(66, 36)))
                             {
                                 activeGraph.SetAnimated(!isanimed);
                             }
+                            
+
+
+
                             ImGui.EndGroup();
                         }
 
@@ -1740,6 +1846,10 @@ namespace rgatCore
                 ImGui.PopStyleVar(3);
                 ImGui.EndChild();
             }
+            else
+            {
+                ImGui.InvisibleButton("#badDismbox", new Vector2(1, 1));
+            }
 
             ImGui.PopStyleColor();
         }
@@ -1753,8 +1863,8 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
-                _visualiserBar.Draw();
+                //_visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
+                //_visualiserBar.Draw();
 
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
@@ -1940,12 +2050,21 @@ namespace rgatCore
                             {
                                 string caption = "TID " + selectablegraph.tid;
                                 int nodeCount = selectablegraph.GraphNodeCount();
-                                if (nodeCount == 0) caption += " [Uninstrumented]";
-                                else caption += $" [{nodeCount} nodes]";
+                                if (nodeCount == 0)
+                                {
+                                    caption += " [Uninstrumented]";
+                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                                }
+                                else
+                                {
+                                    caption += $" [{nodeCount} nodes]";
+                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                                }
                                 if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid))
                                 {
                                     SetActiveGraph(selectablegraph);
                                 }
+                                ImGui.PopStyleColor();
                             }
                             ImGui.EndCombo();
                         }
@@ -1964,7 +2083,7 @@ namespace rgatCore
                 else
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
 
-                float metricsHeight = 80;
+                float metricsHeight = ImGui.GetContentRegionAvail().Y - 4;
                 ImGui.Columns(3, "smushes");
                 ImGui.SetColumnWidth(0, 20);
                 ImGui.SetColumnWidth(1, 130);
@@ -1999,8 +2118,8 @@ namespace rgatCore
                         ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
                     }
                     else
-                    { 
-                        ImGui.Text("Busy: False"); 
+                    {
+                        ImGui.Text("Busy: False");
                     }
                     SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
 
@@ -2012,28 +2131,29 @@ namespace rgatCore
                     }
                     ImGui.Text($"BRepQu: {BrQlab}");
 
-                    double uifps = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
 
-
-                    if (uifps >= 100)
-                    { 
-                        ImGui.Text($"UI FPS: 100+"); 
+                    if (_UIDrawFPS >= 100)
+                    {
+                        ImGui.Text($"UI FPS: 100+");
                     }
                     else
                     {
                         uint fpscol;
-                        if (uifps >= 40)
+                        if (_UIDrawFPS >= 40)
                             fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                        else if (uifps < 40 && uifps >= 10)
+                        else if (_UIDrawFPS < 40 && _UIDrawFPS >= 10)
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
                         else
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
 
                         ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
-                        ImGui.Text($"UI FPS: {uifps:0.#}");
+                        ImGui.Text($"UI FPS: {_UIDrawFPS:0.#}");
                         ImGui.PopStyleColor();
                     }
-                    SmallWidgets.MouseoverText("How many frames the UI can render in one second");
+                    SmallWidgets.MouseoverText($"How many frames the UI can render in one second (Last 10 Avg MS: {_lastFrameTimeMS.Average()})");
+
+                    ImGui.Text($"Layout MS: {MainGraphWidget.LayoutEngine.AverageComputeTime:0.#}");
+                    SmallWidgets.MouseoverText("How long it takes to complete a step of graph layout");
                     //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
 
                     ImGui.EndChild();
@@ -2156,11 +2276,19 @@ namespace rgatCore
             if (activeTrace == null || !ImGui.BeginTabItem("Timeline")) return;
             _currentTab = "Timeline";
 
-            chart.InitChartFromTrace(activeTrace);
 
             float height = ImGui.GetContentRegionAvail().Y;
             float width = ImGui.GetContentRegionAvail().X;
             float sidePaneWidth = 300;
+
+            if (height < 50 || width < 50)
+            {
+
+                ImGui.EndTabItem();
+                return;
+            }
+
+            chart.InitChartFromTrace(activeTrace);
 
 
             SandboxChart.itemNode selectedNode = chart.GetSelectedNode;
@@ -2199,17 +2327,17 @@ namespace rgatCore
                             {
                                 case eTimelineEvent.ProcessStart:
                                 case eTimelineEvent.ProcessEnd:
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && 
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) &&
                                         TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
                                     break;
                                 case eTimelineEvent.ThreadStart:
                                 case eTimelineEvent.ThreadEnd:
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && 
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) &&
                                         TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
                                     break;
                             }
                         }
-                        if(ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
+                        if (ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
                         {
                             chart.SelectEventNode(TLevent);
                         }
@@ -2220,8 +2348,8 @@ namespace rgatCore
 
                     }
                     ImGui.EndTable();
-                }
 
+                }
 
 
                 ImGui.TableNextColumn();
@@ -2230,7 +2358,6 @@ namespace rgatCore
                 chart.Draw();
 
                 ImGui.TableNextColumn();
-
                 float tr_height = (height / 2) - 4;
                 float tb_height = (height / 2) - 4;
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
@@ -2815,7 +2942,7 @@ namespace rgatCore
 
             _rgatstate.ActiveTarget = target;
             _rgatstate.SelectActiveTrace(target.GetFirstTrace());
-            
+
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);

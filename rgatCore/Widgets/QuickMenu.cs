@@ -257,7 +257,7 @@ namespace rgatCore.Widgets
 
             if (_expandProgress == 0)
             {
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuButton");
                 Vector2 padding = new Vector2(16f, 6f);
                 Vector2 mainIconPos = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
                 ImGui.SetCursorScreenPos(mainIconPos);
@@ -363,7 +363,7 @@ namespace rgatCore.Widgets
 
             bool isActive = entry.Popup != null && ImGui.IsPopupOpen(entry.Popup);
             Texture btnIcon = _controller.GetImage(entry.Icon);
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuSubButton");
             ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
             Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
             ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);
@@ -519,6 +519,9 @@ private void DrawScalePopup()
     }
 }
 */
+        bool _layoutComputationActive = true;
+        bool _layoutAttribComputationActive = true;
+        bool _layoutPosVelComputationActive = true;
 
         void DrawGraphLayoutFrame()
         {
@@ -543,6 +546,40 @@ private void DrawScalePopup()
                 if (ImGui.Button("Rerender"))
                 {
                     InitGraphReplot();
+                }
+
+                if (ImGui.BeginTable("ComputationSelectNodes", 2))
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    ImGui.Text("All Computation:");
+                    ImGui.TableNextColumn();
+                    if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutComputeEnabled, "Computation active"))
+                    {
+                        GlobalConfig.LayoutComputeEnabled = !GlobalConfig.LayoutComputeEnabled;
+                    }
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    ImGui.Text("Attrib Computation:");
+                    ImGui.TableNextColumn();
+                    if (SmallWidgets.ToggleButton("#ComputeAttrib", GlobalConfig.LayoutAttribsActive, "Attrib Computation active"))
+                    {
+                        GlobalConfig.LayoutAttribsActive = !GlobalConfig.LayoutAttribsActive;
+                    }
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    ImGui.Text("Pos/Vel Computation:");
+                    ImGui.TableNextColumn();
+                    if (SmallWidgets.ToggleButton("#ComputePosVel", GlobalConfig.LayoutPositionsActive, "PosVel Computation active"))
+                    {
+                        GlobalConfig.LayoutPositionsActive = !GlobalConfig.LayoutPositionsActive;
+                    }
+                    ImGui.EndTable();
                 }
             }
         }

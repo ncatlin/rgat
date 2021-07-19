@@ -85,7 +85,8 @@ namespace rgatCore.Threads
 
         public void ThreadProc()
         {
-            PlottedGraph activeGraph = null;
+            PlottedGraph activeGraph;
+            Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
 
             while (!_clientState.rgatIsExiting)
             {
@@ -108,7 +109,7 @@ namespace rgatCore.Threads
                 if (_IrregularActionTimerFired)
                     _graphWidget.PerformIrregularActions();
 
-                _graphWidget.GenerateMainGraph();
+                _graphWidget.GenerateMainGraph(cl);
 
                 //todo get rid of this 1000 after testing
                 //Thread.Sleep(GlobalConfig.renderFrequency + 100);

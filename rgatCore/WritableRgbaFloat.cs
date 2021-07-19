@@ -47,6 +47,7 @@ namespace rgatCore
             R = ((col & 0xff)) / 255f;
         }
 
+        //todo static version
         public uint ToUint(uint? customAlpha = null)
         {
             if (customAlpha != null)

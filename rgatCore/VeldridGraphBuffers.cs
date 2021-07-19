@@ -1,10 +1,14 @@
 ﻿using ImGuiNET;
+using rgatCore.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Veldrid;
+using Veldrid.SPIRV;
 
 namespace rgatCore
 {
@@ -73,7 +77,7 @@ namespace rgatCore
                 frontFace: FrontFace.Clockwise,
                 depthClipEnabled: true,
                 scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { projViewLayout,  AnimDataLayout };
+            pipelineDescription.ResourceLayouts = new[] { projViewLayout, AnimDataLayout };
             pipelineDescription.ShaderSet = shaders;
 
             pipelineDescription.Outputs = frmbuf.OutputDescription;
@@ -164,9 +168,31 @@ namespace rgatCore
         {
             if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
+
         public static void DoDispose(DeviceBuffer db)
         {
             if (db != null && db.IsDisposed == false) db.Dispose();
+        }
+
+        public static bool DetectNaN(GraphicsDevice _gd, DeviceBuffer buf)
+        {
+
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            float[] outputArray = new float[destinationReadView.Count];
+            for (int index = 0; index < destinationReadView.Count; index++)
+            {
+                if (index >= destinationReadView.Count) break;
+                outputArray[index] = destinationReadView[index];
+                //Console.WriteLine($"{index}:{outputArray[index]}");
+                if (float.IsNaN(outputArray[index]))
+                {
+                    Console.WriteLine($"{index}:{outputArray[index]}");
+                    return true;
+                }
+            }
+            _gd.Unmap(destinationReadback);
+            return false;
         }
 
         public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev)
@@ -190,6 +216,111 @@ namespace rgatCore
         }
 
 
-    }
 
+
+
+
+        static Pipeline ZeroFillPipeline;
+
+        public static void SetupZeroFillshader(ImGuiController controller)
+        {
+            GraphicsDevice gd = controller.graphicsDevice;
+            ResourceFactory rf = gd.ResourceFactory;
+
+            if (!gd.Features.ComputeShader) { Console.WriteLine("Error: No computeshader feature"); return; }
+
+            ResourceLayout fillShaderLayout = rf.CreateResourceLayout(new ResourceLayoutDescription(
+               new ResourceLayoutElementDescription("params", ResourceKind.UniformBuffer, ShaderStages.Compute),
+               new ResourceLayoutElementDescription("targ", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)
+               ));
+
+            ComputePipelineDescription pipelineDescription = new ComputePipelineDescription();
+            pipelineDescription.ResourceLayouts = new[] { fillShaderLayout, };
+            pipelineDescription.ComputeShader = rf.CreateFromSpirv(SPIRVShaders.CreateZeroFillShader(rf));
+            pipelineDescription.ThreadGroupSizeX = 256;
+            pipelineDescription.ThreadGroupSizeY = 1;
+            pipelineDescription.ThreadGroupSizeZ = 1;
+
+            ZeroFillPipeline = rf.CreateComputePipeline(pipelineDescription);
+
+            paramsBuffer = rf.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<FillParams>(), BufferUsage.UniformBuffer));
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct FillParams
+        {
+            public uint width;
+            public uint value;
+            private readonly uint _padding1; //must be multiple of 16
+            private readonly uint _padding2; //must be multiple of 16
+        }
+
+
+        static DeviceBuffer paramsBuffer;
+
+        public static void ZeroFillBuffers(List<DeviceBuffer> buffers, GraphicsDevice gd)
+        {
+            ResourceFactory rf = gd.ResourceFactory;
+
+            CommandList cl = rf.CreateCommandList();
+            cl.Begin();
+            cl.SetPipeline(ZeroFillPipeline);
+
+            List<ResourceSet> rls = new List<ResourceSet>();
+            foreach (var bw in buffers)
+            {
+                FillParams params1 = new FillParams()
+                {
+                    value = 50,
+                    width = bw.SizeInBytes / 256
+                };
+                ResourceLayout rl = rf.CreateResourceLayout(new ResourceLayoutDescription(
+    new ResourceLayoutElementDescription("params", ResourceKind.UniformBuffer, ShaderStages.Compute, ResourceLayoutElementOptions.None),
+    new ResourceLayoutElementDescription("targ", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute, ResourceLayoutElementOptions.None)));
+                ResourceSet res = rf.CreateResourceSet(new ResourceSetDescription(rl, paramsBuffer, bw));
+                cl.UpdateBuffer(paramsBuffer, 0, params1);
+                cl.SetComputeResourceSet(0, res);
+                cl.Dispatch(params1.width, 1, 1);
+                rls.Add(res);
+                rl.Dispose();
+            }
+            cl.End();
+            gd.SubmitCommands(cl);
+            gd.WaitForIdle();
+            //paramsBuffer.Dispose();
+            cl.Dispose();
+
+            foreach (var r in rls) r.Dispose();
+        }
+
+
+
+        public unsafe static void ZeroFillBuffer(DeviceBuffer buffer, GraphicsDevice gd, uint zeroStartOffset)
+        {
+            ResourceFactory rf = gd.ResourceFactory;
+
+            int[] zeros = new int[(int)(buffer.SizeInBytes / 4)];
+
+
+            CommandList cl = rf.CreateCommandList();
+            cl.Begin();
+            //cl.SetPipeline(ZeroFillPipeline);
+            fixed (int* dataPtr = zeros)
+            {
+                cl.UpdateBuffer(buffer, zeroStartOffset, (IntPtr)dataPtr, buffer.SizeInBytes-zeroStartOffset);
+            }
+            cl.End();
+            gd.SubmitCommands(cl);
+            gd.WaitForIdle();
+            //paramsBuffer.Dispose();
+            cl.Dispose();
+        }
+
+        public unsafe static DeviceBuffer CreateZeroFilledBuffer(BufferDescription bd, GraphicsDevice gd, uint zeroStartOffset=0)
+        {
+            DeviceBuffer buf = gd.ResourceFactory.CreateBuffer(bd);
+            ZeroFillBuffer(buf, gd, zeroStartOffset);
+            return buf;
+        }
+    }
 }

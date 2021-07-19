@@ -25,6 +25,7 @@ struct VelocityParams
     uint nodesTexWidth;
     uint edgeCount;
     uint fixedInternalNodes;
+    uint debugVal;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -72,6 +73,7 @@ layout(set = 0, binding=8) buffer resultData
 
 
 
+
 vec4 getNeighbor(uint bufferIndex){
     //vec2 uv = vec2(((mod(textureIndex, fieldParams.nodesTexWidth)) / fieldParams.nodesTexWidth), (floor(textureIndex / fieldParams.nodesTexWidth) / fieldParams.nodesTexWidth));
     //vec4  r =  texture(sampler2D(positions, positionsView), uv );
@@ -84,7 +86,7 @@ vec4 getNeighbor(uint bufferIndex){
 vec3 addRepulsion(vec4 self, vec4 neighbor, float multiplier){
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( fieldParams.k * fieldParams.k ) / x;
+    float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
     return normalize(diff) * f * multiplier;
 }
 
@@ -125,11 +127,13 @@ vec3 addProportionalAttraction(vec3 self, vec4 neighbor, float speed){
 }
 
 
+layout (local_size_x = 256) in;
+
 void main()	{
 
     
     uvec3 id = gl_GlobalInvocationID;
-    uint index = id.y * fieldParams.nodesTexWidth + id.x;
+    uint index = id.x;//id.y * 256 + id.x;
 
     vec4 selfPosition = positions[index];
     vec4 presetLayoutPosition = presetPositions[index];
@@ -139,7 +143,7 @@ void main()	{
     vec4 nodePosition;
     vec4 compareNodePosition;
 
-    float speedLimit = 250.0;
+    const float speedLimit = 250.0;
     float attct = 0;
      
      /*
@@ -318,8 +322,11 @@ void main()	{
     
     // add friction
     velocity *= 0.25;
+    
 
+    //debugging
 
     field_Destination[index] = vec4(velocity, velocities[index].w);
+    
 }
 

@@ -11,6 +11,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace rgatCore
@@ -18,9 +19,6 @@ namespace rgatCore
     class Themes
     {
 
-        /*
- * Theme - probably going to put in own class
- */
         //todo should be lists not dicts
         public enum eThemeColour
         {
@@ -37,14 +35,38 @@ namespace rgatCore
             COUNT
         }
 
-        public static Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
-        public static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
-        public static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
-        public static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
-        public static Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
+        static Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
+        static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
+        static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
+        static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
+        static Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
+
         public static bool IsBuiltinTheme = true;
         public static bool UnsavedTheme = false;
         static string _defaultTheme = "";
+        static readonly object _lock = new object();
+
+        static int _appliedThemeCount = 0;
+        public static void ApplyThemeColours()
+        {
+            lock (_lock)
+            {
+
+                var themes = Themes.ThemeColoursStandard.ToList();
+                foreach (KeyValuePair<ImGuiCol, uint> kvp in themes)
+                {
+                    ImGui.PushStyleColor(kvp.Key, kvp.Value);
+                }
+                _appliedThemeCount = themes.Count;
+            }
+        }
+
+        public static void ResetThemeColours()
+        {
+            ImGui.PopStyleColor(_appliedThemeCount);
+        }
+
+
         public static string DefaultTheme
         {
             get => _defaultTheme;
@@ -139,15 +161,19 @@ namespace rgatCore
 
         static unsafe void InitDefaultImGuiColours()
         {
-            for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+            lock (_lock)
             {
-                ImGuiCol col = (ImGuiCol)colI;
-                Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
-                if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
+                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+                {
+                    ImGuiCol col = (ImGuiCol)colI;
+                    Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
+                    if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
 
-                ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
+                    ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
+                }
             }
         }
+
 
 
         public static uint GetThemeColourUINT(eThemeColour item)
@@ -168,15 +194,166 @@ namespace rgatCore
         {
             Debug.Assert(ThemeColoursStandard.ContainsKey(item));
             Debug.Assert((uint)item < ThemeColoursStandard.Count);
-            return ThemeColoursStandard[item];
+            lock (_lock) { return ThemeColoursStandard[item]; }
+        }
+
+        public static void SetThemeColourImGui(ImGuiCol item, uint color)
+        {
+            lock (_lock) { ThemeColoursStandard[item] = color; }
         }
 
         public static float GetThemeSize(eThemeSize item)
         {
-            Debug.Assert(ThemeSizesCustom.ContainsKey(item));
-            Debug.Assert((uint)item < ThemeSizesCustom.Count);
-            return ThemeSizesCustom[item];
+            lock (_lock)
+            {
+                Debug.Assert(ThemeSizesCustom.ContainsKey(item));
+                Debug.Assert((uint)item < ThemeSizesCustom.Count);
+                return ThemeSizesCustom[item];
+            }
         }
+
+        public unsafe static bool DrawColourSelectors()
+        {
+            bool changed = false;
+
+            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY;
+            Vector2 tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 350);
+            if (ImGui.BeginTable(str_id: "##SelectorsTable", column: 2, flags: tableFlags, outer_size: tableSize))
+            {
+                float halfWidth = ImGui.GetContentRegionAvail().X / 2;
+                ImGui.TableSetupColumn("General Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupColumn("Custom Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupScrollFreeze(0, 1);
+                ImGui.TableHeadersRow();
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+                {
+                    ImGuiCol stdCol = (ImGuiCol)colI;
+                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourImGui(stdCol)).ToVec4();
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    {
+                        changed = true;
+                        Themes.SetThemeColourImGui(stdCol, new WritableRgbaFloat(colval).ToUint());
+                    }
+
+                }
+
+                ImGui.TableSetColumnIndex(1);
+                for (int colI = 0; colI < (int)(Themes.ThemeColoursCustom.Count); colI++)
+                {
+                    Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
+                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(Themes.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    {
+                        changed = true;
+                        Themes.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
+                    }
+
+                }
+                ImGui.EndTable();
+            }
+
+            if (ImGui.TreeNode("Dimensions"))
+            {
+                for (int dimI = 0; dimI < (int)(Themes.ThemeSizesCustom.Count); dimI++)
+                {
+                    Themes.eThemeSize sizeEnum = (Themes.eThemeSize)dimI;
+                    int size = (int)Themes.GetThemeSize(sizeEnum);
+                    Vector2 sizelimit = Themes.ThemeSizeLimits[sizeEnum];
+                    if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
+                    {
+                        changed = true;
+                        Themes.ThemeSizesCustom[sizeEnum] = (float)size;
+                    }
+
+                }
+                ImGui.TreePop();
+            }
+
+            if (ImGui.TreeNode("Metadata"))
+            {
+                Tuple<string, string>? changedVal = null;
+                Dictionary<string, string> currentMetadata = new Dictionary<string, string>(Themes.ThemeMetadata);
+                foreach (KeyValuePair<string, string> kvp in currentMetadata)
+                {
+                    string value = kvp.Value;
+                    bool validValue = true;
+                    if (badFields.Contains(kvp.Key))
+                        validValue = false;
+
+                    if (!validValue)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                    }
+                    ImGuiInputTextCallbackData d = new ImGuiInputTextCallbackData();
+                    ImGuiInputTextCallbackDataPtr dp = new ImGuiInputTextCallbackDataPtr();
+                    IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
+
+                    ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
+                    ImGui.InputText(kvp.Key, ref value, 1024, flags, (ImGuiInputTextCallback)TextCheckValid, p);
+
+                    if (!validValue)
+                    {
+                        ImGui.PopStyleColor();
+                    }
+
+                }
+                if (changedVal != null)
+                {
+                    Themes.ThemeMetadata[changedVal.Item1] = changedVal.Item2;
+                }
+                ImGui.TreePop();
+            }
+            return changed;
+        }
+
+        public static bool GetMetadataValue(string name, out string value)
+        {
+            lock (_lock)
+            {
+                return ThemeMetadata.TryGetValue(name, out value);
+            }
+        }
+
+
+        static List<string> badFields = new List<string>();
+
+        //this is terrible
+        static unsafe int TextCheckValid(ImGuiInputTextCallbackData* p)
+        {
+            ImGuiInputTextCallbackData cb = *p;
+            byte[] currentValue = new byte[cb.BufTextLen];
+            Marshal.Copy((IntPtr)cb.Buf, currentValue, 0, p->BufTextLen);
+            string actualCurrentValue = Encoding.ASCII.GetString(currentValue);
+
+            string? keyname = Marshal.PtrToStringAuto((IntPtr)cb.UserData);
+            if (keyname != null)
+            {
+                bool validValue = true;
+
+                if (keyname == "Name" && Themes.BuiltinThemes.ContainsKey(actualCurrentValue)) validValue = false;
+                if (actualCurrentValue.Contains('"')) validValue = true;
+
+                if (badFields.Contains(keyname) && validValue)
+                {
+                    badFields.Remove(keyname);
+                }
+                else if (!badFields.Contains(keyname) && !validValue)
+                {
+                    badFields.Add(keyname);
+                }
+                if (validValue)
+                {
+                    Themes.SaveMetadataChange(keyname, actualCurrentValue);
+                }
+            }
+
+            Marshal.FreeHGlobal((IntPtr)cb.UserData);
+            return 0;
+        }
+
 
         /*
     * This will load valid but incomplete theme data into the existing theme, but not if there
@@ -184,135 +361,138 @@ namespace rgatCore
     */
         static bool ActivateThemeObject(JObject theme)
         {
-            Dictionary<string, string> pendingMetadata = new Dictionary<string, string>();
-            Dictionary<ImGuiCol, uint> pendingColsStd = new Dictionary<ImGuiCol, uint>();
-            Dictionary<eThemeColour, uint> pendingColsCustom = new Dictionary<eThemeColour, uint>();
-            Dictionary<eThemeSize, float> pendingSizes = new Dictionary<eThemeSize, float>();
-            Dictionary<eThemeSize, Vector2> pendingLimits = new Dictionary<eThemeSize, Vector2>();
-
-            if (!LoadMetadataStrings(theme, out pendingMetadata, out string errorMsg))
+            lock (_lock)
             {
-                Logging.RecordLogEvent(errorMsg); return false;
-            }
+                Dictionary<string, string> pendingMetadata = new Dictionary<string, string>();
+                Dictionary<ImGuiCol, uint> pendingColsStd = new Dictionary<ImGuiCol, uint>();
+                Dictionary<eThemeColour, uint> pendingColsCustom = new Dictionary<eThemeColour, uint>();
+                Dictionary<eThemeSize, float> pendingSizes = new Dictionary<eThemeSize, float>();
+                Dictionary<eThemeSize, Vector2> pendingLimits = new Dictionary<eThemeSize, Vector2>();
 
-            if (theme.TryGetValue("CustomColours", out JToken customColTok) && customColTok.Type == JTokenType.Object)
-            {
-                foreach (var item in customColTok.ToObject<JObject>())
+                if (!LoadMetadataStrings(theme, out pendingMetadata, out string errorMsg))
                 {
-                    eThemeColour customcolType;
-                    try
-                    {
-                        customcolType = (eThemeColour)Enum.Parse(typeof(eThemeColour), item.Key, true);
-                    }
-                    catch (Exception e)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
-                    }
-                    if (customcolType >= eThemeColour.COUNT)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}"); return false;
-                    }
-                    if (item.Value.Type != JTokenType.Integer)
-                    {
-                        Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
-                    }
-                    pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
+                    Logging.RecordLogEvent(errorMsg); return false;
                 }
-            }
 
-            if (theme.TryGetValue("StandardColours", out JToken stdColTok) && stdColTok.Type == JTokenType.Object)
-            {
-                foreach (var item in stdColTok.ToObject<JObject>())
+                if (theme.TryGetValue("CustomColours", out JToken customColTok) && customColTok.Type == JTokenType.Object)
                 {
-                    ImGuiCol stdcolType;
-                    try
+                    foreach (var item in customColTok.ToObject<JObject>())
                     {
-                        stdcolType = (ImGuiCol)Enum.Parse(typeof(ImGuiCol), item.Key, true);
+                        eThemeColour customcolType;
+                        try
+                        {
+                            customcolType = (eThemeColour)Enum.Parse(typeof(eThemeColour), item.Key, true);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
+                        }
+                        if (customcolType >= eThemeColour.COUNT)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}"); return false;
+                        }
+                        if (item.Value.Type != JTokenType.Integer)
+                        {
+                            Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                        }
+                        pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
                     }
-                    catch (Exception e)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
-                    }
-                    if (stdcolType >= ImGuiCol.COUNT)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key}"); return false;
-                    }
-                    if (item.Value.Type != JTokenType.Integer)
-                    {
-                        Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
-                    }
-                    pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
                 }
-            }
 
-            if (theme.TryGetValue("Sizes", out JToken sizesTok) && sizesTok.Type == JTokenType.Object)
-            {
-                foreach (var item in sizesTok.ToObject<JObject>())
+                if (theme.TryGetValue("StandardColours", out JToken stdColTok) && stdColTok.Type == JTokenType.Object)
                 {
-                    eThemeSize sizeType;
-                    try
+                    foreach (var item in stdColTok.ToObject<JObject>())
                     {
-                        sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                        ImGuiCol stdcolType;
+                        try
+                        {
+                            stdcolType = (ImGuiCol)Enum.Parse(typeof(ImGuiCol), item.Key, true);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                        }
+                        if (stdcolType >= ImGuiCol.COUNT)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key}"); return false;
+                        }
+                        if (item.Value.Type != JTokenType.Integer)
+                        {
+                            Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                        }
+                        pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
                     }
-                    catch (Exception e)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
-                    }
-                    if (sizeType >= eThemeSize.COUNT)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
-                    }
-                    if (item.Value.Type != JTokenType.Float)
-                    {
-                        Logging.RecordLogEvent($"Theme has size with non-float size entry {item.Key}"); return false;
-                    }
-                    ThemeSizesCustom[sizeType] = item.Value.ToObject<float>();
                 }
-            }
 
-
-            if (theme.TryGetValue("SizeLimits", out JToken sizelimTok) && sizesTok.Type == JTokenType.Object)
-            {
-                foreach (var item in sizelimTok.ToObject<JObject>())
+                if (theme.TryGetValue("Sizes", out JToken sizesTok) && sizesTok.Type == JTokenType.Object)
                 {
-                    eThemeSize sizeType;
-                    try
+                    foreach (var item in sizesTok.ToObject<JObject>())
                     {
-                        sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                        eThemeSize sizeType;
+                        try
+                        {
+                            sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
+                        }
+                        if (sizeType >= eThemeSize.COUNT)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
+                        }
+                        if (item.Value.Type != JTokenType.Float)
+                        {
+                            Logging.RecordLogEvent($"Theme has size with non-float size entry {item.Key}"); return false;
+                        }
+                        ThemeSizesCustom[sizeType] = item.Value.ToObject<float>();
                     }
-                    catch (Exception e)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
-                    }
-                    if (sizeType >= eThemeSize.COUNT)
-                    {
-                        Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
-                    }
-                    if (item.Value.Type != JTokenType.Array)
-                    {
-                        Logging.RecordLogEvent($"Theme has sizelimit with non-array entry {item.Key}"); return false;
-                    }
-                    JArray limits = item.Value.ToObject<JArray>();
-                    if (limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
-                    {
-                        Logging.RecordLogEvent($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
-                    }
-                    pendingLimits[sizeType] = new Vector2(limits[0].ToObject<float>(), limits[1].ToObject<float>());
                 }
+
+
+                if (theme.TryGetValue("SizeLimits", out JToken sizelimTok) && sizesTok.Type == JTokenType.Object)
+                {
+                    foreach (var item in sizelimTok.ToObject<JObject>())
+                    {
+                        eThemeSize sizeType;
+                        try
+                        {
+                            sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
+                        }
+                        if (sizeType >= eThemeSize.COUNT)
+                        {
+                            Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
+                        }
+                        if (item.Value.Type != JTokenType.Array)
+                        {
+                            Logging.RecordLogEvent($"Theme has sizelimit with non-array entry {item.Key}"); return false;
+                        }
+                        JArray limits = item.Value.ToObject<JArray>();
+                        if (limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
+                        {
+                            Logging.RecordLogEvent($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
+                        }
+                        pendingLimits[sizeType] = new Vector2(limits[0].ToObject<float>(), limits[1].ToObject<float>());
+                    }
+                }
+
+                //all loaded and validated, load them into the UI
+                foreach (var kvp in pendingMetadata) ThemeMetadata[kvp.Key] = kvp.Value;
+                foreach (var kvp in pendingColsCustom) ThemeColoursCustom[kvp.Key] = kvp.Value;
+                foreach (var kvp in pendingColsStd) ThemeColoursStandard[kvp.Key] = kvp.Value;
+                foreach (var kvp in pendingLimits) ThemeSizeLimits[kvp.Key] = kvp.Value;
+                foreach (var kvp in pendingSizes) ThemeSizesCustom[kvp.Key] = kvp.Value;
+
+                IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
+
+                InitUnsetCustomColours();
+
+                return true;
             }
-
-            //all loaded and validated, load them into the UI
-            foreach (var kvp in pendingMetadata) ThemeMetadata[kvp.Key] = kvp.Value;
-            foreach (var kvp in pendingColsCustom) ThemeColoursCustom[kvp.Key] = kvp.Value;
-            foreach (var kvp in pendingColsStd) ThemeColoursStandard[kvp.Key] = kvp.Value;
-            foreach (var kvp in pendingLimits) ThemeSizeLimits[kvp.Key] = kvp.Value;
-            foreach (var kvp in pendingSizes) ThemeSizesCustom[kvp.Key] = kvp.Value;
-
-            IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
-
-            InitUnsetCustomColours();
-
-            return true;
         }
 
         public static void SaveMetadataChange(string key, string value)
@@ -359,35 +539,37 @@ namespace rgatCore
 
         public static string RegenerateUIThemeJSON()
         {
-
-            JObject themeJsnObj = new JObject();
-
-            JObject themeCustom = new JObject();
-            foreach (var kvp in ThemeColoursCustom) themeCustom.Add(kvp.Key.ToString(), kvp.Value);
-            themeJsnObj.Add("CustomColours", themeCustom);
-
-            JObject themeImgui = new JObject();
-            foreach (var kvp in ThemeColoursStandard) themeImgui.Add(kvp.Key.ToString(), kvp.Value);
-            themeJsnObj.Add("StandardColours", themeImgui);
-
-            JObject sizesObj = new JObject();
-            foreach (var kvp in ThemeSizesCustom) sizesObj.Add(kvp.Key.ToString(), kvp.Value);
-            themeJsnObj.Add("Sizes", sizesObj);
-
-            JObject sizeLimitsObj = new JObject();
-            foreach (var kvp in ThemeSizeLimits) sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
-            themeJsnObj.Add("SizeLimits", sizeLimitsObj);
-
-            JObject metadObj = new JObject();
-
-            foreach (var kvp in ThemeMetadata)
+            lock (_lock)
             {
-                metadObj.Add(kvp.Key.ToString(), kvp.Value.ToString());
-            }
-            themeJsnObj.Add("Metadata", metadObj);
+                JObject themeJsnObj = new JObject();
 
-            currentThemeJSON = themeJsnObj;
-            return themeJsnObj.ToString();
+                JObject themeCustom = new JObject();
+                foreach (var kvp in ThemeColoursCustom) themeCustom.Add(kvp.Key.ToString(), kvp.Value);
+                themeJsnObj.Add("CustomColours", themeCustom);
+
+                JObject themeImgui = new JObject();
+                foreach (var kvp in ThemeColoursStandard) themeImgui.Add(kvp.Key.ToString(), kvp.Value);
+                themeJsnObj.Add("StandardColours", themeImgui);
+
+                JObject sizesObj = new JObject();
+                foreach (var kvp in ThemeSizesCustom) sizesObj.Add(kvp.Key.ToString(), kvp.Value);
+                themeJsnObj.Add("Sizes", sizesObj);
+
+                JObject sizeLimitsObj = new JObject();
+                foreach (var kvp in ThemeSizeLimits) sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
+                themeJsnObj.Add("SizeLimits", sizeLimitsObj);
+
+                JObject metadObj = new JObject();
+
+                foreach (var kvp in ThemeMetadata)
+                {
+                    metadObj.Add(kvp.Key.ToString(), kvp.Value.ToString());
+                }
+                themeJsnObj.Add("Metadata", metadObj);
+
+                currentThemeJSON = themeJsnObj;
+                return themeJsnObj.ToString();
+            }
         }
 
 

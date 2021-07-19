@@ -9,6 +9,7 @@ using Vulkan;
 using Veldrid.ImageSharp;
 using rgatCore;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ImGuiNET
 {
@@ -72,7 +73,7 @@ namespace ImGuiNET
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
-            
+
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
@@ -134,7 +135,8 @@ namespace ImGuiNET
 
         public ImFontPtr SplashButtonFont
         {
-            get {
+            get
+            {
                 return _splashButtonFont.Value;
             }
         }
@@ -281,10 +283,12 @@ namespace ImGuiNET
             _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout,
                 _projMatrixBuffer,
                 gd.PointSampler));
+            _mainResourceSet.Name = "ImGuiControllerMain";
 
             ResourceLayout _fontLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
      new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
             _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_fontLayout, _fontTextureView));
+            _fontTextureResourceSet.Name = "ImGuiControllerMainFont";
         }
 
 
@@ -295,12 +299,13 @@ namespace ImGuiNET
         /// Gets or creates a handle for a texture to be drawn with ImGui.
         /// Pass the returned handle to Image() or ImageButton().
         /// </summary>
-        public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, TextureView textureView)
+        public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, TextureView textureView, string name)
         {
             if (!_setsByView.TryGetValue(textureView, out ResourceSetInfo rsi))
             {
                 ResourceSet resourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
                 rsi = new ResourceSetInfo(GetNextImGuiBindingID(), resourceSet);
+                rsi.ResourceSet.Name = name + "_" + DateTime.Now.ToFileTime().ToString();
 
                 _setsByView.Add(textureView, rsi);
                 _viewsById.Add(rsi.ImGuiBinding, rsi);
@@ -320,17 +325,19 @@ namespace ImGuiNET
         /// Gets or creates a handle for a texture to be drawn with ImGui.
         /// Pass the returned handle to Image() or ImageButton().
         /// </summary>
-        public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture)
+        public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture, string name)
         {
             if (!_autoViewsByTexture.TryGetValue(texture, out TextureView textureView))
             {
                 Debug.Assert(!texture.IsDisposed);
                 textureView = factory.CreateTextureView(texture);
+                textureView.Name = $"TV_BOUND_" + name;
                 _autoViewsByTexture.Add(texture, textureView);
                 _ownedResources.Add(textureView);
             }
 
-            return GetOrCreateImGuiBinding(factory, textureView);
+            Debug.Assert(!textureView.IsDisposed);
+            return GetOrCreateImGuiBinding(factory, textureView, name);
         }
 
         /// <summary>
@@ -346,18 +353,62 @@ namespace ImGuiNET
             return tvi.ResourceSet;
         }
 
+        List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
+
+        // my attempts to stem this minor potential memory leak have failed in crashes so far
+        // try to avoid calling GetOrCreateImGuiBinding with too many different things (ie: reuse texture rather than recreate each frame)
         public void ClearCachedImageResources()
         {
-            foreach (IDisposable resource in _ownedResources)
+            for (int i = expiredResources.Count - 1; i >= 0; i--)
             {
-                resource.Dispose();
+                var r_time = expiredResources[i];
+                if ((DateTime.Now - r_time.Item2).TotalSeconds > 10)//> 5)
+                {
+                    expiredResources.RemoveAt(i);
+                    //_ownedResources.Remove(r_time.Item1);
+                    //Not doing this doesn't seem to cause a memory leak and calling dispose leads to crashes
+                    //Presuming they are disposed by the ref counter?
+                    //r_time.Item1.Dispose();
+
+                }
             }
 
-            _ownedResources.Clear();
-            _setsByView.Clear();
-            _viewsById.Clear();
-            _autoViewsByTexture.Clear();
-            _lastAssignedID = 100;
+
+            List<Texture> removed = new List<Texture>();
+            foreach (KeyValuePair<Texture, TextureView> view_tview in _autoViewsByTexture)
+            {
+                Debug.Assert(!view_tview.Value.IsDisposed);
+                if (view_tview.Key.IsDisposed)
+                {
+                    Texture staleTexture = view_tview.Key;
+                    removed.Add(staleTexture);
+                    TextureView staleTextureView = view_tview.Value;
+
+                    ResourceSetInfo rset = _setsByView[staleTextureView];
+                    _viewsById.Remove(rset.ImGuiBinding);
+                    _setsByView.Remove(staleTextureView);
+
+                    //expiredResources.Add(new Tuple<IDisposable, DateTime>(staleTextureView, DateTime.Now));
+                    //expiredResources.Add(new Tuple<IDisposable, DateTime>(rset.ResourceSet, DateTime.Now));
+
+                }
+            }
+
+
+            if (removed.Any())
+            {
+                removed.ForEach(r => _autoViewsByTexture.Remove(r));
+                Logging.RecordLogEvent($"Housekeeping removed {removed.Count} cached items, {_autoViewsByTexture.Count} active remaining", Logging.LogFilterType.TextDebug);
+                /*
+                if (_viewsById.Any())
+                {
+                    _lastAssignedID = _viewsById.Keys.Select(x => (int)x).Max() + 1;
+                }
+                else
+                {
+                    _lastAssignedID = 100;
+                }*/
+            }
         }
 
         public byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
@@ -651,8 +702,6 @@ namespace ImGuiNET
         // Render command lists
         private void DrawCommands(ImDrawDataPtr draw_data, CommandList cl)
         {
-
-
             int vtx_offset = 0;
             int idx_offset = 0;
             for (int n = 0; n < draw_data.CmdListsCount; n++)
@@ -675,7 +724,8 @@ namespace ImGuiNET
                             }
                             else
                             {
-                                cl.SetGraphicsResourceSet(1, GetImageResourceSet(ptrCmnd.TextureId));
+                                ResourceSet rscset = GetImageResourceSet(ptrCmnd.TextureId);
+                                cl.SetGraphicsResourceSet(1, rscset);
                             }
                         }
 

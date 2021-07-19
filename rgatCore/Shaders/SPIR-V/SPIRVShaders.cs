@@ -566,11 +566,49 @@ void main()
 
 }";
 
+
+
+    public static ShaderDescription CreateZeroFillShader(ResourceFactory factory)
+    {
+
+        byte[] zeroFillShaderBytes = Encoding.UTF8.GetBytes(comp_zerofill);
+        ShaderDescription shaderDesc = new ShaderDescription(ShaderStages.Compute, zeroFillShaderBytes, "main");
+        return shaderDesc;
     }
 
 
+        public const string comp_zerofill = @"
+        #version 450
 
 
+        layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+        struct FillParams
+        {
+            uint Width;
+            uint value;
+            uint _padding2;
+            uint _padding3;
+        };
+
+        layout(set = 0, binding=0) uniform Params 
+        {
+            FillParams fieldParams;
+        };
+
+        layout(std430, set = 0, binding = 1) buffer CopyDst
+        {
+            float DestinationData[];
+        };
+
+        void main()
+        {
+            uint index = gl_GlobalInvocationID.x;
+            DestinationData[index] = 0;
+        }
+        ";
+
+    }
 
 }
 

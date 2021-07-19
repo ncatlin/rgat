@@ -18,7 +18,6 @@ namespace rgatCore.Threads
 
         public override void Begin()
         {
-            return;//disabled until crashing fixed
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.binaryTarg.TracesCount}";
@@ -27,7 +26,7 @@ namespace rgatCore.Threads
 
         public void ThreadProc()
         {
-
+            Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
             List<PlottedGraph> graphlist;
             int StopTimer = -1;
             bool moreRenderingNeeded;
@@ -53,7 +52,10 @@ namespace rgatCore.Threads
                             moreRenderingNeeded = true; 
                     }
 
-                    _graphWidget.GeneratePreviewGraph(graph);
+                    if (graph.DrawnEdgesCount > 0)
+                    {
+                        _graphWidget.GeneratePreviewGraph(cl, graph);
+                    }
 
                     if (_clientState.rgatIsExiting) break;
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);

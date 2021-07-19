@@ -40,9 +40,10 @@ int hasSelectedNeighbor(int neighbor){
 }
 
 
+layout (local_size_x = 256) in;
 void main()	{
     uvec3 id = gl_GlobalInvocationID;
-    uint index = id.y * params.nodesTexWidth + id.x;
+    uint index = id.x;//id.y * 256 + id.x;
     vec4 selfAttrib = nodeAttrib[index];  // just using x and y right now
 
 

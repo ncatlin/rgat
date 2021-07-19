@@ -3,7 +3,6 @@ using ImGuiNET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using rgatCore.Threads;
-using SharpDX;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
