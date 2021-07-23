@@ -55,7 +55,7 @@ namespace rgatCore
         public void RecordInstrumentationConnection() => InstrumentationCount += 1;
 
         public int AnimationStepRate = 1;
-        public eGraphLayout newGraphLayout = eGraphLayout.eForceDirected3DNodes;
+        public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
 
         public bool showNodes = true;
         public bool showEdges = true;
@@ -376,19 +376,11 @@ namespace rgatCore
         {
             switch (newGraphLayout)
             {
-                case eGraphLayout.eForceDirected3DNodes:
+                case LayoutStyles.Style.ForceDirected3DNodes:
                     {
-                        MainGraph = new PlottedGraph(protoGraph, GlobalConfig.defaultGraphColours);
+                        MainGraph = new PlottedGraph(protoGraph, _GraphicsDevice, GlobalConfig.defaultGraphColours);
                         return true;
                     }
-                /*
-            case eTreeLayout:
-                {
-                    //newGraph = new tree_graph(protoGraph.get_TID(), protoGraph, &config.graphColours);
-                    newGraph = new blocktree_graph(protoGraph.get_TID(), protoGraph, &config.graphColours);
-                    break;
-                }
-                */
                 default:
                     {
                         MainGraph = null;
@@ -490,7 +482,7 @@ namespace rgatCore
                 return false;
             }
 
-            if (!trace.load(saveJSON))//, config.graphColours))
+            if (!trace.load(saveJSON, _GraphicsDevice))
             {
                 target.DeleteTrace(trace.launchedTime);
                 trace = null;

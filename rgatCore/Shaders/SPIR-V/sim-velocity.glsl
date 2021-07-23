@@ -26,6 +26,7 @@ struct VelocityParams
     uint edgeCount;
     uint fixedInternalNodes;
     uint debugVal;
+    uint nodeCount;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -84,6 +85,7 @@ vec4 getNeighbor(uint bufferIndex){
 
 //fr(x) = (k*k)/x;
 vec3 addRepulsion(vec4 self, vec4 neighbor, float multiplier){
+    if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
     float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
@@ -184,22 +186,17 @@ void main()	{
 
                     //first repel every node away from each other
                     //todo ditch this double loop
-                    for(uint nodeTexY = 0; nodeTexY < fieldParams.nodesTexWidth; nodeTexY++)
+                    for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
                     {
-                        uint texRow = nodeTexY*fieldParams.nodesTexWidth;
-                        for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
+                        compareNodePosition = positions[nodeIndex];
+                        // note: double ifs work.  using continues do not work for all GPUs.
+                        if (compareNodePosition.w >= 0) 
                         {
-                    
-                            compareNodePosition = positions[texRow + x];
-                            // note: double ifs work.  using continues do not work for all GPUs.
-                            if (compareNodePosition.w >= 0) 
+                            //if distance below threshold, repel every node from every single node
+                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                             {
-                                //if distance below threshold, repel every node from every single node
-                                if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                                {
-                                    //field_Destination[index*5 + y*fieldParams.nodesTexWidth + x] = vec4(index, float( y*fieldParams.nodesTexWidth + x), -2,-2);
-                                    velocity += addRepulsion(selfPosition, compareNodePosition, 1);
-                                }
+                                //field_Destination[index*5 + y*fieldParams.nodesTexWidth + x] = vec4(index, float( y*fieldParams.nodesTexWidth + x), -2,-2);
+                                velocity += addRepulsion(selfPosition, compareNodePosition, 1);
                             }
                         }
 		            }
@@ -230,19 +227,16 @@ void main()	{
         
                     //first repel 
                     //todo ditch this double loop
-                    for(uint y = 0; y < fieldParams.nodesTexWidth; y++)
+                    for(uint nodeIdx = 0; nodeIdx < fieldParams.nodeCount; nodeIdx++)
                     {
-                        for(uint x = 0; x < fieldParams.nodesTexWidth; x++)
+                        compareNodePosition = positions[nodeIdx];
+                        // note: double ifs work.  using continues do not work for all GPUs.
+                        if (compareNodePosition.w >= 0) 
                         {
-                            compareNodePosition = positions[y*fieldParams.nodesTexWidth + x];
-                            // note: double ifs work.  using continues do not work for all GPUs.
-                            if (compareNodePosition.w >= 0) 
+                            //if distance below threshold, repel every node from every single node
+                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                             {
-                                //if distance below threshold, repel every node from every single node
-                                if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                                {
-                                    velocity += addRepulsion(selfPosition, compareNodePosition, 6);
-                                }
+                                velocity += addRepulsion(selfPosition, compareNodePosition, 6);
                             }
                         }
 		            }

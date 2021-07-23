@@ -525,22 +525,22 @@ private void DrawScalePopup()
 
         void DrawGraphLayoutFrame()
         {
-            if (_currentGraph.LayoutStyle == eGraphLayout.eCircle)
+            if (_currentGraph.ActiveLayoutStyle == LayoutStyles.Style.Circle)
             {
                 ImGui.Text("Circle Config Options");
             }
 
-            if (_currentGraph.LayoutStyle == eGraphLayout.eCylinderLayout)
+            if (_currentGraph.ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout)
             {
                 ImGui.Text("Cylinder Config Options");
             }
 
-            if (_currentGraph.LayoutStyle == eGraphLayout.eForceDirected3DBlocks)
+            if (_currentGraph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks)
             {
                 ImGui.Text("ForceDirected3DBlocks Config Options");
             }
 
-            if (_currentGraph.LayoutStyle == eGraphLayout.eForceDirected3DNodes)
+            if (_currentGraph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DNodes)
             {
                 ImGui.Text("eForceDirected3DNodes Config Options");
                 if (ImGui.Button("Rerender"))

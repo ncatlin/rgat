@@ -15,7 +15,7 @@ namespace rgatCore.Shaders.SPIR_V
         * 
         */
 
-        public static ShaderSetDescription CreateNodeShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateNodeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("PositionTexCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -26,12 +26,13 @@ namespace rgatCore.Shaders.SPIR_V
             ShaderDescription vertexShaderDesc = new ShaderDescription(ShaderStages.Vertex, nodeVertShaderBytes, "main");
             ShaderDescription fragmentShaderDesc = new ShaderDescription(ShaderStages.Fragment, nodeFragShaderBytes, "main");
 
+            Shader[] shaders = gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: shaders);
 
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+            vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "NodeShaderVertexBufInitial");
+            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "NodeShaderIndexBufInitial"); 
 
             return shaderSetDesc;
         }
@@ -39,8 +40,6 @@ namespace rgatCore.Shaders.SPIR_V
 
         public const string vsnodeglsl = @"
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
 
 
 layout(location = 0) in vec2 PositionTexCoord;
@@ -58,6 +57,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
     int pickingNodeID;
     bool isAnimated;
 };
+layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=2) buffer bufpositionTexture{
     vec4 positionTexture[];
 };
@@ -85,18 +85,26 @@ void main() {
     float relativeNodeSize = nodeSize / length(gl_Position.xyz);
     gl_PointSize = nodeAttribTexture[index].x * relativeNodeSize;
 }
-
 ";
 
+
+
+
+
+
+
+
+
         public const string fsnodeglsl = @"
-#version 430
+
+#version 450
 
 #extension GL_EXT_nonuniform_qualifier : enable
+
 
 layout(location = 0) in vec2 PositionTexCoord;
 layout(location = 1) in vec4 fsin_Color;
 layout(location = 0) out vec4 fsout_Color;
-
 layout(set = 0, binding=0) uniform ParamsBuf
 {
     mat4 Projection;
@@ -127,7 +135,8 @@ void main()
     fsout_Color = vec4( fsin_Color.xyzw ) * node;
 
 
-}";
+}
+";
 
 
 
@@ -139,7 +148,7 @@ void main()
         */
 
 
-        public static ShaderSetDescription CreateNodePickingShaders(ResourceFactory factory, out DeviceBuffer vertBuffer)
+        public static ShaderSetDescription CreateNodePickingShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -152,10 +161,9 @@ void main()
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-
+            vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "NodePickingShaderVertexBufInitial");
             return shaderSetDesc;
         }
 
@@ -218,7 +226,7 @@ void main() {
         * Edge line lists between nodes
         * 
         */
-        public static ShaderSetDescription CreateEdgeRelativeShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateEdgeRelativeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -231,10 +239,10 @@ void main() {
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+            vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 4, BufferUsage.VertexBuffer, name: "EdgeShaderVertexBufInitial");
+            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 4, BufferUsage.IndexBuffer, name: "EdgeShaderIndexBufInitial");
 
             return shaderSetDesc;
         }
@@ -284,7 +292,7 @@ void main() {
 
 ";
 
-        public static ShaderSetDescription CreateEdgeRawShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateEdgeRawShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -297,10 +305,10 @@ void main() {
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
+            vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "EdgeRawShaderVertexBufInitial");
+            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "EdgeRawShaderIndexBufInitial");
 
             return shaderSetDesc;
         }
@@ -366,7 +374,7 @@ void main() {
         * Font triangles
         * 
         */
-        public static ShaderSetDescription CreateFontShaders(ResourceFactory factory, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateFontShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
         {
             VertexElementDescription nodeIdx = new VertexElementDescription("nodeIdx", VertexElementSemantic.TextureCoordinate, VertexElementFormat.UInt1);
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
@@ -383,11 +391,10 @@ void main() {
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
-            vertBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.VertexBuffer));
-            indexBuffer = factory.CreateBuffer(new BufferDescription(1, BufferUsage.IndexBuffer));
-
+            vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "FontShaderVertexBufInitial");
+            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "FontRawShaderIndexBufInitial");
             return shaderSetDesc;
         }
 
@@ -469,19 +476,13 @@ void main()
 
 
 
-
-
-
-
-
-
         /*
         * 
         * Display icons for the visualiser bar
         * 
         */
 
-        public static ShaderSetDescription CreateVisBarPointIconShader(ResourceFactory factory)
+        public static ShaderSetDescription CreateVisBarPointIconShader(GraphicsDevice gd)
         {
             VertexElementDescription VEDpos = new VertexElementDescription("Coord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
@@ -494,7 +495,7 @@ void main()
 
             ShaderSetDescription shaderSetDesc = new ShaderSetDescription(
                 vertexLayouts: new VertexLayoutDescription[] { vertexLayout },
-                shaders: factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
             return shaderSetDesc;
         }
@@ -568,7 +569,7 @@ void main()
 
 
 
-    public static ShaderDescription CreateZeroFillShader(ResourceFactory factory)
+    public static ShaderDescription CreateZeroFillShader(GraphicsDevice gd)
     {
 
         byte[] zeroFillShaderBytes = Encoding.UTF8.GetBytes(comp_zerofill);

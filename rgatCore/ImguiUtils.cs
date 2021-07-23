@@ -88,9 +88,9 @@ namespace rgatCore
             draw_list.AddLine(new Vector2(pos.X, pos.Y + half_sz.Y + 1), new Vector2(pos.X, pos.Y + bar_w + 1), 0xffffffff);
         }
 
-        public static RgbaFloat ColToRgbaF(Color inColour)
+        public static Veldrid.RgbaFloat ColToRgbaF(Color inColour)
         {
-            return new RgbaFloat(inColour.R, inColour.G, inColour.G, inColour.A);
+            return new Veldrid.RgbaFloat(inColour.R, inColour.G, inColour.G, inColour.A);
         }
 
     }

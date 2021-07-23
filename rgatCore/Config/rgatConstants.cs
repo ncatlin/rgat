@@ -20,8 +20,7 @@ namespace rgatCore
         CONDFELLTHROUGH = 2, CONDTAKEN = 4,
         CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
     }
-
-    public enum eGraphLayout { eCylinderLayout, eForceDirected3DNodes, eForceDirected3DBlocks, eCircle, eLayoutInvalid };
+    
 
     enum eKeybind { MoveLeft, MoveRight, MoveUp, MoveDown,
         ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock, 
@@ -30,6 +29,17 @@ namespace rgatCore
     }
 
     public enum eSignatureType { eYARA, eDetectItEasy};
+
+    public static class LayoutStyles
+    {
+
+        public enum Style { CylinderLayout, ForceDirected3DNodes, ForceDirected3DBlocks, Circle, Invalid };
+
+        static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes  };
+
+        public static bool RequiresCaching(Style layout) => _cacheLayouts.Contains(layout);
+        public static bool IsForceDirected(Style layout) => RequiresCaching(layout);
+    }
 
     static class UI_Constants
     {

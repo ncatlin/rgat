@@ -87,7 +87,6 @@ namespace rgatCore.Threads
         {
             PlottedGraph activeGraph;
             Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
-
             while (!_clientState.rgatIsExiting)
             {
 

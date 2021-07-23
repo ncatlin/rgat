@@ -90,7 +90,6 @@ namespace rgatCore
 
         public void SetSelectedGraph(PlottedGraph graph)
         {
-            _layoutEngine.Download_VRAM_Buffers_To_Graph(graph);
             selectedGraphTID = graph.tid;
         }
 
@@ -112,8 +111,7 @@ namespace rgatCore
 
         public void SetupRenderingResources()
         {
-            _paramsBuffer = _factory.CreateBuffer(new BufferDescription(
-                (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer));
+            _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer"); 
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
@@ -127,7 +125,7 @@ namespace rgatCore
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
+               new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                 new ResourceLayoutElementDescription("NodeTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
 
@@ -147,7 +145,7 @@ namespace rgatCore
                 depthClipEnabled: true,
                 scissorTestEnabled: false);
             pipelineDescription.ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_factory, out _NodeVertexBuffer, out _NodeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer, out _NodeIndexBuffer);
 
             OutputAttachmentDescription[] oads = { new OutputAttachmentDescription(PixelFormat.R32_G32_B32_A32_Float) };
             pipelineDescription.Outputs = new OutputDescription
@@ -165,30 +163,9 @@ namespace rgatCore
              * this can probably be a linestrip, but for now lets see if linelist lets us do something more
              * like multiple graphs
              */
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_factory, out _EdgeVertBuffer, out _EdgeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gd, out _EdgeVertBuffer, out _EdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
             _edgesPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
-        }
-
-        /*
-         * Fetched pre-prepared device buffer from layout engine if it is in the working set
-         * Otherwise creates a new one from the stored data in the plottedgraph
-         * 
-         * Returns True if the devicebuffer can be destroyed, or False if the Layoutengine is using it
-         */
-        //todo - preview buffer caches
-        public bool FetchNodeBuffers(PlottedGraph graph, out DeviceBuffer posBuffer, out DeviceBuffer attribBuffer)
-        {
-            if (_layoutEngine.GetPositionsBuffer(graph, out posBuffer) && _layoutEngine.GetNodeAttribsBuffer(graph, out attribBuffer))
-            {
-                return false;
-            }
-            else
-            {
-                posBuffer = CreateFloatsDeviceBuffer(graph.GetPositionFloats(), _gd);
-                attribBuffer = CreateFloatsDeviceBuffer(graph.GetNodeAttribFloats(), _gd);
-                return true;
-            }
         }
 
 
@@ -616,28 +593,18 @@ namespace rgatCore
 
 
         public void GeneratePreviewGraph(CommandList cl, PlottedGraph graph)
-        {
-            _layoutEngine.SetActiveTrace(graph.InternalProtoGraph.TraceData);
-            Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.tid} ");
-            _layoutEngine.UpdatePositionCaches(); //horrific cpu usage
+        {           
+            Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.tid} start", Logging.LogFilterType.BulkDebugLogFile);
 
-            Logging.RecordLogEvent($"GeneratePreviewGraph Preview updated pos caches {graph.tid} done");
-            if (graph != _rgatState.ActiveGraph)
+           if (graph != _rgatState.ActiveGraph)
             {
-                _layoutEngine.Set_activeGraph(graph);
-                Logging.RecordLogEvent($"GeneratePreviewGraph starting compute {graph.tid}");
                 _layoutEngine.Compute(cl, graph, -1, false);
             }
+           
+            Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            renderPreview(cl, graph: graph);
 
-            Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.tid}");
-            bool doDispose = FetchNodeBuffers(graph, out DeviceBuffer positionBuf, out DeviceBuffer attribBuf);
-            renderPreview(cl, graph: graph, positionsBuffer: positionBuf, nodeAttributesBuffer: attribBuf);
 
-            if (doDispose)
-            {
-                DoDispose(positionBuf);
-                DoDispose(attribBuf);
-            }
         }
 
 
@@ -805,13 +772,15 @@ namespace rgatCore
         }
 
 
-        void renderPreview(CommandList cl, PlottedGraph graph, DeviceBuffer positionsBuffer, DeviceBuffer nodeAttributesBuffer)
+        void renderPreview(CommandList cl, PlottedGraph graph)
         {
-            if (graph == null || positionsBuffer == null || nodeAttributesBuffer == null || Exiting) return;
+            if (graph == null || Exiting) return;
             if (graph._previewFramebuffer1 == null)
             {
                 graph.InitPreviewTexture(new Vector2(EachGraphWidth, UI_Constants.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
+
+
             Logging.RecordLogEvent("render preview 1", filter: Logging.LogFilterType.BulkDebugLogFile);
             bool needsCentering = true;
             if (!_centeringRequired.TryGetValue(graph, out needsCentering))
@@ -830,7 +799,7 @@ namespace rgatCore
             }
 
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
-
+            if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised) return;
 
             //Logging.RecordLogEvent("render preview 2", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.Begin();
@@ -845,77 +814,86 @@ namespace rgatCore
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                BufferDescription vbDescription = new BufferDescription((uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
-                _NodeVertexBuffer.Dispose();
-                _NodeVertexBuffer = _factory.CreateBuffer(vbDescription);
 
-                BufferDescription ibDescription = new BufferDescription((uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer);
-                _NodeIndexBuffer.Dispose();
-                _NodeIndexBuffer = _factory.CreateBuffer(ibDescription);
+                Logging.RecordLogEvent("disposeremake nodeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
+
+                VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
+                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
+
+                VeldridGraphBuffers.DoDispose(_NodeIndexBuffer);
+                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
             }
-
 
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-
-
-           
             if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer.SizeInBytes))
             {
-                DoDispose(_EdgeVertBuffer);
-                BufferDescription tvbDescription = new BufferDescription((uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer);
-                _EdgeVertBuffer = _factory.CreateBuffer(tvbDescription);
-                DoDispose(_EdgeIndexBuffer);
-                BufferDescription eibDescription = new BufferDescription((uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer);
-                _EdgeIndexBuffer = _factory.CreateBuffer(eibDescription);
+                Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
+
+                VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
+                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
+
+                VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
+                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
             }
 
-           // Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
-
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, positionsBuffer);
+            
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, graph.LayoutState.PositionsVRAM1);
             ResourceSet crscore = _factory.CreateResourceSet(crs_core_rsd);
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, nodeAttributesBuffer, _NodeCircleSpritetview);
+
+
+            Logging.RecordLogEvent($"render preview {graph.tid} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, 
+                graph.LayoutState.AttributesVRAM1, _NodeCircleSpritetview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
-            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
-            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
+            
+            
+             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
+             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
-            graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
-            cl.SetFramebuffer(drawtarget);
+             graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
-            cl.ClearColorTarget(0, GetGraphBackgroundColour(graph).ToRgbaFloat());
-            cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
+             cl.SetFramebuffer(drawtarget);
 
-            //draw nodes
-            cl.SetPipeline(_pointsPipeline);
-            cl.SetGraphicsResourceSet(0, crscore);
-            cl.SetGraphicsResourceSet(1, crsnodesedge);
-            cl.SetVertexBuffer(0, _NodeVertexBuffer);
-            cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+             cl.ClearColorTarget(0, GetGraphBackgroundColour(graph).ToRgbaFloat());
+             cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
 
-            //draw edges
-            cl.SetPipeline(_edgesPipeline);
-            cl.SetVertexBuffer(0, _EdgeVertBuffer);
-            cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-            cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+             //draw nodes
+             cl.SetPipeline(_pointsPipeline);
+             cl.SetGraphicsResourceSet(0, crscore);
+             cl.SetGraphicsResourceSet(1, crsnodesedge);
+             cl.SetVertexBuffer(0, _NodeVertexBuffer);
+             cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
+             cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+             //draw edges
+             cl.SetPipeline(_edgesPipeline);
+             cl.SetVertexBuffer(0, _EdgeVertBuffer);
+             cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
+             cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             cl.End();
             if (!Exiting)
             {
+                Logging.RecordLogEvent($"render preview start commands {graph.tid}. Pos{graph.LayoutState.PositionsVRAM1.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.SubmitCommands(cl);
-                Logging.RecordLogEvent("render preview 5", filter: Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"render preview finished commands {graph.tid}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.WaitForIdle(); //needed?
             }
+             
 
             graph.ReleasePreviewFramebuffer();
 
-            Debug.Assert(!_NodeVertexBuffer.IsDisposed);
+            //Debug.Assert(!_NodeVertexBuffer.IsDisposed);
             crscore.Dispose();
+            //Logging.RecordLogEvent($"render preview {graph.tid} disposing rsrcset {nodeAttributesBuffer.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
             crsnodesedge.Dispose();
+
+            Logging.RecordLogEvent("render preview Done", filter: Logging.LogFilterType.BulkDebugLogFile);
         }
 
 

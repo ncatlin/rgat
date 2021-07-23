@@ -101,31 +101,38 @@ namespace rgatCore.Widgets
         {
             syminfo.selected = !syminfo.selected;
             module_modentry.symbols[syminfo.address] = syminfo;
+
+            _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
+
+            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.selected)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
                 _activeHighlights.SelectedSymbols.Add(syminfo);
 
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
                 _activeHighlights.SelectedSymbols = _activeHighlights.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
 
             }
+            _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
         }
 
 
         private void HandleMouseoverSym(moduleEntry module_modentry, symbolInfo syminfo)
         {
             module_modentry.symbols[syminfo.address] = syminfo;
+            //todo lock?
+            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.hovered)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, eHighlightType.eExternals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
             }
 
         }
@@ -311,7 +318,11 @@ namespace rgatCore.Widgets
                             _activeHighlights.displayedModules[sym.moduleID].symbols[sym.address] = symdat;
                         }
 
-                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, eHighlightType.eExternals);
+                        _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
+                        _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
+                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, attribsArray, eHighlightType.eExternals);
+                        _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
+
                         _activeHighlights.SelectedSymbols.Clear();
                     }
 

@@ -69,107 +69,41 @@ namespace rgatCore
             FrameStatTimer.AutoReset = true;
             FrameStatTimer.Start();
 
-            /*
-            VeldridGraphBuffers.SetupZeroFillshader(imguicontroller);
-
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            //10000 in 30s, gross
-            for (var i = 0; i < 1000; i++)
-            {
-                Console.Write($"[i:{i}],");
-                trashmem(i, 10000);
-                dotest(i, 10000);
-            }
-            sw.Stop();
-            Console.WriteLine($"1 Done in {sw.ElapsedMilliseconds} ms");
-            sw.Restart();
-            //10000 in 30s, gross
-            for (var i = 0; i < 1000; i++)
-            {
-                Console.Write($"{i},");
-
-                trashmem(i, 10000);
-                dotest2(i, 10000);
-            }
-            sw.Stop();
-            Console.WriteLine($"2 Done in {sw.ElapsedMilliseconds} ms");
-            */
-
         }
 
 
-        unsafe void trashmem(int ri, int size)
+
+
+        public void TestThreadProc()
         {
-            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
-            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
-            CommandList cl = _ImGuiController.graphicsDevice.ResourceFactory.CreateCommandList();
 
-            int[] bbb = new int[size];
+            Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
+            GraphicsDevice gd = _ImGuiController.graphicsDevice;
 
-            for (int i = 0; i < size; i += 1) { bbb[i] = -1; }
+            Veldrid.DeviceBuffer buf2 =gd.ResourceFactory.CreateBuffer(new BufferDescription(1600, BufferUsage.StructuredBufferReadOnly, structureByteStride: 4));
+            ResourceLayout rl22 =gd.ResourceFactory.CreateResourceLayout(
+                new ResourceLayoutDescription(
+                    new ResourceLayoutElementDescription("Sam4psler" + Thread.CurrentThread.ManagedThreadId.ToString(), ResourceKind.StructuredBufferReadOnly, ShaderStages.Fragment)));
 
-
-            cl.Begin();
-            fixed (int* dataPtr = bbb)
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(rl22, buf2);////_paramsBuffer);//, _gd.PointSampler, positionsBuffer);
+            int i = 0;
+            ResourceSet crscore = null;
+            while (true)
             {
-                cl.UpdateBuffer(buffer, 0, (IntPtr)dataPtr, (uint)size * 4);
-                cl.End();
-                _ImGuiController.graphicsDevice.SubmitCommands(cl);
-                _ImGuiController.graphicsDevice.WaitForIdle();
-                cl.Dispose();
-            }
-            buffer.Dispose();
-        }
+                Console.WriteLine($"{Thread.CurrentThread.ManagedThreadId.ToString()}---{i}");
+                crscore = gd.ResourceFactory.CreateResourceSet(crs_core_rsd);
+                crscore.Dispose();
+                //Debug.Assert(crscore.IsDisposed);
+                i += 1;
 
-        unsafe void dotest(int ri, int size)
-        {
-            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
-            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
+                gd.WaitForIdle();
 
-            VeldridGraphBuffers.ZeroFillBuffers(new List<DeviceBuffer>() { buffer }, _ImGuiController.graphicsDevice);
-            System.Diagnostics.Debug.Assert(!VeldridGraphBuffers.DetectNaN(_ImGuiController.graphicsDevice, buffer));
-            buffer.Dispose();
-
-        }
-
-
-
-        unsafe void dotest2(int ri, int size)
-        {
-            BufferDescription bd = new BufferDescription((uint)size * 4, BufferUsage.StructuredBufferReadWrite, structureByteStride: 4);
-            DeviceBuffer buffer = _ImGuiController.graphicsDevice.ResourceFactory.CreateBuffer(bd);
-
-            CommandList cl = _ImGuiController.graphicsDevice.ResourceFactory.CreateCommandList();
-
-            int[] ccc = new int[size];
-
-            for (int i = 0; i < size; i += 1) { ccc[i] = 0; }
-
-
-            fixed (int* fillPtr = ccc)
-            {
-                cl.Begin();
-                cl.UpdateBuffer(buffer, 0, (IntPtr)fillPtr, (uint)size * 4);
-                cl.End();
-                _ImGuiController.graphicsDevice.SubmitCommands(cl);
-                _ImGuiController.graphicsDevice.WaitForIdle();
-                cl.Dispose();
+                //ResourceSetDescription crs_core_srsd = new ResourceSetDescription(rl2, buf);////_paramsBuffer);//, _gd.PointSampler, positionsBuffer);
+                //ResourceSet crscorse =gd.ResourceFactory.CreateResourceSet(crs_core_srsd);
+                //crscorse.Dispose();
             }
 
-            System.Diagnostics.Debug.Assert(!VeldridGraphBuffers.DetectNaN(_ImGuiController.graphicsDevice, buffer));
-            buffer.Dispose();
-
-
-            /*
-    cl.UpdateBuffer(buffer, 0, (IntPtr)dataPtr, (uint)size * 4);
-    //cl.UpdateBuffer(buffer, 0, (IntPtr)fillPtr, (uint)size * 4);
-    cl.End();
-    _ImGuiController.graphicsDevice.SubmitCommands(cl);
-    _ImGuiController.graphicsDevice.WaitForIdle();
-    cl.Dispose();*/
         }
-
 
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
 
@@ -1552,7 +1486,7 @@ namespace rgatCore
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize);
+                MainGraphWidget.Draw(graphSize, _rgatstate.ActiveGraph);
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
                 ImGui.EndChild();
@@ -1975,7 +1909,7 @@ namespace rgatCore
 
             _rgatstate.SwitchToGraph(graph);
             PreviewGraphWidget.SetSelectedGraph(graph);
-            MainGraphWidget.SetActiveGraph(graph);
+            //MainGraphWidget.SetActiveGraph(graph);
         }
 
 
@@ -2153,8 +2087,14 @@ namespace rgatCore
                     SmallWidgets.MouseoverText($"How many frames the UI can render in one second (Last 10 Avg MS: {_lastFrameTimeMS.Average()})");
 
                     ImGui.Text($"Layout MS: {MainGraphWidget.LayoutEngine.AverageComputeTime:0.#}");
-                    SmallWidgets.MouseoverText("How long it takes to complete a step of graph layout");
-                    //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text("How long it takes to complete a step of graph layout");
+                        ImGui.Text($"Layout Cumulative Time: {MainGraphWidget.ActiveGraph.ComputeLayoutTime} ({MainGraphWidget.ActiveGraph.ComputeLayoutSteps} steps");
+                        ImGui.EndTooltip();
+                    }
+                        //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
 
                     ImGui.EndChild();
                 }
@@ -2230,7 +2170,7 @@ namespace rgatCore
                 }
                 if (_rgatstate.ChooseActiveGraph())
                 {
-                    MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
+                    //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
@@ -2238,7 +2178,7 @@ namespace rgatCore
                 {
                     if (MainGraphWidget.ActiveGraph != null)
                     {
-                        MainGraphWidget.SetActiveGraph(null);
+                        //MainGraphWidget.SetActiveGraph(null);
                         PreviewGraphWidget.SetActiveTrace(null);
 
                     }
@@ -2246,7 +2186,7 @@ namespace rgatCore
             }
             else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
-                MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
+                //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                 PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                 PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
             }
@@ -2838,7 +2778,7 @@ namespace rgatCore
             {
                 _WaitingNewTraceCount = -1;
                 _SwitchToVisualiserTab = true;
-                MainGraphWidget.SetActiveGraph(null);
+                //MainGraphWidget.SetActiveGraph(null);
                 PreviewGraphWidget.SetActiveTrace(null);
                 _rgatstate.SelectActiveTrace(newest: true);
             }

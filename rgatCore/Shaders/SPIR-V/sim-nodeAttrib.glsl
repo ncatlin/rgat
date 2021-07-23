@@ -7,8 +7,8 @@ struct nodeAttribParams
      float delta;            // requestAnimationFrame delta
      int  selectedNode;     // selectedNode
      float hoverMode;     // selectedNode
-    int nodesTexWidth;     // will be the same for epoch and neighbors
-    int edgesTexWidth;     // neighbor data
+    int edgeTexCount;     
+    int fff;     // neighbor data
     bool isAnimated;
 };
 
@@ -19,10 +19,10 @@ layout(set = 0, binding=1) buffer bufnodeAttrib{
     vec4 nodeAttrib[]; // current self attrib values
 };
 layout(set = 0, binding=2) buffer bufedgeIndices{
-    ivec4 edgeIndices[]; // for neighbor highlighting
+    ivec2 edgeIndices[]; // for neighbor highlighting
 };
 layout(set = 0, binding=3) buffer bufedgeData{
-    ivec4 edgeData[]; // for neighbor highlighting
+    int edgeData[]; // for neighbor highlighting
 };
 layout(set = 0, binding=4) buffer bufresults{
     vec4 resultData[];
@@ -31,7 +31,7 @@ layout(set = 0, binding=4) buffer bufresults{
 const float AnimNodeInflateSize = 11.0;
 const float AnimNodeDeflateThreshold = 0.7;
 
-int hasSelectedNeighbor(int neighbor){
+int NodeIndexIsSelected(int neighbor){
     int counter = 0;
     if ( neighbor == params.selectedNode){
         counter = 1;
@@ -43,7 +43,7 @@ int hasSelectedNeighbor(int neighbor){
 layout (local_size_x = 256) in;
 void main()	{
     uvec3 id = gl_GlobalInvocationID;
-    uint index = id.x;//id.y * 256 + id.x;
+    uint index = id.x;
     vec4 selfAttrib = nodeAttrib[index];  // just using x and y right now
 
 
@@ -69,7 +69,7 @@ void main()	{
     //todo - different shaders for these
     if (params.isAnimated == true)
     {        
-        //alpha is based on how long since last active
+        //alpha is based on how long since last activated
         
         if (selfAttrib.z > 0)
         {
@@ -100,30 +100,35 @@ void main()	{
     //  neighbor highlighting of selected/hovered node
     if (params.selectedNode >= 0 ){
 
-        ivec4 selfEdgeIndices =  edgeIndices[index];
+        ivec2 selfEdgeIndices =  edgeIndices[index];
 
-        idx = selfEdgeIndices.x;
-        idy = selfEdgeIndices.y;
-        idz = selfEdgeIndices.z;
-        idw = selfEdgeIndices.w;
+        int start = selfEdgeIndices.x;
+        int end = selfEdgeIndices.y;
 
-        start = idx * 4.0 + idy;
-        end = idz * 4.0 + idw;
+        for ( int i = start; i < end; i++){
+               neighborPixel += NodeIndexIsSelected( edgeData[i] );               
+        }
 
-        if(! ( idx == idz && idy == idw ) ){
+        //todo: commented out this optimisation for debugging. 
+        // restore/test/optimised if needed
 
+
+        //if(! ( idx == idz && idy == idw ) ){
+
+        /*
+        if (start != end)
+        {
             int edgeIndex = 0;
-            for(int y = 0; y < params.edgesTexWidth; y++){
-                for(int x = 0; x < params.edgesTexWidth; x++){
+            for(int eTexIdx = 0; eTexIdx < params.edgeTexCount; eTexIdx += 1){
 
-                    int eTexIdx = y * params.edgesTexWidth + x;
-                    ivec4 pixel = edgeData[eTexIdx];
+                    //ivec4 pixel = edgeData[eTexIdx];
 
                     if (edgeIndex >= start && edgeIndex < end){
-                        neighborPixel += hasSelectedNeighbor( pixel.x );
+                        neighborPixel += hasSelectedNeighbor( edgeData[eTexIdx] );
                     }
                     edgeIndex++;
 
+                    /*
                     if (edgeIndex >= start && edgeIndex < end){
                         neighborPixel += hasSelectedNeighbor( pixel.y );
                     }
@@ -137,13 +142,14 @@ void main()	{
                     if (edgeIndex >= start && edgeIndex < end){
                         neighborPixel += hasSelectedNeighbor( pixel.w );
                     }
-                    edgeIndex++;
+                    edgeIndex++;*/
 
-                }
+                //}
+        //}
+        
+            
 
-            }
-
-        }
+        //}
 
     }
 

@@ -43,7 +43,7 @@ namespace rgatCore.Widgets
         {
 
             _iconsTextureView = _controller.IconTexturesView;
-            _paramsBuffer = _factory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<BarShaderParams>(), BufferUsage.UniformBuffer));
+            _paramsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<BarShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "VisBarShaderParams");
             _rsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
@@ -61,16 +61,16 @@ namespace rgatCore.Widgets
                 depthClipEnabled: false,
                 scissorTestEnabled: false);
             pipelineDescription.ResourceLayouts = new[] { _rsrcLayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_factory);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_gd);
 
             CreateTextures(1, 1);
 
-            _pointsVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
-            _linesVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
-            _trisVertexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.VertexBuffer));
-            _pointsIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
-            _linesIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
-            _trisIndexBuffer = _factory.CreateBuffer(new BufferDescription(2, BufferUsage.IndexBuffer));
+            _pointsVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.VertexBuffer, name: "VisBarPointsVertexInitial");
+            _linesVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.VertexBuffer, name: "VisBarLinesVertexInitial");
+            _trisVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.VertexBuffer, name: "VisBarTrisVertexInitial");
+            _pointsIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.IndexBuffer, name: "VisBarPointsIndexInitial");
+            _linesIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.IndexBuffer, name: "VisBarPointsIndexInitial");
+            _trisIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 2, BufferUsage.IndexBuffer, name: "VisBarPointsIndexInitial");
 
 
 
@@ -125,9 +125,9 @@ namespace rgatCore.Widgets
             if (_pointsVertexBuffer.SizeInBytes < requiredSize)
             {
                 VeldridGraphBuffers.DoDispose(_pointsVertexBuffer);
+                _pointsVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarPointsVertex");
                 VeldridGraphBuffers.DoDispose(_pointsIndexBuffer);
-                _pointsVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _pointsIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_pointVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+                _pointsIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_pointVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarPointsIndex");
 
             }
 
@@ -135,9 +135,9 @@ namespace rgatCore.Widgets
             if (_linesVertexBuffer.SizeInBytes < requiredSize)
             {
                 VeldridGraphBuffers.DoDispose(_linesVertexBuffer);
+                _linesVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarLinesVertex");
                 VeldridGraphBuffers.DoDispose(_linesIndexBuffer);
-                _linesVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _linesIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_lineVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+                _linesIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_lineVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarLinesIndex");
             }
 
             requiredSize = (uint)_triangleVerts.Length * Position2DColour.SizeInBytes;
@@ -145,8 +145,8 @@ namespace rgatCore.Widgets
             {
                 VeldridGraphBuffers.DoDispose(_trisVertexBuffer);
                 VeldridGraphBuffers.DoDispose(_trisIndexBuffer);
-                _trisVertexBuffer = _factory.CreateBuffer(new BufferDescription(requiredSize * 2, BufferUsage.VertexBuffer));
-                _trisIndexBuffer = _factory.CreateBuffer(new BufferDescription((uint)_triangleVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer));
+                _trisVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarTrisIndex");
+                _trisIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_triangleVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarTrisIndex");
             }
         }
 

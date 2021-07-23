@@ -31,21 +31,21 @@ namespace rgatCore
         ResourceSet _animBuffSet;
         public DeviceBuffer _animBuffer { get; private set; }
 
-        ResourceLayout SetupProjectionBuffers(ResourceFactory factory)
+        ResourceLayout SetupProjectionBuffers(GraphicsDevice gd)
         {
             ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayout projViewLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(vb));
-            _viewBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            _projViewSet = factory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _viewBuffer));
+            ResourceLayout projViewLayout = gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(vb));
+            _viewBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name: "ViewBuffer");
+            _projViewSet = gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _viewBuffer));
             return projViewLayout;
         }
 
-        ResourceLayout SetupAnimDataBuffers(ResourceFactory factory)
+        ResourceLayout SetupAnimDataBuffers(GraphicsDevice gd)
         {
             ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("AnimBuffer", ResourceKind.UniformBuffer, ShaderStages.Fragment);
-            ResourceLayout animLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(vb));
-            _animBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            _animBuffSet = factory.CreateResourceSet(new ResourceSetDescription(animLayout, _animBuffer));
+            ResourceLayout animLayout = gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(vb));
+            _animBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name:"AnimDataBuffer");
+            _animBuffSet = gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(animLayout, _animBuffer));
             return animLayout;
         }
 
@@ -59,8 +59,8 @@ namespace rgatCore
         public void InitPipelines(GraphicsDevice _gd, ShaderSetDescription shaders, Framebuffer frmbuf, bool wireframe = false)
         {
             ResourceFactory factory = _gd.ResourceFactory;
-            ResourceLayout projViewLayout = SetupProjectionBuffers(factory);
-            ResourceLayout AnimDataLayout = SetupAnimDataBuffers(factory);
+            ResourceLayout projViewLayout = SetupProjectionBuffers(_gd);
+            ResourceLayout AnimDataLayout = SetupAnimDataBuffers(_gd);
 
 
             // Create pipelines
@@ -143,7 +143,7 @@ namespace rgatCore
             else
             {
                 ResourceFactory factory = gd.ResourceFactory;
-                readback = factory.CreateBuffer(new BufferDescription(buffer.SizeInBytes, BufferUsage.Staging));
+                readback = TrackedVRAMAlloc(gd, buffer.SizeInBytes, BufferUsage.Staging, name: "ReadBack");
                 CommandList cl = factory.CreateCommandList();
                 cl.Begin();
                 cl.CopyBuffer(buffer, 0, readback, 0, buffer.SizeInBytes);
@@ -158,49 +158,55 @@ namespace rgatCore
 
         public static void DoDispose(Texture tx)
         {
-            if (tx != null && tx.IsDisposed == false) tx.Dispose();
+            // if (tx != null && tx.IsDisposed == false) tx.Dispose();
+            if (tx != null) tx.Dispose();
         }
         public static void DoDispose(Framebuffer fb)
         {
-            if (fb != null && fb.IsDisposed == false) fb.Dispose();
+            // if (fb != null && fb.IsDisposed == false) fb.Dispose();
+            if (fb != null) fb.Dispose();
         }
         public static void DoDispose(ResourceSet rs)
         {
-            if (rs != null && rs.IsDisposed == false) rs.Dispose();
+            if (rs != null) rs.Dispose();
+            //if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
 
+        static long total_1 = 0;
         public static void DoDispose(DeviceBuffer db)
         {
-            if (db != null && db.IsDisposed == false) db.Dispose();
-        }
-
-        public static bool DetectNaN(GraphicsDevice _gd, DeviceBuffer buf)
-        {
-
-            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
-            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-            float[] outputArray = new float[destinationReadView.Count];
-            for (int index = 0; index < destinationReadView.Count; index++)
+            lock (b_lock)
             {
-                if (index >= destinationReadView.Count) break;
-                outputArray[index] = destinationReadView[index];
-                //Console.WriteLine($"{index}:{outputArray[index]}");
-                if (float.IsNaN(outputArray[index]))
+                if (db != null && db.IsDisposed == false)
                 {
-                    Console.WriteLine($"{index}:{outputArray[index]}");
-                    return true;
+                    total_1 -= db.SizeInBytes;
+                    Logging.RecordLogEvent($"DEALLOC! Disposing devicebuff of size {db.SizeInBytes} name {db.Name}  totl[{total_1}]");
+                    db.Dispose();
+                    _allocatedBufs.Remove(db.Name);
                 }
             }
-            _gd.Unmap(destinationReadback);
-            return false;
         }
 
-        public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev)
-        {
-            BufferDescription bd = new BufferDescription((uint)floats.Length * sizeof(float), BufferUsage.StructuredBufferReadWrite, 4);
-            DeviceBuffer buffer = gdev.ResourceFactory.CreateBuffer(bd);
+        readonly static object b_lock = new object();
+        static List<string> _allocatedBufs = new List<string>();
 
-            Logging.RecordLogEvent($"CreateFloatsDevBuf {buffer.SizeInBytes}, {floats.Length * sizeof(float)}");
+        public static DeviceBuffer TrackedVRAMAlloc(GraphicsDevice gd, uint size, BufferUsage usage = BufferUsage.StructuredBufferReadWrite, uint stride = 0, string name = "?")
+        {
+            lock (b_lock)
+            {
+                total_1 += size;
+                Logging.RecordLogEvent($"ALLOC! {size} name:{name} totl[{total_1}]", Logging.LogFilterType.BulkDebugLogFile);
+                DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
+                result.Name = name;
+                _allocatedBufs.Add(result.Name);
+                return result;
+            }
+        }
+
+
+        public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev, string name = "?")
+        {
+            DeviceBuffer buffer = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name);
             fixed (float* dataPtr = floats)
             {
                 CommandList cl = gdev.ResourceFactory.CreateCommandList();
@@ -216,6 +222,25 @@ namespace rgatCore
         }
 
 
+        public static unsafe Tuple<DeviceBuffer,DeviceBuffer> CreateFloatsDeviceBufferPair(float[] floats, GraphicsDevice gdev, string name = "?")
+        {
+            DeviceBuffer buffer1 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name+"1");
+            DeviceBuffer buffer2 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name+"2");
+            fixed (float* dataPtr = floats)
+            {
+                CommandList cl = gdev.ResourceFactory.CreateCommandList();
+                cl.Begin();
+                cl.UpdateBuffer(buffer1, 0, (IntPtr)dataPtr, buffer1.SizeInBytes);
+                //do we need a fence here?
+                cl.CopyBuffer(buffer1, 0, buffer2, 0, buffer1.SizeInBytes);
+                cl.End();
+                gdev.SubmitCommands(cl);
+                gdev.WaitForIdle();
+                cl.Dispose();
+            }
+
+            return new Tuple<DeviceBuffer, DeviceBuffer>(buffer1, buffer2);
+        }
 
 
 
@@ -236,14 +261,14 @@ namespace rgatCore
 
             ComputePipelineDescription pipelineDescription = new ComputePipelineDescription();
             pipelineDescription.ResourceLayouts = new[] { fillShaderLayout, };
-            pipelineDescription.ComputeShader = rf.CreateFromSpirv(SPIRVShaders.CreateZeroFillShader(rf));
+            pipelineDescription.ComputeShader = rf.CreateFromSpirv(SPIRVShaders.CreateZeroFillShader(gd));
             pipelineDescription.ThreadGroupSizeX = 256;
             pipelineDescription.ThreadGroupSizeY = 1;
             pipelineDescription.ThreadGroupSizeZ = 1;
 
             ZeroFillPipeline = rf.CreateComputePipeline(pipelineDescription);
 
-            paramsBuffer = rf.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<FillParams>(), BufferUsage.UniformBuffer));
+            paramsBuffer = TrackedVRAMAlloc(gd, (uint)Unsafe.SizeOf<FillParams>(), BufferUsage.UniformBuffer, name: "ZeroFillShaderParam");
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -299,15 +324,16 @@ namespace rgatCore
         {
             ResourceFactory rf = gd.ResourceFactory;
 
-            int[] zeros = new int[(int)(buffer.SizeInBytes / 4)];
-
+            float[] zeros = new float[(int)(buffer.SizeInBytes / 4)];
+            //for (var i = 0; i < zeros.Length; i++)
+             //   zeros[i] = 74;
 
             CommandList cl = rf.CreateCommandList();
             cl.Begin();
             //cl.SetPipeline(ZeroFillPipeline);
-            fixed (int* dataPtr = zeros)
+            fixed (float* dataPtr = zeros)
             {
-                cl.UpdateBuffer(buffer, zeroStartOffset, (IntPtr)dataPtr, buffer.SizeInBytes-zeroStartOffset);
+                cl.UpdateBuffer(buffer, zeroStartOffset, (IntPtr)dataPtr, buffer.SizeInBytes - zeroStartOffset);
             }
             cl.End();
             gd.SubmitCommands(cl);
@@ -316,11 +342,33 @@ namespace rgatCore
             cl.Dispose();
         }
 
-        public unsafe static DeviceBuffer CreateZeroFilledBuffer(BufferDescription bd, GraphicsDevice gd, uint zeroStartOffset=0)
+        public unsafe static DeviceBuffer CreateZeroFilledBuffer(BufferDescription bd, GraphicsDevice gd, uint zeroStartOffset = 0, string name = "")
         {
-            DeviceBuffer buf = gd.ResourceFactory.CreateBuffer(bd);
+            DeviceBuffer buf = TrackedVRAMAlloc(gd, bd.SizeInBytes, bd.Usage, bd.StructureByteStride, name);
             ZeroFillBuffer(buf, gd, zeroStartOffset);
             return buf;
         }
+
+        public static bool DetectNaN(GraphicsDevice _gd, DeviceBuffer buf)
+        {
+
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
+            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            float[] outputArray = new float[destinationReadView.Count];
+            for (int index = 0; index < destinationReadView.Count; index++)
+            {
+                if (index >= destinationReadView.Count) break;
+                outputArray[index] = destinationReadView[index];
+                //Console.WriteLine($"{index}:{outputArray[index]}");
+                if (float.IsNaN(outputArray[index]))
+                {
+                    Console.WriteLine($"{index}:{outputArray[index]}");
+                    return true;
+                }
+            }
+            _gd.Unmap(destinationReadback);
+            return false;
+        }
+
     }
 }

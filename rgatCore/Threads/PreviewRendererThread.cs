@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using Veldrid;
 
 namespace rgatCore.Threads
 {
@@ -26,6 +28,8 @@ namespace rgatCore.Threads
 
         public void ThreadProc()
         {
+            Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
+
             Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
             List<PlottedGraph> graphlist;
             int StopTimer = -1;
@@ -41,6 +45,7 @@ namespace rgatCore.Threads
                 foreach (PlottedGraph graph in graphlist)
                 {
                     if (graph == null) continue;
+
                     if (graph != _clientState.ActiveGraph)
                     {
                         //check for trace data that hasn't been rendered yet
@@ -49,7 +54,7 @@ namespace rgatCore.Threads
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
                         graph.render_graph();
                         if (!graph.RenderingComplete())
-                            moreRenderingNeeded = true; 
+                            moreRenderingNeeded = true;
                     }
 
                     if (graph.DrawnEdgesCount > 0)
@@ -58,7 +63,7 @@ namespace rgatCore.Threads
                     }
 
                     if (_clientState.rgatIsExiting) break;
-                    Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS);
+                    Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS); //sleep removed for debug
                 }
 
                 graphlist.Clear();
@@ -66,7 +71,11 @@ namespace rgatCore.Threads
                 int waitForNextIt = 0;
                 while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !_clientState.rgatIsExiting)
                 {
-                    Thread.Sleep(50);
+
+
+                    Thread.Sleep(50); //sleep removed for debug
+
+
                     waitForNextIt += 50;
                 }
 

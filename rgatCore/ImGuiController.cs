@@ -242,14 +242,10 @@ namespace ImGuiNET
             _gd = gd;
             ResourceFactory factory = gd.ResourceFactory;
             //can fail if we run out of graphics memory
-            _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
-            _vertexBuffer.Name = "ImGui.NET Vertex Buffer";
-            _indexBuffer = factory.CreateBuffer(new BufferDescription(2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
-            _indexBuffer.Name = "ImGui.NET Index Buffer";
+            _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Vertex Buffer");
+            _indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Index Buffer");
             RecreateFontDeviceTexture(gd);
-
-            _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-            _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
+            _projMatrixBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "ImGui.NET Projection Buffer");
 
             byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
             byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
@@ -329,14 +325,14 @@ namespace ImGuiNET
         {
             if (!_autoViewsByTexture.TryGetValue(texture, out TextureView textureView))
             {
-                Debug.Assert(!texture.IsDisposed);
+                //Debug.Assert(!texture.IsDisposed);
                 textureView = factory.CreateTextureView(texture);
                 textureView.Name = $"TV_BOUND_" + name;
                 _autoViewsByTexture.Add(texture, textureView);
                 _ownedResources.Add(textureView);
             }
 
-            Debug.Assert(!textureView.IsDisposed);
+            //Debug.Assert(!textureView.IsDisposed);
             return GetOrCreateImGuiBinding(factory, textureView, name);
         }
 
@@ -365,10 +361,10 @@ namespace ImGuiNET
                 if ((DateTime.Now - r_time.Item2).TotalSeconds > 10)//> 5)
                 {
                     expiredResources.RemoveAt(i);
-                    //_ownedResources.Remove(r_time.Item1);
+                    _ownedResources.Remove(r_time.Item1);
                     //Not doing this doesn't seem to cause a memory leak and calling dispose leads to crashes
                     //Presuming they are disposed by the ref counter?
-                    //r_time.Item1.Dispose();
+                    r_time.Item1.Dispose();
 
                 }
             }
@@ -377,6 +373,7 @@ namespace ImGuiNET
             List<Texture> removed = new List<Texture>();
             foreach (KeyValuePair<Texture, TextureView> view_tview in _autoViewsByTexture)
             {
+                
                 Debug.Assert(!view_tview.Value.IsDisposed);
                 if (view_tview.Key.IsDisposed)
                 {
@@ -388,10 +385,11 @@ namespace ImGuiNET
                     _viewsById.Remove(rset.ImGuiBinding);
                     _setsByView.Remove(staleTextureView);
 
-                    //expiredResources.Add(new Tuple<IDisposable, DateTime>(staleTextureView, DateTime.Now));
-                    //expiredResources.Add(new Tuple<IDisposable, DateTime>(rset.ResourceSet, DateTime.Now));
+                    expiredResources.Add(new Tuple<IDisposable, DateTime>(staleTextureView, DateTime.Now));
+                    expiredResources.Add(new Tuple<IDisposable, DateTime>(rset.ResourceSet, DateTime.Now));
 
                 }
+                
             }
 
 
@@ -645,7 +643,7 @@ namespace ImGuiNET
             {
                 Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_vertexBuffer);
-                _vertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
+                _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, (uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: _vertexBuffer.Name);
             }
 
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
@@ -653,7 +651,7 @@ namespace ImGuiNET
             {
                 Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_indexBuffer);
-                _indexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic));
+                _indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, (uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic, name: _indexBuffer.Name);
             }
         }
 

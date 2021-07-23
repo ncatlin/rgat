@@ -96,6 +96,7 @@ namespace rgatCore
 
         public static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState)
         {
+            Logging.RecordLogEvent($"launch_new_visualiser_threads START", Logging.LogFilterType.BulkDebugLogFile);
             //non-graphical
             //if (!clientState.openGLWorking()) return;
             PreviewRendererThread previewThread = new PreviewRendererThread(runRecord);

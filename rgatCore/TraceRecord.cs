@@ -246,7 +246,7 @@ namespace rgatCore
 	
 		void save(void* clientConfigPtr);
 		*/
-        public bool load(Newtonsoft.Json.Linq.JObject saveJSON)//, List<QColor> &colours);
+        public bool load(Newtonsoft.Json.Linq.JObject saveJSON, Veldrid.GraphicsDevice device)//, List<QColor> &colours);
         {
             if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
             {
@@ -257,7 +257,7 @@ namespace rgatCore
             Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.LogFilterType.TextDebug);
 
 
-            if (!LoadProcessGraphs(saveJSON))//, colours))//.. &config.graphColours))
+            if (!LoadProcessGraphs(saveJSON, device))//, colours))//.. &config.graphColours))
             {
                 Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
                 return false;
@@ -586,7 +586,7 @@ namespace rgatCore
         }
 
 
-        bool LoadProcessGraphs(JObject processJSON)
+        bool LoadProcessGraphs(JObject processJSON, Veldrid.GraphicsDevice device)
         {
             if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)
             {
@@ -600,7 +600,7 @@ namespace rgatCore
 
             foreach (JObject threadObj in ThreadsArray)
             {
-                if (!LoadGraph(threadObj))
+                if (!LoadGraph(threadObj, device))
                 {
                     Logging.RecordLogEvent("Failed to load graph", Logging.LogFilterType.TextError);
                     return false;
@@ -611,7 +611,7 @@ namespace rgatCore
 
         }
 
-        bool LoadGraph(JObject jThreadObj)
+        bool LoadGraph(JObject jThreadObj, Veldrid.GraphicsDevice device)
         {
             if (!jThreadObj.TryGetValue("ThreadID", out JToken tTID) || tTID.Type != JTokenType.Integer)
             {
@@ -643,7 +643,7 @@ namespace rgatCore
             }
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, GlobalConfig.defaultGraphColours);
+            PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, device, GlobalConfig.defaultGraphColours);
             standardRenderedGraph.SetAnimated(false);
 
 

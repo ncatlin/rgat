@@ -56,13 +56,15 @@ namespace rgatCore
         }
 
 
-        public PlottedGraph(ProtoGraph protoGraph, List<WritableRgbaFloat> graphColourslist)
+        public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device, List<WritableRgbaFloat> graphColourslist)
         {
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
+            ActiveLayoutStyle = LayoutStyles.Style.ForceDirected3DNodes;
+            LayoutState = new GraphLayoutState(this, device);
 
-            savedForcePositions[eGraphLayout.eForceDirected3DNodes] = Array.Empty<float>();
-            savedForcePositions[eGraphLayout.eForceDirected3DBlocks] = Array.Empty<float>();
+            //savedForcePositions[LayoutStyles.Style.eForceDirected3DNodes] = Array.Empty<float>();
+            //savedForcePositions[LayoutStyles.Style.eForceDirected3DBlocks] = Array.Empty<float>();
 
             InternalProtoGraph = protoGraph;
 
@@ -81,7 +83,7 @@ namespace rgatCore
 
         public void render_graph()
         {
-                render_new_blocks();
+            render_new_blocks();
         }
 
         //for tracking how big the graph gets
@@ -302,41 +304,8 @@ namespace rgatCore
         }
 
 
-        public void UpdateRenderFrameVersion(ulong newVersion)
-        {
-            Debug.Assert(newVersion > renderFrameVersion);
-            Debug.Assert(newVersion != ulong.MaxValue);
-            renderFrameVersion = newVersion;
-        }
-        
-        public void BufferDownloadComplete(ulong newVersion)
-        {
-            textureLock.EnterWriteLock();
-            renderFrameVersion = newVersion;
-            BufferDownloadActive = false;
-            textureLock.ExitWriteLock();
-        }
 
         public bool BufferDownloadActive { get; private set; } = false;
-        public bool StartUpdateIfNewVersion(ulong newVersion)
-        {
-            if (newVersion <= renderFrameVersion) return false;
-
-            bool startDownload = false;
-            textureLock.EnterUpgradeableReadLock();
-            if (newVersion > renderFrameVersion)
-            {
-                textureLock.EnterWriteLock();
-                if (BufferDownloadActive == false)
-                {
-                    startDownload = true;
-                    BufferDownloadActive = true;
-                }
-                textureLock.ExitWriteLock();
-            }
-            textureLock.ExitUpgradeableReadLock();
-            return startDownload;
-        }
 
         float GetAttractionForce(EdgeData edge)
         {
@@ -395,84 +364,8 @@ namespace rgatCore
         }
 
 
-        public void UpdateNodePositions(MappedResourceView<float> newPositions)
-        {
-            Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{tid} size from {positionsArray1.Length} to {newPositions.Count}", Logging.LogFilterType.BulkDebugLogFile);
-            textureLock.EnterWriteLock();
-            {
-                int floatCount = newPositions.Count;//xyzw
-                if (positionsArray1.Length < floatCount)
-                    positionsArray1 = new float[floatCount]; //todo upgrade?
 
-                for (var i = 0; i < floatCount; i++)
-                {
-                    positionsArray1[i] = newPositions[i];
-                }
-            }
-            textureLock.ExitWriteLock();
-
-        }
-
-        //This is assumed to never shrink
-        public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, uint count)
-        {
-            Logging.RecordLogEvent($"UpdateNodeVelocities called changing grp_{tid} velsize from {velocityArray1.Length} to {count}");
-            textureLock.EnterWriteLock();
-            {
-                if (velocityArray1.Length < count)
-                    velocityArray1 = new float[count];
-                for (var i = 0; i < count; i++)
-                    velocityArray1[i] = newVelocities[i];
-            }
-            textureLock.ExitWriteLock();
-        }
-
-
-        public float[] GetVelocityFloats()
-        {
-            //Console.WriteLine($"Getvelocity floats returning {velocityArray1.Length} floats");
-            textureLock.EnterReadLock();
-            if (BufferDownloadActive)
-                WaitforBufferDownload();
-
-                Debug.Assert(!BufferDownloadActive);
-
-                var result = velocityArray1.ToArray();
-                textureLock.ExitReadLock();
-                return result;
-        }
-
-        public float[] GetPositionFloats()
-        {
-            //Console.WriteLine($"GetPositionFloats floats returning {positionsArray1.Length} floats");
-            textureLock.EnterReadLock();
-            if (BufferDownloadActive)
-                WaitforBufferDownload();
-            Debug.Assert(!BufferDownloadActive);
-
-            var result = positionsArray1.ToArray();
-            textureLock.ExitReadLock();
-            return result;
-
-        }
-        public float[] GetNodeAttribFloats()
-        {
-            return nodeAttribArray1;
-        }
-
-        eGraphLayout _presetLayoutStyle = eGraphLayout.eLayoutInvalid;
         uint _presetEdgeCount;
-
-        public float[] GetPresetPositionFloats(out bool hasPresetNodes)
-        {
-            if (_presetLayoutStyle != LayoutStyle || _presetEdgeCount != InternalProtoGraph.get_num_edges())
-                hasPresetNodes = GeneratePresetPositions();
-            else
-                hasPresetNodes = false;
-
-            return presetPositionsArray;
-        }
-
 
 
         void ZeroisePreset()
@@ -480,46 +373,42 @@ namespace rgatCore
 
         }
 
-        //returns true if there are actually preset nodes to return to, false if a blank preset
-        bool GeneratePresetPositions()
-        {
-            _presetLayoutStyle = LayoutStyle;
-            _presetEdgeCount = InternalProtoGraph.get_num_edges();
-            switch (LayoutStyle)
-            {
-                case eGraphLayout.eCylinderLayout:
-                    GenerateCylinderLayout();
-                    return true;
 
-                case eGraphLayout.eCircle:
-                    GenerateCircleLayout();
-                    return true;
+
+        //returns true if there are actually preset nodes to return to, false if a blank preset
+        public float[] GeneratePresetPositions()
+        {
+            _presetEdgeCount = InternalProtoGraph.get_num_edges();
+            switch (ActiveLayoutStyle)
+            {
+                case LayoutStyles.Style.CylinderLayout:
+                    return GenerateCylinderLayout();
+
+                case LayoutStyles.Style.Circle:
+                    return GenerateCircleLayout();
 
                 default:
-                    if (LayoutIsForceDirected(LayoutStyle))
+                    if (LayoutStyles.IsForceDirected(ActiveLayoutStyle))
                     {
-                        if (savedForcePositions[LayoutStyle].Length == 0)
+                        if (!LayoutState.GetSavedLayout(ActiveLayoutStyle, out float[] layout))
                         {
-                            InitBlankPresetLayout();
-                            RandomisePositionTextures();
-                            return false;
+                            return CreateRandomPresetLayout();
                         }
                         else
                         {
-                            presetPositionsArray = savedForcePositions[LayoutStyle].ToArray();
-                            return true;
+                            return layout;
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Error: Tried to layout invalid preset style: " + LayoutName());
-                        return false;
+                        Console.WriteLine("Error: Tried to layout invalid preset style: " +ActiveLayoutStyle.ToString());
+                        return null;
                     }
             }
         }
 
 
-        void GenerateSimpleCylinderLayout()
+        float[] GenerateSimpleCylinderLayout()
         {
 
             int nodeCount = _graphStructureLinear.Count;
@@ -550,10 +439,10 @@ namespace rgatCore
                 textureArray[i] = -1;
 
             }
-            presetPositionsArray = textureArray;
+            return textureArray;
         }
 
-        void GenerateCylinderLayout()
+        float[] GenerateCylinderLayout()
         {
 
             int nodeCount = _graphStructureLinear.Count;
@@ -687,8 +576,10 @@ namespace rgatCore
                 // fill unused RGBA slots with -1
                 textureArray[i] = -1;
             }
-            presetPositionsArray = textureArray;
+
+            return textureArray;
         }
+
 
         float CYLINDER_RADIUS = 5000f;
         float CYLINDER_PIXELS_PER_B = 30f;
@@ -734,15 +625,13 @@ namespace rgatCore
             edgeIndices = new List<uint>();
             if (WireframeEnabled)
             {
-                _presetLayoutStyle = LayoutStyle;
-                _presetEdgeCount = InternalProtoGraph.get_num_edges();
-                switch (LayoutStyle)
+                switch (ActiveLayoutStyle)
                 {
-                    case eGraphLayout.eCylinderLayout:
+                    case LayoutStyles.Style.CylinderLayout:
                         GenerateCylinderWireframe(ref resultList, ref edgeIndices);
                         break;
                     default:
-                        Console.WriteLine("Error: Tried to layout invalid wireframe style: " + LayoutName());
+                        Console.WriteLine("Error: Tried to layout invalid wireframe style: " + ActiveLayoutStyle.ToString());
                         break;
                 }
 
@@ -852,13 +741,13 @@ namespace rgatCore
         }
 
 
-        public bool WireframeEnabled => LayoutStyle == eGraphLayout.eCylinderLayout;
+        public bool WireframeEnabled => ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout;
 
 
 
 
         //Adapted from analytics textureGenerator.js 
-        void GenerateCircleLayout()
+        float[] GenerateCircleLayout()
         {
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
@@ -899,7 +788,7 @@ namespace rgatCore
                 }
 
             }
-            presetPositionsArray = textureArray;
+            return textureArray;
         }
 
 
@@ -913,45 +802,6 @@ namespace rgatCore
         }
 
 
-        void EnlargeRAMDataBuffers(uint size)
-        {
-            float[] newVelocityArr1 = new float[size];
-            float[] newPositionsArr1 = new float[size];
-            float[] newAttsArr1 = new float[size];
-            float[] newPresetsArray = new float[size];
-
-            int endLength = 0;
-            if (velocityArray1 != null)
-            {
-                endLength = velocityArray1.Length;
-                for (var i = 0; i < endLength; i++)
-                {
-                    newVelocityArr1[i] = velocityArray1[i];
-                    newPositionsArr1[i] = positionsArray1[i];
-                    newAttsArr1[i] = nodeAttribArray1[i];
-                }
-                for (var i = 0; i < presetPositionsArray.Length; i++)
-                {
-                    newPresetsArray[i] = presetPositionsArray[i];
-                }
-            }
-
-            for (var i = endLength; i < size; i++)
-            {
-                newVelocityArr1[i] = -1;
-                newPositionsArr1[i] = -1;
-                newAttsArr1[i] = -1;
-                newPresetsArray[i] = -1;
-            }
-
-
-            positionsArray1 = newPositionsArr1;
-            velocityArray1 = newVelocityArr1;
-            nodeAttribArray1 = newAttsArr1;
-            presetPositionsArray = newPresetsArray;
-
-        }
-
         void WaitforBufferDownload()
         {
             while (BufferDownloadActive)
@@ -964,68 +814,19 @@ namespace rgatCore
 
         unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
         {
-            Debug.Assert(nodeIdx == _graphStructureLinear.Count);
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //i dont remember if this is important
 
             textureLock.EnterReadLock();
             if (BufferDownloadActive)
                 WaitforBufferDownload();
 
-
-            var bounds = 1000;
-            var bounds_half = bounds / 2;
-
-            int oldVelocityArraySize = (velocityArray1 != null) ? velocityArray1.Length * sizeof(float) : 0;
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
             var bufferWidth = indexTextureSize((int)futureCount);
-            var bufferFloatCount = bufferWidth * bufferWidth * 4;
-            var bufferSize = bufferFloatCount * sizeof(float);
 
-            uint currentOffset = (futureCount - 1) * 4;
-
-            Debug.Assert(!BufferDownloadActive);
-            Debug.Assert(positionsArray1.Length == velocityArray1.Length);
-            Debug.Assert(nodeAttribArray1.Length == positionsArray1.Length);
-
-            if (bufferSize > oldVelocityArraySize ||
-                currentOffset >= oldVelocityArraySize || 
-                presetPositionsArray.Length != positionsArray1.Length
-                ) //todo this is bad
-            {
-                uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
-                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.LogFilterType.TextDebug);
-                EnlargeRAMDataBuffers(newSize);
-            }
-
-            Debug.Assert(presetPositionsArray.Length == velocityArray1.Length);
-
-            //possible todo here - shift Y down as the index increases
-            Random rnd = new Random();
-            float[] nodePositionEntry = {
-                ((float)rnd.NextDouble() * bounds) - bounds_half,
-                ((float)rnd.NextDouble() * bounds) - bounds_half,
-                ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
-
-
-            positionsArray1[currentOffset] = nodePositionEntry[0];      //X
-            positionsArray1[currentOffset + 1] = nodePositionEntry[1];  //Y
-            positionsArray1[currentOffset + 2] = nodePositionEntry[2];  //Z
-            positionsArray1[currentOffset + 3] = nodePositionEntry[3];  //type of position (none, preset, force directed)
-
-            presetPositionsArray[currentOffset] = 0;      //X
-            presetPositionsArray[currentOffset + 1] = 0;  //Y
-            presetPositionsArray[currentOffset + 2] = 0;  //Z
-            presetPositionsArray[currentOffset + 3] = 0;  //>=1 => an active preset
-
-            velocityArray1[currentOffset] = 0;
-            velocityArray1[currentOffset + 1] = 0;
-            velocityArray1[currentOffset + 2] = 0;
-            velocityArray1[currentOffset + 3] = 1;
-
-            nodeAttribArray1[currentOffset] = 200f;
-            nodeAttribArray1[currentOffset + 1] = 1f;// 0.5f;
-            nodeAttribArray1[currentOffset + 2] = 0;
-            nodeAttribArray1[currentOffset + 3] = 0;
-
+            LayoutState.Lock.EnterUpgradeableReadLock();
+            LayoutState.AddNode(nodeIdx, futureCount, bufferWidth, edge);
+            LayoutState.RegenerateEdgeDataBuffers(this);
+            LayoutState.Lock.ExitUpgradeableReadLock();
 
             List<int> connectedNodeIDs = new List<int>();
             lock (animationLock)
@@ -1036,6 +837,7 @@ namespace rgatCore
             textureLock.ExitReadLock();
         }
 
+
         /// <summary>
         /// Create an array listing the index of every neighbour of every node
         /// Also initialises the edge strength array, 
@@ -1045,10 +847,11 @@ namespace rgatCore
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
             List<List<int>> targetArray = _graphStructureBalanced;
-            var textureSize =  (int) countDataArrayItems(targetArray)*  2; //A->B + B->A
+            var textureSize = (int)countDataArrayItems(targetArray) * 2; //A->B + B->A
 
 
-            if (textureSize == 0) {
+            if (textureSize == 0)
+            {
                 edgeStrengths = new float[] { 0 };
                 edgeTargetIndexes = new int[] { 1 };
                 edgeIndexLookups = new int[] { 1 };
@@ -1064,7 +867,7 @@ namespace rgatCore
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
             }
-            var textureSize2 = indexTextureSize(nodeCount*2);
+            var textureSize2 = indexTextureSize(nodeCount * 2);
             edgeIndexLookups = new int[textureSize2 * textureSize2];// * textureSize2 * 2];
 
             int currentNodeIndex;
@@ -1072,6 +875,7 @@ namespace rgatCore
             for (currentNodeIndex = 0; currentNodeIndex < nodeCount; currentNodeIndex++)
             {
                 edgeIndexLookups[currentNodeIndex * 2] = edgeIndex;
+
                 List<uint> neigbours = InternalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
@@ -1086,9 +890,12 @@ namespace rgatCore
                         edgeStrengths[edgeIndex] = 0.5f;
                     }
                     edgeIndex++;
-                    if (edgeIndex == edgeTargetIndexes.Length) {
-                        edgeIndexLookups[currentNodeIndex*2 + 1] = edgeIndex;
-                        return true; 
+
+
+                    if (edgeIndex == edgeTargetIndexes.Length)
+                    {
+                        edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
+                        return true;
                     }
                 }
 
@@ -1123,8 +930,8 @@ namespace rgatCore
                 edgeTargetIndexes[i] = -1;
                 edgeStrengths[edgeIndex] = -1;
             }
-            
-            for (var i = InternalProtoGraph.NodeList.Count*2; i < edgeIndexLookups.Length; i++)
+
+            for (var i = InternalProtoGraph.NodeList.Count * 2; i < edgeIndexLookups.Length; i++)
             {
                 //fill unused RGBA slots with -1
                 edgeIndexLookups[i] = -1;
@@ -1222,8 +1029,8 @@ namespace rgatCore
         /// it may be intended for a texture of a certain size</param>
         int[] CreateBlockMetadataBuf(int nodecount)
         {
-           
-            int [] blockDataInts = new int[nodecount * 4];
+
+            int[] blockDataInts = new int[nodecount * 4];
             Dictionary<int, int> blockMiddles = new Dictionary<int, int>();
 
             //step 1: find the center node of each block
@@ -1259,7 +1066,7 @@ namespace rgatCore
                 if (firstIdx_LastIdx == null) continue;
 
                 var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
-                int blockID = (int)n.BlockID; 
+                int blockID = (int)n.BlockID;
                 if (!blockMiddles.ContainsKey(blockID))
                     continue;
                 int blockMid = blockMiddles[blockID];
@@ -1314,11 +1121,11 @@ namespace rgatCore
         }
 
 
-        public void InitBlankPresetLayout()
+        public float[] CreateBlankPresetLayout()
         {
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
-            presetPositionsArray = new float[bufferFloatCount];
+            float[] presetPositionsArray = new float[bufferFloatCount];
 
             for (var i = 0; i < presetPositionsArray.Length; i += 4)
             {
@@ -1339,34 +1146,40 @@ namespace rgatCore
                 }
 
             }
-
+            return presetPositionsArray;
         }
 
-        void RandomisePositionTextures()
+        float[] CreateRandomPresetLayout()
         {
+
+            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            var bufferFloatCount = bufferWidth * bufferWidth * 4;
+            float[] positions = new float[bufferFloatCount];
+
             var bounds = 1000;
             var bounds_half = bounds / 2;
             Random rnd = new Random();
-            for (var i = 0; i < presetPositionsArray.Length; i += 4)
+            for (var i = 0; i < positions.Length; i += 4)
             {
                 if (i < _graphStructureLinear.Count * 4)
                 {
-                    positionsArray1[i] = ((float)rnd.NextDouble() * bounds) - bounds_half;
-                    positionsArray1[i + 1] = ((float)rnd.NextDouble() * bounds) - bounds_half;
-                    positionsArray1[i + 2] = ((float)rnd.NextDouble() * bounds) - bounds_half;
-                    positionsArray1[i + 3] = 1;
+                    positions[i] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positions[i + 1] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positions[i + 2] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positions[i + 3] = 1;
                 }
                 else
                 {
-                    // fill the remaining pixels with -1
-                    presetPositionsArray[i] = -1.0f;
-                    presetPositionsArray[i + 1] = -1.0f;
-                    presetPositionsArray[i + 2] = -1.0f;
-                    presetPositionsArray[i + 3] = -1.0f;
+                    // fill the remaining pixels with -1, invalid positions
+                    // can probably actually only set the .w component to -1, but for now keep it like this for safety
+                    positions[i] = -1.0f;
+                    positions[i + 1] = -1.0f;
+                    positions[i + 2] = -1.0f;
+                    positions[i + 3] = -1.0f;
                 }
 
             }
-
+            return positions;
         }
 
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
@@ -1654,8 +1467,9 @@ namespace rgatCore
         //todo: linq
         static int countDataArrayItems(List<List<int>> dataArray)
         {
+            int nodeCount = dataArray.Count;
             int counter = 0;
-            for (var i = 0; i < dataArray.Count; i++)
+            for (var i = 0; i < nodeCount; i++)
             {
                 counter += dataArray[i].Count;
             }
@@ -2165,7 +1979,8 @@ namespace rgatCore
         }
 
 
-        public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
+        //must hold read lock
+        public void AddHighlightedNodes(List<uint> newnodeidxs, float[] attribsArray, eHighlightType highlightType)
         {
             lock (textLock)
             {
@@ -2187,10 +2002,11 @@ namespace rgatCore
                         Console.WriteLine($"Error: Unknown highlight type: {highlightType}");
                         break;
                 }
+
                 foreach (uint nidx in newnodeidxs)
                 {
-                    nodeAttribArray1[nidx * 4 + 0] = 400f;  // make bigger
-                    nodeAttribArray1[nidx * 4 + 3] = 1.0f;  // set target icon
+                    attribsArray[nidx * 4 + 0] = 400f;  // make bigger
+                    attribsArray[nidx * 4 + 3] = 1.0f;  // set target icon
                     InternalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
                 }
                 HighlightsChanged = true;
@@ -2198,7 +2014,6 @@ namespace rgatCore
         }
 
         public long lastRenderTime;
-        public bool flipflop;
         public uint RenderedEdgeCount; //todo - this is really all we need
 
         int _computeBufferNodeCount; //this is gross and temporary
@@ -2208,7 +2023,8 @@ namespace rgatCore
             set => _computeBufferNodeCount = value;
         }
 
-        public void RemoveHighlightedNodes(List<uint> nodeidxs, eHighlightType highlightType)
+        //must hold read lock
+        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[] attribsArray, eHighlightType highlightType)
         {
             List<uint> removedNodes = new List<uint>();
             List<uint> remainingNodes = new List<uint>();
@@ -2235,8 +2051,8 @@ namespace rgatCore
                 {
                     if (!AllHighlightedNodes.Contains(nidx))
                     {
-                        nodeAttribArray1[nidx * 4 + 0] = 200f;
-                        nodeAttribArray1[nidx * 4 + 3] = 0.0f;
+                        attribsArray[nidx * 4 + 0] = 200f; //todo comment this
+                        attribsArray[nidx * 4 + 3] = 0.0f;
                     }
                     InternalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
                 }
@@ -2259,15 +2075,21 @@ namespace rgatCore
 
         public void DoHighlightAddresses()
         {
+            //todo lock?
+            LayoutState.Lock.EnterUpgradeableReadLock();
+
+            LayoutState.GetAttributes(ActiveLayoutStyle, out float[] attribsArray);
             for (int i = 0; i < HighlightedAddresses.Count; i++)
             {
                 ulong address = HighlightedAddresses[i];
                 List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
                 lock (textLock)
                 {
-                    AddHighlightedNodes(nodes, eHighlightType.eAddresses);
+                    AddHighlightedNodes(nodes, attribsArray, eHighlightType.eAddresses);
                 }
             }
+
+            LayoutState.Lock.ExitUpgradeableReadLock();
         }
 
 
@@ -2314,7 +2136,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    Console.WriteLine($"Adding new rising: node {nodeIdx}:'{n.Label}'");
+                    //Console.WriteLine($"Adding new rising: node {nodeIdx}:'{n.Label}'");
                     _RisingExterns.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
             }
@@ -2373,46 +2195,12 @@ namespace rgatCore
             }
         }
 
-        public string LayoutName()
-        {
-            switch (LayoutStyle)
-            {
-                case eGraphLayout.eCircle:
-                    return "Circle";
-                case eGraphLayout.eCylinderLayout:
-                    return "Cylinder";
-                case eGraphLayout.eForceDirected3DNodes:
-                    return "ForceDirected3D";
-                default:
-                    return "UnknownPlotType_" + LayoutStyle.ToString();
-            }
-        }
 
-        public static bool LayoutIsForceDirected(eGraphLayout style)
+        public bool SetLayout(LayoutStyles.Style newStyle, GraphicsDevice gd)
         {
-            switch (style)
-            {
-                case eGraphLayout.eForceDirected3DBlocks:
-                case eGraphLayout.eForceDirected3DNodes:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public bool SetLayout(eGraphLayout newStyle)
-        {
-            if (newStyle == LayoutStyle) return false;
-            if (LayoutIsForceDirected(LayoutStyle))
-            {
-                savedForcePositions[LayoutStyle] = positionsArray1.ToArray();
-            }
-
-            if (LayoutIsForceDirected(newStyle))
-            {
-                presetPositionsArray = savedForcePositions[newStyle];
-            }
-            LayoutStyle = newStyle;
+            if (newStyle == ActiveLayoutStyle) return false;
+            //LayoutState.UploadStateToVRAM(newStyle, gd);
+            ActiveLayoutStyle = newStyle;
             return true;
         }
 
@@ -2542,14 +2330,9 @@ namespace rgatCore
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
-        public eGraphLayout LayoutStyle { get; protected set; } = eGraphLayout.eForceDirected3DNodes;
+        public LayoutStyles.Style ActiveLayoutStyle = LayoutStyles.Style.ForceDirected3DNodes;
+        public GraphLayoutState LayoutState;
 
-        public float[] positionsArray1 = Array.Empty<float>();
-        Dictionary<eGraphLayout, float[]> savedForcePositions = new Dictionary<eGraphLayout, float[]>();
-        public float[] velocityArray1 = Array.Empty<float>();
-        public float[] nodeAttribArray1 = Array.Empty<float>();
-        public float[] presetPositionsArray = Array.Empty<float>();
-        public ulong renderFrameVersion;
 
         ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
         Veldrid.Texture _previewTexture1, _previewTexture2;
@@ -2590,6 +2373,22 @@ namespace rgatCore
             }
             textureLock.ExitReadLock();
         }
+
+
+        public void RecordComputeTime(long ms)
+        {
+            ComputeLayoutTime += ms;
+            ComputeLayoutSteps += 1;
+        }
+
+        public void ResetLayoutStats()
+        {
+            ComputeLayoutTime = 0;
+            ComputeLayoutSteps = 0;
+        }
+
+        public long ComputeLayoutTime = 0;
+        public long ComputeLayoutSteps = 0;
 
         //todo - methods
         public float CameraZoom = -5000;
