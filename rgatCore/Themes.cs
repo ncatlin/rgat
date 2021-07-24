@@ -1,14 +1,10 @@
 ﻿using ImGuiNET;
 using Newtonsoft.Json.Linq;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Configuration;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
-using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -287,10 +283,7 @@ namespace rgatCore
                     {
                         ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
                     }
-                    ImGuiInputTextCallbackData d = new ImGuiInputTextCallbackData();
-                    ImGuiInputTextCallbackDataPtr dp = new ImGuiInputTextCallbackDataPtr();
                     IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
-
                     ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
                     ImGui.InputText(kvp.Key, ref value, 1024, flags, (ImGuiInputTextCallback)TextCheckValid, p);
 

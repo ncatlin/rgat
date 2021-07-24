@@ -5,11 +5,8 @@
  */
 using ImGuiNET;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-using System.Text;
-using Veldrid;
 
 namespace rgatCore
 {
@@ -18,8 +15,8 @@ namespace rgatCore
         public static void DrawHorizCenteredText(String msg)
         {
             Vector2 textSize = ImGui.CalcTextSize(msg);
-            
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X/2) - (textSize.X/2));
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - (textSize.X / 2));
             ImGui.Text(msg);
         }
 
@@ -57,8 +54,8 @@ namespace rgatCore
                 case ImGuiDir.Right: draw_list.AddTriangleFilled(new Vector2(pos.X - half_sz.X, pos.Y + half_sz.Y), new Vector2(pos.X - half_sz.X, pos.Y - half_sz.Y), pos, v4_to_uint(col)); return;
                 case ImGuiDir.Up: draw_list.AddTriangleFilled(new Vector2(pos.X + half_sz.X, pos.Y + half_sz.Y), new Vector2(pos.X - half_sz.X, pos.Y + half_sz.Y), pos, v4_to_uint(col)); return;
                 case ImGuiDir.Down: draw_list.AddTriangleFilled(new Vector2(pos.X - half_sz.X, pos.Y - half_sz.Y), new Vector2(pos.X + half_sz.X, pos.Y - half_sz.Y), pos, v4_to_uint(col)); return;
-                case ImGuiDir.None: 
-                case ImGuiDir.COUNT: 
+                case ImGuiDir.None:
+                case ImGuiDir.COUNT:
                     break; // Fix warnings
             }
         }
@@ -67,11 +64,11 @@ namespace rgatCore
         public static unsafe void RenderArrowsForVerticalBar(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
         {
             int alpha8 = IM_F32_TO_INT8_SAT(alpha);
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X + half_sz.X + 1, pos.Y), new Vector2(half_sz.X , half_sz.Y), ImGuiDir.Right, new Vector4(255, 255, 255, alpha8));
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X + half_sz.X + 1, pos.Y), new Vector2(half_sz.X, half_sz.Y), ImGuiDir.Right, new Vector4(255, 255, 255, alpha8));
             RenderArrowPointingAt(draw_list, new Vector2(pos.X + half_sz.X, pos.Y), half_sz, ImGuiDir.Right, new Vector4(145, 0, 145, alpha8));
 
             RenderArrowPointingAt(draw_list, new Vector2(pos.X + bar_w - half_sz.X - 1, pos.Y), new Vector2(half_sz.X + 2, half_sz.Y + 1), ImGuiDir.Left, new Vector4(255f, 255f, 255f, alpha8));
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X + bar_w - half_sz.X, pos.Y),     half_sz,                                   ImGuiDir.Left, new Vector4(145f, 0, 145f, alpha8));
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X + bar_w - half_sz.X, pos.Y), half_sz, ImGuiDir.Left, new Vector4(145f, 0, 145f, alpha8));
         }
 
         public static unsafe void RenderArrowsForHorizontalBar(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, float bar_w, float alpha)
@@ -79,11 +76,11 @@ namespace rgatCore
             Vector4 OuterColor = new Vector4(255f, 255f, 255f, alpha);
             Vector4 InnerColor = new Vector4(145f, 0f, 145f, alpha);
 
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y + 1),         half_sz, ImGuiDir.Down, OuterColor);
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y),             half_sz, ImGuiDir.Down, InnerColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y + 1), half_sz, ImGuiDir.Down, OuterColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + half_sz.Y), half_sz, ImGuiDir.Down, InnerColor);
 
             RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w - 1), half_sz, ImGuiDir.Up, OuterColor);
-            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w),     half_sz, ImGuiDir.Up, InnerColor);
+            RenderArrowPointingAt(draw_list, new Vector2(pos.X, pos.Y + bar_w), half_sz, ImGuiDir.Up, InnerColor);
 
             draw_list.AddLine(new Vector2(pos.X, pos.Y + half_sz.Y + 1), new Vector2(pos.X, pos.Y + bar_w + 1), 0xffffffff);
         }

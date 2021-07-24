@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using Veldrid;
 using Veldrid.SPIRV;
 
@@ -32,7 +30,7 @@ namespace rgatCore.Shaders.SPIR_V
                 shaders: shaders);
 
             vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "NodeShaderVertexBufInitial");
-            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "NodeShaderIndexBufInitial"); 
+            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "NodeShaderIndexBufInitial");
 
             return shaderSetDesc;
         }
@@ -569,13 +567,13 @@ void main()
 
 
 
-    public static ShaderDescription CreateZeroFillShader(GraphicsDevice gd)
-    {
+        public static ShaderDescription CreateZeroFillShader(GraphicsDevice gd)
+        {
 
-        byte[] zeroFillShaderBytes = Encoding.UTF8.GetBytes(comp_zerofill);
-        ShaderDescription shaderDesc = new ShaderDescription(ShaderStages.Compute, zeroFillShaderBytes, "main");
-        return shaderDesc;
-    }
+            byte[] zeroFillShaderBytes = Encoding.UTF8.GetBytes(comp_zerofill);
+            ShaderDescription shaderDesc = new ShaderDescription(ShaderStages.Compute, zeroFillShaderBytes, "main");
+            return shaderDesc;
+        }
 
 
         public const string comp_zerofill = @"

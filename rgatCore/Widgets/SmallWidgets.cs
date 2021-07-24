@@ -1,8 +1,6 @@
 ﻿using ImGuiNET;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using Veldrid;
 
 namespace rgatCore.Widgets
@@ -181,7 +179,7 @@ namespace rgatCore.Widgets
         public static void DrawIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
         {
             Texture btnIcon = controller.GetImage(name);
-            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon, $"Icon"+name);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon, $"Icon" + name);
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
             Vector2 corner = ImGui.GetCursorScreenPos() + (offset ?? Vector2.Zero);

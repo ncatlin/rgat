@@ -1,21 +1,15 @@
 ﻿using ImGuiNET;
 using rgatCore.Shaders.SPIR_V;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
 using System.Timers;
 using Veldrid;
-using Veldrid.ImageSharp;
-using Veldrid.SPIRV;
 using static rgatCore.VeldridGraphBuffers;
 
 namespace rgatCore
@@ -111,7 +105,7 @@ namespace rgatCore
 
         public void SetupRenderingResources()
         {
-            _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer"); 
+            _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer");
 
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
@@ -539,7 +533,7 @@ namespace rgatCore
                     {
                         //todo - rgat doesn't detect this because pin threads still run, keeping pipes open
                         IntPtr handle = OpenThread(1, false, PreviewPopupGraph.tid);
-                        if(handle != (IntPtr)0)
+                        if (handle != (IntPtr)0)
                         {
                             TerminateThread(handle, 0);
                             CloseHandle(handle);
@@ -593,14 +587,14 @@ namespace rgatCore
 
 
         public void GeneratePreviewGraph(CommandList cl, PlottedGraph graph)
-        {           
+        {
             Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.tid} start", Logging.LogFilterType.BulkDebugLogFile);
 
-           if (graph != _rgatState.ActiveGraph)
+            if (graph != _rgatState.ActiveGraph)
             {
                 _layoutEngine.Compute(cl, graph, -1, false);
             }
-           
+
             Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
             renderPreview(cl, graph: graph);
 
@@ -841,40 +835,40 @@ namespace rgatCore
             Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
-            
+
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, graph.LayoutState.PositionsVRAM1);
             ResourceSet crscore = _factory.CreateResourceSet(crs_core_rsd);
 
 
             Logging.RecordLogEvent($"render preview {graph.tid} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, 
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout,
                 graph.LayoutState.AttributesVRAM1, _NodeCircleSpritetview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
-            
-            
-             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
-             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
-             graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
-             cl.SetFramebuffer(drawtarget);
+            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
+            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
-             cl.ClearColorTarget(0, GetGraphBackgroundColour(graph).ToRgbaFloat());
-             cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
+            graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
-             //draw nodes
-             cl.SetPipeline(_pointsPipeline);
-             cl.SetGraphicsResourceSet(0, crscore);
-             cl.SetGraphicsResourceSet(1, crsnodesedge);
-             cl.SetVertexBuffer(0, _NodeVertexBuffer);
-             cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-             cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
-             //draw edges
-             cl.SetPipeline(_edgesPipeline);
-             cl.SetVertexBuffer(0, _EdgeVertBuffer);
-             cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-             cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.SetFramebuffer(drawtarget);
+
+            cl.ClearColorTarget(0, GetGraphBackgroundColour(graph).ToRgbaFloat());
+            cl.SetViewport(0, new Viewport(0, 0, EachGraphWidth, EachGraphHeight, -2200, 1000));
+
+            //draw nodes
+            cl.SetPipeline(_pointsPipeline);
+            cl.SetGraphicsResourceSet(0, crscore);
+            cl.SetGraphicsResourceSet(1, crsnodesedge);
+            cl.SetVertexBuffer(0, _NodeVertexBuffer);
+            cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
+            cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            //draw edges
+            cl.SetPipeline(_edgesPipeline);
+            cl.SetVertexBuffer(0, _EdgeVertBuffer);
+            cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
+            cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             cl.End();
             if (!Exiting)
@@ -884,7 +878,7 @@ namespace rgatCore
                 Logging.RecordLogEvent($"render preview finished commands {graph.tid}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.WaitForIdle(); //needed?
             }
-             
+
 
             graph.ReleasePreviewFramebuffer();
 

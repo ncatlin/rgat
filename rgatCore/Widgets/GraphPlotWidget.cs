@@ -1,7 +1,6 @@
 ﻿using ImGuiNET;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
-using rgatCore.Threads;
+using rgatCore.Shaders.SPIR_V;
+using rgatCore.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,16 +9,9 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
 using Veldrid;
-using Veldrid.ImageSharp;
-using Veldrid.SPIRV;
-using rgatCore.Shaders.SPIR_V;
 using static rgatCore.VeldridGraphBuffers;
-using rgatCore.Widgets;
 
 namespace rgatCore
 {
@@ -77,7 +69,7 @@ namespace rgatCore
             VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
             VeldridGraphBuffers.DoDispose(_NodePickingBuffer);
 
-            
+
             _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.VertexBuffer, name: _EdgeVertBuffer.Name);
             _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.IndexBuffer, name: _EdgeIndexBuffer.Name);
             _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 1, BufferUsage.VertexBuffer, name: _NodeVertexBuffer.Name);
@@ -150,7 +142,7 @@ namespace rgatCore
             if (_centeringInFrame == 1) _centeringSteps += 1;
 
 
-            _layoutEngine.GetScreenFitOffsets(graph, worldView, _graphWidgetSize, 
+            _layoutEngine.GetScreenFitOffsets(graph, worldView, _graphWidgetSize,
                 out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
@@ -349,7 +341,7 @@ namespace rgatCore
             if (graph == null)
             {
                 _graphLock.ExitReadLock();
-                return; 
+                return;
             }
 
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
@@ -542,7 +534,7 @@ namespace rgatCore
 
         //vert/frag rendering buffers
         //ResourceSet _crs_core, _crs_nodesEdges, _crs_font;
-        ResourceSet  _crs_font;
+        ResourceSet _crs_font;
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
@@ -1180,7 +1172,7 @@ namespace rgatCore
 
             GetLatestTexture(out Texture outputTexture);
 
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture, "GraphMainPlot"+ outputTexture.Name);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
 
             Debug.Assert(!outputTexture.IsDisposed);
 
@@ -1305,7 +1297,7 @@ namespace rgatCore
         }
 
 
-        void drawHUD(Vector2 widgetSize,  PlottedGraph activeGraph)
+        void drawHUD(Vector2 widgetSize, PlottedGraph activeGraph)
         {
             string msg;
             Vector2 topLeft = ImGui.GetCursorScreenPos();
@@ -1489,16 +1481,17 @@ namespace rgatCore
             _graphLock.EnterUpgradeableReadLock();
 
             PlottedGraph graph = ActiveGraph;
-            if (graph == null || Exiting) {
+            if (graph == null || Exiting)
+            {
                 _graphLock.ExitUpgradeableReadLock();
-                return; 
+                return;
             }
 
             HandleGraphUpdates();
 
-            _layoutEngine.Compute(cl, graph,  _mouseoverNodeID, graph.IsAnimated);
+            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
 
-            doPicking(_gd);
+            DoMouseNodePicking(_gd);
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             Matrix4x4 worldView = world * view;
@@ -1534,7 +1527,7 @@ namespace rgatCore
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positionBuf));
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, attribBuf));
 
-            Logging.RecordLogEvent("GenerateMainGraph Starting rendergra", filter: Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent("GenerateMainGraph Starting rendergraph", filter: Logging.LogFilterType.BulkDebugLogFile);
             renderGraph(cl, graph);
 
             Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1592,7 +1585,7 @@ namespace rgatCore
         //If so - the mouse is over that nod
         /// </summary>
         /// <param name="_gd"></param>
-        void doPicking(GraphicsDevice _gd)
+        void DoMouseNodePicking(GraphicsDevice _gd)
         {
 
             PlottedGraph graph = ActiveGraph;
@@ -1636,7 +1629,7 @@ namespace rgatCore
             {
                 if (!_graphLock.TryEnterReadLock(100)) return;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return;
             }

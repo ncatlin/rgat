@@ -146,7 +146,7 @@ void main()	{
     vec4 nodePosition;
     vec4 compareNodePosition;
 
-    const float speedLimit = 250.0;
+    const float speedLimit = 1000.0;
     float attct = 0;
     float outputDebug = -100;
      

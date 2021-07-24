@@ -2,11 +2,9 @@
 using rgatCore.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using Veldrid;
 using Veldrid.SPIRV;
 
@@ -221,10 +219,10 @@ namespace rgatCore
             return buffer;
         }
 
-        public static unsafe void CreateBufferCopyPair(DeviceBuffer source, GraphicsDevice gdev,  out DeviceBuffer dest1, out DeviceBuffer dest2, string name = "?")
+        public static unsafe void CreateBufferCopyPair(DeviceBuffer source, GraphicsDevice gdev, out DeviceBuffer dest1, out DeviceBuffer dest2, string name = "?")
         {
-            dest1 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name+"_1");
-            dest2 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name+"_2");
+            dest1 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name + "_1");
+            dest2 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name + "_2");
 
             CommandList cl = gdev.ResourceFactory.CreateCommandList();
             cl.Begin();

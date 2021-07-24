@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace rgatCore
 {
     public class WinAPIDetails
     {
-        public enum APIModule { Advapi32, Crypt32, DHCPcsvc, DnsAPI, Kernel32, MSVCRT, NTDLL, UCRT, UrlMon, WS32, Wininet, WinHTTP,  Other }
+        public enum APIModule { Advapi32, Crypt32, DHCPcsvc, DnsAPI, Kernel32, MSVCRT, NTDLL, UCRT, UrlMon, WS32, Wininet, WinHTTP, Other }
 
         //these two data structures are probably better off loaded from disk or a resource, so leaving them in an amenable format
         static Dictionary<string, APIModule> _configuredModules = new Dictionary<string, APIModule>()
@@ -107,7 +105,7 @@ namespace rgatCore
         public static APIModule ResolveModuleEnum(string path)
         {
             string fname = System.IO.Path.GetFileName(path).ToLower();
-            if (_configuredModules.TryGetValue(fname, out APIModule moduleEnum)) 
+            if (_configuredModules.TryGetValue(fname, out APIModule moduleEnum))
                 return moduleEnum;
             return APIModule.Other;
         }

@@ -1,14 +1,8 @@
 ﻿using rgatCore;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Numerics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using Veldrid;
 using Veldrid.Sdl2;
 //using Veldrid.SPIRV;
@@ -68,7 +62,7 @@ namespace ImGuiNET
 
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
             debug: true,
-            
+
             swapchainDepthFormat: PixelFormat.R32_Float,
             syncToVerticalBlank: true,
             resourceBindingModel: ResourceBindingModel.Improved,
@@ -158,8 +152,8 @@ namespace ImGuiNET
 
             _gd.WaitForIdle();
 
-           
-            
+
+
             if (_housekeepingTimerFired)
             {
                 _controller.ClearCachedImageResources();

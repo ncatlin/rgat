@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 using System.Threading;
 
 namespace rgatCore.Threads
@@ -15,8 +12,10 @@ namespace rgatCore.Threads
         }
 
         bool stopped = true;
-        public bool Running {
-            get {
+        public bool Running
+        {
+            get
+            {
                 return !stopped && WorkerThread != null && WorkerThread.IsAlive;
             }
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace rgatCore.Testing
 {
@@ -229,9 +228,10 @@ namespace rgatCore.Testing
                     if (!uniqueGraphs.Contains(validGraph)) uniqueGraphs.Add(validGraph);
                 }
             }
-            if (unsatisfied.Count > 0) { 
-                
-                return false; 
+            if (unsatisfied.Count > 0)
+            {
+
+                return false;
             }
 
 
@@ -246,7 +246,7 @@ namespace rgatCore.Testing
             List<REQUIREMENTS_LIST> usedReqs = new List<REQUIREMENTS_LIST>();
             List<ProtoGraph> usedGraphs = new List<ProtoGraph>();
 
-            foreach(var permutation in GetPermutationsWithRept<Tuple<REQUIREMENTS_LIST, ProtoGraph>>(candidates, candidates.Count))
+            foreach (var permutation in GetPermutationsWithRept<Tuple<REQUIREMENTS_LIST, ProtoGraph>>(candidates, candidates.Count))
             {
                 usedGraphs.Clear();
                 usedReqs.Clear();
@@ -265,7 +265,7 @@ namespace rgatCore.Testing
                 if (currentList.Count > bestList.Count) bestList = currentList;
             }
 
-           error = $"Failed to satisfy all thread requirements, best attempt was {bestList.Count}/{reqListCount}";
+            error = $"Failed to satisfy all thread requirements, best attempt was {bestList.Count}/{reqListCount}";
             return false;
         }
 

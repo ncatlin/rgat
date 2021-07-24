@@ -1,10 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 
 namespace rgatCore
 {
@@ -203,7 +200,8 @@ namespace rgatCore
                 }
             }
 
-            if (!found) {
+            if (!found)
+            {
                 Label = $"[No Symbol]0x{address:x}";
                 return;
             }

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace rgatCore.Testing
 {
@@ -67,7 +66,7 @@ namespace rgatCore.Testing
                     {
                         if (i > 0) ExpectedValueString += ",";
                         JToken arrayItem = items[i];
-                        switch(arrayItem.Type)
+                        switch (arrayItem.Type)
                         {
                             case JTokenType.Integer:
                                 ExpectedValueString += $"{arrayItem.ToObject<long>()}";
@@ -161,7 +160,7 @@ namespace rgatCore.Testing
                     error = $"int 'OneOf' comparison requires array token, but token was of type {ExpectedValue.Type}";
                     return false;
                 }
-                foreach(JToken arrayItem in ExpectedValue.ToObject<JArray>())
+                foreach (JToken arrayItem in ExpectedValue.ToObject<JArray>())
                 {
                     if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<int>() == value) return true;
                 }
@@ -586,7 +585,6 @@ namespace rgatCore.Testing
                 return false;
             }
 
-            string commentText = "";
             if (requirement.TryGetValue("Comment", out JToken commentTok) && commentTok.Type == JTokenType.String)
             {
                 testRequirement.SetComment(commentTok.ToString());

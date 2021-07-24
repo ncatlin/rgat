@@ -9,11 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.InteropServices;
 using System.Text;
-using Vulkan.Xlib;
-using Num = System.Numerics;
 
 namespace rgatFilePicker
 {
@@ -426,7 +422,7 @@ namespace rgatFilePicker
                 DrawDrivesList(new Vector2(LEFTCOLWIDTH, DRIVEPANEHEIGHT), objKey);
                 DrawRecentDirsList(new Vector2(LEFTCOLWIDTH, RECENTPANEHEIGHT));
                 PickerResult btnResult = DrawButtons(BTNSGRPHEIGHT);
-                if (btnResult != PickerResult.eNoAction) 
+                if (btnResult != PickerResult.eNoAction)
                     return btnResult;
 
             }
@@ -488,7 +484,7 @@ namespace rgatFilePicker
         {
             PickerResult result = PickerResult.eNoAction;
             bool currentBadDir = false;
-            
+
             if (_badDir) ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x55000040);
 
             uint width = (uint)ImGui.GetContentRegionAvail().X;

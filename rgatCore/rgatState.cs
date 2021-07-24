@@ -1,15 +1,8 @@
-﻿using DiELibDotNet;
-using ImGuiNET;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using rgatCore.Threads;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 
 namespace rgatCore
@@ -70,7 +63,7 @@ namespace rgatCore
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
 
-            foreach(BinaryTarget targ in this.targets.GetBinaryTargets())
+            foreach (BinaryTarget targ in this.targets.GetBinaryTargets())
             {
                 foreach (TraceRecord trace in targ.GetTracesList())
                 {
@@ -83,7 +76,7 @@ namespace rgatCore
                     trace.ProcessThreads.BBthread.Terminate();
 
                     while (trace.GetProtoGraphs().Exists(p => p.TraceProcessor.Running || p.TraceReader.Running))
-                    { 
+                    {
                         Thread.Sleep(10);
                     }
                     while (trace.ProcessThreads.Running())
@@ -311,7 +304,7 @@ namespace rgatCore
             PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
-                Logging.RecordLogEvent("Got first graph " + firstgraph.tid, 
+                Logging.RecordLogEvent("Got first graph " + firstgraph.tid,
                     Logging.LogFilterType.TextDebug, trace: firstgraph.InternalProtoGraph.TraceData);
                 SwitchToGraph(firstgraph);
                 //firstgraph->decrease_thread_references(33);
@@ -582,7 +575,7 @@ namespace rgatCore
 
             lock (_testDictLock)
             {
-                if(_testConnections.TryGetValue(testID, out trace))
+                if (_testConnections.TryGetValue(testID, out trace))
                 {
                     _testConnections.Remove(testID);
                     return true;

@@ -1,10 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace rgatCore.Testing
@@ -63,7 +60,7 @@ namespace rgatCore.Testing
         {
             lock (_lock)
             {
-                if (_runningTests.Count >= _maxRunningTests) 
+                if (_runningTests.Count >= _maxRunningTests)
                     return -1;
 
                 _currentTestID += 1;
@@ -77,8 +74,8 @@ namespace rgatCore.Testing
             }
         }
 
-        
-        public TestCaseRun GetTestCaseRun (long ID)
+
+        public TestCaseRun GetTestCaseRun(long ID)
         {
             lock (_lock)
             {
@@ -87,7 +84,7 @@ namespace rgatCore.Testing
             }
         }
 
-        public TestSession GetTestSession (int ID)
+        public TestSession GetTestSession(int ID)
         {
             lock (_lock)
             {

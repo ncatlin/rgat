@@ -1,15 +1,14 @@
-﻿using System;
+﻿using rgatCore;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using System.IO;
-using Veldrid;
 using System.Runtime.CompilerServices;
-using Vulkan;
+using Veldrid;
 using Veldrid.ImageSharp;
-using rgatCore;
-using System.Diagnostics;
-using System.Linq;
 
 namespace ImGuiNET
 {
@@ -373,7 +372,7 @@ namespace ImGuiNET
             List<Texture> removed = new List<Texture>();
             foreach (KeyValuePair<Texture, TextureView> view_tview in _autoViewsByTexture)
             {
-                
+
                 Debug.Assert(!view_tview.Value.IsDisposed);
                 if (view_tview.Key.IsDisposed)
                 {
@@ -389,7 +388,7 @@ namespace ImGuiNET
                     expiredResources.Add(new Tuple<IDisposable, DateTime>(rset.ResourceSet, DateTime.Now));
 
                 }
-                
+
             }
 
 

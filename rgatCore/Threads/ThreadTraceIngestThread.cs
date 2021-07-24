@@ -2,14 +2,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Tracing;
 using System.IO.Pipes;
 using System.Linq;
-using System.Numerics;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Timers;
 
 namespace rgatCore
@@ -114,7 +109,7 @@ namespace rgatCore
                 if (StopFlag)
                 {
                     //stop updating once all activity has gone
-                    if (_updateRates.Max() == 0) StatsTimer.Stop(); 
+                    if (_updateRates.Max() == 0) StatsTimer.Stop();
                 }
             }
 
@@ -308,7 +303,7 @@ namespace rgatCore
                 const int TAGCACHESIZE = 1024;
                 byte[] TagReadBuffer = new byte[TAGCACHESIZE];
                 int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, TAGCACHESIZE, CancelToken);// new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
-                
+
                 if (bytesRead < 1024)
                 {
                     if (pendingBuf != null)
@@ -332,10 +327,10 @@ namespace rgatCore
                 else
                 {
                     //multi-part message, queue this for reassembly
-                    pendingBuf = (pendingBuf == null) ? 
-                        TagReadBuffer : 
+                    pendingBuf = (pendingBuf == null) ?
+                        TagReadBuffer :
                         pendingBuf.Concat(TagReadBuffer).ToArray();
-                }                
+                }
             }
 
             threadpipe.Disconnect();

@@ -1,12 +1,5 @@
-﻿using rgatCore.Threads;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
+﻿using System.Drawing;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Text;
 using Veldrid;
 /*
 This class holds (and provides dubiously mutex guarded access to) OpenGl vertex and colour data

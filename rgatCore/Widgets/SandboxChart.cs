@@ -1,12 +1,12 @@
-﻿using System;
+﻿using GraphShape.Algorithms.Layout;
+using ImGuiNET;
+using QuikGraph;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
-using GraphShape.Algorithms.Layout;
-using ImGuiNET;
-using QuikGraph;
 
 namespace rgatCore.Widgets
 {

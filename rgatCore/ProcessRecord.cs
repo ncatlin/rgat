@@ -1,9 +1,7 @@
 ﻿using Gee.External.Capstone;
 using Gee.External.Capstone.X86;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -257,7 +255,7 @@ namespace rgatCore
                     modsymsPlain[modnum][offset] += "/" + name; //some addresses have multiple symbols
                 }
                 else
-                { 
+                {
                     modsymsPlain[modnum].Add(offset, name);
                     WinAPIDetails.APIModule moduleEnum = ModuleEnums[modnum];
                     if (moduleEnum != WinAPIDetails.APIModule.Other)
@@ -304,7 +302,7 @@ namespace rgatCore
             {
                 module = "";
                 symbol = "";
-                return false; 
+                return false;
             }
 
             lock (ModulesLock)
@@ -423,7 +421,7 @@ namespace rgatCore
         {
             if (module >= modsymsPlain.Count) return Logging.LogFilterType.APIOther;
             if (ModuleEnums[module] == WinAPIDetails.APIModule.Other) return Logging.LogFilterType.APIOther;
-            if (APITypes[module].TryGetValue(address -LoadedModuleBounds[module].Item1, out Logging.LogFilterType apitype)) return apitype; 
+            if (APITypes[module].TryGetValue(address - LoadedModuleBounds[module].Item1, out Logging.LogFilterType apitype)) return apitype;
             return Logging.LogFilterType.APIOther;
 
         }
@@ -653,8 +651,9 @@ namespace rgatCore
 
                 if (insn.Operand.Contains("["))
                 {
-                    
-                    try {
+
+                    try
+                    {
                         int idxAddrStart = insn.Operand.IndexOf('[') + 1;
                         int addrSize = (insn.Operand.IndexOf(']') - idxAddrStart);
                         string targMemAddr = insn.Operand.Substring(idxAddrStart, addrSize);

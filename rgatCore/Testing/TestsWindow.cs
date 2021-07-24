@@ -1,13 +1,11 @@
 ﻿using ImGuiNET;
 using rgatCore.Testing;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 
 namespace rgatCore.Widgets
 {
@@ -205,7 +203,7 @@ namespace rgatCore.Widgets
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
-                DrawQueueControls(controlsHeight );
+                DrawQueueControls(controlsHeight);
                 ImGui.EndGroup();
                 ImGui.End();
             }
@@ -238,9 +236,6 @@ namespace rgatCore.Widgets
 
         void DrawTestSpecExplainTree(TestCase testcase)
         {
-            string stateString;
-            ImGuiTreeNodeFlags headerflags;
-
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
                 if (testcase.Comment?.Length > 0)

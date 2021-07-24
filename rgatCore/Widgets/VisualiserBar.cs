@@ -1,6 +1,5 @@
 ﻿using ImGuiNET;
 using rgatCore.Shaders.SPIR_V;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +8,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using Veldrid;
 using static rgatCore.VeldridGraphBuffers;
 
@@ -393,7 +391,7 @@ namespace rgatCore.Widgets
                     case eTraceUpdateType.eAnimReinstrument:
                         //TODO
                         break;
-                        
+
                     case eTraceUpdateType.eAnimRepExec:
                         //probably not worth drawing
                         break;
@@ -412,7 +410,7 @@ namespace rgatCore.Widgets
                 //Draw Heatmap visualisation
 
 
-                int blockTailIdx = (int) blockFirstLast.Item2;
+                int blockTailIdx = (int)blockFirstLast.Item2;
                 WritableRgbaFloat heatColour;
                 if (graph.NodeList.Count > blockTailIdx)
                 {

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 
 namespace rgatCore
@@ -122,13 +121,13 @@ namespace rgatCore
                         continue;
                     }
                     else
-                    { 
+                    {
                         if (error?.Length > 0)
                         {
 
                             Logging.RecordLogEvent($"DetectItEasy error: '{error}' for target {targ.FilePath}");
                         }
-                        break; 
+                        break;
                     }
                 }
                 scanner.CloseScanHandle(handle);
@@ -137,7 +136,7 @@ namespace rgatCore
             {
                 result = "DIElib Scan failed with exeption: " + e.Message;
             }
-            
+
             Logging.RecordLogEvent($"DetectItEasy result {result} for target {targ.FilePath}", Logging.LogFilterType.TextDebug);
             targ.AddDiESignatureHit(result);
         }

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace rgatCore.Threads
 {
@@ -26,7 +24,7 @@ namespace rgatCore.Threads
             public List<InstructionData> blockInslist;
         };
 
-        List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
+        readonly List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
         public int PendingBlockRepeats => blockRepeatQueue.Count;
         public double LastBlockRepeatsTime = 0;
 
@@ -38,7 +36,7 @@ namespace rgatCore.Threads
             public uint targID;
         };
 
-        List<NEW_EDGE_BLOCKDATA> PendingEdges = new List<NEW_EDGE_BLOCKDATA>();
+        readonly List<NEW_EDGE_BLOCKDATA> PendingEdges = new List<NEW_EDGE_BLOCKDATA>();
 
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
@@ -519,8 +517,6 @@ namespace rgatCore.Threads
             //todo also - crashes if proto handler disabled, why
             //todo
             //Console.WriteLine("todo reenable incoming areguments after crashes stop");
-            return;
-
 
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 6);
@@ -827,14 +823,15 @@ namespace rgatCore.Threads
                     AssignBlockRepeats();
                     protograph.TraceReader.RequestWakeupOnData();
                     if (_clientState.rgatIsExiting || protograph.TraceReader.StopFlag) { continue; }
-                    try {
+                    try
+                    {
                         protograph.TraceReader.TagDataReadyEvent.Wait(-1, cancellationToken: protograph.TraceReader.CancelToken);
                     }
                     catch
                     {
                         continue;
                     }
-                    
+
                     continue;
                 }
 

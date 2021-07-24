@@ -5,15 +5,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using Veldrid;
 
 namespace rgatCore
@@ -191,9 +187,12 @@ namespace rgatCore
         public static int NodeClumpLimit = 50;
         public static float NodeClumpForce = 880.01f;
 
-        public static bool LayoutComputeEnabled = true; 
-        public static bool LayoutPositionsActive = true; 
-        public static bool LayoutAttribsActive = true; 
+        public static bool LayoutComputeEnabled = true;
+        public static bool LayoutPositionsActive = true;
+        public static bool LayoutAttribsActive = true;
+
+        public static float NodeSoftSpeedLimit = 200f;
+        public static readonly float NodeHardSpeedLimit = 1000f; //match with value in velocity shader
 
         public static class mainColours
         {
@@ -281,7 +280,7 @@ namespace rgatCore
          */
         public static void InitDefaultKeybinds()
         {
-            
+
             SetKeybind(action: eKeybind.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);
             SetKeybind(action: eKeybind.MoveUp, bindIndex: 2, Key.Up, ModifierKeys.None);
             SetKeybind(action: eKeybind.MoveDown, bindIndex: 1, Key.S, ModifierKeys.None);
@@ -508,14 +507,14 @@ namespace rgatCore
                     if (targetObj.Count > MaxStoredRecentPaths)
                     {
                         List<Tuple<string, DateTime>> oldestPaths = new List<Tuple<string, DateTime>>();
-                        foreach(var recentPath in targetObj)
+                        foreach (var recentPath in targetObj)
                         {
                             var x = recentPath.Value;
                             JObject xval = x.ToObject<JObject>();
                             oldestPaths.Add(new Tuple<string, DateTime>(recentPath.Key, xval["LastOpen"].ToObject<DateTime>()));
                         }
                         var excessPaths = oldestPaths.OrderByDescending(x => x.Item2).Skip(MaxStoredRecentPaths);
-                        foreach(var pathtime in excessPaths)
+                        foreach (var pathtime in excessPaths)
                         {
                             targetObj.Remove(pathtime.Item1);
                         }

@@ -1,5 +1,4 @@
 ﻿using ImGuiNET;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,8 +6,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
 using Veldrid;
 
 namespace rgatCore
@@ -32,11 +29,9 @@ namespace rgatCore
         private Shader _positionShader, _velocityShader, _nodeAttribShader;
 
         DeviceBuffer _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
-
-
         ResourceLayout _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
 
-        ReaderWriterLockSlim _computeLock = new ReaderWriterLockSlim();
+        readonly object _lock = new object();
 
         /*
          * Having a list of other layout engines (eg previews, main widget) lets us grab the most up 
@@ -45,11 +40,17 @@ namespace rgatCore
         List<GraphLayoutEngine> _parallelLayoutEngines = new List<GraphLayoutEngine>();
         public void AddParallelLayoutEngine(GraphLayoutEngine engine)
         {
-            _parallelLayoutEngines.Add(engine);
+            lock (_lock)
+            {
+                _parallelLayoutEngines.Add(engine);
+            }
         }
         List<GraphLayoutEngine> GetParallelLayoutEngines()
         {
-            return _parallelLayoutEngines.ToList();
+            lock (_lock)
+            {
+                return _parallelLayoutEngines.ToList();
+            }
         }
 
 
@@ -66,42 +67,8 @@ namespace rgatCore
 
         public void ChangePreset(PlottedGraph graph)
         {
-            LayoutStyles.Style graphStyle = graph.ActiveLayoutStyle;
-
-            Logging.RecordLogEvent($"ChangePreset to style {graphStyle}", Logging.LogFilterType.BulkDebugLogFile);
-
-            while (!_computeLock.TryEnterWriteLock(20))
-            {
-                Thread.Sleep(30);
-            }
-            {
-
-
-                graph.ResetLayoutStats();
-
-
-                // graph.LayoutState.SyncRAMToVRAM(graphStyle, _gd);
-
-
-                graph.LayoutState.Lock.EnterWriteLock();
-                /*
-                if (LayoutStyles.IsForceDirected(graph.LayoutState._VRAMBuffers.Style))
-                {
-                    graph.LayoutState.DownloadStateFromVRAM();
-                }
-
-                //graph.LayoutState.RegeneratePresetBuffer(graph);
-                //graph.LayoutState.LoadPreset(graph);
-                if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
-                {
-                    //_activatingPreset = true;
-                }
-                */
-                graph.LayoutState.Lock.ExitWriteLock();
-
-            }
-            _computeLock.ExitWriteLock();
-
+            Logging.RecordLogEvent($"ChangePreset to style {graph.ActiveLayoutStyle}", Logging.LogFilterType.BulkDebugLogFile);
+            graph.ResetLayoutStats();
             graph.IncreaseTemperature(100f);
         }
 
@@ -370,11 +337,9 @@ namespace rgatCore
             Stopwatch timer = new Stopwatch();
             timer.Start();
 
-            _computeLock.EnterUpgradeableReadLock();
             if (graph.DrawnEdgesCount == 0 || !GlobalConfig.LayoutComputeEnabled)
             {
                 newversion = graph.LayoutState.RenderVersion;
-                _computeLock.ExitUpgradeableReadLock();
                 return newversion;
             }
 
@@ -472,9 +437,6 @@ namespace rgatCore
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
             ResourceSet posRS = _factory.CreateResourceSet(pos_rsrc_desc);
 
-
-
-
             cl.Begin();
 
 
@@ -527,7 +489,7 @@ namespace rgatCore
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
                 float highest = FindHighXYZ(layout.VelocitiesVRAM1);
                 Console.WriteLine($"Presetspeed: {highest}");
-                if (highest < 1) 
+                if (highest < 1)
                 {
                     Console.WriteLine("Preset done");
                     graph.LayoutState.CompleteLayoutChange();
@@ -544,8 +506,6 @@ namespace rgatCore
                 _gd.DisposeWhenIdle(posRS);//posRS.Dispose();
 
             newversion = layout.RenderVersion;
-
-            _computeLock.ExitUpgradeableReadLock();
 
 
             timer.Stop();
@@ -633,7 +593,7 @@ namespace rgatCore
             {
                 delta = delta,
                 k = 100f,
-                temperature = Math.Min(temperature, 100),
+                temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
                 NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
                 fixedInternalNodes = fixedNodes,
@@ -696,10 +656,6 @@ namespace rgatCore
 
 
             graph.GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
-
-
-
-
 
             Logging.RecordLogEvent($"RenderNodeAttribs creaters  {this.EngineID} updating attribsbuf {inputAttributes.Name}", Logging.LogFilterType.BulkDebugLogFile);
 

@@ -1,13 +1,9 @@
 ﻿using ImGuiNET;
-using Newtonsoft.Json.Linq;
-using rgatCore.Threads;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
 using Veldrid;
 
 namespace rgatCore.Widgets
@@ -189,7 +185,7 @@ namespace rgatCore.Widgets
                 {
                     if (ImGui.BeginTabItem("YARA Rules"))
                     {
-                        if(ImGui.BeginChild("YaraSigsList", ImGui.GetContentRegionAvail(), true))
+                        if (ImGui.BeginChild("YaraSigsList", ImGui.GetContentRegionAvail(), true))
                         {
                             var ruleList = _rgatState.YARALib.GetRuleData();
 
@@ -203,7 +199,7 @@ namespace rgatCore.Widgets
                                 ImGui.TableHeadersRow();
 
                                 ImGui.Indent(5);
-                                foreach ( var rule in ruleList)
+                                foreach (var rule in ruleList)
                                 {
                                     ImGui.TableNextRow();
                                     ImGui.TableNextColumn();
@@ -256,7 +252,7 @@ namespace rgatCore.Widgets
                             }
                             ImGui.EndChild();
                         }
-                            ImGui.EndTabItem();
+                        ImGui.EndTabItem();
                     }
                     ImGui.EndTabBar();
                 }

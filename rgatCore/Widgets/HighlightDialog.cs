@@ -1,11 +1,9 @@
 ﻿using ImGuiNET;
-using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 
 namespace rgatCore.Widgets
 {
@@ -202,7 +200,7 @@ namespace rgatCore.Widgets
                                 ImGui.Text($"Configuring highlight colour for {syminfo.name} (0x{syminfo.address}:x)");
                                 ImGuiColorEditFlags flags = ImGuiColorEditFlags.NoInputs;
                                 flags |= ImGuiColorEditFlags.AlphaBar;
-                                if(ImGui.ColorPicker4("Highlight Colour", ref _activeColorPick1, flags))
+                                if (ImGui.ColorPicker4("Highlight Colour", ref _activeColorPick1, flags))
                                 {
                                     foreach (uint node in syminfo.threadNodes)
                                     {
@@ -211,7 +209,7 @@ namespace rgatCore.Widgets
                                 }
                                 ImGui.Text("Highlight active:");
                                 ImGui.SameLine();
-                                if(SmallWidgets.ToggleButton("NodeActiveHighlightToggle", syminfo.selected, "Node is highlighted"))
+                                if (SmallWidgets.ToggleButton("NodeActiveHighlightToggle", syminfo.selected, "Node is highlighted"))
                                 {
                                     HandleSelectedSym(module_modentry, syminfo);
                                 }

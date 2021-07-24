@@ -1,15 +1,10 @@
-﻿using Microsoft.Extensions.DependencyModel;
-//using Microsoft.Msagl.Core.Layout;
-using rgatCore.Threads;
+﻿//using Microsoft.Msagl.Core.Layout;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Tracing;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using Veldrid;
 using static rgatCore.VeldridGraphBuffers;
@@ -60,17 +55,13 @@ namespace rgatCore
         {
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
-            LayoutState = new GraphLayoutState(this, device, LayoutStyles.Style.ForceDirected3DBlocks);
-
-            //savedForcePositions[LayoutStyles.Style.eForceDirected3DNodes] = Array.Empty<float>();
-            //savedForcePositions[LayoutStyles.Style.eForceDirected3DBlocks] = Array.Empty<float>();
+            LayoutState = new GraphLayoutState(this, device, LayoutStyles.Style.ForceDirected3DNodes);
 
             InternalProtoGraph = protoGraph;
 
             IsAnimated = !InternalProtoGraph.Terminated;
             graphColours = graphColourslist;
 
-            //TestLayoutSettings = new GRAPH_LAYOUT_SETTINGS();
             scalefactors.plotSize = 300;
             scalefactors.basePlotSize = 300f;
             scalefactors.userSizeModifier = 1;
@@ -186,32 +177,7 @@ namespace rgatCore
         }
 
 
-        bool setGraphBusy(bool set, int caller)
-        {
-            if (set)
-            {
-                //graphBusyLock.lock();
-                if (beingDeleted)
-                {
-                    //graphBusyLock.unlock();
-                    return false;
-                }
-            }
-            else
-            {
-                //graphBusyLock.unlock();
-            }
-            return true;
-        }
 
-        protected bool trySetGraphBusy()
-        {
-            Console.WriteLine("Todo implement trySetGraphBusy");
-            return true;
-            //return graphBusyLock.trylock();
-        }
-        bool isreferenced() { return threadReferences != 0; }
-        void setNeedReleasing(bool state) { freeMe = state; }
         void apply_drag(double dx, double dy)
         {
             Console.WriteLine("todo apply drag");
@@ -354,23 +320,11 @@ namespace rgatCore
                     break;
             }
 
-            /*
-            if (edgenodes.Item1 == 910 || edgenodes.Item2 == 910)
-            {
-                Console.WriteLine($"{edgenodes.Item1}->{edgenodes.Item2} force {force}");
-            }*/
+
             return force;
         }
 
 
-
-        //uint _presetEdgeCount;
-
-
-        void ZeroisePreset()
-        {
-
-        }
 
 
 
@@ -409,40 +363,6 @@ namespace rgatCore
             }
         }
 
-
-        float[] GenerateSimpleCylinderLayout()
-        {
-
-            int nodeCount = _graphStructureLinear.Count;
-            uint textureSize = LinearIndexTextureSize();
-            var textureArray = new float[textureSize * textureSize * 4];
-            for (var i = 0; i < nodeCount; i++)
-            {
-
-                var phi = i * 0.125 + Math.PI;
-
-
-                // modify to change the radius and position of a circle
-                float y = i * -15;
-                float z = CYLINDER_RADIUS * (float)Math.Sin(phi);
-                float x = CYLINDER_RADIUS * (float)Math.Cos(phi);
-
-                textureArray[i * 4] = x;
-                textureArray[i * 4 + 1] = y;
-                textureArray[i * 4 + 2] = z;
-                textureArray[i * 4 + 3] = 1f;
-
-            }
-
-            for (var i = nodeCount * 4; i < textureArray.Length; i++)
-            {
-
-                // fill unused RGBA slots with -1
-                textureArray[i] = -1;
-
-            }
-            return textureArray;
-        }
 
         float[] GenerateCylinderLayout()
         {
@@ -1264,9 +1184,6 @@ namespace rgatCore
                 return new WritableRgbaFloat(0f, 0f, 0f, 1);
             }
 
-
-
-
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1300,7 +1217,7 @@ namespace rgatCore
         }
 
 
-        Tuple<string, Color> createNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
+        Tuple<string, Color> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.newArgsRecorded || forceNew)
@@ -1397,7 +1314,7 @@ namespace rgatCore
 
                     if (TextEnabled)
                     {
-                        var caption = createNodeLabel((int)index, renderingMode, createNewLabels);
+                        var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
                         captions.Add(caption);
                     }
 
@@ -2350,10 +2267,6 @@ namespace rgatCore
             CameraYOffset += YDiff;
         }
 
-
-
-        bool freeMe = false;
-
         protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
 
         public ProtoGraph InternalProtoGraph { get; protected set; } = null;
@@ -2405,7 +2318,10 @@ namespace rgatCore
             textureLock.ExitReadLock();
         }
 
-
+        /// <summary>
+        /// Update the graph computation time stats
+        /// </summary>
+        /// <param name="ms">Time taken for the latest round of velocity/position computation in Milliseconds</param>
         public void RecordComputeTime(long ms)
         {
             ComputeLayoutTime += ms;

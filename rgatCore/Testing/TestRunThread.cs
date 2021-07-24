@@ -1,10 +1,6 @@
 ﻿using Humanizer;
-using rgatCore.Threads;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace rgatCore.Testing
@@ -64,7 +60,7 @@ namespace rgatCore.Testing
                     while (!_rgatState.rgatIsExiting && !Finished)
                     {
                         Thread.Sleep(100);
-                        if (!testTrace.ProcessingRemaining) 
+                        if (!testTrace.ProcessingRemaining)
                             Finished = true;
                     }
                 }

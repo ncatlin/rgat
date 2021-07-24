@@ -1,7 +1,4 @@
 ﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace rgatCore
 {
@@ -40,12 +37,14 @@ namespace rgatCore
         public eEdgeNodeType sourceNodeType;
 
         public ulong executionCount { get; private set; } = 0;
-        public void SetExecutionCount(ulong value) {
-            executionCount = value; 
+        public void SetExecutionCount(ulong value)
+        {
+            executionCount = value;
         }
 
-        public void IncreaseExecutionCount(ulong value) {
-            SetExecutionCount(executionCount + value); 
+        public void IncreaseExecutionCount(ulong value)
+        {
+            SetExecutionCount(executionCount + value);
         }
 
         public bool heatComplete = false;

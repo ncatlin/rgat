@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Veldrid;
 
@@ -376,7 +375,7 @@ namespace rgatCore
             //preset.PositionsArray = graph.CreateBlankPresetLayout();
 
             //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
-           // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
+            // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
             //VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.tid}");
 
         }
@@ -833,7 +832,7 @@ namespace rgatCore
 
             //graph.LayoutState.RegeneratePresetBuffer(graph);
             //graph.LayoutState.LoadPreset(graph);
-            
+
             /*
             if (LayoutStyles.IsForceDirected(newStyle) && !SavedStates.ContainsKey(newStyle))
             {

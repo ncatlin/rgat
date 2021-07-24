@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using Veldrid;
 
 namespace rgatCore.Widgets
@@ -389,13 +388,13 @@ namespace rgatCore.Widgets
             }
             else
             {
-                if (_activeMenuPopupName == null && 
+                if (_activeMenuPopupName == null &&
                     entry?.active == false &&
-                    entry?.Popup != null && 
+                    entry?.Popup != null &&
                     ImGui.IsPopupOpen(entry.Popup))
                 {
                     ImGui.CloseCurrentPopup();
-                }    
+                }
             }
             if (entry.active && entry.Popup != null)
             {
@@ -519,10 +518,6 @@ private void DrawScalePopup()
     }
 }
 */
-        bool _layoutComputationActive = true;
-        bool _layoutAttribComputationActive = true;
-        bool _layoutPosVelComputationActive = true;
-
         void DrawGraphLayoutFrame()
         {
             if (_currentGraph.ActiveLayoutStyle == LayoutStyles.Style.Circle)
@@ -579,6 +574,17 @@ private void DrawScalePopup()
                     {
                         GlobalConfig.LayoutPositionsActive = !GlobalConfig.LayoutPositionsActive;
                     }
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    ImGui.Text("Max Node Speed");
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(150);
+                    ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.NodeSoftSpeedLimit, 0, GlobalConfig.NodeHardSpeedLimit);
+
+
+
                     ImGui.EndTable();
                 }
             }

@@ -1,22 +1,19 @@
-﻿using ImGuiNET;
+﻿using Humanizer;
+using ImGuiNET;
+using rgatCore.Threads;
+using rgatCore.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text;
-
-
-using Veldrid;
-using Veldrid.Sdl2;
-using rgatCore.Threads;
-using System.Drawing;
-using rgatCore.Widgets;
-using System.Linq;
-using static rgatCore.Logging;
-using Humanizer;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
+using Veldrid;
+using Veldrid.Sdl2;
+using static rgatCore.Logging;
 
 namespace rgatCore
 {
@@ -81,8 +78,8 @@ namespace rgatCore
             Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
             GraphicsDevice gd = _ImGuiController.graphicsDevice;
 
-            Veldrid.DeviceBuffer buf2 =gd.ResourceFactory.CreateBuffer(new BufferDescription(1600, BufferUsage.StructuredBufferReadOnly, structureByteStride: 4));
-            ResourceLayout rl22 =gd.ResourceFactory.CreateResourceLayout(
+            Veldrid.DeviceBuffer buf2 = gd.ResourceFactory.CreateBuffer(new BufferDescription(1600, BufferUsage.StructuredBufferReadOnly, structureByteStride: 4));
+            ResourceLayout rl22 = gd.ResourceFactory.CreateResourceLayout(
                 new ResourceLayoutDescription(
                     new ResourceLayoutElementDescription("Sam4psler" + Thread.CurrentThread.ManagedThreadId.ToString(), ResourceKind.StructuredBufferReadOnly, ShaderStages.Fragment)));
 
@@ -315,8 +312,8 @@ namespace rgatCore
             ProtoGraph graph = graphplot.InternalProtoGraph;
 
             ImGui.SetNextWindowSize(new Vector2(800, 250), ImGuiCond.Appearing);
-            
-            if(ImGui.Begin("Graph Performance Stats",ref hideme))
+
+            if (ImGui.Begin("Graph Performance Stats", ref hideme))
             {
 
                 if (ImGui.BeginTable("#StatsTable", 3))
@@ -1829,7 +1826,7 @@ namespace rgatCore
                             {
                                 activeGraph.SetAnimated(!isanimed);
                             }
-                            
+
 
 
 
@@ -2238,7 +2235,7 @@ namespace rgatCore
                         ImGui.Text($"Layout Cumulative Time: {MainGraphWidget.ActiveGraph.ComputeLayoutTime} ({MainGraphWidget.ActiveGraph.ComputeLayoutSteps} steps");
                         ImGui.EndTooltip();
                     }
-                        //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
+                    //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
 
                     ImGui.EndChild();
                     if (ImGui.IsItemClicked())

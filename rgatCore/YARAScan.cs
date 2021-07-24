@@ -1,11 +1,9 @@
-﻿using System;
+﻿using dnYara;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using dnYara;
-using rgatCore.Threads;
 
 namespace rgatCore
 {
@@ -51,7 +49,7 @@ namespace rgatCore
 
         public void RefreshRules(bool forceRecompile = false)
         {
-            
+
             //find precompiled rules files in the current directory of the form "[disk_|mem_][UINT]_.yarac"
             string rulesDir = GlobalConfig.YARARulesDir;
             string[] filesList = Directory.GetFiles(rulesDir, "precompiled_rules*.yarac", SearchOption.TopDirectoryOnly);

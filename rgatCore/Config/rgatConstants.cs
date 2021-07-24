@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace rgatCore
 {
@@ -12,7 +10,7 @@ namespace rgatCore
     };
 
     public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
-    public enum eHighlightType { eExternals, eAddresses, eExceptions};
+    public enum eHighlightType { eExternals, eAddresses, eExceptions };
 
     public enum eConditionalType
     {
@@ -20,22 +18,24 @@ namespace rgatCore
         CONDFELLTHROUGH = 2, CONDTAKEN = 4,
         CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
     }
-    
 
-    enum eKeybind { MoveLeft, MoveRight, MoveUp, MoveDown,
-        ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock, 
+
+    enum eKeybind
+    {
+        MoveLeft, MoveRight, MoveUp, MoveDown,
+        ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,
         CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
         ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu
     }
 
-    public enum eSignatureType { eYARA, eDetectItEasy};
+    public enum eSignatureType { eYARA, eDetectItEasy };
 
     public static class LayoutStyles
     {
 
         public enum Style { CylinderLayout, ForceDirected3DNodes, ForceDirected3DBlocks, Circle, Invalid };
 
-        static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes  };
+        static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
 
         public static bool RequiresCaching(Style layout) => _cacheLayouts.Contains(layout);
         public static bool IsForceDirected(Style layout) => RequiresCaching(layout);

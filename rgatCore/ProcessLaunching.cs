@@ -1,9 +1,6 @@
 ﻿using rgatCore.Threads;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Text;
 using System.Threading;
 
 namespace rgatCore
@@ -36,14 +33,14 @@ namespace rgatCore
                     case PreviewRendererThread t3:
                         previewThread = (PreviewRendererThread)worker;
                         break;
-                        /*
-                    case HeatRankingThread t4:
-                        heatmapThread = (HeatRankingThread)worker;
-                        break;
-                    case ConditionalRendererThread t5:
-                        conditionalThread = (ConditionalRendererThread)worker;
-                        break;
-                        */
+                    /*
+                case HeatRankingThread t4:
+                    heatmapThread = (HeatRankingThread)worker;
+                    break;
+                case ConditionalRendererThread t5:
+                    conditionalThread = (ConditionalRendererThread)worker;
+                    break;
+                    */
                     default:
                         Debug.Assert(false, $"unknown worker type registered: {worker.GetType()}");
                         break;
