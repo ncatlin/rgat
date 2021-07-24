@@ -633,7 +633,7 @@ namespace rgatCore
             {
                 delta = delta,
                 k = 100f,
-                temperature = temperature,
+                temperature = Math.Min(temperature, 100),
                 NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
                 fixedInternalNodes = fixedNodes,

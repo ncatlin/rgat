@@ -27,6 +27,7 @@ namespace rgatCore
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
         private bool _show_test_harness = false;
+        private bool _show_stats_dialog = false;
         private ImGuiController _ImGuiController = null;
 
         //rgat program state
@@ -289,6 +290,7 @@ namespace rgatCore
             if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
             if (_show_select_exe_window) DrawFileSelectBox();
             if (_show_load_trace_window) DrawTraceLoadBox();
+            if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
 
             Themes.ResetThemeColours();
@@ -303,6 +305,147 @@ namespace rgatCore
             {
                 _frameTimerFired = false;
                 _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
+            }
+        }
+
+        void DrawGraphStatsDialog(ref bool hideme)
+        {
+            if (_rgatstate.ActiveGraph == null) return;
+            PlottedGraph graphplot = _rgatstate.ActiveGraph;
+            ProtoGraph graph = graphplot.InternalProtoGraph;
+
+            ImGui.SetNextWindowSize(new Vector2(800, 250), ImGuiCond.Appearing);
+            
+            if(ImGui.Begin("Graph Performance Stats",ref hideme))
+            {
+
+                if (ImGui.BeginTable("#StatsTable", 3))
+                {
+                    ImGui.TableSetupColumn("Field", ImGuiTableColumnFlags.WidthFixed, 120);
+                    ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("Explain");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Trace Backlog");
+                    ImGui.TableNextColumn();
+
+                    if (graph.TraceReader != null)
+                    {
+                        if (graph.TraceReader.QueueSize > 0)
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"{graph.TraceReader.QueueSize}");
+                        else
+                            ImGui.Text($"{graph.TraceReader.QueueSize}");
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Number of items in trace data backlog");
+
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Busy");
+                    ImGui.TableNextColumn();
+
+                    if (graph.PerformingUnchainedExecution)
+                    {
+                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"True");
+                    }
+                    else
+                    {
+                        ImGui.Text("False");
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("The thread is in a lightly instrumented high-CPU usage area");
+
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Repeat Queue");
+                    ImGui.TableNextColumn();
+
+                    ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
+                    string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                    if (traceProcessor.PendingBlockRepeats > 0)
+                    {
+                        BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                    }
+                    ImGui.Text($"{BrQlab}");
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Deinstrumented execution counts awaiting assignment to the graph");
+
+                    ImGui.TableNextRow();
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"UI FPS");
+                    ImGui.TableNextColumn();
+
+                    if (_UIDrawFPS >= 100)
+                    {
+                        ImGui.Text("100+");
+                    }
+                    else
+                    {
+                        uint fpscol;
+                        if (_UIDrawFPS >= 40)
+                            fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                        else if (_UIDrawFPS < 40 && _UIDrawFPS >= 10)
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                        else
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+
+                        ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
+                        ImGui.Text($"{_UIDrawFPS:0.#}");
+                        ImGui.PopStyleColor();
+                    }
+                    ImGui.TableNextColumn();
+                    ImGui.Text("How many frames the UI can render in one second");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("FPS (Last 10)");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{_lastFrameTimeMS.Average()} MS");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Average time to render a UI frame over last 10 frames");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Layout Step Time");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{MainGraphWidget.LayoutEngine.AverageComputeTime:0.#} MS");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Time to complete a step of layout (Avg over {GlobalConfig.StatisticsTimeAvgWindow} steps)");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Total Layout Steps");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{MainGraphWidget.ActiveGraph.ComputeLayoutSteps}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("How many steps it took to create this layout");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Total Layout Time");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{MainGraphWidget.ActiveGraph.ComputeLayoutTime:0.#} MS");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Total GPU time used to generate this layout");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Graph Temperature");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{graphplot.temperature}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("This sets the speed of graph layout and slows over time");
+
+                    ImGui.EndTable();
+                }
+                ImGui.End();
             }
         }
 
@@ -2098,6 +2241,10 @@ namespace rgatCore
                         //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
 
                     ImGui.EndChild();
+                    if (ImGui.IsItemClicked())
+                    {
+                        _show_stats_dialog = !_show_stats_dialog;
+                    }
                 }
                 ImGui.PopStyleColor();
                 ImGui.Columns(1, "smushes");
