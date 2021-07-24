@@ -10,11 +10,11 @@ namespace rgatCore
 {
     public class GraphLayoutState
     {
-        public GraphLayoutState(PlottedGraph tempDebugGraph, GraphicsDevice device)
+        public GraphLayoutState(PlottedGraph tempDebugGraph, GraphicsDevice device, LayoutStyles.Style style)
         {
 
             dbgGraphDeleteMe = tempDebugGraph; //todo remove
-            _VRAMBuffers.Style = tempDebugGraph.ActiveLayoutStyle;
+            _VRAMBuffers.Style = style;
             _gd = device;
             Logging.RecordLogEvent($"Layout state {dbgGraphDeleteMe.tid} inited", Logging.LogFilterType.BulkDebugLogFile);
         }
@@ -76,6 +76,11 @@ namespace rgatCore
         public ulong RenderVersion => _VRAMBuffers.RenderVersion;
         public bool Initialised => _VRAMBuffers.Initialised;
 
+        public bool ActivatingPreset { get; private set; }
+        public LayoutStyles.Style PresetStyle { get; private set; }
+
+        int presetSteps = 0;
+        public int IncrementPresetSteps() => presetSteps++;
         public void IncrementVersion() => _VRAMBuffers.RenderVersion++;
 
         ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
@@ -120,27 +125,35 @@ namespace rgatCore
             public int[] BlockMetadata;
         }
 
-        /// <summary>
-        /// Must hold writer lock
-        /// Refreshes VRAM layout buffers from cached RAM data
-        /// </summary>
-        /// <param name="_gd"></param>
+
         void LockedUploadStateToVRAM(LayoutStyles.Style style)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAM Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
             if (!SavedStates.TryGetValue(style, out CPUBuffers sourceBuffers))
             {
                 sourceBuffers = new CPUBuffers(style);
                 SavedStates[style] = sourceBuffers;
             }
+            LockedUploadStateToVRAM(sourceBuffers);
+        }
 
+        /// <summary>
+        /// Must hold writer lock
+        /// Refreshes VRAM layout buffers from cached RAM data
+        /// </summary>
+        /// <param name="_gd"></param>
+        void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
+        {
+            Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
 
             var bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.VelocityArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.tid}_");
             _VRAMBuffers.Velocities1 = bufferPair.Item1;
             _VRAMBuffers.Velocities2 = bufferPair.Item2;
 
+
             bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.PositionsArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.tid}_");
+
             _VRAMBuffers.Positions1 = bufferPair.Item1;
             _VRAMBuffers.Positions2 = bufferPair.Item2;
 
@@ -148,6 +161,8 @@ namespace rgatCore
             _VRAMBuffers.Attributes1 = bufferPair.Item1;
             _VRAMBuffers.Attributes2 = bufferPair.Item2;
             _VRAMBuffers.RenderVersion = sourceBuffers.RenderVersion;
+
+            RegenerateEdgeDataBuffers(dbgGraphDeleteMe);
 
             _VRAMBuffers.Initialised = true;
             Logging.RecordLogEvent($"UploadGraphDataToVRAM copied", Logging.LogFilterType.BulkDebugLogFile);
@@ -172,10 +187,11 @@ namespace rgatCore
             VeldridGraphBuffers.DoDispose(_VRAMBuffers.BlockMetadata);
         }
 
-        public float[] DownloadVRAMPositions(LayoutStyles.Style layout)
+        public float[] DownloadVRAMPositions()
         {
             _lock.EnterReadLock();
 
+            LayoutStyles.Style layout = _VRAMBuffers.Style;
             if (SavedStates.TryGetValue(layout, out CPUBuffers saved) && saved.RenderVersion == _VRAMBuffers.RenderVersion)
             {
                 _lock.ExitReadLock();
@@ -191,6 +207,7 @@ namespace rgatCore
             }
             _gd.Unmap(destinationReadback);
             destinationReadback.Dispose();
+
             _lock.ExitReadLock();
 
             return destbuffer;
@@ -221,7 +238,7 @@ namespace rgatCore
                     )
                     )
                 {
-                    DownloadStateFromVRAM(_gd);//todo possibly skip attributes, they are very ephemerial
+                    DownloadStateFromVRAM();//todo possibly skip attributes, they are very ephemerial
                 }
 
                 PurgeVRAMBuffers();
@@ -233,8 +250,10 @@ namespace rgatCore
             _lock.ExitUpgradeableReadLock();
         }
 
-        //must hold write lock
-        void DownloadStateFromVRAM(GraphicsDevice _gd)
+        /// <summary>
+        /// must hold write lock
+        /// </summary>
+        public void DownloadStateFromVRAM()
         {
 
             if (!SavedStates.TryGetValue(_VRAMBuffers.Style, out CPUBuffers destbuffers))
@@ -337,10 +356,10 @@ namespace rgatCore
 
             CreateEdgeDataBuffers(graph);
             CreateBlockMetadataBuffer(graph);
-            if (_VRAMBuffers.PresetPositions == null)
-            {
-                RegeneratePresetBuffer(graph);
-            }
+            //if (_VRAMBuffers.PresetPositions == null)
+            //{
+            RegeneratePresetBuffer(graph);
+            //}
 
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.tid} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
@@ -348,34 +367,47 @@ namespace rgatCore
 
         public void RegeneratePresetBuffer(PlottedGraph graph)
         {
-            _lock.EnterWriteLock();
-            if (!SavedStates.TryGetValue(graph.ActiveLayoutStyle, out CPUBuffers preset))
+            if (_VRAMBuffers.PresetPositions == null)
             {
-                preset = new CPUBuffers(graph.ActiveLayoutStyle);
-                SavedStates[graph.ActiveLayoutStyle] = preset;
+                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, stride: 4, "DummyPresetAlloc");
             }
-            preset.PositionsArray = graph.CreateBlankPresetLayout();
 
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
-            _VRAMBuffers.PresetPositions =
-                VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PresetPositions, _gd, $"PLP_PresetPosbuf_{graph.tid}");
-            _lock.ExitWriteLock();
+
+            //preset.PositionsArray = graph.CreateBlankPresetLayout();
+
+            //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
+           // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
+            //VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.tid}");
+
         }
 
+        //must hold writer lock
+        /*
         public void LoadPreset(PlottedGraph graph)
         {
-            if (LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle) && SavedStates.ContainsKey(graph.ActiveLayoutStyle))
+            if (LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle) )
             {
                 PurgeVRAMBuffers();
-                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.CreateBlankPresetLayout(), _gd, "PresetPosZeros");
-                LockedUploadStateToVRAM(graph.ActiveLayoutStyle);
+                if (SavedStates.ContainsKey(graph.ActiveLayoutStyle))
+                {
+                    LockedUploadStateToVRAM(graph.ActiveLayoutStyle);
+                }
+                else
+                {
+                    //random
+                }
+
+                //_VRAMBuffers.PresetPositions =
+                //    VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.tid}");
+
             }
             else
             {
                 _VRAMBuffers.PresetPositions =  VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GeneratePresetPositions(), _gd, "PresetPos");
+                _VRAMBuffers.Style = graph.ActiveLayoutStyle;
             }
         }
-
+        */
 
         /// <summary>
         /// This buffer list the index of every node each node is connected to
@@ -526,7 +558,7 @@ namespace rgatCore
 
             uint endOfComputeBufferOffset = (uint)graph.ComputeBufferNodeCount * 4;
             float[] newPositions = RAMbufs.PositionsArray;
-            Console.WriteLine($"Writing new nodes from {offset / 16} to {offset / 16 + updateSize / 16}");
+            Logging.RecordLogEvent($"Writing new nodes from {offset / 16} to {offset / 16 + updateSize / 16} -> finalcount {finalCount}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (float* dataPtr = newPositions)
             {
                 cl.UpdateBuffer(_VRAMBuffers.Positions1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
@@ -569,7 +601,7 @@ namespace rgatCore
 
             uint zeroFillStart = 0;
             if (_VRAMBuffers.Initialised)
-                zeroFillStart = _VRAMBuffers.Velocities1.SizeInBytes;
+                zeroFillStart = _VRAMBuffers.Positions1.SizeInBytes;
 
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
@@ -632,7 +664,7 @@ namespace rgatCore
         {
             if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers saved) && saved.PositionsArray.Any())
             {
-                buf = saved.PresetPositions;
+                buf = saved.PositionsArray;
                 return true;
             }
             else
@@ -786,6 +818,78 @@ namespace rgatCore
         }
 
 
+
+        public void TriggerLayoutChange(LayoutStyles.Style newStyle)
+        {
+
+            if (newStyle == _VRAMBuffers.Style) return;
+            Lock.EnterWriteLock();
+            Console.WriteLine("Preset start");
+            //save the old layout if it was computed
+            if (LayoutStyles.IsForceDirected(_VRAMBuffers.Style))
+            {
+                DownloadStateFromVRAM();
+            }
+
+            //graph.LayoutState.RegeneratePresetBuffer(graph);
+            //graph.LayoutState.LoadPreset(graph);
+            
+            /*
+            if (LayoutStyles.IsForceDirected(newStyle) && !SavedStates.ContainsKey(newStyle))
+            {
+
+
+
+            }
+            */
+
+            presetSteps = 0;
+            PresetStyle = newStyle;
+            _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(dbgGraphDeleteMe.GeneratePresetPositions(PresetStyle), _gd, "Preset1");
+            ActivatingPreset = true;
+
+            Lock.ExitWriteLock();
+        }
+
+        public void CompleteLayoutChange()
+        {
+            Lock.EnterWriteLock();
+            ActivatingPreset = false;
+            this._VRAMBuffers.Style = PresetStyle;
+
+            if (LayoutStyles.IsForceDirected(PresetStyle))
+            {
+                if (SavedStates.TryGetValue(PresetStyle, out CPUBuffers cpubufs))
+                {
+                    this.LockedUploadStateToVRAM(cpubufs);
+                }
+                else
+                {
+                    //Debug.Assert(false, "shouldn't be snapping to nonexistent preset");
+                    VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions1);
+                    VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions2);
+                    VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
+
+                    RegenerateEdgeDataBuffers(dbgGraphDeleteMe);
+                }
+            }
+            else
+            {
+                VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions1);
+                VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions2);
+                VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
+
+            }
+
+            //
+
+            Lock.ExitWriteLock();
+
+        }
+
+
     }
+
+
 
 }

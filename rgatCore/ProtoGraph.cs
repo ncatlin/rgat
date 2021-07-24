@@ -467,6 +467,7 @@ namespace rgatCore
             newTargNode.index = targVertID;
             newTargNode.parentIdx = ProtoLastVertID;
             newTargNode.SetExecutionCount(repeats);
+            newTargNode.BlockID = uint.MaxValue;
 
 
             InsertNode(targVertID, newTargNode);

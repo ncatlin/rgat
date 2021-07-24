@@ -108,6 +108,7 @@ namespace rgatCore
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
 
 
+        //todo - make Exit wait until this returns
         void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
             _rgatstate = new rgatState(_gd, _cl);

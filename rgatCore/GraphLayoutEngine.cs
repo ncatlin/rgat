@@ -75,13 +75,29 @@ namespace rgatCore
                 Thread.Sleep(30);
             }
             {
+
+
                 graph.ResetLayoutStats();
 
-                graph.LayoutState.SyncRAMToVRAM(graphStyle, _gd);
+
+                // graph.LayoutState.SyncRAMToVRAM(graphStyle, _gd);
 
 
-                graph.LayoutState.RegeneratePresetBuffer(graph);
-                _activatingPreset = true;
+                graph.LayoutState.Lock.EnterWriteLock();
+                /*
+                if (LayoutStyles.IsForceDirected(graph.LayoutState._VRAMBuffers.Style))
+                {
+                    graph.LayoutState.DownloadStateFromVRAM();
+                }
+
+                //graph.LayoutState.RegeneratePresetBuffer(graph);
+                //graph.LayoutState.LoadPreset(graph);
+                if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
+                {
+                    //_activatingPreset = true;
+                }
+                */
+                graph.LayoutState.Lock.ExitWriteLock();
 
             }
             _computeLock.ExitWriteLock();
@@ -116,7 +132,7 @@ namespace rgatCore
             int fZ1 = 0;
             int fZ2 = 0;
 
-            float[] positions = graph.LayoutState.DownloadVRAMPositions(graph.ActiveLayoutStyle);
+            float[] positions = graph.LayoutState.DownloadVRAMPositions();
 
 
             if (positions.Length < 4)
@@ -165,15 +181,13 @@ namespace rgatCore
         {
             Logging.RecordLogEvent($"GetPreviewFitOffsets Start {graph.tid} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             float zoom;
-            DeviceBuffer positionsBuffer;
-
             xoffsets = new Vector2(0, 0);
             yoffsets = new Vector2(0, 0);
             zoffsets = new Vector2(0, 0);
 
             zoom = graph.PreviewCameraZoom;
 
-            float[] positions = graph.LayoutState.DownloadVRAMPositions(graph.ActiveLayoutStyle);
+            float[] positions = graph.LayoutState.DownloadVRAMPositions();
 
 
             float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
@@ -313,15 +327,12 @@ namespace rgatCore
 
             public uint EdgeCount;
             public uint fixedInternalNodes;
-            public uint debugVal;
+            public uint snappingToPreset;
             public uint nodeCount;
 
             //private readonly uint _padding1; //must be multiple of 16
         }
 
-
-
-        public bool ActivatingPreset => _activatingPreset == true;
 
         /// <summary>
         /// Must have read lock to call
@@ -353,7 +364,6 @@ namespace rgatCore
         bool doDbgPrinting = false;
 
 
-        bool _activatingPreset;
         public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
         {
             ulong newversion;
@@ -377,37 +387,47 @@ namespace rgatCore
                 SetupComputeResources();
             }
 
+            graph.LayoutState.Lock.EnterUpgradeableReadLock();
             if (edgesCount > graph.RenderedEdgeCount || (new Random()).Next(0, 100) == 1)
             {
+                graph.LayoutState.Lock.EnterWriteLock();
                 graph.LayoutState.RegenerateEdgeDataBuffers(graph);
                 graph.RenderedEdgeCount = (uint)edgesCount;
+                graph.LayoutState.Lock.ExitWriteLock();
             }
 
             int graphNodeCount = graph.RenderedNodeCount();
             if (graph.ComputeBufferNodeCount < graphNodeCount)
             {
                 graph.LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, graph);
+
+                graph.LayoutState.Lock.EnterWriteLock();
+                graph.LayoutState.RegenerateEdgeDataBuffers(graph); //tod change to upgradread
+                graph.LayoutState.Lock.ExitWriteLock();
             }
 
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             float delta = Math.Min((now - graph.lastRenderTime) / 1000f, 1.0f);// safety cap on large deltas
-            delta *= (_activatingPreset ? 7.5f : 1.0f); //without this the preset animation will 'bounce'
+            delta *= (graph.LayoutState.ActivatingPreset ? 7.5f : 1.0f); //without this the preset animation will 'bounce'
 
             graph.lastRenderTime = now;
 
             float _activeGraphTemperature = graph.temperature;
 
             ResourceSet attribComputeResourceSet = null;
-            ResourceSet velocityComputeResourceSet = null;
-            ResourceSet posRS = null;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;
-
+            DeviceBuffer posbefore, posafter, velocitybefore, velocityafter;
             GraphLayoutState layout = graph.LayoutState;
 
             if (graph.LayoutState.flip())
             {
 
+                posbefore = layout.PositionsVRAM1;
+                posafter = layout.PositionsVRAM2;
+
+                velocitybefore = layout.VelocitiesVRAM1;
+                velocityafter = layout.VelocitiesVRAM2;
 
                 //todo unified resource layout
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout, _velocityParamsBuffer,
@@ -433,6 +453,13 @@ namespace rgatCore
                 layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
                 layout.VelocitiesVRAM1);
 
+
+                posbefore = layout.PositionsVRAM2;
+                posafter = layout.PositionsVRAM1;
+                velocitybefore = layout.VelocitiesVRAM2;
+                velocityafter = layout.VelocitiesVRAM1;
+
+
                 pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer,
                  layout.PositionsVRAM2, layout.VelocitiesVRAM1, layout.BlockMetadata,
                   layout.PositionsVRAM1);
@@ -442,30 +469,34 @@ namespace rgatCore
                     layout.EdgeConnections, layout.AttributesVRAM1);
             }
 
-            velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
-            posRS = _factory.CreateResourceSet(pos_rsrc_desc);
+            ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
+            ResourceSet posRS = _factory.CreateResourceSet(pos_rsrc_desc);
 
 
 
 
             cl.Begin();
 
-            if (_activeGraphTemperature > 0.1)// && _computationPosVelActive)
+
+            bool forceComputationActive =
+                GlobalConfig.LayoutPositionsActive &&
+                _activeGraphTemperature > 0.1 && (
+                graph.LayoutState.ActivatingPreset || LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle)
+                );
+
+            if (forceComputationActive)
             {
-
-                if (GlobalConfig.LayoutPositionsActive)
-                {
-                    RenderVelocity(cl, graph, velocityComputeResourceSet, delta, _activeGraphTemperature);
-                    RenderPosition(cl, graph, posRS, delta);
-                    layout.IncrementVersion();
+                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, _activeGraphTemperature);
+                RenderPosition(cl, graph, posRS, delta);
+                layout.IncrementVersion();
 
 
-                    if (_activeGraphTemperature > 0.1)
-                        graph.temperature *= 0.99f;
-                    else
-                        graph.temperature = 0;
-                }
+                if (_activeGraphTemperature > 0.1)
+                    graph.temperature *= 0.99f;
+                else
+                    graph.temperature = 0;
             }
+
 
             if (GlobalConfig.LayoutAttribsActive)
             {
@@ -479,26 +510,32 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            if (EngineID == "Main")
+            if (forceComputationActive && EngineID == "Main")
             {
-                //  DebugPrintOutputFloatBuffer(posdestdbgb4, "pos Computation Done. before: ", 4096);
+                int sz = 128;
+                //DebugPrintOutputFloatBuffer(posbefore, "pos before: ", sz);
+                //DebugPrintOutputFloatBuffer(velocitybefore, "velocitybefore: ", sz);
+                //DebugPrintOutputFloatBuffer(layout.PresetPositions, "preset: ", sz);
 
-                // DebugPrintOutputFloatBuffer(posdestdbg, "pos Computation Done. Result: ", 4096);
+                //DebugPrintOutputFloatBuffer(velocityafter, "velocityafter: ", sz);
+                //DebugPrintOutputFloatBuffer(posafter, "pos Computation Done. Result: ", sz);
+
             }
 
-            if (_activatingPreset) //todo look at this again, should it be done after compute?
+            if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
-                //float highest = FindHighXYZ(layout.VelocitiesVRAM1);
-                //if (highest < 0.05)
-                //{
-                layout.Lock.EnterWriteLock();
-                layout.LoadPreset(graph);
-                layout.Lock.ExitWriteLock();
-                _activatingPreset = false;
-                //}
+                //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
+                float highest = FindHighXYZ(layout.VelocitiesVRAM1);
+                Console.WriteLine($"Presetspeed: {highest}");
+                if (highest < 1) 
+                {
+                    Console.WriteLine("Preset done");
+                    graph.LayoutState.CompleteLayoutChange();
+                }
             }
+            graph.LayoutState.Lock.ExitUpgradeableReadLock();
 
-
+            //should we be dispose/recreating these? probably not. todo
             if (attribComputeResourceSet != null)
                 _gd.DisposeWhenIdle(attribComputeResourceSet);//attribComputeResourceSet.Dispose();
             if (velocityComputeResourceSet != null)
@@ -570,7 +607,7 @@ namespace rgatCore
                 NodesTexWidth = textureSize,
                 blockNodeSeperation = 60,
                 fixedInternalNodes = fixedNodes,
-                activatingPreset = _activatingPreset
+                activatingPreset = graph.LayoutState.ActivatingPreset
             };
 
             //Console.WriteLine($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
@@ -578,7 +615,7 @@ namespace rgatCore
             cl.UpdateBuffer(_positionParamsBuffer, 0, parms);
             cl.SetPipeline(_positionComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * 4.0 * 4.0)), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
         }
 
 
@@ -600,7 +637,7 @@ namespace rgatCore
                 NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
                 fixedInternalNodes = fixedNodes,
-                debugVal = graph.LayoutState.PositionsVRAM1.SizeInBytes,
+                snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
                 nodeCount = (uint)graph.LayoutState.PositionsVRAM1.SizeInBytes / 16
             };
 
@@ -609,7 +646,7 @@ namespace rgatCore
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
             cl.SetPipeline(_velocityComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * 4.0 * 4.0)), 1, 1); //todo, really?
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
 
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done", Logging.LogFilterType.BulkDebugLogFile);
         }
@@ -778,6 +815,7 @@ namespace rgatCore
                 if (i != 0 && (i % 8 == 0))
                     Console.WriteLine();
                 //if (sourceData[i] == 0 && sourceData[i+1] == 0)
+                if ((i + 3) > sourceData.Length) break;
                 Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
             }
             Console.WriteLine();

@@ -1418,7 +1418,7 @@ namespace rgatCore
                 ImGui.OpenPopup("layout select popup");
             }
 
-            bool snappingToPreset = _layoutEngine.ActivatingPreset;
+            bool snappingToPreset = ActiveGraph.LayoutState.ActivatingPreset;
             if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
 
             if (ImGui.BeginPopup("layout select popup"))

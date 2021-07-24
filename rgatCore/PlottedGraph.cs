@@ -60,8 +60,7 @@ namespace rgatCore
         {
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
-            ActiveLayoutStyle = LayoutStyles.Style.ForceDirected3DNodes;
-            LayoutState = new GraphLayoutState(this, device);
+            LayoutState = new GraphLayoutState(this, device, LayoutStyles.Style.ForceDirected3DBlocks);
 
             //savedForcePositions[LayoutStyles.Style.eForceDirected3DNodes] = Array.Empty<float>();
             //savedForcePositions[LayoutStyles.Style.eForceDirected3DBlocks] = Array.Empty<float>();
@@ -365,7 +364,7 @@ namespace rgatCore
 
 
 
-        uint _presetEdgeCount;
+        //uint _presetEdgeCount;
 
 
         void ZeroisePreset()
@@ -376,32 +375,35 @@ namespace rgatCore
 
 
         //returns true if there are actually preset nodes to return to, false if a blank preset
-        public float[] GeneratePresetPositions()
+        public float[] GeneratePresetPositions(LayoutStyles.Style style)
         {
-            _presetEdgeCount = InternalProtoGraph.get_num_edges();
-            switch (ActiveLayoutStyle)
+            //_presetEdgeCount = InternalProtoGraph.get_num_edges();
+            switch (style)
             {
                 case LayoutStyles.Style.CylinderLayout:
+                    Console.WriteLine("Generating cylinder presets");
                     return GenerateCylinderLayout();
 
                 case LayoutStyles.Style.Circle:
                     return GenerateCircleLayout();
 
                 default:
-                    if (LayoutStyles.IsForceDirected(ActiveLayoutStyle))
+                    if (LayoutStyles.IsForceDirected(style))
                     {
-                        if (!LayoutState.GetSavedLayout(ActiveLayoutStyle, out float[] layout))
+                        if (!LayoutState.GetSavedLayout(style, out float[] layout))
                         {
+                            Console.WriteLine("Generating forcedir presets");
                             return CreateRandomPresetLayout();
                         }
                         else
                         {
+                            Console.WriteLine("Returning old forcedir presets");
                             return layout;
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Error: Tried to layout invalid preset style: " +ActiveLayoutStyle.ToString());
+                        Console.WriteLine("Error: Tried to layout invalid preset style: " + ActiveLayoutStyle.ToString());
                         return null;
                     }
             }
@@ -623,19 +625,16 @@ namespace rgatCore
 
             List<GeomPositionColour> resultList = new List<GeomPositionColour>();
             edgeIndices = new List<uint>();
-            if (WireframeEnabled)
+            switch (WireframeStyle())
             {
-                switch (ActiveLayoutStyle)
-                {
-                    case LayoutStyles.Style.CylinderLayout:
-                        GenerateCylinderWireframe(ref resultList, ref edgeIndices);
-                        break;
-                    default:
-                        Console.WriteLine("Error: Tried to layout invalid wireframe style: " + ActiveLayoutStyle.ToString());
-                        break;
-                }
-
+                case LayoutStyles.Style.CylinderLayout:
+                    GenerateCylinderWireframe(ref resultList, ref edgeIndices);
+                    break;
+                default:
+                    break;
             }
+
+
 
             if (AllHighlightedNodes.Count > 0)
             {
@@ -741,7 +740,17 @@ namespace rgatCore
         }
 
 
-        public bool WireframeEnabled => ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout;
+        public LayoutStyles.Style WireframeStyle()
+        {
+            if (LayoutState.ActivatingPreset)
+            {
+                return LayoutState.PresetStyle;
+            }
+            else
+            {
+                return LayoutState.Style;
+            }
+        }
 
 
 
@@ -825,14 +834,12 @@ namespace rgatCore
 
             LayoutState.Lock.EnterUpgradeableReadLock();
             LayoutState.AddNode(nodeIdx, futureCount, bufferWidth, edge);
-            LayoutState.RegenerateEdgeDataBuffers(this);
             LayoutState.Lock.ExitUpgradeableReadLock();
 
-            List<int> connectedNodeIDs = new List<int>();
             lock (animationLock)
             {
-                _graphStructureLinear.Add(connectedNodeIDs);
-                _graphStructureBalanced.Add(connectedNodeIDs);
+                _graphStructureLinear.Add(new List<int>());
+                _graphStructureBalanced.Add(new List<int>());
             }
             textureLock.ExitReadLock();
         }
@@ -1014,7 +1021,12 @@ namespace rgatCore
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         public unsafe int[] GetBlockRenderingMetadata()
         {
-            return _blockRenderingMetadata;
+            List<List<int>> nodeNeighboursArray = null;
+            lock (animationLock)
+            {
+                nodeNeighboursArray = _graphStructureBalanced.ToList();
+            }
+            return CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count));
         }
 
 
@@ -1059,18 +1071,36 @@ namespace rgatCore
             }
 
             //step 2:
+            int externals = 0;
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
                 NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);  //todo - this grabs a lot of locks. improve it
-                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
-                if (firstIdx_LastIdx == null) continue;
 
-                var blockSize = (firstIdx_LastIdx.Item2 - firstIdx_LastIdx.Item1) + 1;
-                int blockID = (int)n.BlockID;
-                if (!blockMiddles.ContainsKey(blockID))
-                    continue;
-                int blockMid = blockMiddles[blockID];
+                uint blockSize;
+                int blockMid;
+                int blockID;
+                Tuple<uint, uint> FirstLastIdx;
+                if (!n.IsExternal)
+                {
+                    FirstLastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
+                    if (FirstLastIdx == null) continue;
 
+                    blockSize = (FirstLastIdx.Item2 - FirstLastIdx.Item1) + 1;
+                    blockID = (int)n.BlockID;
+                    if (!blockMiddles.ContainsKey(blockID))
+                        continue;
+                    blockMid = blockMiddles[blockID];
+                }
+                else
+                {
+                    externals += 1;
+                    FirstLastIdx = new Tuple<uint, uint>(n.index, n.index);
+                    blockMid = (int)n.index;
+                    blockSize = 1;
+                    //external nodes dont have a block id so just give them a unique one
+                    //all that matters in the shader is it's unique
+                    blockID = -1 - externals;
+                }
 
                 int offsetFromCenter = 0;
                 if (blockSize > 1)
@@ -1086,8 +1116,8 @@ namespace rgatCore
                 int centerPseudoBlockBaseID = -1;
                 if (nodeIdx == blockMid || blockSize == 1)
                 {
-                    centerPseudoBlockTopID = (int)firstIdx_LastIdx.Item1;
-                    centerPseudoBlockBaseID = (int)firstIdx_LastIdx.Item2;
+                    centerPseudoBlockTopID = (int)FirstLastIdx.Item1;
+                    centerPseudoBlockBaseID = (int)FirstLastIdx.Item2;
                 }
 
                 blockDataInts[nodeIdx * 4] = blockID;
@@ -2200,7 +2230,8 @@ namespace rgatCore
         {
             if (newStyle == ActiveLayoutStyle) return false;
             //LayoutState.UploadStateToVRAM(newStyle, gd);
-            ActiveLayoutStyle = newStyle;
+            LayoutState.TriggerLayoutChange(newStyle);
+            //ActiveLayoutStyle = newStyle;
             return true;
         }
 
@@ -2330,7 +2361,7 @@ namespace rgatCore
         protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
         protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
 
-        public LayoutStyles.Style ActiveLayoutStyle = LayoutStyles.Style.ForceDirected3DNodes;
+        public LayoutStyles.Style ActiveLayoutStyle => LayoutState.Style;
         public GraphLayoutState LayoutState;
 
 

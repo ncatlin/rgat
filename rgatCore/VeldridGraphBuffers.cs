@@ -44,7 +44,7 @@ namespace rgatCore
         {
             ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("AnimBuffer", ResourceKind.UniformBuffer, ShaderStages.Fragment);
             ResourceLayout animLayout = gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(vb));
-            _animBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name:"AnimDataBuffer");
+            _animBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name: "AnimDataBuffer");
             _animBuffSet = gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(animLayout, _animBuffer));
             return animLayout;
         }
@@ -221,11 +221,26 @@ namespace rgatCore
             return buffer;
         }
 
-
-        public static unsafe Tuple<DeviceBuffer,DeviceBuffer> CreateFloatsDeviceBufferPair(float[] floats, GraphicsDevice gdev, string name = "?")
+        public static unsafe void CreateBufferCopyPair(DeviceBuffer source, GraphicsDevice gdev,  out DeviceBuffer dest1, out DeviceBuffer dest2, string name = "?")
         {
-            DeviceBuffer buffer1 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name+"1");
-            DeviceBuffer buffer2 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name+"2");
+            dest1 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name+"_1");
+            dest2 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name+"_2");
+
+            CommandList cl = gdev.ResourceFactory.CreateCommandList();
+            cl.Begin();
+            cl.CopyBuffer(source, 0, dest1, 0, source.SizeInBytes);
+            cl.CopyBuffer(source, 0, dest2, 0, source.SizeInBytes);
+            cl.End();
+            gdev.SubmitCommands(cl);
+            gdev.WaitForIdle();
+            cl.Dispose();
+        }
+
+
+        public static unsafe Tuple<DeviceBuffer, DeviceBuffer> CreateFloatsDeviceBufferPair(float[] floats, GraphicsDevice gdev, string name = "?")
+        {
+            DeviceBuffer buffer1 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name + "1");
+            DeviceBuffer buffer2 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name + "2");
             fixed (float* dataPtr = floats)
             {
                 CommandList cl = gdev.ResourceFactory.CreateCommandList();
@@ -326,7 +341,7 @@ namespace rgatCore
 
             float[] zeros = new float[(int)(buffer.SizeInBytes / 4)];
             //for (var i = 0; i < zeros.Length; i++)
-             //   zeros[i] = 74;
+            //   zeros[i] = 74;
 
             CommandList cl = rf.CreateCommandList();
             cl.Begin();
