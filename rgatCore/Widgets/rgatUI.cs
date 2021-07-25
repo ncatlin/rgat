@@ -14,11 +14,15 @@ using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
 using static rgatCore.Logging;
+using OpenH264Lib;
 
 namespace rgatCore
 {
     class rgatUI
     {
+
+
+
         //rgat ui state
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
@@ -69,39 +73,6 @@ namespace rgatCore
 
         }
 
-
-
-
-        public void TestThreadProc()
-        {
-
-            Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
-            GraphicsDevice gd = _ImGuiController.graphicsDevice;
-
-            Veldrid.DeviceBuffer buf2 = gd.ResourceFactory.CreateBuffer(new BufferDescription(1600, BufferUsage.StructuredBufferReadOnly, structureByteStride: 4));
-            ResourceLayout rl22 = gd.ResourceFactory.CreateResourceLayout(
-                new ResourceLayoutDescription(
-                    new ResourceLayoutElementDescription("Sam4psler" + Thread.CurrentThread.ManagedThreadId.ToString(), ResourceKind.StructuredBufferReadOnly, ShaderStages.Fragment)));
-
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(rl22, buf2);////_paramsBuffer);//, _gd.PointSampler, positionsBuffer);
-            int i = 0;
-            ResourceSet crscore = null;
-            while (true)
-            {
-                Console.WriteLine($"{Thread.CurrentThread.ManagedThreadId.ToString()}---{i}");
-                crscore = gd.ResourceFactory.CreateResourceSet(crs_core_rsd);
-                crscore.Dispose();
-                //Debug.Assert(crscore.IsDisposed);
-                i += 1;
-
-                gd.WaitForIdle();
-
-                //ResourceSetDescription crs_core_srsd = new ResourceSetDescription(rl2, buf);////_paramsBuffer);//, _gd.PointSampler, positionsBuffer);
-                //ResourceSet crscorse =gd.ResourceFactory.CreateResourceSet(crs_core_srsd);
-                //crscorse.Dispose();
-            }
-
-        }
 
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
 
@@ -158,6 +129,10 @@ namespace rgatCore
             processCoordinatorThreadObj.Begin();
             _UIstartupProgress = 0.95;
 
+            if (GlobalConfig.VideoEncodeLoadOnStart && File.Exists(GlobalConfig.VideoEncodeCiscoLibPath))
+            {
+                _rgatstate.VideoRecorder.Load(GlobalConfig.VideoEncodeCiscoLibPath);
+            }
 
 
             RecordLogEvent("Startup: Initing layout engines", LogFilterType.TextDebug);

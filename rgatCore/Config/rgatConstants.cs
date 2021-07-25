@@ -95,6 +95,7 @@ namespace rgatCore
     {
         public const string PIN_SIGNER = "Intel Corporation";
         public const string PINTOOL_SIGNER = "rgat dev";
+        public const string CISCO_SIGNER = "Cisco WebEx LLC";
     }
 
     static class TEST_CONSTANTS

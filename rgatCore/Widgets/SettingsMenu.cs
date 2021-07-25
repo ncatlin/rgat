@@ -15,7 +15,7 @@ namespace rgatCore.Widgets
         static ImGuiController _controller;
         static rgatState _rgatState;
 
-        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eGraphTheme };
+        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
 
         public SettingsMenu(ImGuiController controller, rgatState rgatstate)
         {
@@ -26,6 +26,8 @@ namespace rgatCore.Widgets
             settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
             settingTips["PinToolPath32"] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
             settingTips["PinToolPath64"] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
+            settingTips["VideoCodec"] = "The path to the Cisco OpenH264 video codec";
+
             settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
             settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
             settingTips["DiESigsPath"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
@@ -61,6 +63,7 @@ namespace rgatCore.Widgets
             settingsNames.Add("Text");
             settingsNames.Add("Keybinds");
             settingsNames.Add("Theme");
+            settingsNames.Add("Video Encoder");
             settingsNames.Add("Miscellaneous");
             optionsSelectStates = new bool[settingsNames.Count];
             optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
@@ -68,6 +71,7 @@ namespace rgatCore.Widgets
             optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
             optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
+            optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
             optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
         }
 
@@ -156,6 +160,9 @@ namespace rgatCore.Widgets
                 case "Theme":
                     CreateOptionsPane_UITheme();
                     break;
+                case "Video Encoder":
+                    CreateOptionsPane_VideoEncode();
+                    break;
                 case "Miscellaneous":
                     CreateOptionsPane_Miscellaneous();
                     break;
@@ -171,9 +178,12 @@ namespace rgatCore.Widgets
 
         void CreateOptionsPane_Signatures()
         {
+            if (_rgatState.YARALib == null || _rgatState.DIELib == null) return; //loading
+
             //available/enabled/loaded signatures pane
             //scanning controls
             //download more btn
+   
             Vector2 tabsize = ImGui.GetContentRegionAvail() - new Vector2(0, 100);
             if (ImGui.BeginChild("#SignaturesPane", tabsize, false, ImGuiWindowFlags.None))
             {
@@ -311,30 +321,45 @@ namespace rgatCore.Widgets
         bool DrawPathMenuOption(string caption, string path, string tooltip, out bool clearFlag)
         {
             bool selected = false;
-            ImGui.TableNextRow();
+            bool hovered = false;
+            bool hasPath = (path?.Length > 0);
+            string pathTxt = hasPath ? path : "[Not Set]";
+            string signerror = "";
+
+            GlobalConfig.CheckSignatureError(path, out signerror, out bool signatureTimeWarning);
+
+            ImGui.TableNextRow(); 
             ImGui.TableNextColumn();
+
 
             ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
             bool notSelected = false;
             ImGui.Text(caption);
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(tooltip);
-            }
-
+            hovered = hovered || ImGui.IsItemHovered();
             ImGui.PopStyleColor();
             ImGui.TableNextColumn();
-            bool hasPath = (path?.Length > 0);
-            string pathTxt = hasPath ? path : "[Not Set]";
 
+            if (signerror.Length > 0){
+
+                if (signatureTimeWarning)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                }
+            }
             if (ImGui.Selectable(pathTxt + "##Sel" + caption, notSelected, ImGuiSelectableFlags.None))
             {
                 selected = true;
             }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(tooltip);
-            }
+
+            if (signerror.Length > 0) { ImGui.PopStyleColor();  }
+
+
+
+            hovered = hovered || ImGui.IsItemHovered();
 
             ImGui.TableNextColumn();
             if (hasPath)
@@ -351,6 +376,27 @@ namespace rgatCore.Widgets
                 clearFlag = false;
             }
 
+            if (hovered)
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text(tooltip);
+                if (hasPath) ImGui.Text(path);
+                if (signerror.Length > 0)
+                {
+                    if (signatureTimeWarning)
+                    {
+                        ImGui.Text("-----Bad Signature Validity Date-----");
+                    }
+                    else
+                    {
+                        ImGui.Text("-----Signature Verification Failed-----");
+                    }
+                    ImGui.Text("\t" + signerror);
+                }
+
+                ImGui.EndTooltip();
+            }
+
             return clearFlag || selected;
         }
 
@@ -362,7 +408,7 @@ namespace rgatCore.Widgets
             bool isFolder = false;
             bool doClear = false;
 
-            if (ImGui.BeginTable("#PathsTable", 3))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
+            if (ImGui.BeginTable("#PathsTable", 3, ImGuiTableFlags.RowBg))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
             {
                 ImGui.TableSetupColumn("Setting", ImGuiTableColumnFlags.WidthFixed, 180);
                 ImGui.TableSetupColumn("Path");
@@ -371,14 +417,17 @@ namespace rgatCore.Widgets
                 ImGui.TableHeadersRow();
 
 
-                if (DrawPathMenuOption("Pin.exe", GlobalConfig.PinPath, settingTips["PinPath"], out bool clearFlag))
+                if (DrawPathMenuOption("Pin Executable", GlobalConfig.PinPath, settingTips["PinPath"], out bool clearFlag))
                 { choosePath = "PinPath"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool32.dll", GlobalConfig.PinToolPath32, settingTips["PinToolPath32"], out clearFlag))
+                if (DrawPathMenuOption("Pintool32 Library", GlobalConfig.PinToolPath32, settingTips["PinToolPath32"], out clearFlag))
                 { choosePath = "PinToolPath32"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool64.dll", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
+                if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
                 { choosePath = "PinToolPath64"; doClear |= clearFlag; }
+
+                if (DrawPathMenuOption("OpenH264 Library", GlobalConfig.VideoEncodeCiscoLibPath, settingTips["VideoCodec"], out clearFlag))
+                { choosePath = "VideoCodec"; doClear |= clearFlag; }
 
                 if (choosePath.Length == 0) isFolder = true;
 
@@ -448,6 +497,9 @@ namespace rgatCore.Widgets
                     break;
                 case "PinToolPath64":
                     GlobalConfig.SetBinaryPath("PinToolPath64", path);
+                    break;
+                case "VideoCodec":
+                    GlobalConfig.SetBinaryPath("VideoCodec", path);
                     break;
                 case "TestsDirectory":
                     GlobalConfig.SetDirectoryPath("TestsDirectory", path);
@@ -741,6 +793,12 @@ namespace rgatCore.Widgets
                 ImGui.EndPopup();
             }
 
+        }
+
+
+        void CreateOptionsPane_VideoEncode()
+        {
+            _rgatState.VideoRecorder?.DrawSettingsPane();
         }
 
 

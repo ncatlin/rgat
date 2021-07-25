@@ -5,6 +5,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
+/// <summary>
+/// Handles Loading/Saving/Storage of traces and binaries. 
+/// Holds various utility objects such as signature scanners and video encoder.
+/// </summary>
 namespace rgatCore
 {
     public class rgatState
@@ -17,11 +21,9 @@ namespace rgatCore
         public Veldrid.CommandList _CommandList;
         public DetectItEasy DIELib;
         public YARAScan YARALib;
+        public VideoEncoder VideoRecorder = new VideoEncoder();
 
         public PreviewGraphsWidget PreviewWidget;
-
-
-        private readonly object statelock = new object();
 
         public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl)
         {
@@ -41,8 +43,6 @@ namespace rgatCore
         }
 
 
-        public PlottedGraph SwitchGraph = null;
-
         public bool rgatIsExiting { private set; get; } = false;
         public int InstrumentationCount { private set; get; } = 0;
         public void RecordInstrumentationConnection() => InstrumentationCount += 1;
@@ -50,13 +50,12 @@ namespace rgatCore
         public int AnimationStepRate = 1;
         public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
 
-        public bool showNodes = true;
-        public bool showEdges = true;
-
-
         Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
         Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
 
+        /// <summary>
+        /// Terminate all spawned processes and internal workers, then exit
+        /// </summary>
         public void ShutdownRGAT()
         {
             rgatIsExiting = true;
@@ -67,6 +66,7 @@ namespace rgatCore
             {
                 foreach (TraceRecord trace in targ.GetTracesList())
                 {
+                    //give the orders
                     List<ProtoGraph> graphs = trace.GetProtoGraphs();
                     for (var i = 0; i < graphs.Count; i++)
                     {
@@ -75,10 +75,13 @@ namespace rgatCore
                     trace.ProcessThreads.modThread.Terminate();
                     trace.ProcessThreads.BBthread.Terminate();
 
+                    //wait for all spawned processes to terminate
                     while (trace.GetProtoGraphs().Exists(p => p.TraceProcessor.Running || p.TraceReader.Running))
                     {
                         Thread.Sleep(10);
                     }
+
+                    //wait for all workers to terminate
                     while (trace.ProcessThreads.Running())
                     {
                         Thread.Sleep(10);
@@ -233,20 +236,13 @@ namespace rgatCore
             //setGraphUIControls(graph);
         }
 
+
         public bool ChooseActiveGraph()
         {
-            PlottedGraph switchGraph = SwitchGraph;
-            if (SwitchGraph != null && switchGraph.beingDeleted && !switchGraph.NeedReplotting)
-            {
-                SwitchToGraph(switchGraph);
-                SwitchGraph = null;
-            }
-
             if (ActiveGraph != null)
             {
                 if (ActiveGraph.beingDeleted)
                 {
-                    //ActiveGraph.decrease_thread_references(141);
                     ActiveGraph = null;
                     return false;
                 }
@@ -297,7 +293,6 @@ namespace rgatCore
                     }
                 }
 
-                //foreach (graph, traceGraphs){ graph->decrease_thread_references(144); }
                 if (found) return;
             }
 
@@ -307,7 +302,6 @@ namespace rgatCore
                 Logging.RecordLogEvent("Got first graph " + firstgraph.tid,
                     Logging.LogFilterType.TextDebug, trace: firstgraph.InternalProtoGraph.TraceData);
                 SwitchToGraph(firstgraph);
-                //firstgraph->decrease_thread_references(33);
             }
         }
 

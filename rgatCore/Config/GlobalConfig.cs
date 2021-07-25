@@ -272,7 +272,16 @@ namespace rgatCore
         //public static Dictionary<string, eSigScanLocation> SignatureScanLimits = new Dictionary<string, eSigScanLocation>();
 
 
-
+        /*
+         * Video encoder config
+         */
+        public static bool VideoEncodeLoadOnStart = false;
+        public static string VideoEncodeCiscoLibPath = @"";
+        public static int VideoCodec_Height = 640;
+        public static int VideoCodec_Width = 480;
+        public static int VideoCodec_Bitrate = 50000;
+        public static int VideoCodec_FPS = 10;
+        public static int VideoCodec_FrameInterval = 2;
 
 
         /*
@@ -748,6 +757,18 @@ namespace rgatCore
                 }
 
                 X509Certificate2 certificate = new X509Certificate2(signer);
+
+                if (certificate.NotBefore > DateTime.Now)
+                {
+                    error = $"Signature Validity Starts {certificate.NotBefore.ToLongDateString() + " " + certificate.NotBefore.ToLongTimeString()}";
+                    return false;
+                }
+                if (certificate.NotAfter < DateTime.Now)
+                {
+                    error = $"Signature Validity Ended {certificate.NotAfter.ToLongDateString() + " " + certificate.NotAfter.ToLongTimeString()}";
+                    return false;
+                }
+
                 var certificateChain = new X509Chain
                 {
                     ChainPolicy = {RevocationFlag = X509RevocationFlag.EntireChain,  RevocationMode = X509RevocationMode.Online,
@@ -764,7 +785,14 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                error = "Exception verifying certificate: " + e.Message;
+                if (e.Message == "Cannot find the requested object.")
+                {
+                    error = "File is not signed";
+                }
+                else
+                {
+                    error = "Exception verifying certificate: " + e.Message;
+                }
                 return false;
             }
         }
@@ -821,7 +849,7 @@ namespace rgatCore
                 }
                 else
                 {
-                    Logging.RecordLogEvent("No Detect-It-Easy scripts directory was configured. Configure this in the Settings->File pane to enable these scans.");
+                    Logging.RecordLogEvent("No Detect-It-Easy scripts directory configured. Configure this in the Settings->File pane to enable these scans.");
                 }
 
             }
@@ -893,6 +921,10 @@ namespace rgatCore
                 }
             }
 
+            if (GetAppSetting("VideoCodec", out string videocodec) && File.Exists(videocodec))
+            {
+                SetBinaryPath("VideoCodec", videocodec, save: false);
+            }
         }
 
         public static void SetDirectoryPath(string setting, string path, bool save = true)
@@ -921,45 +953,113 @@ namespace rgatCore
             }
         }
 
-        public static void SetBinaryPath(string setting, string path, bool save = true)
+        public static bool SetBinaryPath(string setting, string path, bool save = true)
         {
+            bool validSignature = false;
             if (setting == "PinPath")
             {
-                if (!VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error))
                 {
+                    validSignature = true;
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinPath = path;
             }
             if (setting == "PinToolPath32")
             {
-                if (!VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
                 {
+                    validSignature = true;
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinToolPath32 = path;
             }
             if (setting == "PinToolPath64")
             {
-                if (!VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
                 {
+                    validSignature = true;
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinToolPath64 = path;
             }
+            if (setting == "VideoCodec")
+            {
+                if (VerifyCertificate(path, SIGNERS.CISCO_SIGNER, out string error))
+                {
+                    validSignature = true;
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
+                    lock (_settingsLock) { BinaryValidationErrors[path] = error; }
+                }
+                VideoEncodeCiscoLibPath = path;
+            }
+
+
             if (save)
             {
                 AddUpdateAppSettings(setting, path);
             }
 
-            lock (_settingsLock)
+            if (!validSignature)
             {
-                if (BinaryValidationErrors.Any())
+                lock (_settingsLock)
                 {
-                    _BinaryValidationErrorCache = BinaryValidationErrors.Select(kvp => new Tuple<string, string>(kvp.Key, kvp.Value)).ToList();
+                    if (BinaryValidationErrors.Any())
+                    {
+                        _BinaryValidationErrorCache = BinaryValidationErrors.Select(kvp => new Tuple<string, string>(kvp.Key, kvp.Value)).ToList();
+                    }
+                }
+                return false;
+            }
+
+
+            return true;
+        }
+
+        public static bool CheckSignatureError(string path, out string error, out bool timeWarning)
+        {
+            timeWarning = false;
+            if (GlobalConfig.BadSigners(out List<Tuple<string, string>> signerErrors))
+            {
+                foreach (var val in signerErrors)
+                {
+                    if (val.Item1 == path)
+                    {
+                        if (val.Item2.StartsWith("Signature Validity"))
+                        {
+                            error = val.Item2;
+                            timeWarning = true;
+                            return false;
+                        }
+                        else
+                        {
+                            error = val.Item2;
+                            return false;
+                        }
+                        break;
+                    }
                 }
             }
+
+            error = "No Error";
+            return true;
         }
+
 
         static void LoadSettings()
         {
@@ -967,6 +1067,34 @@ namespace rgatCore
             {
                 BulkLogging = (bulklogging.ToLower() == "true");
             }
+
+            if (GetAppSetting("LoadVideoCodecOnStart", out string loadcodec))
+            {
+                VideoEncodeLoadOnStart = (loadcodec.ToLower() == "true");
+            }
+
+
+            if (GetAppSetting("VideoCodec_Height", out string vid1))
+            {
+                int.TryParse(vid1, out VideoCodec_Height);
+            }
+            if (GetAppSetting("VideoCodec_Width", out vid1))
+            {
+                int.TryParse(vid1, out VideoCodec_Width);
+            }
+            if (GetAppSetting("VideoCodec_Bitrate", out vid1))
+            {
+                int.TryParse(vid1, out VideoCodec_Bitrate);
+            }
+            if (GetAppSetting("VideoCodec_FPS", out vid1))
+            {
+                int.TryParse(vid1, out VideoCodec_FPS);
+            }
+            if (GetAppSetting("VideoCodec_FrameInterval", out vid1))
+            {
+                int.TryParse(vid1, out VideoCodec_FrameInterval);
+            }
+
         }
 
         public static double LoadProgress { get; private set; } = 0;
