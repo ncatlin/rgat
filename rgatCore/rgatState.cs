@@ -47,7 +47,6 @@ namespace rgatCore
         public int InstrumentationCount { private set; get; } = 0;
         public void RecordInstrumentationConnection() => InstrumentationCount += 1;
 
-        public int AnimationStepRate = 1;
         public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
 
         Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();

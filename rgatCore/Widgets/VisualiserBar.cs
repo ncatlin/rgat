@@ -148,10 +148,9 @@ namespace rgatCore.Widgets
             }
         }
 
-        //this should not be in UI thread TODO
-        public void Draw()
+       
+        public void Render()
         {
-
             BarShaderParams shaderParams = new BarShaderParams
             {
                 useTexture = false,
@@ -207,6 +206,12 @@ namespace rgatCore.Widgets
             _gd.SubmitCommands(_cl);
             _gd.WaitForIdle();
             _cl.Dispose();
+        }
+
+        public void Draw()
+        {
+
+
             //_rsrcs.Dispose();
 
             Vector2 pos = ImGui.GetCursorScreenPos();
@@ -223,6 +228,10 @@ namespace rgatCore.Widgets
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
+
+
+
+
 
         /*
          * Creates a white symbol with a size depending on instruction count. Handles 1 - 194ish instructions length blocks.

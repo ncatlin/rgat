@@ -1672,7 +1672,7 @@ namespace rgatCore
         }
 
 
-        void process_replay_animation_updates(int optionalStepSize = 0)
+        void process_replay_animation_updates(double optionalStepSize = 0)
         {
             if (InternalProtoGraph.SavedAnimationData.Count == 0)
             {
@@ -1681,25 +1681,30 @@ namespace rgatCore
                 return;
             }
 
-            int stepSize;
+            double stepSize;
             if (optionalStepSize != 0)
             {
                 stepSize = optionalStepSize;
             }
             else
             {
-                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? clientState.AnimationStepRate : 0;
+                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? _animationStepRate : 0;
             }
 
-            int targetAnimIndex = AnimationIndex + stepSize;
+            double targetAnimIndex = AnimationIndex + stepSize;
             if (targetAnimIndex >= InternalProtoGraph.SavedAnimationData.Count)
                 targetAnimIndex = InternalProtoGraph.SavedAnimationData.Count - 1;
 
 
-            for (; AnimationIndex < targetAnimIndex; ++AnimationIndex)
+            for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
             {
                 Console.WriteLine($"Anim Step {AnimationIndex}");
-                process_replay_update();
+                int actualIndex = (int)Math.Floor(AnimationIndex);
+                if (actualIndex > _lastReplayedIndex)
+                {
+                    process_replay_update(actualIndex);
+                    _lastReplayedIndex = actualIndex;
+                }
             }
 
             InternalProtoGraph.set_active_node(_lastAnimatedVert);
@@ -1709,21 +1714,22 @@ namespace rgatCore
                 ReplayState = REPLAY_STATE.eEnded;
             }
         }
+        int _lastReplayedIndex = -1;
 
 
-        void process_replay_update()
+        void process_replay_update(int replayUpdateIndex)
         {
             bool verbose = true;
-            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[AnimationIndex];
+            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
 
-            int stepSize = clientState.AnimationStepRate;
-            if (stepSize == 0) stepSize = 1;
+            double stepSize = _animationStepRate;
+            if (stepSize < 1) stepSize = 1;
 
             //brighten edge between last block and this
             //todo - probably other situations we want to do this apart from a parent exec tag
-            if (AnimationIndex > 0)
+            if (replayUpdateIndex > 0)
             {
-                ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[AnimationIndex - 1];
+                ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
@@ -1738,7 +1744,7 @@ namespace rgatCore
                 List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
-                uint maxWait = (uint)Math.Floor((float)maxWaitFrames / stepSize); //todo test
+                uint maxWait = (uint)Math.Floor((double)maxWaitFrames / stepSize); //todo test
                 if (unchainedWaitFrames > maxWait)
                     unchainedWaitFrames = maxWait;
 
@@ -1836,7 +1842,7 @@ namespace rgatCore
         ulong calculate_wait_frames(ulong executions)
         {
             //assume 10 instructions per step/frame
-            ulong stepSize = (ulong)clientState.AnimationStepRate;
+            ulong stepSize = (ulong)_animationStepRate;
             if (stepSize == 0) stepSize = 1;
             ulong frames = (InternalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
 
@@ -2355,11 +2361,24 @@ namespace rgatCore
 
         public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
 
+        float _animationStepRate = 1;
+        public float AnimationRate
+        {
+            get
+            {
+                return _animationStepRate;
+            }
+            set
+            {
+                _animationStepRate = value;
+            }
+        }
+
         ulong unchainedWaitFrames = 0;
         uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
         //which BB we are pointing to in the sequence list
-        public int AnimationIndex { get; private set; }
+        public double AnimationIndex { get; private set; }
 
         List<uint> _PulseActiveNodes = new List<uint>();
         List<uint> _LingeringActiveNodes = new List<uint>();

@@ -1691,6 +1691,7 @@ namespace rgatCore
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
             _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.InternalProtoGraph); //todo remove from ui thread
+            _visualiserBar.Render();
             _visualiserBar.Draw();
 
 
@@ -1740,7 +1741,7 @@ namespace rgatCore
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
             {
-                //DrawReplaySlider(width: width, height: 50);
+                DrawReplaySlider(width: width, height: 50);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
@@ -1749,19 +1750,22 @@ namespace rgatCore
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
                     if (ImGui.BeginChild("ctrls2354", new Vector2(600, 110)))
                     {
+                        string indexPos = "";
+                        if (activeGraph.AnimationIndex > 0)
+                            indexPos = $" ({activeGraph.AnimationIndex:F2}/{activeGraph.InternalProtoGraph.SavedAnimationData.Count})";
                         switch (activeGraph.ReplayState)
                         {
                             case PlottedGraph.REPLAY_STATE.ePaused:
-                                ImGui.Text("Trace Replay: Paused");
+                                ImGui.Text("Trace Replay: Paused"+indexPos);
                                 break;
                             case PlottedGraph.REPLAY_STATE.eEnded:
-                                ImGui.Text("Trace Replay: Resetting");
+                                ImGui.Text("Trace Replay: Resetting" + indexPos);
                                 break;
                             case PlottedGraph.REPLAY_STATE.ePlaying:
-                                ImGui.Text("Trace Replay: Replaying");
+                                ImGui.Text("Trace Replay: Replaying" + indexPos);
                                 break;
                             case PlottedGraph.REPLAY_STATE.eStopped:
-                                ImGui.Text("Trace Replay: Stopped");
+                                ImGui.Text("Trace Replay: Stopped" + indexPos);
                                 break;
                         }
 
@@ -1809,16 +1813,25 @@ namespace rgatCore
                         }
 
                         ImGui.SameLine(); //pointless?
-                        ImGui.SetNextItemWidth(60f);
-                        if (ImGui.BeginCombo("Replay Speed", " x1", ImGuiComboFlags.HeightLargest))
+                        ImGui.SetNextItemWidth(120f);
+
+                        float speedVal = activeGraph.AnimationRate;
+                        if (ImGui.SliderFloat("##SpeedSlider", ref speedVal, 0, 100, format:"%.2f", flags: ImGuiSliderFlags.Logarithmic ))
                         {
-                            if (ImGui.Selectable("x1/4")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x1/2")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x1")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x2")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x4")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x8")) Console.WriteLine("Speed changed");
-                            if (ImGui.Selectable("x16")) Console.WriteLine("Speed changed");
+                            activeGraph.AnimationRate = speedVal;
+                        }
+                        ImGui.SameLine();
+
+                        ImGui.SetNextItemWidth(65f);
+                        if (ImGui.BeginCombo("Replay Speed", $" {activeGraph.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
+                        {
+                            if (ImGui.Selectable("x1/4")) activeGraph.AnimationRate = 0.25f;
+                            if (ImGui.Selectable("x1/2")) activeGraph.AnimationRate = 0.5f;
+                            if (ImGui.Selectable("x1")) activeGraph.AnimationRate = 1;
+                            if (ImGui.Selectable("x2")) activeGraph.AnimationRate = 2;
+                            if (ImGui.Selectable("x4")) activeGraph.AnimationRate = 4;
+                            if (ImGui.Selectable("x8")) activeGraph.AnimationRate = 8;
+                            if (ImGui.Selectable("x16")) activeGraph.AnimationRate = 16;
                             ImGui.EndCombo();
                         }
 
@@ -1829,7 +1842,7 @@ namespace rgatCore
                 ImGui.EndGroup();
                 ImGui.SameLine();
                 //ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8);
-                DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, activeGraph.AnimationIndex);
+                DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, (int)Math.Floor(activeGraph.AnimationIndex));
 
                 ImGui.EndChild();
             }
@@ -1848,7 +1861,7 @@ namespace rgatCore
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(10, 0));
 
-                if (lastAnimIdx >= 0 && lastAnimIdx > graph.SavedAnimationData.Count)
+                if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
                 {
                     ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
                     ImGui.Text(lastEntry.entryType.ToString());
@@ -1913,8 +1926,9 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                //_visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
-                //_visualiserBar.Draw();
+                _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
+                _visualiserBar.Render();
+                _visualiserBar.Draw();
 
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 

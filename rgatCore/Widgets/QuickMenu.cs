@@ -177,6 +177,7 @@ namespace rgatCore.Widgets
             }
         }
 
+
         /// <summary>
         /// Take a keypress that might be dealt with by the open quickmenu
         /// Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
@@ -336,7 +337,7 @@ namespace rgatCore.Widgets
             _expandProgress = Math.Max(_expandProgress, 0);
         }
 
-        MenuEntry? __activeEntry_;
+        MenuEntry? __activeEntry_; //todo wtf
         MenuEntry? _activeEntry
         {
             get { return __activeEntry_; }
