@@ -101,6 +101,7 @@ namespace rgatCore.Widgets
 
         float _width;
         float _height;
+        float _newWidth = 400, _newHeight = 80;
         Position2DColour[] _pointVerts;
         Position2DColour[] _lineVerts;
         Position2DColour[] _triangleVerts;
@@ -208,8 +209,10 @@ namespace rgatCore.Widgets
             _cl.Dispose();
         }
 
-        public void Draw()
+        public void Draw(float width, float height)
         {
+            _newWidth = width;
+            _newHeight = height;
 
 
             //_rsrcs.Dispose();
@@ -310,13 +313,14 @@ namespace rgatCore.Widgets
 
 
         //todo lots of opportunity for caching here
-        public void GenerateLive(float width, float height, ProtoGraph graph)
+        public void GenerateLive(ProtoGraph graph)
         {
 
-            if (width != _width || height != _height)
+            if (_newWidth != _width || _newHeight != _height)
             {
-                CreateTextures(width, height);
+                CreateTextures(_newWidth, _newHeight);
             }
+
 
             _moduleTexts.Clear();
             List<Position2DColour> points = new List<Position2DColour>();
@@ -333,7 +337,7 @@ namespace rgatCore.Widgets
                 barScrollingPos = 0.05f;
             lastDrawnTagIdx = lastIdx;
 
-            float pSep = width / entryCount;
+            float pSep = _width / entryCount;
             float tagWidth = 3;
             float scrollOffset = 0f;
             if (barScrollingPos != 0)
@@ -342,13 +346,13 @@ namespace rgatCore.Widgets
                 barScrollingPos += 0.1f;
                 if (barScrollingPos >= 1f) barScrollingPos = 0;
             }
-            scrollOffset += width % pSep;
+            scrollOffset += _width % pSep;
 
             for (var i = 1; i < entries.Count + 1; i++)
             {
                 int backIdx = entries.Count - i;
                 ANIMATIONENTRY ae = entries[backIdx];
-                float Xoffset = (width - pSep * backIdx) - tagWidth;
+                float Xoffset = (_width - pSep * backIdx) - tagWidth;
 
                 Xoffset -= scrollOffset;
                 bool drawPlotLine;
@@ -498,25 +502,25 @@ namespace rgatCore.Widgets
                 float endX = ms.lastIdx * pSep + 1;
                 MODULE_LABEL label = new MODULE_LABEL
                 {
-                    startX = (width - startX) + 2,
-                    endX = width - (endX + 2),
+                    startX = (_width - startX) + 2,
+                    endX = _width - (endX + 2),
                     modID = ms.modID,
                     name = ms.name
                 };
                 _moduleTexts.Add(label);
 
                 //left border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
                 //top
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
                 //base
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - startX, 48f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
                 //right border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(width - endX, 48f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
+                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
             }
 
 
@@ -647,12 +651,12 @@ namespace rgatCore.Widgets
 
 
         //todo lots of opportunity for caching here
-        public void GenerateReplay(float width, float height, ProtoGraph graph)
+        public void GenerateReplay(ProtoGraph graph)
         {
 
-            if (width != _width || height != _height)
+            if (_newWidth != _width || _newHeight != _height)
             {
-                CreateTextures(width, height);
+                CreateTextures(_newWidth, _newHeight);
             }
 
             _moduleTexts.Clear();
@@ -669,11 +673,11 @@ namespace rgatCore.Widgets
             //Draw cumulative instruction count plot
             ulong cumulativeInsCount = 0;
             int lastPlotXPixel = -1;
-            float thirdHeight = (float)Math.Floor(height / 3);
+            float thirdHeight = (float)Math.Floor(_height / 3);
             Vector2 lastCumuLinePos = new Vector2(0, thirdHeight);
             Vector2 lastAvgLinePos = new Vector2(0, thirdHeight);
 
-            MaxBlockWorkCount(graph, width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs, out List<MODULE_SEGMENT> modsegs);
+            MaxBlockWorkCount(graph, _width, out Dictionary<int, double> cumuls, out Dictionary<int, double> avgs, out List<MODULE_SEGMENT> modsegs);
 
             foreach (KeyValuePair<int, double> cumulativeInsLinePixel in cumuls)
             {
@@ -716,9 +720,9 @@ namespace rgatCore.Widgets
             }
 
 
-            for (float x = 0; x < width; x++)
+            for (float x = 0; x < _width; x++)
             {
-                int entryIdx = (int)Math.Floor((x / (float)width) * animationData.Count);
+                int entryIdx = (int)Math.Floor((x / (float)_width) * animationData.Count);
                 ANIMATIONENTRY sample = animationData[entryIdx];
                 if ((int)sample.blockID != -1)
                 {
@@ -753,13 +757,13 @@ namespace rgatCore.Widgets
             }
 
             float baseThirdStart = thirdHeight * 2 + 1;
-            float baseThirdEnd = height - 2;
+            float baseThirdEnd = _height - 2;
 
             foreach (MODULE_SEGMENT seg in modsegs)
             {
                 WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
-                float startX = width * ((float)seg.firstIdx / (float)animationData.Count);
-                float endX = width * ((float)seg.lastIdx / (float)animationData.Count);
+                float startX = _width * ((float)seg.firstIdx / (float)animationData.Count);
+                float endX = _width * ((float)seg.lastIdx / (float)animationData.Count);
 
                 //left border
                 lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });

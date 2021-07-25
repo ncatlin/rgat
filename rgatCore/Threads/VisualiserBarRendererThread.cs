@@ -1,0 +1,97 @@
+﻿using rgatCore.Widgets;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+using System.Threading;
+using System.Timers;
+
+namespace rgatCore.Threads
+{
+    class VisualiserBarRendererThread : TraceProcessorWorker
+    {
+        public VisualiserBarRendererThread(VisualiserBar visualiserbar)
+        {
+            _visualiserBarWidget = visualiserbar;
+
+            _IrregularActionTimer = new System.Timers.Timer(600);
+            _IrregularActionTimer.Elapsed += FireIrregularTimer;
+            _IrregularActionTimer.AutoReset = true;
+
+        }
+
+
+        public override void Begin()
+        {
+            base.Begin();
+            WorkerThread = new Thread(ThreadProc);
+            WorkerThread.Name = $"VisualiserBarRenderer";
+            WorkerThread.Start();
+        }
+
+        public void Dispose()
+        {
+            _IrregularActionTimer?.Stop();
+            _IrregularActionTimer?.Dispose();
+
+        }
+
+        VisualiserBar _visualiserBarWidget;
+
+        System.Timers.Timer _IrregularActionTimer;
+        bool _IrregularActionTimerFired;
+
+        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
+
+        void update_rendering(PlottedGraph graph)
+        {
+
+
+        }
+
+        PlottedGraph _lastReplayGeneration = null;
+
+        public void ThreadProc()
+        {
+            PlottedGraph activeGraph;
+            Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
+            while (!_clientState.rgatIsExiting)
+            {
+
+                activeGraph = _clientState.getActiveGraph(false);
+                while (activeGraph == null)
+                {
+                    Thread.Sleep(50);
+                    if (_clientState.rgatIsExiting)
+                    {
+                        Finished();
+                        return;
+                    }
+                    activeGraph = _clientState.getActiveGraph(false);
+                    continue;
+                }
+
+                if (activeGraph.InternalProtoGraph.Terminated)
+                {
+                    if (activeGraph != _lastReplayGeneration)
+                    {
+                        _visualiserBarWidget.GenerateReplay(activeGraph.InternalProtoGraph);
+                        _lastReplayGeneration = activeGraph;
+                    }
+                    
+                }
+                else
+                {
+                    _visualiserBarWidget.GenerateLive(activeGraph.InternalProtoGraph);
+                }
+
+                _visualiserBarWidget.Render();
+
+
+                //todo get rid of this 1000 after testing
+                Thread.Sleep(GlobalConfig.renderFrequency + 100);
+            }
+            Finished();
+        }
+    }
+}

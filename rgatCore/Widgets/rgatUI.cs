@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
 using static rgatCore.Logging;
-using OpenH264Lib;
 
 namespace rgatCore
 {
@@ -33,10 +32,10 @@ namespace rgatCore
 
         //rgat program state
         private rgatState _rgatstate = null;
-        private int _selectedInstrumentationEngine = 0;
         private int _selectedInstrumentationLevel = 0;
 
         Threads.MainGraphRenderThread mainRenderThreadObj = null;
+        Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
         Threads.HeatRankingThread heatRankThreadObj = null;
         ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
@@ -109,7 +108,7 @@ namespace rgatCore
             RecordLogEvent("Startup: Initing graph display widgets", LogFilterType.TextDebug);
 
             _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
-
+            
             _UIstartupProgress = 0.60;
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500)); //1000~ ms
 
@@ -121,6 +120,10 @@ namespace rgatCore
             RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
             mainRenderThreadObj.Begin();
+
+            visbarRenderThreadObj = new VisualiserBarRendererThread(_visualiserBar);
+            visbarRenderThreadObj.Begin();
+
 
             heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
 
@@ -1690,9 +1693,8 @@ namespace rgatCore
 
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
-            _visualiserBar.GenerateReplay(progressBarSize.X, height, _rgatstate.ActiveGraph.InternalProtoGraph); //todo remove from ui thread
-            _visualiserBar.Render();
-            _visualiserBar.Draw();
+
+            _visualiserBar.Draw(progressBarSize.X, height);
 
 
             ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
@@ -1926,10 +1928,7 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                _visualiserBar.GenerateLive(width, 50, _rgatstate.ActiveGraph.InternalProtoGraph);
-                _visualiserBar.Render();
-                _visualiserBar.Draw();
-
+                _visualiserBar.Draw(width, 50);
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
                 if (ImGui.BeginChild("RenderingBox"))
