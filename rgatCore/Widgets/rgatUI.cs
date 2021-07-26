@@ -166,7 +166,12 @@ namespace rgatCore
 
             _rgatstate?.ShutdownRGAT();
 
-            while (!_UIStopped || mainRenderThreadObj.Running)
+            //wait for the ui stop stop and the main renderer to quit
+            while (
+                (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain")
+                || 
+                (mainRenderThreadObj != null && mainRenderThreadObj.Running)
+                )
             {
                 Thread.Sleep(10);
             }
@@ -190,6 +195,7 @@ namespace rgatCore
                 _keyPresses.Add(keyCombo);
             }
         }
+
         public void AlertResponsiveKeyEvent(Key key)
         {
             lock (_inputLock)
@@ -227,10 +233,10 @@ namespace rgatCore
         bool _UIStopped = false;
         public bool DrawUI()
         {
-            if (_rgatstate.rgatIsExiting) {
+            if (_rgatstate?.rgatIsExiting ?? false)
+            {
                 _UIStopped = true;
-
-                return false; 
+                return false;
             }
 
             var timer = new System.Diagnostics.Stopwatch();
@@ -292,6 +298,8 @@ namespace rgatCore
                 _frameTimerFired = false;
                 _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
             }
+
+
 
             return true;
         }
@@ -1619,6 +1627,11 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize, _rgatstate.ActiveGraph);
+                if (_capturing)
+                {
+                    _rgatstate.VideoRecorder.Encode(MainGraphWidget.GetBMP);
+                }
+
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
                 ImGui.EndChild();
@@ -1894,11 +1907,27 @@ namespace rgatCore
             }
         }
 
+        bool _capturing = false;
         void DrawVideoControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                ImGui.Button("Start Capture");
+                if (_capturing)
+                {
+
+                    if (ImGui.Button("Stop Capture"))
+                    {
+                        _capturing = false;
+                        _rgatstate.VideoRecorder.Done();
+                    }
+                }
+                else
+                {
+
+                    if (ImGui.Button("Start Capture")) _capturing = true;
+                }
+
+
                 ImGui.Button("Add Caption");
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
@@ -1984,7 +2013,7 @@ namespace rgatCore
                 _visualiserBar.Draw(width, 50);
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
-                if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y-2)))
+                if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y - 2)))
                 {
                     ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
                     DrawActiveTraceControlPanel(graph);
@@ -2816,7 +2845,8 @@ namespace rgatCore
                     if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets(); }
                     if (ImGui.MenuItem("Export Pajek")) { _rgatstate.ExportTraceAsPajek(_rgatstate.ActiveTrace, _rgatstate.ActiveGraph.tid); }
                     ImGui.Separator();
-                    if (ImGui.MenuItem("Exit")) {
+                    if (ImGui.MenuItem("Exit"))
+                    {
                         Task.Run(() => { Exit(); });
                     }
                     ImGui.EndMenu();

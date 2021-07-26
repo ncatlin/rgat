@@ -47,6 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FFMpegCore" Version="4.4.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.0" />
     <PackageReference Include="HexMate" Version="0.0.3" />
@@ -80,9 +81,6 @@
     </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>..\..\ImGui.NET-master\bin\Debug\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenH264Lib">
-      <HintPath>..\..\OpenH264Lib.NET\x64\Debug\OpenH264Lib.dll</HintPath>
     </Reference>
   </ItemGroup>
 

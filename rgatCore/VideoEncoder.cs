@@ -1,16 +1,25 @@
-﻿using ImGuiNET;
+﻿using FFMpegCore;
+using FFMpegCore.Arguments;
+using FFMpegCore.Enums;
+using FFMpegCore.Extend;
+using FFMpegCore.Pipes;
+using ImGuiNET;
+using rgatCore.Properties;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace rgatCore
 {
     public class VideoEncoder
     {
-        OpenH264Lib.Encoder _encoder;
         public bool Loaded { get; private set; }
         public bool Initialised { get; private set; }
         public string Error { get; private set; } = "";
@@ -39,23 +48,12 @@ namespace rgatCore
                 return false;
             }
 
-            try
-            {
-                _encoder = new OpenH264Lib.Encoder(GlobalConfig.VideoEncodeCiscoLibPath);
-            }
-            catch (Exception e)
-            {
-                Error = $"Failed to load OpenH264Lib {dllpath}: {e.Message}";
-                Logging.RecordLogEvent(Error, Logging.LogFilterType.TextError);
-                return false;
-            }
-
             Loaded = true;
             return true;
         }
 
-        int _frameWidth = 640;
-        int _frameHeight = 640;
+        int _frameWidth = 400;
+        int _frameHeight = 400;
         int _targetBitRate = 5000 * 1000;
         int _fps = 10;
         int _frameIntervalSeconds = 2;
@@ -77,31 +75,80 @@ namespace rgatCore
             _frameIntervalSeconds = interval;
         }
 
+        static BinaryWriter stream = null;
+
         bool Initialise()
         {
-            SetSettings(GlobalConfig.VideoCodec_Width, GlobalConfig.VideoCodec_Height, 
-                GlobalConfig.VideoCodec_Bitrate, GlobalConfig.VideoCodec_FPS, 
+            SetSettings(GlobalConfig.VideoCodec_Width, GlobalConfig.VideoCodec_Height,
+                GlobalConfig.VideoCodec_Bitrate, GlobalConfig.VideoCodec_FPS,
                 GlobalConfig.VideoCodec_FrameInterval);
 
-            try
-            {
-                _encoder.Setup(_frameWidth, _frameHeight, _targetBitRate, _fps, _frameIntervalSeconds, (data, length, frameType) =>
-                {
-                    // called when each frame encoded.
-                    Console.WriteLine("Encord {0} bytes, frameType:{1}", length, frameType);
 
-                });
-            }
-            catch (Exception e)
-            {
-                Error = $"Failed to initialise OpenH264Lib: {e.Message}";
-                Logging.RecordLogEvent(Error, Logging.LogFilterType.TextError);
-                return false;
-            }
+            string outputPath = Path.ChangeExtension(Path.GetTempFileName(), ".h264");
+            stream = new BinaryWriter(File.Open(outputPath, FileMode.Create));
+            Console.WriteLine("OutputPath: " + outputPath);
+            //IMediaInfo mediaInfo = FFmpeg.GetMediaInfo(Resources.MkvWithAudio);
+
+            _recording = true;
+            Task.Run(() => { Go(); });
 
             Initialised = true;
             return true;
         }
+
+
+        public bool _recording = false;
+        ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        readonly object _lock = new object();
+
+        IEnumerable<IVideoFrame> CreateFrames()
+        {
+            while (_recording)
+            {
+
+                Bitmap frame = null;
+                if (_bmpQueue.Any())
+                {
+                    if (_bmpQueue.TryDequeue(out frame))
+                    {
+                        Console.WriteLine($"Yielding bmp {frame.Width}*{frame.Height}");
+                        yield return new BitmapVideoFrameWrapper(frame);
+                    }
+                }
+                Thread.Sleep(15);
+            }
+            yield break;
+        }
+
+
+        async public void Go()
+        {
+            GlobalFFOptions.Configure(new FFOptions { BinaryFolder = @"C:\Users\nia\Desktop\rgatstuff\ffmpeg" });
+            string outfile = Path.ChangeExtension(Path.GetTempFileName(), VideoType.Mp4.Extension);
+
+            Console.WriteLine("Writing to " + outfile);
+            var videoFramesSource = new RawVideoPipeSource(CreateFrames());
+            await FFMpegArguments
+                .FromPipeInput(videoFramesSource)
+                .OutputToFile(outfile, false, opt => opt
+                    .WithVideoCodec(VideoCodec.LibX264))
+                .ProcessAsynchronously();
+            Console.WriteLine("Done " + outfile);
+        }
+
+
+
+        public void Encode(System.Drawing.Bitmap bmp)
+        {
+                _bmpQueue.Enqueue(bmp);
+            
+        }
+
+        public void Done()
+        {
+            _recording = false;
+        }
+
 
         public void DrawSettingsPane()
         {
@@ -220,7 +267,7 @@ namespace rgatCore
             }
 
             bool val = GlobalConfig.VideoEncodeLoadOnStart;
-            if(ImGui.Checkbox("Load on start", ref val))
+            if (ImGui.Checkbox("Load on start", ref val))
             {
                 GlobalConfig.VideoEncodeLoadOnStart = val;
                 GlobalConfig.AddUpdateAppSettings("LoadVideoCodecOnStart", val ? "True" : "False");

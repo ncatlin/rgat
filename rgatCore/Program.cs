@@ -57,7 +57,7 @@ namespace ImGuiNET
 
         private static void Setup()
         {
-
+            System.Threading.Thread.CurrentThread.Name = "rgatUIMain";
             Logging.RecordLogEvent("rgat is starting", Logging.LogFilterType.TextDebug);
 
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
@@ -169,6 +169,7 @@ namespace ImGuiNET
                 _housekeepingTimerFired = false;
                 _housekeepingTimer.Start();
             }
+            
         }
 
         private static void Cleanup()

@@ -1,10 +1,12 @@
 ﻿using ImGuiNET;
 using rgatCore.Shaders.SPIR_V;
 using rgatCore.Widgets;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -565,7 +567,8 @@ namespace rgatCore
             _graphLock.ExitWriteLock();
         }
 
-        void GetLatestTexture(out Texture graphtexture)
+        //todo remove unsafe 
+        unsafe void GetLatestTexture(out Texture graphtexture)
         {
             if (latestWrittenTexture == 1)
             {
@@ -577,6 +580,40 @@ namespace rgatCore
                 Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2;
             }
+
+
+
+            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
+                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
+
+            CommandList cmd = _gd.ResourceFactory.CreateCommandList();
+            cmd.Begin();
+            cmd.CopyTexture(graphtexture, stageTex);
+            cmd.End();
+            _gd.SubmitCommands(cmd);
+            _gd.WaitForIdle();
+
+            System.Drawing.Imaging.BitmapData data = bmp.LockBits(  new System.Drawing.Rectangle(0, 0, 400, 400),   
+                ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            byte* scan0 = (byte*)data.Scan0;
+            //DeviceBuffer staged = GetReadback(_gd, stageTex);
+            MappedResourceView<Rgba32> res = _gd.Map<Rgba32>(stageTex, MapMode.Read);
+            for (int y = 0; y < 400; y++)
+            {
+                for (int x = 0; x < 400; x++)
+                {
+                    Rgba32 px = res[x, y];
+                    byte* ptr = scan0 + y * data.Stride + x * 4;
+                    ptr[0] = px.B;
+                    ptr[1] = px.G;
+                    ptr[2] = px.R;
+                    ptr[3] = px.A;
+                }
+            }
+            bmp.UnlockBits(data);
+            _gd.Unmap(stageTex);
+            VeldridGraphBuffers.DoDispose(stageTex);
+            cmd.Dispose();
         }
 
 
@@ -674,13 +711,13 @@ namespace rgatCore
             VeldridGraphBuffers.DoDispose(_pickingStagingTexture);
 
             _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+                Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture1.Name = "OutTex1" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
             _outputFramebuffer1.Name = $"OPFB1_" + _outputTexture1.Name;
 
             _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+                Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture2.Name = "OutTex2" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
             _outputFramebuffer2.Name = $"OPFB2_" + _outputTexture2.Name;
@@ -688,12 +725,12 @@ namespace rgatCore
 
 
             _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                    PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+                    Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
             _pickingFrameBuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
 
             _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
-                    PixelFormat.R32_G32_B32_A32_Float,
+                    Veldrid.PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
             _graphLock.ExitWriteLock();
             Logging.RecordLogEvent("RecreateOutputTextures recreated", Logging.LogFilterType.BulkDebugLogFile);
@@ -1178,6 +1215,9 @@ namespace rgatCore
 
             _isInputTarget = ImGui.IsItemActive();
         }
+
+        System.Drawing.Bitmap bmp = new Bitmap(400, 400);
+            public System.Drawing.Bitmap GetBMP => new Bitmap(bmp);
 
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
 

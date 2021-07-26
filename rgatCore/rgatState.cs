@@ -60,6 +60,7 @@ namespace rgatCore
             rgatIsExiting = true;
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
+            VideoRecorder.Done();
 
             foreach (BinaryTarget targ in this.targets.GetBinaryTargets())
             {
