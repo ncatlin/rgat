@@ -164,8 +164,7 @@ namespace rgatCore
                 }
 
                 ProtoGraphs.Add(mainplot.tid, mainplot.InternalProtoGraph);
-                PlottedGraphs.Add(mainplot.tid, new Dictionary<eRenderingMode, PlottedGraph>());
-                PlottedGraphs[mainplot.tid][eRenderingMode.eStandardControlFlow] = mainplot;
+                PlottedGraphs[mainplot.tid] = mainplot;
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
@@ -183,7 +182,7 @@ namespace rgatCore
             if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-            var MainPlottedGraphs = GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+            var MainPlottedGraphs = GetPlottedGraphs();
             var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
@@ -210,7 +209,7 @@ namespace rgatCore
             if (PlottedGraphs.Count == 0) return null;
 
             //if (graphListLock.trylock())
-            var MainPlottedGraphs = GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+            var MainPlottedGraphs = GetPlottedGraphs();
             var graphsWithNodes = MainPlottedGraphs.Where(g => g?.InternalProtoGraph.NodeList.Count > 0);
             if (graphsWithNodes.Any())
             {
@@ -478,13 +477,13 @@ namespace rgatCore
         }
         public int GraphCount => ProtoGraphs.Count;
 
-        public Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>> PlottedGraphs = new Dictionary<uint, Dictionary<eRenderingMode, PlottedGraph>>();
+        public Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
 
-        public List<PlottedGraph> GetPlottedGraphs(eRenderingMode mode)
+        public List<PlottedGraph> GetPlottedGraphs()
         {
             lock (GraphListLock)
             {
-                return PlottedGraphs.Values.Select(gDict => gDict.ContainsKey(mode) ? gDict[mode] : null).ToList();
+                return PlottedGraphs.Values.ToList();
             }
         }
 
@@ -647,8 +646,7 @@ namespace rgatCore
 
             lock (GraphListLock)
             {
-                PlottedGraphs.Add(GraphThreadID, new Dictionary<eRenderingMode, PlottedGraph>());
-                PlottedGraphs[GraphThreadID].Add(eRenderingMode.eStandardControlFlow, standardRenderedGraph);
+                PlottedGraphs.Add(GraphThreadID, standardRenderedGraph);
             }
 
             protograph.AssignModulePath();
@@ -714,10 +712,9 @@ namespace rgatCore
 
             lock (GraphListLock)
             {
-                foreach (var tid__mode_graph in PlottedGraphs)
+                foreach (var tid_graph in PlottedGraphs)
                 {
-                    if (tid__mode_graph.Value.Count == 0) continue;
-                    ProtoGraph protograph = tid__mode_graph.Value[0].InternalProtoGraph;
+                    ProtoGraph protograph = tid_graph.Value.InternalProtoGraph;
                     if (protograph.NodeList.Count == 0) continue;
 
                     graphsList.Add(protograph.Serialise());
@@ -938,7 +935,7 @@ namespace rgatCore
 
         public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
-        public bool ProcessingRemaining => ProcessThreads.modThread.Running;
+        public bool ProcessingRemaining => ProcessThreads.modThread.Running || this.PlottedGraphs.Values.Any(g => !g.RenderingComplete());
 
 
         public TRACE_TEST_RESULTS EvaluateProcessTestRequirement(TraceRequirements ptreq, ref TraceTestResultCommentary resultsobj)

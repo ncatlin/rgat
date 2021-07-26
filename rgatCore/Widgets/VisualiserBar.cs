@@ -149,7 +149,7 @@ namespace rgatCore.Widgets
             }
         }
 
-       
+
         public void Render()
         {
             BarShaderParams shaderParams = new BarShaderParams
@@ -209,6 +209,12 @@ namespace rgatCore.Widgets
             _cl.Dispose();
         }
 
+        /// <summary>
+        /// Draw the latest rendered visualiser bar
+        /// Specified dimensions will be used in the next render
+        /// </summary>
+        /// <param name="width">Bar Width</param>
+        /// <param name="height">Bar Height</param>
         public void Draw(float width, float height)
         {
             _newWidth = width;
@@ -224,7 +230,13 @@ namespace rgatCore.Widgets
                 p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
-            foreach (var mtxt in _moduleTexts)
+            MODULE_LABEL[] labels = null;
+            lock (_lock)
+            {
+                labels = _moduleTexts.ToArray();
+            }
+
+            foreach (var mtxt in labels)
             {
                 imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
             }
@@ -233,7 +245,69 @@ namespace rgatCore.Widgets
         }
 
 
+        float _sliderPosX = -1;
+        /// <summary>
+        /// Draw a replay graph visualiser bar with animation sliders 
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="graph"></param>
+        public unsafe void DrawReplaySlider(float width, float height, PlottedGraph graph)
+        {
+            Vector2 progressBarSize = new Vector2(width, height);
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
+            ImGui.PushStyleColor(ImGuiCol.Button, 0xff00ffff);
+            ImGui.InvisibleButton("##ReplayProgressBtn", progressBarSize);
+            ImGui.PopStyleColor();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - progressBarSize.Y);
+            ImGui.PopStyleVar();
 
+            Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
+
+            Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
+            Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
+
+            if (ImGui.IsItemActive())
+            {
+                _sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
+            }
+            else
+            {
+
+                if (graph != null)
+                {
+                    float animPercentage = graph.GetAnimationPercent();
+                    _sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
+                }
+            }
+
+            Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + _sliderPosX, AnimationProgressBarPos.Y - 4);
+            if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
+            if (SliderArrowDrawPos.X > SliderRectEnd.X) SliderArrowDrawPos.X = SliderRectEnd.X;
+
+            float sliderBarPosition = (SliderArrowDrawPos.X - SliderRectStart.X) / progressBarSize.X;
+            if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
+            if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
+
+            if (ImGui.IsItemActive())
+            {
+                if (graph != null)
+                {
+                    graph.SeekToAnimationPosition(sliderBarPosition);
+                }
+                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
+            }
+
+
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
+
+            Draw(progressBarSize.X, height);
+
+
+            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
+                SliderArrowDrawPos,
+                new Vector2(3, 7), progressBarSize.Y, 240f);
+        }
 
 
         /*
@@ -309,7 +383,7 @@ namespace rgatCore.Widgets
         float barScrollingPos = 0;
 
         List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
-
+        readonly object _lock = new object();
 
 
         //todo lots of opportunity for caching here
@@ -322,7 +396,6 @@ namespace rgatCore.Widgets
             }
 
 
-            _moduleTexts.Clear();
             List<Position2DColour> points = new List<Position2DColour>();
             List<Position2DColour> lines = new List<Position2DColour>();
             List<Position2DColour> triangles = new List<Position2DColour>();
@@ -493,36 +566,39 @@ namespace rgatCore.Widgets
                 }
             }
 
-            for (var i = 0; i < moduleAreas.Count; i++)
+            lock (_lock)
             {
-                MODULE_SEGMENT ms = moduleAreas[i];
-                WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
-
-                float startX = (ms.firstIdx + 1) * pSep;
-                float endX = ms.lastIdx * pSep + 1;
-                MODULE_LABEL label = new MODULE_LABEL
+                _moduleTexts.Clear();
+                for (var i = 0; i < moduleAreas.Count; i++)
                 {
-                    startX = (_width - startX) + 2,
-                    endX = _width - (endX + 2),
-                    modID = ms.modID,
-                    name = ms.name
-                };
-                _moduleTexts.Add(label);
+                    MODULE_SEGMENT ms = moduleAreas[i];
+                    WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
 
-                //left border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
-                //top
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
-                //base
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
-                //right border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
+                    float startX = (ms.firstIdx + 1) * pSep;
+                    float endX = ms.lastIdx * pSep + 1;
+                    MODULE_LABEL label = new MODULE_LABEL
+                    {
+                        startX = (_width - startX) + 2,
+                        endX = _width - (endX + 2),
+                        modID = ms.modID,
+                        name = ms.name
+                    };
+                    _moduleTexts.Add(label);
+
+                    //left border
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
+                    //top
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 33f) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
+                    //base
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - startX, 48f) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
+                    //right border
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 33f) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(_width - endX, 48f) });
+                }
             }
-
 
             _pointVerts = points.ToArray();
             _lineVerts = lines.Concat(busyCountLinePoints).ToArray();
@@ -649,6 +725,7 @@ namespace rgatCore.Widgets
             }
         }
 
+        ProtoGraph _lastGeneratedReplayGraph = null;
 
         //todo lots of opportunity for caching here
         public void GenerateReplay(ProtoGraph graph)
@@ -658,6 +735,11 @@ namespace rgatCore.Widgets
             {
                 CreateTextures(_newWidth, _newHeight);
             }
+            else
+            {
+                if (graph == _lastGeneratedReplayGraph) return;
+            }
+            _lastGeneratedReplayGraph = graph;
 
             _moduleTexts.Clear();
             List<Position2DColour> points = new List<Position2DColour>();

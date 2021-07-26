@@ -337,7 +337,7 @@ namespace rgatCore
             Stopwatch timer = new Stopwatch();
             timer.Start();
 
-            if (graph.DrawnEdgesCount == 0 || !GlobalConfig.LayoutComputeEnabled)
+            if (graph.DrawnEdgesCount == 0 || !GlobalConfig.LayoutAllComputeEnabled)
             {
                 newversion = graph.LayoutState.RenderVersion;
                 return newversion;
@@ -418,13 +418,6 @@ namespace rgatCore
                 layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
                 layout.VelocitiesVRAM1);
 
-
-                posbefore = layout.PositionsVRAM2;
-                posafter = layout.PositionsVRAM1;
-                velocitybefore = layout.VelocitiesVRAM2;
-                velocityafter = layout.VelocitiesVRAM1;
-
-
                 pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer,
                  layout.PositionsVRAM2, layout.VelocitiesVRAM1, layout.BlockMetadata,
                   layout.PositionsVRAM1);
@@ -472,18 +465,6 @@ namespace rgatCore
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            if (forceComputationActive && EngineID == "Main")
-            {
-                int sz = 128;
-                //DebugPrintOutputFloatBuffer(posbefore, "pos before: ", sz);
-                //DebugPrintOutputFloatBuffer(velocitybefore, "velocitybefore: ", sz);
-                //DebugPrintOutputFloatBuffer(layout.PresetPositions, "preset: ", sz);
-
-                //DebugPrintOutputFloatBuffer(velocityafter, "velocityafter: ", sz);
-                //DebugPrintOutputFloatBuffer(posafter, "pos Computation Done. Result: ", sz);
-
-            }
-
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
@@ -509,11 +490,13 @@ namespace rgatCore
 
 
             timer.Stop();
-            lastComputeMS.Add(timer.ElapsedMilliseconds);
-            if (lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                lastComputeMS = lastComputeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-            AverageComputeTime = lastComputeMS.Average();
-
+            lock (_lock)
+            {
+                lastComputeMS.Add(timer.ElapsedMilliseconds);
+                if (lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                    lastComputeMS = lastComputeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                AverageComputeTime = lastComputeMS.Average();
+            }
             if (GlobalConfig.LayoutPositionsActive)
                 graph.RecordComputeTime(timer.ElapsedMilliseconds);
 

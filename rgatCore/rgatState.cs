@@ -71,11 +71,12 @@ namespace rgatCore
                     {
                         graphs[i]?.TraceReader?.Terminate();
                     }
-                    trace.ProcessThreads.modThread.Terminate();
-                    trace.ProcessThreads.BBthread.Terminate();
+                    trace.ProcessThreads?.modThread?.Terminate();
+                    trace.ProcessThreads?.BBthread?.Terminate();
 
                     //wait for all spawned processes to terminate
-                    while (trace.GetProtoGraphs().Exists(p => p.TraceProcessor.Running || p.TraceReader.Running))
+                    while (trace.GetProtoGraphs().Exists(p => ((p.TraceProcessor != null) && p.TraceProcessor.Running) || 
+                    ((p.TraceReader != null) && p.TraceReader.Running)))
                     {
                         Thread.Sleep(10);
                     }
@@ -275,7 +276,7 @@ namespace rgatCore
             if (LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
             {
                 bool found = false;
-                List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+                List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphs();
                 if (traceGraphs.Contains(foundGraph))
                 {
                     SwitchToGraph(foundGraph);

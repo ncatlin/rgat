@@ -31,11 +31,17 @@ namespace rgatCore.Threads
             int StopTimer = -1;
             bool moreRenderingNeeded;
 
+            while (!_clientState.rgatIsExiting && _graphWidget == null)
+            {
+                _graphWidget = _clientState.PreviewWidget;
+                Thread.Sleep(50);
+            }
+
             while (!_clientState.rgatIsExiting)
             {
                 //only write we are protecting against happens while creating new threads
                 //so not important to release this quickly
-                graphlist = RenderedTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+                graphlist = RenderedTrace.GetPlottedGraphs();
 
                 moreRenderingNeeded = false;
                 foreach (PlottedGraph graph in graphlist)
@@ -67,12 +73,8 @@ namespace rgatCore.Threads
                 int waitForNextIt = 0;
                 while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !_clientState.rgatIsExiting)
                 {
-
-
-                    Thread.Sleep(50); //sleep removed for debug
-
-
-                    waitForNextIt += 50;
+                    Thread.Sleep(5); //sleep removed for debug
+                    waitForNextIt += 5;
                 }
 
                 if (StopTimer < 0 && !moreRenderingNeeded && !RenderedTrace.IsRunning)

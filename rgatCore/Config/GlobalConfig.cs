@@ -142,13 +142,34 @@ namespace rgatCore
         /* 
          * Rendering config 
          */
-        public static uint Preview_PerProcessLoopSleepMS = 100;
-        public static uint Preview_PerThreadLoopSleepMS = 20;
+        /// <summary>
+        ///  Delay between rendering each preview trace (collection of threads)
+        /// </summary>
+        public static uint Preview_PerProcessLoopSleepMS = 25;
+        /// <summary>
+        /// Delay between preview rendering each thread in a trace
+        /// </summary>
+        public static uint Preview_PerThreadLoopSleepMS = 0;
+        /// <summary>
+        /// Maximum number of edges to plot for each round of preview
+        /// graph plotting. This is CPU bound so shoudl be limited to ensure each graph gets
+        /// a turn
+        /// </summary>
         public static uint Preview_EdgesPerRender = 60;
 
-        public static float animationFadeRate = 0.07f; //amount of alpha to reduce fading item by each frame
+        /// <summary>
+        /// Amount of alpha to reduce fading item by each frame
+        /// </summary>
+        public static float animationFadeRate = 0.07f; 
         public static int animationLingerFrames = 0; //number of frames before fade begins
-        public static int renderFrequency = 25;
+        /// <summary>
+        /// Milliseconds to wait between frames of Main (displayed) Graph rendering
+        /// </summary>
+        public static int MainGraphRenderDelay = 0;
+        /// <summary>
+        /// How many items of trace data to use to plot the graph per frame
+        /// Lower for interactivity, increase for throughput
+        /// </summary>
         public static int LiveAnimationUpdatesPerFrame = 500;
 
         public static bool showRisingAnimated = true;
@@ -187,10 +208,23 @@ namespace rgatCore
         public static int NodeClumpLimit = 50;
         public static float NodeClumpForce = 880.01f;
 
-        public static bool LayoutComputeEnabled = true;
+        /// <summary>
+        /// Toggle use of the GPU computation engine for main/preview graphs
+        /// </summary>
+        public static bool LayoutAllComputeEnabled = true; 
+        /// <summary>
+        /// Toggle position computation
+        /// </summary>
         public static bool LayoutPositionsActive = true;
+        /// <summary>
+        /// Toggle attribute (animation brightness+size) computation
+        /// </summary>
         public static bool LayoutAttribsActive = true;
 
+        /// <summary>
+        /// Maximum speed of force-directed nodes. Fast nodes will layout quickly but wobble
+        /// in their low energy position
+        /// </summary>
         public static float NodeSoftSpeedLimit = 200f;
         public static readonly float NodeHardSpeedLimit = 1000f; //match with value in velocity shader
 

@@ -746,6 +746,23 @@ namespace rgatCore
             }
         }
 
+        public void GetEdgeNodes(int index, out Tuple<uint, uint> srcTarg, out EdgeData e)
+        {
+            lock (edgeLock)
+            {
+                if (index < EdgeList.Count)
+                {
+                    srcTarg = EdgeList[index];
+                    _edgeDict.TryGetValue(srcTarg, out e);
+                }
+                else
+                {
+                    srcTarg = null;
+                    e = null;
+                }
+            }
+        }
+
         public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx, ulong execCount)
         {
             NodeData sourceNode = safe_get_node(SrcNodeIdx);

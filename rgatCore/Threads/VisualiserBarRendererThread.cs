@@ -49,8 +49,6 @@ namespace rgatCore.Threads
 
         }
 
-        PlottedGraph _lastReplayGeneration = null;
-
         public void ThreadProc()
         {
             PlottedGraph activeGraph;
@@ -73,12 +71,7 @@ namespace rgatCore.Threads
 
                 if (activeGraph.InternalProtoGraph.Terminated)
                 {
-                    if (activeGraph != _lastReplayGeneration)
-                    {
-                        _visualiserBarWidget.GenerateReplay(activeGraph.InternalProtoGraph);
-                        _lastReplayGeneration = activeGraph;
-                    }
-                    
+                    _visualiserBarWidget.GenerateReplay(activeGraph.InternalProtoGraph);
                 }
                 else
                 {
@@ -86,10 +79,7 @@ namespace rgatCore.Threads
                 }
 
                 _visualiserBarWidget.Render();
-
-
-                //todo get rid of this 1000 after testing
-                Thread.Sleep(GlobalConfig.renderFrequency + 100);
+                Thread.Sleep(GlobalConfig.MainGraphRenderDelay + 100);
             }
             Finished();
         }

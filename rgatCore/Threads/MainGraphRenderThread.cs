@@ -8,6 +8,7 @@ namespace rgatCore.Threads
         public MainGraphRenderThread(GraphPlotWidget maingraphwidget)
         {
             _graphWidget = maingraphwidget;
+            System.Diagnostics.Debug.Assert(maingraphwidget != null);
 
             _IrregularActionTimer = new System.Timers.Timer(600);
             _IrregularActionTimer.Elapsed += FireIrregularTimer;
@@ -82,6 +83,7 @@ namespace rgatCore.Threads
         public void ThreadProc()
         {
             PlottedGraph activeGraph;
+
             Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
             while (!_clientState.rgatIsExiting)
             {
@@ -107,7 +109,8 @@ namespace rgatCore.Threads
                 _graphWidget.GenerateMainGraph(cl);
 
                 //todo get rid of this 1000 after testing
-                //Thread.Sleep(GlobalConfig.renderFrequency + 100);
+                if (GlobalConfig.MainGraphRenderDelay > 0)
+                    Thread.Sleep(GlobalConfig.MainGraphRenderDelay);
             }
             Finished();
         }

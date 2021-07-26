@@ -27,7 +27,7 @@ namespace rgatCore
         {
             base.Begin();
             WorkerThread = new Thread(ControlEventListener);
-            WorkerThread.Name = $"TraceWorker_{trace.PID}_{trace.randID}";
+            WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
             WorkerThread.Start();
         }
 
@@ -144,13 +144,10 @@ namespace rgatCore
             }
 
             //shouldn't be needed - plotter should get this from the graph
-            if (trace.PlottedGraphs.TryGetValue(TID, out Dictionary<eRenderingMode, PlottedGraph> graphdict))
+            if (trace.PlottedGraphs.TryGetValue(TID, out PlottedGraph graph))
             {
-                if (graphdict.TryGetValue(eRenderingMode.eStandardControlFlow, out PlottedGraph graph))
-                {
-                    graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
-                    return;
-                }
+                graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+                return;
             }
 
             Logging.RecordLogEvent($"Thread {TID} terminated (no plotted graph)");
@@ -505,7 +502,7 @@ namespace rgatCore
             bool alldone = false;
             while (!_clientState.rgatIsExiting && !alldone)
             {
-                var graphs = trace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+                var graphs = trace.GetPlottedGraphs();
                 alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.Running);
                 if (!alldone) Thread.Sleep(35);
             }

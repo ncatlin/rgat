@@ -551,9 +551,9 @@ private void DrawScalePopup()
 
                     ImGui.Text("All Computation:");
                     ImGui.TableNextColumn();
-                    if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutComputeEnabled, "Computation active"))
+                    if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutAllComputeEnabled, "Computation active"))
                     {
-                        GlobalConfig.LayoutComputeEnabled = !GlobalConfig.LayoutComputeEnabled;
+                        GlobalConfig.LayoutAllComputeEnabled = !GlobalConfig.LayoutAllComputeEnabled;
                     }
 
                     ImGui.TableNextRow();

@@ -514,6 +514,7 @@ namespace rgatCore.Threads
         //decodes argument and places in processing queue, processes if all decoded for that call
         void HandleArg(byte[] entry)
         {
+            return;
             //todo also - crashes if proto handler disabled, why
             //todo
             //Console.WriteLine("todo reenable incoming areguments after crashes stop");

@@ -60,7 +60,7 @@ namespace rgatCore.Testing
                     while (!_rgatState.rgatIsExiting && !Finished)
                     {
                         Thread.Sleep(100);
-                        if (!testTrace.ProcessingRemaining)
+                        if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)
                             Finished = true;
                     }
                 }
@@ -72,6 +72,8 @@ namespace rgatCore.Testing
             Console.WriteLine($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
 
             Running = false;
+
+            
 
 
             _testCase.RecordFinished();

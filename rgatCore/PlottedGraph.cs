@@ -199,6 +199,7 @@ namespace rgatCore
         public void StepPausedAnimation(int steps)
         {
             process_replay_animation_updates(steps);
+            AnimationIndex = (int)Math.Floor(AnimationIndex);
         }
 
 
@@ -241,9 +242,13 @@ namespace rgatCore
             if (drawCount <= 0) return;
             int dbglimit = 9999;
             if (DrawnEdgesCount > dbglimit) return;
+
+
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
-                var edgeNodes = InternalProtoGraph.EdgeList[(int)edgeIdx];
+                InternalProtoGraph.GetEdgeNodes(edgeIdx, out Tuple<uint, uint> edgeNodes, out EdgeData e);
+                Debug.Assert(edgeNodes != null);
+                Debug.Assert(e != null);
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
                     AddNode(edgeNodes.Item1);
@@ -251,8 +256,6 @@ namespace rgatCore
 
                 if (edgeNodes.Item2 >= _graphStructureLinear.Count)
                 {
-                    EdgeData e = InternalProtoGraph.GetEdge(edgeNodes);
-                    Debug.Assert(e != null); //may just need to wait
                     //if (e.edgeClass == eEdgeNodeType.eEdgeException)
                     //    NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
                     AddNode(edgeNodes.Item2, e);
@@ -1296,7 +1299,7 @@ namespace rgatCore
                 for (uint x = 0; x < textureSize; x++)
                 {
                     var index = y * textureSize + x;
-                    if (index >= nodeCount) return NodeVerts;
+                    if (index >= nodeCount || index >= InternalProtoGraph.NodeList.Count) return NodeVerts;
 
                     nodeIndices.Add(index);
 

@@ -108,7 +108,7 @@ namespace rgatCore
             RecordLogEvent("Startup: Initing graph display widgets", LogFilterType.TextDebug);
 
             _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
-            
+
             _UIstartupProgress = 0.60;
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500)); //1000~ ms
 
@@ -1642,65 +1642,8 @@ namespace rgatCore
 
 
 
-        float sliderPosX = -1;
-
-        private unsafe void DrawReplaySlider(float width, float height)
-        {
-            Vector2 progressBarSize = new Vector2(width, height);
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
-            ImGui.PushStyleColor(ImGuiCol.Button, 0xff00ffff);
-            ImGui.InvisibleButton("##ReplayProgressBtn", progressBarSize);
-            ImGui.PopStyleColor();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - progressBarSize.Y);
-            ImGui.PopStyleVar();
-
-            Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
-
-            Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
-            Vector2 SliderRectEnd = new Vector2(AnimationProgressBarPos.X + progressBarSize.X, AnimationProgressBarPos.Y + progressBarSize.Y);
-
-            PlottedGraph activeGraph = _rgatstate.ActiveGraph;
-            if (ImGui.IsItemActive())
-            {
-                sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
-            }
-            else
-            {
-
-                if (activeGraph != null)
-                {
-                    float animPercentage = activeGraph.GetAnimationPercent();
-                    sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
-                }
-            }
-
-            Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + sliderPosX, AnimationProgressBarPos.Y - 4);
-            if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
-            if (SliderArrowDrawPos.X > SliderRectEnd.X) SliderArrowDrawPos.X = SliderRectEnd.X;
-
-            float sliderBarPosition = (SliderArrowDrawPos.X - SliderRectStart.X) / progressBarSize.X;
-            if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
-            if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
-
-            if (ImGui.IsItemActive())
-            {
-                if (activeGraph != null)
-                {
-                    activeGraph.SeekToAnimationPosition(sliderBarPosition);
-                }
-                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
-            }
 
 
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
-
-            _visualiserBar.Draw(progressBarSize.X, height);
-
-
-            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
-                SliderArrowDrawPos,
-                new Vector2(3, 7), progressBarSize.Y, 240f);
-        }
 
 
 
@@ -1741,101 +1684,23 @@ namespace rgatCore
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF000000);
 
-            if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
+            if (ImGui.BeginChild(ImGui.GetID("ReplayControlPanel"), new Vector2(width, otherControlsHeight)))
             {
-                DrawReplaySlider(width: width, height: 50);
+                _visualiserBar.DrawReplaySlider(width: width, height: 50, graph: activeGraph);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
-                    if (ImGui.BeginChild("ctrls2354", new Vector2(600, 110)))
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(600, ImGui.GetContentRegionAvail().Y - 2)))
                     {
-                        string indexPos = "";
-                        if (activeGraph.AnimationIndex > 0)
-                            indexPos = $" ({activeGraph.AnimationIndex:F2}/{activeGraph.InternalProtoGraph.SavedAnimationData.Count})";
-                        switch (activeGraph.ReplayState)
-                        {
-                            case PlottedGraph.REPLAY_STATE.ePaused:
-                                ImGui.Text("Trace Replay: Paused"+indexPos);
-                                break;
-                            case PlottedGraph.REPLAY_STATE.eEnded:
-                                ImGui.Text("Trace Replay: Resetting" + indexPos);
-                                break;
-                            case PlottedGraph.REPLAY_STATE.ePlaying:
-                                ImGui.Text("Trace Replay: Replaying" + indexPos);
-                                break;
-                            case PlottedGraph.REPLAY_STATE.eStopped:
-                                ImGui.Text("Trace Replay: Stopped" + indexPos);
-                                break;
-                        }
 
-                        if (activeGraph != null)
-                        {
-                            PlottedGraph.REPLAY_STATE replaystate = activeGraph.ReplayState;
-                            string BtnText = replaystate == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
-                            ImGui.BeginGroup();
-                            if (ImGui.Button(BtnText, new Vector2(36, 36)))
-                            {
-                                activeGraph.PlayPauseClicked();
-                            }
-
-                            if (replaystate == PlottedGraph.REPLAY_STATE.ePaused)
-                            {
-                                ImGui.SameLine();
-                                if (ImGui.Button("Step", new Vector2(36, 36)))
-                                {
-                                    activeGraph.StepPausedAnimation(1);
-                                }
-                            }
-
-                            if (ImGui.Button("Reset", new Vector2(36, 36)))
-                            {
-                                activeGraph.ResetClicked();
-                            }
-
-                            bool isanimed = false;
-                            string bt = "Set Animated";
-                            if (activeGraph.IsAnimated)
-                            {
-                                bt = "Set NonAnimated";
-                                isanimed = true;
-                            }
-                            ImGui.SameLine();
-                            if (ImGui.Button(bt, new Vector2(66, 36)))
-                            {
-                                activeGraph.SetAnimated(!isanimed);
-                            }
-
-
-
-
-                            ImGui.EndGroup();
-                        }
-
-                        ImGui.SameLine(); //pointless?
-                        ImGui.SetNextItemWidth(120f);
-
-                        float speedVal = activeGraph.AnimationRate;
-                        if (ImGui.SliderFloat("##SpeedSlider", ref speedVal, 0, 100, format:"%.2f", flags: ImGuiSliderFlags.Logarithmic ))
-                        {
-                            activeGraph.AnimationRate = speedVal;
-                        }
+                        DrawReplayControlsPanel(activeGraph);
                         ImGui.SameLine();
-
-                        ImGui.SetNextItemWidth(65f);
-                        if (ImGui.BeginCombo("Replay Speed", $" {activeGraph.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
-                        {
-                            if (ImGui.Selectable("x1/4")) activeGraph.AnimationRate = 0.25f;
-                            if (ImGui.Selectable("x1/2")) activeGraph.AnimationRate = 0.5f;
-                            if (ImGui.Selectable("x1")) activeGraph.AnimationRate = 1;
-                            if (ImGui.Selectable("x2")) activeGraph.AnimationRate = 2;
-                            if (ImGui.Selectable("x4")) activeGraph.AnimationRate = 4;
-                            if (ImGui.Selectable("x8")) activeGraph.AnimationRate = 8;
-                            if (ImGui.Selectable("x16")) activeGraph.AnimationRate = 16;
-                            ImGui.EndCombo();
-                        }
+                        DrawRenderControlPanel(activeGraph);
+                        ImGui.SameLine();
+                        DrawVideoControlPanel(activeGraph);
 
                         ImGui.EndChild();
                     }
@@ -1851,6 +1716,182 @@ namespace rgatCore
 
             ImGui.PopStyleColor();
         }
+
+        void DrawReplayControlsPanel(PlottedGraph graph)
+        {
+            string indexPos = "";
+            if (graph.AnimationIndex > 0)
+                indexPos = $" ({graph.AnimationIndex:F2}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
+            switch (graph.ReplayState)
+            {
+                case PlottedGraph.REPLAY_STATE.ePaused:
+                    ImGui.Text("Trace Replay: Paused" + indexPos);
+                    break;
+                case PlottedGraph.REPLAY_STATE.eEnded:
+                    ImGui.Text("Trace Replay: Resetting" + indexPos);
+                    break;
+                case PlottedGraph.REPLAY_STATE.ePlaying:
+                    ImGui.Text("Trace Replay: Replaying" + indexPos);
+                    break;
+                case PlottedGraph.REPLAY_STATE.eStopped:
+                    ImGui.Text("Trace Replay: Stopped" + indexPos);
+                    break;
+            }
+
+
+            if (ImGui.BeginChild("ReplayControlsFrame1", new Vector2(250, ImGui.GetContentRegionAvail().Y - 2), true))
+            {
+
+                ImGui.BeginGroup();
+                {
+                    PlottedGraph.REPLAY_STATE replaystate = graph.ReplayState;
+                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
+
+                    if (ImGui.Button(BtnText, new Vector2(38, 26)))
+                    {
+                        graph.PlayPauseClicked();
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button("Reset", new Vector2(38, 26)))
+                    {
+                        graph.ResetClicked();
+                    }
+                    ImGui.SameLine();
+                    if (replaystate == PlottedGraph.REPLAY_STATE.ePaused && ImGui.Button("Step", new Vector2(38, 26)))
+                    {
+                        ImGui.SameLine();
+                        graph.StepPausedAnimation(1);
+                    }
+                    ImGui.EndGroup();
+                }
+                ImGui.SetNextItemWidth(120f);
+
+                float speedVal = graph.AnimationRate;
+                if (ImGui.DragFloat("##SpeedSlider", ref speedVal, 0.25f, 0, 100, format: "Replay Speed: %.2f", flags: ImGuiSliderFlags.Logarithmic))
+                {
+                    graph.AnimationRate = speedVal;
+                }
+                SmallWidgets.MouseoverText("The number of trace updates to replay per frame. Double click to set a custom rate.");
+                ImGui.SameLine();
+
+                ImGui.SetNextItemWidth(65f);
+                if (ImGui.BeginCombo("##Replay Speed", $" {graph.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
+                {
+                    if (ImGui.Selectable("x1/10")) graph.AnimationRate = 0.1f;
+                    if (ImGui.Selectable("x1/4")) graph.AnimationRate = 0.25f;
+                    if (ImGui.Selectable("x1/2")) graph.AnimationRate = 0.5f;
+                    if (ImGui.Selectable("x1")) graph.AnimationRate = 1;
+                    if (ImGui.Selectable("x2")) graph.AnimationRate = 2;
+                    if (ImGui.Selectable("x5")) graph.AnimationRate = 5;
+                    if (ImGui.Selectable("x10")) graph.AnimationRate = 10;
+                    if (ImGui.Selectable("x25")) graph.AnimationRate = 25;
+                    if (ImGui.Selectable("x50")) graph.AnimationRate = 50;
+                    if (ImGui.Selectable("x100")) graph.AnimationRate = 100;
+                    ImGui.EndCombo();
+                }
+                SmallWidgets.MouseoverText("The number of trace updates to replay per frame");
+
+                ImGui.EndGroup();
+                ImGui.EndChild();
+            }
+        }
+
+        void DrawActiveTraceControlPanel(PlottedGraph graph)
+        {
+            if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(160, 110), true))
+            {
+
+                ImGui.Columns(2);
+                ImGui.SetColumnWidth(0, 65);
+                ImGui.SetColumnWidth(1, 90);
+
+
+                ImGui.BeginGroup();
+                {
+                    if (ImGui.Button("Kill"))
+                    {
+                        graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+                    }
+                    SmallWidgets.MouseoverText("Terminate the process running the current thread");
+
+                    if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
+                }
+                ImGui.EndGroup();
+
+                ImGui.NextColumn();
+
+                ImGui.BeginGroup();
+                {
+                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
+                    {
+                        if (ImGui.Button("Pause/Break"))
+                        {
+                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                        }
+                        SmallWidgets.MouseoverText("Pause all process threads");
+                    }
+
+                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+                    {
+                        if (ImGui.Button("Continue"))
+                        {
+                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
+                        }
+                        SmallWidgets.MouseoverText("Resume all process threads");
+
+                        if (ImGui.Button("Step In"))
+                        {
+                            graph.InternalProtoGraph.TraceData.SendDebugStep(graph.tid);
+                        }
+                        SmallWidgets.MouseoverText("Step to next instruction");
+
+                        if (ImGui.Button("Step Over"))
+                        {
+                            graph.InternalProtoGraph.TraceData.SendDebugStepOver(graph.InternalProtoGraph);
+                        }
+                        SmallWidgets.MouseoverText("Step past call instruction");
+
+                    }
+                }
+                ImGui.EndGroup();
+                ImGui.Columns(1);
+                ImGui.EndChild();
+            }
+        }
+
+
+        void DrawRenderControlPanel(PlottedGraph graph)
+        {
+            if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
+            {
+                if (SmallWidgets.ToggleButton("AnimatedToggle", graph.IsAnimated, "In animated mode the graph is dark with active regions lit up"))
+                {
+                    graph.SetAnimated(!graph.IsAnimated);
+                }
+                ImGui.SameLine();
+                ImGui.Text(graph.IsAnimated ? "Animated" : "Static Brightness");
+
+                if (SmallWidgets.ToggleButton("LayoutComputeEnabled", GlobalConfig.LayoutPositionsActive, "Toggle GPU graph layout compuation"))
+                {
+                    GlobalConfig.LayoutPositionsActive = !GlobalConfig.LayoutPositionsActive;
+                }
+                ImGui.SameLine();
+                ImGui.Text(GlobalConfig.LayoutPositionsActive ? "Layout Enabled" : "Layout Disabled");
+                ImGui.EndChild();
+            }
+        }
+
+        void DrawVideoControlPanel(PlottedGraph graph)
+        {
+            if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
+            {
+                ImGui.Button("Start Capture");
+                ImGui.Button("Add Caption");
+                ImGui.Button("Capture Settings");
+                ImGui.EndChild();
+            }
+        }
+
 
 
         void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
@@ -1922,110 +1963,29 @@ namespace rgatCore
 
         private unsafe void DrawLiveTraceControls(float otherControlsHeight, float width, PlottedGraph graph)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF808022);
 
             float replayControlsSize = ImGui.GetContentRegionAvail().X;
-            if (ImGui.BeginChild(ImGui.GetID("LiveControls"), new Vector2(replayControlsSize, otherControlsHeight)))
+            if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
                 _visualiserBar.Draw(width, 50);
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
-                if (ImGui.BeginChild("RenderingBox"))
+                if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y-2)))
                 {
                     ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x77889900);
-                    if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(600, 110)))
-                    {
-
-                        ImGui.Columns(2);
-                        ImGui.SetColumnWidth(0, 200);
-                        ImGui.SetColumnWidth(1, 200);
-
-
-                        ImGui.BeginGroup();
-                        if (ImGui.RadioButton("Static", !graph.IsAnimated))
-                        {
-                            graph.SetAnimated(false);
-                        }
-                        if (ImGui.RadioButton("Animated", graph.IsAnimated))
-                        {
-                            graph.SetAnimated(true);
-                        }
-                        ImGui.EndGroup();
-
-                        ImGui.BeginGroup();
-                        if (ImGui.Button("Kill"))
-                        {
-                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
-                        }
-                        if (ImGui.IsItemHovered())
-                            ImGui.SetTooltip("Terminate the process");
-
-                        ImGui.SameLine();
-
-                        if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
-
-                        ImGui.EndGroup();
-
-                        ImGui.NextColumn();
-
-                        ImGui.BeginGroup();
-
-                        if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
-                        {
-                            if (ImGui.Button("Pause/Break"))
-                            {
-                                graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
-                            }
-                            if (ImGui.IsItemHovered())
-                                ImGui.SetTooltip("Pause all process threads");
-                        }
-
-                        if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
-                        {
-                            if (ImGui.Button("Continue"))
-                            {
-                                graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
-                            }
-                            if (ImGui.IsItemHovered())
-                                ImGui.SetTooltip("Resume all process threads");
-
-                            if (ImGui.Button("Step In"))
-                            {
-                                graph.InternalProtoGraph.TraceData.SendDebugStep(graph.tid);
-                            }
-                            if (ImGui.IsItemHovered())
-                                ImGui.SetTooltip("Step to next instruction");
-
-                            if (ImGui.Button("Step Over"))
-                            {
-                                graph.InternalProtoGraph.TraceData.SendDebugStepOver(graph.InternalProtoGraph);
-                            }
-                            if (ImGui.IsItemHovered())
-                                ImGui.SetTooltip("Step past call instruction");
-                        }
-
-                        ImGui.EndGroup();
-                        ImGui.Columns(1);
-                        ImGui.EndChild();
-                        ImGui.PopStyleColor();
-                    }
+                    DrawActiveTraceControlPanel(graph);
                     ImGui.SameLine();
-                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
-
-
+                    DrawRenderControlPanel(graph);
+                    ImGui.SameLine();
+                    DrawVideoControlPanel(graph);
                     ImGui.EndChild();
                 }
-
-
-
-
-
+                ImGui.SameLine();
+                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
                 ImGui.EndChild();
             }
 
-            ImGui.PopStyleColor();
         }
 
         private void SetActiveGraph(PlottedGraph graph)
@@ -2106,7 +2066,7 @@ namespace rgatCore
                     if (_rgatstate.ActiveTrace != null)
                     {
                         selString = "TID " + graph.ThreadID;
-                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphs();
                         if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
@@ -2187,13 +2147,15 @@ namespace rgatCore
                     SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
 
                     ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
-                    string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
-                    if (traceProcessor.PendingBlockRepeats > 0)
+                    if (traceProcessor != null)
                     {
-                        BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                        string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                        if (traceProcessor.PendingBlockRepeats > 0)
+                        {
+                            BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                        }
+                        ImGui.Text($"BRepQu: {BrQlab}");
                     }
-                    ImGui.Text($"BRepQu: {BrQlab}");
-
 
                     if (_UIDrawFPS >= 100)
                     {
@@ -2262,13 +2224,11 @@ namespace rgatCore
             float otherControlsHeight = controlsHeight - topControlsBarHeight;
             float frameHeight = otherControlsHeight - vpadding;
             float controlsWidth = ImGui.GetContentRegionAvail().X;
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFFf0f000);
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(controlsWidth, frameHeight)))
             {
                 PlottedGraph activeGraph = _rgatstate.ActiveGraph;
                 if (activeGraph != null)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF00ff00);
                     if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI_Constants.PREVIEW_PANE_WIDTH, frameHeight)))
                     {
                         if (!activeGraph.InternalProtoGraph.Terminated)
@@ -2279,16 +2239,13 @@ namespace rgatCore
                         {
                             DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X);
                         }
-
                         ImGui.EndChild();
                     }
-                    ImGui.PopStyleColor();
                 }
                 ImGui.SameLine();
                 DrawTraceSelector(frameHeight, UI_Constants.PREVIEW_PANE_WIDTH);
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
 
         }
 
@@ -2709,10 +2666,13 @@ namespace rgatCore
                 if (_LogFilters.Any(f => f == true))
                 {
                     var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
-                    foreach (TIMELINE_EVENT ev in TLmsgs)
+                    if (TLmsgs != null)
                     {
-                        if (_LogFilters[(int)ev.Filter])
-                            shownMsgs.Add(ev);
+                        foreach (TIMELINE_EVENT ev in TLmsgs)
+                        {
+                            if (_LogFilters[(int)ev.Filter])
+                                shownMsgs.Add(ev);
+                        }
                     }
                 }
 

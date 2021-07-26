@@ -19,7 +19,6 @@ namespace rgatCore
     {
         public PlottedGraph ActiveGraph { get; private set; }
 
-
         QuickMenu _QuickMenu;
         ImGuiController _controller;
 
@@ -520,7 +519,7 @@ namespace rgatCore
         }
 
         Framebuffer _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
-        bool processingAnimatedGraph;
+        bool _processingAnimatedGraph;
 
         /// <summary>
         /// Edges pipeline = line list or line strp
@@ -1551,15 +1550,16 @@ namespace rgatCore
                 _newGraphSize = null;
             }
 
+
             bool newAttribs = false;
-            if (processingAnimatedGraph && !graph.IsAnimated)
+            if (_processingAnimatedGraph && !graph.IsAnimated)
             {
                 newAttribs = true;
-                processingAnimatedGraph = false;
+                _processingAnimatedGraph = false;
             }
-            else if (!processingAnimatedGraph && graph.IsAnimated)
+            else if (!_processingAnimatedGraph && graph.IsAnimated)
             {
-                processingAnimatedGraph = true;
+                _processingAnimatedGraph = true;
             }
             if (graph.HighlightsChanged)
             {

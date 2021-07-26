@@ -315,7 +315,7 @@ namespace rgatCore
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
-            DrawnPreviewGraphs = activeTrace.GetPlottedGraphs(mode: eRenderingMode.eStandardControlFlow);
+            DrawnPreviewGraphs = activeTrace.GetPlottedGraphs();
             List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
             uint captionBackgroundcolor = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewTextBackground);
 
@@ -334,7 +334,7 @@ namespace rgatCore
 
                     if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
                     {
-                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs(eRenderingMode.eStandardControlFlow);
+                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs();
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
 

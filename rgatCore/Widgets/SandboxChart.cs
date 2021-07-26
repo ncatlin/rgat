@@ -25,6 +25,7 @@ namespace rgatCore.Widgets
             public Logging.eTimelineEvent TLtype;
             public object reference;
         }
+        //todo lock access to this
         QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>> sbgraph = new BidirectionalGraph<itemNode, Edge<itemNode>>();
         GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>>> layout;
         Vector2 chartSize;
