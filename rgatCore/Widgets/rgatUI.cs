@@ -166,6 +166,11 @@ namespace rgatCore
 
             _rgatstate?.ShutdownRGAT();
 
+            while (!_UIStopped || mainRenderThreadObj.Running)
+            {
+                Thread.Sleep(10);
+            }
+
             MainGraphWidget?.Dispose();
             PreviewGraphWidget?.Dispose();
 
@@ -219,16 +224,22 @@ namespace rgatCore
             }
         }
 
-
-        public void DrawUI()
+        bool _UIStopped = false;
+        public bool DrawUI()
         {
+            if (_rgatstate.rgatIsExiting) {
+                _UIStopped = true;
+
+                return false; 
+            }
+
             var timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 
             bool hasActiveTrace = _rgatstate?.ActiveTarget != null;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
-            //window_flags |= ImGuiWindowFlags.NoTitleBar;
+            window_flags |= ImGuiWindowFlags.NoDecoration;
             if (hasActiveTrace)
             {
                 window_flags |= ImGuiWindowFlags.MenuBar;
@@ -239,10 +250,10 @@ namespace rgatCore
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
             //ImGui.GetIO().ConfigWindowsResizeFromEdges = true;
 
-            ImGui.SetNextWindowPos(new Vector2(50, 50), ImGuiCond.Appearing);
+            ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Always);
 
-            //ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Appearing);
-            ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Always);
+            //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
             Themes.ApplyThemeColours();
             ImGui.Begin("rgat Primary Window", window_flags);
@@ -281,6 +292,8 @@ namespace rgatCore
                 _frameTimerFired = false;
                 _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
             }
+
+            return true;
         }
 
         void DrawGraphStatsDialog(ref bool hideme)
@@ -2803,7 +2816,9 @@ namespace rgatCore
                     if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets(); }
                     if (ImGui.MenuItem("Export Pajek")) { _rgatstate.ExportTraceAsPajek(_rgatstate.ActiveTrace, _rgatstate.ActiveGraph.tid); }
                     ImGui.Separator();
-                    if (ImGui.MenuItem("Exit")) { }
+                    if (ImGui.MenuItem("Exit")) {
+                        Task.Run(() => { Exit(); });
+                    }
                     ImGui.EndMenu();
                 }
 
@@ -2815,6 +2830,8 @@ namespace rgatCore
                 {
                     ToggleTestHarness();
                 }
+
+                ImGui.MenuItem("Demo", null, ref _ImGuiController.ShowDemoWindow, true);
                 ImGui.EndMenuBar();
             }
         }

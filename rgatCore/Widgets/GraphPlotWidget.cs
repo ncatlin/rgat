@@ -52,9 +52,6 @@ namespace rgatCore
         public void Dispose()
         {
             Exiting = true;
-            _graphLock.EnterWriteLock();
-            _graphLock.ExitWriteLock();
-            _graphLock.Dispose();
         }
 
 

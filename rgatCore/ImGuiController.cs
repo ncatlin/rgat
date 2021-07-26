@@ -59,6 +59,8 @@ namespace ImGuiNET
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
 
+
+        public bool ShowDemoWindow = false;
         public GraphicsDevice graphicsDevice => _gd;
 
         /// <summary>

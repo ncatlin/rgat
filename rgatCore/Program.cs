@@ -139,7 +139,16 @@ namespace ImGuiNET
             HeldResponsiveKeys.ForEach(key => _rgatui.AlertResponsiveKeyEvent(key));
 
             _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
-            SubmitUI();
+
+            if (!_rgatui.DrawUI())
+            {
+                _window.Close();
+            }
+           
+            if (_controller.ShowDemoWindow)
+            {
+                SubmitDemoUI();
+            }
             _gd.WaitForIdle();
             _cl.Begin();
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
@@ -298,15 +307,6 @@ namespace ImGuiNET
             {
                 _memoryEditor.Draw("Memory Editor", _memoryEditorData, _memoryEditorData.Length);
             }
-        }
-
-        private static unsafe void SubmitUI()
-        {
-
-            SubmitDemoUI();
-
-            _rgatui.DrawUI();
-
         }
     }
 }
