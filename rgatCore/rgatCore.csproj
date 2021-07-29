@@ -60,10 +60,10 @@
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0-preview.1.21102.12" />
-    <PackageReference Include="Veldrid" Version="4.9.0-g7c248955fb" />
+    <PackageReference Include="Veldrid" Version="4.9.0-g831b50551e" />
     <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0-g7c248955fb" />
-    <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0-g7c248955fb" />
-    <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0-g7c248955fb" />
+    <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0-g831b50551e" />
+    <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0-g831b50551e" />
     <PackageReference Include="Veldrid.SDL2" Version="4.9.0-g7c248955fb" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
     <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0-g7c248955fb" />

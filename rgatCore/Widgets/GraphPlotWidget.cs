@@ -25,6 +25,8 @@ namespace rgatCore
         ImGuiController _controller;
 
         GraphLayoutEngine _layoutEngine;
+        rgatState _clientState;
+
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
         public bool Exiting = false;
 
@@ -35,12 +37,13 @@ namespace rgatCore
         TextureView _imageTextureView;
         ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
 
-        public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, Vector2? initialSize = null)
+        public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState, Vector2? initialSize = null)
         {
             _controller = controller;
             _gd = gdev;
             _factory = _gd.ResourceFactory;
             _QuickMenu = new QuickMenu(_gd, controller);
+            _clientState = clientState;
 
             _graphWidgetSize = initialSize ?? new Vector2(400, 400);
 
@@ -498,7 +501,7 @@ namespace rgatCore
         }
 
 
-        public void Draw(Vector2 graphSize, PlottedGraph graph)
+        public void Draw(Vector2 graphSize, PlottedGraph graph, bool recordingVideo)
         {
             _graphLock.EnterReadLock();
 
@@ -506,11 +509,15 @@ namespace rgatCore
             {
                 ActiveGraph = graph;
             }
+
             if (ActiveGraph != null)
             {
-                DrawGraphImage();
+                Texture output = DrawGraphImage();
+                if ( ButtonPressed)
+                {
+                    //CreateCaptureFrame(output);
+                }
             }
-
 
             drawHUD(graphSize, ActiveGraph);
 
@@ -580,41 +587,8 @@ namespace rgatCore
                 Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2;
             }
-
-
-
-            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
-                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
-
-            CommandList cmd = _gd.ResourceFactory.CreateCommandList();
-            cmd.Begin();
-            cmd.CopyTexture(graphtexture, stageTex);
-            cmd.End();
-            _gd.SubmitCommands(cmd);
-            _gd.WaitForIdle();
-
-            System.Drawing.Imaging.BitmapData data = bmp.LockBits(  new System.Drawing.Rectangle(0, 0, 400, 400),   
-                ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-            byte* scan0 = (byte*)data.Scan0;
-            //DeviceBuffer staged = GetReadback(_gd, stageTex);
-            MappedResourceView<Rgba32> res = _gd.Map<Rgba32>(stageTex, MapMode.Read);
-            for (int y = 0; y < 400; y++)
-            {
-                for (int x = 0; x < 400; x++)
-                {
-                    Rgba32 px = res[x, y];
-                    byte* ptr = scan0 + y * data.Stride + x * 4;
-                    ptr[0] = px.B;
-                    ptr[1] = px.G;
-                    ptr[2] = px.R;
-                    ptr[3] = px.A;
-                }
-            }
-            bmp.UnlockBits(data);
-            _gd.Unmap(stageTex);
-            VeldridGraphBuffers.DoDispose(stageTex);
-            cmd.Dispose();
         }
+
 
 
 
@@ -712,13 +686,13 @@ namespace rgatCore
 
             _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _outputTexture1.Name = "OutTex1" + DateTime.Now.ToFileTime().ToString();
+            _outputTexture1.Name = "OutputTexture1" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
             _outputFramebuffer1.Name = $"OPFB1_" + _outputTexture1.Name;
 
             _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _outputTexture2.Name = "OutTex2" + DateTime.Now.ToFileTime().ToString();
+            _outputTexture2.Name = "OutputTexture2" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
             _outputFramebuffer2.Name = $"OPFB2_" + _outputTexture2.Name;
 
@@ -1098,7 +1072,7 @@ namespace rgatCore
 
             //draw nodes and edges
             cl.SetFramebuffer(drawtarget);
-            cl.ClearColorTarget(0, GlobalConfig.mainColours.background.ToRgbaFloat());
+            cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
 
             if (graph.NodesVisible)
             {
@@ -1161,8 +1135,13 @@ namespace rgatCore
                 cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
+            if (_clientState.VideoRecorder.Recording)
+            {
+                //CreateCaptureFrame(_outputTexture1, cl);
+            }
 
-            //update the picking framebuffer
+            //update the picking framebuffer 
+            //todo - not every frame?
             cl.SetPipeline(_pickingPipeline);
             cl.SetGraphicsResourceSet(0, crs_core);
             cl.SetGraphicsResourceSet(1, crs_nodesEdges);
@@ -1173,6 +1152,7 @@ namespace rgatCore
             cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
             cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
             cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
             cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
 
             cl.End();
@@ -1188,7 +1168,7 @@ namespace rgatCore
 
 
         //draw the output to the screen
-        public void DrawGraphImage()
+        public Texture DrawGraphImage()
         {
             Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
             if (currentRegionSize != _graphWidgetSize)
@@ -1214,10 +1194,10 @@ namespace rgatCore
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
             _isInputTarget = ImGui.IsItemActive();
+
+            return outputTexture;
         }
 
-        System.Drawing.Bitmap bmp = new Bitmap(400, 400);
-            public System.Drawing.Bitmap GetBMP => new Bitmap(bmp);
 
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
 
@@ -1572,6 +1552,22 @@ namespace rgatCore
         }
 
 
+
+        readonly object _lock = new object();
+        Queue<Bitmap> frames = new Queue<Bitmap>();
+        public List<Bitmap> GetLatestFrames()
+        {
+            lock (_lock)
+            {
+                List<Bitmap> result = new List<Bitmap>(frames);
+                frames.Clear();
+                return result;
+            }
+        }
+
+
+
+
         /// <summary>
         /// must hold upgradable reader lock
         /// </summary>
@@ -1678,7 +1674,6 @@ namespace rgatCore
                 return;
             }
 
-
             //highlight new nodes with highlighted address
 
             graph.DoHighlightAddresses();
@@ -1689,5 +1684,81 @@ namespace rgatCore
 
 
 
+
+
+
+
+        public bool ButtonPressed = false;
+
+        unsafe public void CreateCaptureFrame(Texture graphtexture, CommandList cl)
+        {
+
+
+            int frameWidth = _clientState.VideoRecorder.CurrentVideoWidth;
+            int frameHeight = _clientState.VideoRecorder.CurrentVideoHeight;
+            if (frameHeight == 0 || frameWidth == 0)
+            {
+                if (_graphWidgetSize.X > 0 && _graphWidgetSize.Y > 0)
+                {
+                    frameWidth = (int)_graphWidgetSize.X;
+                    frameHeight = (int)_graphWidgetSize.Y;
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            //get the graph image we have rendered
+            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
+                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
+
+            cl.Begin();
+            cl.CopyTexture(graphtexture, stageTex);
+            cl.End();
+            _gd.SubmitCommands(cl);
+            _gd.WaitForIdle();
+
+            //draw it onto a bitmap
+            Bitmap bmp = new Bitmap(frameWidth, frameHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, frameWidth, frameHeight),
+                ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            byte* scan0 = (byte*)data.Scan0;
+
+            MappedResourceView<RgbaFloat> res = _gd.Map<RgbaFloat>(stageTex, MapMode.Read);
+            int drawHeight = (int)Math.Min(bmp.Height, stageTex.Height);
+            int drawWidth = (int)Math.Min(bmp.Width, stageTex.Width);
+
+            for (int y = 0; y < drawHeight; y += 1)
+            {
+                for (int x = 0; x < drawWidth; x += 1)
+                {
+                    RgbaFloat px = res[x, drawHeight - y];
+                    byte* ptr = scan0 + y * data.Stride + (x * 4);
+                    ptr[0] = (byte)(px.B * 255f);
+                    ptr[1] = (byte)(px.G * 255f);
+                    ptr[2] = (byte)(px.R * 255f);
+                    ptr[3] = (byte)(px.A * 255f);
+                }
+            }
+            bmp.UnlockBits(data);
+            _gd.Unmap(stageTex);
+
+
+            if (ButtonPressed)
+            {
+                ButtonPressed = false;
+                bmp.Save(System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), "bmp"));
+            }
+
+
+            //queue for passing to the video encoder
+            lock (_lock)
+            {
+                _clientState.VideoRecorder.QueueFrame(bmp);
+            }
+
+            VeldridGraphBuffers.DoDispose(stageTex);
+        }
     }
 }

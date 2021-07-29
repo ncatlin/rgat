@@ -23,6 +23,7 @@ namespace rgatCore
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
             eBadStateColour, eWarnStateColour, eGoodStateColour,
+            GraphBackground,
             COUNT
         }
         public enum eThemeSize
@@ -105,6 +106,7 @@ namespace rgatCore
             DefaultCustomColours[eThemeColour.eBadStateColour] = new WritableRgbaFloat(Color.Red).ToUint();
             DefaultCustomColours[eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint();
             DefaultCustomColours[eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint();
+            DefaultCustomColours[eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint();
 
             foreach (eThemeColour themeStyle in DefaultCustomColours.Keys)
             {

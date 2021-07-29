@@ -73,7 +73,10 @@ namespace rgatCore
         }
 
 
-        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
+        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            _frameTimerFired = true;
+        }
 
 
         //todo - make Exit wait until this returns
@@ -110,12 +113,13 @@ namespace rgatCore
             _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
 
             _UIstartupProgress = 0.60;
-            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, new Vector2(1000, 500)); //1000~ ms
+            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, _rgatstate, new Vector2(1000, 500)); //1000~ ms
 
             _UIstartupProgress = 0.9;
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate); //350~ ms
             _rgatstate.PreviewWidget = PreviewGraphWidget;
 
+            _rgatstate.VideoRecorder.Load();
 
             RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
@@ -131,12 +135,6 @@ namespace rgatCore
             processCoordinatorThreadObj = new ProcessCoordinatorThread();
             processCoordinatorThreadObj.Begin();
             _UIstartupProgress = 0.95;
-
-            if (GlobalConfig.VideoEncodeLoadOnStart && File.Exists(GlobalConfig.VideoEncodeCiscoLibPath))
-            {
-                _rgatstate.VideoRecorder.Load(GlobalConfig.VideoEncodeCiscoLibPath);
-            }
-
 
             RecordLogEvent("Startup: Initing layout engines", LogFilterType.TextDebug);
             _UIstartupProgress = 0.99;
@@ -169,7 +167,7 @@ namespace rgatCore
             //wait for the ui stop stop and the main renderer to quit
             while (
                 (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain")
-                || 
+                ||
                 (mainRenderThreadObj != null && mainRenderThreadObj.Running)
                 )
             {
@@ -1129,90 +1127,93 @@ namespace rgatCore
         private void DrawTraceTab_InstrumentationSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
-
-
-
-            ImGui.BeginChildFrame(18, new Vector2(width, 200));
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("Module Tracing");
-            ImGui.SameLine();
-            ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
-            ImGui.SameLine();
-            string TraceLabel = $"Tracelist [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
-            if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
             {
-                activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
-            };
-            ImGui.SameLine();
-            ImguiUtils.HelpMarker("Only specified libraries will be traced");
-            ImGui.SameLine();
-            string IgnoreLabel = $"IgnoreList [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
-            if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
-            {
-                activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
-            };
-            ImGui.SameLine();
-            ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
-            ImGui.EndChildFrame();
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
 
 
-            ImGui.BeginChildFrame(18, new Vector2(width, 200));
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
 
-            if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                ImGui.BeginChildFrame(18, new Vector2(width, 200));
+                ImGui.AlignTextToFramePadding();
+                ImGui.Text("Module Tracing");
+                ImGui.SameLine();
+                ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
+                ImGui.SameLine();
+                string TraceLabel = $"Tracelist [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
+                if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
                 {
-                    if (ImGui.TreeNode($"Ignored Directories ({activeTarget.traceChoices.ignoreDirsCount})"))
-                    {
-                        List<string> names = activeTarget.traceChoices.GetIgnoredDirs();
-                        foreach (string fstr in names) ImGui.Text(fstr);
-                        ImGui.TreePop();
-                    }
-                    if (ImGui.TreeNode($"Ignored Files ({activeTarget.traceChoices.ignoreFilesCount})"))
-                    {
-                        List<string> names = activeTarget.traceChoices.GetIgnoredFiles();
-                        foreach (string fstr in names) ImGui.Text(fstr);
-                        ImGui.TreePop();
-                    }
-                }
-
-                else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                    activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                };
+                ImGui.SameLine();
+                ImguiUtils.HelpMarker("Only specified libraries will be traced");
+                ImGui.SameLine();
+                string IgnoreLabel = $"IgnoreList [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
+                if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
                 {
-                    if (ImGui.TreeNode($"Included Directories ({activeTarget.traceChoices.traceDirCount})"))
+                    activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                };
+                ImGui.SameLine();
+                ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
+                ImGui.EndChildFrame();
+
+
+                ImGui.BeginChildFrame(18, new Vector2(width, 200));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
+
+                if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+                    if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
                     {
-                        List<string> names = activeTarget.traceChoices.GetTracedDirs();
-                        foreach (string fstr in names) ImGui.Text(fstr);
-                        ImGui.TreePop();
+                        if (ImGui.TreeNode($"Ignored Directories ({activeTarget.traceChoices.ignoreDirsCount})"))
+                        {
+                            List<string> names = activeTarget.traceChoices.GetIgnoredDirs();
+                            foreach (string fstr in names) ImGui.Text(fstr);
+                            ImGui.TreePop();
+                        }
+                        if (ImGui.TreeNode($"Ignored Files ({activeTarget.traceChoices.ignoreFilesCount})"))
+                        {
+                            List<string> names = activeTarget.traceChoices.GetIgnoredFiles();
+                            foreach (string fstr in names) ImGui.Text(fstr);
+                            ImGui.TreePop();
+                        }
                     }
-                    if (ImGui.TreeNode($"Included Files ({activeTarget.traceChoices.traceFilesCount})"))
+
+                    else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                     {
-                        List<string> names = activeTarget.traceChoices.GetTracedFiles();
-                        foreach (string fstr in names) ImGui.Text(fstr);
-                        ImGui.TreePop();
+                        if (ImGui.TreeNode($"Included Directories ({activeTarget.traceChoices.traceDirCount})"))
+                        {
+                            List<string> names = activeTarget.traceChoices.GetTracedDirs();
+                            foreach (string fstr in names) ImGui.Text(fstr);
+                            ImGui.TreePop();
+                        }
+                        if (ImGui.TreeNode($"Included Files ({activeTarget.traceChoices.traceFilesCount})"))
+                        {
+                            List<string> names = activeTarget.traceChoices.GetTracedFiles();
+                            foreach (string fstr in names) ImGui.Text(fstr);
+                            ImGui.TreePop();
+                        }
                     }
+                    ImGui.PopStyleColor();
+                    ImGui.EndChildFrame();
                 }
                 ImGui.PopStyleColor();
+
+                if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiPopupFlags.MouseButtonRight))
+                {
+                    ImGui.Selectable("Add files/directories");
+                    ImGui.EndPopup();
+                }
+
                 ImGui.EndChildFrame();
+
+                ImGui.PopStyleColor();
             }
-            ImGui.PopStyleColor();
-
-            if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiPopupFlags.MouseButtonRight))
-            {
-                ImGui.Selectable("Add files/directories");
-                ImGui.EndPopup();
-            }
-
-            ImGui.EndChildFrame();
-
-            ImGui.PopStyleColor();
             ImGui.EndGroup();
 
         }
 
         bool _checkStartPausedState;
+        bool _recordVideoOnStart;
         bool _diagnosticMode;
         private void DrawTraceTab_ExecutionSettings(float width)
         {
@@ -1252,7 +1253,6 @@ namespace rgatCore
 
                 ImGui.EndChildFrame();
 
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF998880);
                 ImGui.AlignTextToFramePadding();
 
                 ImGui.Text("Command Line");
@@ -1273,11 +1273,27 @@ namespace rgatCore
                     Console.WriteLine($"Started process id {p.Id}");
                 }
                 ImGui.SameLine();
+
                 if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState))
                 {
-                    if (_checkStartPausedState)
+                    _rgatstate.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
+                }
+                if (_rgatstate.VideoRecorder.Loaded)
+                {
+                    ImGui.SameLine();
+                    if (_rgatstate.VideoRecorder.Loaded)
                     {
-                        _rgatstate.ActiveTarget.SetTraceConfig("PAUSE_ON_START", "TRUE");
+                        ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
+                    }
+                    else
+                    { 
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
+                        ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
+                        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
+                        _recordVideoOnStart = false;
+                        ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
+                        ImGui.PopStyleColor(3);
+                        SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
                     }
                 }
 
@@ -1296,9 +1312,8 @@ namespace rgatCore
 
                 }
                 ImGui.EndChildFrame();
-                ImGui.PopStyleColor();
+                ImGui.EndGroup();
             }
-            ImGui.EndGroup();
         }
 
 
@@ -1329,7 +1344,7 @@ namespace rgatCore
             }
 
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0,0,0,255).ToUint());
 
             bool boxBorders = false;
 
@@ -1368,8 +1383,20 @@ namespace rgatCore
                         ImGui.Text("Settings");
                         ImGui.PopFont();
                     }
+                    if (ImGui.Button("Capture Image"))
+                    {
+                        _takeScreenshot = true;
+
+                        //MainGraphWidget.ButtonPressed = true;
+                    }
+                    if (ImGui.Button("Demo"))
+                    {
+                        _ImGuiController.ShowDemoWindow = !_ImGuiController.ShowDemoWindow;
+
+                        //MainGraphWidget.ButtonPressed = true;
+                    }
+                    ImGui.EndGroup();
                 }
-                ImGui.EndGroup();
                 ImGui.EndChild();
             }
             _splashHeaderHover = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem | ImGuiHoveredFlags.AllowWhenBlockedByPopup);
@@ -1391,7 +1418,6 @@ namespace rgatCore
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "CrossHairIcon");
 
-                //ImGui.BeginGroup();
                 ImGui.PushFont(_ImGuiController.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
                 Vector2 iconsize = new Vector2(80, 80);
@@ -1459,7 +1485,6 @@ namespace rgatCore
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "LoadGrpIcon");
 
-                //ImGui.BeginGroup();
                 ImGui.PushFont(_ImGuiController.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
                 Vector2 iconsize = new Vector2(80, 80);
@@ -1626,11 +1651,7 @@ namespace rgatCore
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize, _rgatstate.ActiveGraph);
-                if (_capturing)
-                {
-                    _rgatstate.VideoRecorder.Encode(MainGraphWidget.GetBMP);
-                }
+                MainGraphWidget.Draw(graphSize, _rgatstate.ActiveGraph, _rgatstate.VideoRecorder.Recording);
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
@@ -1731,8 +1752,8 @@ namespace rgatCore
                         ImGui.EndChild();
                     }
                     ImGui.PopStyleColor();
+                    ImGui.EndGroup();
                 }
-                ImGui.EndGroup();
                 ImGui.SameLine();
                 //ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8);
                 DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, (int)Math.Floor(activeGraph.AnimationIndex));
@@ -1817,7 +1838,6 @@ namespace rgatCore
                 }
                 SmallWidgets.MouseoverText("The number of trace updates to replay per frame");
 
-                ImGui.EndGroup();
                 ImGui.EndChild();
             }
         }
@@ -1841,8 +1861,8 @@ namespace rgatCore
                     SmallWidgets.MouseoverText("Terminate the process running the current thread");
 
                     if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
+                    ImGui.EndGroup();
                 }
-                ImGui.EndGroup();
 
                 ImGui.NextColumn();
 
@@ -1878,8 +1898,8 @@ namespace rgatCore
                         SmallWidgets.MouseoverText("Step past call instruction");
 
                     }
+                    ImGui.EndGroup();
                 }
-                ImGui.EndGroup();
                 ImGui.Columns(1);
                 ImGui.EndChild();
             }
@@ -1907,31 +1927,102 @@ namespace rgatCore
             }
         }
 
-        bool _capturing = false;
+
+
         void DrawVideoControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                if (_capturing)
+                if (_rgatstate.VideoRecorder.Recording)
                 {
-
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
                     if (ImGui.Button("Stop Capture"))
                     {
-                        _capturing = false;
                         _rgatstate.VideoRecorder.Done();
                     }
+                    ImGui.PopStyleColor();
                 }
                 else
                 {
 
-                    if (ImGui.Button("Start Capture")) _capturing = true;
+                    if (ImGui.Button("Start Capture"))
+                    {
+                        _rgatstate.VideoRecorder.StartRecording();
+                    }
                 }
 
-
+                if(ImGui.Button("Capture Image"))
+                {
+                        _takeScreenshot = true;
+                    
+                    //MainGraphWidget.ButtonPressed = true;
+                }
                 ImGui.Button("Add Caption");
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
+        }
+
+        static Texture recordingStager;
+        static bool _takeScreenshot;
+        unsafe public void PresentFramebuffer(Framebuffer fbuf, CommandList cl)
+        {
+
+            VideoEncoder recorder = _rgatstate?.VideoRecorder;
+            if (!(recorder != null && recorder.Recording) && !_takeScreenshot) return;
+
+            GraphicsDevice gd = _ImGuiController.graphicsDevice;
+            Texture ftex = fbuf.ColorTargets[0].Target;
+            if (recordingStager == null || recordingStager.Width != ftex.Width || recordingStager.Height != ftex.Height)
+            {
+                VeldridGraphBuffers.DoDispose(recordingStager);
+                recordingStager = gd.ResourceFactory.CreateTexture(new TextureDescription(ftex.Width, ftex.Height,
+                    1, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+            }
+
+            cl.Begin();
+            cl.CopyTexture(ftex, recordingStager);
+            cl.End();
+            gd.SubmitCommands(cl);
+            gd.WaitForIdle();
+
+
+            //draw it onto a bitmap
+            Bitmap bmp = new Bitmap((int)recordingStager.Width, (int)recordingStager.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, (int)recordingStager.Width, (int)recordingStager.Height),
+                System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            byte* scan0 = (byte*)data.Scan0;
+
+            MappedResourceView<SixLabors.ImageSharp.PixelFormats.Rgba32> res = gd.Map<SixLabors.ImageSharp.PixelFormats.Rgba32>(recordingStager, MapMode.Read);
+            int drawHeight = (int)Math.Min(bmp.Height, recordingStager.Height);
+            int drawWidth = (int)Math.Min(bmp.Width, recordingStager.Width);
+
+            for (int y = 0; y < drawHeight; y += 1)
+            {
+                for (int x = 0; x < drawWidth; x += 1)
+                {
+                    SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[x, y];
+                    byte* ptr = scan0 + y * data.Stride + (x * 4);
+                    ptr[0] = px.R ;
+                    ptr[1] = px.G ;
+                    ptr[2] = px.B ;
+                    ptr[3] = 255 ;
+                }
+            }
+            bmp.UnlockBits(data);
+            gd.Unmap(recordingStager);
+
+            if (_takeScreenshot)
+            {
+                bmp.Save(System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), "bmp"));
+                _takeScreenshot = false;
+            }
+               
+            if (_rgatstate.VideoRecorder.Recording)
+            {
+                _rgatstate.VideoRecorder.QueueFrame(bmp);
+            }
+           
         }
 
 
@@ -2302,6 +2393,9 @@ namespace rgatCore
                 }
                 if (_rgatstate.ChooseActiveGraph())
                 {
+
+
+                    _rgatstate.VideoRecorder.StartRecording();
                     //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
@@ -2318,6 +2412,9 @@ namespace rgatCore
             }
             else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
+
+
+                _rgatstate.VideoRecorder.StartRecording();
                 //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                 PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                 PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
@@ -2683,18 +2780,19 @@ namespace rgatCore
 
 
                     ImGui.BeginGroup();
+                    {
+                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
+                        ImGui.Indent(8);
+                        ImGui.Text("Log Text Filter");
+                        ImGui.SameLine();
+                        ImGui.SetNextItemWidth(280);
+                        ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
 
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
-                    ImGui.Indent(8);
-                    ImGui.Text("Log Text Filter");
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(280);
-                    ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
+                        ImGui.SameLine();
+                        if (ImGui.Button("Clear")) textFilterValue = new byte[textFilterValue.Length];
 
-                    ImGui.SameLine();
-                    if (ImGui.Button("Clear")) textFilterValue = new byte[textFilterValue.Length];
-
-                    ImGui.EndGroup();
+                        ImGui.EndGroup();
+                    }
 
 
                     ImGui.TreePop();

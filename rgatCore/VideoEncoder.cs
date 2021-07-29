@@ -38,80 +38,46 @@ namespace rgatCore
         {
         }
 
-        public bool Load(string dllpath)
+        public void Load(string dllpath="")
         {
-            GlobalConfig.CheckSignatureError(dllpath, out string error, out bool timeWarning);
-            if (error.Length > 0 && !_ignoreSignatureError)
+            if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
             {
-                Error = error;
-                _signatureError = true;
-                return false;
+                Loaded = true;
             }
-
-            Loaded = true;
-            return true;
-        }
-
-        int _frameWidth = 400;
-        int _frameHeight = 400;
-        int _targetBitRate = 5000 * 1000;
-        int _fps = 10;
-        int _frameIntervalSeconds = 2;
-
-        /// <summary>
-        /// Set H264 encoder settings
-        /// </summary>
-        /// <param name="width">Frame width in pixels</param>
-        /// <param name="height">Frame height in pixels</param>
-        /// <param name="bitrate">Target bitrate</param>
-        /// <param name="fps">Frames Per Second</param>
-        /// <param name="interval">Key frame interval (seconds)</param>
-        public void SetSettings(int width, int height, int bitrate, int fps, int interval)
-        {
-            _frameWidth = width;
-            _frameHeight = height;
-            _targetBitRate = bitrate;
-            _fps = fps;
-            _frameIntervalSeconds = interval;
+            else if (DetectFFmpeg(out string path))
+            {
+                Loaded = true;
+                GlobalConfig.VideoEncoderFFmpegPath = path;
+            }
         }
 
         static BinaryWriter stream = null;
 
-        bool Initialise()
+        public int CurrentVideoWidth { get; private set; }
+        public int CurrentVideoHeight { get; private set; }
+
+
+        public bool StartRecording()
         {
-            SetSettings(GlobalConfig.VideoCodec_Width, GlobalConfig.VideoCodec_Height,
-                GlobalConfig.VideoCodec_Bitrate, GlobalConfig.VideoCodec_FPS,
-                GlobalConfig.VideoCodec_FrameInterval);
-
-
-            string outputPath = Path.ChangeExtension(Path.GetTempFileName(), ".h264");
-            stream = new BinaryWriter(File.Open(outputPath, FileMode.Create));
-            Console.WriteLine("OutputPath: " + outputPath);
-            //IMediaInfo mediaInfo = FFmpeg.GetMediaInfo(Resources.MkvWithAudio);
-
+            System.Diagnostics.Debug.Assert(!_recording);
             _recording = true;
-            Task.Run(() => { Go(); });
-
-            Initialised = true;
             return true;
         }
 
 
+        public bool Recording => _recording;
         public bool _recording = false;
         ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
-        readonly object _lock = new object();
 
         IEnumerable<IVideoFrame> CreateFrames()
         {
             while (_recording)
             {
-
-                Bitmap frame = null;
                 if (_bmpQueue.Any())
                 {
-                    if (_bmpQueue.TryDequeue(out frame))
+                    if (_bmpQueue.TryDequeue(out Bitmap frame))
                     {
-                        Console.WriteLine($"Yielding bmp {frame.Width}*{frame.Height}");
+                        System.Diagnostics.Debug.Assert(frame.Width == CurrentVideoWidth && frame.Height == CurrentVideoHeight, "Can't change frame dimensions during recording");
                         yield return new BitmapVideoFrameWrapper(frame);
                     }
                 }
@@ -128,20 +94,66 @@ namespace rgatCore
 
             Console.WriteLine("Writing to " + outfile);
             var videoFramesSource = new RawVideoPipeSource(CreateFrames());
-            await FFMpegArguments
-                .FromPipeInput(videoFramesSource)
-                .OutputToFile(outfile, false, opt => opt
-                    .WithVideoCodec(VideoCodec.LibX264))
-                .ProcessAsynchronously();
+            try
+            {
+                await FFMpegArguments
+                    .FromPipeInput(videoFramesSource)
+                    .OutputToFile(outfile, false, opt => opt
+                        .WithVideoCodec(VideoCodec.LibX264)
+
+                        )
+
+                    .ProcessAsynchronously();
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent("FFMpeg Record Error: " + e.Message);
+                Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
+                Console.WriteLine(e);
+                Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
+            }
+            Initialised = false;
+            _recording = false;
+            _bmpQueue.Clear();
             Console.WriteLine("Done " + outfile);
         }
 
 
 
-        public void Encode(System.Drawing.Bitmap bmp)
+        public void QueueFrames(List<Bitmap> frames)
         {
-                _bmpQueue.Enqueue(bmp);
-            
+            if (frames.Any())
+            {
+                if (!Initialised)
+                {
+                    CurrentVideoWidth = frames[0].Width;
+                    CurrentVideoHeight = frames[0].Height;
+
+                    Task.Run(() => { Go(); });
+                    Initialised = true;
+                }
+                foreach (Bitmap frame in frames)
+                {
+                    _bmpQueue.Enqueue(frame);
+                }
+            }
+        }
+
+        public void QueueFrame(Bitmap frame)
+        {
+            if (frame != null)
+            {
+                if (!Initialised)
+                {
+                    CurrentVideoWidth = frame.Width;
+                    CurrentVideoHeight = frame.Height;
+
+                    Task.Run(() => { Go(); });
+                    Initialised = true;
+                }
+                _bmpQueue.Enqueue(frame);
+
+            }
         }
 
         public void Done()
@@ -152,15 +164,16 @@ namespace rgatCore
 
         public void DrawSettingsPane()
         {
-            if (File.Exists(GlobalConfig.VideoEncodeCiscoLibPath))
+            if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
             {
                 DrawHaveLibSettingsPane();
             }
             else
             {
-                if (DetectLibrary(out string path))
+                if (DetectFFmpeg(out string path))
                 {
-                    GlobalConfig.VideoEncodeCiscoLibPath = path;
+                    Loaded = true;
+                    GlobalConfig.VideoEncoderFFmpegPath = path;
                     DrawHaveLibSettingsPane();
                 }
                 else
@@ -172,32 +185,24 @@ namespace rgatCore
 
 
         DateTime _lastCheck = DateTime.MinValue;
-        bool DetectLibrary(out string path)
+        bool DetectFFmpeg(out string path)
         {
             path = "";
             if (DateTime.Now < _lastCheck.AddSeconds(5)) return false;
             _lastCheck = DateTime.Now;
 
             string extension = "";
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                extension = ".dll";
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                extension = ".so";
-                //todo - going to need to look at .sig file
-            }
-            else
-                return false;
+                extension = ".exe";
 
-            string[] matches = Directory.GetFiles(AppContext.BaseDirectory, "openh264*" + extension, SearchOption.AllDirectories);
+            string[] matches = Directory.GetFiles(AppContext.BaseDirectory, "ffmpeg" + extension, SearchOption.AllDirectories);
 
             foreach (string match in matches)
             {
                 string candidate = match;
                 if (File.Exists(candidate))
                 {
-                    if (GlobalConfig.SetBinaryPath("VideoCodec", candidate, save: true))
+                    if (GlobalConfig.SetBinaryPath("FFmpeg", candidate, save: true))
                     {
                         path = candidate;
                         return true;
@@ -211,9 +216,16 @@ namespace rgatCore
         void DrawNoLibSettingsPane()
         {
 
-            ImGui.Text("Use of video capture requires the OpenH264 codec library from Cisco, which has to be downloaded seperately");
-            ImGui.Text($"Download it from https://github.com/cisco/openh264/releases and place it in the rgat directory or configure it in the Settings->Paths pane");
+            ImGui.Text("Use of video capture requires the FFmpeg.exe executable, which has to be downloaded seperately");
 
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                ImGui.Text($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg.exe in the relevant rgat directory or configure it in the Settings->Paths pane");
+            }
+            else
+            {
+                ImGui.Text($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg in the relevant rgat directory or configure it in the Settings->Paths pane");
+            }
             //todo downloader
         }
 
@@ -223,75 +235,26 @@ namespace rgatCore
 
             if (Error.Length > 0)
             {
-                if (_signatureError)
-                {
-                    if (!_ignoreSignatureError)
-                    {
-                        ImGui.Text($"Could not validate the Codec signature");
-                        ImGui.Indent(7);
-                        ImGui.Text(GlobalConfig.VideoEncodeCiscoLibPath);
-                        ImGui.Text(Error);
-
-                        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X / 2 - 100));
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        if (ImGui.Button("I don't care, load it anyway", new System.Numerics.Vector2(200, 40)))
-                        {
-                            _ignoreSignatureError = true;
-                        }
-                        ImGui.PopStyleColor();
-                        ImGui.Indent(0);
-
-                        return;
-                    }
-                }
-                else
-                {
-                    ImGui.Text(Error);
-                    return;
-                }
-            }
-
-            if (!Loaded)
-            {
-                ImGui.Text("Loading");
-                Load(GlobalConfig.VideoEncodeCiscoLibPath);
+                ImGui.Text(Error);
                 return;
             }
-
-
-            if (!Initialised)
-            {
-                ImGui.Text("Initialising");
-                Initialise();
-                return;
-            }
-
-            bool val = GlobalConfig.VideoEncodeLoadOnStart;
-            if (ImGui.Checkbox("Load on start", ref val))
-            {
-                GlobalConfig.VideoEncodeLoadOnStart = val;
-                GlobalConfig.AddUpdateAppSettings("LoadVideoCodecOnStart", val ? "True" : "False");
-            }
-
-
-            //todo check update
 
             //settings
 
             bool settingChange = false;
-            if (ImGui.InputInt("Frame Width", ref _frameWidth)) settingChange = true;
-            if (ImGui.InputInt("Frame Height", ref _frameHeight)) settingChange = true;
-            if (ImGui.InputInt("Target Bitrate", ref _targetBitRate)) settingChange = true;
-            if (ImGui.InputInt("Frame Per Second", ref _fps)) settingChange = true;
-            if (ImGui.InputInt("Key Frame Interval (Seconds)", ref _frameIntervalSeconds)) settingChange = true;
+            if (ImGui.InputInt("Frame Width", ref GlobalConfig.VideoCodec_Width)) settingChange = true;
+            if (ImGui.InputInt("Frame Height", ref GlobalConfig.VideoCodec_Height)) settingChange = true;
+            if (ImGui.InputInt("Target Bitrate", ref GlobalConfig.VideoCodec_Bitrate)) settingChange = true;
+            if (ImGui.InputInt("Frame Per Second", ref GlobalConfig.VideoCodec_FPS)) settingChange = true;
+            if (ImGui.InputInt("Key Frame Interval (Seconds)", ref GlobalConfig.VideoCodec_FrameInterval)) settingChange = true;
 
             if (settingChange)
             {
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Height", _frameWidth.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Width", _frameHeight.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Bitrate", _targetBitRate.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", _fps.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_FrameInterval", _frameIntervalSeconds.ToString());
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_Height", GlobalConfig.VideoCodec_Width.ToString());
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_Width", GlobalConfig.VideoCodec_Height.ToString());
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_Bitrate", GlobalConfig.VideoCodec_Bitrate.ToString());
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_FrameInterval", GlobalConfig.VideoCodec_FrameInterval.ToString());
             }
         }
 

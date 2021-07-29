@@ -24,7 +24,6 @@ namespace ImGuiNET
         private static float _f = 0.0f;
         private static int _counter = 0;
         private static int _dragInt = 0;
-        //private static Vector3 _clearColor = new Vector3(0.45f, 0.55f, 0.6f);
         private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
         private static bool _showDemoWindow = true;
         private static bool _showAnotherWindow = false;
@@ -62,8 +61,7 @@ namespace ImGuiNET
 
             GraphicsDeviceOptions options = new GraphicsDeviceOptions(
             debug: true,
-
-            swapchainDepthFormat: PixelFormat.R32_Float,
+            swapchainDepthFormat: PixelFormat.R8_UNorm,
             syncToVerticalBlank: true,
             resourceBindingModel: ResourceBindingModel.Improved,
             preferDepthRangeZeroToOne: true,
@@ -124,11 +122,8 @@ namespace ImGuiNET
             _housekeepingTimer.AutoReset = false;
             _housekeepingTimer.Start();
 
-
-            //probably not going to have movable windows at all
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         }
-
 
 
         private static void Update()
@@ -154,6 +149,62 @@ namespace ImGuiNET
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
             _controller.Render(_gd, _cl);
+
+
+
+            //---------
+            /*
+
+            _cl.SetFramebuffer(recordingFramebuffer);
+            //get the graph image we have rendered
+            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
+                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
+
+            cl.Begin();
+            cl.CopyTexture(graphtexture, stageTex);
+            cl.End();
+            _gd.SubmitCommands(cl);
+            _gd.WaitForIdle();
+
+            //draw it onto a bitmap
+            Bitmap bmp = new Bitmap(frameWidth, frameHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, frameWidth, frameHeight),
+                ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            byte* scan0 = (byte*)data.Scan0;
+
+            MappedResourceView<RgbaFloat> res = _gd.Map<RgbaFloat>(stageTex, MapMode.Read);
+            int drawHeight = (int)Math.Min(bmp.Height, stageTex.Height);
+            int drawWidth = (int)Math.Min(bmp.Width, stageTex.Width);
+
+            for (int y = 0; y < drawHeight; y += 1)
+            {
+                for (int x = 0; x < drawWidth; x += 1)
+                {
+                    RgbaFloat px = res[x, drawHeight - y];
+                    byte* ptr = scan0 + y * data.Stride + (x * 4);
+                    ptr[0] = (byte)(px.B * 255f);
+                    ptr[1] = (byte)(px.G * 255f);
+                    ptr[2] = (byte)(px.R * 255f);
+                    ptr[3] = (byte)(px.A * 255f);
+                }
+            }
+            bmp.UnlockBits(data);
+            _gd.Unmap(stageTex);
+
+            */
+
+
+
+
+
+
+
+            //----------
+
+
+
+
+
             _cl.End();
 
             _gd.SubmitCommands(_cl);
@@ -161,6 +212,7 @@ namespace ImGuiNET
 
             _gd.WaitForIdle();
 
+            _rgatui.PresentFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
 
 
             if (_housekeepingTimerFired)

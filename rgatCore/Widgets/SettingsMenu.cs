@@ -26,7 +26,7 @@ namespace rgatCore.Widgets
             settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
             settingTips["PinToolPath32"] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
             settingTips["PinToolPath64"] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
-            settingTips["VideoCodec"] = "The path to the Cisco OpenH264 video codec";
+            settingTips["FFmpeg"] = "The path to the FFmpeg executable for recording video captures";
 
             settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
             settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
@@ -97,43 +97,51 @@ namespace rgatCore.Widgets
             }
 
             ImGui.Begin(title + "###Settings", ref window_shown_flag, window_flags);
-
-            ImGui.BeginGroup();
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
             {
-                for (int i = 0; i < settingsNames.Count; i++)
+                //ImGui.BeginGroup();
+                //ImGui.EndGroup();
+
+                
+                    ImGui.BeginGroup();
                 {
-                    if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
-                    {
-                        Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
-                        optionsSelectStates[i] = true;
-                    }
+                        if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
+                        {
+                            for (int i = 0; i < settingsNames.Count; i++)
+                            {
+                                if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
+                                {
+                                    Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
+                                    optionsSelectStates[i] = true;
+                                }
+                            }
+                            ImGui.EndChildFrame();
+                        }
+                        if (ImGui.Button("Close1", new Vector2(65, 25)))
+                        {
+                            window_shown_flag = false;
+                        }
+                    
+                ImGui.EndGroup();
                 }
-                ImGui.EndChildFrame();
-            }
+                
+                    ImGui.SameLine();
 
-            if (ImGui.Button("Close", new Vector2(65, 25)))
-            {
-                window_shown_flag = false;
-            }
-            ImGui.EndGroup();
-            ImGui.SameLine();
-            if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
-            {
-                for (var i = 0; i < optionsSelectStates.Length; i++)
-                {
-                    if (optionsSelectStates[i])
+                if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
                     {
-                        CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
-                        break;
+                        for (var i = 0; i < optionsSelectStates.Length; i++)
+                        {
+                            if (optionsSelectStates[i])
+                            {
+                                CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
+                                break;
+                            }
+                        }
+                        ImGui.EndChildFrame();
                     }
-                }
-                ImGui.EndChildFrame();
+                
+
+                ImGui.End();
             }
-
-
-            ImGui.End();
-
             if (hasError)
             {
                 ImGui.PopStyleColor();
@@ -339,8 +347,10 @@ namespace rgatCore.Widgets
             ImGui.PopStyleColor();
             ImGui.TableNextColumn();
 
-            if (signerror.Length > 0){
+            bool signatureError = signerror.Length > 0 && signerror != "No Error";
 
+            if (signatureError)
+            {
                 if (signatureTimeWarning)
                 {
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
@@ -355,9 +365,7 @@ namespace rgatCore.Widgets
                 selected = true;
             }
 
-            if (signerror.Length > 0) { ImGui.PopStyleColor();  }
-
-
+            if (signatureError) { ImGui.PopStyleColor();  }
 
             hovered = hovered || ImGui.IsItemHovered();
 
@@ -381,7 +389,7 @@ namespace rgatCore.Widgets
                 ImGui.BeginTooltip();
                 ImGui.Text(tooltip);
                 if (hasPath) ImGui.Text(path);
-                if (signerror.Length > 0)
+                if (signatureError)
                 {
                     if (signatureTimeWarning)
                     {
@@ -426,8 +434,8 @@ namespace rgatCore.Widgets
                 if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
                 { choosePath = "PinToolPath64"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("OpenH264 Library", GlobalConfig.VideoEncodeCiscoLibPath, settingTips["VideoCodec"], out clearFlag))
-                { choosePath = "VideoCodec"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.VideoEncoderFFmpegPath, settingTips["FFmpeg"], out clearFlag))
+                { choosePath = "FFmpeg"; doClear |= clearFlag; }
 
                 if (choosePath.Length == 0) isFolder = true;
 
@@ -832,64 +840,66 @@ namespace rgatCore.Widgets
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff444444);
             }
             ImGui.BeginGroup();
-            if (ImGui.Button("Apply Imported Theme"))
             {
-                if (_UI_JSON_edited) ApplyNewThemeJSONToUI();
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
-
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
-            {
-                RegenerateUIThemeJSON();
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Restore export text from the currently applied theme. The changes will be lost.");
-
-            if (disableRestore) { ImGui.PopStyleColor(3); }
-
-
-            ImGui.SameLine();
-            if (ImGui.Button("Copy"))
-            {
-                ImGui.LogToClipboard();
-                int blockSize = 255; //LogText won't copy more than this at once
-                for (var written = 0; written < _theme_UI_JSON_Text.Length; written += blockSize)
-                    if (written < _theme_UI_JSON_Text.Length)
-                        ImGui.LogText(_theme_UI_JSON_Text.Substring(written, Math.Min(blockSize, _theme_UI_JSON_Text.Length - written)));
-                ImGui.LogFinish();
-            }
-            ImGui.SameLine();
-            string expandBtnText = _expanded_theme_json ? "Collapse" : "Expand";
-            string expandBtnTip = _expanded_theme_json ? "Collapse the JSON editor" : "Expand the JSON editor";
-            if (ImGui.Button(expandBtnText))
-            {
-                _expanded_theme_json = !_expanded_theme_json;
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
-
-            Themes.GetMetadataValue("Name", out string activeThemeName);
-            if (activeThemeName != Themes.DefaultTheme)
-            {
-                ImGui.SameLine();
-                if (ImGui.Button("Set As Default"))
+                if (ImGui.Button("Apply Imported Theme"))
                 {
-                    Themes.DefaultTheme = activeThemeName;
+                    if (_UI_JSON_edited) ApplyNewThemeJSONToUI();
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
-            }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
 
-            if (!Themes.IsBuiltinTheme)
-            {
                 ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 20);
-                ImGui.PushStyleColor(ImGuiCol.Button, 0x9B331EFF);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff3344ff);
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff0000ff);
-                if (ImGui.Button("Delete"))
+                if (ImGui.Button("Cancel"))
                 {
-                    DeleteCurrentTheme();
+                    RegenerateUIThemeJSON();
                 }
-                ImGui.PopStyleColor(3);
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Restore export text from the currently applied theme. The changes will be lost.");
+
+                if (disableRestore) { ImGui.PopStyleColor(3); }
+
+
+                ImGui.SameLine();
+                if (ImGui.Button("Copy"))
+                {
+                    ImGui.LogToClipboard();
+                    int blockSize = 255; //LogText won't copy more than this at once
+                    for (var written = 0; written < _theme_UI_JSON_Text.Length; written += blockSize)
+                        if (written < _theme_UI_JSON_Text.Length)
+                            ImGui.LogText(_theme_UI_JSON_Text.Substring(written, Math.Min(blockSize, _theme_UI_JSON_Text.Length - written)));
+                    ImGui.LogFinish();
+                }
+                ImGui.SameLine();
+                string expandBtnText = _expanded_theme_json ? "Collapse" : "Expand";
+                string expandBtnTip = _expanded_theme_json ? "Collapse the JSON editor" : "Expand the JSON editor";
+                if (ImGui.Button(expandBtnText))
+                {
+                    _expanded_theme_json = !_expanded_theme_json;
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
+
+                Themes.GetMetadataValue("Name", out string activeThemeName);
+                if (activeThemeName != Themes.DefaultTheme)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Set As Default"))
+                    {
+                        Themes.DefaultTheme = activeThemeName;
+                    }
+                    if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
+                }
+
+                if (!Themes.IsBuiltinTheme)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 20);
+                    ImGui.PushStyleColor(ImGuiCol.Button, 0x9B331EFF);
+                    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff3344ff);
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff0000ff);
+                    if (ImGui.Button("Delete"))
+                    {
+                        DeleteCurrentTheme();
+                    }
+                    ImGui.PopStyleColor(3);
+                }
             }
 
 
@@ -972,26 +982,29 @@ namespace rgatCore.Widgets
                             }
                             ImGui.SameLine();
                             ImGui.BeginGroup();
-                            ImGui.Button("Button", new Vector2(120, 25));
-                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonHovered));
-                            ImGui.Button("Button (Hovered)", new Vector2(120, 25));
-                            ImGui.PopStyleColor();
-                            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonActive));
-                            ImGui.Button("Button (Active)", new Vector2(120, 25));
-                            ImGui.PopStyleColor();
-                            ImGui.EndGroup();
+                            {
+                                ImGui.Button("Button", new Vector2(120, 25));
+                                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonHovered));
+                                ImGui.Button("Button (Hovered)", new Vector2(120, 25));
+                                ImGui.PopStyleColor();
+                                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonActive));
+                                ImGui.Button("Button (Active)", new Vector2(120, 25));
+                                ImGui.PopStyleColor();
+                                ImGui.EndGroup();
+                            }
 
                             ImGui.SliderFloat("Slider", ref testSlider, 0, 100);
                             ImGui.EndGroup();
-
                         }
+
                         ImGui.SameLine();
                         ImGui.BeginGroup();
                         {
                             ImGui.EndGroup();
                         }
-                        ImGui.EndTabItem();
                     }
+                    ImGui.EndTabItem();
+                    
                     if (ImGui.BeginTabItem("Custom Widgets Tab"))
                     {
                         ImGui.EndTabItem();

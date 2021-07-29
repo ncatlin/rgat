@@ -309,8 +309,7 @@ namespace rgatCore
         /*
          * Video encoder config
          */
-        public static bool VideoEncodeLoadOnStart = false;
-        public static string VideoEncodeCiscoLibPath = @"";
+        public static string VideoEncoderFFmpegPath = @"";
         public static int VideoCodec_Height = 640;
         public static int VideoCodec_Width = 480;
         public static int VideoCodec_Bitrate = 50000;
@@ -955,9 +954,9 @@ namespace rgatCore
                 }
             }
 
-            if (GetAppSetting("VideoCodec", out string videocodec) && File.Exists(videocodec))
+            if (GetAppSetting("FFmpeg", out string ffmpegbinary) && File.Exists(ffmpegbinary))
             {
-                SetBinaryPath("VideoCodec", videocodec, save: false);
+                SetBinaryPath("FFmpeg", ffmpegbinary, save: false);
             }
         }
 
@@ -1029,18 +1028,9 @@ namespace rgatCore
                 }
                 PinToolPath64 = path;
             }
-            if (setting == "VideoCodec")
+            if (setting == "FFmpeg")
             {
-                if (VerifyCertificate(path, SIGNERS.CISCO_SIGNER, out string error))
-                {
-                    validSignature = true;
-                }
-                else
-                {
-                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
-                    lock (_settingsLock) { BinaryValidationErrors[path] = error; }
-                }
-                VideoEncodeCiscoLibPath = path;
+                VideoEncoderFFmpegPath = path;
             }
 
 
@@ -1100,11 +1090,6 @@ namespace rgatCore
             if (GetAppSetting("BulkLogging", out string bulklogging))
             {
                 BulkLogging = (bulklogging.ToLower() == "true");
-            }
-
-            if (GetAppSetting("LoadVideoCodecOnStart", out string loadcodec))
-            {
-                VideoEncodeLoadOnStart = (loadcodec.ToLower() == "true");
             }
 
 
