@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using Humanizer;
+using ImGuiNET;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -315,6 +316,7 @@ namespace rgatCore
         public static string VideoCodec_Speed = "Medium";
         public static int VideoCodec_Quality = 6;
         public static int VideoCodec_FPS = 30;
+        public static string VideoCodec_Content = "Graph";
         public static string ImageCapture_Format = "PNG";
 
 
@@ -351,6 +353,10 @@ namespace rgatCore
             SetKeybind(action: eKeybind.ToggleInsText, bindIndex: 1, Key.I, ModifierKeys.Shift);
             SetKeybind(action: eKeybind.ToggleLiveText, bindIndex: 1, Key.I, ModifierKeys.Control);
             SetKeybind(action: eKeybind.QuickMenu, bindIndex: 1, Key.M, ModifierKeys.None);
+
+            SetKeybind(action: eKeybind.CaptureWindowImage, bindIndex: 1, Key.P, ModifierKeys.None);
+            SetKeybind(action: eKeybind.CaptureGraphImage, bindIndex: 1, Key.P, ModifierKeys.Shift);
+            SetKeybind(action: eKeybind.CaptureGraphPreviewImage, bindIndex: 1, Key.P, ModifierKeys.Control);
         }
 
 
@@ -1109,6 +1115,10 @@ namespace rgatCore
             {
                 int.TryParse(vid1, out VideoCodec_FPS);
             }
+            if (GetAppSetting("VideoCodec_Content", out string content) && content.Length > 0)
+            {
+                VideoCodec_Content = content.Humanize(LetterCasing.Sentence);
+            }
             if (GetAppSetting("ImageCapture_Format", out string imageformat) && imageformat.Length > 0)
             {
                 ImageCapture_Format = imageformat.ToUpper();
@@ -1124,7 +1134,14 @@ namespace rgatCore
             LoadResources();
             LoadProgress = 0.3;
 
-            LoadSettings();
+            try
+            {
+                LoadSettings();
+            }
+            catch(Exception e)
+            {
+                Logging.RecordLogEvent($"Exception loading settings: {e.Message}", Logging.LogFilterType.TextError);
+            }
 
             try
             {

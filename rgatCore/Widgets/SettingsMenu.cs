@@ -652,15 +652,20 @@ namespace rgatCore.Widgets
                 CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.RollGraphZAnti, index++);
                 CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.YawYRight, index++);
                 CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.YawYLeft, index++);
-                CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++);
-                CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++);
-                CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++);
-                CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++);
-                CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++);
-                CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++);
-                CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++);
-                CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++);
-                CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++);
+                CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++, "Toggle heatmap mode, illustrating how busy different areas of the graph are");
+                CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++, "Toggle conditional instruction mode, showing the status of conditional jumps");
+                CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++, "Increase the temperature of a force directed graph, increasing the rate of layout");
+                CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++, "Move the camera so the entire graph centered in the visualiser pane");
+                CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++, "Keep the entire graph centered in the visualiser pane");
+                CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++, "Toggle all text in the graph visualiser (eg: instructions, API calls)");
+                CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++, "Toggle instruction text in the graph visualiser");
+                CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++, "Toggle dynamic text in the graph visualiser (eg: API calls)");
+                CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++, "Toggle the graph visualiser quickmenu");
+                CreateKeybindInput("Capture Window", eKeybind.CaptureWindowImage, index++, "Save an image of the window contents to the media directory");
+                CreateKeybindInput("Capture Graph", eKeybind.CaptureGraphImage, index++, "Save an image of the visualiser graph to the media directory");
+                CreateKeybindInput("Capture Graph & Previews", eKeybind.CaptureGraphPreviewImage, index++, "Save an image of the visualiser graph and preview graphs to the media directory");
+                CreateKeybindInput("Toggle Video Capture", eKeybind.ToggleVideo, index++, "Begin recording a new video, or finish recording the current one");
+                CreateKeybindInput("Pause Video Capture", eKeybind.PauseVideo, index++, "Stop sending frames to be recorded");
                 ImGui.EndTable();
             }
 
@@ -1070,7 +1075,7 @@ namespace rgatCore.Widgets
 
 
 
-        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex)
+        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string tooltip=null)
         {
             uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);
@@ -1079,39 +1084,60 @@ namespace rgatCore.Widgets
             ImGui.TableNextColumn();
 
             ImGui.Text(caption);
+            if (tooltip != null)
+            {
+                SmallWidgets.MouseoverText(tooltip);
+                ImGui.SameLine();
+                ImGui.TextDisabled("(?)");
+                SmallWidgets.MouseoverText(tooltip);
+            }
+
 
             ImGui.TableNextColumn();
-
-
-
             string kstring = "";
-            if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
             {
-                if (kmval.Item2 != ModifierKeys.None)
-                    kstring += kmval.Item2.ToString() + "+";
-                kstring += kmval.Item1;
+                if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    if (kmval.Item2 != ModifierKeys.None)
+                        kstring += kmval.Item2.ToString() + "+";
+                    kstring += kmval.Item1;
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, 0xffbb9999);
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xff000000);
+                    kstring = $"[Click To Set]##{rowIndex}1";
+                }
+                if (ImGui.Button($"[{kstring}]"))
+                    DoClickToSetKeybind(caption, action: keyAction, 1);
+                ImGui.PopStyleColor(2);
             }
-            else
-            {
-                kstring = "[Click To Set]";
-            }
-            if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 1);
 
             ImGui.TableNextColumn();
 
+            {
+                kstring = "";
+                if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out var kmval))
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    if (kmval.Item2 != ModifierKeys.None)
+                        kstring += kmval.Item2.ToString() + "+";
+                    kstring += kmval.Item1;
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, 0xffbb9999);
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xff000000);
+                    kstring = $"[Click To Set]##{rowIndex}2";
+                }
+                if (ImGui.Button($"[{kstring}]")) 
+                    DoClickToSetKeybind(caption, action: keyAction, 2);
 
-            kstring = "";
-            if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out kmval))
-            {
-                if (kmval.Item2 != ModifierKeys.None)
-                    kstring += kmval.Item2.ToString() + "+";
-                kstring += kmval.Item1;
+                ImGui.PopStyleColor(2);
             }
-            else
-            {
-                kstring = "[Click To Set]";
-            }
-            if (ImGui.Button($"[{kstring}]")) DoClickToSetKeybind(caption, action: keyAction, 2);
 
             ImGui.PopStyleColor();
         }

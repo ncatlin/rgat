@@ -658,25 +658,77 @@ namespace rgatCore
 
                     if (isKeybind)
                     {
+                        //close quick menu
                         if (MainGraphWidget.QuickMenuActive &&
                             (boundAction == eKeybind.QuickMenu || boundAction == eKeybind.Cancel))
                         {
                             MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, eKeybind.Cancel);
                             continue;
                         }
+
+                        //cancel any open dialogs
                         if (boundAction == eKeybind.Cancel)
                             CloseDialogs();
                     }
 
-                    //could be a menu shortcut
+
+                    //could be a quickmenu shortcut
                     if (MainGraphWidget.AlertRawKeyPress(KeyModifierTuple)) continue;
+
+
+
 
                     if (isKeybind)
                     {
+                        switch (boundAction)
+                        {
+                            case eKeybind.ToggleVideo:
+                                if (_rgatstate.VideoRecorder.Recording)
+                                {
+                                    _rgatstate.VideoRecorder.Done();
+                                }
+                                else
+                                {
+                                    _rgatstate.VideoRecorder.StartRecording();
+                                }
+                                continue;
+
+                            case eKeybind.PauseVideo:
+                                if (_rgatstate.VideoRecorder.Recording)
+                                {
+                                    _rgatstate.VideoRecorder.CapturePaused = !_rgatstate.VideoRecorder.CapturePaused;
+                                }
+                                continue;
+
+                            case eKeybind.CaptureGraphImage:
+                                if (currentTabVisualiser)
+                                {
+                                    PendingScreenshot = VideoEncoder.CaptureContent.Graph;
+                                }
+                                continue;
+                            case eKeybind.CaptureGraphPreviewImage:
+                                if (currentTabVisualiser)
+                                {
+                                    PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
+                                }
+                                continue;
+                            case eKeybind.CaptureWindowImage:
+                                PendingScreenshot = VideoEncoder.CaptureContent.Window;
+                                continue;
+                            default:
+                                break;
+                        }
+
+
                         if (currentTabVisualiser)
-                        { MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction); }
+                        {
+                            MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, boundAction);
+                        }
+
                         else if (currentTabTimeline)
-                        { chart.AlertKeybindPressed(KeyModifierTuple, boundAction); }
+                        {
+                            chart.AlertKeybindPressed(KeyModifierTuple, boundAction);
+                        }
                     }
 
 
@@ -1396,12 +1448,6 @@ namespace rgatCore
                         ImGui.Text("Settings");
                         ImGui.PopFont();
                     }
-                    if (ImGui.Button("Capture Image"))
-                    {
-                        _takeScreenshot = true;
-
-                        //MainGraphWidget.ButtonPressed = true;
-                    }
                     if (ImGui.Button("Demo"))
                     {
                         _ImGuiController.ShowDemoWindow = !_ImGuiController.ShowDemoWindow;
@@ -1948,28 +1994,33 @@ namespace rgatCore
             {
                 if (_rgatstate.VideoRecorder.Recording)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
-                    if (ImGui.Button("Stop Capture"))
+                    if (_rgatstate.VideoRecorder.CapturePaused)
                     {
-                        _rgatstate.VideoRecorder.Done();
+                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        if (ImGui.Button("Resume Capture")) //this is more intended as an indicator than a control
+                        {
+                            _rgatstate.VideoRecorder.CapturePaused = false;
+                        }
+                        ImGui.PopStyleColor();
                     }
-                    ImGui.PopStyleColor();
+                    else
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
+                        if (ImGui.Button("Stop Capture"))
+                        {
+                            _rgatstate.VideoRecorder.Done();
+                        }
+                        ImGui.PopStyleColor();
+                    }
                 }
                 else
                 {
-
                     if (ImGui.Button("Start Capture"))
                     {
                         _rgatstate.VideoRecorder.StartRecording();
                     }
                 }
 
-                if (ImGui.Button("Capture Image"))
-                {
-                    _takeScreenshot = true;
-
-                    //MainGraphWidget.ButtonPressed = true;
-                }
                 ImGui.Button("Add Caption");
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
@@ -1977,12 +2028,38 @@ namespace rgatCore
         }
 
         static Texture recordingStager;
-        static bool _takeScreenshot;
+        static VideoEncoder.CaptureContent PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+
         unsafe public void ProcessFramebuffer(Framebuffer fbuf, CommandList cl)
         {
-
+            //exit if no video capture or screenshot pending
             VideoEncoder recorder = _rgatstate?.VideoRecorder;
-            if (!(recorder != null && recorder.Recording) && !_takeScreenshot) return;
+            if ((recorder == null || !recorder.Recording) && PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
+
+            if (_rgatstate.VideoRecorder.Recording && !_rgatstate.VideoRecorder.CapturePaused)
+            {
+                Bitmap videoBmp = CreateVideoRecordingFrame(fbuf, cl, _rgatstate.VideoRecorder.GetCapturedContent());
+                _rgatstate.VideoRecorder.QueueFrame(videoBmp, _rgatstate.ActiveGraph);
+            }
+
+            if (PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
+            {
+                try
+                {
+                    //cant reuse the video bitmap because of object currently in use exceptions
+                    Bitmap screenBmp = CreateVideoRecordingFrame(fbuf, cl, PendingScreenshot);
+                    _rgatstate.VideoRecorder.TakeScreenshot(_rgatstate.ActiveGraph, screenBmp);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Unhandled exception while taking screenshot {PendingScreenshot}: {e.Message}");
+                }
+                PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+            }
+        }
+
+        unsafe Bitmap CreateVideoRecordingFrame(Framebuffer fbuf, CommandList cl, VideoEncoder.CaptureContent region)
+        {
 
             GraphicsDevice gd = _ImGuiController.graphicsDevice;
             Texture ftex = fbuf.ColorTargets[0].Target;
@@ -2007,15 +2084,41 @@ namespace rgatCore
             byte* scan0 = (byte*)data.Scan0;
 
             MappedResourceView<SixLabors.ImageSharp.PixelFormats.Rgba32> res = gd.Map<SixLabors.ImageSharp.PixelFormats.Rgba32>(recordingStager, MapMode.Read);
-            int drawHeight = (int)Math.Min(bmp.Height, recordingStager.Height);
-            int drawWidth = (int)Math.Min(bmp.Width, recordingStager.Width);
+            int drawHeight = 0;
+            int drawWidth = 0;
+            float startX = 0;
+            float startY = 0;
+
+            switch (region)
+            {
+                case VideoEncoder.CaptureContent.Graph:
+                    drawHeight = (int)Math.Min(bmp.Height, MainGraphWidget.WidgetSize.Y);
+                    drawWidth = (int)Math.Min(bmp.Width, MainGraphWidget.WidgetSize.X);
+                    startX = MainGraphWidget.WidgetPos.X;
+                    startY = MainGraphWidget.WidgetPos.Y;
+                    break;
+                case VideoEncoder.CaptureContent.GraphAndPreviews:
+                    drawHeight = (int)Math.Min(bmp.Height, MainGraphWidget.WidgetSize.Y);
+                    drawWidth = (int)Math.Min(bmp.Width, MainGraphWidget.WidgetSize.X + UI_Constants.PREVIEW_PANE_WIDTH);
+                    startX = MainGraphWidget.WidgetPos.X;
+                    startY = MainGraphWidget.WidgetPos.Y;
+                    break;
+                case VideoEncoder.CaptureContent.Window:
+                default:
+                    drawHeight = (int)Math.Min(bmp.Height, recordingStager.Height);
+                    drawWidth = (int)Math.Min(bmp.Width, recordingStager.Width);
+                    break;
+            }
+
 
             for (int y = 0; y < drawHeight; y += 1)
             {
                 for (int x = 0; x < drawWidth; x += 1)
                 {
-                    SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[x, y];
-                    byte* ptr = scan0 + y * data.Stride + (x * 4);
+                    int xPixel = (int)startX + x;
+                    int yPixel = (int)startY + y;
+                    SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[xPixel, yPixel];
+                    byte* ptr = scan0 + yPixel * data.Stride + (xPixel * 4);
                     ptr[0] = px.R;
                     ptr[1] = px.G;
                     ptr[2] = px.B;
@@ -2025,25 +2128,9 @@ namespace rgatCore
             bmp.UnlockBits(data);
             gd.Unmap(recordingStager);
 
-            if (_takeScreenshot)
-            {
-                try
-                {
-                    _rgatstate.VideoRecorder.TakeScreenshot(_rgatstate.ActiveGraph, bmp);
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordLogEvent($"Unhandled exception while taking screenshot: {e.Message}");
-                }
-                _takeScreenshot = false;
-            }
-
-            if (_rgatstate.VideoRecorder.Recording)
-            {
-                _rgatstate.VideoRecorder.QueueFrame(bmp, _rgatstate.ActiveGraph);
-            }
-
+            return bmp;
         }
+
 
 
 
@@ -2414,9 +2501,11 @@ namespace rgatCore
                 if (_rgatstate.ChooseActiveGraph())
                 {
 
-
-                    _rgatstate.VideoRecorder.StartRecording();
-                    //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
+                    if (_recordVideoOnStart)
+                    {
+                        _rgatstate.VideoRecorder.StartRecording();
+                        _recordVideoOnStart = false;
+                    }
                     PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                     PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
                 }
@@ -2424,9 +2513,7 @@ namespace rgatCore
                 {
                     if (MainGraphWidget.ActiveGraph != null)
                     {
-                        //MainGraphWidget.SetActiveGraph(null);
                         PreviewGraphWidget.SetActiveTrace(null);
-
                     }
                 }
             }

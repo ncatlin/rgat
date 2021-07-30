@@ -43,6 +43,46 @@ namespace rgatCore
         {
         }
 
+
+        static BinaryWriter stream = null;
+
+        public int CurrentVideoWidth { get; private set; }
+        public int CurrentVideoHeight { get; private set; }
+
+
+        public string CurrentRecordingFile = "";
+        ulong _recordedFrameCount = 0;
+        public bool Recording => _recording;
+        public bool CapturePaused = false;
+        bool _recording = false;
+        ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        public int FrameQueueSize => _bmpQueue.Count;
+
+        CaptureContent _capturedContent = CaptureContent.Invalid;
+        public enum CaptureContent { Graph, GraphAndPreviews, Window, Invalid };
+
+        public CaptureContent GetCapturedContent()
+        {
+            if (_capturedContent == CaptureContent.Invalid)
+            {
+                string setting = GlobalConfig.VideoCodec_Content.ToUpper();
+                if (setting.Contains("PREVIEW"))
+                {
+                    _capturedContent = CaptureContent.GraphAndPreviews;
+                }
+                else if (setting.Contains("GRAPH"))
+                {
+                    _capturedContent = CaptureContent.Graph;
+                }
+                else
+                {
+                    _capturedContent = CaptureContent.Window;
+                }
+            }
+            return _capturedContent;
+
+        }
+
         public void Load(string dllpath = "")
         {
             if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
@@ -56,12 +96,6 @@ namespace rgatCore
             }
         }
 
-        static BinaryWriter stream = null;
-
-        public int CurrentVideoWidth { get; private set; }
-        public int CurrentVideoHeight { get; private set; }
-
-
         public bool StartRecording()
         {
             System.Diagnostics.Debug.Assert(!_recording);
@@ -69,11 +103,6 @@ namespace rgatCore
             return true;
         }
 
-
-        public bool Recording => _recording;
-        bool _recording = false;
-        ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
-        public int FrameQueueSize => _bmpQueue.Count;
 
         IEnumerable<IVideoFrame> GetNextFrame()
         {
@@ -129,8 +158,6 @@ namespace rgatCore
         }
 
 
-        public string CurrentRecordingFile = "";
-        ulong _recordedFrameCount = 0;
 
         public string GenerateVideoFilepath(PlottedGraph graph)
         {
@@ -276,17 +303,21 @@ namespace rgatCore
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("FFMpeg Record Error: " + e.Message);
+                Logging.RecordLogEvent("FFMpeg Record Error: " + e.Message, Logging.LogFilterType.TextError);
                 Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
                 Console.WriteLine(e);
                 Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
             }
+
+
             Initialised = false;
             _recording = false;
+            CapturePaused = false;
             _bmpQueue.Clear();
 
-            Logging.RecordLogEvent($"Recorded {_recordedFrameCount} frames of {CurrentVideoWidth}x{CurrentVideoHeight} video to " + CurrentRecordingFile);
+            Logging.RecordLogEvent($"Recorded {_recordedFrameCount} x {CurrentVideoWidth}*{CurrentVideoHeight} frames of video to " + CurrentRecordingFile);
             CurrentRecordingFile = "";
+            _capturedContent = CaptureContent.Invalid;
         }
 
 
@@ -433,6 +464,25 @@ namespace rgatCore
                     GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
                 }
                 SmallWidgets.MouseoverText("Number of frames to record per second of video. Increase to increase quality and file size");
+
+
+                ImGui.SetNextItemWidth(180);
+                if (ImGui.BeginCombo("Recorded Content", GlobalConfig.VideoCodec_Content))
+                {
+                    foreach (var content in new string[] { "Graph", "Graph and previews", "Whole window" })
+                    {
+                        if (ImGui.Selectable(content))
+                        {
+                            GlobalConfig.VideoCodec_Content = content;
+                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Content", content);
+                        }
+                    }
+                    ImGui.EndCombo();
+                }
+                SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
+
+
+
 
                 ImGui.TableNextColumn();
 

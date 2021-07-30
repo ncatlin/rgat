@@ -25,7 +25,8 @@ namespace rgatCore
         MoveLeft, MoveRight, MoveUp, MoveDown,
         ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,
         CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
-        ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu
+        ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu, 
+        CaptureGraphImage, CaptureGraphPreviewImage, CaptureWindowImage, ToggleVideo, PauseVideo
     }
 
     public enum eSignatureType { eYARA, eDetectItEasy };

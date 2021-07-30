@@ -32,7 +32,7 @@ namespace rgatCore
 
         GraphicsDevice _gd;
         ResourceFactory _factory;
-        Vector2 _graphWidgetSize;
+        public Vector2 WidgetSize { get; private set; }
 
         TextureView _imageTextureView;
         ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
@@ -45,7 +45,7 @@ namespace rgatCore
             _QuickMenu = new QuickMenu(_gd, controller);
             _clientState = clientState;
 
-            _graphWidgetSize = initialSize ?? new Vector2(400, 400);
+            WidgetSize = initialSize ?? new Vector2(400, 400);
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller, "Main");
             _imageTextureView = controller.IconTexturesView;
@@ -109,9 +109,9 @@ namespace rgatCore
             Vector2 MousePos = ImGui.GetMousePos();
             Vector2 WidgetPos = ImGui.GetCursorScreenPos();
 
-            if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + _graphWidgetSize.X))
+            if (MousePos.X >= WidgetPos.X && MousePos.X < (WidgetPos.X + WidgetSize.X))
             {
-                if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + _graphWidgetSize.Y))
+                if (MousePos.Y >= WidgetPos.Y && MousePos.Y < (WidgetPos.Y + WidgetSize.Y))
                 {
                     return true;
                 }
@@ -143,7 +143,7 @@ namespace rgatCore
             if (_centeringInFrame == 1) _centeringSteps += 1;
 
 
-            _layoutEngine.GetScreenFitOffsets(graph, worldView, _graphWidgetSize,
+            _layoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
                 out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
@@ -485,7 +485,7 @@ namespace rgatCore
             }
 
             if (graph.CameraClippingFar <= graph.CameraClippingNear) graph.CameraClippingFar = graph.CameraClippingNear + 1;
-            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)_graphWidgetSize.X / _graphWidgetSize.Y, graph.CameraClippingNear, graph.CameraClippingFar);
+            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)WidgetSize.X / WidgetSize.Y, graph.CameraClippingNear, graph.CameraClippingFar);
 
             Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
             Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
@@ -680,13 +680,13 @@ namespace rgatCore
             VeldridGraphBuffers.DoDispose(_pickingFrameBuffer);
             VeldridGraphBuffers.DoDispose(_pickingStagingTexture);
 
-            _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture1.Name = "OutputTexture1" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
             _outputFramebuffer1.Name = $"OPFB1_" + _outputTexture1.Name;
 
-            _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture2.Name = "OutputTexture2" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
@@ -694,12 +694,12 @@ namespace rgatCore
 
 
 
-            _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
             _pickingFrameBuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
 
-            _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_graphWidgetSize.X, (uint)_graphWidgetSize.Y, 1, 1,
+            _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
             _graphLock.ExitWriteLock();
@@ -1015,7 +1015,7 @@ namespace rgatCore
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
             out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
 
-            //_layoutEngine.GetScreenFitOffsets(_graphWidgetSize, out _furthestX, out _furthestY, out _furthestZ);
+            //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
@@ -1120,7 +1120,7 @@ namespace rgatCore
             //draw text
             if (graph.TextEnabled)
             {
-                cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
+                cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
 
                 cl.SetPipeline(_fontPipeline);
                 cl.SetVertexBuffer(0, _FontVertBuffer);
@@ -1146,7 +1146,7 @@ namespace rgatCore
             cl.SetFramebuffer(_pickingFrameBuffer);
 
             cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
-            cl.SetViewport(0, new Viewport(0, 0, _graphWidgetSize.X, _graphWidgetSize.Y, -2200, 1000));
+            cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
             cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
@@ -1167,16 +1167,14 @@ namespace rgatCore
         public Texture DrawGraphImage()
         {
             Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
-            if (currentRegionSize != _graphWidgetSize)
+            if (currentRegionSize != WidgetSize)
             {
                 if (_newGraphSize == null || _newGraphSize != currentRegionSize)
                     _newGraphSize = currentRegionSize;
             }
 
-            _WidgetPos = ImGui.GetCursorScreenPos();
+            WidgetPos = ImGui.GetCursorScreenPos();
             _MousePos = ImGui.GetMousePos();
-
-            Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
 
             GetLatestTexture(out Texture outputTexture);
@@ -1185,8 +1183,8 @@ namespace rgatCore
 
             Debug.Assert(!outputTexture.IsDisposed);
 
-            imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
-                p_max: new Vector2(pos.X + outputTexture.Width, pos.Y + outputTexture.Height),
+            imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: WidgetPos,
+                p_max: new Vector2(WidgetPos.X + outputTexture.Width, WidgetPos.Y + outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
             _isInputTarget = ImGui.IsItemActive();
@@ -1543,7 +1541,7 @@ namespace rgatCore
             renderGraph(cl, graph);
 
             Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
-            graph.UpdatePreviewVisibleRegion(_graphWidgetSize);
+            graph.UpdatePreviewVisibleRegion(WidgetSize);
             _graphLock.ExitUpgradeableReadLock();
         }
 
@@ -1573,8 +1571,8 @@ namespace rgatCore
             if (graph == null || Exiting) return;
             if (_newGraphSize != null)
             {
-                Logging.RecordLogEvent($"Remaking textures as newgraphsize {_newGraphSize.Value} != current size {_graphWidgetSize}");
-                _graphWidgetSize = _newGraphSize.Value;
+                Logging.RecordLogEvent($"Remaking textures as newgraphsize {_newGraphSize.Value} != current size {WidgetSize}");
+                WidgetSize = _newGraphSize.Value;
                 RecreateOutputTextures();
                 _newGraphSize = null;
             }
@@ -1604,7 +1602,7 @@ namespace rgatCore
 
 
 
-        Vector2 _WidgetPos;
+       public Vector2 WidgetPos { get; private set; }
         Vector2 _MousePos;
 
         int _mouseoverNodeID = -1;
@@ -1620,8 +1618,8 @@ namespace rgatCore
             PlottedGraph graph = ActiveGraph;
             if (graph == null || Exiting) return;
 
-            float mouseX = (_MousePos.X - _WidgetPos.X);
-            float mouseY = (_WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;
+            float mouseX = (_MousePos.X - WidgetPos.X);
+            float mouseY = (WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;
 
             bool hit = false;
             //mouse is in graph widget
