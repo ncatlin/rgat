@@ -32,6 +32,7 @@ namespace rgatCore.Widgets
             settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
             settingTips["DiESigsPath"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
             settingTips["YaraRulesPath"] = "The directory containing YARA rules for file and memory scanning";
+            settingTips["MediaCapturePath"] = "The directory where videos recordings and images are saved";
         }
 
         readonly static uint INVALID_VALUE_TEXTBOX_COLOUR = 0xcc5555ff;
@@ -451,6 +452,9 @@ namespace rgatCore.Widgets
                 if (DrawPathMenuOption("Yara Rules", GlobalConfig.YARARulesDir, settingTips["YaraRulesPath"], out clearFlag))
                 { choosePath = "YaraRulesPath"; doClear |= clearFlag; }
 
+                if (DrawPathMenuOption("Images/Videos", GlobalConfig.MediaCapturePath, settingTips["MediaCapturePath"], out clearFlag))
+                { choosePath = "MediaCapturePath"; doClear |= clearFlag; }
+
 
                 ImGui.EndTable();
             }
@@ -520,6 +524,9 @@ namespace rgatCore.Widgets
                     break;
                 case "YaraRulesPath":
                     GlobalConfig.SetDirectoryPath("YaraRulesPath", path);
+                    break;
+                case "MediaCapturePath":
+                    GlobalConfig.SetDirectoryPath("MediaCapturePath", path);
                     break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);

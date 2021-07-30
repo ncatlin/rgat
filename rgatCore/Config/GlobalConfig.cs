@@ -272,6 +272,8 @@ namespace rgatCore
         public static string PinToolPath64;
         public static string DiESigsPath;
         public static string YARARulesDir;
+        public static string MediaCapturePath;
+
         public static int MaxStoredRecentPaths = 10;
         public static Dictionary<string, string> BinaryValidationErrors = new Dictionary<string, string>();
         public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
@@ -310,11 +312,10 @@ namespace rgatCore
          * Video encoder config
          */
         public static string VideoEncoderFFmpegPath = @"";
-        public static int VideoCodec_Height = 640;
-        public static int VideoCodec_Width = 480;
-        public static int VideoCodec_Bitrate = 50000;
-        public static int VideoCodec_FPS = 10;
-        public static int VideoCodec_FrameInterval = 2;
+        public static string VideoCodec_Speed = "Medium";
+        public static int VideoCodec_Quality = 6;
+        public static int VideoCodec_FPS = 30;
+        public static string ImageCapture_Format = "PNG";
 
 
         /*
@@ -718,7 +719,7 @@ namespace rgatCore
         }
 
 
-        static string GetStorageDirectoryPath(string name)
+        public static string GetStorageDirectoryPath(string name)
         {
             List<string> candidates = new List<string>() {
                     AppContext.BaseDirectory,
@@ -976,6 +977,9 @@ namespace rgatCore
                 case "YaraRulesPath":
                     YARARulesDir = path;
                     break;
+                case "MediaCapturePath":
+                    MediaCapturePath = path;
+                    break;
                 default:
                     Logging.RecordLogEvent($"Bad nonbinary path setting: {setting} => {path}", Logging.LogFilterType.TextError);
                     return;
@@ -1093,27 +1097,23 @@ namespace rgatCore
             }
 
 
-            if (GetAppSetting("VideoCodec_Height", out string vid1))
+            if (GetAppSetting("VideoCodec_Speed", out string vidspeed))
             {
-                int.TryParse(vid1, out VideoCodec_Height);
+                VideoCodec_Speed = vidspeed;
             }
-            if (GetAppSetting("VideoCodec_Width", out vid1))
+            if (GetAppSetting("VideoCodec_Quality", out string vid1))
             {
-                int.TryParse(vid1, out VideoCodec_Width);
-            }
-            if (GetAppSetting("VideoCodec_Bitrate", out vid1))
-            {
-                int.TryParse(vid1, out VideoCodec_Bitrate);
+                int.TryParse(vid1, out VideoCodec_Quality);
             }
             if (GetAppSetting("VideoCodec_FPS", out vid1))
             {
                 int.TryParse(vid1, out VideoCodec_FPS);
             }
-            if (GetAppSetting("VideoCodec_FrameInterval", out vid1))
+            if (GetAppSetting("ImageCapture_Format", out string imageformat) && imageformat.Length > 0)
             {
-                int.TryParse(vid1, out VideoCodec_FrameInterval);
+                ImageCapture_Format = imageformat.ToUpper();
             }
-
+            
         }
 
         public static double LoadProgress { get; private set; } = 0;

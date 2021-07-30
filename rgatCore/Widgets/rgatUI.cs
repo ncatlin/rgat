@@ -360,12 +360,15 @@ namespace rgatCore
                     ImGui.TableNextColumn();
 
                     ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
-                    string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
-                    if (traceProcessor.PendingBlockRepeats > 0)
+                    if (traceProcessor != null)
                     {
-                        BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                        string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                        if (traceProcessor.PendingBlockRepeats > 0)
+                        {
+                            BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                        }
+                        ImGui.Text($"{BrQlab}");
                     }
-                    ImGui.Text($"{BrQlab}");
 
                     ImGui.TableNextColumn();
                     ImGui.Text("Deinstrumented execution counts awaiting assignment to the graph");
@@ -437,6 +440,16 @@ namespace rgatCore
                     ImGui.TableNextColumn();
                     ImGui.Text("This sets the speed of graph layout and slows over time");
 
+                    if (_rgatstate.VideoRecorder.Recording)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Video Frame Backlog");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{_rgatstate.VideoRecorder.FrameQueueSize}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Number of recorded frames awaiting commit to video");
+                    }
                     ImGui.EndTable();
                 }
                 ImGui.End();
@@ -1286,7 +1299,7 @@ namespace rgatCore
                         ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
                     }
                     else
-                    { 
+                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
                         ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
                         ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
@@ -1344,7 +1357,7 @@ namespace rgatCore
             }
 
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0,0,0,255).ToUint());
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0, 0, 0, 255).ToUint());
 
             bool boxBorders = false;
 
@@ -1935,7 +1948,7 @@ namespace rgatCore
             {
                 if (_rgatstate.VideoRecorder.Recording)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
                     if (ImGui.Button("Stop Capture"))
                     {
                         _rgatstate.VideoRecorder.Done();
@@ -1951,10 +1964,10 @@ namespace rgatCore
                     }
                 }
 
-                if(ImGui.Button("Capture Image"))
+                if (ImGui.Button("Capture Image"))
                 {
-                        _takeScreenshot = true;
-                    
+                    _takeScreenshot = true;
+
                     //MainGraphWidget.ButtonPressed = true;
                 }
                 ImGui.Button("Add Caption");
@@ -1965,7 +1978,7 @@ namespace rgatCore
 
         static Texture recordingStager;
         static bool _takeScreenshot;
-        unsafe public void PresentFramebuffer(Framebuffer fbuf, CommandList cl)
+        unsafe public void ProcessFramebuffer(Framebuffer fbuf, CommandList cl)
         {
 
             VideoEncoder recorder = _rgatstate?.VideoRecorder;
@@ -2003,10 +2016,10 @@ namespace rgatCore
                 {
                     SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[x, y];
                     byte* ptr = scan0 + y * data.Stride + (x * 4);
-                    ptr[0] = px.R ;
-                    ptr[1] = px.G ;
-                    ptr[2] = px.B ;
-                    ptr[3] = 255 ;
+                    ptr[0] = px.R;
+                    ptr[1] = px.G;
+                    ptr[2] = px.B;
+                    ptr[3] = 255;
                 }
             }
             bmp.UnlockBits(data);
@@ -2014,15 +2027,22 @@ namespace rgatCore
 
             if (_takeScreenshot)
             {
-                bmp.Save(System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), "bmp"));
+                try
+                {
+                    _rgatstate.VideoRecorder.TakeScreenshot(_rgatstate.ActiveGraph, bmp);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Unhandled exception while taking screenshot: {e.Message}");
+                }
                 _takeScreenshot = false;
             }
-               
+
             if (_rgatstate.VideoRecorder.Recording)
             {
-                _rgatstate.VideoRecorder.QueueFrame(bmp);
+                _rgatstate.VideoRecorder.QueueFrame(bmp, _rgatstate.ActiveGraph);
             }
-           
+
         }
 
 
@@ -2413,9 +2433,12 @@ namespace rgatCore
             else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
 
+                if (_recordVideoOnStart)
+                {
+                    _rgatstate.VideoRecorder.StartRecording();
+                    _recordVideoOnStart = false;
+                }
 
-                _rgatstate.VideoRecorder.StartRecording();
-                //MainGraphWidget.SetActiveGraph(_rgatstate.ActiveGraph);
                 PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
                 PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
             }

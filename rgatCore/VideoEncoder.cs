@@ -5,10 +5,12 @@ using FFMpegCore.Extend;
 using FFMpegCore.Pipes;
 using ImGuiNET;
 using rgatCore.Properties;
+using rgatCore.Widgets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -27,9 +29,12 @@ namespace rgatCore
         bool _ignoreSignatureError = false;
         bool _signatureError = false;
 
+        System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
+
         public VideoEncoder()
         {
 
+            _imageCodecs = ImageCodecInfo.GetImageEncoders();
 
         }
 
@@ -38,7 +43,7 @@ namespace rgatCore
         {
         }
 
-        public void Load(string dllpath="")
+        public void Load(string dllpath = "")
         {
             if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
             {
@@ -66,18 +71,26 @@ namespace rgatCore
 
 
         public bool Recording => _recording;
-        public bool _recording = false;
+        bool _recording = false;
         ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        public int FrameQueueSize => _bmpQueue.Count;
 
-        IEnumerable<IVideoFrame> CreateFrames()
+        IEnumerable<IVideoFrame> GetNextFrame()
         {
-            while (_recording)
+            while (_recording || _bmpQueue.Count > 0)
             {
                 if (_bmpQueue.Any())
                 {
+                    if (_bmpQueue.Count > 1024)
+                    {
+                        Logging.RecordLogEvent($"Warning: Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
+                        _recording = false;
+                    }
                     if (_bmpQueue.TryDequeue(out Bitmap frame))
                     {
                         System.Diagnostics.Debug.Assert(frame.Width == CurrentVideoWidth && frame.Height == CurrentVideoHeight, "Can't change frame dimensions during recording");
+
+                        _recordedFrameCount += 1;
                         yield return new BitmapVideoFrameWrapper(frame);
                     }
                 }
@@ -86,23 +99,179 @@ namespace rgatCore
             yield break;
         }
 
-
-        async public void Go()
+        public string GetCaptureDirectory()
         {
-            GlobalFFOptions.Configure(new FFOptions { BinaryFolder = @"C:\Users\nia\Desktop\rgatstuff\ffmpeg" });
-            string outfile = Path.ChangeExtension(Path.GetTempFileName(), VideoType.Mp4.Extension);
+            string result;
+            if (Directory.Exists(GlobalConfig.MediaCapturePath)) return GlobalConfig.MediaCapturePath;
 
-            Console.WriteLine("Writing to " + outfile);
-            var videoFramesSource = new RawVideoPipeSource(CreateFrames());
+
+            if (GlobalConfig.MediaCapturePath != null && GlobalConfig.MediaCapturePath.Length > 0)
+            {
+                try
+                {
+                    Directory.CreateDirectory(GlobalConfig.MediaCapturePath);
+                    return GlobalConfig.MediaCapturePath;
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Unable to use configured media path {GlobalConfig.MediaCapturePath}: {e.Message}");
+                }
+            }
+            result = GlobalConfig.GetStorageDirectoryPath("media");
+            if (result != "")
+            {
+                GlobalConfig.SetDirectoryPath("MediaCapturePath", result, true);
+                return result;
+            }
+
+            return Path.GetTempPath();
+
+        }
+
+
+        public string CurrentRecordingFile = "";
+        ulong _recordedFrameCount = 0;
+
+        public string GenerateVideoFilepath(PlottedGraph graph)
+        {
+            string storedir = GetCaptureDirectory();
+            string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+            string vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            string targetfile = Path.Combine(storedir, $"{vidname}.mp4");
+            int attempt = 1;
+            while (File.Exists(targetfile))
+            {
+                targetfile = Path.Combine(storedir, $"{vidname}({attempt++}).mp4");
+                if (attempt == 255)
+                {
+                    Logging.RecordLogEvent("Bizarre error finding place to store media.", filter: Logging.LogFilterType.TextError);
+                    _recording = false;
+                    return Path.GetRandomFileName();
+                }
+            }
+            return targetfile;
+        }
+
+        public void TakeScreenshot(PlottedGraph graph, Bitmap bmp)
+        {
+            if (GlobalConfig.ImageCapture_Format == null || GlobalConfig.ImageCapture_Format.Length < 2)
+                GlobalConfig.AddUpdateAppSettings("ImageCapture_Format", "PNG");
+
+            ImageFormat format = ImageFormat.Bmp;
+            string extension = ".bmp";
+            foreach (var codec in _imageCodecs)
+            {
+                if (codec.FormatDescription == GlobalConfig.ImageCapture_Format)
+                {
+                    extension = codec.FilenameExtension.Split(';')[0].Split('.')[1];
+                    switch (GlobalConfig.ImageCapture_Format)
+                    {
+                        case "BMP":
+                            format = ImageFormat.Bmp;
+                            break;
+                        case "PNG":
+                            format = ImageFormat.Png;
+                            break;
+                        case "JPEG":
+                            format = ImageFormat.Jpeg;
+                            break;
+                        case "TIFF":
+                            format = ImageFormat.Tiff;
+                            break;
+                        case "GIF":
+                            format = ImageFormat.Gif;
+                            break;
+                        default:
+                            Logging.RecordLogEvent("Unhandled image format: " + GlobalConfig.ImageCapture_Format);
+                            return;
+                            break;
+                    }
+                }
+            }
+
+            string storedir = GetCaptureDirectory();
+            string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+            string vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            string targetfile = Path.Combine(storedir, $"{vidname}.{extension}");
+            int attempt = 1;
+            while (File.Exists(targetfile))
+            {
+                targetfile = Path.Combine(storedir, $"{vidname}({attempt++}).{extension}");
+                if (attempt == 255)
+                {
+                    Logging.RecordLogEvent("Bizarre error finding place to store iamge.", filter: Logging.LogFilterType.TextError);
+                }
+            }
+
             try
             {
+                bmp.Save(targetfile, format: format);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error saving image {targetfile} as format {format}: {e.Message}");
+            }
+        }
+
+
+        Speed GetVideoSpeed()
+        {
+            Speed result;
+            try
+            {
+                result = (Speed)Enum.Parse(typeof(Speed), GlobalConfig.VideoCodec_Speed, ignoreCase: true);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Unable to parse video speed setting '{GlobalConfig.VideoCodec_Speed}' into a speed preset: {e.Message}");
+                result = Speed.Medium;
+                GlobalConfig.VideoCodec_Speed = GlobalConfig.VideoCodec_Speed.ToString();
+                GlobalConfig.AddUpdateAppSettings("VideoCodec_Speed", GlobalConfig.VideoCodec_Speed);
+            }
+            return result;
+        }
+
+
+        async public void Go(PlottedGraph graph)
+        {
+            if (GlobalConfig.VideoEncoderFFmpegPath == null ||
+                GlobalConfig.VideoEncoderFFmpegPath == "" ||
+                !File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
+            {
+                Logging.RecordLogEvent($"Unable to start recording: FFmpeg path not configured");
+                _recording = false;
+                Loaded = false;
+                return;
+            }
+
+            try
+            {
+                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.VideoEncoderFFmpegPath) });
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Unable to start recording: Exception '{e.Message}' configuring recorder");
+                _recording = false;
+                Loaded = false;
+                return;
+            }
+
+
+            CurrentRecordingFile = GenerateVideoFilepath(graph);
+            _recordedFrameCount = 0;
+            Logging.RecordLogEvent("Recording video to " + CurrentRecordingFile);
+            var videoFramesSource = new RawVideoPipeSource(GetNextFrame());
+            try
+            {
+                //https://trac.ffmpeg.org/wiki/Encode/H.264
                 await FFMpegArguments
                     .FromPipeInput(videoFramesSource)
-                    .OutputToFile(outfile, false, opt => opt
+                    .OutputToFile(CurrentRecordingFile, false, opt => opt
+                        .WithFramerate(GlobalConfig.VideoCodec_FPS)
+                        .WithConstantRateFactor(28 - GlobalConfig.VideoCodec_Quality)
+                        .WithSpeedPreset(GetVideoSpeed())
                         .WithVideoCodec(VideoCodec.LibX264)
-
                         )
-
                     .ProcessAsynchronously();
             }
             catch (Exception e)
@@ -115,40 +284,22 @@ namespace rgatCore
             Initialised = false;
             _recording = false;
             _bmpQueue.Clear();
-            Console.WriteLine("Done " + outfile);
+
+            Logging.RecordLogEvent($"Recorded {_recordedFrameCount} frames of {CurrentVideoWidth}x{CurrentVideoHeight} video to " + CurrentRecordingFile);
+            CurrentRecordingFile = "";
         }
 
 
-
-        public void QueueFrames(List<Bitmap> frames)
+        public void QueueFrame(Bitmap frame, PlottedGraph graph)
         {
-            if (frames.Any())
-            {
-                if (!Initialised)
-                {
-                    CurrentVideoWidth = frames[0].Width;
-                    CurrentVideoHeight = frames[0].Height;
-
-                    Task.Run(() => { Go(); });
-                    Initialised = true;
-                }
-                foreach (Bitmap frame in frames)
-                {
-                    _bmpQueue.Enqueue(frame);
-                }
-            }
-        }
-
-        public void QueueFrame(Bitmap frame)
-        {
-            if (frame != null)
+            if (frame != null && _recording)
             {
                 if (!Initialised)
                 {
                     CurrentVideoWidth = frame.Width;
                     CurrentVideoHeight = frame.Height;
 
-                    Task.Run(() => { Go(); });
+                    Task.Run(() => { Go(graph); });
                     Initialised = true;
                 }
                 _bmpQueue.Enqueue(frame);
@@ -240,21 +391,68 @@ namespace rgatCore
             }
 
             //settings
-
-            bool settingChange = false;
-            if (ImGui.InputInt("Frame Width", ref GlobalConfig.VideoCodec_Width)) settingChange = true;
-            if (ImGui.InputInt("Frame Height", ref GlobalConfig.VideoCodec_Height)) settingChange = true;
-            if (ImGui.InputInt("Target Bitrate", ref GlobalConfig.VideoCodec_Bitrate)) settingChange = true;
-            if (ImGui.InputInt("Frame Per Second", ref GlobalConfig.VideoCodec_FPS)) settingChange = true;
-            if (ImGui.InputInt("Key Frame Interval (Seconds)", ref GlobalConfig.VideoCodec_FrameInterval)) settingChange = true;
-
-            if (settingChange)
+            if (ImGui.BeginTable("##VideoSettingsTable", 2, ImGuiTableFlags.Borders))
             {
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Height", GlobalConfig.VideoCodec_Width.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Width", GlobalConfig.VideoCodec_Height.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Bitrate", GlobalConfig.VideoCodec_Bitrate.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_FrameInterval", GlobalConfig.VideoCodec_FrameInterval.ToString());
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+
+                ImguiUtils.DrawHorizCenteredText("Video Settings");
+
+                ImGui.SetNextItemWidth(180);
+                if (ImGui.BeginCombo("Quality", GlobalConfig.VideoCodec_Quality.ToString()))
+                {
+                    foreach (int CRF_Modifier in Enumerable.Range(0, 11 + 1))
+                    {
+                        if (ImGui.Selectable(CRF_Modifier.ToString()))
+                        {
+                            GlobalConfig.VideoCodec_Quality = CRF_Modifier;
+                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Quality", CRF_Modifier.ToString());
+                        }
+                    }
+                    ImGui.EndCombo();
+                }
+                SmallWidgets.MouseoverText("0 is bad quality, 11 is near lossless");
+
+                ImGui.SetNextItemWidth(180);
+                if (ImGui.BeginCombo("Compression Speed", GlobalConfig.VideoCodec_Speed))
+                {
+                    foreach (var speed in Enum.GetNames(typeof(Speed)).Select(x => x.ToString()))
+                    {
+                        if (ImGui.Selectable(speed))
+                        {
+                            GlobalConfig.VideoCodec_Speed = speed;
+                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Speed", speed);
+                        }
+                    }
+                    ImGui.EndCombo();
+                }
+                SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
+
+                if (ImGui.InputInt("Framerate", ref GlobalConfig.VideoCodec_FPS))
+                {
+                    GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
+                }
+                SmallWidgets.MouseoverText("Number of frames to record per second of video. Increase to increase quality and file size");
+
+                ImGui.TableNextColumn();
+
+                ImguiUtils.DrawHorizCenteredText("Image Settings");
+
+                if (ImGui.BeginCombo("Image Format", GlobalConfig.ImageCapture_Format))
+                {
+                    foreach (var codec in _imageCodecs)
+                    {
+                        if (ImGui.Selectable(codec.FormatDescription))
+                        {
+                            GlobalConfig.ImageCapture_Format = codec.FormatDescription;
+                            GlobalConfig.AddUpdateAppSettings("ImageCapture_Format", codec.FormatDescription);
+                        }
+                    }
+
+                    ImGui.EndCombo();
+                }
+
+                ImGui.EndTable();
             }
         }
 

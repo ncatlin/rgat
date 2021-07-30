@@ -512,11 +512,7 @@ namespace rgatCore
 
             if (ActiveGraph != null)
             {
-                Texture output = DrawGraphImage();
-                if ( ButtonPressed)
-                {
-                    //CreateCaptureFrame(output);
-                }
+               DrawGraphImage();
             }
 
             drawHUD(graphSize, ActiveGraph);
@@ -1683,82 +1679,5 @@ namespace rgatCore
         }
 
 
-
-
-
-
-
-        public bool ButtonPressed = false;
-
-        unsafe public void CreateCaptureFrame(Texture graphtexture, CommandList cl)
-        {
-
-
-            int frameWidth = _clientState.VideoRecorder.CurrentVideoWidth;
-            int frameHeight = _clientState.VideoRecorder.CurrentVideoHeight;
-            if (frameHeight == 0 || frameWidth == 0)
-            {
-                if (_graphWidgetSize.X > 0 && _graphWidgetSize.Y > 0)
-                {
-                    frameWidth = (int)_graphWidgetSize.X;
-                    frameHeight = (int)_graphWidgetSize.Y;
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            //get the graph image we have rendered
-            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
-                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
-
-            cl.Begin();
-            cl.CopyTexture(graphtexture, stageTex);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
-
-            //draw it onto a bitmap
-            Bitmap bmp = new Bitmap(frameWidth, frameHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, frameWidth, frameHeight),
-                ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            byte* scan0 = (byte*)data.Scan0;
-
-            MappedResourceView<RgbaFloat> res = _gd.Map<RgbaFloat>(stageTex, MapMode.Read);
-            int drawHeight = (int)Math.Min(bmp.Height, stageTex.Height);
-            int drawWidth = (int)Math.Min(bmp.Width, stageTex.Width);
-
-            for (int y = 0; y < drawHeight; y += 1)
-            {
-                for (int x = 0; x < drawWidth; x += 1)
-                {
-                    RgbaFloat px = res[x, drawHeight - y];
-                    byte* ptr = scan0 + y * data.Stride + (x * 4);
-                    ptr[0] = (byte)(px.B * 255f);
-                    ptr[1] = (byte)(px.G * 255f);
-                    ptr[2] = (byte)(px.R * 255f);
-                    ptr[3] = (byte)(px.A * 255f);
-                }
-            }
-            bmp.UnlockBits(data);
-            _gd.Unmap(stageTex);
-
-
-            if (ButtonPressed)
-            {
-                ButtonPressed = false;
-                bmp.Save(System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), "bmp"));
-            }
-
-
-            //queue for passing to the video encoder
-            lock (_lock)
-            {
-                _clientState.VideoRecorder.QueueFrame(bmp);
-            }
-
-            VeldridGraphBuffers.DoDispose(stageTex);
-        }
     }
 }

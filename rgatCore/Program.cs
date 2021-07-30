@@ -212,7 +212,7 @@ namespace ImGuiNET
 
             _gd.WaitForIdle();
 
-            _rgatui.PresentFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
+            _rgatui.ProcessFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
 
 
             if (_housekeepingTimerFired)
