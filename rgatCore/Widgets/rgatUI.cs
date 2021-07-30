@@ -295,11 +295,28 @@ namespace rgatCore
             {
                 _frameTimerFired = false;
                 _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
+
+                if (_scheduleMissingPathCheck)
+                {
+                    CheckMissingPaths();
+                    _scheduleMissingPathCheck = false;
+                }
             }
 
 
 
             return true;
+        }
+
+        void CheckMissingPaths()
+        {
+            foreach (var path in GlobalConfig.RecentBinaries.Concat(GlobalConfig.RecentTraces))
+            {
+                if (!_missingPaths.Contains(path.path) && !File.Exists(path.path))
+                {
+                    _missingPaths.Add(path.path);
+                }
+            }
         }
 
         void DrawGraphStatsDialog(ref bool hideme)
@@ -1384,7 +1401,7 @@ namespace rgatCore
 
 
         bool _splashHeaderHover = false;
-
+        bool _scheduleMissingPathCheck = true;
         void DrawStartSplash()
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
@@ -1519,7 +1536,15 @@ namespace rgatCore
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))
                             {
-                                LoadSelectedBinary(entry.path);
+                                if (File.Exists(entry.path))
+                                {
+                                    LoadSelectedBinary(entry.path);
+                                }
+                                else if (!_missingPaths.Contains(entry.path))
+                                {
+                                    _scheduleMissingPathCheck = true;
+                                    _missingPaths.Add(entry.path);
+                                }
                             }
                         }
                         ImGui.EndTable();
@@ -1588,7 +1613,15 @@ namespace rgatCore
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))
                             {
-                                LoadTraceByPath(entry.path);
+                                if (File.Exists(entry.path))
+                                {
+                                    LoadTraceByPath(entry.path);
+                                }
+                                else if (!_missingPaths.Contains(entry.path))
+                                {
+                                    _scheduleMissingPathCheck = true;
+                                    _missingPaths.Add(entry.path);
+                                }
                             }
                         }
                         ImGui.EndTable();
@@ -1626,7 +1659,7 @@ namespace rgatCore
         }
 
 
-
+        List<string> _missingPaths = new List<string>();
 
         void ToggleTestHarness()
         {
@@ -1640,31 +1673,43 @@ namespace rgatCore
         bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
         {
 
-            string path = pathdata.path;
-            if (path.ToLower().EndsWith(".rgat"))
+            string pathshort = pathdata.path;
+            bool isMissing = _missingPaths.Contains(pathdata.path);
+
+            if (pathdata.path.ToLower().EndsWith(".rgat"))
             {
-                int dateIdx = path.LastIndexOf("__");
+                int dateIdx = pathshort.LastIndexOf("__");
                 if (dateIdx > 0)
-                    path = path.Substring(0, dateIdx);
+                    pathshort = pathshort.Substring(0, dateIdx);
             }
             string agoText = $" ({pathdata.lastSeen.Humanize()})";
-            if (ImGui.CalcTextSize(path + agoText).X > ImGui.GetContentRegionAvail().X)
+            if (ImGui.CalcTextSize(pathshort + agoText).X > ImGui.GetContentRegionAvail().X)
             {
-                if (path.Length > 50)
-                    path = path.Truncate(50, "...", TruncateFrom.Left);
+                if (pathshort.Length > 50)
+                    pathshort = pathshort.Truncate(50, "...", TruncateFrom.Left);
+            }
+            if (isMissing)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
             }
 
             if (menu)
             {
-                if (ImGui.MenuItem(path + agoText))
+                if (ImGui.MenuItem(pathshort + agoText))
                 {
                     return true;
                 }
             }
             else
             {
-                ImGui.Selectable(path + agoText);
+                ImGui.Selectable(pathshort + agoText);
             }
+
+            if (isMissing)
+            {
+                ImGui.PopStyleColor();
+            }
+
             if (ImGui.IsItemHovered())
             {
                 if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
@@ -1676,6 +1721,11 @@ namespace rgatCore
                 ImGui.Text($"Most recently opened {pathdata.lastSeen.Humanize()}");
                 ImGui.Text($"First opened {pathdata.lastSeen.Humanize()}");
                 ImGui.Text($"Has been loaded {pathdata.count} times.");
+                if (isMissing)
+                {
+                    ImGui.Text($"--------------");
+                    ImGui.Text($"File is missing");
+                }
                 ImGui.EndTooltip();
             }
             return false;

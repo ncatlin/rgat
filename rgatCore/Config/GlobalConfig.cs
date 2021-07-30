@@ -493,6 +493,7 @@ namespace rgatCore
                             !data.TryGetValue("FirstOpen", out JToken firstOpenTok) || firstOpenTok.Type != JTokenType.Date ||
                             !data.TryGetValue("LastOpen", out JToken lastOpenTok) || lastOpenTok.Type != JTokenType.Date)
                             continue;
+                        if (!File.Exists(entry.Key)) continue;
                         CachedPathData pd = new CachedPathData
                         {
                             path = entry.Key,

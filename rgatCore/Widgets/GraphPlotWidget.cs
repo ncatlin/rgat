@@ -1671,9 +1671,9 @@ namespace rgatCore
             //highlight new nodes with highlighted address
 
             graph.DoHighlightAddresses();
-
-
             _graphLock.ExitReadLock();
+
+            
         }
 
 
