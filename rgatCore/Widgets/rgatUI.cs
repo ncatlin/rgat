@@ -93,6 +93,7 @@ namespace rgatCore
                 _UIstartupProgress = currentUIProgress + 0.3 * GlobalConfig.LoadProgress;
                 Thread.Sleep(10);
             }
+            _scheduleMissingPathCheck = true;
 
             RecordLogEvent("Startup: Config Inited", LogFilterType.TextDebug);
             _UIstartupProgress = 0.4;
@@ -1465,12 +1466,6 @@ namespace rgatCore
                         ImGui.Text("Settings");
                         ImGui.PopFont();
                     }
-                    if (ImGui.Button("Demo"))
-                    {
-                        _ImGuiController.ShowDemoWindow = !_ImGuiController.ShowDemoWindow;
-
-                        //MainGraphWidget.ButtonPressed = true;
-                    }
                     ImGui.EndGroup();
                 }
                 ImGui.EndChild();
@@ -1538,7 +1533,10 @@ namespace rgatCore
                             {
                                 if (File.Exists(entry.path))
                                 {
-                                    LoadSelectedBinary(entry.path);
+                                    if (!LoadSelectedBinary(entry.path) && !_badPaths.Contains(entry.path))
+                                    {
+                                        _badPaths.Add(entry.path);
+                                    }
                                 }
                                 else if (!_missingPaths.Contains(entry.path))
                                 {
@@ -1615,7 +1613,10 @@ namespace rgatCore
                             {
                                 if (File.Exists(entry.path))
                                 {
-                                    LoadTraceByPath(entry.path);
+                                    if (!LoadTraceByPath(entry.path) && !_badPaths.Contains(entry.path))
+                                    {
+                                        _badPaths.Add(entry.path);
+                                    }
                                 }
                                 else if (!_missingPaths.Contains(entry.path))
                                 {
@@ -1660,6 +1661,7 @@ namespace rgatCore
 
 
         List<string> _missingPaths = new List<string>();
+        List<string> _badPaths = new List<string>();
 
         void ToggleTestHarness()
         {
@@ -1675,6 +1677,7 @@ namespace rgatCore
 
             string pathshort = pathdata.path;
             bool isMissing = _missingPaths.Contains(pathdata.path);
+            bool isBad = _badPaths.Contains(pathdata.path);
 
             if (pathdata.path.ToLower().EndsWith(".rgat"))
             {
@@ -1688,7 +1691,7 @@ namespace rgatCore
                 if (pathshort.Length > 50)
                     pathshort = pathshort.Truncate(50, "...", TruncateFrom.Left);
             }
-            if (isMissing)
+            if (isMissing || isBad)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
             }
@@ -1705,7 +1708,7 @@ namespace rgatCore
                 ImGui.Selectable(pathshort + agoText);
             }
 
-            if (isMissing)
+            if (isMissing || isBad)
             {
                 ImGui.PopStyleColor();
             }
@@ -1717,14 +1720,20 @@ namespace rgatCore
                     return true;
                 }
                 ImGui.BeginTooltip();
+                ImGui.Indent(5);
                 ImGui.Text($"{pathdata.path}");
                 ImGui.Text($"Most recently opened {pathdata.lastSeen.Humanize()}");
-                ImGui.Text($"First opened {pathdata.lastSeen.Humanize()}");
+                ImGui.Text($"First opened {pathdata.firstSeen.Humanize()}");
                 ImGui.Text($"Has been loaded {pathdata.count} times.");
                 if (isMissing)
                 {
-                    ImGui.Text($"--------------");
+                    ImGui.Text($"-------Not Found-------");
                     ImGui.Text($"File is missing");
+                }
+                if (isBad)
+                {
+                    ImGui.Text($"-------Error-------");
+                    ImGui.Text($"Unable to open, may be corrupt or inaccessible");
                 }
                 ImGui.EndTooltip();
             }
@@ -3226,14 +3235,23 @@ namespace rgatCore
 
         bool LoadSelectedBinary(string path)
         {
-            if (!File.Exists(path)) return false;
+            if (!File.Exists(path))
+            {
+                Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.TextAlert);
+                return false;
+            }
+
+
             FileStream fs = File.OpenRead(path);
             bool isJSON = (fs.ReadByte() == '{' && fs.ReadByte() == '"');
             fs.Close();
             if (isJSON)
             {
-                Console.WriteLine("JSON detected, attempting to load file as saved trace instead");
-                LoadTraceByPath(path);
+                if (!LoadTraceByPath(path))
+                {
+                    Logging.RecordLogEvent($"Failed loading invalid trace: {path}", filter: LogFilterType.TextAlert);
+                    return false;
+                }
             }
             else
             {
@@ -3265,10 +3283,20 @@ namespace rgatCore
             }
         }
 
-        private void LoadTraceByPath(string filepath)
+        private bool LoadTraceByPath(string filepath)
         {
+            if (!File.Exists(filepath))
+            {
+                Logging.RecordLogEvent($"Failed to load missing trace file: {filepath}", filter: LogFilterType.TextAlert);
+                return false;
+            }
+
+            if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace))
+            {
+                Logging.RecordLogEvent($"Failed to load invalid trace: {filepath}", filter: LogFilterType.TextAlert);
+                return false;
+            }
             GlobalConfig.RecordRecentPath(filepath, GlobalConfig.eRecentPathType.Trace);
-            if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace)) return;
 
             BinaryTarget target = trace.binaryTarg;
 
@@ -3284,7 +3312,7 @@ namespace rgatCore
             //_rgatstate.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
-
+            return true;
         }
 
         void launch_all_trace_threads(TraceRecord trace, rgatState clientState)

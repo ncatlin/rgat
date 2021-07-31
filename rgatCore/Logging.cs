@@ -383,6 +383,15 @@ namespace rgatCore
 
         }
 
+        public static LOG_EVENT[] GetErrorMessages()
+        {
+            lock (_messagesLock)
+            {
+               return _logMessages.Where(x => x.LogType == eLogType.Text && x.Filter == LogFilterType.TextError).ToArray();
+
+            }
+        }
+
         public static LOG_EVENT[] GetLogMessages(TraceRecord trace, bool[] filters)
         {
             lock (_messagesLock)

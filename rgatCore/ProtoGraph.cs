@@ -1362,7 +1362,7 @@ namespace rgatCore
 
             if (!LoadStats(graphData))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load graph stats");
+                Logging.RecordLogEvent("ERROR: Failed to load graph stats", Logging.LogFilterType.TextError);
                 return false;
             }
             return true;
